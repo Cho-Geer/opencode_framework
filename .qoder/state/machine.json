@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "project": "appointment-booking-system",
     "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-20T16:28:59.749Z"
+    "lastUpdated": "2026-04-20T16:30:13.281Z"
   },
   "currentTask": {
     "id": "TASK-001",
@@ -27,8 +27,8 @@
     },
     "frontend-dto": {
       "file": "booking-frontend/src/app/shared/dto/",
-      "hash": "sha256-6fc5fd8ea7cdd31960fda56d612f2cf5983af0a7576530648131ccd980badcda",
-      "lastValidated": "2026-04-20T10:10:46.583Z",
+      "hash": "sha256-530835b1756968dce2a96f5cf8ef4c8b933afa035ecbf25ae2037ca2010a1555",
+      "lastValidated": "2026-04-20T16:30:13.281Z",
       "owner": "@Coder-FE",
       "description": "前端类型定义，须与 backend-api 一致"
     },
@@ -231,6 +231,13 @@
       "action": "HASH_UPDATE",
       "target": "backend-api",
       "details": "Hash updated from sha256-efe910d94bd18... to sha256-36255798ca7ad..."
+    },
+    {
+      "timestamp": "2026-04-20T16:30:13.281Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "frontend-dto",
+      "details": "Hash updated from sha256-6fc5fd8ea7cdd... to sha256-530835b175696..."
     }
   ]
 }
