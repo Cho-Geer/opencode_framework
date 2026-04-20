@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "project": "appointment-booking-system",
     "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-20T16:30:13.281Z"
+    "lastUpdated": "2026-04-20T16:36:56.238Z"
   },
   "currentTask": {
     "id": "TASK-001",
@@ -21,8 +21,8 @@
     },
     "prisma-schema": {
       "file": "booking-backend/prisma/schema.prisma",
-      "hash": "sha256-0a1e5c90ce97a8050f4623e3721a28f7004cbadbfe9b7223c55014c0da26ecc2",
-      "lastValidated": "2026-04-20T10:02:11.021Z",
+      "hash": "sha256-34226c79a42fc7b38517b930adc135c064a2fe5c4f7f4e14c5d8b96e567eeec9",
+      "lastValidated": "2026-04-20T16:36:56.238Z",
       "owner": "@Coder-BE"
     },
     "frontend-dto": {
@@ -238,6 +238,13 @@
       "action": "HASH_UPDATE",
       "target": "frontend-dto",
       "details": "Hash updated from sha256-6fc5fd8ea7cdd... to sha256-530835b175696..."
+    },
+    {
+      "timestamp": "2026-04-20T16:36:56.238Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "prisma-schema",
+      "details": "Hash updated from sha256-0a1e5c90ce97a... to sha256-34226c79a42fc..."
     }
   ]
 }
