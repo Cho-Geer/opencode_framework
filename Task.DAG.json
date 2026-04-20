@@ -3,7 +3,7 @@
     {
       "id": "TASK-TEST-001",
       "title": "验证测试任务",
-      "status": "Review",
+      "status": "InProgress",
       "owner": "@Coder-BE"
     }
   ]
