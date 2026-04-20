@@ -1,0 +1,125 @@
+{
+  "$schema": "./machine.schema.json",
+  "meta": {
+    "version": "1.1.0",
+    "project": "appointment-booking-system",
+    "description": "强制校验契约哈希。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
+    "lastUpdated": "2026-04-20T10:14:28.739Z"
+  },
+  "currentTask": {
+    "id": "TASK-001",
+    "title": "初始化状态机",
+    "status": "Idle",
+    "owner": "@Orchestrator"
+  },
+  "contracts": {
+    "backend-api": {
+      "file": "booking_system_refactor/contract.yaml",
+      "hash": "sha256-ae4e59854b38adfea721f7635884bcf70994ffdc1b848f1ae08721c712d96d7f",
+      "lastValidated": "2026-04-20T18:35:00.000Z",
+      "owner": "@Architect"
+    },
+    "prisma-schema": {
+      "file": "booking-backend/prisma/schema.prisma",
+      "hash": "sha256-0a1e5c90ce97a8050f4623e3721a28f7004cbadbfe9b7223c55014c0da26ecc2",
+      "lastValidated": "2026-04-20T10:02:11.021Z",
+      "owner": "@Coder-BE"
+    },
+    "frontend-dto": {
+      "file": "booking-frontend/src/app/shared/dto/",
+      "hash": "sha256-6fc5fd8ea7cdd31960fda56d612f2cf5983af0a7576530648131ccd980badcda",
+      "lastValidated": "2026-04-20T10:10:46.583Z",
+      "owner": "@Coder-FE",
+      "description": "前端类型定义，须与 backend-api 一致（目录不存在，待创建）"
+    },
+    "frontend-environment": {
+      "file": "booking-frontend/src/environments/environment.ts",
+      "hash": "sha256-4bbb147a5a6dd7abe535502e7ee9b8cfd1824f81a207e1ff9b662fbb6496edbf",
+      "lastValidated": "2026-04-20T10:14:28.739Z",
+      "owner": "@Coder-FE"
+    }
+  },
+  "stateTransitions": {
+    "task": {
+      "Idle": [
+        "Ready"
+      ],
+      "Ready": [
+        "InProgress"
+      ],
+      "InProgress": [
+        "Testing",
+        "Blocked"
+      ],
+      "Testing": [
+        "Review",
+        "InProgress"
+      ],
+      "Review": [
+        "Done",
+        "InProgress"
+      ],
+      "Blocked": [
+        "InProgress"
+      ]
+    }
+  },
+  "auditLog": [
+    {
+      "timestamp": "2026-04-20T12:00:00.000Z",
+      "agent": "@Meta-Planner",
+      "action": "INITIALIZE",
+      "target": "state machine",
+      "details": "启用契约哈希强制校验，防止 TDD 退化"
+    },
+    {
+      "timestamp": "2026-04-20T13:30:00.000Z",
+      "agent": "@Meta-Planner",
+      "action": "UPDATE",
+      "target": "contracts",
+      "details": "新增前端契约条目，明确 @Coder-FE 的哈希更新责任"
+    },
+    {
+      "timestamp": "2026-04-20T18:35:00.000Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_CORRECTION",
+      "target": "contracts",
+      "details": "修正空哈希值：backend-api、prisma-schema、frontend-environment 已更新为实际SHA256哈希"
+    },
+    {
+      "timestamp": "2026-04-20T10:02:11.021Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "prisma-schema",
+      "details": "Hash updated from sha256-bf25dec39bb80... to sha256-0a1e5c90ce97a..."
+    },
+    {
+      "timestamp": "2026-04-20T10:02:11.021Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "frontend-environment",
+      "details": "Hash updated from sha256-8f4f393cff083... to sha256-81a3de09309c0..."
+    },
+    {
+      "timestamp": "2026-04-20T10:10:46.583Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "frontend-dto",
+      "details": "Hash updated to sha256-6fc5fd8ea7cdd..."
+    },
+    {
+      "timestamp": "2026-04-20T10:13:54.123Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "frontend-environment",
+      "details": "Hash updated from sha256-81a3de09309c0... to sha256-2bacf85132ff1..."
+    },
+    {
+      "timestamp": "2026-04-20T10:14:28.739Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "frontend-environment",
+      "details": "Hash updated from sha256-2bacf85132ff1... to sha256-4bbb147a5a6dd..."
+    }
+  ]
+}
