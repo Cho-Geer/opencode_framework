@@ -1,10 +1,10 @@
 {
   "$schema": "./machine.schema.json",
   "meta": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "project": "appointment-booking-system",
     "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-20T16:38:24.300Z"
+    "lastUpdated": "2026-04-20T16:43:21.000Z"
   },
   "currentTask": {
     "id": "TASK-001",
@@ -100,19 +100,48 @@
             "filePattern": "tasks/{taskId}/test_report.json",
             "description": "测试执行报告",
             "schema": {
-              "requiredFields": [
-                "execution_evidence",
-                "coverage"
-              ],
-              "execution_evidence": {
-                "requiredFields": [
-                  "exit_code",
-                  "output_summary"
-                ]
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "type": "object",
+              "required": ["execution_evidence", "coverage"],
+              "properties": {
+                "execution_evidence": {
+                  "type": "object",
+                  "required": ["exit_code", "output_summary"],
+                  "properties": {
+                    "exit_code": {
+                      "type": "integer",
+                      "description": "测试进程退出码，0 表示全部通过"
+                    },
+                    "output_summary": {
+                      "type": "string",
+                      "description": "测试执行输出摘要"
+                    }
+                  }
+                },
+                "coverage": {
+                  "type": "object",
+                  "properties": {
+                    "lines": {
+                      "type": "number",
+                      "minimum": 70,
+                      "description": "行覆盖率（%），最低 70%"
+                    },
+                    "branches": {
+                      "type": "number",
+                      "description": "分支覆盖率（%）"
+                    },
+                    "functions": {
+                      "type": "number",
+                      "description": "函数覆盖率（%）"
+                    },
+                    "statements": {
+                      "type": "number",
+                      "description": "语句覆盖率（%）"
+                    }
+                  }
+                }
               },
-              "coverage": {
-                "minThreshold": 70
-              }
+              "additionalProperties": true
             },
             "contentMustNotContain": "\"failed\": [1-9]"
           }
@@ -259,6 +288,13 @@
       "action": "HASH_UPDATE",
       "target": "frontend-dto",
       "details": "Hash updated from sha256-530835b175696... to sha256-6fc5fd8ea7cdd..."
+    },
+    {
+      "timestamp": "2026-04-20T16:43:21.000Z",
+      "agent": "@Orchestrator",
+      "action": "SCHEMA_UPGRADE",
+      "target": "taskLifecycle.transitions",
+      "details": "升级至 v2.1.0，将 requiredEvidence.schema 从自定义格式转为标准 JSON Schema (draft-07)，启用 ajv 原生校验"
     }
   ]
 }
