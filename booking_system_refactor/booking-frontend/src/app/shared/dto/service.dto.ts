@@ -9,6 +9,7 @@ export interface Service {
   name: string;
   description: string;
   duration: number;
+  durationMinutes: number; // Alias for backward compatibility
   price: number;
   active: boolean;
 }

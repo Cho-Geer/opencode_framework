@@ -4,7 +4,7 @@
     "version": "2.1.0",
     "project": "appointment-booking-system",
     "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-20T16:43:21.000Z"
+    "lastUpdated": "2026-04-20T20:43:58.083Z"
   },
   "currentTask": {
     "id": "TASK-001",
@@ -15,27 +15,27 @@
   "contracts": {
     "backend-api": {
       "file": "contract.yaml",
-      "hash": "sha256-36255798ca7adeffce0ca5644f16e680654b237f34b244740bf930abd17c3fca",
-      "lastValidated": "2026-04-20T16:28:59.749Z",
+      "hash": "sha256-b4c0f8c105e55340aadbd862b15d05087a1adafafbca8e917435aab1667de852",
+      "lastValidated": "2026-04-20T18:03:22.643Z",
       "owner": "@Architect"
     },
     "prisma-schema": {
       "file": "booking-backend/prisma/schema.prisma",
-      "hash": "sha256-b95455029f04a1fb4666929845ed3e730182b113866063ee4b8fc23eb933518b",
-      "lastValidated": "2026-04-20T16:37:27.662Z",
+      "hash": "sha256-b21af8c44999669910d2002f988ee13ef611093dad72d122ef58bd985ea6791e",
+      "lastValidated": "2026-04-20T20:43:58.083Z",
       "owner": "@Coder-BE"
     },
     "frontend-dto": {
       "file": "booking-frontend/src/app/shared/dto/",
-      "hash": "sha256-6fc5fd8ea7cdd31960fda56d612f2cf5983af0a7576530648131ccd980badcda",
-      "lastValidated": "2026-04-20T16:38:24.300Z",
+      "hash": "sha256-f05041e0d2634acb513ccd7e0a47ce876ccb7bf3e60a175e006224b58411ee94",
+      "lastValidated": "2026-04-20T20:43:58.083Z",
       "owner": "@Coder-FE",
       "description": "前端类型定义，须与 backend-api 一致"
     },
     "frontend-environment": {
       "file": "booking-frontend/src/environments/environment.ts",
-      "hash": "sha256-4bbb147a5a6dd7abe535502e7ee9b8cfd1824f81a207e1ff9b662fbb6496edbf",
-      "lastValidated": "2026-04-20T10:14:28.739Z",
+      "hash": "sha256-b537cc0106e4059f46291c959dea0cf6df50e8fab8e9d79ea39132e45b1b07d7",
+      "lastValidated": "2026-04-20T20:43:58.083Z",
       "owner": "@Coder-FE"
     }
   },
@@ -102,11 +102,17 @@
             "schema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "type": "object",
-              "required": ["execution_evidence", "coverage"],
+              "required": [
+                "execution_evidence",
+                "coverage"
+              ],
               "properties": {
                 "execution_evidence": {
                   "type": "object",
-                  "required": ["exit_code", "output_summary"],
+                  "required": [
+                    "exit_code",
+                    "output_summary"
+                  ],
                   "properties": {
                     "exit_code": {
                       "type": "integer",
@@ -295,6 +301,34 @@
       "action": "SCHEMA_UPGRADE",
       "target": "taskLifecycle.transitions",
       "details": "升级至 v2.1.0，将 requiredEvidence.schema 从自定义格式转为标准 JSON Schema (draft-07)，启用 ajv 原生校验"
+    },
+    {
+      "timestamp": "2026-04-20T18:03:22.643Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "backend-api",
+      "details": "Hash updated from sha256-36255798ca7ad... to sha256-b4c0f8c105e55..."
+    },
+    {
+      "timestamp": "2026-04-20T20:43:58.083Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "prisma-schema",
+      "details": "Hash updated from sha256-b95455029f04a... to sha256-b21af8c449996..."
+    },
+    {
+      "timestamp": "2026-04-20T20:43:58.083Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "frontend-dto",
+      "details": "Hash updated from sha256-6fc5fd8ea7cdd... to sha256-f05041e0d2634..."
+    },
+    {
+      "timestamp": "2026-04-20T20:43:58.083Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "frontend-environment",
+      "details": "Hash updated from sha256-4bbb147a5a6dd... to sha256-b537cc0106e40..."
     }
   ]
 }

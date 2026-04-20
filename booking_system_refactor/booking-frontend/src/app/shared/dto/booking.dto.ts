@@ -47,3 +47,9 @@ export interface BookingListQuery {
   endDate?: string;
   status?: BookingStatus;
 }
+
+export interface ReservationResponse {
+  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  slot: import('./time-slot.dto').TimeSlot;
+  message?: string;
+}
