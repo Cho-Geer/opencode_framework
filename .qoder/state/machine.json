@@ -1,10 +1,10 @@
 {
   "$schema": "./machine.schema.json",
   "meta": {
-    "version": "1.1.0",
+    "version": "2.0.0",
     "project": "appointment-booking-system",
-    "description": "强制校验契约哈希。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-20T10:14:28.739Z"
+    "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
+    "lastUpdated": "2026-04-20T16:28:59.749Z"
   },
   "currentTask": {
     "id": "TASK-001",
@@ -14,9 +14,9 @@
   },
   "contracts": {
     "backend-api": {
-      "file": "booking_system_refactor/contract.yaml",
-      "hash": "sha256-ae4e59854b38adfea721f7635884bcf70994ffdc1b848f1ae08721c712d96d7f",
-      "lastValidated": "2026-04-20T18:35:00.000Z",
+      "file": "contract.yaml",
+      "hash": "sha256-36255798ca7adeffce0ca5644f16e680654b237f34b244740bf930abd17c3fca",
+      "lastValidated": "2026-04-20T16:28:59.749Z",
       "owner": "@Architect"
     },
     "prisma-schema": {
@@ -30,7 +30,7 @@
       "hash": "sha256-6fc5fd8ea7cdd31960fda56d612f2cf5983af0a7576530648131ccd980badcda",
       "lastValidated": "2026-04-20T10:10:46.583Z",
       "owner": "@Coder-FE",
-      "description": "前端类型定义，须与 backend-api 一致（目录不存在，待创建）"
+      "description": "前端类型定义，须与 backend-api 一致"
     },
     "frontend-environment": {
       "file": "booking-frontend/src/environments/environment.ts",
@@ -63,6 +63,96 @@
         "InProgress"
       ]
     }
+  },
+  "taskLifecycle": {
+    "taskTypes": [
+      "backend",
+      "frontend",
+      "devops",
+      "test"
+    ],
+    "states": [
+      "Idle",
+      "Ready",
+      "InProgress",
+      "Testing",
+      "Review",
+      "Done",
+      "Blocked"
+    ],
+    "taskStateFilePattern": "Task.DAG.json",
+    "transitions": [
+      {
+        "from": "InProgress",
+        "to": "Testing",
+        "requiredEvidence": [
+          {
+            "filePattern": "tasks/{taskId}/TASK_LOG.md",
+            "description": "工作记忆草稿纸，记录本次修改计划"
+          }
+        ]
+      },
+      {
+        "from": "Testing",
+        "to": "Review",
+        "requiredEvidence": [
+          {
+            "filePattern": "tasks/{taskId}/test_report.json",
+            "description": "测试执行报告",
+            "schema": {
+              "requiredFields": [
+                "execution_evidence",
+                "coverage"
+              ],
+              "execution_evidence": {
+                "requiredFields": [
+                  "exit_code",
+                  "output_summary"
+                ]
+              },
+              "coverage": {
+                "minThreshold": 70
+              }
+            },
+            "contentMustNotContain": "\"failed\": [1-9]"
+          }
+        ]
+      },
+      {
+        "from": "Review",
+        "to": "Done",
+        "requiredEvidence": [
+          {
+            "filePattern": "tasks/{taskId}/guardian_report.md",
+            "description": "@Guardian 审查报告",
+            "contentMustContain": "PASS",
+            "contentMustNotContain": "FAIL"
+          }
+        ]
+      },
+      {
+        "from": "Testing",
+        "to": "InProgress",
+        "requiredEvidence": [
+          {
+            "filePattern": "tasks/{taskId}/test_report.json",
+            "description": "测试执行报告（失败时回退）",
+            "contentMustContain": "\"exit_code\": 1"
+          }
+        ]
+      },
+      {
+        "from": "Review",
+        "to": "InProgress",
+        "requiredEvidence": [
+          {
+            "filePattern": "tasks/{taskId}/guardian_report.md",
+            "description": "@Guardian 审查报告（未通过时回退）",
+            "contentMustContain": "FAIL"
+          }
+        ]
+      }
+    ]
   },
   "auditLog": [
     {
@@ -120,6 +210,27 @@
       "action": "HASH_UPDATE",
       "target": "frontend-environment",
       "details": "Hash updated from sha256-2bacf85132ff1... to sha256-4bbb147a5a6dd..."
+    },
+    {
+      "timestamp": "2026-04-20T14:30:00.000Z",
+      "agent": "@Orchestrator",
+      "action": "SCHEMA_UPGRADE",
+      "target": "machine.json",
+      "details": "升级至 v2.0.0，新增 taskLifecycle 强制证据链校验"
+    },
+    {
+      "timestamp": "2026-04-20T16:21:47.550Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "backend-api",
+      "details": "Hash updated from sha256-ae4e59854b38a... to sha256-efe910d94bd18..."
+    },
+    {
+      "timestamp": "2026-04-20T16:28:59.749Z",
+      "agent": "@Orchestrator",
+      "action": "HASH_UPDATE",
+      "target": "backend-api",
+      "details": "Hash updated from sha256-efe910d94bd18... to sha256-36255798ca7ad..."
     }
   ]
 }
