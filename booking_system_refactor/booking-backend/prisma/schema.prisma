@@ -59,9 +59,18 @@ enum NotificationStatus {
 model User {
   id           String         @id @default(uuid())
   name         String         // 用户姓名
-  phone        String?        @unique // 手机号（唯一）
-  email        String?        @unique // 邮箱（唯一）
-  passwordHash String?        @map("password_hash") // 密码哈希
+  
+  // Phone 三字段（PII 加密，方案 C v4）
+  phone            String?        // 脱敏展示（如 138****5678）
+  phoneHash        String?        @unique @map("phone_hash")  // SHA-256(phone + pepper)
+  phoneEncrypted   String?        @map("phone_encrypted")     // AES-256-GCM 密文
+  
+  // Email 三字段（PII 加密，方案 C v4）
+  email            String?        // 脱敏展示（如 us***@example.com）
+  emailHash        String?        @unique @map("email_hash")  // SHA-256(email + pepper)
+  emailEncrypted   String?        @map("email_encrypted")     // AES-256-GCM 密文
+  
+  passwordHash String?        @map("password_hash") // 密码哈希 (bcrypt rounds=12)
   userType     UserType       @default(CUSTOMER) @map("user_type") // 用户类型
   status       UserStatus     @default(ACTIVE) // 用户状态
   lastLoginAt  DateTime?      @map("last_login_at") // 最后登录时间
@@ -77,8 +86,8 @@ model User {
   activityLogs ActivityLog[]   // 用户活动日志
 
   @@map("users")
-  @@index([phone])
-  @@index([email])
+  @@index([phoneHash])
+  @@index([emailHash])
   @@index([userType, status])
   @@index([createdAt])
   @@index([lastLoginAt])  // 部分索引 - 通过 SQL 迁移实现 WHERE status = 'ACTIVE'

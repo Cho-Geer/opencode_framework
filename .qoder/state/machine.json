@@ -4,7 +4,7 @@
     "version": "2.1.0",
     "project": "appointment-booking-system",
     "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-20T20:43:58.083Z"
+    "lastUpdated": "2026-04-20T20:50:17.803Z"
   },
   "currentTask": {
     "id": "TASK-001",
@@ -329,6 +329,13 @@
       "action": "HASH_UPDATE",
       "target": "frontend-environment",
       "details": "Hash updated from sha256-4bbb147a5a6dd... to sha256-b537cc0106e40..."
+    },
+    {
+      "timestamp": "2026-04-20T20:51:45.990Z",
+      "agent": "@Coder-BE",
+      "action": "HASH_UPDATE",
+      "target": "prisma-schema",
+      "details": "PII 加密后端修复：三字段模型迁移，哈希值已验证匹配"
     }
   ]
 }
