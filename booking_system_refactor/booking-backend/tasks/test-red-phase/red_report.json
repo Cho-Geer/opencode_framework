@@ -1,0 +1,12 @@
+{
+  "task_id": "test-red-phase",
+  "phase": "Red",
+  "execution_evidence": {
+    "exit_code": 1,
+    "output_summary": "3 tests failed: should create appointment successfully, should throw conflict error"
+  },
+  "test_files": [
+    "booking-backend/src/modules/appointments/appointment.service.spec.ts"
+  ],
+  "timestamp": "2026-04-21T10:00:00.000Z"
+}
