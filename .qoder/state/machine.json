@@ -15,8 +15,8 @@
   "contracts": {
     "backend-api": {
       "file": "contract.yaml",
-      "hash": "sha256-b4c0f8c105e55340aadbd862b15d05087a1adafafbca8e917435aab1667de852",
-      "lastValidated": "2026-04-20T18:03:22.643Z",
+      "hash": "sha256-920d700c617c39dea7e73a71866c854272cad1c6e947848a8e9f54c06ee7ea92",
+      "lastValidated": "2026-04-21T10:50:14.000Z",
       "owner": "@Architect"
     },
     "prisma-schema": {
