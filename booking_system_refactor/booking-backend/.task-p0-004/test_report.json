@@ -1,0 +1,47 @@
+{
+  "task_id": "P0-004",
+  "task_name": "RequestId追踪机制全栈实现",
+  "timestamp": "2026-04-22T00:00:00.000Z",
+  "test_scope": [
+    "backend: request-id.interceptor.spec.ts",
+    "frontend: request-id.interceptor.spec.ts"
+  ],
+  "results": {
+    "backend": {
+      "test_file": "booking-backend/src/common/interceptors/request-id.interceptor.spec.ts",
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "status": "PASS",
+      "test_cases": [
+        "should be defined",
+        "should use X-Request-ID from request header when provided",
+        "should generate requestId when X-Request-ID header is missing",
+        "should store requestId in CLS context with correct key",
+        "should pass through the request without modifying the response"
+      ]
+    },
+    "frontend": {
+      "test_file": "booking-frontend/src/app/core/interceptors/request-id.interceptor.spec.ts",
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "status": "PASS",
+      "test_cases": [
+        "should be created",
+        "should add X-Request-ID header to every request",
+        "should generate unique X-Request-ID for each request",
+        "should generate requestId in correct format: req-{uuid}",
+        "should not modify other request properties"
+      ]
+    }
+  },
+  "execution_evidence": "Backend: 5/5 tests PASS (request-id.interceptor.spec.ts) - requestId extraction from X-Request-ID header, auto-generation, CLS storage, response passthrough all verified. Frontend: 5/5 tests PASS (request-id.interceptor.spec.ts) - X-Request-ID header attachment, unique ID generation, req-{uuid} format validation, request property preservation all verified. TypeScript compilation: no errors (tsc --noEmit).",
+  "contract_compliance": {
+    "request_id_format": "req-${uuid-v4} ✓",
+    "header_name": "X-Request-ID ✓",
+    "priority": "前端传入 > 后端自动生成 ✓",
+    "response_location": "响应体 requestId 字段 ✓"
+  },
+  "tdd_cycle": "RED (tests written first, implementation did not exist) → GREEN (minimal implementation added, all 10 tests pass) → REFACTOR (N/A for this cycle)"
+}
