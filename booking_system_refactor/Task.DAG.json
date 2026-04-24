@@ -4,7 +4,8 @@
     {"id": "BUG-001", "title": "BUG-001", "status": "Testing", "owner": "@Coder-BE", "type": "fix"},
     {"id": "R001", "title": "R001", "status": "Testing", "owner": "@Coder-BE", "type": "refactor"},
     {"id": "R002", "title": "R002", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
-    {"id": "R003", "title": "R003", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"}
+    {"id": "R003", "title": "R003", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
+    {"id": "H5", "title": "H5", "status": "completed", "owner": "@Coder-BE", "type": "fix"}
   ],
   "dag": {
     "meta": {
@@ -271,6 +272,34 @@
             "Updated service tests for new create() signature"
           ]
         }
+      },
+      "BUG-005-RED": {
+        "id": "BUG-005-RED",
+        "name": "[RED] Rate limiter pipeline先加后删 — 测试编写",
+        "description": "RED 阶段：编写3个测试文档化 pipeline 先加后删的竞态窗口问题",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "test",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/rate-limiter/rate-limiter.service.spec.ts"
+        ],
+        "definition_of_done": "3个 RED 测试编写完成且执行通过（文档化当前行为）"
+      },
+      "BUG-005": {
+        "id": "BUG-005",
+        "name": "[GREEN] Rate limiter pipeline先加后删 — Lua脚本优化",
+        "description": "GREEN 阶段：将 checkRateLimit() 的 pipeline 模式替换为 Lua 脚本方式，实现先检查后添加的原子操作。",
+        "status": "in_progress",
+        "dependencies": ["BUG-005-RED"],
+        "assignee": "@Coder-BE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/rate-limiter/rate-limiter.service.ts"
+        ],
+        "definition_of_done": "所有 rate-limiter 测试通过，green_report.json 含 execution_evidence"
       }
     }
   }
