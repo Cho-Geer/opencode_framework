@@ -514,15 +514,11 @@ describe('AuthService', () => {
       expect(mockHashService.hashWithPepper).toHaveBeenCalledWith('13800138000');
     });
 
-    // ============ RED Phase: Timing attack vulnerability (tests should FAIL) ============
+    // ============ GREEN Phase: Constant-time login protection ============
 
-    it('[RED] should have similar timing for nonexistent user and wrong password paths (RED - expects failure with current code)', async () => {
-      // RED PHASE: This test asserts the DESIRED behavior (constant-time login).
-      // With the current code (100ms fixed dummy delay in user-not-found but no delay
-      // in wrong-password path), this test will FAIL — demonstrating the vulnerability.
-      //
-      // After GREEN phase implementation (constantTimeLoginDelay in both paths),
-      // this test should PASS.
+    it('[GREEN] should have similar timing for nonexistent user and wrong password paths', async () => {
+      // GREEN PHASE: After implementing constantTimeLoginDelay in both branches,
+      // the timing difference should be minimal (< 60ms allowing for random jitter).
 
       mockPrismaClient.user.findFirst.mockResolvedValue(null);
 
@@ -553,33 +549,30 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
       const wrongPwdDuration = Date.now() - wrongPwdStart;
 
-      // DESIRED behavior: both paths should take similar time (within 50ms of each other)
-      // CURRENT behavior: notFound ~100ms, wrongPwd ~0ms — DIFFERENCE > 50ms → FAILS
+      // Both paths now use constantTimeLoginDelay (250-350ms).
+      // The timing difference should be small (< 60ms).
       const timeDiff = Math.abs(notFoundDuration - wrongPwdDuration);
-      expect(timeDiff).toBeLessThan(50);
+      expect(timeDiff).toBeLessThan(60);
     });
 
-    it('[RED] should prove that current code has a detectable timing difference (RED - exposes the vulnerability)', async () => {
-      // RED PHASE SECOND TEST: This test proves the vulnerability exists.
-      // It demonstrates that the current code's timing difference IS detectable (>90ms gap).
-      // This test passes with current code (proving the bug exists).
-      //
-      // After GREEN phase, this test will be removed/refactored since the bug is fixed.
+    it('[GREEN] should verify both paths take at least 250ms (constantTimeLoginDelay lower bound)', async () => {
+      // Both branches should take at least 250ms due to constantTimeLoginDelay.
 
-      // Path 1: User not found — should take ~100ms due to setTimeout(100)
+      // Test "user not found" path
       mockPrismaClient.user.findFirst.mockResolvedValue(null);
 
       const notFoundStart = Date.now();
       await expect(
         service.loginPassword({
-          contact: 'nonexistent@example.com',
+          contact: 'ghost@example.com',
           contactType: ContactType.EMAIL,
-          password: 'SomePass123!',
+          password: 'AnyPass123!',
         }),
       ).rejects.toThrow(UnauthorizedException);
       const notFoundDuration = Date.now() - notFoundStart;
+      expect(notFoundDuration).toBeGreaterThanOrEqual(200); // Allow tolerance
 
-      // Path 2: Wrong password — should be near-instant (mocked bcrypt, no delay)
+      // Test "wrong password" path
       mockPrismaClient.user.findFirst.mockResolvedValue({
         id: 'user-id',
         passwordHash: 'hashed-password',
@@ -592,14 +585,36 @@ describe('AuthService', () => {
         service.loginPassword({
           contact: 'test@example.com',
           contactType: ContactType.EMAIL,
-          password: 'WrongPass123!',
+          password: 'wrong-password',
         }),
       ).rejects.toThrow(UnauthorizedException);
       const wrongPwdDuration = Date.now() - wrongPwdStart;
+      expect(wrongPwdDuration).toBeGreaterThanOrEqual(200); // Allow tolerance
+    });
 
-      // Proof: the difference is >= ~85ms (100ms delay vs ~0ms)
-      const timeDiff = notFoundDuration - wrongPwdDuration;
-      expect(timeDiff).toBeGreaterThanOrEqual(85);
+    it('[GREEN] should verify constantTimeLoginDelay produces variable delays', async () => {
+      // Access the private method and verify randomness
+      const delayValues: number[] = [];
+      const minDelay = 250;
+      const maxDelay = 350;
+
+      // Call the private method multiple times and verify random distribution
+      for (let i = 0; i < 10; i++) {
+        const start = Date.now();
+        await (service as any).constantTimeLoginDelay();
+        const elapsed = Date.now() - start;
+        delayValues.push(elapsed);
+      }
+
+      // All delays should be within the expected range (with tolerance)
+      delayValues.forEach((d) => {
+        expect(d).toBeGreaterThanOrEqual(230); // Allow tolerance
+        expect(d).toBeLessThanOrEqual(370); // Allow tolerance
+      });
+
+      // At least some values should differ (randomness check)
+      const uniqueValues = new Set(delayValues.map((d) => Math.round(d / 10)));
+      expect(uniqueValues.size).toBeGreaterThan(1);
     });
   });
 

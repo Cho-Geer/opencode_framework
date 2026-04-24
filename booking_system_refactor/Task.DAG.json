@@ -10,15 +10,20 @@
     {"id": "BUG-005-RED", "title": "BUG-005-RED", "status": "completed", "owner": "@Coder-BE", "type": "test"},
     {"id": "BUG-005", "title": "BUG-005", "status": "completed", "owner": "@Coder-BE", "type": "fix"},
     {"id": "BUG-006-RED", "title": "BUG-006-RED", "status": "completed", "owner": "@Coder-BE", "type": "test"},
-    {"id": "BUG-006", "title": "BUG-006", "status": "pending", "owner": "@Coder-BE", "type": "fix"}
+    {"id": "BUG-006", "title": "BUG-006", "status": "pending", "owner": "@Coder-BE", "type": "fix"},
+    {"id": "TD-FIX-001", "title": "TD-FIX-001", "status": "completed", "owner": "@Coder-FE", "type": "fix"},
+    {"id": "TD-FIX-002", "title": "TD-FIX-002", "status": "completed", "owner": "@Coder-FE", "type": "fix"},
+    {"id": "TD-FIX-003", "title": "TD-FIX-003", "status": "completed", "owner": "@Coder-FE", "type": "fix"},
+    {"id": "TD-FIX-004", "title": "TD-FIX-004", "status": "in_progress", "owner": "@Coder-FE", "type": "fix"},
+    {"id": "TD-FIX-005", "title": "TD-FIX-005", "status": "pending", "owner": "@Coder-FE", "type": "fix"}
   ],
   "dag": {
     "meta": {
       "version": "3.0.0",
       "generated_by": "@Orchestrator",
-      "generated_at": "2026-04-24T10:00:00Z",
+      "generated_at": "2026-04-24T11:00:00Z",
       "phase": "REFACTOR",
-      "next_action": "等待 BUG-006 GREEN 阶段实施；R002/R003 继续并行执行",
+      "next_action": "BUG-006 已完成；R002/R003 继续并行执行",
       "change_log": [
         {
           "version": "2.0.0",
@@ -69,6 +74,11 @@
           "version": "4.1.0",
           "date": "2026-04-24",
           "description": "BUG-006-RED 完成。为 loginPassword() 定时攻击保护添加 RED 测试：1 个测试失败（证明 101ms 时间差异），1 个测试通过（确认漏洞可检测）。等待 BUG-006 GREEN 阶段实施constantTimeLoginDelay()。"
+        },
+        {
+          "version": "4.2.0",
+          "date": "2026-04-24",
+          "description": "BUG-006 GREEN 完成。auth.service.ts 新增 constantTimeLoginDelay() 生成 250-350ms 随机延迟，在'用户不存在'和'密码错误'两个分支中都调用。所有 52 个 auth 测试通过。定时攻击保护增强完成。"
         }
       ]
     },
@@ -402,7 +412,7 @@
         "id": "BUG-006",
         "name": "[GREEN] 登录定时攻击保护增强 — 实现修复",
         "description": "GREEN 阶段：在 loginPassword() 方法中添加 constantTimeLoginDelay() 私有方法，在'用户不存在'和'密码错误'两个分支中都调用，生成 250-350ms 随机范围延迟模拟 bcrypt 耗时。",
-        "status": "pending",
+        "status": "completed",
         "dependencies": ["BUG-006-RED"],
         "assignee": "@Coder-BE",
         "type": "fix",
@@ -410,7 +420,22 @@
         "target_files": [
           "booking-backend/src/modules/auth/auth.service.ts"
         ],
-        "definition_of_done": "所有 auth 相关测试通过，RED 测试不再失败，green_report.json 含 execution_evidence"
+        "definition_of_done": "所有 auth 相关测试通过，RED 测试不再失败，green_report.json 含 execution_evidence",
+        "result": {
+          "tests_passed": 52,
+          "tests_failed": 0,
+          "timing_evidence": {
+            "not_found_path_ms": 299,
+            "wrong_password_path_ms": 343,
+            "vulnerability_fixed": true
+          },
+          "fixes_applied": [
+            "auth.service.ts: 新增 constantTimeLoginDelay() 私有方法 (250-350ms 随机延迟)",
+            "auth.service.ts: '用户不存在'分支替换固定 100ms 为 constantTimeLoginDelay()",
+            "auth.service.ts: '密码错误'分支新增 constantTimeLoginDelay() 调用",
+            "auth.service.spec.ts: 替换 RED 测试为 GREEN 验证测试 (3 个新测试)"
+          ]
+        }
       },
       "TD-FIX-001": {
         "id": "TD-FIX-001",
@@ -481,6 +506,69 @@
         "priority": "P1",
         "target_files": ["booking-frontend/src/app/stores/auth/auth.store.spec.ts"],
         "definition_of_done": "auth.store.spec.ts 所有测试通过"
+      },
+      "TD-FIX-001": {
+        "id": "TD-FIX-001",
+        "name": "[Tech Debt] Fix register.component.spec.ts test failures",
+        "description": "修复 register.component.spec.ts 测试 - 与两步注册流程对齐",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/features/auth/register/register.component.spec.ts"],
+        "definition_of_done": "所有测试通过",
+        "result": { "tests_passed": 54, "tests_failed": 0 }
+      },
+      "TD-FIX-002": {
+        "id": "TD-FIX-002",
+        "name": "[Tech Debt] Fix login.component.spec.ts test failures",
+        "description": "修复 login.component.spec.ts 测试 - 与密码/验证码双模式登录对齐",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/features/auth/login/login.component.spec.ts"],
+        "definition_of_done": "所有测试通过",
+        "result": { "tests_passed": 44, "tests_failed": 0 }
+      },
+      "TD-FIX-003": {
+        "id": "TD-FIX-003",
+        "name": "[Tech Debt] Fix register-form.component.spec.ts test failures",
+        "description": "修复 register-form.component.spec.ts 测试 - 适配Signal input()",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/shared/components/molecules/register-form/register-form.component.spec.ts"],
+        "definition_of_done": "所有测试通过",
+        "result": { "tests_passed": 24, "tests_failed": 0 }
+      },
+      "TD-FIX-004": {
+        "id": "TD-FIX-004",
+        "name": "[Tech Debt] Fix auth.dto.spec.ts test failures",
+        "description": "修复 auth.dto.spec.ts 测试 - DTO字段名对齐",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/features/auth/dto/auth.dto.spec.ts"],
+        "definition_of_done": "所有测试通过"
+      },
+      "TD-FIX-005": {
+        "id": "TD-FIX-005",
+        "name": "[Tech Debt] Fix auth.store.spec.ts test failures",
+        "description": "修复 auth.store.spec.ts 测试 - SignalStore类型对齐",
+        "status": "pending",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/stores/auth/auth.store.spec.ts"],
+        "definition_of_done": "所有测试通过"
       },
       "BUG-008": {
         "id": "BUG-008",

@@ -353,6 +353,19 @@ export class AuthService {
   }
 
   /**
+   * 恒定时间登录延迟：模拟 bcrypt (rounds=12) 的真实耗时分布 (250-350ms)
+   * 用于防止定时攻击，使用随机范围延迟使攻击者无法区分：
+   * - 用户不存在 vs 密码错误
+   */
+  private async constantTimeLoginDelay(): Promise<void> {
+    const minDelay = 250;
+    const maxDelay = 350;
+    const delay =
+      Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  /**
    * 密码登录
    * POST /v1/auth/login/password
    */
@@ -368,14 +381,16 @@ export class AuthService {
     });
 
     if (!user || !user.passwordHash || user.status !== "ACTIVE") {
-      // 防枚举：密码错误和用户不存在返回相同错误
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // 防枚举/定时攻击：恒定时间延迟模拟 bcrypt 耗时 (250-350ms)
+      await this.constantTimeLoginDelay();
       throw new UnauthorizedException("凭证无效");
     }
 
     // 2. 密码验证 (bcrypt rounds=12)
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
+      // 防定时攻击：与用户不存在路径保持相同的恒定时间延迟
+      await this.constantTimeLoginDelay();
       throw new UnauthorizedException("凭证无效");
     }
 

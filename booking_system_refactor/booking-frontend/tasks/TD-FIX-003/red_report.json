@@ -1,0 +1,16 @@
+{
+  "taskId": "TD-FIX-003",
+  "phase": "RED",
+  "specFile": "src/app/shared/components/molecules/register-form/register-form.component.spec.ts",
+  "totalTests": 24,
+  "passedTests": 0,
+  "failedTests": 24,
+  "failureCategories": {
+    "signalInputAssignment": {
+      "count": 24,
+      "description": "All tests fail because component uses Angular Signal inputs (input.required) but tests assign values directly instead of using setInput()",
+      "rootCause": "Component refactored from @Input() to signal-based input() requiring setInput() for test setup"
+    }
+  },
+  "execution_evidence": "npx jest src/app/shared/components/molecules/register-form/register-form.component.spec.ts --no-coverage => 24 failed, 0 passed"
+}
