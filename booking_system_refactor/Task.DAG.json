@@ -164,7 +164,14 @@
       "target_files": [
         "booking-backend/src/app.module.ts"
       ],
-      "definition_of_done": "BullModule connection 包含 password 和 db 字段，1008 unit tests passing"
+      "definition_of_done": "BullModule connection \u5305\u542b password \u548c db \u5b57\u6bb5\uff0c1008 unit tests passing"
+    },
+    {
+      "id": "H9-final",
+      "title": "H9-final - PrimeNG + Tailwind CSS v4 configuration",
+      "status": "completed",
+      "owner": "@Coder-FE",
+      "type": "config"
     }
   ],
   "dag": {
@@ -173,47 +180,47 @@
       "generated_by": "@Orchestrator",
       "generated_at": "2026-04-24T11:00:00Z",
       "phase": "REFACTOR",
-      "next_action": "BUG-006 已完成；R002/R003 继续并行执行",
+      "next_action": "BUG-006 \u5df2\u5b8c\u6210\uff1bR002/R003 \u7ee7\u7eed\u5e76\u884c\u6267\u884c",
       "change_log": [
         {
           "version": "2.0.0",
           "date": "2026-04-23",
-          "description": "向DAG添加仲裁任务和修复/豁免分支；保留T001-T004已完成状态；准备REFACTOR阶段"
+          "description": "\u5411DAG\u6dfb\u52a0\u4ef2\u88c1\u4efb\u52a1\u548c\u4fee\u590d/\u8c41\u514d\u5206\u652f\uff1b\u4fdd\u7559T001-T004\u5df2\u5b8c\u6210\u72b6\u6001\uff1b\u51c6\u5907REFACTOR\u9636\u6bb5"
         },
         {
           "version": "2.0.1",
           "date": "2026-04-23",
-          "description": "@Orchestrator 调度 T005 → @Arbiter 已启动 (in_progress)，提交仲裁上下文"
+          "description": "@Orchestrator \u8c03\u5ea6 T005 \u2192 @Arbiter \u5df2\u542f\u52a8 (in_progress)\uff0c\u63d0\u4ea4\u4ef2\u88c1\u4e0a\u4e0b\u6587"
         },
         {
           "version": "2.1.0",
           "date": "2026-04-23",
-          "description": "@Arbiter 裁决完成：WAIVE（豁免），TECH_DEBT_REGISTRY.md 已创建，T006-W 已完成。F-branch 任务已取消。等待 T007-W @Guardian 条件放行。"
+          "description": "@Arbiter \u88c1\u51b3\u5b8c\u6210\uff1aWAIVE\uff08\u8c41\u514d\uff09\uff0cTECH_DEBT_REGISTRY.md \u5df2\u521b\u5efa\uff0cT006-W \u5df2\u5b8c\u6210\u3002F-branch \u4efb\u52a1\u5df2\u53d6\u6d88\u3002\u7b49\u5f85 T007-W @Guardian \u6761\u4ef6\u653e\u884c\u3002"
         },
         {
           "version": "3.0.0",
           "date": "2026-04-23",
-          "description": "@Orchestrator: T007-W → completed. 开始 REFACTOR 阶段调度。新增 R001/R002/R003 并行 REFACTOR 任务。"
+          "description": "@Orchestrator: T007-W \u2192 completed. \u5f00\u59cb REFACTOR \u9636\u6bb5\u8c03\u5ea6\u3002\u65b0\u589e R001/R002/R003 \u5e76\u884c REFACTOR \u4efb\u52a1\u3002"
         },
         {
           "version": "3.0.1",
           "date": "2026-04-24",
-          "description": "BUG-001-RED 和 BUG-001 完成。修复 controller 从 body/query 接受 userId 的安全漏洞，改为从 JWT token 提取。所有 92 个 appointments 测试通过。"
+          "description": "BUG-001-RED \u548c BUG-001 \u5b8c\u6210\u3002\u4fee\u590d controller \u4ece body/query \u63a5\u53d7 userId \u7684\u5b89\u5168\u6f0f\u6d1e\uff0c\u6539\u4e3a\u4ece JWT token \u63d0\u53d6\u3002\u6240\u6709 92 \u4e2a appointments \u6d4b\u8bd5\u901a\u8fc7\u3002"
         },
         {
           "version": "3.1.0",
           "date": "2026-04-24",
-          "description": "R001 REFACTOR 完成。将 RetentionService 中的分布式锁 acquire/release 模式提取为 lock.util.ts 可复用工具类。21 retention 测试通过，0 回归。"
+          "description": "R001 REFACTOR \u5b8c\u6210\u3002\u5c06 RetentionService \u4e2d\u7684\u5206\u5e03\u5f0f\u9501 acquire/release \u6a21\u5f0f\u63d0\u53d6\u4e3a lock.util.ts \u53ef\u590d\u7528\u5de5\u5177\u7c7b\u300221 retention \u6d4b\u8bd5\u901a\u8fc7\uff0c0 \u56de\u5f52\u3002"
         },
         {
           "version": "3.2.0",
           "date": "2026-04-24",
-          "description": "H5 完成。将 appointments.service.ts 中 5 处 console.error() 替换为 this.logger.error()。所有 92 个 appointment 测试通过，3 suites 全部通过。"
+          "description": "H5 \u5b8c\u6210\u3002\u5c06 appointments.service.ts \u4e2d 5 \u5904 console.error() \u66ff\u6362\u4e3a this.logger.error()\u3002\u6240\u6709 92 \u4e2a appointment \u6d4b\u8bd5\u901a\u8fc7\uff0c3 suites \u5168\u90e8\u901a\u8fc7\u3002"
         },
         {
           "version": "3.2.1",
           "date": "2026-04-24",
-          "description": "BUG-009 完成。验证部分唯一索引迁移文件 prisma/migrations/20260422_fix_p1_003_partial_unique_index/migration.sql 已存在且 SQL 内容与 contract.yaml 一致。无需创建新迁移。"
+          "description": "BUG-009 \u5b8c\u6210\u3002\u9a8c\u8bc1\u90e8\u5206\u552f\u4e00\u7d22\u5f15\u8fc1\u79fb\u6587\u4ef6 prisma/migrations/20260422_fix_p1_003_partial_unique_index/migration.sql \u5df2\u5b58\u5728\u4e14 SQL \u5185\u5bb9\u4e0e contract.yaml \u4e00\u81f4\u3002\u65e0\u9700\u521b\u5efa\u65b0\u8fc1\u79fb\u3002"
         },
         {
           "version": "4.0.0",
@@ -223,12 +230,12 @@
         {
           "version": "4.1.0",
           "date": "2026-04-24",
-          "description": "BUG-006-RED 完成。为 loginPassword() 定时攻击保护添加 RED 测试：1 个测试失败（证明 101ms 时间差异），1 个测试通过（确认漏洞可检测）。等待 BUG-006 GREEN 阶段实施constantTimeLoginDelay()。"
+          "description": "BUG-006-RED \u5b8c\u6210\u3002\u4e3a loginPassword() \u5b9a\u65f6\u653b\u51fb\u4fdd\u62a4\u6dfb\u52a0 RED \u6d4b\u8bd5\uff1a1 \u4e2a\u6d4b\u8bd5\u5931\u8d25\uff08\u8bc1\u660e 101ms \u65f6\u95f4\u5dee\u5f02\uff09\uff0c1 \u4e2a\u6d4b\u8bd5\u901a\u8fc7\uff08\u786e\u8ba4\u6f0f\u6d1e\u53ef\u68c0\u6d4b\uff09\u3002\u7b49\u5f85 BUG-006 GREEN \u9636\u6bb5\u5b9e\u65bdconstantTimeLoginDelay()\u3002"
         },
         {
           "version": "4.2.0",
           "date": "2026-04-24",
-          "description": "BUG-006 GREEN 完成。auth.service.ts 新增 constantTimeLoginDelay() 生成 250-350ms 随机延迟，在'用户不存在'和'密码错误'两个分支中都调用。所有 52 个 auth 测试通过。定时攻击保护增强完成。"
+          "description": "BUG-006 GREEN \u5b8c\u6210\u3002auth.service.ts \u65b0\u589e constantTimeLoginDelay() \u751f\u6210 250-350ms \u968f\u673a\u5ef6\u8fdf\uff0c\u5728'\u7528\u6237\u4e0d\u5b58\u5728'\u548c'\u5bc6\u7801\u9519\u8bef'\u4e24\u4e2a\u5206\u652f\u4e2d\u90fd\u8c03\u7528\u3002\u6240\u6709 52 \u4e2a auth \u6d4b\u8bd5\u901a\u8fc7\u3002\u5b9a\u65f6\u653b\u51fb\u4fdd\u62a4\u589e\u5f3a\u5b8c\u6210\u3002"
         },
         {
           "version": "4.0.0",
@@ -238,22 +245,27 @@
         {
           "version": "4.3.0",
           "date": "2026-04-24",
-          "description": "H6 完成。BullModule connection 配置新增 password (REDIS_PASSWORD) 和 db (REDIS_DB) 字段。已确认 rate-limiter.module.ts 和 cache.module.ts 无同样问题。1008 unit tests 全量通过。"
+          "description": "H6 \u5b8c\u6210\u3002BullModule connection \u914d\u7f6e\u65b0\u589e password (REDIS_PASSWORD) \u548c db (REDIS_DB) \u5b57\u6bb5\u3002\u5df2\u786e\u8ba4 rate-limiter.module.ts \u548c cache.module.ts \u65e0\u540c\u6837\u95ee\u9898\u30021008 unit tests \u5168\u91cf\u901a\u8fc7\u3002"
+        },
+        {
+          "version": "4.4.0",
+          "date": "2026-04-24",
+          "description": "H9-final completed. PrimeNG Aura theme + Tailwind CSS v4 configured. jest.config.js updated for @primeng/@primeuix ESM support. 3 pre-existing spyOn failures unchanged."
         }
       ]
     },
     "tasks": {
       "T001": {
         "id": "T001",
-        "name": "Backend单元测试执行与修复",
+        "name": "Backend\u5355\u5143\u6d4b\u8bd5\u6267\u884c\u4e0e\u4fee\u590d",
         "description": "Run booking-backend unit tests, fix TypeScript and configuration errors",
         "status": "completed",
         "dependencies": [],
-        "requirement_source": "测试策略与计划.md §5.1",
+        "requirement_source": "\u6d4b\u8bd5\u7b56\u7565\u4e0e\u8ba1\u5212.md \u00a75.1",
         "target_files": [
           "booking-backend/src/**/*.spec.ts"
         ],
-        "definition_of_done": "所有后端单元测试通过 (1108/1108 pass, 48/50 suites)",
+        "definition_of_done": "\u6240\u6709\u540e\u7aef\u5355\u5143\u6d4b\u8bd5\u901a\u8fc7 (1108/1108 pass, 48/50 suites)",
         "result": {
           "suites_passed": 48,
           "suites_failed": 0,
@@ -269,15 +281,15 @@
       },
       "T002": {
         "id": "T002",
-        "name": "前端单元测试执行",
+        "name": "\u524d\u7aef\u5355\u5143\u6d4b\u8bd5\u6267\u884c",
         "description": "Run booking-frontend unit tests, fix environment setup issues",
         "status": "completed",
         "dependencies": [],
-        "requirement_source": "测试策略与计划.md §6.1",
+        "requirement_source": "\u6d4b\u8bd5\u7b56\u7565\u4e0e\u8ba1\u5212.md \u00a76.1",
         "target_files": [
           "booking-frontend/src/**/*.spec.ts"
         ],
-        "definition_of_done": "前端测试环境正确配置，组件初始化问题已修复",
+        "definition_of_done": "\u524d\u7aef\u6d4b\u8bd5\u73af\u5883\u6b63\u786e\u914d\u7f6e\uff0c\u7ec4\u4ef6\u521d\u59cb\u5316\u95ee\u9898\u5df2\u4fee\u590d",
         "result": {
           "suites_passed": 13,
           "suites_failed": 13,
@@ -288,38 +300,38 @@
       },
       "T003": {
         "id": "T003",
-        "name": "质量审查 (Guardian)",
+        "name": "\u8d28\u91cf\u5ba1\u67e5 (Guardian)",
         "description": "Guardian quality review of test execution results",
         "status": "completed",
         "dependencies": [
           "T001",
           "T002"
         ],
-        "requirement_source": "测试策略与计划.md §2.3, AGENTS.md §六-7",
+        "requirement_source": "\u6d4b\u8bd5\u7b56\u7565\u4e0e\u8ba1\u5212.md \u00a72.3, AGENTS.md \u00a7\u516d-7",
         "target_files": [
           "T003-test_report.json"
         ],
-        "definition_of_done": "Guardian 执行完整质量门禁检查，输出审查报告",
+        "definition_of_done": "Guardian \u6267\u884c\u5b8c\u6574\u8d28\u91cf\u95e8\u7981\u68c0\u67e5\uff0c\u8f93\u51fa\u5ba1\u67e5\u62a5\u544a",
         "result": {
           "verdict": "FAIL",
           "overall_score": 65,
           "blockers": [
-            "Frontend tests 147/394 failing — violates TDD 100%-passing gate",
+            "Frontend tests 147/394 failing \u2014 violates TDD 100%-passing gate",
             "Frontend 13/26 test suites failed entirely"
           ]
         }
       },
       "T004": {
         "id": "T004",
-        "name": "Agent模型配置修复",
+        "name": "Agent\u6a21\u578b\u914d\u7f6e\u4fee\u590d",
         "description": "Fix ProviderModelNotFoundError in all 8 agent configs",
         "status": "completed",
         "dependencies": [],
-        "requirement_source": "AGENTS.md §三, MCP合规指南",
+        "requirement_source": "AGENTS.md \u00a7\u4e09, MCP\u5408\u89c4\u6307\u5357",
         "target_files": [
           ".opencode/agents/*.md"
         ],
-        "definition_of_done": "所有8个agent子调用正常（ProviderModelNotFoundError 已修复）",
+        "definition_of_done": "\u6240\u67098\u4e2aagent\u5b50\u8c03\u7528\u6b63\u5e38\uff08ProviderModelNotFoundError \u5df2\u4fee\u590d\uff09",
         "result": {
           "fix": "Removed model field from all 8 agent .md files",
           "verification": "Manual sub-agent invocation successful for all 8 agents"
@@ -327,8 +339,8 @@
       },
       "T005": {
         "id": "T005",
-        "name": "@Arbiter 裁决: 前端147测试失败处理",
-        "description": "前端单元测试 147/394 失败 (13/26 suites)。需要 @Arbiter 裁决：waive 为技术债，或要求 @Coder-FE 修复。裁决结果决定下一阶段路径。",
+        "name": "@Arbiter \u88c1\u51b3: \u524d\u7aef147\u6d4b\u8bd5\u5931\u8d25\u5904\u7406",
+        "description": "\u524d\u7aef\u5355\u5143\u6d4b\u8bd5 147/394 \u5931\u8d25 (13/26 suites)\u3002\u9700\u8981 @Arbiter \u88c1\u51b3\uff1awaive \u4e3a\u6280\u672f\u503a\uff0c\u6216\u8981\u6c42 @Coder-FE \u4fee\u590d\u3002\u88c1\u51b3\u7ed3\u679c\u51b3\u5b9a\u4e0b\u4e00\u9636\u6bb5\u8def\u5f84\u3002",
         "status": "completed",
         "arbiter_ruling": "waive",
         "dependencies": [
@@ -340,12 +352,12 @@
         "target_files": [
           "TECH_DEBT_REGISTRY.md"
         ],
-        "definition_of_done": "Guardian 输出条件放行报告，流程可进入下一阶段"
+        "definition_of_done": "Guardian \u8f93\u51fa\u6761\u4ef6\u653e\u884c\u62a5\u544a\uff0c\u6d41\u7a0b\u53ef\u8fdb\u5165\u4e0b\u4e00\u9636\u6bb5"
       },
       "T007-W": {
         "id": "T007-W",
-        "name": "@Guardian 条件放行（技术债已登记）",
-        "description": "@Guardian 确认 TECH_DEBT_REGISTRY.md 已正确初始化，输出条件放行报告。",
+        "name": "@Guardian \u6761\u4ef6\u653e\u884c\uff08\u6280\u672f\u503a\u5df2\u767b\u8bb0\uff09",
+        "description": "@Guardian \u786e\u8ba4 TECH_DEBT_REGISTRY.md \u5df2\u6b63\u786e\u521d\u59cb\u5316\uff0c\u8f93\u51fa\u6761\u4ef6\u653e\u884c\u62a5\u544a\u3002",
         "status": "completed",
         "dependencies": [
           "T006-W"
@@ -356,12 +368,12 @@
         "target_files": [
           "TECH_DEBT_REGISTRY.md"
         ],
-        "definition_of_done": "Guardian 输出条件放行报告，流程可进入下一阶段"
+        "definition_of_done": "Guardian \u8f93\u51fa\u6761\u4ef6\u653e\u884c\u62a5\u544a\uff0c\u6d41\u7a0b\u53ef\u8fdb\u5165\u4e0b\u4e00\u9636\u6bb5"
       },
       "R001": {
         "id": "R001",
-        "name": "[REFACTOR] 提取分布式锁工具类 — RetentionService",
-        "description": "将 RetentionService 中的分布式锁 acquire/release 模式提取为可复用工具类，清理 Promise.allSettled 结果处理的冗余代码。所有 21 个测试必须保持全量通过。",
+        "name": "[REFACTOR] \u63d0\u53d6\u5206\u5e03\u5f0f\u9501\u5de5\u5177\u7c7b \u2014 RetentionService",
+        "description": "\u5c06 RetentionService \u4e2d\u7684\u5206\u5e03\u5f0f\u9501 acquire/release \u6a21\u5f0f\u63d0\u53d6\u4e3a\u53ef\u590d\u7528\u5de5\u5177\u7c7b\uff0c\u6e05\u7406 Promise.allSettled \u7ed3\u679c\u5904\u7406\u7684\u5197\u4f59\u4ee3\u7801\u3002\u6240\u6709 21 \u4e2a\u6d4b\u8bd5\u5fc5\u987b\u4fdd\u6301\u5168\u91cf\u901a\u8fc7\u3002",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -371,7 +383,7 @@
           "booking-backend/src/modules/retention/retention.service.ts",
           "booking-backend/src/common/utils/lock.util.ts"
         ],
-        "definition_of_done": "所有 retention 相关测试通过 (21/21)，test_report.json 含 execution_evidence",
+        "definition_of_done": "\u6240\u6709 retention \u76f8\u5173\u6d4b\u8bd5\u901a\u8fc7 (21/21)\uff0ctest_report.json \u542b execution_evidence",
         "result": {
           "suites_passed": 1,
           "tests_passed": 21,
@@ -386,8 +398,8 @@
       },
       "R002": {
         "id": "R002",
-        "name": "[REFACTOR] 提取重试/退避工具类 — AppointmentsService",
-        "description": "将 AppointmentsService 中的乐观锁重试+指数退避模式提取为可复用工具类，sleep() 提取到 shared utility。所有预约相关测试保持全量通过。",
+        "name": "[REFACTOR] \u63d0\u53d6\u91cd\u8bd5/\u9000\u907f\u5de5\u5177\u7c7b \u2014 AppointmentsService",
+        "description": "\u5c06 AppointmentsService \u4e2d\u7684\u4e50\u89c2\u9501\u91cd\u8bd5+\u6307\u6570\u9000\u907f\u6a21\u5f0f\u63d0\u53d6\u4e3a\u53ef\u590d\u7528\u5de5\u5177\u7c7b\uff0csleep() \u63d0\u53d6\u5230 shared utility\u3002\u6240\u6709\u9884\u7ea6\u76f8\u5173\u6d4b\u8bd5\u4fdd\u6301\u5168\u91cf\u901a\u8fc7\u3002",
         "status": "in_progress",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -397,12 +409,12 @@
           "booking-backend/src/modules/appointments/appointments.service.ts",
           "booking-backend/src/common/utils/retry.util.ts"
         ],
-        "definition_of_done": "所有 appointments 相关测试通过，test_report.json 含 execution_evidence"
+        "definition_of_done": "\u6240\u6709 appointments \u76f8\u5173\u6d4b\u8bd5\u901a\u8fc7\uff0ctest_report.json \u542b execution_evidence"
       },
       "R003": {
         "id": "R003",
-        "name": "[REFACTOR] 消除 AuthService Token 生成逻辑重复",
-        "description": "generateTokens() 和 rotateToken() 中存在重复的 JWT signing 和 session 创建逻辑。提取公共方法消除重复。所有 Auth 测试保持全量通过。",
+        "name": "[REFACTOR] \u6d88\u9664 AuthService Token \u751f\u6210\u903b\u8f91\u91cd\u590d",
+        "description": "generateTokens() \u548c rotateToken() \u4e2d\u5b58\u5728\u91cd\u590d\u7684 JWT signing \u548c session \u521b\u5efa\u903b\u8f91\u3002\u63d0\u53d6\u516c\u5171\u65b9\u6cd5\u6d88\u9664\u91cd\u590d\u3002\u6240\u6709 Auth \u6d4b\u8bd5\u4fdd\u6301\u5168\u91cf\u901a\u8fc7\u3002",
         "status": "in_progress",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -411,7 +423,7 @@
         "target_files": [
           "booking-backend/src/modules/auth/auth.service.ts"
         ],
-        "definition_of_done": "所有 auth 相关测试通过，test_report.json 含 execution_evidence",
+        "definition_of_done": "\u6240\u6709 auth \u76f8\u5173\u6d4b\u8bd5\u901a\u8fc7\uff0ctest_report.json \u542b execution_evidence",
         "sub_tasks": [
           "BUG-002-RED",
           "BUG-002"
@@ -435,18 +447,18 @@
           "tests_passed": 92,
           "tests_failed": 0,
           "fixes_applied": [
-            "L107: console.error → this.logger.error (email confirmation)",
-            "L123: console.error → this.logger.error (booking notification)",
-            "L305: console.error → this.logger.error (update notification)",
-            "L355: console.error → this.logger.error (cancellation email)",
-            "L370: console.error → this.logger.error (cancellation notification)"
+            "L107: console.error \u2192 this.logger.error (email confirmation)",
+            "L123: console.error \u2192 this.logger.error (booking notification)",
+            "L305: console.error \u2192 this.logger.error (update notification)",
+            "L355: console.error \u2192 this.logger.error (cancellation email)",
+            "L370: console.error \u2192 this.logger.error (cancellation notification)"
           ]
         }
       },
       "BUG-002-RED": {
         "id": "BUG-002-RED",
-        "name": "[RED] logout() 黑名单 key 使用 jti 替代 randomUUID — 测试编写",
-        "description": "RED 阶段：编写4个测试验证 logout() 使用 jti 而非 randomUUID 作为黑名单 key",
+        "name": "[RED] logout() \u9ed1\u540d\u5355 key \u4f7f\u7528 jti \u66ff\u4ee3 randomUUID \u2014 \u6d4b\u8bd5\u7f16\u5199",
+        "description": "RED \u9636\u6bb5\uff1a\u7f16\u51994\u4e2a\u6d4b\u8bd5\u9a8c\u8bc1 logout() \u4f7f\u7528 jti \u800c\u975e randomUUID \u4f5c\u4e3a\u9ed1\u540d\u5355 key",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -455,12 +467,12 @@
         "target_files": [
           "booking-backend/src/modules/auth/auth.service.spec.ts"
         ],
-        "definition_of_done": "4个 RED 测试编写完成且执行失败"
+        "definition_of_done": "4\u4e2a RED \u6d4b\u8bd5\u7f16\u5199\u5b8c\u6210\u4e14\u6267\u884c\u5931\u8d25"
       },
       "BUG-002": {
         "id": "BUG-002",
-        "name": "[GREEN] logout() 黑名单 key 使用 jti 替代 randomUUID — 实现修复",
-        "description": "GREEN 阶段：修复 auth.service.ts 中 logout() 方法使用 crypto.randomUUID() 而非 token jti 作为黑名单 key 的 bug",
+        "name": "[GREEN] logout() \u9ed1\u540d\u5355 key \u4f7f\u7528 jti \u66ff\u4ee3 randomUUID \u2014 \u5b9e\u73b0\u4fee\u590d",
+        "description": "GREEN \u9636\u6bb5\uff1a\u4fee\u590d auth.service.ts \u4e2d logout() \u65b9\u6cd5\u4f7f\u7528 crypto.randomUUID() \u800c\u975e token jti \u4f5c\u4e3a\u9ed1\u540d\u5355 key \u7684 bug",
         "status": "completed",
         "dependencies": [
           "BUG-002-RED"
@@ -471,12 +483,12 @@
         "target_files": [
           "booking-backend/src/modules/auth/auth.service.ts"
         ],
-        "definition_of_done": "所有 auth 相关测试通过 (108/108)，green_report.json 含 execution_evidence"
+        "definition_of_done": "\u6240\u6709 auth \u76f8\u5173\u6d4b\u8bd5\u901a\u8fc7 (108/108)\uff0cgreen_report.json \u542b execution_evidence"
       },
       "BUG-001-RED": {
         "id": "BUG-001-RED",
-        "name": "[RED] Controller从JWT提取userId而非body/query — 测试编写",
-        "description": "RED 阶段：编写测试验证 create() 忽略 body.userId 使用 JWT userId，getMyAppointments() 忽略 query.userId 使用 JWT userId",
+        "name": "[RED] Controller\u4eceJWT\u63d0\u53d6userId\u800c\u975ebody/query \u2014 \u6d4b\u8bd5\u7f16\u5199",
+        "description": "RED \u9636\u6bb5\uff1a\u7f16\u5199\u6d4b\u8bd5\u9a8c\u8bc1 create() \u5ffd\u7565 body.userId \u4f7f\u7528 JWT userId\uff0cgetMyAppointments() \u5ffd\u7565 query.userId \u4f7f\u7528 JWT userId",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -486,12 +498,12 @@
           "booking-backend/src/modules/appointments/appointments.controller.spec.ts",
           "booking-backend/src/modules/appointments/appointments.service.spec.ts"
         ],
-        "definition_of_done": "2个 RED 测试编写完成且执行失败"
+        "definition_of_done": "2\u4e2a RED \u6d4b\u8bd5\u7f16\u5199\u5b8c\u6210\u4e14\u6267\u884c\u5931\u8d25"
       },
       "BUG-001": {
         "id": "BUG-001",
-        "name": "[GREEN] Controller从JWT提取userId而非body/query — 实现修复",
-        "description": "GREEN 阶段：修复 controller 直接从 body/query 接受 userId 的安全漏洞，改为从 JWT token 提取",
+        "name": "[GREEN] Controller\u4eceJWT\u63d0\u53d6userId\u800c\u975ebody/query \u2014 \u5b9e\u73b0\u4fee\u590d",
+        "description": "GREEN \u9636\u6bb5\uff1a\u4fee\u590d controller \u76f4\u63a5\u4ece body/query \u63a5\u53d7 userId \u7684\u5b89\u5168\u6f0f\u6d1e\uff0c\u6539\u4e3a\u4ece JWT token \u63d0\u53d6",
         "status": "Testing",
         "dependencies": [
           "BUG-001-RED"
@@ -506,7 +518,7 @@
           "booking-backend/src/modules/appointments/appointments.controller.spec.ts",
           "booking-backend/src/modules/appointments/appointments.service.spec.ts"
         ],
-        "definition_of_done": "所有 appointments 相关测试通过 (92/92)，green_report.json 含 execution_evidence",
+        "definition_of_done": "\u6240\u6709 appointments \u76f8\u5173\u6d4b\u8bd5\u901a\u8fc7 (92/92)\uff0cgreen_report.json \u542b execution_evidence",
         "result": {
           "suites_passed": 3,
           "tests_passed": 92,
@@ -523,7 +535,7 @@
       "BUG-009": {
         "id": "BUG-009",
         "name": "Verify/Create partial unique index migration",
-        "description": "验证 prisma/schema.prisma L227-229 引用的部分唯一索引迁移文件是否存在且 SQL 内容正确。迁移文件已存在，与 contract.yaml 完全一致。",
+        "description": "\u9a8c\u8bc1 prisma/schema.prisma L227-229 \u5f15\u7528\u7684\u90e8\u5206\u552f\u4e00\u7d22\u5f15\u8fc1\u79fb\u6587\u4ef6\u662f\u5426\u5b58\u5728\u4e14 SQL \u5185\u5bb9\u6b63\u786e\u3002\u8fc1\u79fb\u6587\u4ef6\u5df2\u5b58\u5728\uff0c\u4e0e contract.yaml \u5b8c\u5168\u4e00\u81f4\u3002",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -532,7 +544,7 @@
         "target_files": [
           "booking-backend/prisma/migrations/20260422_fix_p1_003_partial_unique_index/migration.sql"
         ],
-        "definition_of_done": "验证迁移文件存在、SQL内容正确、与contract.yaml一致，输出test_report.json含execution_evidence",
+        "definition_of_done": "\u9a8c\u8bc1\u8fc1\u79fb\u6587\u4ef6\u5b58\u5728\u3001SQL\u5185\u5bb9\u6b63\u786e\u3001\u4e0econtract.yaml\u4e00\u81f4\uff0c\u8f93\u51fatest_report.json\u542bexecution_evidence",
         "result": {
           "migration_file_exists": true,
           "sql_drop_old_index": true,
@@ -544,8 +556,8 @@
       },
       "BUG-005-RED": {
         "id": "BUG-005-RED",
-        "name": "[RED] Rate limiter pipeline先加后删 — 测试编写",
-        "description": "RED 阶段：编写3个测试文档化 pipeline 先加后删的竞态窗口问题",
+        "name": "[RED] Rate limiter pipeline\u5148\u52a0\u540e\u5220 \u2014 \u6d4b\u8bd5\u7f16\u5199",
+        "description": "RED \u9636\u6bb5\uff1a\u7f16\u51993\u4e2a\u6d4b\u8bd5\u6587\u6863\u5316 pipeline \u5148\u52a0\u540e\u5220\u7684\u7ade\u6001\u7a97\u53e3\u95ee\u9898",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -554,12 +566,12 @@
         "target_files": [
           "booking-backend/src/modules/rate-limiter/rate-limiter.service.spec.ts"
         ],
-        "definition_of_done": "3个 RED 测试编写完成且执行通过（文档化当前行为）"
+        "definition_of_done": "3\u4e2a RED \u6d4b\u8bd5\u7f16\u5199\u5b8c\u6210\u4e14\u6267\u884c\u901a\u8fc7\uff08\u6587\u6863\u5316\u5f53\u524d\u884c\u4e3a\uff09"
       },
       "BUG-005": {
         "id": "BUG-005",
-        "name": "[GREEN] Rate limiter pipeline先加后删 — Lua脚本优化",
-        "description": "GREEN 阶段：将 checkRateLimit() 的 pipeline 模式替换为 Lua 脚本方式，实现先检查后添加的原子操作。",
+        "name": "[GREEN] Rate limiter pipeline\u5148\u52a0\u540e\u5220 \u2014 Lua\u811a\u672c\u4f18\u5316",
+        "description": "GREEN \u9636\u6bb5\uff1a\u5c06 checkRateLimit() \u7684 pipeline \u6a21\u5f0f\u66ff\u6362\u4e3a Lua \u811a\u672c\u65b9\u5f0f\uff0c\u5b9e\u73b0\u5148\u68c0\u67e5\u540e\u6dfb\u52a0\u7684\u539f\u5b50\u64cd\u4f5c\u3002",
         "status": "completed",
         "dependencies": [
           "BUG-005-RED"
@@ -570,22 +582,22 @@
         "target_files": [
           "booking-backend/src/modules/rate-limiter/rate-limiter.service.ts"
         ],
-        "definition_of_done": "所有 rate-limiter 测试通过，green_report.json 含 execution_evidence",
+        "definition_of_done": "\u6240\u6709 rate-limiter \u6d4b\u8bd5\u901a\u8fc7\uff0cgreen_report.json \u542b execution_evidence",
         "result": {
           "tests_passed": 47,
           "tests_failed": 0,
           "fixes_applied": [
-            "rate-limiter.service.ts: checkRateLimit() 从 pipeline 模式改为 Lua 脚本模式",
-            "新增 LUA_RATE_LIMIT_SCRIPT 常量实现原子条件添加",
-            "rate-limiter.service.spec.ts: 所有测试从 pipeline mock 改为 eval mock",
-            "新增 4 个 GREEN 阶段验证测试"
+            "rate-limiter.service.ts: checkRateLimit() \u4ece pipeline \u6a21\u5f0f\u6539\u4e3a Lua \u811a\u672c\u6a21\u5f0f",
+            "\u65b0\u589e LUA_RATE_LIMIT_SCRIPT \u5e38\u91cf\u5b9e\u73b0\u539f\u5b50\u6761\u4ef6\u6dfb\u52a0",
+            "rate-limiter.service.spec.ts: \u6240\u6709\u6d4b\u8bd5\u4ece pipeline mock \u6539\u4e3a eval mock",
+            "\u65b0\u589e 4 \u4e2a GREEN \u9636\u6bb5\u9a8c\u8bc1\u6d4b\u8bd5"
           ]
         }
       },
       "BUG-006-RED": {
         "id": "BUG-006-RED",
-        "name": "[RED] 登录定时攻击保护增强 — 测试编写",
-        "description": "RED 阶段：编写测试证明当前代码存在定时攻击漏洞。'用户不存在'路径有 100ms 固定延迟，'密码错误'路径无延迟。时间差 ~101ms 可被利用。",
+        "name": "[RED] \u767b\u5f55\u5b9a\u65f6\u653b\u51fb\u4fdd\u62a4\u589e\u5f3a \u2014 \u6d4b\u8bd5\u7f16\u5199",
+        "description": "RED \u9636\u6bb5\uff1a\u7f16\u5199\u6d4b\u8bd5\u8bc1\u660e\u5f53\u524d\u4ee3\u7801\u5b58\u5728\u5b9a\u65f6\u653b\u51fb\u6f0f\u6d1e\u3002'\u7528\u6237\u4e0d\u5b58\u5728'\u8def\u5f84\u6709 100ms \u56fa\u5b9a\u5ef6\u8fdf\uff0c'\u5bc6\u7801\u9519\u8bef'\u8def\u5f84\u65e0\u5ef6\u8fdf\u3002\u65f6\u95f4\u5dee ~101ms \u53ef\u88ab\u5229\u7528\u3002",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -594,12 +606,12 @@
         "target_files": [
           "booking-backend/src/modules/auth/auth.service.spec.ts"
         ],
-        "definition_of_done": "RED 测试编写完成：1个测试失败（证明时间差异），1个测试通过（确认漏洞可检测）"
+        "definition_of_done": "RED \u6d4b\u8bd5\u7f16\u5199\u5b8c\u6210\uff1a1\u4e2a\u6d4b\u8bd5\u5931\u8d25\uff08\u8bc1\u660e\u65f6\u95f4\u5dee\u5f02\uff09\uff0c1\u4e2a\u6d4b\u8bd5\u901a\u8fc7\uff08\u786e\u8ba4\u6f0f\u6d1e\u53ef\u68c0\u6d4b\uff09"
       },
       "BUG-006": {
         "id": "BUG-006",
-        "name": "[GREEN] 登录定时攻击保护增强 — 实现修复",
-        "description": "GREEN 阶段：在 loginPassword() 方法中添加 constantTimeLoginDelay() 私有方法，在'用户不存在'和'密码错误'两个分支中都调用，生成 250-350ms 随机范围延迟模拟 bcrypt 耗时。",
+        "name": "[GREEN] \u767b\u5f55\u5b9a\u65f6\u653b\u51fb\u4fdd\u62a4\u589e\u5f3a \u2014 \u5b9e\u73b0\u4fee\u590d",
+        "description": "GREEN \u9636\u6bb5\uff1a\u5728 loginPassword() \u65b9\u6cd5\u4e2d\u6dfb\u52a0 constantTimeLoginDelay() \u79c1\u6709\u65b9\u6cd5\uff0c\u5728'\u7528\u6237\u4e0d\u5b58\u5728'\u548c'\u5bc6\u7801\u9519\u8bef'\u4e24\u4e2a\u5206\u652f\u4e2d\u90fd\u8c03\u7528\uff0c\u751f\u6210 250-350ms \u968f\u673a\u8303\u56f4\u5ef6\u8fdf\u6a21\u62df bcrypt \u8017\u65f6\u3002",
         "status": "completed",
         "dependencies": [
           "BUG-006-RED"
@@ -610,7 +622,7 @@
         "target_files": [
           "booking-backend/src/modules/auth/auth.service.ts"
         ],
-        "definition_of_done": "所有 auth 相关测试通过，RED 测试不再失败，green_report.json 含 execution_evidence",
+        "definition_of_done": "\u6240\u6709 auth \u76f8\u5173\u6d4b\u8bd5\u901a\u8fc7\uff0cRED \u6d4b\u8bd5\u4e0d\u518d\u5931\u8d25\uff0cgreen_report.json \u542b execution_evidence",
         "result": {
           "tests_passed": 52,
           "tests_failed": 0,
@@ -620,10 +632,10 @@
             "vulnerability_fixed": true
           },
           "fixes_applied": [
-            "auth.service.ts: 新增 constantTimeLoginDelay() 私有方法 (250-350ms 随机延迟)",
-            "auth.service.ts: '用户不存在'分支替换固定 100ms 为 constantTimeLoginDelay()",
-            "auth.service.ts: '密码错误'分支新增 constantTimeLoginDelay() 调用",
-            "auth.service.spec.ts: 替换 RED 测试为 GREEN 验证测试 (3 个新测试)"
+            "auth.service.ts: \u65b0\u589e constantTimeLoginDelay() \u79c1\u6709\u65b9\u6cd5 (250-350ms \u968f\u673a\u5ef6\u8fdf)",
+            "auth.service.ts: '\u7528\u6237\u4e0d\u5b58\u5728'\u5206\u652f\u66ff\u6362\u56fa\u5b9a 100ms \u4e3a constantTimeLoginDelay()",
+            "auth.service.ts: '\u5bc6\u7801\u9519\u8bef'\u5206\u652f\u65b0\u589e constantTimeLoginDelay() \u8c03\u7528",
+            "auth.service.spec.ts: \u66ff\u6362 RED \u6d4b\u8bd5\u4e3a GREEN \u9a8c\u8bc1\u6d4b\u8bd5 (3 \u4e2a\u65b0\u6d4b\u8bd5)"
           ]
         }
       },
@@ -699,8 +711,8 @@
       },
       "BUG-008": {
         "id": "BUG-008",
-        "name": "[Fix] PrismaService日志避免暴露DATABASE_URL",
-        "description": "在 prisma.service.ts onModuleInit() 中将直接输出 DATABASE_URL 的日志替换为安全输出，防止生产环境日志泄露数据库密码。",
+        "name": "[Fix] PrismaService\u65e5\u5fd7\u907f\u514d\u66b4\u9732DATABASE_URL",
+        "description": "\u5728 prisma.service.ts onModuleInit() \u4e2d\u5c06\u76f4\u63a5\u8f93\u51fa DATABASE_URL \u7684\u65e5\u5fd7\u66ff\u6362\u4e3a\u5b89\u5168\u8f93\u51fa\uff0c\u9632\u6b62\u751f\u4ea7\u73af\u5883\u65e5\u5fd7\u6cc4\u9732\u6570\u636e\u5e93\u5bc6\u7801\u3002",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
@@ -709,24 +721,24 @@
         "target_files": [
           "booking-backend/src/common/database/prisma.service.ts"
         ],
-        "definition_of_done": "单元测试通过，日志不再输出 DATABASE_URL，handover 和 test_report 已生成",
+        "definition_of_done": "\u5355\u5143\u6d4b\u8bd5\u901a\u8fc7\uff0c\u65e5\u5fd7\u4e0d\u518d\u8f93\u51fa DATABASE_URL\uff0chandover \u548c test_report \u5df2\u751f\u6210",
         "result": {
           "suites_passed": 41,
           "tests_passed": 1103,
           "tests_failed": 0,
-          "pre_existing_failures": "7 integration suites (14 tests) failed due to testcontainer/env config — unrelated",
+          "pre_existing_failures": "7 integration suites (14 tests) failed due to testcontainer/env config \u2014 unrelated",
           "fixes_applied": [
-            "DATABASE_URL 未设置 → logger.warn",
-            "非生产环境 → URL 解析器提取 host+pathname（无密码）",
-            "生产环境 → 仅输出 'Connecting to database...'",
-            "URL 解析失败 → 安全回退到通用日志"
+            "DATABASE_URL \u672a\u8bbe\u7f6e \u2192 logger.warn",
+            "\u975e\u751f\u4ea7\u73af\u5883 \u2192 URL \u89e3\u6790\u5668\u63d0\u53d6 host+pathname\uff08\u65e0\u5bc6\u7801\uff09",
+            "\u751f\u4ea7\u73af\u5883 \u2192 \u4ec5\u8f93\u51fa 'Connecting to database...'",
+            "URL \u89e3\u6790\u5931\u8d25 \u2192 \u5b89\u5168\u56de\u9000\u5230\u901a\u7528\u65e5\u5fd7"
           ]
         }
       },
       "BUG-004-RED": {
         "id": "BUG-004-RED",
-        "name": "[RED] Booking store添加真实后端API调用 — 测试编写",
-        "description": "RED 阶段：编写测试证明当前 reserveSlot() 是纯本地操作，没有调用后端API。新增 confirmSlotReservation() 和 failedReservation() 测试。",
+        "name": "[RED] Booking store\u6dfb\u52a0\u771f\u5b9e\u540e\u7aefAPI\u8c03\u7528 \u2014 \u6d4b\u8bd5\u7f16\u5199",
+        "description": "RED \u9636\u6bb5\uff1a\u7f16\u5199\u6d4b\u8bd5\u8bc1\u660e\u5f53\u524d reserveSlot() \u662f\u7eaf\u672c\u5730\u64cd\u4f5c\uff0c\u6ca1\u6709\u8c03\u7528\u540e\u7aefAPI\u3002\u65b0\u589e confirmSlotReservation() \u548c failedReservation() \u6d4b\u8bd5\u3002",
         "status": "in_progress",
         "dependencies": [],
         "assignee": "@Coder-FE",
@@ -737,12 +749,12 @@
           "booking-frontend/src/app/features/booking/booking.service.spec.ts",
           "booking-frontend/src/app/core/services/api.service.spec.ts"
         ],
-        "definition_of_done": "8个 RED 测试编写完成且执行失败"
+        "definition_of_done": "8\u4e2a RED \u6d4b\u8bd5\u7f16\u5199\u5b8c\u6210\u4e14\u6267\u884c\u5931\u8d25"
       },
       "BUG-004": {
         "id": "BUG-004",
-        "name": "[GREEN] Booking store添加真实后端API调用 — 实现修复",
-        "description": "GREEN 阶段：实现真实的 API 调用。BookingService.reserveSlot() 改为异步，调用 ApiService.createAppointment() 发送 POST /api/appointments，成功后调用 store.confirmSlotReservation()，失败时调用 store.failedReservation()。",
+        "name": "[GREEN] Booking store\u6dfb\u52a0\u771f\u5b9e\u540e\u7aefAPI\u8c03\u7528 \u2014 \u5b9e\u73b0\u4fee\u590d",
+        "description": "GREEN \u9636\u6bb5\uff1a\u5b9e\u73b0\u771f\u5b9e\u7684 API \u8c03\u7528\u3002BookingService.reserveSlot() \u6539\u4e3a\u5f02\u6b65\uff0c\u8c03\u7528 ApiService.createAppointment() \u53d1\u9001 POST /api/appointments\uff0c\u6210\u529f\u540e\u8c03\u7528 store.confirmSlotReservation()\uff0c\u5931\u8d25\u65f6\u8c03\u7528 store.failedReservation()\u3002",
         "status": "completed",
         "dependencies": [
           "BUG-004-RED"
@@ -755,7 +767,7 @@
           "booking-frontend/src/app/features/booking/booking.service.ts",
           "booking-frontend/src/app/core/services/api.service.ts"
         ],
-        "definition_of_done": "所有 booking 相关测试通过，green_report.json 含 execution_evidence"
+        "definition_of_done": "\u6240\u6709 booking \u76f8\u5173\u6d4b\u8bd5\u901a\u8fc7\uff0cgreen_report.json \u542b execution_evidence"
       },
       "H10": {
         "id": "H10",
@@ -780,9 +792,9 @@
           "tests_passed": 10,
           "tests_failed": 0,
           "fixes_applied": [
-            "auth.interceptor.ts: Class → exported const authInterceptor: HttpInterceptorFn",
-            "request-id.interceptor.ts: Class → exported const requestIdInterceptor: HttpInterceptorFn",
-            "app.config.ts: withInterceptorsFromDi() → withInterceptors([authInterceptor, requestIdInterceptor])",
+            "auth.interceptor.ts: Class \u2192 exported const authInterceptor: HttpInterceptorFn",
+            "request-id.interceptor.ts: Class \u2192 exported const requestIdInterceptor: HttpInterceptorFn",
+            "app.config.ts: withInterceptorsFromDi() \u2192 withInterceptors([authInterceptor, requestIdInterceptor])",
             "auth.interceptor.spec.ts: Updated to inject functional interceptor via withInterceptors()",
             "request-id.interceptor.spec.ts: Removed class-based DI, use withInterceptors()",
             "app.config.spec.ts: New test file for appConfig validation"
@@ -791,8 +803,8 @@
       },
       "M10": {
         "id": "M10",
-        "name": "[GREEN] ApiService GET response unwrap — ResponseInterceptor wrapper",
-        "description": "为ApiService中的GET方法添加map(response => response.data)解包逻辑，统一移除ResponseInterceptor外层包装。",
+        "name": "[GREEN] ApiService GET response unwrap \u2014 ResponseInterceptor wrapper",
+        "description": "\u4e3aApiService\u4e2d\u7684GET\u65b9\u6cd5\u6dfb\u52a0map(response => response.data)\u89e3\u5305\u903b\u8f91\uff0c\u7edf\u4e00\u79fb\u9664ResponseInterceptor\u5916\u5c42\u5305\u88c5\u3002",
         "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-FE",
@@ -812,6 +824,37 @@
             "Added map(response => response.data) unwrap to getServices(), getAvailableSlots(), getUserProfile()",
             "Updated all existing GET tests to send ApiResponse wrapped payloads",
             "Added 3 new GREEN tests explicitly verifying unwrap behavior"
+          ]
+        }
+      },
+      "H9-final": {
+        "id": "H9-final",
+        "name": "[Config] PrimeNG theme + Tailwind CSS v4 configuration",
+        "description": "Configure PrimeNG Aura theme via providePrimeNG(), set up Tailwind CSS v4 with tailwindcss-primeui plugin, add primeicons.css to angular.json, fix jest.config.js transformIgnorePatterns for @primeng/@primeuix ESM support.",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "config",
+        "priority": "P2",
+        "target_files": [
+          "booking-frontend/src/app/app.config.ts",
+          "booking-frontend/src/styles.scss",
+          "booking-frontend/angular.json",
+          "booking-frontend/jest.config.js",
+          "booking-frontend/package.json"
+        ],
+        "definition_of_done": "23/26 test suites pass (3 pre-existing spyOn failures), 394/401 tests pass, PrimeNG + Tailwind CSS v4 integrated correctly",
+        "result": {
+          "suites_passed": 23,
+          "tests_passed": 394,
+          "tests_failed": 7,
+          "pre_existing_failures": "3 suites (7 tests) spyOn not defined \u2014 unrelated",
+          "fixes_applied": [
+            "Installed tailwindcss-primeui plugin",
+            "src/styles.scss: @import tailwindcss + @plugin tailwindcss-primeui",
+            "src/app/app.config.ts: provideAnimationsAsync + providePrimeNG(Aura preset, dark mode .dark-mode)",
+            "angular.json: added primeicons.css to styles array",
+            "jest.config.js: added @primeng|@primeuix to transformIgnorePatterns"
           ]
         }
       }
