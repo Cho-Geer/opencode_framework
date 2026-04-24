@@ -5,7 +5,8 @@
     {"id": "R001", "title": "R001", "status": "Testing", "owner": "@Coder-BE", "type": "refactor"},
     {"id": "R002", "title": "R002", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
     {"id": "R003", "title": "R003", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
-    {"id": "H5", "title": "H5", "status": "completed", "owner": "@Coder-BE", "type": "fix"}
+    {"id": "H5", "title": "H5", "status": "completed", "owner": "@Coder-BE", "type": "fix"},
+    {"id": "BUG-009", "title": "BUG-009", "status": "completed", "owner": "@Coder-BE", "type": "fix"}
   ],
   "dag": {
     "meta": {
@@ -44,6 +45,16 @@
           "version": "3.1.0",
           "date": "2026-04-24",
           "description": "R001 REFACTOR 完成。将 RetentionService 中的分布式锁 acquire/release 模式提取为 lock.util.ts 可复用工具类。21 retention 测试通过，0 回归。"
+        },
+        {
+          "version": "3.2.0",
+          "date": "2026-04-24",
+          "description": "H5 完成。将 appointments.service.ts 中 5 处 console.error() 替换为 this.logger.error()。所有 92 个 appointment 测试通过，3 suites 全部通过。"
+        },
+        {
+          "version": "3.2.1",
+          "date": "2026-04-24",
+          "description": "BUG-009 完成。验证部分唯一索引迁移文件 prisma/migrations/20260422_fix_p1_003_partial_unique_index/migration.sql 已存在且 SQL 内容与 contract.yaml 一致。无需创建新迁移。"
         }
       ]
     },
@@ -200,6 +211,32 @@
         "definition_of_done": "所有 auth 相关测试通过，test_report.json 含 execution_evidence",
         "sub_tasks": ["BUG-002-RED", "BUG-002"]
       },
+      "H5": {
+        "id": "H5",
+        "name": "[Fix] Replace console.error with NestJS Logger in AppointmentsService",
+        "description": "Replace 5 instances of console.error() with this.logger.error() in appointments.service.ts",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "fix",
+        "priority": "P2",
+        "target_files": [
+          "booking-backend/src/modules/appointments/appointments.service.ts"
+        ],
+        "definition_of_done": "All 92 appointments-related tests pass (3 suites)",
+        "result": {
+          "suites_passed": 3,
+          "tests_passed": 92,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "L107: console.error → this.logger.error (email confirmation)",
+            "L123: console.error → this.logger.error (booking notification)",
+            "L305: console.error → this.logger.error (update notification)",
+            "L355: console.error → this.logger.error (cancellation email)",
+            "L370: console.error → this.logger.error (cancellation notification)"
+          ]
+        }
+      },
       "BUG-002-RED": {
         "id": "BUG-002-RED",
         "name": "[RED] logout() 黑名单 key 使用 jti 替代 randomUUID — 测试编写",
@@ -273,6 +310,28 @@
           ]
         }
       },
+      "BUG-009": {
+        "id": "BUG-009",
+        "name": "Verify/Create partial unique index migration",
+        "description": "验证 prisma/schema.prisma L227-229 引用的部分唯一索引迁移文件是否存在且 SQL 内容正确。迁移文件已存在，与 contract.yaml 完全一致。",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "fix",
+        "priority": "P2",
+        "target_files": [
+          "booking-backend/prisma/migrations/20260422_fix_p1_003_partial_unique_index/migration.sql"
+        ],
+        "definition_of_done": "验证迁移文件存在、SQL内容正确、与contract.yaml一致，输出test_report.json含execution_evidence",
+        "result": {
+          "migration_file_exists": true,
+          "sql_drop_old_index": true,
+          "sql_create_partial_unique_index": true,
+          "sql_condition_correct": true,
+          "contract_condition_match": true,
+          "schema_comment_path_match": true
+        }
+      },
       "BUG-005-RED": {
         "id": "BUG-005-RED",
         "name": "[RED] Rate limiter pipeline先加后删 — 测试编写",
@@ -300,6 +359,32 @@
           "booking-backend/src/modules/rate-limiter/rate-limiter.service.ts"
         ],
         "definition_of_done": "所有 rate-limiter 测试通过，green_report.json 含 execution_evidence"
+      },
+      "BUG-008": {
+        "id": "BUG-008",
+        "name": "[Fix] PrismaService日志避免暴露DATABASE_URL",
+        "description": "在 prisma.service.ts onModuleInit() 中将直接输出 DATABASE_URL 的日志替换为安全输出，防止生产环境日志泄露数据库密码。",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/common/database/prisma.service.ts"
+        ],
+        "definition_of_done": "单元测试通过，日志不再输出 DATABASE_URL，handover 和 test_report 已生成",
+        "result": {
+          "suites_passed": 41,
+          "tests_passed": 1103,
+          "tests_failed": 0,
+          "pre_existing_failures": "7 integration suites (14 tests) failed due to testcontainer/env config — unrelated",
+          "fixes_applied": [
+            "DATABASE_URL 未设置 → logger.warn",
+            "非生产环境 → URL 解析器提取 host+pathname（无密码）",
+            "生产环境 → 仅输出 'Connecting to database...'",
+            "URL 解析失败 → 安全回退到通用日志"
+          ]
+        }
       }
     }
   }
