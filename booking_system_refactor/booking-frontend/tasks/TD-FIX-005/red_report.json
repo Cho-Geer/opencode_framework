@@ -1,0 +1,20 @@
+{
+  "taskId": "TD-FIX-005",
+  "phase": "RED",
+  "specFile": "src/app/stores/auth/auth.store.spec.ts",
+  "totalTests": 14,
+  "passedTests": 8,
+  "failedTests": 6,
+  "failureCategories": {
+    "loginSuccessNoUser": {
+      "count": 6,
+      "description": "Tests expect loginSuccess() to set user, but new implementation only stores tokens. User is set via separate setUserProfile() call.",
+      "examples": [
+        "loginSuccess(mockUser, token, refreshToken) no longer accepts user",
+        "user() is null after loginSuccess()",
+        "currentUser() is null after loginSuccess()"
+      ]
+    }
+  },
+  "execution_evidence": "npx jest src/app/stores/auth/auth.store.spec.ts --no-coverage => 6 failed, 8 passed"
+}
