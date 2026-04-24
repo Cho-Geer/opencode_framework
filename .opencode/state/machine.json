@@ -4,7 +4,7 @@
     "version": "2.1.0",
     "project": "appointment-booking-system",
     "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-24T11:00:00.000Z"
+    "lastUpdated": "2026-04-24T02:04:31.279Z"
   },
   "currentTask": {
     "id": "BUG-009",
@@ -205,25 +205,21 @@
           }
         ]
       },
-    {
-      "from": "in_progress",
-      "to": "completed",
-      "requiredEvidence": [
-        {
-          "filePattern": "booking_system_refactor/booking-backend/tasks/{taskId}/refactor_report.json",
-          "description": "测试执行报告（含 execution_evidence）",
-          "contentMustNotContain": "\"failed\": [1-9]"
-        }
-      ]
-    },
-    {
-      "from": "pending",
-      "to": "completed",
-      "requiredEvidence": []
-    }
-  ]
-}
+      {
+        "from": "in_progress",
+        "to": "completed",
+        "requiredEvidence": [
+          {
+            "filePattern": "booking_system_refactor/booking-backend/tasks/{taskId}/refactor_report.json",
+            "description": "测试执行报告（含 execution_evidence）",
+            "contentMustNotContain": "\"failed\": [1-9]"
+          }
         ]
+      },
+      {
+        "from": "pending",
+        "to": "completed",
+        "requiredEvidence": []
       }
     ]
   },

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, retry } from 'rxjs/operators';
+import { catchError, map, retry } from 'rxjs/operators';
 import {
   ContactType,
   RegisterSendCodeDto,
@@ -15,6 +15,19 @@ import {
   LogoutResponse,
 } from '../../features/auth/dto/auth.dto';
 import { Service, TimeSlot, ReservationResponse } from '../../shared/dto';
+
+/**
+ * Standard API response envelope as produced by the backend ResponseInterceptor.
+ * All backend responses (both GET and POST/DELETE) are wrapped in this format.
+ */
+export interface ApiResponse<T> {
+  success: boolean;
+  code: number;
+  message: string;
+  data: T;
+  timestamp: string;
+  requestId: string;
+}
 
 // Re-export DTOs for backward compatibility
 export type {
@@ -115,8 +128,9 @@ export class ApiService {
 
   getServices(): Observable<Service[]> {
     return this.http
-      .get<Service[]>(`${this.apiUrl}/services`)
+      .get<ApiResponse<Service[]>>(`${this.apiUrl}/services`)
       .pipe(
+        map(response => response.data),
         retry(2),
         catchError(this.handleError)
       );
@@ -143,8 +157,9 @@ export class ApiService {
   getAvailableSlots(serviceId: string): Observable<TimeSlot[]> {
     const params = new HttpParams().set('serviceId', serviceId);
     return this.http
-      .get<TimeSlot[]>(`${this.apiUrl}/time-slots/available`, { params })
+      .get<ApiResponse<TimeSlot[]>>(`${this.apiUrl}/time-slots/available`, { params })
       .pipe(
+        map(response => response.data),
         retry(2),
         catchError(this.handleError)
       );
@@ -188,15 +203,18 @@ export class ApiService {
     created_at: string;
   }> {
     return this.http
-      .get<{
+      .get<ApiResponse<{
         id: string;
         name: string;
         email?: string;
         phone?: string;
         role: string;
         created_at: string;
-      }>(`${this.apiUrl}/users/profile`)
-      .pipe(catchError(this.handleError));
+      }>>(`${this.apiUrl}/users/profile`)
+      .pipe(
+        map(response => response.data),
+        catchError(this.handleError)
+      );
   }
 
   private handleError(error: unknown): Observable<never> {

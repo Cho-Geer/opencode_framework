@@ -3,7 +3,7 @@ import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { ApiService } from './api.service';
+import { ApiService, ApiResponse } from './api.service';
 import { LoginPasswordDto, RegisterCompleteDto, ContactType, AuthResponseDto } from '../../features/auth/dto/auth.dto';
 
 describe('ApiService', () => {
@@ -115,20 +115,37 @@ describe('ApiService', () => {
   });
 
   describe('getServices()', () => {
-    it('should send GET request to /api/services', () => {
-      const mockServices = [
-        { id: '1', name: 'Haircut', description: 'Standard haircut', durationMinutes: 30, price: 25 },
-        { id: '2', name: 'Coloring', description: 'Hair coloring', durationMinutes: 60, price: 50 },
-      ];
+    const mockServices = [
+      { id: '1', name: 'Haircut', description: 'Standard haircut', durationMinutes: 30, price: 25 },
+      { id: '2', name: 'Coloring', description: 'Hair coloring', durationMinutes: 60, price: 50 },
+    ];
 
-      service.getServices().subscribe((services) => {
-        expect(services.length).toBe(2);
-        expect(services[0].name).toBe('Haircut');
+    it('should send GET request to /api/services and unwrap ApiResponse', (done) => {
+      const wrappedResponse: ApiResponse<typeof mockServices> = {
+        success: true,
+        code: 200,
+        message: 'OK',
+        data: mockServices,
+        timestamp: '2026-04-24T10:00:00.000Z',
+        requestId: 'req-test-uuid',
+      };
+
+      service.getServices().subscribe({
+        next: (services) => {
+          try {
+            expect(services.length).toBe(2);
+            expect(services[0].name).toBe('Haircut');
+            done();
+          } catch (e) {
+            done(e);
+          }
+        },
+        error: (err) => done('should not error: ' + err),
       });
 
       const req = httpMock.expectOne(`${apiUrl}/services`);
       expect(req.request.method).toBe('GET');
-      req.flush(mockServices);
+      req.flush(wrappedResponse);
     });
 
     it('should retry failed requests up to 2 times', () => {
@@ -168,15 +185,80 @@ describe('ApiService', () => {
       const req3 = httpMock.expectOne(`${apiUrl}/services`);
       req3.flush({ message: 'Network error' }, { status: 500, statusText: 'Internal Server Error' });
     });
+
+    // ============================================================
+    // [RED] Tests: API Response Unwrapping (ResponseInterceptor)
+    // These prove that the current code does NOT unwrap response.data
+    // and will FAIL until the unwrap logic is added to ApiService.
+    // ============================================================
+
+    it('[GREEN] should unwrap ApiResponse envelope from backend for getServices', (done) => {
+      // Simulate the actual backend ResponseInterceptor response format
+      const wrappedResponse: ApiResponse<typeof mockServices> = {
+        success: true,
+        code: 200,
+        message: 'OK',
+        data: mockServices,
+        timestamp: '2026-04-24T10:00:00.000Z',
+        requestId: 'req-test-uuid',
+      };
+      service.getServices().subscribe({
+        next: (services) => {
+          try {
+            // With unwrapping, services is the data array, not the envelope
+            expect(Array.isArray(services)).toBe(true);
+            expect(services.length).toBe(2);
+            expect(services[0].name).toBe('Haircut');
+            done();
+          } catch (e) {
+            done(e);
+          }
+        },
+        error: (err) => done('should not error on successful response: ' + err),
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/services`);
+      expect(req.request.method).toBe('GET');
+      req.flush(wrappedResponse);
+    });
+
+    it('[GREEN] should return actual data array from wrapped response for getServices', (done) => {
+      const wrappedResponse: ApiResponse<typeof mockServices> = {
+        success: true,
+        code: 200,
+        message: 'OK',
+        data: mockServices,
+        timestamp: '2026-04-24T10:00:00.000Z',
+        requestId: 'req-test-uuid',
+      };
+
+      service.getServices().subscribe({
+        next: (services) => {
+          try {
+            // With unwrapping, services is the data array
+            expect(Array.isArray(services)).toBe(true);
+            const names = services.map(s => s.name);
+            expect(names).toEqual(['Haircut', 'Coloring']);
+            done();
+          } catch (e) {
+            done(e);
+          }
+        },
+        error: (err) => done('should not error: ' + err),
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/services`);
+      req.flush(wrappedResponse);
+    });
   });
 
   describe('getAvailableSlots()', () => {
-    it('should send GET request to /api/time-slots/available with serviceId param', () => {
-      const mockSlots = [
-        { id: 'slot-1', date: '2026-04-20', time: '09:00', isActive: true },
-        { id: 'slot-2', date: '2026-04-20', time: '10:00', isActive: true },
-      ];
+    const mockSlots = [
+      { id: 'slot-1', date: '2026-04-20', time: '09:00', isActive: true },
+      { id: 'slot-2', date: '2026-04-20', time: '10:00', isActive: true },
+    ];
 
+    it('should send GET request to /api/time-slots/available with serviceId param', () => {
       service.getAvailableSlots('svc-1').subscribe((slots) => {
         expect(slots.length).toBe(2);
         expect(slots[0].id).toBe('slot-1');
@@ -222,6 +304,43 @@ describe('ApiService', () => {
         );
       });
       req3.flush({ message: 'Error' }, { status: 500, statusText: 'Error' });
+    });
+
+    // ============================================================
+    // [RED] Test: getAvailableSlots API Response Unwrapping
+    // ============================================================
+
+    it('[GREEN] should unwrap ApiResponse envelope for getAvailableSlots', (done) => {
+      const wrappedResponse: ApiResponse<typeof mockSlots> = {
+        success: true,
+        code: 200,
+        message: 'OK',
+        data: mockSlots,
+        timestamp: '2026-04-24T10:00:00.000Z',
+        requestId: 'req-test-uuid',
+      };
+
+      service.getAvailableSlots('svc-1').subscribe({
+        next: (slots) => {
+          try {
+            expect(Array.isArray(slots)).toBe(true);
+            expect(slots.length).toBe(2);
+            expect(slots[0].id).toBe('slot-1');
+            done();
+          } catch (e) {
+            done(e);
+          }
+        },
+        error: (err) => done('should not error: ' + err),
+      });
+
+      const req = httpMock.expectOne((request) => {
+        return (
+          request.url === `${apiUrl}/time-slots/available` &&
+          request.params.get('serviceId') === 'svc-1'
+        );
+      });
+      req.flush(wrappedResponse);
     });
   });
 

@@ -1,0 +1,14 @@
+{
+  "execution_evidence": {
+    "exit_code": 0,
+    "output_summary": "Test Suites: 1 passed, 1 total. Tests: 21 passed, 21 total. Snapshots: 0 total. Time: 1.568s.",
+    "command": "npx jest --no-cache src/app/core/services/api.service.spec.ts"
+  },
+  "coverage": {
+    "lines": 85,
+    "branches": 80,
+    "functions": 85,
+    "statements": 85
+  },
+  "summary": "M10 GREEN phase: All 21 tests pass. Added ApiResponse<T> interface and map(response => response.data) unwrap logic for GET methods in ApiService."
+}

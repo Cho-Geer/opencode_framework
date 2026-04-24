@@ -788,6 +788,32 @@
             "app.config.spec.ts: New test file for appConfig validation"
           ]
         }
+      },
+      "M10": {
+        "id": "M10",
+        "name": "[GREEN] ApiService GET response unwrap — ResponseInterceptor wrapper",
+        "description": "为ApiService中的GET方法添加map(response => response.data)解包逻辑，统一移除ResponseInterceptor外层包装。",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P2",
+        "target_files": [
+          "booking-frontend/src/app/core/services/api.service.ts",
+          "booking-frontend/src/app/core/services/api.service.spec.ts"
+        ],
+        "definition_of_done": "21 api.service.spec.ts tests passing, green_report.json with execution_evidence",
+        "result": {
+          "suites_passed": 1,
+          "tests_passed": 21,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "Added ApiResponse<T> interface matching backend ResponseInterceptor format",
+            "Added map(response => response.data) unwrap to getServices(), getAvailableSlots(), getUserProfile()",
+            "Updated all existing GET tests to send ApiResponse wrapped payloads",
+            "Added 3 new GREEN tests explicitly verifying unwrap behavior"
+          ]
+        }
       }
     }
   }
