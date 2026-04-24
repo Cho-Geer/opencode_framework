@@ -1,0 +1,204 @@
+{
+  "dag": {
+    "meta": {
+      "version": "3.0.0",
+      "generated_by": "@Orchestrator",
+      "generated_at": "2026-04-23T14:00:00Z",
+      "phase": "REFACTOR",
+      "next_action": "调度 R001/R002/R003 并行 REFACTOR 任务",
+      "change_log": [
+        {
+          "version": "2.0.0",
+          "date": "2026-04-23",
+          "description": "向DAG添加仲裁任务和修复/豁免分支；保留T001-T004已完成状态；准备REFACTOR阶段"
+        },
+        {
+          "version": "2.0.1",
+          "date": "2026-04-23",
+          "description": "@Orchestrator 调度 T005 → @Arbiter 已启动 (in_progress)，提交仲裁上下文"
+        },
+        {
+          "version": "2.1.0",
+          "date": "2026-04-23",
+          "description": "@Arbiter 裁决完成：WAIVE（豁免），TECH_DEBT_REGISTRY.md 已创建，T006-W 已完成。F-branch 任务已取消。等待 T007-W @Guardian 条件放行。"
+        },
+        {
+          "version": "3.0.0",
+          "date": "2026-04-23",
+          "description": "@Orchestrator: T007-W → completed. 开始 REFACTOR 阶段调度。新增 R001/R002/R003 并行 REFACTOR 任务。"
+        }
+      ]
+    },
+    "tasks": {
+      "T001": {
+        "id": "T001",
+        "name": "Backend单元测试执行与修复",
+        "description": "Run booking-backend unit tests, fix TypeScript and configuration errors",
+        "status": "completed",
+        "dependencies": [],
+        "requirement_source": "测试策略与计划.md §5.1",
+        "target_files": ["booking-backend/src/**/*.spec.ts"],
+        "definition_of_done": "所有后端单元测试通过 (1108/1108 pass, 48/50 suites)",
+        "result": {
+          "suites_passed": 48,
+          "suites_failed": 0,
+          "tests_passed": 1108,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "supertest import style (5 files)",
+            "global-teardown type declarations",
+            "test/tsconfig.json paths mapping",
+            "jwt.config.spec.ts jest.mock('fs')"
+          ]
+        }
+      },
+      "T002": {
+        "id": "T002",
+        "name": "前端单元测试执行",
+        "description": "Run booking-frontend unit tests, fix environment setup issues",
+        "status": "completed",
+        "dependencies": [],
+        "requirement_source": "测试策略与计划.md §6.1",
+        "target_files": ["booking-frontend/src/**/*.spec.ts"],
+        "definition_of_done": "前端测试环境正确配置，组件初始化问题已修复",
+        "result": {
+          "suites_passed": 13,
+          "suites_failed": 13,
+          "tests_passed": 247,
+          "tests_failed": 147,
+          "blocker": "147 pre-existing test logic failures remain (router mocking, component init, HTTP patterns)"
+        }
+      },
+      "T003": {
+        "id": "T003",
+        "name": "质量审查 (Guardian)",
+        "description": "Guardian quality review of test execution results",
+        "status": "completed",
+        "dependencies": ["T001", "T002"],
+        "requirement_source": "测试策略与计划.md §2.3, AGENTS.md §六-7",
+        "target_files": ["T003-test_report.json"],
+        "definition_of_done": "Guardian 执行完整质量门禁检查，输出审查报告",
+        "result": {
+          "verdict": "FAIL",
+          "overall_score": 65,
+          "blockers": [
+            "Frontend tests 147/394 failing — violates TDD 100%-passing gate",
+            "Frontend 13/26 test suites failed entirely"
+          ]
+        }
+      },
+      "T004": {
+        "id": "T004",
+        "name": "Agent模型配置修复",
+        "description": "Fix ProviderModelNotFoundError in all 8 agent configs",
+        "status": "completed",
+        "dependencies": [],
+        "requirement_source": "AGENTS.md §三, MCP合规指南",
+        "target_files": [".opencode/agents/*.md"],
+        "definition_of_done": "所有8个agent子调用正常（ProviderModelNotFoundError 已修复）",
+        "result": {
+          "fix": "Removed model field from all 8 agent .md files",
+          "verification": "Manual sub-agent invocation successful for all 8 agents"
+        }
+      },
+      "T005": {
+        "id": "T005",
+        "name": "@Arbiter 裁决: 前端147测试失败处理",
+        "description": "前端单元测试 147/394 失败 (13/26 suites)。需要 @Arbiter 裁决：waive 为技术债，或要求 @Coder-FE 修复。裁决结果决定下一阶段路径。",
+        "status": "completed",
+        "arbiter_ruling": "waive",
+        "dependencies": ["T006-W"],
+        "assignee": "@Guardian",
+        "type": "quality_gate_override",
+        "priority": "P0",
+        "target_files": ["TECH_DEBT_REGISTRY.md"],
+        "definition_of_done": "Guardian 输出条件放行报告，流程可进入下一阶段"
+      },
+      "T007-W": {
+        "id": "T007-W",
+        "name": "@Guardian 条件放行（技术债已登记）",
+        "description": "@Guardian 确认 TECH_DEBT_REGISTRY.md 已正确初始化，输出条件放行报告。",
+        "status": "completed",
+        "dependencies": ["T006-W"],
+        "assignee": "@Guardian",
+        "type": "quality_gate_override",
+        "priority": "P0",
+        "target_files": ["TECH_DEBT_REGISTRY.md"],
+        "definition_of_done": "Guardian 输出条件放行报告，流程可进入下一阶段"
+      },
+      "R001": {
+        "id": "R001",
+        "name": "[REFACTOR] 提取分布式锁工具类 — RetentionService",
+        "description": "将 RetentionService 中的分布式锁 acquire/release 模式提取为可复用工具类，清理 Promise.allSettled 结果处理的冗余代码。所有 21 个测试必须保持全量通过。",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "refactor",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/retention/retention.service.ts",
+          "booking-backend/src/common/utils/lock.util.ts"
+        ],
+        "definition_of_done": "所有 retention 相关测试通过 (21/21)，test_report.json 含 execution_evidence"
+      },
+      "R002": {
+        "id": "R002",
+        "name": "[REFACTOR] 提取重试/退避工具类 — AppointmentsService",
+        "description": "将 AppointmentsService 中的乐观锁重试+指数退避模式提取为可复用工具类，sleep() 提取到 shared utility。所有预约相关测试保持全量通过。",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "refactor",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/appointments/appointments.service.ts",
+          "booking-backend/src/common/utils/retry.util.ts"
+        ],
+        "definition_of_done": "所有 appointments 相关测试通过，test_report.json 含 execution_evidence"
+      },
+      "R003": {
+        "id": "R003",
+        "name": "[REFACTOR] 消除 AuthService Token 生成逻辑重复",
+        "description": "generateTokens() 和 rotateToken() 中存在重复的 JWT signing 和 session 创建逻辑。提取公共方法消除重复。所有 Auth 测试保持全量通过。",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "refactor",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/auth/auth.service.ts"
+        ],
+        "definition_of_done": "所有 auth 相关测试通过，test_report.json 含 execution_evidence",
+        "sub_tasks": ["BUG-002-RED", "BUG-002"]
+      },
+      "BUG-002-RED": {
+        "id": "BUG-002-RED",
+        "name": "[RED] logout() 黑名单 key 使用 jti 替代 randomUUID — 测试编写",
+        "description": "RED 阶段：编写4个测试验证 logout() 使用 jti 而非 randomUUID 作为黑名单 key",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "test",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/auth/auth.service.spec.ts"
+        ],
+        "definition_of_done": "4个 RED 测试编写完成且执行失败"
+      },
+      "BUG-002": {
+        "id": "BUG-002",
+        "name": "[GREEN] logout() 黑名单 key 使用 jti 替代 randomUUID — 实现修复",
+        "description": "GREEN 阶段：修复 auth.service.ts 中 logout() 方法使用 crypto.randomUUID() 而非 token jti 作为黑名单 key 的 bug",
+        "status": "completed",
+        "dependencies": ["BUG-002-RED"],
+        "assignee": "@Coder-BE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/auth/auth.service.ts"
+        ],
+        "definition_of_done": "所有 auth 相关测试通过 (108/108)，green_report.json 含 execution_evidence"
+      }
+    }
+  }
+}

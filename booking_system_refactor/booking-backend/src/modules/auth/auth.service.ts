@@ -4,28 +4,33 @@ import {
   BadRequestException,
   ConflictException,
   Logger,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../common/database/prisma.service';
-import { EmailService } from '../email/email.service';
-import { VerificationService } from '../verification/verification.service';
-import { CacheService } from '../cache/cache.service';
-import { EncryptionService } from '../encryption/encryption.service';
-import { HashService } from '../encryption/hash.service';
-import { maskEmail, maskPhone } from '../encryption/masking.util';
-import * as bcrypt from 'bcryptjs';
-import * as crypto from 'crypto';
-import { RegisterSendCodeDto, ContactType } from './dto/register-send-code.dto';
-import { RegisterCompleteDto } from './dto/register-complete.dto';
-import { LoginSendCodeDto } from './dto/login-send-code.dto';
-import { LoginVerifyCodeDto } from './dto/login-verify-code.dto';
-import { LoginPasswordDto } from './dto/login-password.dto';
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { PrismaService } from "../../common/database/prisma.service";
+import { UserStatus, UserType as PrismaUserType } from "@prisma/client";
+import { EmailService } from "../email/email.service";
+import { VerificationService } from "../verification/verification.service";
+import { CacheService } from "../cache/cache.service";
+import { EncryptionService } from "../encryption/encryption.service";
+import { HashService } from "../encryption/hash.service";
+import { maskEmail, maskPhone } from "../encryption/masking.util";
+import * as bcrypt from "bcryptjs";
+import * as crypto from "crypto";
+import { RegisterSendCodeDto, ContactType } from "./dto/register-send-code.dto";
+import { RegisterCompleteDto } from "./dto/register-complete.dto";
+import { LoginSendCodeDto } from "./dto/login-send-code.dto";
+import { LoginVerifyCodeDto } from "./dto/login-verify-code.dto";
+import { LoginPasswordDto } from "./dto/login-password.dto";
+import {
+  SendVerificationCodeDto,
+  VerifyVerificationCodeDto,
+} from "./dto/email-verification.dto";
 import {
   AuthResponseDto,
   SendCodeResponseDto,
   LogoutResponseDto,
   RefreshTokenRequestDto,
-} from './dto/auth-response.dto';
+} from "./dto/auth-response.dto";
 
 /** Bcrypt salt rounds for password hashing (OWASP 2023 推荐值) */
 const BCRYPT_SALT_ROUNDS = 12;
@@ -41,7 +46,7 @@ const REFRESH_TOKEN_EXPIRES_DAYS = 7;
 const VERIFICATION_CODE_TTL = 300;
 
 /** User type enum from Prisma schema */
-type UserType = 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
+type UserType = "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
 
 export interface UserPayload {
   id: string;
@@ -75,10 +80,10 @@ export class AuthService {
     const jwtSecret = process.env.JWT_SECRET;
     const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
     if (!jwtSecret) {
-      throw new Error('JWT_SECRET environment variable is required');
+      throw new Error("JWT_SECRET environment variable is required");
     }
     if (!jwtRefreshSecret) {
-      throw new Error('JWT_REFRESH_SECRET environment variable is required');
+      throw new Error("JWT_REFRESH_SECRET environment variable is required");
     }
   }
 
@@ -97,10 +102,7 @@ export class AuthService {
     const contactHash = this.hashService.hashWithPepper(contact);
 
     // 检查是否已注册
-    const whereClause =
-      contactType === ContactType.PHONE
-        ? { phoneHash: contactHash }
-        : { emailHash: contactHash };
+    const whereClause = this.buildContactWhere(contactType, contactHash);
 
     const existingUser = await this.prisma.user.findFirst({
       where: whereClause,
@@ -108,9 +110,7 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException(
-        contactType === ContactType.PHONE
-          ? '该手机号已注册'
-          : '该邮箱已注册',
+        contactType === ContactType.PHONE ? "该手机号已注册" : "该邮箱已注册",
       );
     }
 
@@ -119,12 +119,12 @@ export class AuthService {
     const redisKey = `verify:register:${contactType}:${contactHash}`;
     const code = await this.verificationService.generateCode(
       redisKey,
-      'REGISTER',
+      "REGISTER",
     );
 
     // 发送验证码
     if (contactType === ContactType.EMAIL) {
-      const subject = '您的注册验证码';
+      const subject = "您的注册验证码";
       const html = this.generateVerificationCodeHtml(code);
       const text = `您的注册验证码是: ${code}，5分钟内有效。`;
 
@@ -135,10 +135,10 @@ export class AuthService {
           html,
           text,
         });
-      } catch (error) {
+      } catch (_error) {
         // 邮件发送失败，清理 Redis 中的验证码
-        await this.verificationService.deleteCode(redisKey, 'REGISTER');
-        throw new BadRequestException('发送验证码失败，请稍后重试');
+        await this.verificationService.deleteCode(redisKey, "REGISTER");
+        throw new BadRequestException("发送验证码失败，请稍后重试");
       }
     } else {
       // TODO: 集成短信服务
@@ -170,18 +170,15 @@ export class AuthService {
     const verificationResult = await this.verificationService.verifyCode(
       redisKey,
       code,
-      'REGISTER',
+      "REGISTER",
     );
 
     if (!verificationResult.success) {
-      throw new BadRequestException('验证码无效或已过期');
+      throw new BadRequestException("验证码无效或已过期");
     }
 
     // 2. 再次检查唯一性（防止并发注册）
-    const whereClause =
-      contactType === ContactType.PHONE
-        ? { phoneHash: contactHash }
-        : { emailHash: contactHash };
+    const whereClause = this.buildContactWhere(contactType, contactHash);
 
     const existingUser = await this.prisma.user.findFirst({
       where: whereClause,
@@ -190,8 +187,8 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException(
         contactType === ContactType.PHONE
-          ? '该手机号已被注册'
-          : '该邮箱已被注册',
+          ? "该手机号已被注册"
+          : "该邮箱已被注册",
       );
     }
 
@@ -202,11 +199,22 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     // 5. 创建用户（三字段存储模型）
-    const createData: any = {
+    const createData: {
+      name: string;
+      passwordHash: string;
+      userType: PrismaUserType;
+      status: UserStatus;
+      phoneHash: string | null;
+      phoneEncrypted: string | null;
+      emailHash: string | null;
+      emailEncrypted: string | null;
+      phone?: string;
+      email?: string;
+    } = {
       name,
       passwordHash,
-      userType: 'CUSTOMER',
-      status: 'ACTIVE',
+      userType: "CUSTOMER",
+      status: "ACTIVE",
       phoneHash: null,
       phoneEncrypted: null,
       emailHash: null,
@@ -249,10 +257,7 @@ export class AuthService {
     // 计算 contact hash 查找用户
     const contactHash = this.hashService.hashWithPepper(contact);
 
-    const whereClause =
-      contactType === ContactType.PHONE
-        ? { phoneHash: contactHash }
-        : { emailHash: contactHash };
+    const whereClause = this.buildContactWhere(contactType, contactHash);
 
     const user = await this.prisma.user.findFirst({
       where: whereClause,
@@ -268,18 +273,18 @@ export class AuthService {
       return { expiresIn: VERIFICATION_CODE_TTL };
     }
 
-    if (user.status !== 'ACTIVE') {
-      throw new BadRequestException('用户账户已被禁用');
+    if (user.status !== "ACTIVE") {
+      throw new BadRequestException("用户账户已被禁用");
     }
 
     // 生成验证码并存入 Redis
     // Redis key: verify:login:{contactType}:{contactHash}
     const redisKey = `verify:login:${contactType}:${contactHash}`;
-    const code = await this.verificationService.generateCode(redisKey, 'LOGIN');
+    const code = await this.verificationService.generateCode(redisKey, "LOGIN");
 
     // 发送验证码
     if (contactType === ContactType.EMAIL) {
-      const subject = '您的登录验证码';
+      const subject = "您的登录验证码";
       const html = this.generateVerificationCodeHtml(code);
       const text = `您的登录验证码是: ${code}，5分钟内有效。`;
 
@@ -290,9 +295,9 @@ export class AuthService {
           html,
           text,
         });
-      } catch (error) {
-        await this.verificationService.deleteCode(redisKey, 'LOGIN');
-        throw new BadRequestException('发送验证码失败，请稍后重试');
+      } catch (_error) {
+        await this.verificationService.deleteCode(redisKey, "LOGIN");
+        throw new BadRequestException("发送验证码失败，请稍后重试");
       }
     } else {
       // TODO: 集成短信服务
@@ -313,17 +318,14 @@ export class AuthService {
 
     // 1. 计算 hash 查找用户
     const contactHash = this.hashService.hashWithPepper(contact);
-    const whereClause =
-      contactType === ContactType.PHONE
-        ? { phoneHash: contactHash }
-        : { emailHash: contactHash };
+    const whereClause = this.buildContactWhere(contactType, contactHash);
 
     const user = await this.prisma.user.findFirst({
       where: whereClause,
     });
 
-    if (!user || user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('用户不存在或账户已禁用');
+    if (!user || user.status !== "ACTIVE") {
+      throw new UnauthorizedException("用户不存在或账户已禁用");
     }
 
     // 2. 验证码校验
@@ -331,11 +333,11 @@ export class AuthService {
     const verificationResult = await this.verificationService.verifyCode(
       redisKey,
       code,
-      'LOGIN',
+      "LOGIN",
     );
 
     if (!verificationResult.success) {
-      throw new UnauthorizedException('验证码无效或已过期');
+      throw new UnauthorizedException("验证码无效或已过期");
     }
 
     // 3. 更新最后登录时间
@@ -359,25 +361,22 @@ export class AuthService {
 
     // 1. 计算 hash 查找用户
     const contactHash = this.hashService.hashWithPepper(contact);
-    const whereClause =
-      contactType === ContactType.PHONE
-        ? { phoneHash: contactHash }
-        : { emailHash: contactHash };
+    const whereClause = this.buildContactWhere(contactType, contactHash);
 
     const user = await this.prisma.user.findFirst({
       where: whereClause,
     });
 
-    if (!user || !user.passwordHash || user.status !== 'ACTIVE') {
+    if (!user || !user.passwordHash || user.status !== "ACTIVE") {
       // 防枚举：密码错误和用户不存在返回相同错误
       await new Promise((resolve) => setTimeout(resolve, 100));
-      throw new UnauthorizedException('凭证无效');
+      throw new UnauthorizedException("凭证无效");
     }
 
     // 2. 密码验证 (bcrypt rounds=12)
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('凭证无效');
+      throw new UnauthorizedException("凭证无效");
     }
 
     // 3. 更新最后登录时间
@@ -410,11 +409,11 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET!,
       });
     } catch {
-      throw new UnauthorizedException('Refresh Token 无效或已过期');
+      throw new UnauthorizedException("Refresh Token 无效或已过期");
     }
 
-    if (payload.tokenType !== 'refresh') {
-      throw new UnauthorizedException('无效的 Token 类型');
+    if (payload.tokenType !== "refresh") {
+      throw new UnauthorizedException("无效的 Token 类型");
     }
 
     // 2. 查找会话
@@ -426,9 +425,7 @@ export class AuthService {
     // 3. Token 重用检测（重放攻击防护）
     if (!session) {
       await this.revokeAllUserSessions(payload.sub);
-      throw new UnauthorizedException(
-        'Refresh Token 重用检测：所有会话已吊销',
-      );
+      throw new UnauthorizedException("Refresh Token 重用检测：所有会话已吊销");
     }
 
     // 4. 验证会话有效性
@@ -437,14 +434,13 @@ export class AuthService {
       !session.refreshExpiresAt ||
       session.refreshExpiresAt < new Date()
     ) {
-      throw new UnauthorizedException('Refresh Token 已过期或已吊销');
+      throw new UnauthorizedException("Refresh Token 已过期或已吊销");
     }
 
     // 5. 原子操作：吊销旧会话 + 创建新会话
     const tokens = await this.rotateToken(
       session.user as unknown as UserPayload,
       session.id,
-      refreshToken,
     );
 
     return tokens;
@@ -465,51 +461,67 @@ export class AuthService {
       data: { isActive: false },
     });
 
-    // 2. 将 Access Token 加入黑名单
+    // 2. 解码 Access Token 提取 jti，用于构建黑名单 key
+    const decodedToken = this.jwtService.decode(accessToken) as { jti?: string } | null;
+    const jti = decodedToken?.jti || crypto.randomUUID();
     await this.cacheService.setSession(
-      `token:blacklist:${crypto.randomUUID()}`,
-      'revoked',
+      `token:blacklist:${jti}`,
+      "revoked",
     );
 
     this.logger.log(`User logged out: ${userId}`);
 
-    return { message: '登出成功' };
+    return { message: "登出成功" };
   }
 
   // ==================== 内部方法 ====================
 
   /**
-   * 生成 JWT Token 对
+   * Build a token pair (access + refresh) with associated session metadata.
+   * Returns signed tokens and session data ready for persistence.
+   * This is the shared building block for both generateTokens and rotateToken.
    */
-  private async generateTokens(user: UserPayload): Promise<AuthResponseDto> {
-    const sessionId = crypto.randomUUID();
+  private buildTokenPair(user: UserPayload): {
+    accessToken: string;
+    refreshToken: string;
+    sessionData: {
+      userId: string;
+      sessionToken: string;
+      refreshToken: string;
+      expiresAt: Date;
+      refreshExpiresAt: Date;
+    };
+    response: AuthResponseDto;
+  } {
     const jti = crypto.randomUUID();
 
     // Access Token Payload（移除 email，符合 NIST SP 800-63B 最小化原则）
-    const accessTokenPayload = {
-      sub: user.id,
-      roles: [this.mapUserTypeToRole(user.userType)],
-      jti,
-    };
-
-    const accessToken = this.jwtService.sign(accessTokenPayload, {
-      secret: process.env.JWT_SECRET!,
-      expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
-    });
+    const accessToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        roles: [this.mapUserTypeToRole(user.userType)],
+        jti,
+      },
+      {
+        secret: process.env.JWT_SECRET!,
+        expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+      },
+    );
 
     // Refresh Token Payload
-    const refreshTokenPayload = {
-      sub: user.id,
-      tokenType: 'refresh',
-      jti: crypto.randomUUID(),
-    };
+    const refreshToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        tokenType: "refresh",
+        jti: crypto.randomUUID(),
+      },
+      {
+        secret: process.env.JWT_REFRESH_SECRET!,
+        expiresIn: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
+      },
+    );
 
-    const refreshToken = this.jwtService.sign(refreshTokenPayload, {
-      secret: process.env.JWT_REFRESH_SECRET!,
-      expiresIn: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
-    });
-
-    // 存储会话
+    // Session expiry windows
     const expiresAt = new Date();
     expiresAt.setSeconds(expiresAt.getSeconds() + SESSION_EXPIRES_IN_SECONDS);
 
@@ -518,92 +530,70 @@ export class AuthService {
       refreshExpiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS,
     );
 
-    await this.prisma.userSession.create({
-      data: {
-        userId: user.id,
-        sessionToken: `sess_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
-        refreshToken,
-        expiresAt,
-        refreshExpiresAt,
-      },
-    });
+    const sessionToken = `sess_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
-      tokenType: 'Bearer',
+      sessionData: {
+        userId: user.id,
+        sessionToken,
+        refreshToken,
+        expiresAt,
+        refreshExpiresAt,
+      },
+      response: {
+        accessToken,
+        refreshToken,
+        expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
+        tokenType: "Bearer",
+      },
     };
   }
 
   /**
-   * Token 旋转：吊销旧会话，创建新会话
+   * 生成并持久化 Token 对（构建 JWT + 创建 session 记录）
+   * 作为 generateTokens 和 rotateToken 的公共构建块
+   *
+   * @param user 用户载荷
+   * @param tx   可选事务客户端（rotateToken 在事务内调用时传入）
+   */
+  private async _createTokenPair(
+    user: UserPayload,
+    tx?: any,
+  ): Promise<AuthResponseDto> {
+    const { sessionData, response } = this.buildTokenPair(user);
+
+    const client = tx || this.prisma;
+    await client.userSession.create({ data: sessionData });
+
+    return response;
+  }
+
+  /**
+   * 生成 JWT Token 对（用于首次登录/注册）
+   */
+  private async generateTokens(user: UserPayload): Promise<AuthResponseDto> {
+    return this._createTokenPair(user);
+  }
+
+  /**
+   * Token 旋转：原子化吊销旧会话 + 创建新会话
    */
   private async rotateToken(
     user: UserPayload,
     oldSessionId: string,
-    oldRefreshToken: string,
   ): Promise<AuthResponseDto> {
-    const newTokens = await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       // 吊销旧会话
       await tx.userSession.update({
         where: { id: oldSessionId },
         data: { isActive: false },
       });
 
-      // 生成新 Token
-      const jti = crypto.randomUUID();
-      const accessTokenPayload = {
-        sub: user.id,
-        roles: [this.mapUserTypeToRole(user.userType)],
-        jti,
-      };
-
-      const accessToken = this.jwtService.sign(accessTokenPayload, {
-        secret: process.env.JWT_SECRET!,
-        expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
-      });
-
-      const newRefreshTokenJti = crypto.randomUUID();
-      const refreshTokenPayload = {
-        sub: user.id,
-        tokenType: 'refresh',
-        jti: newRefreshTokenJti,
-      };
-
-      const newRefreshToken = this.jwtService.sign(refreshTokenPayload, {
-        secret: process.env.JWT_REFRESH_SECRET!,
-        expiresIn: REFRESH_TOKEN_EXPIRES_IN_SECONDS,
-      });
-
-      const expiresAt = new Date();
-      expiresAt.setSeconds(expiresAt.getSeconds() + SESSION_EXPIRES_IN_SECONDS);
-
-      const refreshExpiresAt = new Date();
-      refreshExpiresAt.setDate(
-        refreshExpiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS,
-      );
-
-      // 创建新会话
-      await tx.userSession.create({
-        data: {
-          userId: user.id,
-          sessionToken: `sess_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
-          refreshToken: newRefreshToken,
-          expiresAt,
-          refreshExpiresAt,
-        },
-      });
-
-      return {
-        accessToken,
-        refreshToken: newRefreshToken,
-        expiresIn: ACCESS_TOKEN_EXPIRES_IN_SECONDS,
-        tokenType: 'Bearer',
-      };
+      // 使用事务客户端创建新 token 对
+      return this._createTokenPair(user, tx);
     });
-
-    return newTokens;
   }
 
   /**
@@ -617,18 +607,49 @@ export class AuthService {
   }
 
   /**
-   * 映射 UserType 到 Role
+   * 映射 UserType 到 Role (符合 contract.yaml Role 枚举)
    */
   private mapUserTypeToRole(userType: UserType): string {
     switch (userType) {
-      case 'CUSTOMER':
-        return 'USER';
-      case 'ADMIN':
-      case 'SUPER_ADMIN':
-        return 'ADMIN';
+      case "CUSTOMER":
+        return "CUSTOMER";
+      case "ADMIN":
+        return "ADMIN";
+      case "SUPER_ADMIN":
+        return "SUPER_ADMIN";
       default:
-        return 'USER';
+        return "CUSTOMER";
     }
+  }
+
+  /**
+   * 构建用户查询条件（按 contactType 选择 phoneHash 或 emailHash）
+   */
+  private buildContactWhere(
+    contactType: ContactType,
+    contactHash: string,
+  ): { phoneHash: string } | { emailHash: string } {
+    return contactType === ContactType.PHONE
+      ? { phoneHash: contactHash }
+      : { emailHash: contactHash };
+  }
+
+  /**
+   * 发送验证码 (Redis) - TODO: 待实现
+   */
+  async sendVerificationCode(
+    _sendDto: SendVerificationCodeDto,
+  ): Promise<{ success: boolean }> {
+    throw new Error("Not implemented yet");
+  }
+
+  /**
+   * 验证验证码 (Redis) - TODO: 待实现
+   */
+  async verifyVerificationCode(
+    _verifyDto: VerifyVerificationCodeDto,
+  ): Promise<{ success: boolean }> {
+    throw new Error("Not implemented yet");
   }
 
   // ==================== 邮件模板 ====================
