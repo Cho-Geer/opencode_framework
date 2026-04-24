@@ -1,0 +1,39 @@
+{
+  "task_id": "BUG-001",
+  "phase": "GREEN",
+  "status": "PASS",
+  "summary": "All 92 tests pass across 3 test suites. Both BUG-001 RED tests now pass.",
+  "execution_evidence": "Test Suites: 3 passed, 3 total\nTests: 92 passed, 92 total\nTime: 4.18 s",
+  "test_suites": [
+    {
+      "name": "appointments.controller.spec.ts",
+      "status": "PASS",
+      "tests": 24,
+      "passed": 24,
+      "bug001_tests": [
+        "[BUG-001] should ignore userId from body and use userId from JWT token",
+        "[BUG-001] should ignore userId from query param and use userId from JWT token",
+        "[BUG-001] should allow userId filter via query param for findAll (admin endpoint)"
+      ]
+    },
+    {
+      "name": "appointments.service.spec.ts",
+      "status": "PASS",
+      "tests": 54,
+      "passed": 54
+    },
+    {
+      "name": "appointments.integration.spec.ts",
+      "status": "PASS",
+      "tests": 14,
+      "passed": 14
+    }
+  ],
+  "modified_files": [
+    "src/modules/appointments/dto/appointment.dto.ts",
+    "src/modules/appointments/appointments.service.ts",
+    "src/modules/appointments/appointments.controller.ts",
+    "src/modules/appointments/appointments.controller.spec.ts",
+    "src/modules/appointments/appointments.service.spec.ts"
+  ]
+}

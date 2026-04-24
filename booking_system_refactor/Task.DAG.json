@@ -1,4 +1,11 @@
 {
+  "tasks": [
+    {"id": "BUG-001-RED", "title": "BUG-001-RED", "status": "completed", "owner": "@Coder-BE", "type": "test"},
+    {"id": "BUG-001", "title": "BUG-001", "status": "Testing", "owner": "@Coder-BE", "type": "fix"},
+    {"id": "R001", "title": "R001", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
+    {"id": "R002", "title": "R002", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
+    {"id": "R003", "title": "R003", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"}
+  ],
   "dag": {
     "meta": {
       "version": "3.0.0",
@@ -26,6 +33,11 @@
           "version": "3.0.0",
           "date": "2026-04-23",
           "description": "@Orchestrator: T007-W → completed. 开始 REFACTOR 阶段调度。新增 R001/R002/R003 并行 REFACTOR 任务。"
+        },
+        {
+          "version": "3.0.1",
+          "date": "2026-04-24",
+          "description": "BUG-001-RED 和 BUG-001 完成。修复 controller 从 body/query 接受 userId 的安全漏洞，改为从 JWT token 提取。所有 92 个 appointments 测试通过。"
         }
       ]
     },
@@ -198,6 +210,51 @@
           "booking-backend/src/modules/auth/auth.service.ts"
         ],
         "definition_of_done": "所有 auth 相关测试通过 (108/108)，green_report.json 含 execution_evidence"
+      },
+      "BUG-001-RED": {
+        "id": "BUG-001-RED",
+        "name": "[RED] Controller从JWT提取userId而非body/query — 测试编写",
+        "description": "RED 阶段：编写测试验证 create() 忽略 body.userId 使用 JWT userId，getMyAppointments() 忽略 query.userId 使用 JWT userId",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "test",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/appointments/appointments.controller.spec.ts",
+          "booking-backend/src/modules/appointments/appointments.service.spec.ts"
+        ],
+        "definition_of_done": "2个 RED 测试编写完成且执行失败"
+      },
+      "BUG-001": {
+        "id": "BUG-001",
+        "name": "[GREEN] Controller从JWT提取userId而非body/query — 实现修复",
+        "description": "GREEN 阶段：修复 controller 直接从 body/query 接受 userId 的安全漏洞，改为从 JWT token 提取",
+        "status": "Testing",
+        "dependencies": ["BUG-001-RED"],
+        "assignee": "@Coder-BE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/appointments/dto/appointment.dto.ts",
+          "booking-backend/src/modules/appointments/appointments.service.ts",
+          "booking-backend/src/modules/appointments/appointments.controller.ts",
+          "booking-backend/src/modules/appointments/appointments.controller.spec.ts",
+          "booking-backend/src/modules/appointments/appointments.service.spec.ts"
+        ],
+        "definition_of_done": "所有 appointments 相关测试通过 (92/92)，green_report.json 含 execution_evidence",
+        "result": {
+          "suites_passed": 3,
+          "tests_passed": 92,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "Removed userId from CreateAppointmentDto",
+            "Changed service.create() signature to accept userId as separate param",
+            "Added @Req() to controller.create() and getMyAppointments()",
+            "Updated controller tests to pass mockReq",
+            "Updated service tests for new create() signature"
+          ]
+        }
       }
     }
   }

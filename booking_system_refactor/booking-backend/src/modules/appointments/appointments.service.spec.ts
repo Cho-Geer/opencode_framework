@@ -128,7 +128,6 @@ describe('AppointmentsService', () => {
 
   describe('create', () => {
     const createAppointmentDto: CreateAppointmentDto = {
-      userId: 'user-1',
       timeSlotId: 'slot-1',
       serviceId: 'service-1',
       customerName: 'John Doe',
@@ -140,8 +139,8 @@ describe('AppointmentsService', () => {
     it('should throw NotFoundException if time slot does not exist', async () => {
       prisma.timeSlot.findUnique.mockResolvedValue(null);
 
-      await expect(service.create(createAppointmentDto)).rejects.toThrow(NotFoundException);
-      await expect(service.create(createAppointmentDto)).rejects.toThrow('Time slot not found');
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow(NotFoundException);
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow('Time slot not found');
 
       expect(prisma.timeSlot.findUnique).toHaveBeenCalledWith({
         where: { id: createAppointmentDto.timeSlotId },
@@ -153,8 +152,8 @@ describe('AppointmentsService', () => {
       const unavailableSlot = { ...mockTimeSlot, isActive: false };
       prisma.timeSlot.findUnique.mockResolvedValue(unavailableSlot);
 
-      await expect(service.create(createAppointmentDto)).rejects.toThrow(ConflictException);
-      await expect(service.create(createAppointmentDto)).rejects.toThrow('Time slot is not available');
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow(ConflictException);
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow('Time slot is not available');
 
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -173,12 +172,12 @@ describe('AppointmentsService', () => {
         return callback(mockTx);
       });
 
-      const result = await service.create(createAppointmentDto);
+      const result = await service.create(createAppointmentDto, 'user-1');
 
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(mockTx.appointment.create).toHaveBeenCalledWith({
         data: {
-          userId: createAppointmentDto.userId,
+          userId: 'user-1',
           timeSlotId: createAppointmentDto.timeSlotId,
           serviceId: createAppointmentDto.serviceId,
           customerInfo: {
@@ -213,7 +212,7 @@ describe('AppointmentsService', () => {
         return callback(mockTx);
       });
 
-      await service.create(createAppointmentDto);
+      await service.create(createAppointmentDto, 'user-1');
 
       expect(mockTx.appointment.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -238,7 +237,7 @@ describe('AppointmentsService', () => {
         return callback(mockTx);
       });
 
-      const result = await service.create(createAppointmentDto);
+      const result = await service.create(createAppointmentDto, 'user-1');
 
       expect(result).toEqual(mockAppointment);
       expect(result.timeSlot).toEqual(mockTimeSlot);
@@ -247,7 +246,6 @@ describe('AppointmentsService', () => {
 
     it('should create appointment without notes when not provided', async () => {
       const dtoWithoutNotes: CreateAppointmentDto = {
-        userId: 'user-1',
         timeSlotId: 'slot-1',
         serviceId: 'service-1',
         customerName: 'John Doe',
@@ -268,7 +266,7 @@ describe('AppointmentsService', () => {
         return callback(mockTx);
       });
 
-      await service.create(dtoWithoutNotes);
+      await service.create(dtoWithoutNotes, 'user-1');
 
       expect(mockTx.appointment.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -303,7 +301,7 @@ describe('AppointmentsService', () => {
       // Mock sleep to resolve immediately
       jest.spyOn(service as any, 'sleep').mockResolvedValue(undefined);
 
-      const result = await service.create(createAppointmentDto);
+      const result = await service.create(createAppointmentDto, 'user-1');
 
       // Should have been called twice (conflict then success)
       expect(prisma.$transaction).toHaveBeenCalledTimes(2);
@@ -331,8 +329,8 @@ describe('AppointmentsService', () => {
       // Mock sleep to resolve immediately
       jest.spyOn(service as any, 'sleep').mockResolvedValue(undefined);
 
-      await expect(service.create(createAppointmentDto)).rejects.toThrow(ConflictException);
-      await expect(service.create(createAppointmentDto)).rejects.toThrow(/maximum retries exceeded/);
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow(ConflictException);
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow(/maximum retries exceeded/);
 
       // Should have attempted MAX_RETRIES (3) times
       expect(prisma.$transaction).toHaveBeenCalledTimes(6); // 3 attempts per call × 2 calls
@@ -357,7 +355,7 @@ describe('AppointmentsService', () => {
         return callback(mockTx);
       });
 
-      await service.create(createAppointmentDto);
+      await service.create(createAppointmentDto, 'user-1');
     });
 
     it('should increment slot sequence on successful booking', async () => {
@@ -374,7 +372,7 @@ describe('AppointmentsService', () => {
         return callback(mockTx);
       });
 
-      await service.create(createAppointmentDto);
+      await service.create(createAppointmentDto, 'user-1');
 
       // Verify updateMany was called with correct sequence
       expect(mockTx.timeSlot.updateMany).toHaveBeenCalledWith({
@@ -404,7 +402,7 @@ describe('AppointmentsService', () => {
       });
       mockEmailService.sendAppointmentConfirmation.mockRejectedValue(new Error('Email service error'));
 
-      const result = await service.create(createAppointmentDto);
+      const result = await service.create(createAppointmentDto, 'user-1');
 
       expect(result).toEqual(mockAppointment);
       expect(mockEmailService.sendAppointmentConfirmation).toHaveBeenCalled();
@@ -427,7 +425,7 @@ describe('AppointmentsService', () => {
         throw new Error('Notification service error');
       });
 
-      const result = await service.create(createAppointmentDto);
+      const result = await service.create(createAppointmentDto, 'user-1');
 
       expect(result).toEqual(mockAppointment);
       expect(mockNotificationService.notifyBookingConfirmation).toHaveBeenCalled();
@@ -458,7 +456,7 @@ describe('AppointmentsService', () => {
       // Mock sleep to resolve immediately
       jest.spyOn(service as any, 'sleep').mockResolvedValue(undefined);
 
-      const result = await service.create(createAppointmentDto);
+      const result = await service.create(createAppointmentDto, 'user-1');
       expect(result).toEqual(mockAppointment);
       expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     });
@@ -473,8 +471,8 @@ describe('AppointmentsService', () => {
       // Mock sleep to resolve immediately
       jest.spyOn(service as any, 'sleep').mockResolvedValue(undefined);
 
-      await expect(service.create(createAppointmentDto)).rejects.toThrow(ConflictException);
-      await expect(service.create(createAppointmentDto)).rejects.toThrow(/Database timeout/);
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow(ConflictException);
+      await expect(service.create(createAppointmentDto, 'user-1')).rejects.toThrow(/Database timeout/);
       expect(prisma.$transaction).toHaveBeenCalledTimes(6); // 3 attempts per call × 2 calls
     });
 
@@ -500,7 +498,7 @@ describe('AppointmentsService', () => {
       // Mock sleep to resolve immediately
       jest.spyOn(service as any, 'sleep').mockResolvedValue(undefined);
 
-      const result = await service.create(createAppointmentDto);
+      const result = await service.create(createAppointmentDto, 'user-1');
       expect(result).toEqual(mockAppointment);
       expect(prisma.$transaction).toHaveBeenCalledTimes(3);
     });
@@ -1161,11 +1159,10 @@ if (isIntegrationMode()) {
         const result = await appointmentsService.create({
           serviceId: service.id,
           timeSlotId: timeSlot.id,
-          userId: user.id,
           customerName: user.name,
           customerEmail: user.email || 'test@example.com',
           customerPhone: user.phone || '1234567890',
-        });
+        }, user.id);
 
         expect(result).toHaveProperty('id');
         expect(result.serviceId).toBe(service.id);

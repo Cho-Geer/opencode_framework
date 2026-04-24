@@ -13,6 +13,8 @@ import {
   UpdateAppointmentDto,
 } from "./dto/appointment.dto";
 import { AppointmentStatus, Prisma } from "@prisma/client";
+import { withRetry, isTransientDbError } from "../../common/utils/retry.util";
+import { sleep } from "../../common/utils/sleep.util";
 
 // Configuration constants for high-concurrency slot preemption
 const MAX_RETRIES = 3;
@@ -35,19 +37,19 @@ export class AppointmentsService {
   ) {}
 
   /**
+   * Exposed sleep method for retry backoff.
+   * Public visibility allows tests to mock/spy on it.
+   * Delegates to the shared utility function.
+   */
+  public sleep(ms: number): Promise<void> {
+    return sleep(ms);
+  }
+
+  /**
    * Create a new appointment with atomic slot preemption for high-concurrency safety.
    * Uses optimistic locking with currentSequence field and exponential backoff retry.
-   *
-   * Flow:
-   * 1. Check if time slot exists and is available
-   * 2. Attempt atomic slot reservation with optimistic locking (up to 3 retries)
-   * 3. Create appointment in ReadCommitted transaction
-   * 4. Send confirmation notifications
-   *
-   * @param createAppointmentDto - Appointment creation data
-   * @returns The created appointment with related entities
    */
-  async create(createAppointmentDto: CreateAppointmentDto) {
+  async create(createAppointmentDto: CreateAppointmentDto, userId: string) {
     // Check if time slot exists and is available
     const timeSlot = await this.prisma.timeSlot.findUnique({
       where: { id: createAppointmentDto.timeSlotId },
@@ -62,10 +64,31 @@ export class AppointmentsService {
     }
 
     // Attempt atomic slot preemption with retry logic
-    const appointment = await this.atomicCreateAppointment(
-      createAppointmentDto,
-      timeSlot.currentSequence,
-    );
+    let appointment;
+    try {
+      appointment = await withRetry(
+        (attempt) =>
+          this.attemptAtomicCreate(createAppointmentDto, timeSlot.currentSequence, attempt, userId),
+        {
+          maxRetries: MAX_RETRIES,
+          baseDelayMs: BACKOFF_BASE_MS,
+          operationName: "atomicCreateAppointment",
+          logger: this.logger,
+        },
+      );
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw new ConflictException(
+          `Slot reservation failed after ${MAX_RETRIES} attempts: maximum retries exceeded`,
+        );
+      }
+      if (isTransientDbError(error)) {
+        throw new ConflictException(
+          "Slot reservation failed: Database timeout",
+        );
+      }
+      throw error;
+    }
 
     // Extract customer info from JSON
     const customerInfo = appointment.customerInfo as unknown as CustomerInfo;
@@ -81,7 +104,6 @@ export class AppointmentsService {
         time: appointment.timeSlot.slotTime,
       });
     } catch (error) {
-      // Log but don't fail the appointment creation if email queuing fails
       console.error("Failed to queue appointment confirmation email:", error);
     }
 
@@ -98,7 +120,6 @@ export class AppointmentsService {
         customerEmail: customerInfo.email,
       });
     } catch (error) {
-      // Log but don't fail the appointment creation if notification fails
       console.error("Failed to send booking confirmation notification:", error);
     }
 
@@ -106,128 +127,85 @@ export class AppointmentsService {
   }
 
   /**
-   * Atomically create an appointment with optimistic locking and retry logic.
-   * Prevents double-booking in high-concurrency scenarios.
+   * Single attempt at atomic appointment creation with optimistic locking.
+   * Returns the created appointment, or throws if the slot is taken.
+   * Retry-worthy errors (collision, timeout) propagate to the caller for withRetry to handle.
    */
-  private async atomicCreateAppointment(
+  private async attemptAtomicCreate(
     createAppointmentDto: CreateAppointmentDto,
     initialSequence: number,
+    attempt: number,
+    userId: string,
   ) {
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const targetSeq = initialSequence + attempt;
+    const targetSeq = initialSequence + attempt;
 
-      try {
-        const appointment = await this.prisma.$transaction(
-          async (tx) => {
-            // Atomic slot reservation using optimistic locking
-            const updateResult = await tx.timeSlot.updateMany({
-              where: {
-                id: createAppointmentDto.timeSlotId,
-                isActive: true,
-                currentSequence: targetSeq,
-              },
-              data: {
-                currentSequence: { increment: 1 },
-              },
-            });
+    try {
+      const appointment = await this.prisma.$transaction(
+        async (tx) => {
+          // Atomic slot reservation using optimistic locking
+          const updateResult = await tx.timeSlot.updateMany({
+            where: {
+              id: createAppointmentDto.timeSlotId,
+              isActive: true,
+              currentSequence: targetSeq,
+            },
+            data: {
+              currentSequence: { increment: 1 },
+            },
+          });
 
-            if (updateResult.count === 0) {
-              // Collision detected - slot already taken or sequence mismatch
-              return { success: false as const, reason: "VERSION_CONFLICT" };
-            }
-
-            // Slot claimed successfully - create appointment
-            const newAppointment = await tx.appointment.create({
-              data: {
-                userId: createAppointmentDto.userId,
-                timeSlotId: createAppointmentDto.timeSlotId,
-                serviceId: createAppointmentDto.serviceId,
-                customerInfo: {
-                  name: createAppointmentDto.customerName,
-                  email: createAppointmentDto.customerEmail,
-                  phone: createAppointmentDto.customerPhone,
-                },
-                remarks: createAppointmentDto.notes,
-                status: AppointmentStatus.PENDING,
-                appointmentDate: new Date(),
-                slotSequence: targetSeq,
-                appointmentNumber: `APT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              },
-              include: {
-                timeSlot: true,
-                service: true,
-              },
-            });
-
-            return { success: true as const, appointment: newAppointment };
-          },
-          {
-            isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
-            maxWait: 5000,
-            timeout: 10000,
-          },
-        );
-
-        if (appointment.success) {
-          this.logger.log(
-            `Appointment created: slotId=${createAppointmentDto.timeSlotId}, seq=${targetSeq}, userId=${createAppointmentDto.userId}`,
-          );
-          return appointment.appointment;
-        }
-
-        // Collision detected - retry with backoff if attempts remain
-        if (attempt < MAX_RETRIES - 1) {
-          const delay = BACKOFF_BASE_MS * Math.pow(2, attempt);
-          this.logger.debug(
-            `Collision detected for slot ${createAppointmentDto.timeSlotId}, seq ${targetSeq}, retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`,
-          );
-          await this.sleep(delay);
-        }
-      } catch (error: unknown) {
-        const err = error as Record<string, unknown>;
-        // Handle transaction timeout errors
-        if (
-          err["code"] === "P2034" ||
-          (err["message"] as string)?.includes("timeout")
-        ) {
-          this.logger.warn(
-            `Transaction timeout for slot ${createAppointmentDto.timeSlotId}, attempt ${attempt + 1}`,
-          );
-          if (attempt < MAX_RETRIES - 1) {
-            const delay = BACKOFF_BASE_MS * Math.pow(2, attempt);
-            await this.sleep(delay);
-            continue;
+          if (updateResult.count === 0) {
+            // Collision detected - slot already taken or sequence mismatch
+            throw new ConflictException(
+              "Slot reservation collision: concurrent booking detected",
+            );
           }
-          throw new ConflictException(
-            "Database timeout. Please try again later.",
-          );
-        }
 
-        // Re-throw other errors if no retries remain
-        if (attempt >= MAX_RETRIES - 1) {
-          throw error;
-        }
+          // Slot claimed successfully — create appointment
+          const newAppointment = await tx.appointment.create({
+            data: {
+              userId,
+              timeSlotId: createAppointmentDto.timeSlotId,
+              serviceId: createAppointmentDto.serviceId,
+              customerInfo: {
+                name: createAppointmentDto.customerName,
+                email: createAppointmentDto.customerEmail,
+                phone: createAppointmentDto.customerPhone,
+              },
+              remarks: createAppointmentDto.notes,
+              status: AppointmentStatus.PENDING,
+              appointmentDate: new Date(),
+              slotSequence: targetSeq,
+              appointmentNumber: `APT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            },
+            include: {
+              timeSlot: true,
+              service: true,
+            },
+          });
 
-        // Retry with backoff for other errors
-        const delay = BACKOFF_BASE_MS * Math.pow(2, attempt);
-        await this.sleep(delay);
+          return newAppointment;
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+          maxWait: 5000,
+          timeout: 10000,
+        },
+      );
+
+      this.logger.log(
+        `Appointment created: slotId=${createAppointmentDto.timeSlotId}, seq=${targetSeq}, userId=${userId}`,
+      );
+      return appointment;
+    } catch (error: unknown) {
+      // Let retry logic handle transient DB errors
+      if (isTransientDbError(error)) {
+        throw error;
       }
+
+      // Re-throw non-transient errors (ConflictException, NotFoundException, etc.)
+      throw error;
     }
-
-    // All retries exhausted
-    this.logger.warn(
-      `Appointment creation failed after ${MAX_RETRIES} attempts: slotId=${createAppointmentDto.timeSlotId}`,
-    );
-    throw new ConflictException(
-      "Slot reservation failed: maximum retries exceeded. Please try again later.",
-    );
-  }
-
-  /**
-   * Utility function to create a delay.
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async findAll(
@@ -293,7 +271,6 @@ export class AppointmentsService {
       throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
 
-    // If cancelling, record cancellation reason in remarks
     const data: Prisma.AppointmentUpdateInput = { ...updateAppointmentDto };
     if (updateAppointmentDto.status === AppointmentStatus.CANCELLED) {
       data.remarks = updateAppointmentDto.cancelReason || appointment.remarks;
@@ -308,10 +285,8 @@ export class AppointmentsService {
       },
     });
 
-    // Extract customer info from JSON
     const customerInfo = updated.customerInfo as unknown as CustomerInfo;
 
-    // Send real-time appointment update notification if status changed
     if (
       updateAppointmentDto.status &&
       updateAppointmentDto.status !== appointment.status
@@ -328,7 +303,6 @@ export class AppointmentsService {
           customerEmail: customerInfo.email,
         });
       } catch (error) {
-        // Log but don't fail the update if notification fails
         console.error("Failed to send appointment update notification:", error);
       }
     }
@@ -353,7 +327,6 @@ export class AppointmentsService {
     const customerInfo = appointment.customerInfo as unknown as CustomerInfo;
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      // Update appointment
       const cancelled = await tx.appointment.update({
         where: { id },
         data: {
@@ -369,7 +342,6 @@ export class AppointmentsService {
       return cancelled;
     });
 
-    // Queue appointment cancellation email
     try {
       await this.emailService.sendAppointmentCancellation({
         appointmentId: updated.id,
@@ -381,11 +353,9 @@ export class AppointmentsService {
         cancelReason: reason,
       });
     } catch (error) {
-      // Log but don't fail the cancellation if email queuing fails
       console.error("Failed to queue appointment cancellation email:", error);
     }
 
-    // Send real-time cancellation notification
     try {
       this.notificationService.notifyCancellation({
         appointmentId: updated.id,
@@ -398,7 +368,6 @@ export class AppointmentsService {
         customerEmail: customerInfo.email,
       });
     } catch (error) {
-      // Log but don't fail the cancellation if notification fails
       console.error("Failed to send cancellation notification:", error);
     }
 
