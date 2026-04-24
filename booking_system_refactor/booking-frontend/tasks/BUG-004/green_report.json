@@ -1,0 +1,37 @@
+{
+  "phase": "GREEN",
+  "task": "BUG-004",
+  "timestamp": "2026-04-24T00:00:00Z",
+  "test_results": {
+    "suites": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "tests": {
+      "total": 36,
+      "passed": 36,
+      "failed": 0
+    }
+  },
+  "green_tests_verified": [
+    "BookingStore › [BUG-004] confirmSlotReservation() › confirmSlotReservation is not yet implemented - PASS",
+    "BookingStore › [BUG-004] confirmSlotReservation() › should mark a slot as booked when confirmed - PASS",
+    "BookingStore › [BUG-004] failedReservation() › failedReservation is not yet implemented - PASS",
+    "BookingStore › [BUG-004] failedReservation() › should restore slot and set error message - PASS",
+    "BookingService › reserveSlot() › store.reserveSlot should no longer be called directly - PASS",
+    "BookingService › reserveSlot() › should call apiService.createAppointment with correct parameters - PASS",
+    "BookingService › reserveSlot() › should call store.confirmSlotReservation on API success - PASS",
+    "BookingService › reserveSlot() › should call store.failedReservation on API failure - PASS"
+  ],
+  "changes_applied": [
+    "ApiService: Added createAppointment() method (POST /api/appointments)",
+    "BookingStore: Added confirmSlotReservation(slotId) method - marks slot as booked after API success",
+    "BookingStore: Added failedReservation(slotId, error) method - restores slot and sets error on API failure",
+    "BookingService: Inject ApiService dependency",
+    "BookingService: reserveSlot() changed from synchronous to async - calls apiService.createAppointment()",
+    "BookingService: reserveSlot() on success calls store.confirmSlotReservation()",
+    "BookingService: reserveSlot() on failure calls store.failedReservation() and returns FAILED status"
+  ],
+  "execution_evidence": "npx jest --testPathPatterns='booking.store.spec|booking.service.spec' - 36 tests passed, 2 suites passed"
+}

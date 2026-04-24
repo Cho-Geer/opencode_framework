@@ -126,6 +126,20 @@ export class ApiService {
   // Booking endpoints
   // ==========================================
 
+  /**
+   * Create a new appointment via POST /v1/appointments
+   * Maps to CreateAppointmentDto on the backend
+   */
+  createAppointment(dto: {
+    timeSlotId: string;
+    appointmentDate: string;
+    notes?: string;
+  }): Observable<ReservationResponse> {
+    return this.http
+      .post<ReservationResponse>(`${this.apiUrl}/appointments`, dto)
+      .pipe(catchError(this.handleError));
+  }
+
   getAvailableSlots(serviceId: string): Observable<TimeSlot[]> {
     const params = new HttpParams().set('serviceId', serviceId);
     return this.http

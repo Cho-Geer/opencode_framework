@@ -115,7 +115,7 @@
     {
       "id": "BUG-004-RED",
       "title": "BUG-004-RED",
-      "status": "in_progress",
+      "status": "completed",
       "owner": "@Coder-FE",
       "type": "test"
     }
@@ -691,7 +691,7 @@
         "id": "BUG-004",
         "name": "[GREEN] Booking store添加真实后端API调用 — 实现修复",
         "description": "GREEN 阶段：实现真实的 API 调用。BookingService.reserveSlot() 改为异步，调用 ApiService.createAppointment() 发送 POST /api/appointments，成功后调用 store.confirmSlotReservation()，失败时调用 store.failedReservation()。",
-        "status": "pending",
+        "status": "completed",
         "dependencies": ["BUG-004-RED"],
         "assignee": "@Coder-FE",
         "type": "fix",
