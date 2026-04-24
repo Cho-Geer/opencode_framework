@@ -3,8 +3,8 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
-import { HttpClient, provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { RequestIdInterceptor } from './request-id.interceptor';
+import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { requestIdInterceptor } from './request-id.interceptor';
 
 describe('RequestIdInterceptor', () => {
   let httpMock: HttpTestingController;
@@ -13,16 +13,10 @@ describe('RequestIdInterceptor', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        RequestIdInterceptor,
         provideHttpClient(
-          withInterceptorsFromDi(),
+          withInterceptors([requestIdInterceptor]),
         ),
         provideHttpClientTesting(),
-        {
-          provide: HTTP_INTERCEPTORS,
-          useExisting: RequestIdInterceptor,
-          multi: true,
-        },
       ],
     });
 
@@ -32,11 +26,6 @@ describe('RequestIdInterceptor', () => {
 
   afterEach(() => {
     httpMock.verify();
-  });
-
-  it('should be created', () => {
-    const interceptor = TestBed.inject(RequestIdInterceptor);
-    expect(interceptor).toBeTruthy();
   });
 
   it('should add X-Request-ID header to every request', () => {

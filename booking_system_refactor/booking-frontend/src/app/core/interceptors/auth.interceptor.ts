@@ -1,9 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { inject } from '@angular/core';
 import {
-  HttpInterceptor,
+  HttpInterceptorFn,
   HttpRequest,
-  HttpHandler,
-  HttpEvent,
+  HttpHandlerFn,
   HttpErrorResponse,
 } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject, catchError, switchMap, filter, take, finalize } from 'rxjs';
@@ -12,7 +11,7 @@ import { ApiService } from '../../core/services/api.service';
 import { Router } from '@angular/router';
 
 /**
- * HTTP Interceptor that:
+ * HTTP Interceptor (functional) that:
  * 1. Automatically attaches JWT access token to authenticated requests
  * 2. Handles 401 responses with automatic token refresh
  * 3. Retries failed requests after successful refresh
@@ -21,113 +20,113 @@ import { Router } from '@angular/router';
  * Security: Token is read from AuthStore (in-memory Signal), NOT from
  * localStorage/sessionStorage, preventing XSS token theft.
  */
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  private authStore = inject(AuthStore);
-  private apiService = inject(ApiService);
-  private router = inject(Router);
 
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+// Module-level state shared across requests for refresh coordination
+let isRefreshing = false;
+const refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  intercept(
+const publicEndpoints = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/send-code',
+  '/auth/verify-code',
+];
+
+function isPublicEndpoint(url: string): boolean {
+  return publicEndpoints.some(endpoint => url.includes(endpoint));
+}
+
+function addToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
+  return request.clone({
+    setHeaders: {
+      Authorization: `Bearer ${token}`,
+    },
+    withCredentials: true,
+  });
+}
+
+function redirectToLogin(): void {
+  const router = inject(Router);
+  router.navigate(['/auth/login'], {
+    queryParams: { expired: 'true' }
+  });
+}
+
+export const authInterceptor: HttpInterceptorFn = (
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+): Observable<import('@angular/common/http').HttpEvent<unknown>> => {
+  const authStore = inject(AuthStore);
+  const apiService = inject(ApiService);
+
+  // Skip auth for public endpoints
+  if (isPublicEndpoint(req.url)) {
+    return next(req);
+  }
+
+  const token = authStore.currentToken();
+
+  if (!token) {
+    return next(req);
+  }
+
+  const authReq = addToken(req, token);
+
+  return next(authReq).pipe(
+    catchError((error) => {
+      if (error instanceof HttpErrorResponse && error.status === 401) {
+        return handle401Error(req, next);
+      }
+      return throwError(() => error);
+    })
+  );
+
+  function handle401Error(
     req: HttpRequest<unknown>,
-    next: HttpHandler,
-  ): Observable<HttpEvent<unknown>> {
-    // Skip auth for public endpoints
-    if (this.isPublicEndpoint(req.url)) {
-      return next.handle(req);
-    }
+    next: HttpHandlerFn
+  ): Observable<import('@angular/common/http').HttpEvent<unknown>> {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshTokenSubject.next(null);
 
-    const token = this.authStore.currentToken();
-
-    if (!token) {
-      return next.handle(req);
-    }
-
-    const authReq = this.addToken(req, token);
-
-    return next.handle(authReq).pipe(
-      catchError((error) => {
-        if (error instanceof HttpErrorResponse && error.status === 401) {
-          return this.handle401Error(req, next);
-        }
-        return throwError(() => error);
-      })
-    );
-  }
-
-  private addToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
-    return request.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
-      withCredentials: true,
-    });
-  }
-
-  private isPublicEndpoint(url: string): boolean {
-    const publicEndpoints = [
-      '/auth/login',
-      '/auth/register',
-      '/auth/refresh',
-      '/auth/send-code',
-      '/auth/verify-code',
-    ];
-    return publicEndpoints.some(endpoint => url.includes(endpoint));
-  }
-
-  private handle401Error(
-    req: HttpRequest<unknown>,
-    next: HttpHandler
-  ): Observable<HttpEvent<unknown>> {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
-
-      const refreshToken = this.authStore.currentRefreshToken();
+      const refreshToken = authStore.currentRefreshToken();
 
       if (!refreshToken) {
-        this.redirectToLogin();
+        redirectToLogin();
         return throwError(() => new Error('No refresh token available'));
       }
 
-      return this.apiService.refreshToken(refreshToken).pipe(
+      return apiService.refreshToken(refreshToken).pipe(
         switchMap((response) => {
-          this.authStore.loginSuccess(response.accessToken, response.refreshToken);
-          this.refreshTokenSubject.next(response.accessToken);
-          this.isRefreshing = false;
-          return next.handle(this.addToken(req, response.accessToken));
+          authStore.loginSuccess(response.accessToken, response.refreshToken);
+          refreshTokenSubject.next(response.accessToken);
+          isRefreshing = false;
+          return next(addToken(req, response.accessToken));
         }),
         catchError((err) => {
-          this.isRefreshing = false;
-          this.authStore.logout();
-          this.redirectToLogin();
+          isRefreshing = false;
+          authStore.logout();
+          redirectToLogin();
           return throwError(() => err);
         }),
         finalize(() => {
-          this.isRefreshing = false;
+          isRefreshing = false;
         })
       );
     } else {
       // Wait for the refresh token request to complete
-      return this.refreshTokenSubject.pipe(
+      return refreshTokenSubject.pipe(
         filter(token => token !== null),
         take(1),
         switchMap((token) => {
           if (!token) {
-            this.redirectToLogin();
+            redirectToLogin();
             return throwError(() => new Error('Token refresh failed'));
           }
-          return next.handle(this.addToken(req, token));
+          return next(addToken(req, token));
         })
       );
     }
   }
-
-  private redirectToLogin(): void {
-    this.router.navigate(['/auth/login'], {
-      queryParams: { expired: 'true' }
-    });
-  }
-}
+};

@@ -744,7 +744,9 @@
         "name": "[GREEN] Booking store添加真实后端API调用 — 实现修复",
         "description": "GREEN 阶段：实现真实的 API 调用。BookingService.reserveSlot() 改为异步，调用 ApiService.createAppointment() 发送 POST /api/appointments，成功后调用 store.confirmSlotReservation()，失败时调用 store.failedReservation()。",
         "status": "completed",
-        "dependencies": ["BUG-004-RED"],
+        "dependencies": [
+          "BUG-004-RED"
+        ],
         "assignee": "@Coder-FE",
         "type": "fix",
         "priority": "P1",
@@ -754,6 +756,38 @@
           "booking-frontend/src/app/core/services/api.service.ts"
         ],
         "definition_of_done": "所有 booking 相关测试通过，green_report.json 含 execution_evidence"
+      },
+      "H10": {
+        "id": "H10",
+        "name": "[Refactor] Migrate class-based HTTP interceptors to functional interceptors",
+        "description": "Migrate AuthInterceptor and RequestIdInterceptor from @Injectable() class-based to HttpInterceptorFn functional interceptors. Replace withInterceptorsFromDi() + HTTP_INTERCEPTORS DI tokens with withInterceptors([...]).",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "refactor",
+        "priority": "P2",
+        "target_files": [
+          "booking-frontend/src/app/app.config.ts",
+          "booking-frontend/src/app/core/interceptors/auth.interceptor.ts",
+          "booking-frontend/src/app/core/interceptors/request-id.interceptor.ts",
+          "booking-frontend/src/app/core/interceptors/auth.interceptor.spec.ts",
+          "booking-frontend/src/app/core/interceptors/request-id.interceptor.spec.ts",
+          "booking-frontend/src/app/app.config.spec.ts"
+        ],
+        "definition_of_done": "3 H10 tests suites (10 tests) all passing, green_report.json with execution_evidence",
+        "result": {
+          "suites_passed": 3,
+          "tests_passed": 10,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "auth.interceptor.ts: Class → exported const authInterceptor: HttpInterceptorFn",
+            "request-id.interceptor.ts: Class → exported const requestIdInterceptor: HttpInterceptorFn",
+            "app.config.ts: withInterceptorsFromDi() → withInterceptors([authInterceptor, requestIdInterceptor])",
+            "auth.interceptor.spec.ts: Updated to inject functional interceptor via withInterceptors()",
+            "request-id.interceptor.spec.ts: Removed class-based DI, use withInterceptors()",
+            "app.config.spec.ts: New test file for appConfig validation"
+          ]
+        }
       }
     }
   }
