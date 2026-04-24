@@ -171,7 +171,7 @@ jobs:
             ${{ runner.os }}-playwright-
 
       - name: Run Playwright E2E tests
-        working-directory: ./booking-frontend
+        working-directory: .
         run: npx playwright test
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:${{ env.FRONTEND_PORT }}
@@ -184,7 +184,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-playwright-report
-          path: booking-frontend/playwright-report/
+          path: playwright-report/
           retention-days: 30
 
       - name: Upload E2E test results
@@ -192,7 +192,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-results
-          path: booking-frontend/test-results/
+          path: test-results/
           retention-days: 30
 
       - name: Upload failure screenshots
@@ -200,7 +200,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-failure-screenshots
-          path: booking-frontend/test-results/**/*.png
+          path: test-results/**/*.png
           retention-days: 30
 
       - name: Upload trace files for debugging
@@ -208,7 +208,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-trace-files
-          path: booking-frontend/test-results/**/trace.zip
+          path: test-results/**/trace.zip
           retention-days: 30
 
   e2e-summary:
