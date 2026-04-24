@@ -40,11 +40,11 @@ COPY --from=builder /app/dist ./dist
 USER node
 
 # Expose application port
-EXPOSE 3001
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s \
-  CMD wget -q --spider http://localhost:3001/v1/health || exit 1
+  CMD wget -q --spider http://localhost:3000/v1/health || exit 1
 
 # Start application
 CMD ["node", "dist/main"]
