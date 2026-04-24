@@ -1,0 +1,44 @@
+{
+  "techDebtId": "TD-2026-009",
+  "file": "booking-success.component.spec.ts",
+  "phase": "RED",
+  "failures": [
+    {
+      "test": "should create",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest, must use jest.spyOn()"
+    },
+    {
+      "test": "should render 'Booking Confirmed!' heading",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should display success icon",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should display booking time when slot is available",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should display confirmation email message",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should navigate to '/booking' when viewMyBookings is called",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should navigate to '/booking' when goHome is called",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    }
+  ],
+  "totalFailures": 7,
+  "execution_evidence": "7 tests failed with 'ReferenceError: spyOn is not defined'. Root cause: test uses Jasmine's global spyOn() instead of Jest's jest.spyOn()."
+}

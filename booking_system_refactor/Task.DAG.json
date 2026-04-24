@@ -108,7 +108,42 @@
     {
       "id": "TD-FIX-005",
       "title": "TD-FIX-005",
-      "status": "in_progress",
+      "status": "completed",
+      "owner": "@Coder-FE",
+      "type": "fix"
+    },
+    {
+      "id": "TD-FIX-006",
+      "title": "TD-FIX-006 (booking-confirmation)",
+      "status": "completed",
+      "owner": "@Coder-FE",
+      "type": "fix"
+    },
+    {
+      "id": "TD-FIX-007",
+      "title": "TD-FIX-007 (service-selection)",
+      "status": "completed",
+      "owner": "@Coder-FE",
+      "type": "fix"
+    },
+    {
+      "id": "TD-FIX-008",
+      "title": "TD-FIX-008 (time-slot-picker)",
+      "status": "completed",
+      "owner": "@Coder-FE",
+      "type": "fix"
+    },
+    {
+      "id": "TD-FIX-009",
+      "title": "TD-FIX-009 (booking-success)",
+      "status": "completed",
+      "owner": "@Coder-FE",
+      "type": "fix"
+    },
+    {
+      "id": "TD-FIX-010",
+      "title": "TD-FIX-010 (booking.store)",
+      "status": "completed",
       "owner": "@Coder-FE",
       "type": "fix"
     },
@@ -118,6 +153,18 @@
       "status": "completed",
       "owner": "@Coder-FE",
       "type": "test"
+    },
+    {
+      "id": "H6",
+      "title": "H6 - Add Redis password/db config to BullModule",
+      "status": "completed",
+      "owner": "@Coder-BE",
+      "type": "fix",
+      "priority": "P2",
+      "target_files": [
+        "booking-backend/src/app.module.ts"
+      ],
+      "definition_of_done": "BullModule connection 包含 password 和 db 字段，1008 unit tests passing"
     }
   ],
   "dag": {
@@ -187,6 +234,11 @@
           "version": "4.0.0",
           "date": "2026-04-24",
           "description": "All 5 Auth module tech debts (TD-FIX-001~005) repaid."
+        },
+        {
+          "version": "4.3.0",
+          "date": "2026-04-24",
+          "description": "H6 完成。BullModule connection 配置新增 password (REDIS_PASSWORD) 和 db (REDIS_DB) 字段。已确认 rate-limiter.module.ts 和 cache.module.ts 无同样问题。1008 unit tests 全量通过。"
         }
       ]
     },

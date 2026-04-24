@@ -1,0 +1,74 @@
+{
+  "techDebtId": "TD-2026-008",
+  "file": "time-slot-picker.component.spec.ts",
+  "phase": "RED",
+  "failures": [
+    {
+      "test": "should unsubscribe from subscriptions",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should highlight selected slot",
+      "error": "NG0100: ExpressionChangedAfterItHasBeenCheckedError",
+      "cause": "Mock signal selectedSlot changes cause NG0100 in class binding"
+    },
+    {
+      "test": "should not highlight non-selected slots",
+      "error": "NG0100: ExpressionChangedAfterItHasBeenCheckedError",
+      "cause": "Same NG0100 issue"
+    },
+    {
+      "test": "should receive slot updates from socket",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should process multiple slot updates",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    },
+    {
+      "test": "should update slot availability in real-time",
+      "error": "TypeError: Cannot read properties of undefined (reading 'returnValue')",
+      "cause": ".and.returnValue() is Jasmine API, must use .mockReturnValue()"
+    },
+    {
+      "test": "should not affect other slots when updating one slot",
+      "error": "TypeError: Cannot read properties of undefined (reading 'returnValue')",
+      "cause": ".and.returnValue() is Jasmine API, must use .mockReturnValue()"
+    },
+    {
+      "test": "should render slot buttons for each slot",
+      "error": "NG0100: ExpressionChangedAfterItHasBeenCheckedError",
+      "cause": "Mock signal change causes NG0100 on class binding"
+    },
+    {
+      "test": "should show loading state when isLoading is true",
+      "error": "TypeError: Cannot read properties of undefined (reading 'returnValue')",
+      "cause": ".and.returnValue() is Jasmine API"
+    },
+    {
+      "test": "should show error state when error has value",
+      "error": "TypeError: Cannot read properties of undefined (reading 'returnValue')",
+      "cause": ".and.returnValue() is Jasmine API"
+    },
+    {
+      "test": "should show retry button in error state",
+      "error": "TypeError: Cannot read properties of undefined (reading 'returnValue')",
+      "cause": ".and.returnValue() is Jasmine API"
+    },
+    {
+      "test": "should show empty state when no slots available",
+      "error": "NG0100: ExpressionChangedAfterItHasBeenCheckedError",
+      "cause": "Mock signal availableSlots changes cause NG0100"
+    },
+    {
+      "test": "should clean up subscription on destroy",
+      "error": "ReferenceError: spyOn is not defined",
+      "cause": "Global spyOn() not available in Jest"
+    }
+  ],
+  "totalFailures": 13,
+  "execution_evidence": "13 tests failed with 3 types of errors: spyOn not defined (4), .and.returnValue not available (5), NG0100 ExpressionChangedAfterItHasBeenCheckedError (4)."
+}
