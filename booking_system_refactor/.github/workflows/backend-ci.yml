@@ -1,0 +1,395 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'booking-backend/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'booking-backend/**'
+
+defaults:
+  run:
+    working-directory: ./booking-backend
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  POSTGRES_DB: test_db
+  POSTGRES_USER: test_user
+  POSTGRES_PASSWORD: test_password
+  DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db?schema=public
+  REDIS_URL: redis://localhost:6379
+  JWT_SECRET: test-secret-ci-not-for-production
+  JWT_REFRESH_SECRET: test-refresh-secret-ci-not-for-production
+
+jobs:
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  contract-check:
+    name: Contract Hash Check
+    uses: ./.github/workflows/qoder-contract-check.yml
+
+  lint-and-typecheck:
+    name: Lint & Typecheck
+    needs: [contract-check, secret-scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-backend
+          node_version: ${{ env.NODE_VERSION }}
+          run_prisma_generate: 'true'
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+  security-scan:
+    name: NPM Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-backend
+          node_version: ${{ env.NODE_VERSION }}
+
+      - name: Run npm audit
+        run: npm audit --audit-level=critical --json > audit-results.json || true
+
+      - name: Check for critical/high vulnerabilities
+        run: |
+          CRITICAL=$(npm audit --audit-level=critical 2>&1 | grep -c "critical" || true)
+          HIGH=$(npm audit --audit-level=high 2>&1 | grep -c "high" || true)
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "❌ CRITICAL vulnerabilities found!"
+            npm audit --audit-level=critical
+            exit 1
+          fi
+          if [ "$HIGH" -gt 0 ]; then
+            echo "⚠️ HIGH vulnerabilities found ($HIGH). Review before merging."
+            npm audit --audit-level=high
+          else
+            echo "✅ No critical or high vulnerabilities found."
+          fi
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: booking-backend/audit-results.json
+          retention-days: 30
+
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-backend
+          node_version: ${{ env.NODE_VERSION }}
+          run_prisma_generate: 'true'
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Seed test database
+        run: npx prisma db seed
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Run tests with coverage
+        run: npm test -- --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=cobertura --coverageReporters=json-summary --coverageThreshold='{"global":{"lines":85,"branches":80,"functions":85,"statements":85}}'
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          REDIS_URL: ${{ env.REDIS_URL }}
+          JWT_SECRET: ${{ env.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ env.JWT_REFRESH_SECRET }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: ./booking-backend/coverage
+          fail_ci_if_error: true
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: booking-backend/coverage/
+          retention-days: 14
+
+  performance-test:
+    name: Performance Test (k6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [test]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_perf_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-backend
+          node_version: ${{ env.NODE_VERSION }}
+          run_prisma_generate: 'true'
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+        working-directory: ./booking-backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Seed test database
+        run: npx prisma db seed
+        working-directory: ./booking-backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Start backend in background
+        run: |
+          npm run start:prod &
+          sleep 5
+          # Wait for backend to be ready
+          for i in $(seq 1 30); do
+            curl -s http://localhost:3000/v1/health && break
+            sleep 2
+          done
+        working-directory: ./booking-backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          REDIS_URL: ${{ env.REDIS_URL }}
+          JWT_SECRET: ${{ env.JWT_SECRET }}
+          JWT_REFRESH_SECRET: ${{ env.JWT_REFRESH_SECRET }}
+          PORT: 3000
+
+      - name: Run k6 load test
+        run: |
+          docker run --rm --network host \
+            -v ${{ github.workspace }}/booking-backend/test/performance:/test \
+            grafana/k6:latest run \
+            --env BASE_URL=http://localhost:3000 \
+            --out json=/test/k6-results.json \
+            /test/booking-create-load-test.js
+
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-performance-results
+          path: booking-backend/test/performance/k6-results.json
+          retention-days: 30
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [test]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_integration_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-backend
+          node_version: ${{ env.NODE_VERSION }}
+          run_prisma_generate: 'true'
+
+      - name: Run integration database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_integration_db?schema=public
+
+      - name: Seed integration test data
+        run: npx prisma db seed
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_integration_db?schema=public
+
+      - name: Run integration tests
+        run: npm run test:integration -- --coverage --coverageReporters=text --coverageReporters=lcov
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_integration_db?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret-ci-not-for-production
+          JWT_REFRESH_SECRET: test-refresh-secret-ci-not-for-production
+          NODE_ENV: test
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: booking-backend/test-results/
+          retention-days: 14
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint-and-typecheck, test, security-scan]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/booking-backend
+          tags: |
+            type=sha,prefix=,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./booking-backend
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+      - name: Run Trivy security scan on image
+        if: github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@v0.24.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/booking-backend:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

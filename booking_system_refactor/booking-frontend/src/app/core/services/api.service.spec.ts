@@ -3,7 +3,8 @@ import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { ApiService, LoginRequest, RegisterRequest } from './api.service';
+import { ApiService } from './api.service';
+import { LoginPasswordDto, RegisterCompleteDto, ContactType, AuthResponseDto } from '../../features/auth/dto/auth.dto';
 
 describe('ApiService', () => {
   let service: ApiService;
@@ -23,90 +24,92 @@ describe('ApiService', () => {
     httpMock.verify();
   });
 
-  describe('login()', () => {
-    it('should send POST request to /api/auth/login with credentials', () => {
-      const mockCredentials: LoginRequest = {
-        email: 'test@example.com',
+  describe('loginPassword()', () => {
+    it('should send POST request to /api/auth/login/password with credentials', () => {
+      const mockCredentials: LoginPasswordDto = {
+        contact: 'test@example.com',
+        contactType: ContactType.EMAIL,
         password: 'password123',
       };
-      const mockResponse = {
-        access_token: 'jwt-token-123',
-        refresh_token: 'refresh-token-123',
-        expires_in: 900,
-        token_type: 'Bearer',
-        user: { id: '1', email: 'test@example.com', name: 'Test', role: 'user', createdAt: new Date() },
+      const mockResponse: AuthResponseDto = {
+        accessToken: 'jwt-token-123',
+        refreshToken: 'refresh-token-123',
+        expiresIn: 900,
+        tokenType: 'Bearer',
       };
 
-      service.login(mockCredentials).subscribe((response) => {
+      service.loginPassword(mockCredentials).subscribe((response) => {
         expect(response).toEqual(mockResponse);
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/auth/login`);
+      const req = httpMock.expectOne(`${apiUrl}/auth/login/password`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(mockCredentials);
       req.flush(mockResponse);
     });
 
     it('should handle login error', () => {
-      const mockCredentials: LoginRequest = {
-        email: 'test@example.com',
+      const mockCredentials: LoginPasswordDto = {
+        contact: 'test@example.com',
+        contactType: ContactType.EMAIL,
         password: 'wrong',
       };
 
-      service.login(mockCredentials).subscribe({
+      service.loginPassword(mockCredentials).subscribe({
         next: () => fail('expected error'),
         error: (error) => {
           expect(error).toBeTruthy();
         },
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/auth/login`);
+      const req = httpMock.expectOne(`${apiUrl}/auth/login/password`);
       req.flush({ message: 'Invalid credentials' }, { status: 401, statusText: 'Unauthorized' });
     });
   });
 
-  describe('register()', () => {
-    it('should send POST request to /api/auth/register with registration data', () => {
-      const mockData: RegisterRequest = {
-        email: 'new@example.com',
+  describe('registerComplete()', () => {
+    it('should send POST request to /api/auth/register/complete with registration data', () => {
+      const mockData: RegisterCompleteDto = {
+        contact: 'new@example.com',
+        contactType: ContactType.EMAIL,
+        code: '123456',
         password: 'password123',
         name: 'New User',
-        verifyCode: '123456',
       };
-      const mockResponse = {
-        access_token: 'jwt-token-456',
-        refresh_token: 'refresh-token-456',
-        expires_in: 900,
-        token_type: 'Bearer',
-        user: { id: '2', email: 'new@example.com', name: 'New User', role: 'user', createdAt: new Date() },
+      const mockResponse: AuthResponseDto = {
+        accessToken: 'jwt-token-456',
+        refreshToken: 'refresh-token-456',
+        expiresIn: 900,
+        tokenType: 'Bearer',
       };
 
-      service.register(mockData).subscribe((response) => {
+      service.registerComplete(mockData).subscribe((response) => {
         expect(response).toEqual(mockResponse);
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/auth/register`);
+      const req = httpMock.expectOne(`${apiUrl}/auth/register/complete`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(mockData);
       req.flush(mockResponse);
     });
 
     it('should handle registration error', () => {
-      const mockData: RegisterRequest = {
-        email: 'duplicate@example.com',
+      const mockData: RegisterCompleteDto = {
+        contact: 'duplicate@example.com',
+        contactType: ContactType.EMAIL,
+        code: '123456',
         password: 'password123',
         name: 'Duplicate',
-        verifyCode: '123456',
       };
 
-      service.register(mockData).subscribe({
+      service.registerComplete(mockData).subscribe({
         next: () => fail('expected error'),
         error: (error) => {
           expect(error).toBeTruthy();
         },
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/auth/register`);
+      const req = httpMock.expectOne(`${apiUrl}/auth/register/complete`);
       req.flush({ message: 'Email already exists' }, { status: 409, statusText: 'Conflict' });
     });
   });
@@ -277,7 +280,7 @@ describe('ApiService', () => {
       const req = httpMock.expectOne(`${apiUrl}/slots/slot-1/reserve`);
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ preferSeq: 5 });
-      expect(req.request.headers.has('X-Idempotency-Key')).toBeFalse();
+      expect(req.request.headers.has('X-Idempotency-Key')).toBe(false);
       req.flush(mockResponse);
     });
 
@@ -346,7 +349,11 @@ describe('ApiService', () => {
     });
 
     it('should handle network errors gracefully', () => {
-      service.login({ email: 'test@test.com', password: 'test' }).subscribe({
+      service.loginPassword({
+        contact: 'test@test.com',
+        contactType: ContactType.EMAIL,
+        password: 'test',
+      }).subscribe({
         next: () => fail('expected error'),
         error: (error) => {
           expect(error).toBeInstanceOf(Error);
@@ -354,7 +361,7 @@ describe('ApiService', () => {
         },
       });
 
-      const req = httpMock.expectOne(`${apiUrl}/auth/login`);
+      const req = httpMock.expectOne(`${apiUrl}/auth/login/password`);
       req.error(new ProgressEvent('Network error'));
     });
   });

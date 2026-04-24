@@ -1,0 +1,58 @@
+# =============================================================================
+# Composite Action: CI Setup
+# =============================================================================
+# Purpose: Shared Node.js setup, caching, and dependency installation
+#          for booking-backend and booking-frontend sub-projects.
+#
+# Usage:
+#   - name: CI Setup
+#     uses: ./.github/actions/ci-setup
+#     with:
+#       working_directory: booking-backend
+#       node_version: '22'
+#       run_prisma_generate: 'true'
+#
+# TOOLCHAIN JUSTIFICATION (Rule 3 of global-cicd-practices-enforcement):
+# - GitHub Actions: Primary CI orchestrator
+# - This composite action: Reduces CI boilerplate across 10 workflow files
+# =============================================================================
+
+name: 'CI Setup'
+description: 'Setup Node.js with cache, install dependencies, and optionally generate Prisma client'
+
+inputs:
+  working_directory:
+    description: 'Working directory for the sub-project (e.g., booking-backend, booking-frontend)'
+    required: true
+    type: string
+  node_version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
+    type: string
+  run_prisma_generate:
+    description: 'Whether to run npx prisma generate after install (only needed for backend)'
+    required: false
+    default: 'false'
+    type: string
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js ${{ inputs.node_version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ${{ inputs.working_directory }}
+      shell: bash
+      run: npm ci
+
+    - name: Generate Prisma Client
+      if: ${{ inputs.run_prisma_generate == 'true' }}
+      working-directory: ${{ inputs.working_directory }}
+      shell: bash
+      run: npx prisma generate

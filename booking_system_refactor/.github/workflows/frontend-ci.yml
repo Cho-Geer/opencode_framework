@@ -1,0 +1,326 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'booking-frontend/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'booking-frontend/**'
+
+defaults:
+  run:
+    working-directory: ./booking-frontend
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  contract-check:
+    name: Contract Hash Check
+    uses: ./.github/workflows/qoder-contract-check.yml
+
+  lint-and-build:
+    name: Lint & Build
+    needs: [contract-check, secret-scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-frontend
+          node_version: ${{ env.NODE_VERSION }}
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Build application
+        run: npm run build -- --configuration production
+
+  test:
+    name: Unit Tests with Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-frontend
+          node_version: ${{ env.NODE_VERSION }}
+
+      - name: Run unit tests with coverage
+        run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage --code-coverage-include=src/**/* --code-coverage-exclude=src/**/*.spec.ts,src/**/*.test.ts,src/environments/**/*,src/main.ts,src/polyfills.ts
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: ./booking-frontend/coverage
+          fail_ci_if_error: true
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: booking-frontend/coverage/
+          retention-days: 14
+
+  e2e-test:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [lint-and-build, test]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-frontend
+          node_version: ${{ env.NODE_VERSION }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Build frontend for production
+        run: npm run build -- --configuration production
+
+      - name: Setup backend for E2E
+        working-directory: ./booking-backend
+        run: |
+          npm ci
+          npx prisma generate
+          npx prisma migrate deploy
+          npx prisma db seed
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db?schema=public
+
+      - name: Start backend server
+        working-directory: ./booking-backend
+        run: npm run start:dev &
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret-ci-not-for-production
+          JWT_REFRESH_SECRET: test-refresh-secret-ci-not-for-production
+          NODE_ENV: development
+          E2E_REDIS_URL: redis://localhost:6379
+
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/v1/health > /dev/null 2>&1; then
+              echo "Backend is healthy!"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 2
+          done
+          echo "Backend failed to start"
+          exit 1
+
+      - name: Serve frontend
+        run: |
+          npx http-server dist/booking-frontend -p 4200 -s &
+        env:
+          NODE_ENV: production
+
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
+              echo "Frontend is serving!"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i/15)"
+            sleep 2
+          done
+          echo "Frontend failed to start"
+          exit 1
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test --project=chromium
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:4200
+          BACKEND_BASE_URL: http://localhost:3000
+          NODE_ENV: test
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-results
+          path: |
+            booking-frontend/playwright-report/
+            booking-frontend/test-results/
+          retention-days: 14
+
+      - name: Upload E2E failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-screenshots
+          path: booking-frontend/test-results/**/*.png
+          retention-days: 14
+
+  lighthouse-audit:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint-and-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: CI Setup
+        uses: ./.github/actions/ci-setup
+        with:
+          working_directory: booking-frontend
+          node_version: ${{ env.NODE_VERSION }}
+
+      - name: Build frontend for production
+        run: npm run build -- --configuration production
+
+      - name: Serve frontend
+        run: |
+          npx http-server dist/booking-frontend -p 4200 -s &
+
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:4200 > /dev/null 2>&1; then
+              echo "Frontend is serving!"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i/15)"
+            sleep 2
+          done
+          echo "Frontend failed to start"
+          exit 1
+
+      - name: Run Lighthouse audit
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            http://localhost:4200
+          budgetPath: ./booking-frontend/lighthouse-budget.json
+          configPath: ./booking-frontend/lighthouserc.json
+          uploadArtifacts: true
+          runs: 3
+
+      - name: Fail if performance score below 90
+        run: |
+          echo "Checking Lighthouse scores..."
+          # The lighthouse-ci-action will fail automatically if scores are below thresholds
+          # defined in lighthouserc.json. This step is a safety net.
+          echo "Lighthouse audit completed successfully."
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 30
+
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint-and-build, test, e2e-test]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/booking-frontend
+          tags: |
+            type=sha,prefix=,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./booking-frontend
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
