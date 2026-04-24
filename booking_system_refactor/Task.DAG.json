@@ -2,7 +2,7 @@
   "tasks": [
     {"id": "BUG-001-RED", "title": "BUG-001-RED", "status": "completed", "owner": "@Coder-BE", "type": "test"},
     {"id": "BUG-001", "title": "BUG-001", "status": "Testing", "owner": "@Coder-BE", "type": "fix"},
-    {"id": "R001", "title": "R001", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
+    {"id": "R001", "title": "R001", "status": "Testing", "owner": "@Coder-BE", "type": "refactor"},
     {"id": "R002", "title": "R002", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
     {"id": "R003", "title": "R003", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"}
   ],
@@ -12,7 +12,7 @@
       "generated_by": "@Orchestrator",
       "generated_at": "2026-04-23T14:00:00Z",
       "phase": "REFACTOR",
-      "next_action": "调度 R001/R002/R003 并行 REFACTOR 任务",
+      "next_action": "调度 R002/R003 并行 REFACTOR 任务 (R001 已完成)",
       "change_log": [
         {
           "version": "2.0.0",
@@ -38,6 +38,11 @@
           "version": "3.0.1",
           "date": "2026-04-24",
           "description": "BUG-001-RED 和 BUG-001 完成。修复 controller 从 body/query 接受 userId 的安全漏洞，改为从 JWT token 提取。所有 92 个 appointments 测试通过。"
+        },
+        {
+          "version": "3.1.0",
+          "date": "2026-04-24",
+          "description": "R001 REFACTOR 完成。将 RetentionService 中的分布式锁 acquire/release 模式提取为 lock.util.ts 可复用工具类。21 retention 测试通过，0 回归。"
         }
       ]
     },
@@ -142,7 +147,7 @@
         "id": "R001",
         "name": "[REFACTOR] 提取分布式锁工具类 — RetentionService",
         "description": "将 RetentionService 中的分布式锁 acquire/release 模式提取为可复用工具类，清理 Promise.allSettled 结果处理的冗余代码。所有 21 个测试必须保持全量通过。",
-        "status": "in_progress",
+        "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-BE",
         "type": "refactor",
@@ -151,7 +156,18 @@
           "booking-backend/src/modules/retention/retention.service.ts",
           "booking-backend/src/common/utils/lock.util.ts"
         ],
-        "definition_of_done": "所有 retention 相关测试通过 (21/21)，test_report.json 含 execution_evidence"
+        "definition_of_done": "所有 retention 相关测试通过 (21/21)，test_report.json 含 execution_evidence",
+        "result": {
+          "suites_passed": 1,
+          "tests_passed": 21,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "Created src/common/utils/lock.util.ts with withDistributedLock() and processSettledResults()",
+            "Refactored RetentionService.handleCron() to use lock.util imports",
+            "No business logic changes - all cleanup methods untouched",
+            "No test file modifications"
+          ]
+        }
       },
       "R002": {
         "id": "R002",
