@@ -9,6 +9,7 @@ import { RolesGuard } from "./common/guards/roles.guard";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor";
 import { RequestIdInterceptor } from "./common/interceptors/request-id.interceptor";
+import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import { DatabaseModule } from "./common/database/database.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UsersModule } from "./modules/users/users.module";
@@ -20,7 +21,7 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { StatsModule } from "./modules/stats/stats.module";
 import { HealthModule } from "./modules/health/health.module";
 import { RateLimiterModule } from "./modules/rate-limiter/rate-limiter.module";
-import { RetentionModule } from "./common/services/retention.module";
+import { RetentionModule } from "./modules/retention/retention.module";
 import { VerificationModule } from "./modules/verification/verification.module";
 import { EncryptionModule } from "./modules/encryption/encryption.module";
 
@@ -50,6 +51,8 @@ import { EncryptionModule } from "./modules/encryption/encryption.module";
         connection: {
           host: config.get("REDIS_HOST", "localhost"),
           port: parseInt(config.get("REDIS_PORT", "6379"), 10),
+          password: config.get("REDIS_PASSWORD", undefined),
+          db: parseInt(config.get("REDIS_DB", "0"), 10),
         },
       }),
     }),
@@ -96,6 +99,14 @@ import { EncryptionModule } from "./modules/encryption/encryption.module";
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    // APP_INTERCEPTOR 执行顺序为"后注册先执行"（栈式）：
+    // ResponseInterceptor 最先注册 → 最后执行（包装最终响应）
+    // LoggingInterceptor    次先注册 → 次后执行（记录响应时间）
+    // RequestIdInterceptor  最后注册 → 第一个执行（设置 requestId 到 CLS）
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
