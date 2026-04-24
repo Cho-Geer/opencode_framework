@@ -160,7 +160,7 @@ jobs:
 
       # ---- Playwright E2E Tests ----
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
