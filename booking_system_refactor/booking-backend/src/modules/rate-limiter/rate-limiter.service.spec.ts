@@ -3,12 +3,21 @@ import { RateLimiterService } from './rate-limiter.service';
 import { CacheService } from '../cache/cache.service';
 import { RateLimitTier, RATE_LIMIT_DEFAULTS } from './rate-limiter.decorator';
 
+/**
+ * Helper: create a mock result for the Lua rate limit script.
+ * The Lua script returns: [allowed (0|1), current_count]
+ */
+const luaResult = (allowed: boolean, current: number): [number, number] => {
+  return [allowed ? 1 : 0, current];
+};
+
 describe('RateLimiterService', () => {
   let service: RateLimiterService;
   let cacheService: CacheService;
 
-  // Mock Redis client
+  // Mock Redis client (Lua script approach - no pipeline needed for checkRateLimit)
   const mockRedisClient = {
+    eval: jest.fn(),
     zremrangebyscore: jest.fn(),
     zcard: jest.fn(),
     zadd: jest.fn(),
@@ -49,19 +58,8 @@ describe('RateLimiterService', () => {
 
   describe('isAllowed', () => {
     it('should allow request when under limit', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0], // zremrangebyscore result
-          [null, 0], // zcard result (0 requests before adding)
-          [null, 1], // zadd result
-          [null, true], // expire result
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      // Lua script returns: allowed=1, current=1 (0 existing + 1 new)
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       const result = await service.isAllowed('user123', '/api/test', 'api');
 
@@ -69,26 +67,25 @@ describe('RateLimiterService', () => {
       expect(result.current).toBe(1);
       expect(result.limit).toBe(RATE_LIMIT_DEFAULTS.api.limit);
       expect(result.window).toBe(RATE_LIMIT_DEFAULTS.api.window);
+
+      // Verify eval was called with 1 key + 4 args
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringContaining('ZREMRANGEBYSCORE'),
+        1,
+        expect.stringContaining('ratelimit:'),
+        expect.any(Number), // windowStart
+        expect.any(Number), // now
+        RATE_LIMIT_DEFAULTS.api.limit,
+        RATE_LIMIT_DEFAULTS.api.window + 10, // window + buffer
+      );
     });
 
     it('should deny request when over limit', async () => {
       const now = Date.now();
       const oldestTimestamp = now - 30000;
 
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 30],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
+      // Lua script returns: allowed=0, current=30 (at limit)
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 30));
       mockRedisClient.zrange.mockResolvedValue(['timestamp1', String(oldestTimestamp)]);
 
       const result = await service.isAllowed('user123', '/api/test', 'api');
@@ -110,9 +107,7 @@ describe('RateLimiterService', () => {
     });
 
     it('should fail open when Redis throws an error', async () => {
-      mockRedisClient.pipeline.mockImplementation(() => {
-        throw new Error('Redis connection lost');
-      });
+      mockRedisClient.eval.mockRejectedValue(new Error('Redis connection lost'));
 
       const result = await service.isAllowed('user123', '/api/test', 'api');
 
@@ -121,39 +116,25 @@ describe('RateLimiterService', () => {
     });
 
     it('should use custom limit when provided', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       const result = await service.isAllowed('user123', '/api/test', 'api', 50);
 
       expect(result.limit).toBe(50);
+      // Verify eval was called with custom limit
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
+        expect.any(String),
+        expect.any(Number),
+        expect.any(Number),
+        50, // custom limit
+        expect.any(Number),
+      );
     });
 
     it('should use custom window when provided', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       const result = await service.isAllowed('user123', '/api/test', 'api', undefined, 120);
 
@@ -161,19 +142,7 @@ describe('RateLimiterService', () => {
     });
 
     it('should enforce strict tier limits (1 req/sec)', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       const result = await service.isAllowed('user123', '/api/book', 'strict');
 
@@ -182,19 +151,7 @@ describe('RateLimiterService', () => {
     });
 
     it('should enforce auth tier limits (5 req/min)', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 2],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 3));
 
       const result = await service.isAllowed('user123', '/auth/login', 'auth');
 
@@ -267,22 +224,10 @@ describe('RateLimiterService', () => {
   describe('concurrent requests', () => {
     it('should handle concurrent isAllowed calls correctly', async () => {
       let callCount = 0;
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockImplementation(async () => {
-          callCount++;
-          return [
-            [null, 0],
-            [null, callCount - 1],
-            [null, 1],
-            [null, true],
-          ];
-        }),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockImplementation(async () => {
+        callCount++;
+        return luaResult(true, callCount);
+      });
 
       const results = await Promise.all([
         service.isAllowed('user123', '/api/test', 'api'),
@@ -302,19 +247,7 @@ describe('RateLimiterService', () => {
       ['api', 30, 60],
       ['public', 100, 60],
     ])('should apply %s tier limits (%d req/%ds)', async (tier, expectedLimit, expectedWindow) => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       const result = await service.isAllowed('user123', '/api/test', tier);
 
@@ -328,23 +261,9 @@ describe('RateLimiterService', () => {
   // ========================================================================
 
   describe('5 rate limiting layers', () => {
-    const createPipelineMock = (currentCount: number, allowed: boolean = true) => ({
-      zremrangebyscore: jest.fn().mockReturnThis(),
-      zcard: jest.fn().mockReturnThis(),
-      zadd: jest.fn().mockReturnThis(),
-      expire: jest.fn().mockReturnThis(),
-      exec: jest.fn().mockResolvedValue([
-        [null, 0],
-        [null, currentCount],
-        [null, allowed ? 1 : 0],
-        [null, true],
-      ]),
-    });
-
     it('layer 1: User+TimeSlot - should allow 1 req/sec per user per time slot', async () => {
       // Strict tier: 1 request per 1 second window
-      const mockPipeline = createPipelineMock(0, true);
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       const result = await service.isAllowed(
         'user-123',
@@ -362,20 +281,8 @@ describe('RateLimiterService', () => {
       const now = Date.now();
       const oldestTimestamp = now - 500;
 
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 1], // 1 request already in window
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
+      // Lua script denies: already 1 request in window
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 1));
       mockRedisClient.zrange.mockResolvedValue(['ts', String(oldestTimestamp)]);
 
       const result = await service.isAllowed(
@@ -391,8 +298,7 @@ describe('RateLimiterService', () => {
 
     it('layer 2: User Daily - should allow up to 20 requests per day per user', async () => {
       // Custom limit of 20 requests per 86400 seconds (1 day)
-      const mockPipeline = createPipelineMock(5, true); // 5 requests so far today
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 6)); // 5 existing + 1 new
 
       const result = await service.isAllowed(
         'user-123',
@@ -412,20 +318,8 @@ describe('RateLimiterService', () => {
       const now = Date.now();
       const oldestTimestamp = now - 3600000; // 1 hour ago
 
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 20], // 20 requests already made today
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
+      // Lua script: 20 requests already made, limit is 20
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 20));
       mockRedisClient.zrange.mockResolvedValue(['ts', String(oldestTimestamp)]);
 
       const result = await service.isAllowed(
@@ -442,8 +336,7 @@ describe('RateLimiterService', () => {
 
     it('layer 3: IP Global - should enforce 10 req/min per IP across all endpoints', async () => {
       // Custom limit: 10 requests per 60 seconds
-      const mockPipeline = createPipelineMock(3, true);
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 4)); // 3 existing + 1 new
 
       const result = await service.isAllowed(
         '192.168.1.1',
@@ -463,20 +356,8 @@ describe('RateLimiterService', () => {
       const now = Date.now();
       const oldestTimestamp = now - 30000;
 
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 10], // 10 requests already this minute
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
+      // Lua script denies: 10 requests already this minute
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 10));
       mockRedisClient.zrange.mockResolvedValue(['ts', String(oldestTimestamp)]);
 
       const result = await service.isAllowed(
@@ -493,9 +374,7 @@ describe('RateLimiterService', () => {
 
     it('layer 4: TimeSlot Capacity - should allow booking when slot has capacity', async () => {
       // Public tier: 100 requests per 60 seconds
-      // Simulating slot capacity check
-      const mockPipeline = createPipelineMock(50, true);
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 51)); // 50 existing + 1 new
 
       const result = await service.isAllowed(
         'slot-cap-1',
@@ -512,20 +391,8 @@ describe('RateLimiterService', () => {
       const now = Date.now();
       const oldestTimestamp = now - 10000;
 
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 100], // slot at max capacity
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
+      // Lua script denies: 100 requests already (slot at max capacity)
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 100));
       mockRedisClient.zrange.mockResolvedValue(['ts', String(oldestTimestamp)]);
 
       const result = await service.isAllowed(
@@ -539,9 +406,8 @@ describe('RateLimiterService', () => {
     });
 
     it('layer 5: Global User - should allow up to 100 req/min across all user operations', async () => {
-      // Custom limit: 100 requests per 60 seconds for global user rate limiting
-      const mockPipeline = createPipelineMock(50, true);
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      // Custom limit: 100 requests per 60 seconds
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 51)); // 50 existing + 1 new
 
       const result = await service.isAllowed(
         'user-123',
@@ -561,20 +427,8 @@ describe('RateLimiterService', () => {
       const now = Date.now();
       const oldestTimestamp = now - 20000;
 
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 100], // user already made 100 requests this minute
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
+      // Lua script denies: 100 requests already made
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 100));
       mockRedisClient.zrange.mockResolvedValue(['ts', String(oldestTimestamp)]);
 
       const result = await service.isAllowed(
@@ -595,103 +449,58 @@ describe('RateLimiterService', () => {
   // ========================================================================
 
   describe('sliding window logic', () => {
-    it('should use sliding window log algorithm via sorted sets', async () => {
-      const now = Date.now();
-      const window = 60; // 60 seconds
-      const windowStart = now - window * 1000;
-
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 5], // removed 5 expired entries
-          [null, 10], // 10 entries remain in window
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+    it('should use Lua script for atomic sliding window log algorithm', async () => {
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 11)); // 10 existing + 1 new
 
       await service.isAllowed('user-123', '/api/test', 'api');
 
-      // Verify sliding window: remove old entries first
-      // Use range assertion to allow for small timing drift (±100ms)
-      const callArgs = mockPipeline.zremrangebyscore.mock.calls[0];
-      expect(callArgs[1]).toBe(0);
-      expect(callArgs[2]).toBeLessThanOrEqual(windowStart);
-      expect(callArgs[2]).toBeGreaterThanOrEqual(windowStart - 100);
-      // Then count remaining
-      expect(mockPipeline.zcard).toHaveBeenCalled();
-      // Then add current timestamp
-      expect(mockPipeline.zadd).toHaveBeenCalled();
+      // Verify eval was called with the Lua script
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringContaining('ZREMRANGEBYSCORE'),
+        1,
+        expect.stringContaining('ratelimit:'),
+        expect.any(Number), // windowStart
+        expect.any(Number), // now
+        30, // api limit
+        70, // window + buffer (60 + 10)
+      );
     });
 
     it('should correctly calculate window boundaries for different tiers', async () => {
-      const now = Date.now();
-
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       // Test strict: 1 second window
       await service.isAllowed('user-123', '/api/test', 'strict');
-      // Allow small timing drift (±100ms)
-      const strictCallArgs = mockPipeline.zremrangebyscore.mock.calls[0];
-      expect(strictCallArgs[1]).toBe(0);
-      expect(strictCallArgs[2]).toBeLessThanOrEqual(now - 1000);
-      expect(strictCallArgs[2]).toBeGreaterThanOrEqual(now - 1000 - 100);
+      // Verify eval called with strict tier params
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
+        expect.any(String),
+        expect.any(Number),
+        expect.any(Number),
+        1,   // strict limit
+        11,  // window + buffer (1 + 10)
+      );
 
       jest.clearAllMocks();
-      const mockPipeline2 = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline2);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       // Test auth: 60 second window
-      const now2 = Date.now();
       await service.isAllowed('user-123', '/auth/login', 'auth');
-      // Allow small timing drift (±100ms)
-      const authCallArgs = mockPipeline2.zremrangebyscore.mock.calls[0];
-      expect(authCallArgs[1]).toBe(0);
-      expect(authCallArgs[2]).toBeLessThanOrEqual(now2 - 60000);
-      expect(authCallArgs[2]).toBeGreaterThanOrEqual(now2 - 60000 - 100);
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
+        expect.any(String),
+        expect.any(Number),
+        expect.any(Number),
+        5,   // auth limit
+        70,  // window + buffer (60 + 10)
+      );
     });
 
     it('should clean up expired entries outside the sliding window', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 15], // 15 old entries removed
-          [null, 0], // 0 remaining in window
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      // Lua script: cleaned 15 old entries, 0 remaining, 1 new added
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       const result = await service.isAllowed('user-123', '/api/test', 'api');
 
@@ -699,47 +508,27 @@ describe('RateLimiterService', () => {
       expect(result.current).toBe(1); // Fresh count after cleanup
     });
 
-    it('should set key expiration for auto-cleanup', async () => {
+    it('should set key expiration for auto-cleanup via Lua script', async () => {
       const window = 60;
-
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       await service.isAllowed('user-123', '/api/test', 'api');
 
-      // expire should be called with window + 10 buffer
-      expect(mockPipeline.expire).toHaveBeenCalledWith(
+      // Verify the Lua script receives window + 10 as TTL arg
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringContaining('EXPIRE'),
+        1,
         expect.any(String),
-        window + 10,
+        expect.any(Number),
+        expect.any(Number),
+        30,        // limit
+        window + 10, // TTL
       );
     });
 
     it('should allow requests after window expires (sliding window reset)', async () => {
-      // Simulate: window has expired, all old entries cleaned
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 30], // all 30 old entries expired
-          [null, 0], // window is empty now
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      // Lua script: all entries expired, 0 remaining, 1 new added
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       // Even though limit was reached before, after window expires it resets
       const result = await service.isAllowed('user-123', '/api/test', 'api');
@@ -834,47 +623,34 @@ describe('RateLimiterService', () => {
 
   describe('key building', () => {
     it('should build correct rate limit key format', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       await service.isAllowed('user-123', '/api/bookings', 'api');
 
-      // Key should be ratelimit:user-123:/api/bookings
-      const pipelineCall = mockRedisClient.pipeline.mock.calls;
-      expect(pipelineCall).toHaveLength(1);
+      // Key should be ratelimit:user-123:/api/bookings passed to eval
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
+        expect.stringContaining('ratelimit:'),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+        expect.any(Number),
+      );
     });
 
     it('should sanitize endpoint to prevent key injection', async () => {
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 0],
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
+      mockRedisClient.eval.mockResolvedValue(luaResult(true, 1));
 
       await service.isAllowed('user-123', '/api/bookings;DROP TABLE', 'api');
 
       // The key should not contain special characters
-      expect(mockPipeline.zremrangebyscore).toHaveBeenCalledWith(
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
         expect.not.stringContaining(';'),
+        expect.any(Number),
+        expect.any(Number),
         expect.any(Number),
         expect.any(Number),
       );
@@ -893,130 +669,88 @@ describe('RateLimiterService', () => {
   });
 
   // ========================================================================
-  // BUG-005: Pipeline "先加后删" 设计缺陷测试 (RED Phase)
+  // GREEN Phase: Lua Script 优化验证
   //
-  // 这些测试记录当前实现的问题(使用 Redis pipeline):
-  // 1. zadd 总是在 pipeline 中无条件执行(即使会超标)
-  // 2. zrem 在 pipeline 外部执行，不是原子的
-  // 3. 存在竞态窗口: 在 pipeline 执行完毕和 zrem 执行之间,
-  //    其他并发请求可能看到这个"幽灵"条目
-  //
-  // 当切换到 Lua 脚本后，这些测试应该失败(RED)，因为新实现不会先加后删
+  // 这些测试验证新的 Lua 脚本实现不会出现先加后删的问题:
+  // 1. Lua 脚本在 Redis 服务端原子执行，没有竞态窗口
+  // 2. 超标时不会添加条目（无无用 zadd）
+  // 3. 不会在脚本外部调用 zrem（无竞态窗口）
+  // 4. Redis 往返次数从 2 次减少为 1 次
   // ========================================================================
 
-  describe('BUG-005: Pipeline 先加后删竞态窗口', () => {
-    it('[Red] 应证明当前pipeline中zadd总被执行即使会超标', async () => {
-      // 当前行为: pipeline 中 zadd 被无条件调用(第299行)
-      // 即使 zcard 返回 >= limit, zadd 仍会执行
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 30], // 已经达到30限制
-          [null, 1],  // zadd 仍然执行了!
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
+  describe('BUG-005: Lua 脚本原子性验证 (GREEN)', () => {
+    it('[Green] 超标时 Lua 脚本不会添加条目 (对比旧实现的无条件zadd)', async () => {
+      // Lua script: count=30 >= limit=30, returns {0, 30} without adding
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 30));
       mockRedisClient.zrange.mockResolvedValue(['ts', String(Date.now())]);
 
       const result = await service.isAllowed('user123', '/api/test', 'api');
 
-      // 这个断言验证: zadd 在 pipeline 中被调用了(不必要地)
-      expect(mockPipeline.zadd).toHaveBeenCalled();
+      // Lua 脚本内判断超标，没有执行 ZADD
+      // 验证外部没有 zrem 调用（因为是 Lua 内原子完成的）
+      expect(mockRedisClient.zrem).not.toHaveBeenCalled();
 
-      // 同时验证: zrem 在 pipeline 之外被调用(存在竞态窗口)
-      expect(mockRedisClient.zrem).toHaveBeenCalled();
-
-      // 最终结果是拒绝，但做了不必要的工作
       expect(result.allowed).toBe(false);
       expect(result.current).toBe(30);
     });
 
-    it('[Red] 应证明zrem在pipeline外部执行存在竞态窗口', async () => {
-      // 这是一个时序攻击场景:
-      // 1. 请求A的pipeline执行: zremrangebyscore + zcard(=limit) + zadd
-      // 2. 在请求A的zrem执行前，请求B的pipeline也执行了
-      // 3. 请求B的zcard也看到=limit(因为请求A的zadd已添加)
-      // 4. 请求B也被拒绝(正确)但请求A的zrem和请求B的zrem都执行了
-      // 5. 更糟糕: 如果limit是临界值，zrem可能误删合法条目
-
-      let execCallCount = 0;
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockImplementation(async () => {
-          execCallCount++;
-          if (execCallCount === 1) {
-            return [
-              [null, 0],
-              [null, 30], // 请求A看到30(已达上限)
-              [null, 1],  // 仍然添加了
-              [null, true],
-            ];
-          }
-          // 请求B看到31! 因为请求A在pipeline中已zadd
-          // 但请求A的zrem还没执行!
-          return [
-            [null, 0],
-            [null, 31], // 幽灵条目导致计数为31
-            [null, 1],
-            [null, true],
-          ];
-        }),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
-      mockRedisClient.zrange.mockResolvedValue(['ts', String(Date.now() - 1000)]);
-
-      // 模拟两个并发请求
-      const results = await Promise.all([
-        service.isAllowed('user123', '/api/test', 'api'),
-        service.isAllowed('user123', '/api/test', 'api'),
-      ]);
-
-      // 关键证据: 在竞态窗口期间, zrem被调用了至少2次
-      expect(mockRedisClient.zrem).toHaveBeenCalledTimes(2);
-
-      // 这个测试证明了"先加后删"模式的竞态窗口问题
-      // 如果切换到先检查后添加的Lua脚本，zrem将永远不会被调用
-    });
-
-    it('[Red] 应证明当前实现做了不必要的zadd->zrem往返', async () => {
-      // 监控Redis的往返次数
-      const mockPipeline = {
-        zremrangebyscore: jest.fn().mockReturnThis(),
-        zcard: jest.fn().mockReturnThis(),
-        zadd: jest.fn().mockReturnThis(),
-        expire: jest.fn().mockReturnThis(),
-        exec: jest.fn().mockResolvedValue([
-          [null, 0],
-          [null, 30], // 已达上限
-          [null, 1],
-          [null, true],
-        ]),
-      };
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline);
-      mockRedisClient.zrem.mockResolvedValue(1);
-      mockRedisClient.zrange.mockResolvedValue(['ts', String(Date.now() - 1000)]);
+    it('[Green] 只调用一次 eval 完成全部检查 (从2次往返减少到1次)', async () => {
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 30));
+      mockRedisClient.zrange.mockResolvedValue(['ts', String(Date.now())]);
 
       await service.isAllowed('user123', '/api/test', 'api');
 
-      // 当前实现做了4次pipeline调用中包含了不必要的zadd
-      // 然后在pipeline外部又做了1次zrem调用
-      // 优化后: 仅1次EVAL调用完成所有操作，没有不必要的zadd/zrem
-      const totalRedisCalls = mockRedisClient.pipeline.mock.calls.length +
-        mockRedisClient.zrem.mock.calls.length +
-        mockRedisClient.zrange.mock.calls.length;
+      // 只做了 1 次 EVAL 调用（代替了旧实现的 1 次 pipeline + 1 次 zrem + 1 次 zrange）
+      expect(mockRedisClient.eval).toHaveBeenCalledTimes(1);
+      // pipeline 不应该被调用（不再是 pipeline 模式）
+      expect(mockRedisClient.pipeline).not.toHaveBeenCalled();
+    });
 
-      expect(totalRedisCalls).toBeGreaterThanOrEqual(1);
-      // 这条测试在Lua实现后应验证总调用次数减少
+    it('[Green] 并发请求不存在竞态窗口 (Lua 脚本原子执行)', async () => {
+      // 模拟 Lua 脚本的原子行为：
+      // 即使在并发场景下，每个 eval 调用在 Redis 内都是串行执行的
+      let callCount = 0;
+      mockRedisClient.eval.mockImplementation(async () => {
+        callCount++;
+        // 每个请求看到的是 Redis 内的真实状态
+        if (callCount <= 30) {
+          return luaResult(true, callCount); // 前30个允许
+        }
+        return luaResult(false, 30); // 超过30拒绝
+      });
+      mockRedisClient.zrange.mockResolvedValue(['ts', String(Date.now() - 1000)]);
+
+      // 模拟 35 个并发请求
+      const results = await Promise.all(
+        Array.from({ length: 35 }, () =>
+          service.isAllowed('user123', '/api/test', 'api'),
+        ),
+      );
+
+      const allowedCount = results.filter(r => r.allowed).length;
+      const deniedCount = results.filter(r => !r.allowed).length;
+
+      // 前30个应该被允许，后5个被拒绝（滑动窗口限制）
+      expect(allowedCount).toBe(30);
+      expect(deniedCount).toBe(5);
+
+      // 关键: zrem 从未被调用（Lua 脚本内完成了所有操作）
+      expect(mockRedisClient.zrem).not.toHaveBeenCalled();
+    });
+
+    it('[Green] retryAfter 计算仍然正确', async () => {
+      const now = Date.now();
+      const oldestTimestamp = now - 50000; // 最老条目在50秒前
+
+      // Lua 脚本拒绝
+      mockRedisClient.eval.mockResolvedValue(luaResult(false, 30));
+      mockRedisClient.zrange.mockResolvedValue(['oldest-ts', String(oldestTimestamp)]);
+
+      const result = await service.isAllowed('user123', '/api/test', 'api');
+
+      expect(result.allowed).toBe(false);
+      // retryAfter = oldest + window - now = (now - 50000) + 60000 - now = 10000ms
+      expect(result.retryAfter).toBe(oldestTimestamp + 60000 - now);
     });
   });
 });

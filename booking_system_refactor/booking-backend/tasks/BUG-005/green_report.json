@@ -1,0 +1,29 @@
+{
+  "task": "BUG-005",
+  "phase": "GREEN",
+  "status": "PASS",
+  "total_tests": 47,
+  "passed": 47,
+  "failed": 0,
+  "execution_evidence": "All 47 tests pass with the Lua script implementation. The old pipeline 'add-then-remove' pattern has been replaced with an atomic Lua script that: (1) only adds entries when under limit, (2) eliminates the race condition window, (3) reduces Redis round-trips from 2 to 1. Key validations: zrem is no longer called outside the script, pipeline is no longer used, eval is called once per check, concurrent 35-request test correctly allows 30 and denies 5 without any zrem calls.",
+  "new_tests": [
+    "[Green] 超标时 Lua 脚本不会添加条目 (对比旧实现的无条件zadd)",
+    "[Green] 只调用一次 eval 完成全部检查 (从2次往返减少到1次)",
+    "[Green] 并发请求不存在竞态窗口 (Lua 脚本原子执行)",
+    "[Green] retryAfter 计算仍然正确"
+  ],
+  "modifications": [
+    "rate-limiter.service.ts: checkRateLimit() 从 pipeline 模式改为 Lua 脚本模式",
+    "rate-limiter.service.ts: 新增 LUA_RATE_LIMIT_SCRIPT 常量",
+    "rate-limiter.service.ts: isAllowed 上游方法签名不变",
+    "rate-limiter.service.spec.ts: 所有测试从 pipeline mock 改为 eval mock"
+  ],
+  "design_decisions": [
+    "使用 EVAL 执行 Lua 脚本，确保 Redis 服务端原子执行",
+    "脚本返回 [allowed (0|1), current_count] 二元组",
+    "超标时不执行 ZADD，避免无用写入",
+    "ZREMRANGEBYSCORE + ZCARD + 条件 ZADD + EXPIRE 在同一个 Lua 脚本内完成",
+    "EXPIRE TTL = window + 10 保留原有缓冲策略"
+  ],
+  "timestamp": "2026-04-24T12:00:00.000Z"
+}

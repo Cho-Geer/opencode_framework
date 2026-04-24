@@ -6,7 +6,9 @@
     {"id": "R002", "title": "R002", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
     {"id": "R003", "title": "R003", "status": "in_progress", "owner": "@Coder-BE", "type": "refactor"},
     {"id": "H5", "title": "H5", "status": "completed", "owner": "@Coder-BE", "type": "fix"},
-    {"id": "BUG-009", "title": "BUG-009", "status": "completed", "owner": "@Coder-BE", "type": "fix"}
+    {"id": "BUG-009", "title": "BUG-009", "status": "completed", "owner": "@Coder-BE", "type": "fix"},
+    {"id": "BUG-005-RED", "title": "BUG-005-RED", "status": "completed", "owner": "@Coder-BE", "type": "test"},
+    {"id": "BUG-005", "title": "BUG-005", "status": "completed", "owner": "@Coder-BE", "type": "fix"}
   ],
   "dag": {
     "meta": {
@@ -55,6 +57,11 @@
           "version": "3.2.1",
           "date": "2026-04-24",
           "description": "BUG-009 完成。验证部分唯一索引迁移文件 prisma/migrations/20260422_fix_p1_003_partial_unique_index/migration.sql 已存在且 SQL 内容与 contract.yaml 一致。无需创建新迁移。"
+        },
+        {
+          "version": "4.0.0",
+          "date": "2026-04-24",
+          "description": "Tech debt repayment begun. TD-FIX-001 (register.component.spec.ts) RED phase complete. Starting TD-FIX-002~005."
         }
       ]
     },
@@ -350,7 +357,7 @@
         "id": "BUG-005",
         "name": "[GREEN] Rate limiter pipeline先加后删 — Lua脚本优化",
         "description": "GREEN 阶段：将 checkRateLimit() 的 pipeline 模式替换为 Lua 脚本方式，实现先检查后添加的原子操作。",
-        "status": "in_progress",
+        "status": "completed",
         "dependencies": ["BUG-005-RED"],
         "assignee": "@Coder-BE",
         "type": "fix",
@@ -358,7 +365,17 @@
         "target_files": [
           "booking-backend/src/modules/rate-limiter/rate-limiter.service.ts"
         ],
-        "definition_of_done": "所有 rate-limiter 测试通过，green_report.json 含 execution_evidence"
+        "definition_of_done": "所有 rate-limiter 测试通过，green_report.json 含 execution_evidence",
+        "result": {
+          "tests_passed": 47,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "rate-limiter.service.ts: checkRateLimit() 从 pipeline 模式改为 Lua 脚本模式",
+            "新增 LUA_RATE_LIMIT_SCRIPT 常量实现原子条件添加",
+            "rate-limiter.service.spec.ts: 所有测试从 pipeline mock 改为 eval mock",
+            "新增 4 个 GREEN 阶段验证测试"
+          ]
+        }
       },
       "BUG-008": {
         "id": "BUG-008",
