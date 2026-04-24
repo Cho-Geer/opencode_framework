@@ -1,0 +1,361 @@
+import { TestBed } from '@angular/core/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
+import { ApiService, LoginRequest, RegisterRequest } from './api.service';
+
+describe('ApiService', () => {
+  let service: ApiService;
+  let httpMock: HttpTestingController;
+  const apiUrl = '/api';
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [ApiService],
+    });
+    service = TestBed.inject(ApiService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  describe('login()', () => {
+    it('should send POST request to /api/auth/login with credentials', () => {
+      const mockCredentials: LoginRequest = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
+      const mockResponse = {
+        access_token: 'jwt-token-123',
+        refresh_token: 'refresh-token-123',
+        expires_in: 900,
+        token_type: 'Bearer',
+        user: { id: '1', email: 'test@example.com', name: 'Test', role: 'user', createdAt: new Date() },
+      };
+
+      service.login(mockCredentials).subscribe((response) => {
+        expect(response).toEqual(mockResponse);
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/auth/login`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(mockCredentials);
+      req.flush(mockResponse);
+    });
+
+    it('should handle login error', () => {
+      const mockCredentials: LoginRequest = {
+        email: 'test@example.com',
+        password: 'wrong',
+      };
+
+      service.login(mockCredentials).subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeTruthy();
+        },
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/auth/login`);
+      req.flush({ message: 'Invalid credentials' }, { status: 401, statusText: 'Unauthorized' });
+    });
+  });
+
+  describe('register()', () => {
+    it('should send POST request to /api/auth/register with registration data', () => {
+      const mockData: RegisterRequest = {
+        email: 'new@example.com',
+        password: 'password123',
+        name: 'New User',
+        verifyCode: '123456',
+      };
+      const mockResponse = {
+        access_token: 'jwt-token-456',
+        refresh_token: 'refresh-token-456',
+        expires_in: 900,
+        token_type: 'Bearer',
+        user: { id: '2', email: 'new@example.com', name: 'New User', role: 'user', createdAt: new Date() },
+      };
+
+      service.register(mockData).subscribe((response) => {
+        expect(response).toEqual(mockResponse);
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/auth/register`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(mockData);
+      req.flush(mockResponse);
+    });
+
+    it('should handle registration error', () => {
+      const mockData: RegisterRequest = {
+        email: 'duplicate@example.com',
+        password: 'password123',
+        name: 'Duplicate',
+        verifyCode: '123456',
+      };
+
+      service.register(mockData).subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeTruthy();
+        },
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/auth/register`);
+      req.flush({ message: 'Email already exists' }, { status: 409, statusText: 'Conflict' });
+    });
+  });
+
+  describe('getServices()', () => {
+    it('should send GET request to /api/services', () => {
+      const mockServices = [
+        { id: '1', name: 'Haircut', description: 'Standard haircut', durationMinutes: 30, price: 25 },
+        { id: '2', name: 'Coloring', description: 'Hair coloring', durationMinutes: 60, price: 50 },
+      ];
+
+      service.getServices().subscribe((services) => {
+        expect(services.length).toBe(2);
+        expect(services[0].name).toBe('Haircut');
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/services`);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockServices);
+    });
+
+    it('should retry failed requests up to 2 times', () => {
+      service.getServices().subscribe({
+        next: () => fail('expected error after retries'),
+        error: () => {
+          // Expected after 3 total attempts (1 original + 2 retries)
+        },
+      });
+
+      // retry(2) means 3 total requests: original + 2 retries
+      const req1 = httpMock.expectOne(`${apiUrl}/services`);
+      req1.flush({ message: 'Server error' }, { status: 500, statusText: 'Internal Server Error' });
+
+      const req2 = httpMock.expectOne(`${apiUrl}/services`);
+      req2.flush({ message: 'Server error' }, { status: 500, statusText: 'Internal Server Error' });
+
+      const req3 = httpMock.expectOne(`${apiUrl}/services`);
+      req3.flush({ message: 'Server error' }, { status: 500, statusText: 'Internal Server Error' });
+    });
+
+    it('should handle network error on getServices', () => {
+      service.getServices().subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeTruthy();
+        },
+      });
+
+      // retry(2) means 3 total requests
+      const req1 = httpMock.expectOne(`${apiUrl}/services`);
+      req1.flush({ message: 'Network error' }, { status: 500, statusText: 'Internal Server Error' });
+
+      const req2 = httpMock.expectOne(`${apiUrl}/services`);
+      req2.flush({ message: 'Network error' }, { status: 500, statusText: 'Internal Server Error' });
+
+      const req3 = httpMock.expectOne(`${apiUrl}/services`);
+      req3.flush({ message: 'Network error' }, { status: 500, statusText: 'Internal Server Error' });
+    });
+  });
+
+  describe('getAvailableSlots()', () => {
+    it('should send GET request to /api/time-slots/available with serviceId param', () => {
+      const mockSlots = [
+        { id: 'slot-1', date: '2026-04-20', time: '09:00', isActive: true },
+        { id: 'slot-2', date: '2026-04-20', time: '10:00', isActive: true },
+      ];
+
+      service.getAvailableSlots('svc-1').subscribe((slots) => {
+        expect(slots.length).toBe(2);
+        expect(slots[0].id).toBe('slot-1');
+      });
+
+      const req = httpMock.expectOne((request) => {
+        return (
+          request.url === `${apiUrl}/time-slots/available` &&
+          request.params.get('serviceId') === 'svc-1'
+        );
+      });
+      expect(req.request.method).toBe('GET');
+      req.flush(mockSlots);
+    });
+
+    it('should retry on failure', () => {
+      service.getAvailableSlots('svc-1').subscribe({
+        next: () => fail('expected error'),
+        error: () => {},
+      });
+
+      // retry(2) means 3 total requests
+      const req1 = httpMock.expectOne((request) => {
+        return (
+          request.url === `${apiUrl}/time-slots/available` &&
+          request.params.get('serviceId') === 'svc-1'
+        );
+      });
+      req1.flush({ message: 'Error' }, { status: 500, statusText: 'Error' });
+
+      const req2 = httpMock.expectOne((request) => {
+        return (
+          request.url === `${apiUrl}/time-slots/available` &&
+          request.params.get('serviceId') === 'svc-1'
+        );
+      });
+      req2.flush({ message: 'Error' }, { status: 500, statusText: 'Error' });
+
+      const req3 = httpMock.expectOne((request) => {
+        return (
+          request.url === `${apiUrl}/time-slots/available` &&
+          request.params.get('serviceId') === 'svc-1'
+        );
+      });
+      req3.flush({ message: 'Error' }, { status: 500, statusText: 'Error' });
+    });
+  });
+
+  describe('createAppointment()', () => {
+    it('[RED] should fail: createAppointment should send POST to /api/appointments', () => {
+      const mockResponse = {
+        status: 'SUCCESS' as const,
+        slot: { id: 'slot-1', date: '2026-04-20', time: '09:00', isActive: false },
+      };
+
+      service.createAppointment({
+        timeSlotId: 'slot-1',
+        appointmentDate: '2026-04-20T09:00:00Z',
+        notes: 'Test appointment',
+      }).subscribe((response) => {
+        expect(response.status).toBe('SUCCESS');
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/appointments`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({
+        timeSlotId: 'slot-1',
+        appointmentDate: '2026-04-20T09:00:00Z',
+        notes: 'Test appointment',
+      });
+      req.flush(mockResponse);
+    });
+
+    it('[RED] should fail: createAppointment should handle API error', () => {
+      service.createAppointment({
+        timeSlotId: 'slot-1',
+        appointmentDate: '2026-04-20T09:00:00Z',
+      }).subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeTruthy();
+        },
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/appointments`);
+      req.flush({ message: 'Time slot not available' }, { status: 409, statusText: 'Conflict' });
+    });
+  });
+
+  describe('reserveSlot()', () => {
+    it('should send POST request to /api/slots/:id/reserve with preferSeq', () => {
+      const mockResponse = {
+        status: 'SUCCESS' as const,
+        slot: { id: 'slot-1', date: '2026-04-20', time: '09:00', isActive: false },
+      };
+
+      service.reserveSlot('slot-1', 5).subscribe((response) => {
+        expect(response.status).toBe('SUCCESS');
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/slots/slot-1/reserve`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ preferSeq: 5 });
+      expect(req.request.headers.has('X-Idempotency-Key')).toBeFalse();
+      req.flush(mockResponse);
+    });
+
+    it('should include X-Idempotency-Key header when provided', () => {
+      service.reserveSlot('slot-1', 3, 'key-123').subscribe();
+
+      const req = httpMock.expectOne(`${apiUrl}/slots/slot-1/reserve`);
+      expect(req.request.headers.get('X-Idempotency-Key')).toBe('key-123');
+      req.flush({ status: 'SUCCESS', slot: {} });
+    });
+
+    it('should handle reservation failure', () => {
+      service.reserveSlot('slot-1', 5).subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeTruthy();
+        },
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/slots/slot-1/reserve`);
+      req.flush({ message: 'Slot no longer available' }, { status: 409, statusText: 'Conflict' });
+    });
+  });
+
+  describe('cancelBooking()', () => {
+    it('should send DELETE request to /api/appointments/:id', () => {
+      service.cancelBooking('booking-1').subscribe();
+
+      const req = httpMock.expectOne(`${apiUrl}/appointments/booking-1`);
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+
+    it('should handle cancel error', () => {
+      service.cancelBooking('booking-1').subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeTruthy();
+        },
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/appointments/booking-1`);
+      req.flush({ message: 'Booking not found' }, { status: 404, statusText: 'Not Found' });
+    });
+  });
+
+  describe('error handling', () => {
+    it('should return Error with message from HTTP error response', () => {
+      service.getServices().subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeInstanceOf(Error);
+          expect(error.message).toBe('Service unavailable');
+        },
+      });
+
+      // retry(2) means 3 total requests
+      const req1 = httpMock.expectOne(`${apiUrl}/services`);
+      req1.flush({ message: 'Service unavailable' }, { status: 503, statusText: 'Service Unavailable' });
+
+      const req2 = httpMock.expectOne(`${apiUrl}/services`);
+      req2.flush({ message: 'Service unavailable' }, { status: 503, statusText: 'Service Unavailable' });
+
+      const req3 = httpMock.expectOne(`${apiUrl}/services`);
+      req3.flush({ message: 'Service unavailable' }, { status: 503, statusText: 'Service Unavailable' });
+    });
+
+    it('should handle network errors gracefully', () => {
+      service.login({ email: 'test@test.com', password: 'test' }).subscribe({
+        next: () => fail('expected error'),
+        error: (error) => {
+          expect(error).toBeInstanceOf(Error);
+          expect(error.message).toBe('An error occurred. Please try again.');
+        },
+      });
+
+      const req = httpMock.expectOne(`${apiUrl}/auth/login`);
+      req.error(new ProgressEvent('Network error'));
+    });
+  });
+});

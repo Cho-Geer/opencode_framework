@@ -1,0 +1,68 @@
+{
+  "phase": "RED",
+  "task": "BUG-004",
+  "timestamp": "2026-04-24T00:00:00Z",
+  "test_results": {
+    "suites": {
+      "total": 2,
+      "passed": 0,
+      "failed": 2
+    },
+    "tests": {
+      "total": 36,
+      "passed": 28,
+      "failed": 8
+    }
+  },
+  "red_tests": [
+    {
+      "suite": "BookingStore › [BUG-004] confirmSlotReservation()",
+      "test": "confirmSlotReservation is not yet implemented",
+      "reason": "store.confirmSlotReservation is undefined",
+      "expected_behavior": "confirmSlotReservation method should exist on the store"
+    },
+    {
+      "suite": "BookingStore › [BUG-004] confirmSlotReservation()",
+      "test": "should mark a slot as booked when confirmed",
+      "reason": "store.confirmSlotReservation is undefined",
+      "expected_behavior": "confirmSlotReservation(slotId) should update slot.isActive to false"
+    },
+    {
+      "suite": "BookingStore › [BUG-004] failedReservation()",
+      "test": "failedReservation is not yet implemented",
+      "reason": "store.failedReservation is undefined",
+      "expected_behavior": "failedReservation method should exist on the store"
+    },
+    {
+      "suite": "BookingStore › [BUG-004] failedReservation()",
+      "test": "should restore slot and set error message",
+      "reason": "store.failedReservation is undefined",
+      "expected_behavior": "failedReservation(slotId, error) should keep slot active and set error"
+    },
+    {
+      "suite": "BookingService › reserveSlot()",
+      "test": "store.reserveSlot should no longer be called directly",
+      "reason": "apiServiceMock.createAppointment was not called",
+      "expected_behavior": "reserveSlot should call apiService.createAppointment() instead of store.reserveSlot()"
+    },
+    {
+      "suite": "BookingService › reserveSlot()",
+      "test": "should call apiService.createAppointment with correct parameters",
+      "reason": "apiServiceMock.createAppointment was not called",
+      "expected_behavior": "reserveSlot should call apiService.createAppointment with timeSlotId"
+    },
+    {
+      "suite": "BookingService › reserveSlot()",
+      "test": "should call store.confirmSlotReservation on API success",
+      "reason": "storeMock.confirmSlotReservation was not called",
+      "expected_behavior": "on API success, store.confirmSlotReservation(slotId) should be called"
+    },
+    {
+      "suite": "BookingService › reserveSlot()",
+      "test": "should call store.failedReservation on API failure",
+      "reason": "storeMock.failedReservation was not called",
+      "expected_behavior": "on API failure, store.failedReservation(slotId, error) should be called"
+    }
+  ],
+  "execution_evidence": "npx jest --testPathPatterns='booking.store.spec|booking.service.spec' - 8 tests failed as expected (methods not implemented yet)"
+}

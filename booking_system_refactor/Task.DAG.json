@@ -111,6 +111,13 @@
       "status": "in_progress",
       "owner": "@Coder-FE",
       "type": "fix"
+    },
+    {
+      "id": "BUG-004-RED",
+      "title": "BUG-004-RED",
+      "status": "in_progress",
+      "owner": "@Coder-FE",
+      "type": "test"
     }
   ],
   "dag": {
@@ -663,6 +670,38 @@
             "URL 解析失败 → 安全回退到通用日志"
           ]
         }
+      },
+      "BUG-004-RED": {
+        "id": "BUG-004-RED",
+        "name": "[RED] Booking store添加真实后端API调用 — 测试编写",
+        "description": "RED 阶段：编写测试证明当前 reserveSlot() 是纯本地操作，没有调用后端API。新增 confirmSlotReservation() 和 failedReservation() 测试。",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "test",
+        "priority": "P1",
+        "target_files": [
+          "booking-frontend/src/app/stores/booking/booking.store.spec.ts",
+          "booking-frontend/src/app/features/booking/booking.service.spec.ts",
+          "booking-frontend/src/app/core/services/api.service.spec.ts"
+        ],
+        "definition_of_done": "8个 RED 测试编写完成且执行失败"
+      },
+      "BUG-004": {
+        "id": "BUG-004",
+        "name": "[GREEN] Booking store添加真实后端API调用 — 实现修复",
+        "description": "GREEN 阶段：实现真实的 API 调用。BookingService.reserveSlot() 改为异步，调用 ApiService.createAppointment() 发送 POST /api/appointments，成功后调用 store.confirmSlotReservation()，失败时调用 store.failedReservation()。",
+        "status": "pending",
+        "dependencies": ["BUG-004-RED"],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": [
+          "booking-frontend/src/app/stores/booking/booking.store.ts",
+          "booking-frontend/src/app/features/booking/booking.service.ts",
+          "booking-frontend/src/app/core/services/api.service.ts"
+        ],
+        "definition_of_done": "所有 booking 相关测试通过，green_report.json 含 execution_evidence"
       }
     }
   }
