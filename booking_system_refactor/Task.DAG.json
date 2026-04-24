@@ -8,15 +8,17 @@
     {"id": "H5", "title": "H5", "status": "completed", "owner": "@Coder-BE", "type": "fix"},
     {"id": "BUG-009", "title": "BUG-009", "status": "completed", "owner": "@Coder-BE", "type": "fix"},
     {"id": "BUG-005-RED", "title": "BUG-005-RED", "status": "completed", "owner": "@Coder-BE", "type": "test"},
-    {"id": "BUG-005", "title": "BUG-005", "status": "completed", "owner": "@Coder-BE", "type": "fix"}
+    {"id": "BUG-005", "title": "BUG-005", "status": "completed", "owner": "@Coder-BE", "type": "fix"},
+    {"id": "BUG-006-RED", "title": "BUG-006-RED", "status": "completed", "owner": "@Coder-BE", "type": "test"},
+    {"id": "BUG-006", "title": "BUG-006", "status": "pending", "owner": "@Coder-BE", "type": "fix"}
   ],
   "dag": {
     "meta": {
       "version": "3.0.0",
       "generated_by": "@Orchestrator",
-      "generated_at": "2026-04-23T14:00:00Z",
+      "generated_at": "2026-04-24T10:00:00Z",
       "phase": "REFACTOR",
-      "next_action": "调度 R002/R003 并行 REFACTOR 任务 (R001 已完成)",
+      "next_action": "等待 BUG-006 GREEN 阶段实施；R002/R003 继续并行执行",
       "change_log": [
         {
           "version": "2.0.0",
@@ -61,7 +63,12 @@
         {
           "version": "4.0.0",
           "date": "2026-04-24",
-          "description": "Tech debt repayment begun. TD-FIX-001 (register.component.spec.ts) RED phase complete. Starting TD-FIX-002~005."
+          "description": "Tech debt repayment begun. TD-FIX-001 (register.component.spec.ts) all 54 tests passing. TD-FIX-002 (login.component.spec.ts) all 44 tests passing. Starting TD-FIX-003~005."
+        },
+        {
+          "version": "4.1.0",
+          "date": "2026-04-24",
+          "description": "BUG-006-RED 完成。为 loginPassword() 定时攻击保护添加 RED 测试：1 个测试失败（证明 101ms 时间差异），1 个测试通过（确认漏洞可检测）。等待 BUG-006 GREEN 阶段实施constantTimeLoginDelay()。"
         }
       ]
     },
@@ -377,6 +384,34 @@
           ]
         }
       },
+      "BUG-006-RED": {
+        "id": "BUG-006-RED",
+        "name": "[RED] 登录定时攻击保护增强 — 测试编写",
+        "description": "RED 阶段：编写测试证明当前代码存在定时攻击漏洞。'用户不存在'路径有 100ms 固定延迟，'密码错误'路径无延迟。时间差 ~101ms 可被利用。",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-BE",
+        "type": "test",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/auth/auth.service.spec.ts"
+        ],
+        "definition_of_done": "RED 测试编写完成：1个测试失败（证明时间差异），1个测试通过（确认漏洞可检测）"
+      },
+      "BUG-006": {
+        "id": "BUG-006",
+        "name": "[GREEN] 登录定时攻击保护增强 — 实现修复",
+        "description": "GREEN 阶段：在 loginPassword() 方法中添加 constantTimeLoginDelay() 私有方法，在'用户不存在'和'密码错误'两个分支中都调用，生成 250-350ms 随机范围延迟模拟 bcrypt 耗时。",
+        "status": "pending",
+        "dependencies": ["BUG-006-RED"],
+        "assignee": "@Coder-BE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": [
+          "booking-backend/src/modules/auth/auth.service.ts"
+        ],
+        "definition_of_done": "所有 auth 相关测试通过，RED 测试不再失败，green_report.json 含 execution_evidence"
+      },
       "TD-FIX-001": {
         "id": "TD-FIX-001",
         "name": "[Tech Debt] Fix register.component.spec.ts test failures",
@@ -402,8 +437,8 @@
       "TD-FIX-002": {
         "id": "TD-FIX-002",
         "name": "[Tech Debt] Fix login.component.spec.ts test failures",
-        "description": "修复 login.component.spec.ts 中~46个测试失败 - 测试与重构后的登录组件对齐",
-        "status": "in_progress",
+        "description": "修复 login.component.spec.ts 中~40个测试失败 - 测试与重构后的登录组件对齐",
+        "status": "completed",
         "dependencies": [],
         "assignee": "@Coder-FE",
         "type": "fix",

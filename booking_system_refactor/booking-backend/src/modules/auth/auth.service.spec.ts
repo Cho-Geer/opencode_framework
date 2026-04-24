@@ -57,6 +57,7 @@ describe('AuthService', () => {
   const mockJwtService = {
     sign: jest.fn(),
     verify: jest.fn(),
+    decode: jest.fn(),
   };
 
   const mockEncryptionService = {
@@ -512,6 +513,94 @@ describe('AuthService', () => {
       );
       expect(mockHashService.hashWithPepper).toHaveBeenCalledWith('13800138000');
     });
+
+    // ============ RED Phase: Timing attack vulnerability (tests should FAIL) ============
+
+    it('[RED] should have similar timing for nonexistent user and wrong password paths (RED - expects failure with current code)', async () => {
+      // RED PHASE: This test asserts the DESIRED behavior (constant-time login).
+      // With the current code (100ms fixed dummy delay in user-not-found but no delay
+      // in wrong-password path), this test will FAIL — demonstrating the vulnerability.
+      //
+      // After GREEN phase implementation (constantTimeLoginDelay in both paths),
+      // this test should PASS.
+
+      mockPrismaClient.user.findFirst.mockResolvedValue(null);
+
+      const notFoundStart = Date.now();
+      await expect(
+        service.loginPassword({
+          contact: 'nonexistent@example.com',
+          contactType: ContactType.EMAIL,
+          password: 'SomePass123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+      const notFoundDuration = Date.now() - notFoundStart;
+
+      mockPrismaClient.user.findFirst.mockResolvedValue({
+        id: 'user-id',
+        passwordHash: 'hashed-password',
+        status: 'ACTIVE',
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      const wrongPwdStart = Date.now();
+      await expect(
+        service.loginPassword({
+          contact: 'test@example.com',
+          contactType: ContactType.EMAIL,
+          password: 'WrongPass123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+      const wrongPwdDuration = Date.now() - wrongPwdStart;
+
+      // DESIRED behavior: both paths should take similar time (within 50ms of each other)
+      // CURRENT behavior: notFound ~100ms, wrongPwd ~0ms — DIFFERENCE > 50ms → FAILS
+      const timeDiff = Math.abs(notFoundDuration - wrongPwdDuration);
+      expect(timeDiff).toBeLessThan(50);
+    });
+
+    it('[RED] should prove that current code has a detectable timing difference (RED - exposes the vulnerability)', async () => {
+      // RED PHASE SECOND TEST: This test proves the vulnerability exists.
+      // It demonstrates that the current code's timing difference IS detectable (>90ms gap).
+      // This test passes with current code (proving the bug exists).
+      //
+      // After GREEN phase, this test will be removed/refactored since the bug is fixed.
+
+      // Path 1: User not found — should take ~100ms due to setTimeout(100)
+      mockPrismaClient.user.findFirst.mockResolvedValue(null);
+
+      const notFoundStart = Date.now();
+      await expect(
+        service.loginPassword({
+          contact: 'nonexistent@example.com',
+          contactType: ContactType.EMAIL,
+          password: 'SomePass123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+      const notFoundDuration = Date.now() - notFoundStart;
+
+      // Path 2: Wrong password — should be near-instant (mocked bcrypt, no delay)
+      mockPrismaClient.user.findFirst.mockResolvedValue({
+        id: 'user-id',
+        passwordHash: 'hashed-password',
+        status: 'ACTIVE',
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      const wrongPwdStart = Date.now();
+      await expect(
+        service.loginPassword({
+          contact: 'test@example.com',
+          contactType: ContactType.EMAIL,
+          password: 'WrongPass123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+      const wrongPwdDuration = Date.now() - wrongPwdStart;
+
+      // Proof: the difference is >= ~85ms (100ms delay vs ~0ms)
+      const timeDiff = notFoundDuration - wrongPwdDuration;
+      expect(timeDiff).toBeGreaterThanOrEqual(85);
+    });
   });
 
   describe('loginSendCode', () => {
@@ -787,6 +876,103 @@ describe('AuthService', () => {
     });
   });
 
+  // ============================================================
+  // BUG-002 RED Phase Tests: logout() should use jti instead of randomUUID
+  // These tests will FAIL on the current buggy code which uses crypto.randomUUID()
+  // ============================================================
+  describe('BUG-002: logout blacklist key should use jti (RED phase)', () => {
+    const TEST_JTI = 'test-jti-123';
+    const TEST_ACCESS_TOKEN = 'test-access-token';
+    const TEST_REFRESH_TOKEN = 'test-refresh-token';
+    const TEST_USER_ID = 'user-123';
+    const ACCESS_TOKEN_TTL_SECONDS = 900;
+
+    beforeEach(() => {
+      // Mock JwtService.decode to return the access token payload with a known jti
+      (mockJwtService.decode as jest.Mock).mockReturnValue({ jti: TEST_JTI });
+
+      // Mock prisma userSession updateMany
+      mockPrismaClient.userSession.updateMany.mockResolvedValue({ count: 1 });
+    });
+
+    it('should use jti from access token instead of randomUUID for blacklist key [BUG-002]', async () => {
+      // Arrange - the test verifies that logout() uses JwtService.decode() to extract jti
+      // and uses that jti as the blacklist key
+      const mockCacheService = {
+        setSession: jest.fn().mockResolvedValue(undefined),
+      };
+      (service as any).cacheService = mockCacheService;
+
+      // Act
+      await service.logout(TEST_USER_ID, TEST_ACCESS_TOKEN, TEST_REFRESH_TOKEN);
+
+      // Assert - the key must contain the jti, not a random UUID
+      expect(mockCacheService.setSession).toHaveBeenCalledWith(
+        `token:blacklist:${TEST_JTI}`,
+        'revoked',
+      );
+    });
+
+    it('should call JwtService.decode to extract jti from access token [BUG-002]', async () => {
+      // Arrange
+      const mockCacheService = {
+        setSession: jest.fn().mockResolvedValue(undefined),
+      };
+      (service as any).cacheService = mockCacheService;
+
+      // Act
+      await service.logout(TEST_USER_ID, TEST_ACCESS_TOKEN, TEST_REFRESH_TOKEN);
+
+      // Assert - JwtService.decode must be called with the access token
+      expect(mockJwtService.decode).toHaveBeenCalledWith(TEST_ACCESS_TOKEN);
+    });
+
+    it('should NOT use crypto.randomUUID() for blacklist key [BUG-002]', async () => {
+      // Arrange
+      jest.spyOn(crypto, 'randomUUID');
+      const mockCacheService = {
+        setSession: jest.fn().mockResolvedValue(undefined),
+      };
+      (service as any).cacheService = mockCacheService;
+
+      // Act
+      await service.logout(TEST_USER_ID, TEST_ACCESS_TOKEN, TEST_REFRESH_TOKEN);
+
+      // Assert - randomUUID should NOT be called for constructing the blacklist key
+      // Current buggy code calls crypto.randomUUID() which makes this assertion fail
+      const setSessionCalls = (mockCacheService.setSession as jest.Mock).mock.calls;
+      const blacklistKeys = setSessionCalls
+        .filter((call: string[]) => call[0].startsWith('token:blacklist:'))
+        .map((call: string[]) => call[0]);
+
+      // Each blacklist key should contain a predictable jti, not a randomUUID
+      for (const key of blacklistKeys) {
+        expect(key).not.toMatch(/^token:blacklist:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      }
+      // The blacklist key should contain the jti from the decoded token
+      expect(blacklistKeys[0]).toBe(`token:blacklist:${TEST_JTI}`);
+    });
+
+    it('should pass the correct TTL to cache when blacklisting token [BUG-002]', async () => {
+      // The blacklist TTL should match the access token expiry time
+      // setSession already uses the session-specific TTL (900s by default)
+      // This test verifies logout passes the correct TTL-conscious key
+      const mockCacheService = {
+        setSession: jest.fn().mockResolvedValue(undefined),
+      };
+      (service as any).cacheService = mockCacheService;
+
+      // Act
+      await service.logout(TEST_USER_ID, TEST_ACCESS_TOKEN, TEST_REFRESH_TOKEN);
+
+      // Assert - The blacklist key must be based on jti, not randomUUID
+      expect(mockCacheService.setSession).toHaveBeenCalledWith(
+        `token:blacklist:${TEST_JTI}`,
+        'revoked',
+      );
+    });
+  });
+
   describe('refreshTokens', () => {
     it('should throw UnauthorizedException for invalid refresh token', async () => {
       mockJwtService.verify.mockImplementation(() => {
@@ -930,24 +1116,24 @@ describe('AuthService', () => {
   });
 
   describe('mapUserTypeToRole', () => {
-    it('should map CUSTOMER to USER', () => {
+    it('should map CUSTOMER to CUSTOMER (per contract.yaml Role enum)', () => {
       const result = (service as any).mapUserTypeToRole('CUSTOMER');
-      expect(result).toBe('USER');
+      expect(result).toBe('CUSTOMER');
     });
 
-    it('should map ADMIN to ADMIN', () => {
+    it('should map ADMIN to ADMIN (per contract.yaml Role enum)', () => {
       const result = (service as any).mapUserTypeToRole('ADMIN');
       expect(result).toBe('ADMIN');
     });
 
-    it('should map SUPER_ADMIN to ADMIN', () => {
+    it('should map SUPER_ADMIN to SUPER_ADMIN (per contract.yaml Role enum)', () => {
       const result = (service as any).mapUserTypeToRole('SUPER_ADMIN');
-      expect(result).toBe('ADMIN');
+      expect(result).toBe('SUPER_ADMIN');
     });
 
-    it('should map unknown type to USER as default', () => {
+    it('should map unknown type to CUSTOMER as default', () => {
       const result = (service as any).mapUserTypeToRole('UNKNOWN_TYPE');
-      expect(result).toBe('USER');
+      expect(result).toBe('CUSTOMER');
     });
   });
 });
@@ -1033,8 +1219,13 @@ if (isIntegrationMode()) {
     let testModule: TestModule;
     let authService: AuthService;
     let mockJwtService: any;
+    let mockEncryptionService: any;
+    let mockHashService: any;
 
     beforeAll(async () => {
+      // Restore all mocks to ensure PrismaClient is the real implementation
+      jest.restoreAllMocks();
+
       // Set required env vars for AuthService constructor validation
       process.env.JWT_SECRET = 'test-jwt-secret';
       process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
@@ -1049,6 +1240,19 @@ if (isIntegrationMode()) {
           return 'mock-refresh-jwt-token';
         }),
         verify: jest.fn(),
+      };
+
+      mockEncryptionService = {
+        encrypt: jest.fn().mockResolvedValue({
+          iv: 'test-iv',
+          authTag: 'test-tag',
+          ciphertext: 'test-ciphertext',
+        }),
+        decrypt: jest.fn(),
+      };
+
+      mockHashService = {
+        hashWithPepper: jest.fn((value: string) => `hash-${value}`),
       };
 
       const module: TestingModule = await Test.createTestingModule({
@@ -1088,20 +1292,11 @@ if (isIntegrationMode()) {
           },
           {
             provide: EncryptionService,
-            useValue: {
-              encrypt: jest.fn().mockResolvedValue({
-                iv: 'test-iv',
-                authTag: 'test-tag',
-                ciphertext: 'test-ciphertext',
-              }),
-              decrypt: jest.fn(),
-            },
+            useValue: mockEncryptionService,
           },
           {
             provide: HashService,
-            useValue: {
-              hashWithPepper: jest.fn((value: string) => `hash-${value}`),
-            },
+            useValue: mockHashService,
           },
           {
             provide: ConfigService,
@@ -1128,13 +1323,25 @@ if (isIntegrationMode()) {
     beforeEach(async () => {
       await testModule.resetDatabase();
 
-      // Re-setup mockJwtService after clearAllMocks
+      // Re-setup all mocks after resetMocks clears implementations
       mockJwtService.sign.mockImplementation((payload: any, options: any) => {
         if (options && options.secret === 'test-jwt-secret') {
           return 'mock-access-jwt-token';
         }
         return 'mock-refresh-jwt-token';
       });
+
+      mockEncryptionService.encrypt.mockResolvedValue({
+        iv: 'test-iv',
+        authTag: 'test-tag',
+        ciphertext: 'test-ciphertext',
+      });
+
+      mockHashService.hashWithPepper.mockImplementation((value: string) => `hash-${value}`);
+
+      // Re-setup bcrypt mock (jest.mock at file level keeps bcrypt mocked)
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password-for-tests');
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
     });
 
     describe('registerComplete (Integration)', () => {
@@ -1160,9 +1367,12 @@ if (isIntegrationMode()) {
         expect(result.accessToken).toBeDefined();
         expect(result.refreshToken).toBeDefined();
 
-        // Verify user exists in database
+        // Verify user exists in database (query by emailHash since service stores hashed PII)
+        const expectedHash = mockHashService.hashWithPepper.mock.results[
+          mockHashService.hashWithPepper.mock.results.length - 1
+        ]?.value;
         const dbUser = await testModule.prisma.user.findFirst({
-          where: { email: 'integration-test@example.com' },
+          where: { emailHash: expectedHash },
         });
         expect(dbUser).not.toBeNull();
 
@@ -1176,10 +1386,18 @@ if (isIntegrationMode()) {
 
     describe('loginPassword (Integration)', () => {
       it('should login with password in the real database', async () => {
-        // Create a test user
-        const testUser = await createTestUser(testModule.prisma, 'CUSTOMER', {
-          email: 'login-test@example.com',
-          passwordHash: await bcrypt.hash('ValidPass123!', 12),
+        // Create a test user with emailHash matching what hashService mock produces
+        // hashWithPepper mock returns `hash-${value}`, so emailHash = 'hash-login-test@example.com'
+        // bcrypt.hash mock returns 'hashed-password-for-tests'
+        await testModule.prisma.user.create({
+          data: {
+            name: 'Login Test User',
+            email: 'l***@example.com',
+            emailHash: 'hash-login-test@example.com',
+            passwordHash: 'hashed-password-for-tests',
+            userType: 'CUSTOMER',
+            status: 'ACTIVE',
+          },
         });
 
         const dto: LoginPasswordDto = {

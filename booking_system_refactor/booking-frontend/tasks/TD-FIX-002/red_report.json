@@ -1,0 +1,20 @@
+{
+  "taskId": "TD-FIX-002",
+  "phase": "RED",
+  "specFile": "src/app/features/auth/login/login.component.spec.ts",
+  "totalTests": 51,
+  "passedTests": 11,
+  "failedTests": 40,
+  "failureCategories": {
+    "formNameMismatch": {"count": 3, "description": "Tests reference accountForm/emailForm but component has passwordForm/codeLoginForm"},
+    "activeTabDefaultMismatch": {"count": 1, "description": "Tests expect 'account' but component defaults to 'password'"},
+    "fieldValidationMismatch": {"count": 8, "description": "Tests fail because accountForm/emailForm are undefined"},
+    "isFieldInvalidMismatch": {"count": 6, "description": "Tests call isFieldInvalid which doesn't exist on LoginComponent"},
+    "apiMethodMismatch": {"count": 10, "description": "Tests mock api.login/emailLogin/sendVerificationCode but component calls loginPassword/loginVerifyCode/loginSendCode"},
+    "templateContentMismatch": {"count": 8, "description": "Tests expect '#email', '#password' IDs and 'Login'/'Register' button texts"},
+    "templateRenderingMismatch": {"count": 3, "description": "Tests expect button[type=submit] on login page but component delegates to auth-form component"},
+    "errorDisplayMismatch": {"count": 1, "description": "NG0100 ExpressionChangedAfterItHasBeenCheckedError with error signal"}
+  },
+  "rootCause": "Component was refactored from accountForm/emailForm to passwordForm/codeLoginForm with AuthFormComponent delegation. Active tab default changed from 'account' to 'password'. API methods renamed.",
+  "execution_evidence": "Ran 'npx jest src/app/features/auth/login/login.component.spec.ts --no-coverage' - 40 failed, 11 passed"
+}
