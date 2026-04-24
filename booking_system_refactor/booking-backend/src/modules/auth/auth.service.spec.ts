@@ -550,9 +550,10 @@ describe('AuthService', () => {
       const wrongPwdDuration = Date.now() - wrongPwdStart;
 
       // Both paths now use constantTimeLoginDelay (250-350ms).
-      // The timing difference should be small (< 60ms).
+      // The timing difference should be small (< 120ms)
+      // to account for random delay distribution (worst case: 350-250 = 100ms).
       const timeDiff = Math.abs(notFoundDuration - wrongPwdDuration);
-      expect(timeDiff).toBeLessThan(60);
+      expect(timeDiff).toBeLessThan(120);
     });
 
     it('[GREEN] should verify both paths take at least 250ms (constantTimeLoginDelay lower bound)', async () => {
