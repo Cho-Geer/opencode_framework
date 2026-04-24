@@ -377,6 +377,76 @@
           ]
         }
       },
+      "TD-FIX-001": {
+        "id": "TD-FIX-001",
+        "name": "[Tech Debt] Fix register.component.spec.ts test failures",
+        "description": "修复 register.component.spec.ts 中44个测试失败 - 测试与两步注册流程对齐",
+        "status": "completed",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/features/auth/register/register.component.spec.ts"],
+        "definition_of_done": "register.component.spec.ts 所有测试通过 (54/54)",
+        "result": {
+          "tests_passed": 54,
+          "tests_failed": 0,
+          "fixes_applied": [
+            "Rewrote tests for step1Form/step2Form, isStep1FieldInvalid/isStep2FieldInvalid",
+            "Updated API mock to registerSendCode/registerComplete",
+            "Fixed NG0100 issues with fixture recreation",
+            "Updated template selectors and button text assertions"
+          ]
+        }
+      },
+      "TD-FIX-002": {
+        "id": "TD-FIX-002",
+        "name": "[Tech Debt] Fix login.component.spec.ts test failures",
+        "description": "修复 login.component.spec.ts 中~46个测试失败 - 测试与重构后的登录组件对齐",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/features/auth/login/login.component.spec.ts"],
+        "definition_of_done": "login.component.spec.ts 所有测试通过"
+      },
+      "TD-FIX-003": {
+        "id": "TD-FIX-003",
+        "name": "[Tech Debt] Fix register-form.component.spec.ts test failures",
+        "description": "修复 register-form.component.spec.ts 中~10个测试失败 - 测试与Signal-based组件对齐",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/shared/components/molecules/register-form/register-form.component.spec.ts"],
+        "definition_of_done": "register-form.component.spec.ts 所有测试通过"
+      },
+      "TD-FIX-004": {
+        "id": "TD-FIX-004",
+        "name": "[Tech Debt] Fix auth.dto.spec.ts test failures",
+        "description": "修复 auth.dto.spec.ts 中~8个测试失败 - 接口与DTO字段名对齐",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/features/auth/dto/auth.dto.spec.ts"],
+        "definition_of_done": "auth.dto.spec.ts 所有测试通过"
+      },
+      "TD-FIX-005": {
+        "id": "TD-FIX-005",
+        "name": "[Tech Debt] Fix auth.store.spec.ts test failures",
+        "description": "修复 auth.store.spec.ts 中~16个测试失败 - SignalStore类型对齐",
+        "status": "in_progress",
+        "dependencies": [],
+        "assignee": "@Coder-FE",
+        "type": "fix",
+        "priority": "P1",
+        "target_files": ["booking-frontend/src/app/stores/auth/auth.store.spec.ts"],
+        "definition_of_done": "auth.store.spec.ts 所有测试通过"
+      },
       "BUG-008": {
         "id": "BUG-008",
         "name": "[Fix] PrismaService日志避免暴露DATABASE_URL",
