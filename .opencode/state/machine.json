@@ -4,7 +4,7 @@
     "version": "2.1.0",
     "project": "appointment-booking-system",
     "description": "强制校验契约哈希 + 任务生命周期证据链。涉及角色：@Architect(定义), @Coder-BE(实现), @Coder-FE(适配), @Guardian(审查), @Orchestrator(调度)。",
-    "lastUpdated": "2026-04-24T02:04:31.279Z"
+    "lastUpdated": "2026-04-28T09:06:22.872Z"
   },
   "currentTask": {
     "id": "BUG-009",

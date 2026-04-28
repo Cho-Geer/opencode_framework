@@ -1,0 +1,206 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://qoder.dev/schemas/machine.schema.json",
+  "title": "Qoder 多智能体状态机配置 Schema",
+  "description": "定义契约哈希、任务生命周期与强制证据链的物理约束规则",
+  "type": "object",
+  "required": ["meta", "contracts", "taskLifecycle"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "project"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "语义化版本号"
+        },
+        "project": {
+          "type": "string",
+          "description": "项目名称"
+        },
+        "description": {
+          "type": "string",
+          "description": "项目描述"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 格式的最后更新时间"
+        }
+      }
+    },
+    "currentTask": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "owner": { "type": "string", "pattern": "^@[A-Za-z-]+$" }
+      }
+    },
+    "contracts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["file", "hash", "owner"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "契约文件的相对路径"
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^sha256-[a-f0-9]{64}$",
+            "description": "文件的 SHA-256 哈希值，格式为 sha256-<hex>"
+          },
+          "lastValidated": {
+            "type": "string",
+            "format": "date-time",
+            "description": "上次验证通过的时间"
+          },
+          "owner": {
+            "type": "string",
+            "pattern": "^@[A-Za-z-]+$",
+            "description": "负责该契约的 Agent"
+          },
+          "description": {
+            "type": "string",
+            "description": "可选的契约描述"
+          }
+        }
+      }
+    },
+    "stateTransitions": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "description": "简化的任务状态转换图（保留向后兼容）"
+    },
+    "taskLifecycle": {
+      "type": "object",
+      "required": ["states", "transitions"],
+      "properties": {
+        "taskTypes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "项目支持的任务类型"
+        },
+        "states": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "任务生命周期的所有可能状态"
+        },
+        "taskStateFilePattern": {
+          "type": "string",
+          "default": "Task.DAG.json",
+          "description": "记录任务状态的文件路径模式"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "源状态"
+              },
+              "to": {
+                "type": "string",
+                "description": "目标状态"
+              },
+              "requiredEvidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["filePattern"],
+                  "properties": {
+                    "filePattern": {
+                      "type": "string",
+                      "description": "证据文件的路径模式，支持 {taskId} 占位符"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "证据文件的说明"
+                    },
+                    "schema": {
+                      "description": "标准 JSON Schema (draft-07)，用于 ajv 校验 JSON 证据文件",
+                      "type": "object",
+                      "required": ["type"],
+                      "properties": {
+                        "$schema": {
+                          "type": "string",
+                          "description": "JSON Schema 版本声明"
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "JSON 数据类型"
+                        },
+                        "required": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        },
+                        "properties": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "additionalProperties": {
+                          "type": "boolean",
+                          "description": "是否允许额外属性"
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "contentMustContain": {
+                      "type": "string",
+                      "description": "文本证据文件必须包含的字符串（支持正则表达式）"
+                    },
+                    "contentMustNotContain": {
+                      "type": "string",
+                      "description": "文本证据文件不得包含的字符串"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "auditLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "agent", "action", "target", "details"],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "agent": {
+            "type": "string",
+            "pattern": "^@[A-Za-z-]+$"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["INITIALIZE", "UPDATE", "HASH_CORRECTION", "HASH_UPDATE", "SCHEMA_UPGRADE", "TDD_PHASE_TRANSITION"]
+          },
+          "target": {
+            "type": "string"
+          },
+          "details": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
