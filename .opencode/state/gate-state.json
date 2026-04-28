@@ -380,6 +380,31 @@
         "execution_summary": "Committed root repo initialization: opencode config, agents, commands, context docs, skills, rules, hooks, scripts, AGENTS.md, project config files. booking_system_refactor/ excluded (in .gitignore + untracked from root git). All Qoder phases passed.",
         "completed_at": "2026-04-28T09:42:58.178Z"
       }
+    },
+    "cg_ses_1777380379744": {
+      "session_id": "cg_ses_1777380379744",
+      "created_at": "2026-04-28T12:46:19.744Z",
+      "task_description": "Commit .opencode/state/gate-state.json with added top-level gate_status field",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Commit .opencode/state/gate-state.json with added top-level gate_status field",
+      "confirmed_at": "2026-04-28T12:49:13.120Z",
+      "consumed_at": "2026-04-28T12:49:23.346Z",
+      "audit": {
+        "execution_summary": "Committed .opencode/state/gate-state.json with top-level gate_status: \"armed\" field added. All Qoder phases passed.",
+        "completed_at": "2026-04-28T12:49:23.346Z"
+      }
+    },
+    "cg_ses_1777380986144": {
+      "session_id": "cg_ses_1777380986144",
+      "created_at": "2026-04-28T12:56:26.144Z",
+      "task_description": "Commit compliance gate audit trail update to .opencode/state/gate-state.json (added session entry for cg_ses_1777380379744)",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Commit audit trail update to .opencode/state/gate-state.json (new session entry)",
+      "confirmed_at": "2026-04-28T12:56:30.889Z",
+      "consumed_at": null,
+      "audit": null
     }
   }
 }
