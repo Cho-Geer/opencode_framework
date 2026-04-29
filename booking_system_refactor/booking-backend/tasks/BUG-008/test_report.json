@@ -1,9 +1,0 @@
-{
-  "task": "BUG-008",
-  "description": "Sanitize DATABASE_URL logging in PrismaService",
-  "execution_evidence": "Test Suites: 41 passed (unit), 7 failed (pre-existing integration env issues), 1103 passed, 14 failed (all pre-existing), 22 skipped. All unit tests pass. No regressions introduced.",
-  "test_command": "npm run test",
-  "timestamp": "2026-04-24T01:10:46.000Z",
-  "modified_file": "src/common/database/prisma.service.ts",
-  "change_summary": "Replaced direct DATABASE_URL log with safe logging: warn if unset, host+pathname in non-prod, generic message in production"
-}

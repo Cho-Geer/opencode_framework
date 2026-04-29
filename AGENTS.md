@@ -105,7 +105,7 @@
 
 ### 运行时产物路径规范
 
-所有 Agent 运行时产物（TASK_LOG.md, HANDOVER.md, test_report.json, *_report.json）统一存放于 `.task_temp/{taskId}/` 目录下。全局交叉任务文件（Task.DAG.json, WAIVE.md, incident_report.md, deployment_status.json）存放于 `.task_temp/_global/`。
+所有 Agent 运行时产物（TASK_LOG.md, HANDOVER.md, test_report.json, *_report.json）统一存放于 `.task_temp/{taskId}/` 目录下。全局交叉任务文件（WAIVE.md, incident_report.md, deployment_status.json）存放于 `.task_temp/_global/`。`Task.DAG.json` 存放于项目根目录且必须由 Git 跟踪（pre-commit hook 校验需要）。
 
 ## 五、Skill调用规范
 
@@ -113,7 +113,7 @@
 
 ## 六、标准执行流程（要件优先 + RED/GREEN TDD 强制 + 工程化可靠性）
 1. 需求输入 → @Meta-Planner 读取要件文档 + **扫描 TECH_DEBT_REGISTRY.md** → 生成 Project.graph + Task.DAG.json
-2. @Orchestrator 调度任务 → @Architect 输出 contract.yaml（含 `x-qoder-state-hash`，接口/数据契约，TDD唯一依据）
+2. @Orchestrator 调度任务 → @Architect 输出 contract.yaml（含 `x-keystone-state-hash`，接口/数据契约，TDD唯一依据）
 3. 【TDD-RED 阶段】@Coder-BE / @Coder-FE 基于契约+要件书 → 编写失败测试用例（Commit Message 标记 `[Red] {task_id}`）→ 执行测试（强制失败）
 4. 【TDD-GREEN 阶段】@Coder-FE / @Coder-BE **更新 TASK_LOG.md 工作记忆** → 基于测试用例 → 编写最简业务代码 → 让测试全部通过（Commit Message 标记 `[Green] {task_id}`）
 5. 【任务交接】执行 Agent 输出 **HANDOVER.md 交接摘要** + **test_report.json（含 execution_evidence）**

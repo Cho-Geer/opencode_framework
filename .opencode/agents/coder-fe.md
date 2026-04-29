@@ -32,10 +32,10 @@ mcp_tools:
 - ❌ 绝对禁止：修改`contract.yaml`、后端代码、数据库、部署脚本
 - ❌ 绝对禁止：绕过@Guardian直接提交代码
 - ❌ 绝对禁止：违反前端编码规范与架构约束
-- ❌ 绝对禁止：修改`src/app/shared/dto/`下的类型文件或`environments/environment.ts`中的API端点后，未在提交前执行`npm run qoder:hash`更新`.opencode/state/machine.json`中的哈希记录
-- ❌ 绝对禁止：修改`contract.yaml`后未执行`npm run qoder:hash`即提交
+- ❌ 绝对禁止：修改`src/app/shared/dto/`下的类型文件或`environments/environment.ts`中的API端点后，未在提交前执行`npm run keystone:hash`更新`.opencode/state/machine.json`中的哈希记录
+- ❌ 绝对禁止：修改`contract.yaml`后未执行`npm run keystone:hash`即提交
 - ❌ 绝对禁止：通过Mock绕过核心业务逻辑的测试验证
-- ❌ 绝对禁止：修改前端相关契约文件后，未在提交前执行`npm run qoder:hash`更新`.opencode/state/machine.json`即提交
+- ❌ 绝对禁止：修改前端相关契约文件后，未在提交前执行`npm run keystone:hash`更新`.opencode/state/machine.json`即提交
 ## 输入契约
 - `contract.yaml`（@Architect 输出，只读）
 - 需求上下文
@@ -51,7 +51,7 @@ mcp_tools:
 ## 提交前强制动作
 在执行 `git commit` 之前，必须完成以下检查：
 1. **契约文件变更检查**：若本次修改涉及 `machine.json` 中 `contracts` 定义的文件（如 `src/app/shared/dto/` 或 `environments/environment.ts`），必须：
-   - 执行 `npm run qoder:hash` 自动计算并更新哈希值
+   - 执行 `npm run keystone:hash` 自动计算并更新哈希值
    - 将更新后的 `.opencode/state/machine.json` 一并纳入本次提交
    - 确认 `git status` 显示 machine.json 已暂存
 2. **Hook 拦截兜底**：若忘记执行上述步骤，Git Pre-commit Hook 将拦截提交并提示修复命令。Agent 必须按提示执行，不得绕过。

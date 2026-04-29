@@ -1,9 +1,0 @@
-{
-  "techDebtId": "TD-2026-009",
-  "file": "booking-success.component.spec.ts",
-  "phase": "GREEN",
-  "fixSummary": "Replaced Jasmine global spyOn() with Jest's jest.spyOn() in the beforeEach, changing from 'spyOn(router, \"navigate\").and.returnValue(...)' to 'jest.spyOn(router, \"navigate\").mockReturnValue(...)'.",
-  "totalTests": 7,
-  "passedTests": 7,
-  "execution_evidence": "All 7 tests pass. Single spyOn → jest.spyOn fix resolved all 7 failures."
-}

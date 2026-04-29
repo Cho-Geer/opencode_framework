@@ -33,7 +33,7 @@ mcp_tools:
 - ❌ 绝对禁止：生成任何业务逻辑实现代码
 - ❌ 绝对禁止：修改`contract.yaml`（仅可通过@Arbiter审批后更新）
 - ❌ 绝对禁止：参与具体开发、测试、部署操作
-- ❌ 绝对禁止：修改`contract.yaml`或要件文档后，未在提交前执行`npm run qoder:hash`更新`.opencode/state/machine.json`中的哈希记录即提交
+- ❌ 绝对禁止：修改`contract.yaml`或要件文档后，未在提交前执行`npm run keystone:hash`更新`.opencode/state/machine.json`中的哈希记录即提交
 
 ## 输入契约
 
@@ -42,14 +42,14 @@ mcp_tools:
 
 ## 输出产物
 
-- `contract.yaml`：只读锁定的接口/数据模型契约（唯一开发依据），**必须在头部声明 `x-qoder-state-hash: <sha256>`，用于后续 Git Hook 校验**
+- `contract.yaml`：只读锁定的接口/数据模型契约（唯一开发依据），**必须在头部声明 `x-keystone-state-hash: <sha256>`，用于后续 Git Hook 校验**
 - 项目目录结构规范
 - 架构设计文档（含技术选型 rationale）
 
 ## 提交前强制动作
 在执行 `git commit` 之前，必须完成以下检查：
 1. **契约文件变更检查**：若本次修改涉及 `contract.yaml` 或要件文档（属于 `machine.json` 中 `contracts` 定义的文件），必须：
-   - 执行 `npm run qoder:hash` 自动计算并更新哈希值
+   - 执行 `npm run keystone:hash` 自动计算并更新哈希值
    - 将更新后的 `.opencode/state/machine.json` 一并纳入本次提交
    - 确认 `git status` 显示 machine.json 已暂存
 2. **Hook 拦截兜底**：若忘记执行上述步骤，Git Pre-commit Hook 将拦截提交并提示修复命令。Agent 必须按提示执行，不得绕过。

@@ -200,7 +200,7 @@ git commit -m "{commit_message}"
 | Red 阶段非测试文件 | 拦截提交 | "Red 状态下只允许提交测试文件" |
 | Commit message 格式错误 | 自动修复 | "已自动修复 commit message 格式" |
 | machine.json Schema 错误 | 拦截提交 | "machine.json 不符合 Schema 定义" |
-| 契约哈希不匹配 | 提示修复 | "请运行 npm run qoder:hash 更新哈希" |
+| 契约哈希不匹配 | 提示修复 | "请运行 npm run keystone:hash 更新哈希" |
 
 ## 验收标准
 

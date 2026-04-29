@@ -9,9 +9,24 @@ const {
 } = require('@modelcontextprotocol/sdk/types.js');
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT || '.';
+const fs2 = require('fs');
+const path2 = require('path');
+
+function resolveProjectState() {
+  const cfgPath = path2.join(OPENCODE_ROOT, '.opencode', 'project.config.json');
+  try {
+    const cfg = JSON.parse(fs2.readFileSync(cfgPath, 'utf8'));
+    const pr = cfg.project_root;
+    if (pr && pr !== '.') {
+      const stateDir = path2.join(OPENCODE_ROOT, pr, '.opencode', 'state');
+      if (fs2.existsSync(stateDir)) return stateDir;
+    }
+  } catch {}
+  return path2.join(OPENCODE_ROOT, '.opencode', 'state');
+}
 
 const GATE_STATE_FILE = process.env.GATE_STATE_PATH ||
-  require('path').join(OPENCODE_ROOT, '.opencode', 'state', 'gate-state.json');
+  path2.join(resolveProjectState(), 'gate-state.json');
 
 const SKILL_INV_STD = process.env.SKILL_INV_STD_PATH ||
   require('path').join(OPENCODE_ROOT, '.opencode', 'rules', 'rule_detail', 'skill-invocation-standard.md');

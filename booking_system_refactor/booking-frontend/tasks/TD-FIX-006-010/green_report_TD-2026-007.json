@@ -1,9 +1,0 @@
-{
-  "techDebtId": "TD-2026-007",
-  "file": "service-selection.component.spec.ts",
-  "phase": "GREEN",
-  "fixSummary": "Replaced Jasmine global spyOn() with Jest's jest.spyOn() in the 'should call loadSlotsForService with the service id' test.",
-  "totalTests": 27,
-  "passedTests": 27,
-  "execution_evidence": "All 27 tests pass. Single spyOn → jest.spyOn fix resolved the failure."
-}

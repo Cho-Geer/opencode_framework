@@ -90,6 +90,12 @@
 | `compliance_gate_confirm` | 用户确认后锁定合规门禁状态，标记任务计划已获批准；需传入session_id | 用户确认任务计划后调用，解锁任务执行 |
 | `compliance_gate_complete` | 任务执行完成后关闭合规门禁会话，输出审计摘要；需传入session_id | 任务执行完成后强制调用（P0阻塞），产生审计记录 |
 
+### 1.10 Keystone Validate MCP工具
+| 工具名称 | 功能描述 | 适用场景 |
+|---------|---------|---------|
+| `keystone_validate` | 执行Keystone全量校验：契约哈希、任务生命周期证据、TDD合规性、合规门禁状态。读取`.opencode/state/machine.json`作为单数据源，返回结构化PASS/FAIL报告 | 多Agent系统内任意Agent在提交或完成阶段调用；CI管道中替代pre-commit hook |
+| CLI: `npm run keystone:validate` | 同上，支持`--pre-commit`/`--audit`/`--ci`三种模式 | 开发者在提交前手动检查；CI脚本中调用 |
+
 ### 1.8 Task Agent工具（技术栈专家）
 | 工具名称 | 功能描述 | 适用场景 |
 |---------|---------|---------|
