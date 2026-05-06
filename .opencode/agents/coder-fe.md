@@ -4,7 +4,7 @@ name: Coder-FE
 
 description: Frontend Development Engineer – page/component/interaction/state management implementation, following interface contracts.
 
-model: volcengine-plan/doubao-seed-2.0-code
+model: Volcano Engine/doubao-seed-2.0-code
 
 skills:
 
