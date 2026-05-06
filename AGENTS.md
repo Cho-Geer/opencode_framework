@@ -132,7 +132,7 @@
 ```
 /mnt/c/Users/User/Documents/Playground 2/
 ├── booking_system_refactor/     # 主项目目录
-│   ├── booking-backend/         # NestJS v11+ API (port 3000)
+│   ├── booking-backend/         # NestJS v11+ API (port 3001)
 │   ├── booking-frontend/        # Angular v21+ SPA (port 4200)
 │   ├── e2e/                     # Playwright E2E tests
 │   ├── playwright/              # Playwright config & fixtures
@@ -150,7 +150,7 @@
 cd booking_system_refactor/booking-backend
 
 # Development
-npm run start:dev              # Hot reload dev server (port 3000)
+npm run start:dev              # Hot reload dev server (port 3001)
 npm run start:debug            # Debug mode with watch
 
 # Build & Production
@@ -192,7 +192,7 @@ npm run build                  # Production build
 npm run watch                  # Development build with watch
 
 # Testing
-npm run test                   # Karma + Jasmine tests
+npm run test                   # Jest + Angular Testing Library
 npm run test:audit-coverage    # Coverage audit
 ```
 
@@ -228,7 +228,7 @@ npx playwright test --headed   # Headed mode
 
 **Stack**:
 - NestJS v11+, Node.js 22.x LTS
-- Prisma 6.16.2 + PostgreSQL 16
+- Prisma 7.6.0+ + PostgreSQL 16
 - Redis 7.x + BullMQ
 - JWT + Passport 认证
 - Jest + Testcontainers 测试
@@ -245,7 +245,7 @@ npx playwright test --headed   # Headed mode
 - Angular v21+ with standalone components
 - NgRx Signals (@ngrx/signals) 状态管理
 - PrimeNG + Tailwind CSS v4
-- Karma + Jasmine 测试
+- Jest + Angular Testing Library 测试
 
 ## API 契约要点
 
@@ -253,21 +253,24 @@ npx playwright test --headed   # Headed mode
 - **Versioning**: URI path versioning
 - **Auth**: JWT Bearer Token (15分钟有效期, 7天刷新)
 - **Key Endpoints**:
-  - `POST /v1/auth/login` - 登录
-  - `POST /v1/auth/register` - 注册
+  - `POST /v1/auth/login/password` - 密码登录
+  - `POST /v1/auth/login/send-code` - 验证码登录(发送)
+  - `POST /v1/auth/login/verify-code` - 验证码登录(验证)
+  - `POST /v1/auth/register/send-code` - 注册(发送验证码)
+  - `POST /v1/auth/register/complete` - 注册(完成)
   - `POST /v1/auth/refresh` - 刷新 Token
   - `POST /v1/appointments` - 创建预约
   - `GET /v1/appointments` - 查询预约列表
   - `GET /v1/time-slots/available` - 可用时间段
   - `GET /v1/services` - 服务列表
 
-- **Frontend Proxy**: Angular 开发服务器代理 `/api` → `http://localhost:3000/v1`
+- **Frontend Proxy**: Angular 开发服务器代理 `/api` → `http://localhost:3001/v1`
 
 ## 环境配置
 
 ### Backend (.env)
 ```
-PORT=3000
+PORT=3001
 DATABASE_URL=postgresql://user:pass@localhost:5432/booking
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=your-secret
@@ -288,6 +291,6 @@ JWT_REFRESH_SECRET=your-refresh-secret
 
 | 组件 | Lines | Branches | Functions | Statements |
 |------|-------|----------|-----------|------------|
-| Backend | 85% | 80% | 85% | 85% |
+| Backend | 70% | 70% | 70% | 70% |
 | Frontend | Per lighthouserc.json | - | - | - |
 

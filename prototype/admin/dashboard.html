@@ -1,0 +1,2005 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Data Dashboard - Booking System</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0c1220',
+                        'card-bg': '#162032',
+                        'card-bg-light': '#1e293b',
+                        'border-color': '#2a3a50',
+                        'text-primary': '#e2e8f0',
+                        'text-secondary': '#94a3b8',
+                        'accent-blue': '#00c6ff',
+                        'accent-blue-dark': '#0072ff',
+                        'accent-green': '#2ecc71',
+                        'accent-red': '#e74c3c',
+                        'accent-yellow': '#f39c12',
+                        'accent-purple': '#9b59b6',
+                        'accent-teal': '#1abc9c',
+                        'accent-orange': '#e67e22',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)',
+                        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25)',
+                        'glow-blue': '0 0 15px rgba(0, 198, 255, 0.3)',
+                        'glow-green': '0 0 15px rgba(46, 204, 113, 0.3)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-in': 'slideIn 0.3s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass-effect {
+                background: rgba(22, 32, 50, 0.7);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(42, 58, 80, 0.5);
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            .transition-all-300 {
+                transition: all 0.3s ease;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .border-gradient {
+                border-image: linear-gradient(to right, theme('colors.accent-blue'), theme('colors.accent-purple')) 1;
+            }
+            .bg-grid {
+                background-size: 20px 20px;
+                background-image: 
+                    linear-gradient(to right, rgba(42, 58, 80, 0.1) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(42, 58, 80, 0.1) 1px, transparent 1px);
+            }
+        }
+    </style>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            overflow-x: hidden;
+            background-color: #0c1220;
+            color: #e2e8f0;
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #162032;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #2a3a50;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4b60;
+        }
+        
+        /* 动画效果 */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-in-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        /* 卡片悬停效果 */
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+            border-color: rgba(0, 198, 255, 0.5);
+        }
+        
+        /* 按钮悬停效果 */
+        .btn-hover {
+            transition: all 0.2s ease;
+        }
+        
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-hover:active {
+            transform: translateY(0);
+        }
+        
+        /* 加载动画 */
+        .loading-spinner {
+            border: 3px solid rgba(42, 58, 80, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #00c6ff;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 骨架屏 */
+        .skeleton {
+            background: linear-gradient(90deg, var(--card-bg) 25%, var(--card-bg-light) 50%, var(--card-bg) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+        }
+        
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* 粒子背景 */
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+
+        /* Light theme support */
+        [data-theme="light"] {
+            --tw-bg-opacity: 1;
+            background-color: rgba(248, 250, 252, var(--tw-bg-opacity)) !important;
+        }
+
+        [data-theme="light"] .bg-dark-bg {
+            --tw-bg-opacity: 1;
+            background-color: rgba(248, 250, 252, var(--tw-bg-opacity)) !important;
+        }
+
+        [data-theme="light"] .bg-card-bg {
+            --tw-bg-opacity: 1;
+            background-color: rgba(255, 255, 255, var(--tw-bg-opacity)) !important;
+        }
+
+        [data-theme="light"] .bg-card-bg-light {
+            --tw-bg-opacity: 1;
+            background-color: rgba(241, 245, 249, var(--tw-bg-opacity)) !important;
+        }
+
+        [data-theme="light"] .text-text-primary {
+            --tw-text-opacity: 1;
+            color: rgba(15, 23, 42, var(--tw-text-opacity)) !important;
+        }
+
+        [data-theme="light"] .text-text-secondary {
+            --tw-text-opacity: 1;
+            color: rgba(71, 85, 105, var(--tw-text-opacity)) !important;
+        }
+
+        [data-theme="light"] .border-border-color {
+            --tw-border-opacity: 1;
+            border-color: rgba(226, 232, 240, var(--tw-border-opacity)) !important;
+        }
+
+        [data-theme="light"] .sharp-card {
+            border-color: rgba(226, 232, 240, 0.8) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+            background-color: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        [data-theme="light"] .sharp-card:hover {
+            border-color: rgba(2, 132, 199, 0.6) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 15px rgba(2, 132, 199, 0.25) !important;
+        }
+
+        /* Welcome card specific styles for light mode */
+        [data-theme="light"] .welcome-card {
+            background-image: linear-gradient(to right, rgba(255, 255, 255, var(--tw-bg-opacity)), rgba(241, 245, 249, var(--tw-bg-opacity))) !important;
+            border: 1px solid rgba(226, 232, 240, 0.8) !important;
+        }
+
+        [data-theme="light"] .border-accent-blue {
+            border-color: rgba(2, 132, 199, 1) !important;
+        }
+
+        /* Keep accent colors consistent across themes */
+        [data-theme="light"] .bg-accent-blue,
+        [data-theme="light"] .bg-gradient-to-r.from-accent-blue,
+        [data-theme="light"] .brand-logo {
+            background-color: #00c6ff !important;
+            background-image: linear-gradient(to right, #00c6ff, #0072ff) !important;
+            --tw-bg-opacity: 1 !important;
+        }
+
+        [data-theme="light"] .hover\:bg-accent-blue-dark:hover {
+            --tw-bg-opacity: 1;
+            background-color: rgba(3, 105, 161, var(--tw-bg-opacity)) !important;
+        }
+
+        [data-theme="light"] .shadow-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        }
+
+        [data-theme="light"] .hover\:shadow-glow-blue:hover {
+            box-shadow: 0 0 15px rgba(2, 132, 199, 0.4) !important;
+        }
+
+        /* Sidebar active link styles for light mode */
+        [data-theme="light"] .bg-opacity-20.text-accent-blue {
+            background-color: rgba(2, 132, 199, 0.15) !important;
+            color: rgba(2, 132, 199, 1) !important;
+            border-left-color: rgba(2, 132, 199, 1) !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .bg-opacity-20.text-accent-blue:hover {
+            background-color: rgba(2, 132, 199, 0.2) !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Sidebar inactive link hover styles for light mode */
+        [data-theme="light"] .hover\:bg-card-bg-light:hover {
+            background-color: rgba(241, 245, 249, 1) !important;
+            color: rgba(2, 132, 199, 1) !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateX(2px);
+        }
+
+        /* Table styles for light mode */
+        [data-theme="light"] .data-table th {
+            background-color: rgba(241, 245, 249, 0.8) !important;
+            color: rgba(71, 85, 105, 0.9) !important;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+            font-weight: 600;
+        }
+
+        [data-theme="light"] .data-table td {
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
+            color: rgba(15, 23, 42, 0.9) !important;
+        }
+
+        [data-theme="light"] .data-table tr:hover {
+            background-color: rgba(241, 245, 249, 0.6) !important;
+        }
+
+        /* Progress bar for light mode */
+        [data-theme="light"] .progress-bar {
+            background-color: rgba(226, 232, 240, 0.8) !important;
+        }
+
+        /* Input fields for light mode */
+        [data-theme="light"] input,
+        [data-theme="light"] select,
+        [data-theme="light"] textarea {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid rgba(226, 232, 240, 0.8) !important;
+            color: rgba(15, 23, 42, 0.9) !important;
+        }
+
+        [data-theme="light"] input:focus,
+        [data-theme="light"] select:focus,
+        [data-theme="light"] textarea:focus {
+            border-color: rgba(2, 132, 199, 0.6) !important;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1) !important;
+        }
+
+        /* Button styles for light mode */
+        [data-theme="light"] .sharp-button {
+            border: 1px solid rgba(2, 132, 199, 0.3) !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        [data-theme="light"] .sharp-button:hover {
+            border-color: rgba(2, 132, 199, 0.6) !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 0 10px rgba(2, 132, 199, 0.3) !important;
+        }
+
+        /* Gradient text for light mode */
+        [data-theme="light"] .gradient-text {
+            background-image: linear-gradient(to right, #0284c7, #0369a1) !important;
+        }
+
+        [data-theme="light"] .gradient-text-green {
+            background-image: linear-gradient(to right, #059669, #047857) !important;
+        }
+
+        [data-theme="light"] .gradient-text-red {
+            background-image: linear-gradient(to right, #dc2626, #b91c1c) !important;
+        }
+
+        /* Change indicators for light mode */
+        [data-theme="light"] .change-indicator.positive {
+            color: #059669 !important;
+        }
+
+        [data-theme="light"] .change-indicator.negative {
+            color: #dc2626 !important;
+        }
+
+        /* Card icons for light mode */
+        [data-theme="light"] .card-icon {
+            background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), rgba(2, 132, 199, 0.2)) !important;
+            color: rgba(2, 132, 199, 0.9) !important;
+        }
+
+        /* Background grid for light mode */
+        [data-theme="light"] .bg-grid {
+            background-image: 
+                linear-gradient(to right, rgba(226, 232, 240, 0.3) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(226, 232, 240, 0.3) 1px, transparent 1px) !important;
+        }
+
+        /* Tooltip styles for light mode */
+        [data-theme="light"] .tooltip {
+            background-color: rgba(15, 23, 42, 0.9) !important;
+            color: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        /* Badge styles for light mode */
+        [data-theme="light"] .badge {
+            background-color: rgba(241, 245, 249, 0.8) !important;
+            color: rgba(71, 85, 105, 0.9) !important;
+            border: 1px solid rgba(226, 232, 240, 0.5) !important;
+        }
+
+        /* Status indicators for light mode */
+        [data-theme="light"] .status-active {
+            background-color: rgba(5, 150, 105, 0.15) !important;
+            color: rgba(5, 150, 105, 0.9) !important;
+        }
+
+        [data-theme="light"] .status-pending {
+            background-color: rgba(245, 158, 11, 0.15) !important;
+            color: rgba(245, 158, 11, 0.9) !important;
+        }
+
+        [data-theme="light"] .status-cancelled {
+            background-color: rgba(220, 38, 38, 0.15) !important;
+            color: rgba(220, 38, 38, 0.9) !important;
+        }
+        
+        /* 折线式设计风格 */
+        .sharp-card {
+            border-radius: 8px !important;
+            border: 1px solid rgba(42, 58, 80, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .sharp-card:hover {
+            border-color: rgba(0, 198, 255, 0.5);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 15px rgba(0, 198, 255, 0.2);
+            transform: translateY(-3px);
+        }
+        
+        .sharp-button {
+            border-radius: 6px !important;
+            border: 1px solid rgba(0, 198, 255, 0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .sharp-button:hover {
+            border-color: rgba(0, 198, 255, 0.6);
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.4), 0 0 10px rgba(0, 198, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        /* 渐变文本 */
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #00c6ff, #0072ff);
+        }
+        
+        .gradient-text-green {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #2ecc71, #27ae60);
+        }
+        
+        .gradient-text-red {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #e74c3c, #c0392b);
+        }
+        
+        /* 数据变化指示器 */
+        .change-indicator {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .change-indicator.positive {
+            color: #2ecc71;
+        }
+        
+        .change-indicator.negative {
+            color: #e74c3c;
+        }
+        
+        /* 表格样式 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            background-color: rgba(42, 58, 80, 0.3);
+            border-bottom: 1px solid #2a3a50;
+        }
+        
+        .data-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(42, 58, 80, 0.5);
+        }
+        
+        .data-table tr:hover {
+            background-color: rgba(42, 58, 80, 0.2);
+        }
+        
+        /* 进度条 */
+        .progress-bar {
+            height: 4px;
+            background-color: rgba(42, 58, 80, 0.5);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background-image: linear-gradient(to right, #00c6ff, #0072ff);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+        
+        /* 迷你图表容器 */
+        .mini-chart {
+            height: 30px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-text-primary min-h-screen">
+    <!-- 粒子背景 -->
+    <div id="particles-js" class="opacity-30"></div>
+    
+    <div class="relative z-10 flex flex-col h-screen overflow-hidden">
+        <!-- 侧边导航栏 -->
+        <aside id="sidebar" class="fixed inset-0 w-64 bg-card-bg border-r border-border-color shadow-lg z-50 transition-all duration-300 ease-in-out transform -translate-x-full lg:translate-x-0">
+            <!-- 品牌标志 -->
+            <div class="flex items-center justify-between p-4 border-b border-border-color">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-accent-blue to-accent-blue-dark flex items-center justify-center brand-logo">
+                        <i class="fa fa-calendar text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold gradient-text">BookSys</h1>
+                </div>
+                <button id="mobile-toggle" class="lg:hidden text-text-secondary hover:text-accent-blue">
+                    <i class="fa fa-bars"></i>
+                </button>
+            </div>
+            
+            <!-- 导航菜单 -->
+            <nav class="p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:shadow-lg transition-all duration-300 bg-opacity-20 text-accent-blue font-medium border-l-2 border-accent-blue">
+                            <i class="fa fa-dashboard w-5 text-center"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light transition-all duration-200">
+                            <i class="fa fa-calendar-check-o w-5 text-center"></i>
+                            <span>Appointments</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light transition-all duration-200">
+                            <i class="fa fa-users w-5 text-center"></i>
+                            <span>Users</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light transition-all duration-200">
+                            <i class="fa fa-cutlery w-5 text-center"></i>
+                            <span>Services</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light transition-all duration-200">
+                            <i class="fa fa-line-chart w-5 text-center"></i>
+                            <span>Analytics</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light transition-all duration-200">
+                            <i class="fa fa-history w-5 text-center"></i>
+                            <span>History</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 p-3 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light transition-all duration-200">
+                            <i class="fa fa-cog w-5 text-center"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- 用户信息 -->
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-border-color">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-accent-blue to-accent-blue-dark flex items-center justify-center text-white font-bold brand-logo">
+                        JD
+                    </div>
+                    <div>
+                        <p class="font-medium text-sm">John Doe</p>
+                        <p class="text-xs text-text-secondary">Admin</p>
+                    </div>
+                    <button class="ml-auto text-text-secondary hover:text-accent-blue">
+                        <i class="fa fa-sign-out"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-y-auto bg-dark-bg bg-grid lg:ml-64">
+            <!-- 顶部导航栏 -->
+            <header class="bg-card-bg border-b border-border-color shadow-sm sticky top-0 z-10">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center space-x-4">
+                        <button id="sidebar-toggle" class="text-text-secondary hover:text-accent-blue lg:hidden">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <h2 class="text-xl font-bold">Dashboard</h2>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <!-- 搜索框 -->
+                        <div class="relative hidden md:block">
+                            <input type="text" placeholder="Search..." class="w-64 pl-10 pr-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 border border-border-color bg-dark-bg focus:outline-none focus:ring-1 focus:ring-accent-blue focus:border-accent-blue">
+                            <i class="fa fa-search absolute left-3 top-3 text-text-secondary"></i>
+                        </div>
+                        
+                        <!-- 主题切换 -->
+                        <button id="theme-toggle" class="relative p-2 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light flex items-center justify-center w-10 h-10 z-50 cursor-pointer" title="切换主题" onclick="console.log('直接点击事件触发!'); toggleTheme(); return false;">
+                            <i class="fa fa-moon-o text-text-secondary dark-icon text-lg" style="display: block;"></i>
+                            <i class="fa fa-sun-o text-text-secondary light-icon text-lg" style="display: none;"></i>
+                        </button>
+                        
+                        <!-- 通知 -->
+                        <button class="relative p-2 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light">
+                            <i class="fa fa-bell text-text-secondary"></i>
+                            <span class="absolute top-1 right-1 w-2 h-2 bg-accent-red"></span>
+                        </button>
+                        
+                        <!-- 消息 -->
+                        <button class="relative p-2 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light">
+                            <i class="fa fa-envelope text-text-secondary"></i>
+                            <span class="absolute top-1 right-1 w-2 h-2 bg-accent-blue"></span>
+                        </button>
+                        
+                        <!-- 设置 -->
+                        <button class="p-2 rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light">
+                            <i class="fa fa-cog text-text-secondary"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- 内容区域 -->
+            <div class="p-6">
+                <!-- 欢迎卡片 -->
+                <div class="bg-gradient-to-r from-card-bg to-card-bg-light rounded-lg hover:shadow-lg transition-all duration-300 border-l-4 border-accent-blue shadow-card p-6 mb-6 welcome-card">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h1 class="text-2xl font-bold mb-2">Welcome back, John!</h1>
+                            <p class="text-text-secondary">Here's what's happening with your booking system today.</p>
+                        </div>
+                        <button class="mt-4 md:mt-0 bg-accent-blue hover:bg-accent-blue-dark text-white font-medium px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 sharp-button hover:shadow-glow-blue transition-all duration-200 btn-hover">
+                            View Bookings
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <!-- 今日预订 -->
+                    <div class="bg-card-bg border border-border-color p-6 card-hover sharp-card relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-text-secondary font-medium">Today's Bookings</h3>
+                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-blue bg-opacity-10 flex items-center justify-center text-accent-blue">
+                                <i class="fa fa-calendar"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <p class="text-3xl font-bold">24</p>
+                            <div class="change-indicator positive">
+                                <i class="fa fa-arrow-up mr-1"></i>
+                                <span>12%</span>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: 75%"></div>
+                            </div>
+                            <div class="flex justify-between mt-1 text-xs text-text-secondary">
+                                <span>Target: 32</span>
+                                <span>75%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 待确认 -->
+                    <div class="bg-card-bg border border-border-color p-6 card-hover sharp-card relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-text-secondary font-medium">Pending Confirmation</h3>
+                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-yellow bg-opacity-10 flex items-center justify-center text-accent-yellow">
+                                <i class="fa fa-clock-o"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <p class="text-3xl font-bold">5</p>
+                            <div class="change-indicator negative">
+                                <i class="fa fa-arrow-down mr-1"></i>
+                                <span>3%</span>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: 30%; background-image: linear-gradient(to right, #f39c12, #e67e22);"></div>
+                            </div>
+                            <div class="flex justify-between mt-1 text-xs text-text-secondary">
+                                <span>Total: 17</span>
+                                <span>30%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 总客户 -->
+                    <div class="bg-card-bg border border-border-color p-6 card-hover sharp-card relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-text-secondary font-medium">Total Users</h3>
+                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-10 flex items-center justify-center text-accent-green">
+                                <i class="fa fa-users"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <p class="text-3xl font-bold">1,254</p>
+                            <div class="change-indicator positive">
+                                <i class="fa fa-arrow-up mr-1"></i>
+                                <span>8%</span>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: 85%; background-image: linear-gradient(to right, #2ecc71, #27ae60);"></div>
+                            </div>
+                            <div class="flex justify-between mt-1 text-xs text-text-secondary">
+                                <span>Target: 1,500</span>
+                                <span>85%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 总收入 -->
+                    <div class="bg-card-bg border border-border-color p-6 card-hover sharp-card relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-text-secondary font-medium">Total Revenue</h3>
+                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-purple bg-opacity-10 flex items-center justify-center text-accent-purple">
+                                <i class="fa fa-money"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <p class="text-3xl font-bold">$3,245</p>
+                            <div class="change-indicator positive">
+                                <i class="fa fa-arrow-up mr-1"></i>
+                                <span>15%</span>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: 65%; background-image: linear-gradient(to right, #9b59b6, #8e44ad);"></div>
+                            </div>
+                            <div class="flex justify-between mt-1 text-xs text-text-secondary">
+                                <span>Target: $5,000</span>
+                                <span>65%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 主要内容区域 -->
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- 左侧内容 - 预订图表 -->
+                    <div class="space-y-6">
+                        <!-- 预订趋势图表 -->
+                        <div class="bg-card-bg border border-border-color shadow-card p-6 sharp-card relative">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+                                <h3 class="text-lg font-bold mb-4 sm:mb-0">Booking Trends</h3>
+                                <div class="flex space-x-2">
+                                    <button class="px-3 py-1 text-sm rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-blue text-white">Weekly</button>
+                                    <button class="px-3 py-1 text-sm rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light">Monthly</button>
+                                    <button class="px-3 py-1 text-sm rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light">Yearly</button>
+                                </div>
+                            </div>
+                            <div class="h-80">
+                                <canvas id="bookingTrendsChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- 最近预订 -->
+                        <div class="bg-card-bg border border-border-color shadow-card p-6 sharp-card relative">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold">Recent Bookings</h3>
+                                <button class="text-accent-blue hover:text-accent-blue-dark text-sm font-medium hover:scale-105 transition-all duration-300 flex items-center space-x-1">
+                                    <span>View All</span>
+                                    <i class="fa fa-arrow-right text-xs"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- 移动端卡片视图 -->
+                            <div class="block md:hidden space-y-4">
+                                <!-- 预订卡片 1 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-blue bg-opacity-20 flex items-center justify-center text-accent-blue font-medium">
+                                                AS
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">Alex Smith</p>
+                                                <p class="text-xs text-text-secondary">Haircut</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Confirmed</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-text-secondary">May 23, 2023</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 预订卡片 2 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-purple bg-opacity-20 flex items-center justify-center text-accent-purple font-medium">
+                                                EJ
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">Emma Johnson</p>
+                                                <p class="text-xs text-text-secondary">Manicure</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-yellow bg-opacity-20 text-accent-yellow">Pending</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-text-secondary">May 24, 2023</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 预订卡片 3 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 flex items-center justify-center text-accent-green font-medium">
+                                                JW
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">James Wilson</p>
+                                                <p class="text-xs text-text-secondary">Massage</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Confirmed</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-text-secondary">May 25, 2023</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 预订卡片 4 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 flex items-center justify-center text-accent-red font-medium">
+                                                OL
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">Olivia Lee</p>
+                                                <p class="text-xs text-text-secondary">Facial</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 text-accent-red">Cancelled</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-text-secondary">May 26, 2023</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 桌面端表格视图 -->
+                            <div class="hidden md:block overflow-x-auto">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Customer</th>
+                                            <th>Service</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th class="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-blue bg-opacity-20 flex items-center justify-center text-accent-blue font-medium text-sm">
+                                                        AS
+                                                    </div>
+                                                    <span>Alex Smith</span>
+                                                </div>
+                                            </td>
+                                            <td>Haircut</td>
+                                            <td>May 23, 2023</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Confirmed</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-purple bg-opacity-20 flex items-center justify-center text-accent-purple font-medium text-sm">
+                                                        EJ
+                                                    </div>
+                                                    <span>Emma Johnson</span>
+                                                </div>
+                                            </td>
+                                            <td>Manicure</td>
+                                            <td>May 24, 2023</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-yellow bg-opacity-20 text-accent-yellow">Pending</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 flex items-center justify-center text-accent-green font-medium text-sm">
+                                                        JW
+                                                    </div>
+                                                    <span>James Wilson</span>
+                                                </div>
+                                            </td>
+                                            <td>Massage</td>
+                                            <td>May 25, 2023</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Confirmed</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 flex items-center justify-center text-accent-red font-medium text-sm">
+                                                        OL
+                                                    </div>
+                                                    <span>Olivia Lee</span>
+                                                </div>
+                                            </td>
+                                            <td>Facial</td>
+                                            <td>May 26, 2023</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 text-accent-red">Cancelled</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-teal bg-opacity-20 flex items-center justify-center text-accent-teal font-medium text-sm">
+                                                        MK
+                                                    </div>
+                                                    <span>Michael Kim</span>
+                                                </div>
+                                            </td>
+                                            <td>Pediatric</td>
+                                            <td>May 27, 2023</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Confirmed</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- 预订分布图表 -->
+                        <div class="bg-card-bg border border-border-color shadow-card p-6 sharp-card relative">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold">Booking Distribution</h3>
+                                <div class="flex space-x-2">
+                                    <button class="px-3 py-1 text-sm rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-blue text-white">Services</button>
+                                    <button class="px-3 py-1 text-sm rounded-lg hover:shadow-lg transition-all duration-300 hover:bg-card-bg-light">Time</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="h-64">
+                                    <canvas id="serviceDistributionChart"></canvas>
+                                </div>
+                                <div class="h-64">
+                                    <canvas id="timeDistributionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧内容 - 预订表单和服务热度 -->
+                        <div class="grid grid-cols-1 gap-6">
+                        
+                        <!-- 服务热度 -->
+
+                        
+                        <!-- 员工工作量 -->
+                        <div class="bg-card-bg border border-border-color shadow-card p-6 sharp-card relative">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-lg font-bold">Users</h3>
+                                <button class="text-accent-blue hover:text-accent-blue-dark text-sm font-medium hover:scale-105 transition-all duration-300 flex items-center space-x-1">
+                                    <span>View All</span>
+                                    <i class="fa fa-arrow-right text-xs"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- 移动端卡片视图 -->
+                            <div class="block md:hidden space-y-4">
+                                <!-- 客户卡片 1 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-blue bg-opacity-20 flex items-center justify-center text-accent-blue font-medium">
+                                                JS
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">John Smith</p>
+                                                <p class="text-xs text-text-secondary">Johnny</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Active</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="px-2 py-1 text-xs rounded-lg bg-accent-blue bg-opacity-20 text-accent-blue">ADMIN</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 客户卡片 2 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-purple bg-opacity-20 flex items-center justify-center text-accent-purple font-medium">
+                                                EW
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">Emma Wilson</p>
+                                                <p class="text-xs text-text-secondary">Em</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Active</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 客户卡片 3 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 flex items-center justify-center text-accent-green font-medium">
+                                                AR
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">Alex Rodriguez</p>
+                                                <p class="text-xs text-text-secondary">Alex</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-yellow bg-opacity-20 text-accent-yellow">Pending</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 客户卡片 4 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-yellow bg-opacity-20 flex items-center justify-center text-accent-yellow font-medium">
+                                                SJ
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">Sarah Johnson</p>
+                                                <p class="text-xs text-text-secondary">Sarah</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Active</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 客户卡片 5 -->
+                                <div class="border border-border-color p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 flex items-center justify-center text-accent-red font-medium">
+                                                DB
+                                            </div>
+                                            <div>
+                                                <p class="font-medium">David Brown</p>
+                                                <p class="text-xs text-text-secondary">Dave</p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 text-accent-red">Inactive</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                        <button class="text-accent-blue hover:text-accent-blue-dark">
+                                            <i class="fa fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 桌面端表格视图 -->
+                            <div class="hidden md:block overflow-x-auto">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Nickname</th>
+                                            <th>User Type</th>
+                                            <th>Status</th>
+                                            <th class="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-blue bg-opacity-20 flex items-center justify-center text-accent-blue font-medium text-sm">
+                                                        JS
+                                                    </div>
+                                                    <span>John Smith</span>
+                                                </div>
+                                            </td>
+                                            <td>Johnny</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg bg-accent-blue bg-opacity-20 text-accent-blue">ADMIN</span>
+                                            </td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Active</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-purple bg-opacity-20 flex items-center justify-center text-accent-purple font-medium text-sm">
+                                                        EW
+                                                    </div>
+                                                    <span>Emma Wilson</span>
+                                                </div>
+                                            </td>
+                                            <td>Em</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                            </td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Active</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 flex items-center justify-center text-accent-green font-medium text-sm">
+                                                        AR
+                                                    </div>
+                                                    <span>Alex Rodriguez</span>
+                                                </div>
+                                            </td>
+                                            <td>Alex</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                            </td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-yellow bg-opacity-20 text-accent-yellow">Pending</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-yellow bg-opacity-20 flex items-center justify-center text-accent-yellow font-medium text-sm">
+                                                        SJ
+                                                    </div>
+                                                    <span>Sarah Johnson</span>
+                                                </div>
+                                            </td>
+                                            <td>Sarah</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                            </td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-green bg-opacity-20 text-accent-green">Active</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="w-8 h-8 rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 flex items-center justify-center text-accent-red font-medium text-sm">
+                                                        DB
+                                                    </div>
+                                                    <span>David Brown</span>
+                                                </div>
+                                            </td>
+                                            <td>Dave</td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg bg-accent-green bg-opacity-20 text-accent-green">CUSTOMER</span>
+                                            </td>
+                                            <td>
+                                                <span class="px-2 py-1 text-xs rounded-lg hover:shadow-lg transition-all duration-300 bg-accent-red bg-opacity-20 text-accent-red">Inactive</span>
+                                            </td>
+                                            <td class="text-right">
+                                                <button class="text-accent-blue hover:text-accent-blue-dark">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- 系统状态 -->
+                        <div class="bg-card-bg border border-border-color shadow-card p-6 sharp-card relative">
+                            <h3 class="text-lg font-bold mb-6">System Status</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium">Server</span>
+                                    <span class="flex items-center text-xs text-accent-green">
+                                        <span class="w-2 h-2 bg-accent-green mr-2"></span>
+                                        Online
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium">Database</span>
+                                    <span class="flex items-center text-xs text-accent-green">
+                                        <span class="w-2 h-2 bg-accent-green mr-2"></span>
+                                        Online
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium">API</span>
+                                    <span class="flex items-center text-xs text-accent-green">
+                                        <span class="w-2 h-2 bg-accent-green mr-2"></span>
+                                        Online
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium">Last Backup</span>
+                                    <span class="text-xs text-text-secondary">Today, 02:15 AM</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium">Uptime</span>
+                                    <span class="text-xs text-text-secondary">99.9%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div></main>
+    </div>
+    
+    <!-- Particles.js -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
+    <!-- JavaScript -->
+    <script>
+        // 初始化所有功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 主题切换功能
+            const initTheme = () => {
+                const savedTheme = localStorage.getItem('booking-system-theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const theme = savedTheme || (prefersDark ? 'dark' : 'dark'); // Default to dark for data dashboard
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                // 更新图标
+                updateThemeIcon(theme);
+            };
+
+            const updateThemeIcon = (theme) => {
+                const darkIcons = document.querySelectorAll('.dark-icon');
+                const lightIcons = document.querySelectorAll('.light-icon');
+                
+                console.log(`更新主题图标: ${theme}`);
+                console.log('深色图标数量:', darkIcons.length);
+                console.log('浅色图标数量:', lightIcons.length);
+                
+                // 使用内联样式强制控制显示/隐藏
+                if (theme === 'dark') {
+                    darkIcons.forEach(icon => {
+                        icon.style.display = 'block';
+                        icon.style.visibility = 'visible';
+                        icon.style.opacity = '1';
+                    });
+                    lightIcons.forEach(icon => {
+                        icon.style.display = 'none';
+                        icon.style.visibility = 'hidden';
+                        icon.style.opacity = '0';
+                    });
+                    console.log('已强制显示月亮图标 (深色模式)');
+                } else {
+                    darkIcons.forEach(icon => {
+                        icon.style.display = 'none';
+                        icon.style.visibility = 'hidden';
+                        icon.style.opacity = '0';
+                    });
+                    lightIcons.forEach(icon => {
+                        icon.style.display = 'block';
+                        icon.style.visibility = 'visible';
+                        icon.style.opacity = '1';
+                    });
+                    console.log('已强制显示太阳图标 (浅色模式)');
+                }
+            };
+
+            // 定义全局函数，确保onclick可以调用
+            window.toggleTheme = function() {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                console.log(`🎨 Switching theme from ${currentTheme} to ${newTheme}`);
+                
+                // 立即更新DOM
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('booking-system-theme', newTheme);
+                
+                // 强制更新图标
+                const themeToggle = document.getElementById('theme-toggle');
+                if (themeToggle) {
+                    const darkIcon = themeToggle.querySelector('.dark-icon');
+                    const lightIcon = themeToggle.querySelector('.light-icon');
+                    
+                    if (newTheme === 'dark') {
+                        if (darkIcon) {
+                            darkIcon.style.display = 'block';
+                            darkIcon.style.visibility = 'visible';
+                            darkIcon.style.opacity = '1';
+                        }
+                        if (lightIcon) {
+                            lightIcon.style.display = 'none';
+                            lightIcon.style.visibility = 'hidden';
+                            lightIcon.style.opacity = '0';
+                        }
+                    } else {
+                        if (darkIcon) {
+                            darkIcon.style.display = 'none';
+                            darkIcon.style.visibility = 'hidden';
+                            darkIcon.style.opacity = '0';
+                        }
+                        if (lightIcon) {
+                            lightIcon.style.display = 'block';
+                            lightIcon.style.visibility = 'visible';
+                            lightIcon.style.opacity = '1';
+                        }
+                    }
+                }
+                
+                console.log('✅ Theme switch completed successfully!');
+                
+                // 重新初始化图表
+                if (typeof initCharts === 'function') {
+                    initCharts();
+                }
+            };
+
+            const bindThemeToggle = () => {
+                const themeToggle = document.getElementById('theme-toggle');
+                if (themeToggle) {
+                    console.log('🎯 Theme toggle button found:', themeToggle);
+                    
+                    // 移除可能存在的旧事件监听器
+                    themeToggle.removeEventListener('click', handleThemeToggle);
+                    
+                    // 创建新的事件处理函数
+                    function handleThemeToggle(event) {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        console.log('🚀 Theme toggle clicked! Event:', event);
+                        console.log('🔍 Current theme before toggle:', document.documentElement.getAttribute('data-theme'));
+                        
+                        // 直接在这里处理主题切换
+                        const currentTheme = document.documentElement.getAttribute('data-theme');
+                        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                        
+                        console.log(`🔄 Switching theme from ${currentTheme} to ${newTheme}`);
+                        
+                        // 立即更新DOM
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        localStorage.setItem('booking-system-theme', newTheme);
+                        
+                        // 强制更新图标
+                        const darkIcon = themeToggle.querySelector('.dark-icon');
+                        const lightIcon = themeToggle.querySelector('.light-icon');
+                        
+                        if (newTheme === 'dark') {
+                            if (darkIcon) {
+                                darkIcon.style.display = 'block';
+                                darkIcon.style.visibility = 'visible';
+                                darkIcon.style.opacity = '1';
+                            }
+                            if (lightIcon) {
+                                lightIcon.style.display = 'none';
+                                lightIcon.style.visibility = 'hidden';
+                                lightIcon.style.opacity = '0';
+                            }
+                        } else {
+                            if (darkIcon) {
+                                darkIcon.style.display = 'none';
+                                darkIcon.style.visibility = 'hidden';
+                                darkIcon.style.opacity = '0';
+                            }
+                            if (lightIcon) {
+                                lightIcon.style.display = 'block';
+                                lightIcon.style.visibility = 'visible';
+                                lightIcon.style.opacity = '1';
+                            }
+                        }
+                        
+                        console.log('✅ Theme switch completed successfully!');
+                        
+                        // 重新初始化图表
+                        if (typeof initCharts === 'function') {
+                            initCharts();
+                        }
+                    }
+                    
+                    // 绑定新的事件监听器
+                    themeToggle.addEventListener('click', handleThemeToggle);
+                    console.log('✅ Click event bound successfully');
+                    
+                    // 也尝试绑定其他事件，确保能响应
+                    themeToggle.addEventListener('touchstart', handleThemeToggle);
+                    themeToggle.addEventListener('mousedown', handleThemeToggle);
+                    
+                } else {
+                    console.error('❌ Theme toggle button not found in DOM!');
+                }
+            };
+
+            // 初始化主题
+            initTheme();
+            
+            // 延迟绑定事件，确保DOM完全加载
+            setTimeout(() => {
+                bindThemeToggle();
+            }, 100);
+            
+            // 也尝试在window load时绑定
+            window.addEventListener('load', function() {
+                console.log('Window loaded, trying to bind theme toggle again...');
+                bindThemeToggle();
+            });
+            // 侧边栏切换
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const mobileToggle = document.getElementById('mobile-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('main');
+            
+            function toggleSidebar() {
+                sidebar.classList.toggle('-translate-x-full');
+                // 添加背景遮罩
+                if (sidebar.classList.contains('-translate-x-full')) {
+                    document.body.classList.remove('overflow-hidden');
+                    if (mainContent.classList.contains('blur-sm')) {
+                        mainContent.classList.remove('blur-sm');
+                    }
+                } else {
+                    document.body.classList.add('overflow-hidden');
+                    mainContent.classList.add('blur-sm');
+                }
+            }
+            
+            // 确保元素存在再绑定事件
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', toggleSidebar);
+                console.log('Sidebar toggle button found and event bound');
+            } else {
+                console.log('Sidebar toggle button not found');
+            }
+            
+            if (mobileToggle) {
+                mobileToggle.addEventListener('click', toggleSidebar);
+                console.log('Mobile toggle button found and event bound');
+            } else {
+                console.log('Mobile toggle button not found');
+            }
+            
+            // 点击主内容区域关闭侧边栏（仅在移动设备上）
+            if (mainContent) {
+                mainContent.addEventListener('click', function(e) {
+                    // 防止点击主内容区域内的按钮时关闭侧边栏
+                    if (e.target.closest('#sidebar-toggle') || e.target.closest('#mobile-toggle')) {
+                        return;
+                    }
+                    if (window.innerWidth < 1024 && !sidebar.classList.contains('-translate-x-full')) {
+                        toggleSidebar();
+                    }
+                });
+            }
+            
+            // 初始化粒子背景
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": {
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": "#00c6ff"
+                    },
+                    "shape": {
+                        "type": "circle",
+                        "stroke": {
+                            "width": 0,
+                            "color": "#000000"
+                        }
+                    },
+                    "opacity": {
+                        "value": 0.2,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 1,
+                            "opacity_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 2,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#00c6ff",
+                        "opacity": 0.2,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 1,
+                        "direction": "none",
+                        "random": true,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": false,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 0.5
+                            }
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        });
+        
+        // 在移动设备上，点击侧边栏链接后关闭侧边栏
+        const sidebarLinks = document.querySelectorAll('#sidebar a');
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 1024) {
+                    toggleSidebar();
+                }
+            });
+        });
+        
+        // 初始化预订趋势图表
+        let bookingTrendsChart;
+        
+        function initBookingTrendsChart() {
+            const ctx = document.getElementById('bookingTrendsChart').getContext('2d');
+            
+            // 检查是否已经存在图表实例，如果存在则销毁
+            if (bookingTrendsChart) {
+                bookingTrendsChart.destroy();
+            }
+            
+            // 创建图表
+            bookingTrendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [
+                        {
+                            label: 'Bookings',
+                            data: [12, 19, 15, 17, 22, 24, 20],
+                            borderColor: '#00c6ff',
+                            backgroundColor: 'rgba(0, 198, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Revenue ($)',
+                            data: [350, 420, 380, 400, 520, 580, 490],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 6,
+                                color: '#e2e8f0'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(22, 32, 50, 0.9)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#94a3b8',
+                            borderColor: 'rgba(42, 58, 80, 0.5)',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.datasetIndex === 1) {
+                                        label += '$' + context.parsed.y;
+                                    } else {
+                                        label += context.parsed.y;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(42, 58, 80, 0.2)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(42, 58, 80, 0.2)'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    elements: {
+                        point: {
+                            radius: 3,
+                            hoverRadius: 5
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 初始化服务分布图表
+        let serviceDistributionChart;
+        
+        function initServiceDistributionChart() {
+            const ctx = document.getElementById('serviceDistributionChart').getContext('2d');
+            
+            if (serviceDistributionChart) {
+                serviceDistributionChart.destroy();
+            }
+            
+            serviceDistributionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Haircut', 'Manicure', 'Massage', 'Facial', 'Pedicure'],
+                    datasets: [{
+                        data: [35, 25, 20, 15, 5],
+                        backgroundColor: [
+                            '#00c6ff',
+                            '#9b59b6',
+                            '#2ecc71',
+                            '#f39c12',
+                            '#e74c3c'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                boxWidth: 6,
+                                color: '#e2e8f0',
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(22, 32, 50, 0.9)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#94a3b8',
+                            borderColor: 'rgba(42, 58, 80, 0.5)',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${percentage}% (${value})`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+        
+        // 初始化时间分布图表
+        let timeDistributionChart;
+        
+        function initTimeDistributionChart() {
+            const ctx = document.getElementById('timeDistributionChart').getContext('2d');
+            
+            if (timeDistributionChart) {
+                timeDistributionChart.destroy();
+            }
+            
+            timeDistributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['9-10', '10-11', '11-12', '12-1', '1-2', '2-3', '3-4', '4-5'],
+                    datasets: [{
+                        label: 'Bookings',
+                        data: [8, 12, 15, 10, 7, 11, 9, 5],
+                        backgroundColor: 'rgba(0, 198, 255, 0.7)',
+                        borderColor: 'rgba(0, 198, 255, 1)',
+                        borderWidth: 1,
+                        borderRadius: 0,
+                        barThickness: 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(22, 32, 50, 0.9)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#94a3b8',
+                            borderColor: 'rgba(42, 58, 80, 0.5)',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 6,
+                            usePointStyle: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(42, 58, 80, 0.2)'
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 表单提交处理
+        const bookingForm = document.getElementById('bookingForm');
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 获取表单数据
+                const service = bookingForm.querySelector('select').value;
+                const customerName = bookingForm.querySelector('input[type="text"]').value;
+                const phoneNumber = bookingForm.querySelector('input[type="tel"]').value;
+                const date = bookingForm.querySelector('input[type="date"]').value;
+                const time = bookingForm.querySelector('input[type="time"]').value;
+                
+                // 简单验证
+                if (!service || !customerName || !phoneNumber || !date || !time) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                
+                // 模拟表单提交
+                const submitButton = bookingForm.querySelector('button[type="submit"]');
+                const originalText = submitButton.innerHTML;
+                
+                // 显示加载状态
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<div class="loading-spinner mx-auto"></div>';
+                
+                // 模拟API请求延迟
+                setTimeout(() => {
+                    // 重置表单
+                    bookingForm.reset();
+                    
+                    // 恢复按钮状态
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalText;
+                    
+                    // 显示成功消息
+                    alert('Booking created successfully!');
+                    
+                    // 这里可以添加更多逻辑，如更新图表数据、刷新最近预订列表等
+                }, 1500);
+            });
+        }
+        
+        // 页面加载完成后初始化图表
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化图表
+            initBookingTrendsChart();
+            initServiceDistributionChart();
+            initTimeDistributionChart();
+            
+            // 在移动设备上默认隐藏侧边栏
+            if (window.innerWidth < 1024) {
+                sidebar.classList.add('-translate-x-full');
+            }
+            
+            // 监听窗口大小变化
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 1024) {
+                    sidebar.classList.remove('-translate-x-full');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            });
+        });
+    </script>
+
+</body></html>

@@ -1,0 +1,20 @@
+{
+  "tasks": [
+    {
+      "id": "TIMESLOTS-PAGINATION-FIX",
+      "name": "Fix TimeSlots module pagination format",
+      "description": "Align TimeSlots pagination return format with 接口设计规范文档",
+      "status": "completed",
+      "dependencies": [],
+      "assignee": "@Coder-BE"
+    },
+    {
+      "id": "APPOINTMENTS-PAGINATION-FIX",
+      "name": "Fix Appointments module pagination format",
+      "description": "Align Appointments pagination return format with 接口设计规范文档: change service return from {data,total,page,pageSize,totalPages} to {items,meta:{total,page,limit,totalPages,hasNext,hasPrev}}, controller query param pageSize→limit",
+      "status": "completed",
+      "dependencies": [],
+      "assignee": "@Coder-BE"
+    }
+  ]
+}

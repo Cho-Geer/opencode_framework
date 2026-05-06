@@ -4,11 +4,12 @@
 
 | 属性 | 值 |
 | :--- | :--- |
-| **文档版本** | 1.0.0 |
+| **文档版本** | 1.1.0（§5.4 已更新至 Sharp Design v3.0.0 暗色优先令牌） |
 | **创建日期** | 2026-04-15 |
+| **更新日期** | 2026-05-05 |
 | **适用项目** | booking-frontend (Angular v21+) |
 | **文档状态** | 已基线化 |
-| **关联文档** | 系统架构设计文档(SAD)、接口设计规范文档、数据架构设计文档、安全架构设计文档 |
+| **关联文档** | 系统架构设计文档(SAD)、接口设计规范文档、数据架构设计文档、安全架构设计文档、global-ui-spec.md v3.0.0 |
 | **存放位置** | `.opencode/context/code_standards/frontend-coding-standard.md` |
 
 ---
@@ -222,24 +223,80 @@ src/
 
 ### 5.4 主题变量 (CSS 自定义属性)
 
+> ⚠️ **v3.0.0 设计系统变更**：自 2026-05-04 起，项目已从「玻璃态双系统」统一迁移至「暗色优先 Sharp Design」。以下变量反映了当前 `booking-frontend/src/styles.scss` 中 `@theme` 块的实际设计令牌。
+
 ```scss
+/* ========================================
+   权威来源：booking-frontend/src/styles.scss (Tailwind @theme)
+   设计规范：docs/design/global-ui-spec.md v3.0.0
+   ======================================== */
+
+// 暗色优先（Default Dark Theme）
 :root {
-  --color-primary: #1976d2;
-  --color-primary-dark: #1565c0;
-  --color-error: #f44336;
-  --color-text-primary: #333333;
-  --color-text-secondary: #666666;
-  --color-border: #e0e0e0;
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  /* 背景层级 */
+  --color-bg-primary: #0c1220;      // 页面主背景（深空蓝黑）
+  --color-bg-secondary: #162032;     // 卡片、导航栏、侧边栏背景
+  --color-bg-tertiary: #1e293b;     // 卡片悬停/次要背景
+
+  /* 边框 */
+  --color-border: #2a3a50;          // 边框、分割线
+  --color-border-light: rgba(42, 58, 80, 0.3); // 浅边框
+
+  /* 强调色主色 */
+  --color-primary: #00c6ff;         // 主强调色（按钮、链接、选中态）
+  --color-primary-start: #00c6ff;   // 渐变起点
+  --color-primary-end: #0072ff;     // 渐变终点
+  --color-primary-solid: #00c6ff;   // 纯色
+
+  /* 功能色 */
+  --color-accent-blue: #00c6ff;
+  --color-accent-blue-dark: #0072ff;
+  --color-accent-green: #2ecc71;    // 成功/正向指标
+  --color-accent-red: #e74c3c;      // 危险/负向指标
+  --color-accent-yellow: #f39c12;   // 警告/待处理
+  --color-accent-purple: #9b59b6;   // 辅助色/收入
+  --color-accent-teal: #1abc9c;     // 辅助色
+  --color-accent-orange: #e67e22;   // 辅助色
+
+  /* 语义色别名 */
+  --color-success: #2ecc71;
+  --color-warning: #f39c12;
+  --color-danger: #e74c3c;
+  --color-info: #00c6ff;
+
+  /* 文字 */
+  --color-text-primary: #e2e8f0;    // 主文字色（高对比度白）
+  --color-text-secondary: #94a3b8;  // 次要文字色
+  --color-text-disabled: #475569;   // 禁用文字
+
+  /* 阴影 */
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 15px rgba(0, 198, 255, 0.2);
+  --shadow-glow-blue: 0 0 15px rgba(0, 198, 255, 0.3);
+  --shadow-glow-green: 0 0 15px rgba(46, 204, 113, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-.dark {
-  --color-primary: #90caf9;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #a0a0a0;
-  --color-border: #374151;
+/* 亮色主题覆盖（切换至亮色模式时通过 [data-theme="light"] 应用） */
+[data-theme="light"] {
+  --color-bg-primary: #f8fafc;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-light: rgba(226, 232, 240, 0.5);
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-disabled: #94a3b8;
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 15px rgba(2, 132, 199, 0.2);
+  --shadow-glow-blue: 0 0 15px rgba(2, 132, 199, 0.3);
 }
 ```
+
+> **权威来源**：设计令牌的完整定义和最新值以 `booking-frontend/src/styles.scss` 和 `docs/design/global-ui-spec.md` v3.0.0 为准。本节提供编码规范上下文中的快速参考。
 
 ### 5.5 样式封装策略
 
@@ -385,12 +442,15 @@ export interface LoginResponse {
 
 export interface UserProfile {
   id: string;
-  email: string;
-  phone: string;
+  email: string;  // 脱敏展示，如 us***@example.com（非原始明文）
+  phone: string;  // 脱敏展示，如 138****5678（非原始明文）
   firstName: string;
   lastName: string;
   role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
 }
+// 注意：email 和 phone 为脱敏掩码展示字段。
+// 原始 PII 存储在 emailEncrypted/phoneEncrypted（AES-256-GCM），前端永不接收。
+// 唯一索引使用 emailHash/phoneHash（SHA-256），前端永不接收。
 ```
 
 > **DTO 命名对齐**：前端 DTO 接口名必须与后端 API 响应字段名完全一致，确保类型安全。
@@ -464,7 +524,61 @@ export const authGuard: CanActivateFn = (route, state) => {
 };
 ```
 
-### 9.2 HTTP 拦截器
+### 9.2 角色 Guard
+
+基于角色的路由访问控制，确保不同角色只能访问其授权的页面：
+
+```typescript
+// core/guards/role.guard.ts
+export function roleGuard(config: {
+  allow?: string[];
+  deny?: string[];
+  redirectTo?: string;
+}): CanActivateFn {
+  return () => {
+    const authStore = inject(AuthStore);
+    const router = inject(Router);
+    const user = authStore.currentUser();
+
+    if (!user) {
+      router.navigate(['/auth/login']);
+      return false;
+    }
+
+    if (config.deny && config.deny.includes(user.role)) {
+      router.navigate([config.redirectTo || '/']);
+      return false;
+    }
+
+    if (config.allow && !config.allow.includes(user.role)) {
+      router.navigate([config.redirectTo || '/']);
+      return false;
+    }
+
+    return true;
+  };
+}
+```
+
+**角色路由规则**：
+
+| 路由 | CUSTOMER | ADMIN | SUPER_ADMIN |
+|------|:---:|:---:|:---:|
+| `/booking/*` | ✅ | ❌ | ❌ |
+| `/my-bookings` | ✅ | ❌ | ❌ |
+| `/profile` | ✅ | ✅ | ✅ |
+| `/admin/*` | ❌ | ✅ | ✅ |
+
+**使用示例**：
+```typescript
+// booking.routes.ts — CUSTOMER only
+const customerOnly = [authGuard, roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })];
+
+// admin.routes.ts — ADMIN/SUPER_ADMIN only
+canActivate: [authGuard, roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })],
+```
+
+### 9.3 HTTP 拦截器
 
 认证拦截器自动附加 JWT Token：
 
@@ -482,7 +596,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 };
 ```
 
-### 9.3 Token 存储
+### 9.4 Token 存储
 
 - Access Token 存储在内存中（`signal`）
 - Refresh Token 通过 Service 层管理，支持自动轮换

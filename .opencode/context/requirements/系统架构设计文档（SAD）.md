@@ -5,8 +5,9 @@ alwaysApply: false
 # 预约系统 - 系统架构设计文档（SAD） - Angular + NestJS 重构版
 
 ## 文档信息
-- **文档版本**: 2.0.0
+- **文档版本**: 2.3.0-fixed
 - **创建日期**: 2026-04-14
+- **最后更新**: 2026-05-06
 - **适用版本**: angular-booking-frontend v1.0.0, nestjs-booking-backend v1.0.0
 - **文档状态**: 已基线化
 - **作者**: 系统架构分析工具
@@ -80,11 +81,29 @@ alwaysApply: false
 |---------|---------|----------|---------|
 | **AuthModule** | `src/modules/auth/` | 用户认证和授权管理 | AuthController, AuthService, JwtStrategy |
 | **UsersModule** | `src/modules/users/` | 用户信息管理 | UsersController, UsersService, UserEntity |
-| **BookingsModule** | `src/modules/bookings/` | 预约业务处理 | BookingsController, BookingsService, AppointmentEntity |
+| **AppointmentsModule** | `src/modules/appointments/` | 预约业务处理 | AppointmentsController, AppointmentsService, AppointmentEntity |
 | **ServicesModule** | `src/modules/services/` | 服务项目管理 | ServicesController, ServicesService, ServiceEntity |
 | **TimeSlotsModule** | `src/modules/time-slots/` | 时间段管理 | TimeSlotsController, TimeSlotsService, TimeSlotEntity |
 | **EmailModule** | `src/modules/email/` | 邮件通知服务 | EmailService, 邮件模板 |
 | **RetentionModule** | `src/modules/retention/` | 数据保留策略 | RetentionScheduler, RetentionService |
+| **StatsModule** (Admin Dashboard) | `src/modules/stats/` | 管理员仪表盘统计（DASH-001~004），通过 Prisma 聚合查询计算 | StatsController, StatsService |
+
+#### 2.2.1.1 AdminModule 子模块架构 (管理员后台)
+
+管理员后台 (Admin Dashboard) 由以下子模块组成，统一挂载在 `/v1/admin` 路由前缀下，通过 JWT + RBAC 权限控制访问：
+
+| 子模块 | 模块路径 | 核心职责 | 状态 |
+|--------|---------|----------|------|
+| **StatsModule** | `src/modules/stats/` | Dashboard 仪表盘统计卡片（DASH-001~004），包括预约总数、营收、预约趋势、服务分布、时间分布、通知列表、未读消息数 | ✅ 已实现 |
+| **ReportModule** | `src/modules/reports/` | ~~报表生成与导出（PDF/CSV），预约报表、营收报表、服务统计报表~~ — ⚠️ **已弃用**，替换为 Analytics 仪表盘端点（AN-001 GET /v1/admin/stats + AN-002 GET /v1/admin/stats/booking-trends） | ⚠️ 已弃用 (v1.6.1) |
+| **UserManagementModule** | `src/modules/admin/users/` | 管理员用户 CRUD（增删改查用户、状态管理、角色管理） | ✅ 已实现 |
+| **ServiceManagementModule** | `src/modules/admin/services/` | 管理员服务 CRUD（服务增删改查、分类管理、上下架） | ✅ 已实现 |
+| **AppointmentManagementModule** | `src/modules/admin/appointments/` | 管理员预约 CRUD（预约管理、状态流转、批量操作） | ✅ 已实现 |
+| **AnalyticsModule** | `src/modules/admin/analytics/` | 业务分析仪表盘，趋势分析、同比环比、漏斗分析、客户画像 | 🔮 未来阶段 (FUTURE-PHASE) |
+| **HistoryModule** | `src/modules/admin/history/` | 预约历史记录与操作日志查询，活动日志回溯，变更审计追踪 | 🔮 未来阶段 (FUTURE-PHASE) |
+| **SettingsModule** | `src/modules/admin/settings/` | 系统配置管理，全局参数设置（营业时间、预约规则、通知配置） | 🔮 未来阶段 (FUTURE-PHASE) |
+
+> **说明**: 标记为 🔮 的模块为规划中的未来阶段功能，尚未实现。标记为 ⚠️ 的模块已弃用。现有 StatsModule、UserManagementModule、ServiceManagementModule、AppointmentManagementModule 已实现并通过 contract.yaml v1.6.7 定义相应 API 端点。ReportModule（报表）已于 v1.6.1 弃用，其功能由 StatsModule 的复合统计数据（AN-001）和预约趋势（AN-002）端点替代。
 
 #### 2.2.2 基础设施模块
 | 模块名称 | 模块路径 | 核心职责 |
@@ -103,7 +122,7 @@ alwaysApply: false
 组件层次结构：
 ┌─────────────────────────────────────────────────────┐
 │                 Pages (页面层)                       │
-│  /login, /register, /bookings, /admin/bookings      │
+│  /login, /register, /appointments, /admin/appointments      │
 └─────────────────────────────────────────────────────┘
                             │
 ┌─────────────────────────────────────────────────────┐
@@ -126,6 +145,11 @@ alwaysApply: false
 │  Button, Input, Card, Modal, Dropdown, Spinner      │
 └─────────────────────────────────────────────────────┘
 ```
+
+**Legal Module（法律页面模块）**：系统包含独立的 Legal 模块，提供两个公开可访问的静态法律页面：
+- `/legal/terms` — 服务条款页
+- `/legal/privacy` — 隐私政策页
+- 该模块无需认证，属于纯展示性页面，不使用 NgRx 状态管理。
 
 #### 2.3.2 前端技术栈
 | 技术领域 | 技术选型 | 版本 | 选择理由 |
@@ -386,7 +410,7 @@ model TimeSlot {
 graph TD
     AppModule --> AuthModule
     AppModule --> UsersModule
-    AppModule --> BookingsModule
+    AppModule --> AppointmentsModule
     AppModule --> ServicesModule
     AppModule --> TimeSlotsModule
     AppModule --> EmailModule
@@ -396,9 +420,11 @@ graph TD
     AppModule --> HealthModule
     AppModule --> BullModule
     
-    BookingsModule --> TimeSlotsModule
-    BookingsModule --> EmailModule
-    BookingsModule --> UsersModule
+AppointmentsModule --> TimeSlotsModule
+
+    AppointmentsModule --> EmailModule
+
+    AppointmentsModule --> UsersModule
     
     AuthModule --> UsersModule
     AuthModule --> EmailModule
@@ -413,7 +439,7 @@ graph TD
 | 前端模块 (Angular) | 依赖的后端API (NestJS) | 数据流向 | 更新频率 |
 |-------------------|-----------------------|---------|---------|
 | **用户认证** | `/v1/auth/*` | 双向，高频 | 用户登录时 |
-| **预约管理** | `/v1/bookings/*` | 前端→后端，中频 | 预约操作时 |
+| **预约管理** | `/v1/appointments/*` | 前端→后端，中频 | 预约操作时 |
 | **服务管理** | `/v1/services/*` | 前端→后端，低频 | 服务配置时 |
 | **时间槽查询** | `/v1/time-slots/*` | 前端→后端，高频 | 页面加载时 |
 | **用户管理** | `/v1/users/*` | 双向，中频 | 用户操作时 |
@@ -545,9 +571,9 @@ graph TD
 ### 12.1 环境配置
 | 环境 | 部署方案 | 配置管理 | 适配要件 |
 |------|----------|----------|----------|
-| **开发环境** | Docker Compose本地编排 | 环境变量文件(.env.dev) | 运维与部署设计文档3.4.1节 |
-| **测试环境** | GitHub Actions自动部署 | GitHub Environments + Secrets | 运维与部署设计文档3.3节 |
-| **生产环境** | Docker Compose生产编排 | 环境变量文件(.env.prod) + Secrets | 运维与部署设计文档3.4.2节 |
+| **开发环境** | Docker Compose本地编排 | 环境变量文件(`.env.dev`) | 参见运维与部署设计文档 §3 开发环境部署 |
+| **测试环境** | GitHub Actions自动部署 | GitHub Environments + Secrets | 参见运维与部署设计文档 §3 CI/CD 流水线 |
+| **生产环境** | Docker Compose生产编排 | 环境变量文件(`.env.prod`) + Secrets | 参见运维与部署设计文档 §3 生产环境部署 |
 
 ### 12.2 部署流程
 1. **镜像构建**：GitHub Actions构建Docker镜像，标签策略遵循不可变标签原则
@@ -665,5 +691,8 @@ angular_booking_system/
 **文档变更记录**
 | 版本 | 变更内容 | 变更人 | 日期 |
 |------|---------|--------|------|
+| 2.3.0 | 移除 ScheduleModule 子模块（Staff 模型已移除，SCH-001 端点已移除），AdminModule 子模块数 9→8 | @Architect | 2026-05-06 |
+| 2.2.0 | 新增 §2.2.1.1 AdminModule 子模块架构章节，完整定义管理员后台 9 个子模块（含 Schedule、Analytics、History、Settings 未来阶段模块） | @Architect | 2026-05-05 |
+| 2.1.0 | 新增 StatsModule (Admin Dashboard) 核心业务模块，支持 DASH-001~004 统计接口 | @Architect | 2026-05-04 |
 | 2.0.0 | Angular + NestJS重构版创建，技术栈全面更新，保持业务模块对齐 | 系统架构分析工具 | 2026-04-14 |
 | 1.0.0 | 初始版本创建 (Next.js + NestJS) | 系统分析工具 | 2026-04-13 |
