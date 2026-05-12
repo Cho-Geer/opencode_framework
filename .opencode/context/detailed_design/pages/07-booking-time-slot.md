@@ -1,6 +1,6 @@
 # 预约-选择时间页（TimeSlotPickerPage）
 
-> **版本**: 1.0.0-fixed (根据 contract.yaml v1.6.7 交叉引用审计修复)
+> **版本**: 1.1.0-fixed (根据 contract.yaml v1.7.2 交叉引用审计修复)
 
 ## 基本信息
 
@@ -11,7 +11,7 @@
 | **布局** | `AppLayoutComponent` |
 | **惰性加载** | `features/booking/booking.routes.ts` → `BOOKING_ROUTES` |
 | **组件** | `TimeSlotPickerComponent` (`src/app/features/booking/time-slot-picker/time-slot-picker.component.ts`) |
-| **设计依据** | 接口规范 2.5.3（乐观 UI、前端 preferSeq）, 测试策略（预约流程 E2E）, SAD 4.4（高并发） |
+| **设计依据** | contract.yaml v1.7.2, 接口规范 2.5.3（乐观 UI、前端 preferSeq）, 测试策略（预约流程 E2E）, SAD 4.4（高并发） |
 
 ## 用户角色
 
@@ -64,10 +64,12 @@
 
 ## API 契约对照
 
+> **响应信封**：所有成功的 API 响应由 ResponseInterceptor 包装为统一信封格式 `{ statusCode, message, data, timestamp, requestId }`。下表中"响应"列仅描述 `data` 字段内部结构，信封外层隐式适用。
+
 | 方法 | 端点 | 请求参数 | 响应 | 鉴权 | 调用时机 |
 |---|---|---|---|---|---|
 | `GET` | `/v1/time-slots/available` | `?service_id*&date*` | `TimeSlot[]` (`{id, startTime, endTime, capacity, bookedCount, available}`) | Bearer | 日期/服务变化时（当前 Mock） |
-| `POST` | `/v1/appointments` | `CreateAppointmentDto` (`timeSlotId, serviceId, appointmentDate, preferredSequence, customerInfo?, notes?`) | `ReservationResponse` (`{id, status, slotSequence, createdAt}`) | Bearer | 选择槽位 → 提交预约 |
+| `POST` | `/v1/appointments` | `CreateAppointmentDto` (`timeSlotId, serviceId, appointmentDate, preferredSequence, customerInfo?, notes?, overtimeMinutes?`) | `ReservationResponse` (`{id, userId, serviceId, timeSlotId, appointmentDate, status, slotSequence, durationMinutes, price, taxRate, taxIncludedAmount, createdAt}`) | Bearer | 选择槽位 → 提交预约 |
 
 **注意**：前端 `BookingService.reserveSlot()` 内部通过 `api.createAppointment(dto)` 调用 `POST /v1/appointments`，传递 `preferredSequence` 和 `idempotencyKey`。
 
@@ -96,7 +98,7 @@
 1. 从服务选择页导航至 `/booking/slots`（自动传入 `selectedServiceId`）
 2. 默认显示今天日期 → 调用 `slotResolver` 加载槽位（当前 Mock）
 3. 日历组件（`p-datepicker`）选择日期 → 重新加载
-4. 每个时间段展示：开始时间-结束时间、剩余容量显示
+4. 每个时间段展示：开始时间-结束时间、可用状态（`available`）及已预约/总容量（`booked_count`/`capacity`）。前端通过 `capacity - booked_count` 计算剩余可用数。
 5. 点击可用槽位 → `BookingStore.selectSlot(slot)` → 导航至 `/booking/confirmation`
 6. WebSocket `slot.booked` 事件 → 实时更新槽位状态（解决多用户并发）
 7. **乐观 UI**：点击槽位 → 立即跳转确认页（不等待 API 确认）
@@ -111,10 +113,14 @@
 | `TimeSlot.capacity` | `number` | 最大并发预约数 |
 | `TimeSlot.bookedCount` | `number` | 当前已预约数 |
 | `TimeSlot.available` | `boolean` | 是否仍有剩余容量 |
+| `Appointment.durationMinutes` | `number` | 预约时长（分钟，含 overtime） |
+| `Appointment.price` | `number (decimal)` | 价格快照（从 Service.price 复制） |
+| `Appointment.taxRate` | `number (decimal)` | 税率快照（从 Service.taxRate 复制） |
+| `Appointment.taxIncludedAmount` | `number (decimal)` | 含税总价（price * (1 + taxRate)） |
 
 ## 数据来源
 
-- contract.yaml 1.6.4（time-slots.available, appointments.create）
+- contract.yaml 1.7.2（time-slots.available, appointments.create）
 - SAD 4.4（高并发事务设计）
 - 接口设计规范 2.5.3（乐观 UI、preferredSequence 随机散列）
 - 数据架构设计文档 5.2（Partial Unique Index 并发锁定）

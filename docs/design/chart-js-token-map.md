@@ -2,7 +2,7 @@
 
 > **Document Purpose**: Provides a definitive mapping from Sharp Design CSS custom properties (defined in `styles.scss`) to Chart.js-safe hex/RGBA values.  
 > **Target Audience**: Frontend developers configuring Chart.js datasets, scales, tooltips, and legends.  
-> **Last Updated**: 2026-05-06
+> **Last Updated**: 2026-05-08
 
 ---
 
@@ -15,6 +15,8 @@ This document provides:
 2. **Dark theme** (default) and **light theme** values
 3. **Recommended alpha multipliers** for fills vs borders vs hover states
 4. **Code comment conventions** to keep chart configs maintainable
+
+**Implementation status:** The production code in `dashboard-chart-factories.ts` uses inline `// --color-token` comments (per §7 Rule 5) alongside static hex/RGBA values — consistent with this document's philosophy. No CSS custom properties are required in canvas context.
 
 ---
 
@@ -71,13 +73,13 @@ scales: {
 
 | CSS Custom Property | Hex Value | RGBA Value | Chart.js Usage | Notes |
 |:---|:---|:---|:---|:---|
-| `--color-primary` | `#00c6ff` | `rgba(0, 198, 255, 1)` | Primary dataset border, point bg | Main brand color |
-| `--color-primary-start` | `#00c6ff` | `rgba(0, 198, 255, 1)` | Gradient start | Same as primary |
-| `--color-primary-end` | `#0072ff` | `rgba(0, 114, 255, 1)` | Gradient end | Darker blue for gradients |
-| `--color-primary-solid` | `#00c6ff` | `rgba(0, 198, 255, 1)` | Solid fills | Same as primary |
-| `--color-accent-blue` | `#00c6ff` | `rgba(0, 198, 255, 1)` | Dataset color, bar fills | Same as primary |
-| `--color-accent-blue-dark` | `#0072ff` | `rgba(0, 114, 255, 1)` | Hover states, emphasis | Darker variant |
-| `--color-accent-green` | `#2ecc71` | `rgba(46, 204, 113, 1)` | Success datasets, positive trends | Emerald green |
+| `--color-primary` | `#2ecc71` | `rgba(46, 204, 113, 1)` | Primary dataset border, point bg | Main brand color |
+| `--color-primary-start` | `#2ecc71` | `rgba(46, 204, 113, 1)` | Gradient start | Same as primary |
+| `--color-primary-end` | `#27ae60` | `rgba(39, 174, 96, 1)` | Gradient end | Darker green for gradients |
+| `--color-primary-solid` | `#2ecc71` | `rgba(46, 204, 113, 1)` | Solid fills | Same as primary |
+| `--color-accent-green` | `#2ecc71` | `rgba(46, 204, 113, 1)` | Dataset color, bar fills | Same as primary |
+| `--color-accent-green-dark` | `#27ae60` | `rgba(39, 174, 96, 1)` | Hover states, emphasis | Darker variant |
+| `--color-success` (legacy) | `#2ecc71` | `rgba(46, 204, 113, 1)` | Success datasets, positive trends | Legacy: formerly `--color-accent-green`; canonical at §2.4 |
 | `--color-accent-red` | `#e74c3c` | `rgba(231, 76, 60, 1)` | Danger datasets, negative trends | Alert red |
 | `--color-accent-yellow` | `#f39c12` | `rgba(243, 156, 18, 1)` | Warning datasets, pending states | Amber |
 | `--color-accent-purple` | `#9b59b6` | `rgba(155, 89, 182, 1)` | Secondary datasets | Amethyst |
@@ -87,7 +89,7 @@ scales: {
 **Chart.js Code Convention — Line Chart with Gradient Fill:**
 ```typescript
 // ═══════════════════════════════════════════════════
-// Token: --color-accent-blue (--color-primary)
+// Token: --color-accent-green (--color-primary)
 // Usage: Line chart with gradient fill
 // Technique: Canvas gradient in backgroundColor callback
 // ═══════════════════════════════════════════════════
@@ -95,15 +97,15 @@ scales: {
   label: 'Bookings',
   data: [12, 19, 15, 17, 22, 24, 20],
   // Border: solid primary color
-  borderColor: '#00c6ff',                    // --color-accent-blue
+  borderColor: '#2ecc71',                    // --color-accent-green
   // Fill: vertical gradient using primary alpha variants
   backgroundColor: (context: any) => {
     const { chart } = context;
     const { ctx, chartArea } = chart;
-    if (!chartArea) return 'rgba(0, 198, 255, 0.1)';  // Fallback: 10% primary
+    if (!chartArea) return 'rgba(46, 204, 113, 0.1)';  // Fallback: 10% primary
     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-    gradient.addColorStop(0, 'rgba(0, 198, 255, 0.05)');   // 5% primary (bottom)
-    gradient.addColorStop(1, 'rgba(0, 198, 255, 0.35)');   // 35% primary (top)
+    gradient.addColorStop(0, 'rgba(46, 204, 113, 0.05)');   // 5% primary (bottom)
+    gradient.addColorStop(1, 'rgba(46, 204, 113, 0.35)');   // 35% primary (top)
     return gradient;
   },
   fill: true,
@@ -111,7 +113,7 @@ scales: {
   borderWidth: 2,
   pointRadius: 3,
   pointHoverRadius: 5,
-  pointBackgroundColor: '#00c6ff',           // --color-accent-blue
+  pointBackgroundColor: '#2ecc71',           // --color-accent-green
   pointBorderColor: '#ffffff',               // White for contrast
   pointBorderWidth: 2,
 }
@@ -127,9 +129,9 @@ scales: {
 {
   data: [35, 25, 20, 15, 5],
   backgroundColor: [
-    '#00c6ff',    // --color-accent-blue    (primary)
-    '#9b59b6',    // --color-accent-purple  (secondary)
-    '#2ecc71',    // --color-accent-green   (tertiary)
+    '#2ecc71',    // --color-accent-green    (primary)
+    '#9b59b6',
+    '#1abc9c',    // --color-accent-teal     (tertiary)
     '#f39c12',    // --color-accent-yellow  (quaternary)
     '#e74c3c',    // --color-accent-red     (quinary)
   ],
@@ -141,15 +143,15 @@ scales: {
 **Chart.js Code Convention — Bar Chart:**
 ```typescript
 // ═══════════════════════════════════════════════════
-// Token: --color-accent-blue
+// Token: --color-accent-green
 // Usage: Bar chart with solid + border
 // Alpha: 70% fill, 100% border
 // ═══════════════════════════════════════════════════
 {
   label: 'Bookings',
   data: [8, 12, 15, 10, 7, 11, 9, 5],
-  backgroundColor: 'rgba(0, 198, 255, 0.7)',   // 70% opacity fill
-  borderColor: '#00c6ff',                       // Solid border
+  backgroundColor: 'rgba(46, 204, 113, 0.7)',   // 70% opacity fill
+  borderColor: '#2ecc71',                       // Solid border
   borderWidth: 1,
   borderRadius: 0,
   barThickness: 12,
@@ -165,9 +167,9 @@ scales: {
 | `--color-success` | `#2ecc71` | `rgba(46, 204, 113, 1)` | Positive, completed, online | Positive trend lines, success metrics |
 | `--color-warning` | `#f39c12` | `rgba(243, 156, 18, 1)` | Pending, caution, attention | Warning datasets, pending states |
 | `--color-danger` | `#e74c3c` | `rgba(231, 76, 60, 1)` | Error, cancelled, offline | Negative trends, error metrics |
-| `--color-info` | `#00c6ff` | `rgba(0, 198, 255, 1)` | Informational, neutral | Info datasets, default primary |
+| `--color-info` | `#2ecc71` | `rgba(46, 204, 113, 1)` | Informational, neutral | Info datasets, default primary |
 
-**Note**: `--color-info` is identical to `--color-primary` and `--color-accent-blue`. Use `--color-info` for semantic clarity when the data represents information rather than brand identity.
+**Note**: `--color-info` is identical to `--color-primary` and `--color-accent-green`. Use `--color-info` for semantic clarity when the data represents information rather than brand identity.
 
 ---
 
@@ -233,16 +235,16 @@ tooltip: {
 
 When converting solid hex colors to RGBA for fills, gradients, or hover states, use these standard alpha multipliers:
 
-| Visual Purpose | Recommended Alpha | Example (Primary Blue) | Usage |
+| Visual Purpose | Recommended Alpha | Example (Primary Green) | Usage |
 |:---|:---|:---|:---|
-| **Solid border / line** | `1.0` (100%) | `rgba(0, 198, 255, 1)` | `borderColor`, axis lines |
-| **Strong fill** | `0.7` (70%) | `rgba(0, 198, 255, 0.7)` | Bar fills, prominent areas |
-| **Medium fill** | `0.35` (35%) | `rgba(0, 198, 255, 0.35)` | Line chart gradient top |
-| **Light fill** | `0.1` (10%) | `rgba(0, 198, 255, 0.1)` | Line chart solid fallback, subtle fills |
-| **Very light fill** | `0.05` (5%) | `rgba(0, 198, 255, 0.05)` | Line chart gradient bottom |
+| **Solid border / line** | `1.0` (100%) | `rgba(46, 204, 113, 1)` | `borderColor`, axis lines |
+| **Strong fill** | `0.7` (70%) | `rgba(46, 204, 113, 0.7)` | Bar fills, prominent areas |
+| **Medium fill** | `0.35` (35%) | `rgba(46, 204, 113, 0.35)` | Line chart gradient top |
+| **Light fill** | `0.1` (10%) | `rgba(46, 204, 113, 0.1)` | Line chart solid fallback, subtle fills |
+| **Very light fill** | `0.05` (5%) | `rgba(46, 204, 113, 0.05)` | Line chart gradient bottom |
 | **Overlay background** | `0.9` (90%) | `rgba(22, 32, 50, 0.9)` | Tooltip backgrounds |
 | **Subtle grid** | `0.2` (20%) | `rgba(42, 58, 80, 0.2)` | Grid lines |
-| **Hover glow** | `0.3` (30%) | `rgba(0, 198, 255, 0.3)` | Shadow glow effects |
+| **Hover glow** | `0.3` (30%) | `rgba(46, 204, 113, 0.3)` | Shadow glow effects |
 
 ---
 
@@ -270,8 +272,8 @@ export const CHART_COLORS = {
     textSecondary: '#94a3b8',
     textDisabled: '#475569',
     // Accents
-    primary: '#00c6ff',
-    primaryDark: '#0072ff',
+    primary: '#2ecc71',
+    primaryDark: '#27ae60',
     success: '#2ecc71',
     warning: '#f39c12',
     danger: '#e74c3c',
@@ -292,8 +294,8 @@ export const CHART_COLORS = {
     textSecondary: '#64748b',
     textDisabled: '#94a3b8',
     // Accents (intentionally same as dark for brand consistency)
-    primary: '#00c6ff',
-    primaryDark: '#0072ff',
+    primary: '#2ecc71',
+    primaryDark: '#27ae60',
     success: '#2ecc71',
     warning: '#f39c12',
     danger: '#e74c3c',
@@ -312,6 +314,25 @@ export function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 ```
+
+### 4.1 Implemented Pattern: `isDarkMode()` Ternary (dashboard-chart-factories.ts)
+
+The production code uses a simpler theme-aware approach via a `isDarkMode()` helper:
+
+```typescript
+function isDarkMode(): boolean {
+  return document.documentElement.getAttribute('data-theme') !== 'light';
+}
+```
+
+Used inline in plugin hooks for direct context-aware coloring:
+
+```typescript
+ctx.fillStyle = dark ? 'rgba(148, 163, 184, 0.5)' : '#94a3b8'; // --color-text-secondary
+ctx.fillStyle = dark ? 'rgba(226, 232, 240, 0.7)' : '#e2e8f0'; // --color-text-primary
+```
+
+**Note:** The `CHART_COLORS` constant and `withAlpha()` helper from §4 are reference patterns. The implemented code uses the lighter `isDarkMode()` ternary approach, which is functionally equivalent and avoids the overhead of a centralized color object for the limited set of theme-aware values in chart plugins.
 
 ---
 
@@ -333,17 +354,17 @@ export const BOOKING_TREND_CHART_DATA: ChartData = {
     {
       label: 'Bookings',
       data: [12, 19, 15, 17, 22, 24, 20],
-      // ── Token: --color-accent-blue ──
-      borderColor: '#00c6ff',
+      // ── Token: --color-accent-green ──
+      borderColor: '#2ecc71',
       backgroundColor: (context: any) => {
         const { chart } = context;
         const { ctx, chartArea } = chart;
-        if (!chartArea) return 'rgba(0, 198, 255, 0.1)';
+        if (!chartArea) return 'rgba(46, 204, 113, 0.1)';
         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-        // Token: --color-accent-blue @ 5% alpha
-        gradient.addColorStop(0, 'rgba(0, 198, 255, 0.05)');
-        // Token: --color-accent-blue @ 35% alpha
-        gradient.addColorStop(1, 'rgba(0, 198, 255, 0.35)');
+        // Token: --color-accent-green @ 5% alpha
+        gradient.addColorStop(0, 'rgba(46, 204, 113, 0.05)');
+        // Token: --color-accent-green @ 35% alpha
+        gradient.addColorStop(1, 'rgba(46, 204, 113, 0.35)');
         return gradient;
       },
       fill: true,
@@ -351,8 +372,8 @@ export const BOOKING_TREND_CHART_DATA: ChartData = {
       borderWidth: 2,
       pointRadius: 3,
       pointHoverRadius: 5,
-      // Token: --color-accent-blue
-      pointBackgroundColor: '#00c6ff',
+      // Token: --color-accent-green
+      pointBackgroundColor: '#2ecc71',
       // White point border for contrast
       pointBorderColor: '#ffffff',
       pointBorderWidth: 2,
@@ -452,11 +473,11 @@ The current `app-chart.component.ts` defines a default color palette that **devi
 
 | Current Default | Sharp Design Equivalent | Action Required |
 |:---|:---|:---|
-| `#667eea` | ❌ No match | Replace with `--color-accent-purple` (`#9b59b6`) or `--color-primary` (`#00c6ff`) |
+| `#667eea` | ❌ No match | Replace with `--color-accent-purple` (`#9b59b6`) or `--color-primary` (`#2ecc71`) |
 | `#00B42A` | `--color-accent-green` (`#2ecc71`) | ✅ Close match; consider unifying to `#2ecc71` |
 | `#FF7D00` | `--color-accent-orange` (`#e67e22`) | ✅ Close match; consider unifying to `#e67e22` |
 | `#F53F3F` | `--color-accent-red` (`#e74c3c`) | ✅ Close match; consider unifying to `#e74c3c` |
-| `#1677FF` | `--color-primary` (`#00c6ff`) | ❌ Different blue; should use `#00c6ff` |
+| `#1677FF` | `--color-primary` (`#2ecc71`) | ❌ Different color; should use `#2ecc71` |
 | `#764ba2` | `--color-accent-purple` (`#9b59b6`) | ✅ Close match |
 | `#86909C` | `--color-text-secondary` (`#94a3b8`) | ✅ Close match |
 
@@ -464,7 +485,7 @@ The current `app-chart.component.ts` defines a default color palette that **devi
 
 ```typescript
 readonly defaultColors: string[] = [
-  '#00c6ff',   // --color-primary / --color-accent-blue
+  '#2ecc71',   // --color-primary / --color-accent-green
   '#2ecc71',   // --color-accent-green
   '#9b59b6',   // --color-accent-purple
   '#f39c12',   // --color-accent-yellow
@@ -491,7 +512,7 @@ All Chart.js color values in `.ts` files **must** use this comment block format:
 ```
 
 **Rules:**
-1. Always reference the **CSS custom property name** (e.g., `--color-accent-blue`)
+1. Always reference the **CSS custom property name** (e.g., `--color-accent-green`)
 2. Always specify **theme context** (dark is default)
 3. Include **alpha** when using RGBA
 4. Describe **usage context** (border, fill, tooltip, grid, etc.)
@@ -505,7 +526,7 @@ All Chart.js color values in `.ts` files **must** use this comment block format:
 ┌─────────────────────────────────────────────────┐
 │  SHARP DESIGN → CHART.JS QUICK REFERENCE        │
 ├─────────────────────────────────────────────────┤
-│  Primary:      #00c6ff  →  rgba(0, 198, 255, a) │
+│  Primary:      #2ecc71  →  rgba(46, 204, 113, a) │
 │  Success:      #2ecc71  →  rgba(46, 204, 113, a)│
 │  Warning:      #f39c12  →  rgba(243, 156, 18, a)│
 │  Danger:       #e74c3c  →  rgba(231, 76, 60, a) │
@@ -527,14 +548,16 @@ All Chart.js color values in `.ts` files **must** use this comment block format:
 
 | Token Category | Source File(s) | Current Hardcoded Values |
 |:---|:---|:---|
-| Line chart colors | `dashboard.component.ts` | `borderColor: '#00c6ff'`, `pointBackgroundColor: '#00c6ff'` |
-| Line chart gradient | `dashboard.component.ts` | `rgba(0, 198, 255, 0.05)` → `rgba(0, 198, 255, 0.35)` |
-| Revenue line | `dashboard.component.ts` | `borderColor: '#2ecc71'`, `backgroundColor: 'rgba(46, 204, 113, 0.1)'` |
-| Doughnut palette | `dashboard.component.ts` | `['#00c6ff', '#9b59b6', '#2ecc71', '#f39c12', '#e74c3c']` |
-| Bar chart | `dashboard.component.ts` | `backgroundColor: 'rgba(0, 198, 255, 0.7)'`, `borderColor: '#00c6ff'` |
-| Tooltip styling | `dashboard.component.ts` | `backgroundColor: 'rgba(22, 32, 50, 0.9)'`, `titleColor: '#e2e8f0'`, `bodyColor: '#94a3b8'` |
-| Grid lines | `dashboard.component.ts` | `color: 'rgba(42, 58, 80, 0.2)'` |
-| Axis ticks | `dashboard.component.ts` | `color: '#94a3b8'` |
+| Line chart colors | `dashboard-chart-factories.ts` | `borderColor: '#2ecc71'`, `pointBackgroundColor: '#2ecc71'` |
+| Line chart gradient | `dashboard-chart-factories.ts` | `rgba(46, 204, 113, 0.05)` → `rgba(46, 204, 113, 0.35)` |
+| Revenue line | `dashboard-chart-factories.ts` | `borderColor: '#2ecc71'`, `backgroundColor: 'rgba(46, 204, 113, 0.1)'` |
+| Doughnut palette | `dashboard-chart-factories.ts` | `['#2ecc71', '#9b59b6', '#1abc9c', '#f39c12', '#e74c3c']` |
+| Bar chart | `dashboard-chart-factories.ts` | `backgroundColor: 'rgba(46, 204, 113, 0.7)'`, `borderColor: '#2ecc71'` |
+| Tooltip styling | `dashboard-chart-factories.ts` | `backgroundColor: 'rgba(22, 32, 50, 0.9)'`, `titleColor: '#e2e8f0'`, `bodyColor: '#94a3b8'` |
+| Grid lines | `dashboard-chart-factories.ts` | `color: 'rgba(42, 58, 80, 0.2)'` |
+| Axis ticks | `dashboard-chart-factories.ts` | `color: '#94a3b8'` |
+| Center text plugin | `dashboard-chart-factories.ts` | `isDarkMode()` ternary: `dark ? 'rgba(148, 163, 184, 0.5)' : '#94a3b8'` |
+| Bar label plugin | `dashboard-chart-factories.ts` | `isDarkMode()` ternary: `dark ? 'rgba(226, 232, 240, 0.7)' : '#e2e8f0'` |
 | Default palette | `app-chart.component.ts` | `['#667eea', '#00B42A', '#FF7D00', '#F53F3F', '#1677FF', '#764ba2', '#86909C']` |
 | Scale defaults | `app-chart.component.ts` | `color: '#86909C'`, `grid color: 'rgba(0, 0, 0, 0.04)'` |
 | Tooltip defaults | `app-chart.component.ts` | `backgroundColor: 'rgba(29, 33, 41, 0.9)'` |

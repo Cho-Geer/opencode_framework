@@ -108,7 +108,7 @@
 
 ## 数据来源
 
-- contract.yaml 1.6.5~1.6.8（RESET-PW-001, RESET-PW-002）
+- contract.yaml 1.7.1（RESET-PW-001, RESET-PW-002）
 - pii_encryption_contract.auth_endpoints（reset_password_send_code, reset_password_verify）
 - 安全架构设计文档 2.3.2（防枚举策略）
 - piiEncryptionStrategy 6.x（密码重置流程）

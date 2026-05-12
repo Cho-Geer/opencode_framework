@@ -56,7 +56,7 @@
 
 | 方法 | 端点 | 请求参数 | 响应 | 鉴权 | 调用时机 |
 |---|---|---|---|---|---|
-| `GET` | `/v1/appointments` | `?startDate&endDate&status` | `PaginatedResponse<BookingListItem>` 每项：`{id, timeSlotId, appointmentDate, status, serviceName, timeSlotStart, timeSlotEnd}` | Bearer | 页面初始化、筛选切换、下拉刷新 |
+| `GET` | `/v1/appointments` | `?startDate&endDate&status` | `PaginatedResponse<BookingListItem>` 每项：`{id, appointmentNumber, timeSlotId, appointmentDate, status, serviceName, timeSlotStart, timeSlotEnd, durationMinutes, price, taxRate, taxIncludedAmount}` | Bearer | 页面初始化、筛选切换、下拉刷新 |
 | `POST` | `/v1/appointments/:id/cancel` | path: `id` | `void` | Bearer | 取消预约确认 |
 
 **注意**：前端 `ApiService.cancelBooking(id)` 使用 `POST` 方法，对应后端路径 `POST /appointments/:id/cancel`（`AppointmentsController.cancel()`）。CUSTOMER 取消预约使用此端点，无需 ADMIN 角色。
@@ -94,7 +94,7 @@
 
 ## 数据来源
 
-- contract.yaml 1.6.4（appointments.list）
+- contract.yaml 1.7.2（appointments.list）
 - SAD 2.3.1
 - 数据架构设计文档 2.2（Appointment 实体）
 - 接口设计规范 2.5.3（乐观 UI 设计原则）

@@ -262,8 +262,8 @@ describe('AppointmentService - High Concurrency', () => {
 
     // Act: 模拟 2 个并发请求
     const bookingPromises = [
-      service.create({ userId: 'user-1', timeSlotId: timeSlot.id }),
-      service.create({ userId: 'user-2', timeSlotId: timeSlot.id }),
+      service.create({ userId: 'user-1', timeSlotId: timeSlot.id, serviceId: 'service-1' }),
+      service.create({ userId: 'user-2', timeSlotId: timeSlot.id, serviceId: 'service-1' }),
     ];
 
     const results = await Promise.allSettled(bookingPromises);
@@ -1109,6 +1109,7 @@ describe('Concurrent Appointment - Slot Preemption', () => {
       service.create({
         userId: `user-${i}`,
         timeSlotId: slot.id,
+        serviceId: 'service-1',
       }),
     );
 

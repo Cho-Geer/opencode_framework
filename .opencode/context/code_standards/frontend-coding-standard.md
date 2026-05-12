@@ -4,9 +4,9 @@
 
 | 属性 | 值 |
 | :--- | :--- |
-| **文档版本** | 1.1.0（§5.4 已更新至 Sharp Design v3.0.0 暗色优先令牌） |
+| **文档版本** | 1.2.0（§1.2 新增 multi-slot-picker 分子组件说明） |
 | **创建日期** | 2026-04-15 |
-| **更新日期** | 2026-05-05 |
+| **更新日期** | 2026-05-11 |
 | **适用项目** | booking-frontend (Angular v21+) |
 | **文档状态** | 已基线化 |
 | **关联文档** | 系统架构设计文档(SAD)、接口设计规范文档、数据架构设计文档、安全架构设计文档、global-ui-spec.md v3.0.0 |
@@ -44,12 +44,21 @@
 组件必须按原子设计方法论组织，严格遵循层级依赖：
 
 - **Atoms（原子）**：不可再分的基础组件（Button, Input, Modal），不依赖任何其他组件
-- **Molecules（分子）**：可复用的功能组件（LoginForm, TimeSlotGrid），只能依赖原子
+- **Molecules（分子）**：可复用的功能组件（LoginForm, TimeSlotGrid, ~~MultiSlotPicker~~ [DEPRECATED]），只能依赖原子
 - **Organisms（有机体）**：完整功能区块（BookingLeftPanel），可依赖分子和原子
 - **Layouts（布局）**：页面布局骨架（AppLayout），可依赖有机体、分子、原子
 - **Pages（页面）**：路由入口和数据获取，可依赖布局和有机体，**禁止**直接依赖分子和原子
 
 > **注意**：原 Atomic Design 中的 "Templates" 在本项目中重命名为 "Layouts"，以避免与 Angular 模板概念混淆。
+
+**新增共享组件（v1.2.0）**：
+| 组件 | 层级 | 描述 |
+|:---|:---|:---|
+| `app-search-input` | 原子 | 带防抖（300ms）的搜索输入框，支持自动完成建议下拉 |
+| `app-filter-bar` | 分子 | 筛选栏容器，含 ng-content 插槽，支持溢出可见（overflow:visible） |
+| `app-table-wrapper` | 分子 | 表格容器，统一表格布局、加载态和空态 |
+| `app-dropdown`（增强） | 原子 | 增强版下拉选择器，支持 `[ngModel]` 绑定和 `appendTo="body"` |
+| `app-modal`（增强） | 原子 | 封装 PrimeNG `p-dialog` 的模态框组件，用于统一弹窗样式 |
 
 **有机体归属规则**：
 - 领域专属的 Organisms 保留在 `features/*/organisms/`
@@ -243,15 +252,15 @@ src/
   --color-border-light: rgba(42, 58, 80, 0.3); // 浅边框
 
   /* 强调色主色 */
-  --color-primary: #00c6ff;         // 主强调色（按钮、链接、选中态）
-  --color-primary-start: #00c6ff;   // 渐变起点
-  --color-primary-end: #0072ff;     // 渐变终点
-  --color-primary-solid: #00c6ff;   // 纯色
+  --color-primary: #2ecc71;         // 主强调色（按钮、链接、选中态）
+  --color-primary-start: #2ecc71;   // 渐变起点
+  --color-primary-end: #27ae60;     // 渐变终点
+  --color-primary-solid: #2ecc71;   // 纯色
 
   /* 功能色 */
-  --color-accent-blue: #00c6ff;
-  --color-accent-blue-dark: #0072ff;
-  --color-accent-green: #2ecc71;    // 成功/正向指标
+  --color-accent-green: #2ecc71;    // 主强调色 / 成功正向指标
+  --color-accent-green-dark: #27ae60;
+  --color-accent-blue: #00c6ff;     // (旧强调色，已弃用) 辅助色
   --color-accent-red: #e74c3c;      // 危险/负向指标
   --color-accent-yellow: #f39c12;   // 警告/待处理
   --color-accent-purple: #9b59b6;   // 辅助色/收入
@@ -262,7 +271,7 @@ src/
   --color-success: #2ecc71;
   --color-warning: #f39c12;
   --color-danger: #e74c3c;
-  --color-info: #00c6ff;
+  --color-info: #2ecc71;
 
   /* 文字 */
   --color-text-primary: #e2e8f0;    // 主文字色（高对比度白）
@@ -271,8 +280,7 @@ src/
 
   /* 阴影 */
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 15px rgba(0, 198, 255, 0.2);
-  --shadow-glow-blue: 0 0 15px rgba(0, 198, 255, 0.3);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 15px rgba(46, 204, 113, 0.2);
   --shadow-glow-green: 0 0 15px rgba(46, 204, 113, 0.3);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -291,8 +299,8 @@ src/
   --color-text-secondary: #64748b;
   --color-text-disabled: #94a3b8;
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 15px rgba(2, 132, 199, 0.2);
-  --shadow-glow-blue: 0 0 15px rgba(2, 132, 199, 0.3);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 15px rgba(46, 204, 113, 0.2);
+  --shadow-glow-green: 0 0 15px rgba(46, 204, 113, 0.3);
 }
 ```
 
@@ -442,8 +450,8 @@ export interface LoginResponse {
 
 export interface UserProfile {
   id: string;
-  email: string;  // 脱敏展示，如 us***@example.com（非原始明文）
-  phone: string;  // 脱敏展示，如 138****5678（非原始明文）
+  email: string;  // email/phone 为脱敏掩码展示字段，原始 PII 存储在 emailEncrypted/phoneEncrypted（AES-256-GCM），前端永不接收
+  phone: string;  // email/phone 为脱敏掩码展示字段，原始 PII 存储在 emailEncrypted/phoneEncrypted（AES-256-GCM），前端永不接收
   firstName: string;
   lastName: string;
   role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
@@ -683,4 +691,6 @@ export interface CreateBookingDto {
 
 | 日期 | 版本 | 变更内容 | 批准人 |
 |------|------|---------|--------|
+| 2026-05-11 | 1.3.0 | 新增共享组件（app-search-input, app-filter-bar, app-table-wrapper, app-dropdown 增强, app-modal 增强）；系统色从蓝色 #00c6ff 迁移至绿色 #2ecc71 | 架构评审 |
+| 2026-05-11 | 1.2.0 | **[DEPRECATED]** 原 MultiSlotPicker 分子组件说明已标记废弃 | 架构评审 |
 | 2026-04-15 | 1.0.0 | 初始版本，基于评估报告完善 | 架构评审 |

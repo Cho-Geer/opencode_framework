@@ -14,7 +14,7 @@
 > - `Glass Tooltip` → `Sharp Tooltip`（暗色实色背景）
 > - `glass-overlay` → `sharp-overlay`（半透明遮罩）
 > - `.glass-level-1/2/3` → `.sharp-card`（统一 8px 圆角 + 实色边框）
-> - 旧色 `#667eea` / `#764ba2` / `#1677FF` → 新色 `#00c6ff` / `#0072ff`
+> - 旧色 `#667eea` / `#764ba2` / `#1677FF` → 旧强调色 `#00c6ff` / `#0072ff` → 当前强调色 `#2ecc71` / `#27ae60`
 > 
 > **迁移指南**：所有 CSS 类名、颜色色值、组件名称已在本文件中更新。若代码中存在旧的 `.glass-*` 类名，请全局搜索替换。
 > 
@@ -195,7 +195,7 @@ Customer 前台采用**模态优先**设计，Admin 后台采用**页面+模态�
 }
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 60px rgba(0, 198, 255, 0.15);
+  box-shadow: 0 20px 60px rgba(46, 204, 113, 0.15);
 }
 ```
 
@@ -224,8 +224,8 @@ Customer 前台采用**模态优先**设计，Admin 后台采用**页面+模态�
 **次按钮**：
 ```css
 .btn-secondary-hover:hover {
-  border-color: #00c6ff;
-  color: #00c6ff;
+  border-color: #2ecc71;
+  color: #2ecc71;
 }
 ```
 
@@ -274,15 +274,15 @@ Customer 前台采用**模态优先**设计，Admin 后台采用**页面+模态�
 ```css
 .input-focus:focus {
   outline: none;
-  border-color: #00c6ff;
-  box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15);
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
 }
 ```
 
 ### 按钮聚焦
 ```css
 .btn-focus:focus-visible {
-  outline: 2px solid #00c6ff;
+  outline: 2px solid #2ecc71;
   outline-offset: 2px;
 }
 ```
@@ -323,7 +323,7 @@ Customer 前台采用**模态优先**设计，Admin 后台采用**页面+模态�
 
 ### 页面加载进度
 - 顶部进度条（NProgress 风格）
-- 颜色：纯色（#00c6ff）
+- 颜色：纯色（#2ecc71）
 - 高度：3px
 
 ## 2.5 成功反馈（Success Feedback）
@@ -403,7 +403,7 @@ Customer 前台采用**模态优先**设计，Admin 后台采用**页面+模态�
   transition: background-color 200ms ease;
 }
 .toggle-switch.checked {
-  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
 }
 .toggle-switch .knob {
   transition: transform 200ms ease;
@@ -426,7 +426,7 @@ Customer 前台采用**模态优先**设计，Admin 后台采用**页面+模态�
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #00c6ff, #0072ff);
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
   animation: tab-slide 200ms ease;
 }
 ```
@@ -588,6 +588,52 @@ Customer 前台采用**模态优先**设计，Admin 后台采用**页面+模态�
     ↓
 点击重置 → 清除所有条件
 ```
+
+### 6.4 图表筛选下拉菜单 (Chart Filter Dropdown)
+
+**用途**：图表内部的时间范围/维度筛选
+**触发**：点击图表卡片内的切换按钮
+
+**动画**：
+```css
+.chart-filter-dropdown {
+  transition: opacity 200ms ease, transform 200ms ease;
+  opacity: 0;
+  transform: scale(0.95);
+  transform-origin: top right;
+}
+.chart-filter-dropdown.open {
+  opacity: 1;
+  transform: scale(1);
+}
+```
+
+**交互细节**：
+- 选项列表：Sharp Card 样式（bg-card-bg + border-border-color）
+- 悬停：背景色变亮 10%（bg-white/5）
+- 选中状态：bg-accent-green/10 + text-accent-green + 左侧 3px 绿色指示条
+- 菜单宽度：160-200px
+- 最大高度：300px（超出可滚动）
+- 关闭方式：点击选项 / 点击页面其他区域 / 按 ESC
+- 选择后：按钮文本更新为所选选项，触发数据重新加载
+
+**前端实现**：
+- Angular `@HostListener('document:click')` 监听外部点击
+- Signal 管理打开状态：`dropdownOpen = signal(false)`
+- Output 事件：`timeRangeChange = output<TimeRangeSelection>()`
+
+### 自定义日期范围 (Custom Date Range)
+
+**触发**：下拉菜单中选择 "Custom Range" 选项
+**行为**：
+1. 下拉菜单关闭（opacity 0 + scale 0.95，200ms）
+2. 日期选择面板打开（相同位置，相同动画曲线）
+3. 用户在 From 和 To 日期选择器中选择日期（`p-datepicker`，PrimeNG 组件）
+4. To 日期选择器使用 `[minDate]` 属性限制不能早于 From 日期
+5. 点击 Apply → 面板关闭 → 按钮标签更新 → 触发数据加载（`timeRange=custom` + `startDate` + `endDate`）
+6. 点击 Cancel → 面板关闭，不触发数据加载
+
+**数据类型**：`TimeRangeSelection = { timeRange: TimeRange, startDate?: string, endDate?: string }`
 
 ==========================================================
 # 7. 图表交互（Chart Interactions）
@@ -765,11 +811,11 @@ WebSocket 收到 appointment.status_changed
 播放提示音（可选）
 ```
 
-==========================================================
-# 8.7 速率限制（429 Too Many Requests）
+=========================================================
+# 8.8 速率限制（429 Too Many Requests）
 ==========================================================
 
-## 8.7.1 限流维度
+## 8.8.1 限流维度
 | 维度 | 限制 | 触发场景 |
 |------|------|---------|
 | 用户+时段 | 1次/秒 | 对同一时间槽重复点击 |
@@ -777,7 +823,7 @@ WebSocket 收到 appointment.status_changed
 | 时段容量 | 实时剩余 | 防止超卖 |
 | 全局用户 | 100次/分钟 | 基础防护 |
 
-## 8.7.2 429 响应处理
+## 8.8.2 429 响应处理
 **响应头**：
 ```
 X-RateLimit-Limit: 100
@@ -802,7 +848,7 @@ Retry-After: 60
 倒计时结束后自动启用按钮
 ```
 
-## 8.7.3 前端限流预防
+## 8.8.3 前端限流预防
 - 时间槽选择按钮：点击后 1 秒内禁用
 - 提交按钮：Loading 状态期间禁用
 - 搜索输入：防抖 300ms

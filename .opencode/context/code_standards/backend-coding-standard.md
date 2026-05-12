@@ -4,7 +4,7 @@
 
 | 属性 | 值 |
 | :--- | :--- |
-| **文档版本** | 1.0.0-fixed |
+| **文档版本** | 1.1.0 |
 | **创建日期** | 2026-04-15 |
 | **适用项目** | CRM 预约系统重构版 (NestJS v11+) |
 | **文档状态** | 已基线化 |
@@ -412,7 +412,8 @@ export class AppointmentService {
           data: {
             userId: dto.userId,
             timeSlotId: dto.timeSlotId,
-            appointmentDate: timeSlot.slotTime,
+            serviceId: dto.serviceId,
+            appointmentDate: dto.appointmentDate,
             slotSequence: timeSlot.currentSequence,
             status: 'PENDING',
           },
@@ -677,7 +678,16 @@ this.logger.debug(`Processing slot: ${slotId}`);         // DEBUG
 | 函数覆盖率 | 70% |
 | 业务关键路径 | 90%+ |
 
-### 14.3 测试工具
+### 14.3 迁移注意事项（金融字段）
+
+新增 Appointment 金融字段后，需执行 `npx prisma migrate dev` 生成迁移文件。迁移包含：
+
+1. **Service 表**: 新增 `price_per_minute` (Decimal(10,2))、`tax_rate` (Decimal(5,4)) 列
+2. **Appointment 表**: 新增 `duration_minutes` (Int default 30)、`price` (Decimal(10,2))、`tax_rate` (Decimal(5,4))、`tax_included_amount` (Decimal(10,2)) 列
+
+> **注意**: `price`、`taxRate`、`taxIncludedAmount` 为价格快照字段，在预约创建时从 Service 复制，避免后续 Service 价格变动影响已有预约账单。超时场景下 `price = service.price + (overtimeMinutes × service.pricePerMinute)`，由应用层在创建时计算。
+
+### 14.4 测试工具
 
 - **单元测试**：Jest + ts-jest
 - **集成测试**：Testcontainers（PostgreSQL + Redis）
@@ -803,9 +813,19 @@ app.enableCors({
 
 | 文档 | 用途 |
 | :--- | :--- |
-| [系统架构设计文档（SAD）v2.0](../requirements/系统架构设计文档（SAD）.md) | 整体架构、高并发设计、模块划分 |
-| [接口设计规范文档 v2.0](../requirements/接口设计规范文档.md) | RESTful API 标准、限流策略、错误码 |
-| [数据架构设计文档 v2.0](../requirements/数据架构设计文档.md) | 数据模型、索引策略、缓存架构 |
-| [安全架构设计文档 v2.1](../requirements/安全架构设计文档.md) | 5 层安全模型、JWT 认证、RBAC |
-| [测试策略与计划 v2.0](../requirements/测试策略与计划.md) | TDD 流程、覆盖率要求、测试工具 |
+| [系统架构设计文档（SAD）v2.5.0](../requirements/系统架构设计文档（SAD）.md) | 整体架构、高并发设计、模块划分 |
+| [接口设计规范文档 v2.9.0](../requirements/接口设计规范文档.md) | RESTful API 标准、限流策略、错误码 |
+| [数据架构设计文档 v2.6.0](../requirements/数据架构设计文档.md) | 数据模型、索引策略、缓存架构 |
+| [安全架构设计文档 v2.4.0](../requirements/安全架构设计文档.md) | 5 层安全模型、JWT 认证、RBAC |
+| [测试策略与计划 v2.4.0](../requirements/测试策略与计划.md) | TDD 流程、覆盖率要求、测试工具 |
 | [运维与部署设计文档 v2.0](../requirements/运维与部署设计文档.md) | Docker 部署、CI/CD、健康检查 |
+
+---
+
+## 18. 变更记录
+
+| 日期 | 版本 | 变更内容 | 批准人 |
+|------|------|---------|--------|
+| 2026-05-11 | 1.1.0 | 新增 §14.3 迁移注意事项（金融字段），Service 新增 pricePerMinute/taxRate，Appointment 新增 durationMinutes/price/taxRate/taxIncludedAmount | @Architect |
+| 2026-05-11 | 1.2.0 | 移除 BookingGroup 模型和 bookingGroupId 字段；改为 overtime-only 扩展；新增 overtime-overlap 应用层验证 | @Architect |
+| 2026-04-15 | 1.0.0 | 初始版本 | 架构评审 |

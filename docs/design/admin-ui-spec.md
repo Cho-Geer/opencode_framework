@@ -2,7 +2,7 @@
 版本：2.3.0
 日期：2026-05-06
 适用：ADMIN / SUPER_ADMIN 角色
-设计风格：暗色数据仪表盘（Dark-First Data Dashboard）
+设计风格：暗色数据Dashboard（Dark-First Data Dashboard）
 基于原型：prototype/admin/dashboard.html
 
 ==========================================================
@@ -22,20 +22,20 @@
 
 ## v2.1.0 — 2026-05-05
 ### ✨ 新增
-- §4.2 扩展仪表盘卡片：新增「系统状态（System Status）」卡片定义，覆盖 SYS-001 映射契约，补齐 prototype 仪表盘布局（STAFF-003 和 SVC-006 已在 v2.1.1 中移除）
+- §4.2 扩展Dashboard卡片：新增「System Status（System Status）」卡片定义，覆盖 SYS-001 映射契约，补齐 prototype Dashboard布局（STAFF-003 和 SVC-006 已在 v2.1.1 中移除）
 
 ## v2.0.0 — 2026-05-04
 ### 🔄 重大变更（Breaking Changes）
-- **设计范式切换**：从「标准企业 + 玻璃态点缀」切换为「暗色数据仪表盘（Dark-First）」
+- **设计范式切换**：从「标准企业 + 玻璃态点缀」切换为「暗色数据Dashboard（Dark-First）」
 - **色彩体系全面替换**：
   - 旧：#FFFFFF 背景 / #F2F3F5 背景 / #1677FF 主色 / #667eea→#764ba2 渐变
-  - 新：#0c1220 主背景 / #162032 卡片背景 / #00c6ff 强调蓝 / 无渐变
+   - 新：#0c1220 主背景 / #162032 卡片背景 / #00c6ff 强调蓝 / 无渐变
 - **移除所有玻璃态（Glassmorphism）引用**：glass-level-1/2/3、backdrop-filter、glass-effect 等全部移除
 - **新设计语言**：sharp-card（8px 圆角实色边框）、sharp-button（6px 圆角实色边框）、sharp-input
 - **路由扩展**：6页 → 7页（新增 Dashboard、Analytics、History、Settings；移除 Reports、合并为 Analytics；移除 Schedule）
 
 ### ✨ 新增
-- §4：仪表盘组件（Dashboard Components）章节
+- §4：Dashboard组件（Dashboard Components）章节
   - 统计卡片（Stat Cards）：dark sharp-card + 渐变指示条
   - 预约趋势图（Booking Trends Chart）：折线图 + 暗色图表
   - 服务分布图（Service Distribution）：环形图 + 暗色图表
@@ -57,18 +57,18 @@
 
 ## 1.1 设计定位
 Admin 后台是面向管理员的专业数据工具界面，设计原则：
-- **暗色优先（Dark-First）**：减少眼部疲劳，适合长时间数据操作
+- **暗色优先（Dark-First）**：减少眼部疲劳，适合长时间数据Actions
 - **数据高可见**：通过高对比度色彩突出关键数据指标
 - **清晰层级**：卡片式布局 + 锐利边框区分信息区
-- **效率优先**：信息密度高，操作路径短
+- **效率优先**：信息密度高，Actions路径短
 - **专业沉稳**：深色基底 + 锐利边角（8px sharp-card），杜绝弥散阴影和模糊效果
 
 ## 1.2 与 Customer 前台的关系
 | 维度 | Admin 后台 | Customer 前台 |
 |------|-----------|--------------|
-| 主要风格 | 暗色数据仪表盘（Dark Data Dashboard） | 暗色主题（Sharp Design v2.0.0） |
+| 主要风格 | 暗色数据Dashboard（Dark Data Dashboard） | 暗色主题（Sharp Design v2.0.0） |
 | 卡片样式 | sharp-card（8px 实色边框） | sharp-card（统一） |
-| 色彩 | #00c6ff 纯色强调蓝 | #00c6ff（统一强调色） |
+| 色彩 | #2ecc71 纯色强调绿 | #2ecc71（统一强调色） |
 | 信息密度 | 高（表格、数据、图表） | 中（卡片、引导） |
 | 背景 | #0c1220（深空蓝黑） | #0c1220（统一） |
 | 卡片背景 | #162032（深蓝灰） | #162032（统一） |
@@ -84,9 +84,8 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 | `--border-color` | `#2a3a50` | 边框、分割线 |
 | `--text-primary` | `#e2e8f0` | 主文字色 |
 | `--text-secondary` | `#94a3b8` | 次要/辅助文字 |
-| `--accent-blue` | `#00c6ff` | 强调色（按钮、链接、选中态） |
-| `--accent-blue-dark` | `#0072ff` | 强调色深色变体 |
-| `--accent-green` | `#2ecc71` | 成功/正向指标 |
+| `--accent-green` | `#2ecc71` | 主强调色（按钮、链接、选中态） |
+| `--accent-green-dark` | `#27ae60` | 强调色深色变体 |
 | `--accent-red` | `#e74c3c` | 危险/负向指标 |
 | `--accent-yellow` | `#f39c12` | 警告/待处理 |
 | `--accent-purple` | `#9b59b6` | 辅助色/收入指标 |
@@ -103,15 +102,15 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 ## 2.1 页面清单（7 页）
 | 页面 | 路由 | 优先级 | 说明 | API 依赖 |
 |------|------|--------|------|---------|
-| 仪表盘 | /admin/dashboard | P0 | 数据概览 | DASH-001~004, SYS-001, notifications, messages — 参见 §4 仪表盘组件完整端点清单 |
-| 用户管理 | /admin/users | P0 | CRUD + 角色管理 | `/v1/admin/users` CRUD |
-| 服务管理 | /admin/services | P0 | CRUD + 上下架 | `/v1/admin/services` CRUD |
-| 预约管理 | /admin/appointments | P0 | 查看 + 状态管理 + 筛选 | `/v1/admin/appointments` |
-| 数据分析 | /admin/analytics | P1 | 图表分析 + 报表导出 | `/v1/admin/analytics/overview` (AN-001), `/v1/admin/analytics/filtered` (AN-002) |
-| 操作历史 | /admin/history | P2 | 操作日志 + 审计追踪 | `GET /v1/admin/history (HIST-001)` |
-| 系统设置 | /admin/settings | P1 | 全局配置 | `/v1/admin/settings` |
+| Dashboard | /admin/dashboard | P0 | 数据概览 | DASH-001~004, SYS-001, notifications, messages — 参见 §4 Dashboard组件完整端点清单 |
+| Users | /admin/users | P0 | CRUD + 角色管理 | `/v1/admin/users` CRUD |
+| Services | /admin/services | P0 | CRUD + 上下架 | `/v1/admin/services` CRUD |
+| Appointments | /admin/appointments | P0 | 查看 + Status管理 + 筛选 | `/v1/admin/appointments` |
+| Analytics | /admin/analytics | P1 | 图表分析 + 报表导出 | `/v1/admin/analytics/overview` (AN-001), `/v1/admin/analytics/filtered` (AN-002) |
+| History | /admin/history | P2 | Actions日志 + 审计追踪 | `GET /v1/admin/history (HIST-001)` |
+| Settings | /admin/settings | P1 | 全局配置 | `/v1/admin/settings` |
 
-**API 依赖状态**：
+**API 依赖Status**：
 - `contract.yaml` v1.6.3 已包含 DASH-001~004, SYS-001~003 等 Admin API 端点
 - 前端开发可直接基于契约定义进行 API 对接
 
@@ -145,7 +144,8 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 
 **内容**：
 - 左侧：折叠按钮 + Logo + 面包屑导航
-- 右侧：搜索框 + 主题切换 + 通知铃铛 + 消息 + 设置 + 用户菜单
+- 右侧：【Admin 路由下隐藏】搜索框 + 主题切换 + 通知铃铛 + 消息 + 设置 + 用户菜单
+- **搜索框可见性**：`showSearchInHeader = computed(() => !isAdminRoute())` — 仅在非 Admin 路由（Customer 前台）显示搜索框。Admin 后台 Header 不显示搜索框，以保持 Header 简洁，专注于数据监控。搜索框通过 `@if (showSearch())` 条件渲染，Admin 路由下完全从 DOM 中移除。
 
 ## 3.2 侧边栏（Admin Sidebar）
 **样式**：
@@ -171,12 +171,12 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 - 默认：color #94a3b8（text-secondary）
 - 悬停：background #1e293b（card-bg-light），color #e2e8f0
 - 激活：
-  - 左侧边框：3px solid #00c6ff
-  - 背景：rgba(0, 198, 255, 0.1)
-  - 文字：#00c6ff
-  - 图标：#00c6ff
+  - 左侧边框：3px solid #2ecc71
+  - 背景：rgba(46, 204, 113, 0.1)
+  - 文字：#2ecc71
+  - 图标：#2ecc71
 
-**折叠状态**：
+**折叠Status**：
 - 仅显示图标（20px）
 - 悬停显示 Tooltip（暗色背景 + 白色文字）
 
@@ -193,27 +193,31 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 - 当前页：#e2e8f0（不加粗）
 
 ==========================================================
-# 4. 仪表盘页面（Dashboard）
+# 4. Dashboard页面（Dashboard）
 ==========================================================
 
 ## 4.1 页面布局
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Dashboard                           [日期范围选择器]    │
+│  Dashboard                                              │
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Welcome back, Admin!             [View Bookings]│    │
+│  │  Friday, May 8, 2026                            │    │
+│  └─────────────────────────────────────────────────┘    │
 ├─────────────────────────────────────────────────────────┤
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
-│  │ 今日预约  │ │ 待确认    │ │ 活跃用户  │ │ 总收入    │   │
+│  │ Today's Bookings  │ │ Pending    │ │ Active Users  │ │ Total Revenue    │   │
 │  │ 24  ↑12% │ │ 5   ↓3%  │ │ 1,254 ↑8%│ │ $3,245↑15%│  │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │
 ├─────────────────────────────────────────────────────────┤
-│  ┌──────────────────────┐ ┌──────────────────────────┐  │
-│  │  预约趋势图           │ │  服务分布图               │  │
-│  │  (折线图)            │ │  (环形图)                │  │
-│  └──────────────────────┘ └──────────────────────────┘  │
-├─────────────────────────────────────────────────────────┤
-│  ┌────────────────────────────────────────────────────┐ │
-│  │  时间段分布热力图                                    │ │
-│  └────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────┐ ┌────────────────────────┐  │
+│  │  预约趋势图 (折线图)    │ │  Booking Distribution  │  │
+│  │                        │ │  ┌────────┐┌─────────┐ │  │
+│  │  [渐变填充区域]         │ │  │ 环形图  ││ 柱状图   │ │  │
+│  │  #2ecc71 线条           │ │  │(服务分布)││(时段分布)│ │  │
+│  │                        │ │  └────────┘└─────────┘ │  │
+│  └────────────────────────┘ └────────────────────────┘  │
 ├─────────────────────────────────────────────────────────┤
 │  ┌────────────────────────────────────────────────────┐ │
 │  │  最近预约列表（.data-table）                         │ │
@@ -221,12 +225,27 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 └─────────────────────────────────────────────────────────┘
 ```
 
+> **注**：时间范围筛选已集成至 Booking Distribution Chart 的 Time 按钮下拉菜单中，不再使用全局头部日期选择器。
+
+### 欢迎横幅（Welcome Banner）
+Dashboard顶部显示欢迎横幅卡片，作为页面入口问候：
+
+| 属性 | 规格 |
+|------|------|
+| 组件 | `<app-welcome-card>` (`organisms/welcome-card/`) |
+| 背景 | 圆角卡片（`rounded-lg p-6`），无边框设计 |
+| 内容 | 左侧：`<h1>Welcome back, Admin!</h1>` + 当前日期（`fullDate` 格式） |
+| Actions | 右侧：`<app-button label="View Bookings" variant="primary" icon="pi pi-calendar" />`（当前无 `(onClick)` 处理 — 占位） |
+| 数据绑定 | `[today]="today"` — 接收 `Date` 类型输入 |
+
+**实现位置**：`dashboard.component.html:2` — 作为第一个元素渲染，位于所有内容之前。
+
 ## 4.2 统计卡片（Stat Cards）
 **sharp-card 设计**：
 ```
 ┌─────────────────────────────┐
 │  ┌──────┐                   │
-│  │ 图标  │  今日预约          │  ← label: #94a3b8, 14px
+│  │ 图标  │  Today's Bookings          │  ← label: #94a3b8, 14px
 │  │(accent│  24              │  ← value: #e2e8f0, 28px bold
 │  │ blue) │  ↑ 12% 较昨日     │  ← trend: #2ecc71
 │  └──────┘                    │
@@ -243,7 +262,7 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 - border-radius：8px（sharp-card）
 - padding：20px
 - 阴影：0 4px 6px -1px rgba(0, 0, 0, 0.3)
-- hover：border-color → rgba(0, 198, 255, 0.5) + 阴影增强 + translateY(-3px)
+- hover：border-color → rgba(46, 204, 113, 0.5) + 阴影增强 + translateY(-3px)
 
 **内容**：
 - 图标容器：40px x 40px，sharp（8px 圆角），对应强调色半透明背景
@@ -255,20 +274,22 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 - 进度条：4px 高，背景 rgba(42, 58, 80, 0.5)，填充色按卡片主题
 
 **统计项**（API `GET /v1/admin/stats` (DASH-001)）：
-| 卡片 | 图标色 | 进度条色 | API 字段 |
+| 卡片（代码实际标签） | 图标色 | 进度条色 | API 字段 |
 |------|--------|---------|----------|
-| 今日预约 | accent-blue | accent-blue | today_bookings |
-| 待确认 | accent-yellow | accent-yellow | pending_count |
-| 活跃用户 | accent-green | accent-green | active_users |
-| 总收入 | accent-purple | accent-purple | total_revenue |
+| "Today's Bookings"（Today's Bookings） | accent-green | accent-green | today_bookings |
+| "Pending Confirmation"（Pending） | accent-yellow | accent-yellow | pending_count |
+| "Total Customers"（Active Users / 客户总数） | accent-green | accent-green | active_users |
+| "Total Revenue"（Total Revenue） | accent-purple | accent-purple | total_revenue |
 
-### 扩展仪表盘卡片（System Status）[v2.1.0]
+**注**：代码使用英文标签（"Today's Bookings", "Pending Confirmation", "Total Customers", "Total Revenue"）。"Total Customers" 对应 API 的 `active_users` 字段，代码显示为客户总数而非Active Users数。
 
-除上述 4 张核心统计卡片外，仪表盘还包含以下 1 张扩展卡片，覆盖系统运维维度。
+### 扩展Dashboard卡片（System Status）[v2.1.0]
+
+除上述 4 张核心统计卡片外，Dashboard还包含以下 1 张扩展卡片，覆盖系统运维维度。
 
 **布局**：扩展卡片位于核心卡片下方，采用 1 列或 3 列网格布局（桌面端），与上方的 4 张 stat cards 形成 4+1 的卡片网格。
 
-#### 系统状态卡片（System Status Card）
+#### System Status卡片（System Status Card）
 **映射契约**：SYS-001（system health metrics）
 **API 端点**：`GET /v1/admin/system/health`
 
@@ -277,15 +298,15 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 | 卡片类型 | sharp-card |
 | 背景色 | #162032 |
 | 图标色 | 动态（绿色=正常，黄色=警告，红色=异常） |
-| 标题 | "系统状态"（font-size: 16px） |
-| 内容 | 4 行状态指示器：Server / Database / API / Redis |
-| 每行内容 | 绿色圆点 (●) + 标签 + 状态文字（"Online" / "Degraded" / "Offline"） + 响应时间/负载 |
-| Uptime 显示 | "Uptime: 99.9%" |
-| 最后备份 | "Last Backup: 2026-05-05 02:00 UTC" |
-| 刷新间隔 | 每 60 秒自动刷新（或通过 WebSocket `stats.updated` 推送） |
+| 标题 | "System Status"（font-size: 16px） |
+| 内容 | 6 行Status指示器：Server / Database / API / Redis / Last Backup / Uptime |
+| 每行内容 | Status圆点 (●) + 标签 + Status文字（"Online" / "Degraded" / "Offline"） + 响应时间/负载 |
+| Uptime 显示 | 第 6 行指示器："Uptime: 99.9%" |
+| 最后备份 | 第 5 行指示器："Last Backup: 2026-05-05 02:00 UTC" |
+| 刷新间隔 | 每 60 秒自动刷新（或通过 WebSocket `system.health.updated` 推送刷新System Status，或通过 WebSocket `appointment.status_changed` 推送刷新统计卡片与预约列表，回退到每 60 秒 HTTP 轮询） |
 | 展开功能 | 点击可展开详细指标（CPU、内存、磁盘使用率） |
 
-**状态指示器样式**：
+**Status指示器样式**：
 ```css
 .status-dot {
   width: 8px;
@@ -312,30 +333,80 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 ### 预约趋势图（Booking Trends Chart）
 - 类型：折线图（Line Chart）
 - 颜色：
-  - 线条：#00c6ff（accent-blue）
-  - 填充区域：rgba(0, 198, 255, 0.1)
-  - 网格线：rgba(42, 58, 80, 0.5)
-- 数据点：圆形，5px，白色填充 + #00c6ff 边框
-- 工具提示：暗色背景（#1e293b）+ 白色文字 + 锐利边框
-- 时间切换：Weekly / Monthly / Yearly（sharp 标签切换）
+  - 线条：#2ecc71（accent-green），2px width，tension 0.4
+  - 填充区域：渐变 `rgba(46, 204, 113, 0.05)` → `rgba(46, 204, 113, 0.35)`（自上而下）
+  - 网格线：rgba(42, 58, 80, 0.2)
+- 数据点：圆形，3px（hover 5px），白色填充 + #2ecc71 边框
+- 工具提示：暗色背景（rgba(22, 32, 50, 0.9)）+ 白色文字 + 锐利边框
+- 双轴：左侧 Bookings，右侧 Revenue ($) — #2ecc71 线条
 
-### 服务分布图（Service Distribution）
-- 类型：环形图（Donut Chart）
-- 内半径：60%
-- 中心文字：总预约数（白色，#e2e8f0）
-- 颜色：#00c6ff, #2ecc71, #9b59b6, #f39c12, #e74c3c
-- 图例：底部横向排列，14px，#94a3b8
+### Booking Distribution Panel（合并面板）
+**布局**：单面板内部分为左右两列（`sm:grid-cols-2`）
 
-### 时间分布热力图（Time Distribution）
-- 类型：热力图 / 柱状图
-- X轴：小时（09:00 - 18:00）
+#### 服务分布图（Service Distribution — Doughnut）
+- 类型：环形图（Doughnut Chart）
+- 内半径：70%
+- 中心文字："Total" / 总预约数 / "Bookings"（白色 #e2e8f0，24px bold）— 通过 `centerTextPlugin` 渲染
+- 颜色：#2ecc71, #9b59b6, #2ecc71, #f39c12, #e74c3c
+- 图例：底部横向排列，10px，#94a3b8
+
+#### 时段分布图（Time Distribution — Bar Chart）
+- 类型：柱状图（Bar Chart）
+- X轴：时段标签（如 "9-10", "10-11" 等）
 - Y轴：预约数量
-- 颜色渐变：#162032 → #0072ff（低→高）
+- 柱体颜色：flat `rgba(46, 204, 113, 0.7)`，边框 `#2ecc71`
+- 柱体宽度：12px，无圆角（borderRadius: 0）
+- 数值标签：柱体上方显示数值（通过 `barDataLabelsPlugin`）
+
+#### 时间范围筛选（Time Range Filter）
+**位置**：Booking Distribution Panel 的 "Time" 按钮（secondary variant）
+**交互**：
+- 点击 "Time" 按钮 → 下拉菜单平滑展开（200ms opacity + scale 动画，ease-out）
+- 选项：Last 24h / Last 7 Days / Last 30 Days / This Month / Last Month / Custom Range
+- 悬停：背景色变化（选中项 hover:bg-accent-green/20，未选中项 hover:bg-card-bg-light）
+- 选中：text-accent-green + bg-accent-green/10 + border-l-accent-green 左侧边框高亮
+- 点击页面其他区域：菜单自动关闭
+- 选择后：按钮文本更新为所选选项，触发 `timeRangeChange` 事件 → 父组件调用 API 重新加载时段分布数据
+
+#### 自定义日期范围 (Custom Range)
+**触发**：选择 "Custom Range" 选项
+**行为**：
+- 下拉菜单关闭（200ms fade out）
+- 日期范围面板在相同位置滑入（opacity + scale 200ms 动画）
+- 面板内容：
+  - 标题栏："Select Date Range" + 关闭按钮（pi-times）
+  - From 日期选择器（`p-datepicker`，`[(ngModel)]` 绑定 signal，`dateFormat="yy-mm-dd"`，`[showIcon]`）
+  - To 日期选择器（`p-datepicker`，`[(ngModel)]` 绑定 signal，`[minDate]` 绑定 From 日期）
+  - 底部Actions栏：Cancel（ghost variant，关闭面板）/ Apply（primary variant，禁用直至两个日期均有效）
+- 选择 Apply 后：面板关闭，按钮标签更新为格式化日期范围（如 "Apr 1 – Apr 30"），触发 `timeRangeChange` 事件携带 `{timeRange: 'custom', startDate, endDate}`
+
+### 图表空Status（Chart Empty State）
+当 API 返回空数据或无数据时（`data` 数组长度为 0 或 `null`），图表区域显示空Status占位，遵循 §12.4 空Status设计风格：
+
+| 属性 | 规格 |
+|------|------|
+| 占位元素 | 折线图标（48px，`#2a3a50`）+ 标题"暂无趋势数据"（`#94a3b8`，14px） |
+| 容器 | 图表卡片保持原有尺寸（sharp-card，不可折叠），占位居中显示 |
+| 描述文案 | "所选时间范围内没有预约记录" |
+| Actions按钮 | "清除筛选"（sharp-btn-text，仅在有筛选条件时显示） |
+| 交互 | 点击"清除筛选" → 重置 timeRange 为 last7d → 触发 `loadStats()` 重新加载 |
+| 骨架屏过渡 | API 加载中显示图表骨架屏（`#1e293b` shimmer 动画），加载完成后若数据为空则平滑切换为空Status占位（fadeIn 200ms） |
+| 空Status恢复 | 后续 WebSocket 推送或轮询发现新数据时自动从空Status切换回正常图表（fadeIn 300ms） |
+
+**空Status占位布局**：
+```
+┌─────────────────────────────────────┐
+│  [折线图图标 (48px, #2a3a50)]        │
+│  暂无趋势数据                         │
+│  所选时间范围内没有预约记录            │
+│  [清除筛选]  (可选)                   │
+└─────────────────────────────────────┘
+```
 
 ## 4.4 图表色板
 | 序号 | 颜色 | 色值 | 用途 |
 |------|------|------|------|
-| 1 | 强调蓝 | #00c6ff | 主要数据系列 |
+| 1 | 强调绿 | #2ecc71 | 主要数据系列 |
 | 2 | 强调绿 | #2ecc71 | 正向指标/第二系列 |
 | 3 | 强调紫 | #9b59b6 | 第三系列/收入 |
 | 4 | 强调橙 | #f39c12 | 第四系列/警告 |
@@ -350,13 +421,13 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 **表格**：使用 `.data-table` 暗色主题（详见 §7）
 
 ==========================================================
-# 5. 用户管理页面
+# 5. Users页面
 ==========================================================
 
 ## 5.1 页面布局
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Users            [搜索] [角色筛选] [状态筛选] [+ 新增]  │
+│  Users            [搜索] [角色筛选] [Status筛选] [+ 新增]  │
 ├─────────────────────────────────────────────────────────┤
 │  ┌────────────────────────────────────────────────────┐ │
 │  │  筛选标签：[全部] [Admin] [Super Admin] [Customer]  │ │
@@ -376,41 +447,41 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 - 背景：#0c1220（dark-bg）
 - 边框：1px solid #2a3a50
 - border-radius：6px
-- placeholder："搜索用户名、邮箱..."
-- 聚焦：border-color #00c6ff + box-shadow 0 0 0 3px rgba(0, 198, 255, 0.15)
+- placeholder："Search by name, email..."
+- 聚焦：border-color #2ecc71 + box-shadow 0 0 0 3px rgba(46, 204, 113, 0.15)
 
 **筛选标签**：
 - 默认：背景 transparent + border 1px solid #2a3a50 + color #94a3b8
-- 悬停：border-color #00c6ff + color #e2e8f0
-- 选中：背景 rgba(0, 198, 255, 0.15) + border-color #00c6ff + color #00c6ff
+- 悬停：border-color #2ecc71 + color #e2e8f0
+- 选中：背景 rgba(46, 204, 113, 0.15) + border-color #2ecc71 + color #2ecc71
 
-**操作按钮（sharp-button）**：
+**Actions按钮（sharp-button）**：
 - 导出：次按钮（透明 + #2a3a50 边框 + #94a3b8 文字）
-- 新增用户：主按钮（#00c6ff 背景 + 白色文字）
+- Add User：主按钮（#2ecc71 背景 + 白色文字）
 
 ## 5.3 用户表格
 **列定义**：
 | 列名 | 宽度 | 内容 |
 |------|------|------|
 | ID | 80px | UUID 缩写 |
-| 用户名 | 150px | 头像（首字母缩写） + 名称 |
+| User Name | 150px | 头像（首字母缩写） + 名称 |
 | 邮箱 | 200px | 脱敏显示（us***@example.com） |
 | 角色 | 120px | 角色标签（见下方） |
-| 状态 | 100px | 启用/禁用 Toggle |
-| 创建时间 | 150px | 相对时间 / 绝对时间 |
-| 操作 | 120px | 编辑 / 禁用 / 删除（文字按钮） |
+| Status | 100px | 启用/禁用 Toggle |
+| Created | 150px | 相对时间 / 绝对时间 |
+| Actions | 120px | 编辑 / 禁用 / 删除（文字按钮） |
 
 **角色标签**：
 - CUSTOMER：text #94a3b8，bg rgba(148, 163, 184, 0.1)
-- ADMIN：text #00c6ff，bg rgba(0, 198, 255, 0.1)
+- ADMIN：text #2ecc71，bg rgba(46, 204, 113, 0.1)
 - SUPER_ADMIN：text #9b59b6，bg rgba(155, 89, 182, 0.1)
 
-**状态 Toggle**：
+**Status Toggle**：
 - 使用 PrimeNG ToggleSwitch 暗色主题
-- 开启：轨道 #00c6ff + 滑块白色
+- 开启：轨道 #2ecc71 + 滑块白色
 - 关闭：轨道 #2a3a50 + 滑块 #94a3b8
 
-## 5.4 用户操作弹窗
+## 5.4 用户Actions弹窗
 **Modal（sharp-card 风格）**：
 - 遮罩：rgba(0, 0, 0, 0.6)
 - 弹窗：bg #162032 + border 1px solid #2a3a50 + border-radius 8px
@@ -423,38 +494,56 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 - 左："Showing 1-10 of 123"，#94a3b8，14px
 - 右：分页按钮组
 - 按钮（sharp）：32px x 32px，bg transparent + border #2a3a50 + color #94a3b8
-- 选中：bg #00c6ff + color white + border #00c6ff
+- 选中：bg #2ecc71 + color white + border #2ecc71
 - 禁用：opacity 0.4
 
 ==========================================================
-# 6. 服务管理页面
+# 6. Services页面
 ==========================================================
 
 ## 6.1 页面布局
-类似用户管理，表格列不同。
+类似Users，表格列不同。
 
 ## 6.2 服务表格
 | 列名 | 宽度 | 内容 |
 |------|------|------|
 | ID | 80px | UUID 缩写 |
-| 服务名称 | 200px | 缩略图（48px, 8px圆角） + 名称 |
-| 时长 | 100px | "60 分钟" |
-| 价格 | 120px | "¥128" |
-| 状态 | 100px | 上架/下架 Toggle |
-| 创建时间 | 150px | 日期 |
-| 操作 | 150px | 编辑 / 上下架 / 删除 |
+| Service Name | 200px | 缩略图（48px, 8px圆角） + 名称 |
+| Duration | 100px | "60 分钟" |
+| Price | 120px | "¥128" |
+| Price/Min | 100px | "¥2.13/分钟"（自动计算：price / duration） |
+| Tax Rate | 80px | "8%" |
+| Status | 100px | 上架/下架 Toggle |
+| Created | 150px | 日期 |
+| Actions | 150px | 编辑 / 上下架 / 删除 |
 
-## 6.3 服务状态
-- 上架：Toggle 开启（#00c6ff 轨道）
+## 6.3 服务Status
+- 上架：Toggle 开启（#2ecc71 轨道）
 - 下架：Toggle 关闭（#2a3a50 轨道）
 
 ## 6.4 新增/编辑服务弹窗
 **Modal（640px）**：
-- 字段：服务名称、描述、时长、价格、图片上传、状态
+- 字段：Service Name、描述、Duration、Price、Price/Min（自动计算，只读展示）、Tax Rate(taxRate)、图片上传、Status
+- **auto-calc**：`Price/Min` 非手动输入字段。前端在 `duration` 和 `price` 输入后自动计算 `price / duration` 并只读展示。保存时 `pricePerMinute` 由后端自动计算。
 - 图片上传区：
   - 拖拽区域：bg #0c1220 + border 2px dashed #2a3a50 + border-radius 8px
-  - 悬停：border-color #00c6ff + bg rgba(0, 198, 255, 0.05)
+  - 悬停：border-color #2ecc71 + bg rgba(46, 204, 113, 0.05)
   - 预览缩略图：80px x 80px，8px 圆角
+
+## 6.5 Appointments表格
+| 列名 | 宽度 | 内容 |
+|------|------|------|
+| Appointment # | 140px | "APT-20260506-xxx" |
+| User Name | 150px | User Name称 |
+| Service Name | 150px | 关联Service Name |
+| Date & Time | 160px | 预约日期 + 时间段 |
+| Duration | 80px | "60 分钟" |
+| Price | 100px | "¥128" |
+| Tax Rate | 80px | "8%" |
+| Tax Incl. Amount | 100px | "¥138.24" |
+| Status | 100px | Status标签（同Users样式） |
+| Created | 150px | 日期 |
+| Actions | 150px | 更新Status / 取消 |
 
 ==========================================================
 # 7. 表格规范（.data-table 暗色主题）
@@ -498,9 +587,9 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 }
 ```
 
-## 7.2 表格操作列
+## 7.2 表格Actions列
 **按钮组（文字按钮）**：
-- 查看 / 编辑：color #00c6ff，hover underline
+- 查看 / 编辑：color #2ecc71，hover underline
 - 删除：color #e74c3c，hover underline
 - 更多：省略号图标 → 下拉菜单（sharp-card 风格）
 
@@ -511,7 +600,7 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 ## 7.3 排序与筛选
 **表头排序**：
 - 点击表头切换排序
-- 图标：↑ ↓，选中时 color #00c6ff
+- 图标：↑ ↓，选中时 color #2ecc71
 
 **列筛选**：
 - 表头下方可选筛选行（搜索输入或下拉）
@@ -540,8 +629,8 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 
 .sharp-input:focus {
   outline: none;
-  border-color: #00c6ff;
-  box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15);
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
 }
 
 .sharp-input.error {
@@ -575,7 +664,7 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 ## 8.3 表单布局
 - **单列**（标准）：标签在上，输入框在下，间距 8px + 4px error + 20px field
 - **双列**（宽屏）：两列并排，间距 24px，移动端自动变单列
-- **操作栏**：底部右对齐，取消（次按钮左） + 保存（主按钮右）
+- **Actions栏**：底部右对齐，取消（次按钮左） + 保存（主按钮右）
 
 ==========================================================
 # 9. 按钮规范（Sharp Button）
@@ -586,19 +675,19 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 **主按钮（Primary）**：
 ```css
 .sharp-btn-primary {
-  background: #00c6ff;
+  background: #2ecc71;
   color: #0c1220;
   padding: 8px 20px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 198, 255, 0.3);
+  border: 1px solid rgba(46, 204, 113, 0.3);
   font-size: 14px;
   font-weight: 600;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   transition: all 200ms ease;
 }
 .sharp-btn-primary:hover {
-  background: #00b8f0;
-  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.4), 0 0 10px rgba(0, 198, 255, 0.4);
+  background: #27ae60;
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.4), 0 0 10px rgba(46, 204, 113, 0.4);
   transform: translateY(-2px);
 }
 .sharp-btn-primary:active {
@@ -623,8 +712,8 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
   transition: all 200ms ease;
 }
 .sharp-btn-secondary:hover {
-  border-color: #00c6ff;
-  color: #00c6ff;
+  border-color: #2ecc71;
+  color: #2ecc71;
 }
 ```
 
@@ -651,7 +740,7 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 ```css
 .sharp-btn-text {
   background: transparent;
-  color: #00c6ff;
+  color: #2ecc71;
   padding: 4px 8px;
   border: none;
   font-size: 14px;
@@ -666,9 +755,9 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 ## 9.2 按钮尺寸
 | 尺寸 | 高度 | 内边距 | 用途 |
 |------|------|--------|------|
-| sm | 28px | 4px 12px | 表格内操作 |
+| sm | 28px | 4px 12px | 表格内Actions |
 | md | 36px | 8px 20px | 标准 |
-| lg | 44px | 12px 28px | 重要操作 |
+| lg | 44px | 12px 28px | 重要Actions |
 
 ==========================================================
 # 10. 弹窗规范（Modal）
@@ -697,10 +786,10 @@ Admin 后台是面向管理员的专业数据工具界面，设计原则：
 ## 10.3 确认弹窗
 ```
 ┌─────────────────────────────┐
-│  ⚠️ 确认删除用户？            │  ← 标题 18px bold #e2e8f0
+│  ⚠️ 确认Delete User？            │  ← 标题 18px bold #e2e8f0
 │                              │
-│  确定要删除用户 "张三" 吗？    │  ← 描述 14px #94a3b8
-│  此操作不可撤销。             │
+│  确定要Delete User "张三" 吗？    │  ← 描述 14px #94a3b8
+│  此Actions不可撤销。             │
 │                              │
 │  [取消]        [确认删除]     │  ← 次按钮 + 危险按钮
 └─────────────────────────────┘
@@ -722,8 +811,8 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 ## 11.3 色板（5 色系统）
 | 系列 | 颜色 | CSS 变量 |
 |------|------|---------|
-| 系列 1（主） | #00c6ff | --accent-blue |
-| 系列 2（正） | #2ecc71 | --accent-green |
+| 系列 1（主） | #2ecc71 | --accent-green |
+| 系列 2（正） | #1abc9c | --accent-teal |
 | 系列 3（辅） | #9b59b6 | --accent-purple |
 | 系列 4（警） | #f39c12 | --accent-yellow |
 | 系列 5（危） | #e74c3c | --accent-red |
@@ -746,22 +835,22 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 - 边框：无（clean）
 
 **热力图**：
-- 颜色渐变：#162032 → #0072ff
+- 颜色渐变：#162032 → #27ae60
 - 单元间距：2px
 - 圆角：2px
 
 ==========================================================
-# 12. 状态与反馈
+# 12. Status与反馈
 ==========================================================
 
-## 12.1 加载状态
+## 12.1 加载Status
 **页面加载**：
 - 骨架屏：暗色占位卡片（bg #1e293b + shimmer 动画）
 - shimmer 渐变：linear-gradient(90deg, #1e293b 25%, #2a3a50 50%, #1e293b 75%)
-- 顶部进度条：#00c6ff 线条（2px 高），NProgress 风格
+- 顶部进度条：#2ecc71 线条（2px 高），NProgress 风格
 
-**操作加载**：
-- 按钮：spinner（border #2a3a50 + border-top #00c6ff）+ 文字
+**Actions加载**：
+- 按钮：spinner（border #2a3a50 + border-top #2ecc71）+ 文字
 - 表格行：行内暗色骨架
 
 ## 12.2 成功反馈
@@ -774,10 +863,10 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 - 手动关闭
 - 内容：错误信息 + 重试按钮
 
-## 12.4 空状态
-**表格空状态**：
+## 12.4 空Status
+**表格空Status**：
 - 图标：空盒子（48px），color #2a3a50
-- 标题："暂无数据"，color #94a3b8
+- 标题："No data"，color #94a3b8
 - 描述："没有找到符合条件的记录"
 - 按钮："清除筛选"（有筛选时显示）
 
@@ -788,13 +877,13 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 ## 13.1 角色权限矩阵
 | 功能 | ADMIN | SUPER_ADMIN |
 |------|-------|------------|
-| 查看仪表盘 | ✅ | ✅ |
+| 查看Dashboard | ✅ | ✅ |
 | 管理用户 | 查看/编辑 | 完整（含删除） |
 | 管理服务 | 完整 | 完整 |
 | 管理预约 | 查看/取消 | 完整 |
-| 数据分析 | ✅ | ✅ |
-| 操作历史 | ❌ | ✅ |
-| 系统设置 | ❌ | ✅ |
+| Analytics | ✅ | ✅ |
+| History | ❌ | ✅ |
+| Settings | ❌ | ✅ |
 
 ## 13.2 UI 权限控制
 - 无权限菜单项：隐藏
@@ -863,9 +952,9 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 - [ ] Dashboard（4 个 Stat Cards + 3 个图表 + 最近预约表格）
 - [ ] Users（搜索 + 筛选标签 + .data-table + Modal）
 - [ ] Services（搜索 + .data-table + Modal + 图片上传）
-- [ ] Appointments（高级筛选 + .data-table + Modal + 批量操作）
-- [ ] Analytics（图表仪表盘 + 报表导出）
-- [ ] History（操作日志 + 筛选）
+- [ ] Appointments（高级筛选 + .data-table + Modal + 批量Actions）
+- [ ] Analytics（图表Dashboard + 报表导出）
+- [ ] History（Actions日志 + 筛选）
 - [ ] Settings（全局配置表单）
 
 ## 16.3 组件实现
@@ -884,7 +973,7 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 - [ ] 响应式布局
 - [ ] 表格横向滚动
 - [ ] 侧边栏抽屉
-- [ ] 底部操作栏
+- [ ] 底部Actions栏
 
 ==========================================================
 # 附录 A：设计令牌速查表
@@ -898,8 +987,8 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 | border-color | #2a3a50 | 边框/分割线 |
 | text-primary | #e2e8f0 | 主文字 |
 | text-secondary | #94a3b8 | 次要文字 |
-| accent-blue | #00c6ff | 强调色 |
-| accent-blue-dark | #0072ff | 深强调色 |
+| accent-green | #2ecc71 | 强调色 |
+| accent-green-dark | #27ae60 | 深强调色 |
 | accent-green | #2ecc71 | 成功/正向 |
 | accent-red | #e74c3c | 危险/负向 |
 | accent-yellow | #f39c12 | 警告/待处理 |
@@ -916,8 +1005,8 @@ Chart.defaults.borderColor = 'rgba(42, 58, 80, 0.5)'; // 网格线
 
 | 规范项 | 全局 UI 规范 v3.0 | Admin 规范 v2.3.0（本文件） |
 |--------|-------------------|--------------------------|
-| 设计风格 | 暗色优先（Dark-First） | 暗色数据仪表盘 |
-| 主色 | #00c6ff | #00c6ff |
+| 设计风格 | 暗色优先（Dark-First） | 暗色数据Dashboard |
+| 主色 | #2ecc71 | #2ecc71 |
 | 背景 | #0c1220 | #0c1220 |
 | 卡片背景 | #162032 | #162032 |
 | 卡片样式 | sharp-card（8px 边框） | sharp-card（8px 边框） |
