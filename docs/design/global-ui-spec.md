@@ -51,8 +51,8 @@
 ### 1.2.2 强调色（Accent Colors）
 | 令牌 | 色值 | 色块 | 用途 |
 |------|------|------|------|
-| `--accent-blue` | `#00c6ff` | █████ | **主强调色**（按钮、链接、选中态、图表系列1） |
-| `--accent-blue-dark` | `#0072ff` | █████ | 强调色深色变体（hover 状态） |
+| `--accent-green` | `#2ecc71` | █████ | **主强调色**（按钮、链接、选中态、图表系列1） |
+| `--accent-green-dark` | `#27ae60` | █████ | 强调色深色变体（hover 状态） |
 | `--accent-green` | `#2ecc71` | █████ | 成功/正向指标（图表系列2） |
 | `--accent-purple` | `#9b59b6` | █████ | 辅助/收入指标（图表系列3） |
 | `--accent-yellow` | `#f39c12` | █████ | 警告/待处理（图表系列4） |
@@ -74,8 +74,7 @@
 |------|-----|------|
 | `--shadow-card` | `0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.2)` | 卡片默认 |
 | `--shadow-card-hover` | `0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -2px rgba(0,0,0,0.25)` | 卡片悬停 |
-| `--shadow-glow-blue` | `0 0 15px rgba(0, 198, 255, 0.3)` | 强调发光 |
-| `--shadow-glow-green` | `0 0 15px rgba(46, 204, 113, 0.3)` | 成功发光 |
+| `--shadow-glow-green` | `0 0 15px rgba(46, 204, 113, 0.3)` | 主强调色发光 / 成功发光 |
 | `--shadow-modal` | `0 20px 60px rgba(0, 0, 0, 0.5)` | 弹窗 |
 
 ## 1.3 字体
@@ -111,8 +110,8 @@
 }
 
 .sharp-card:hover {
-  border-color: rgba(0, 198, 255, 0.5);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 15px rgba(0, 198, 255, 0.2);
+  border-color: rgba(46, 204, 113, 0.5);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 15px rgba(46, 204, 113, 0.2);
   transform: translateY(-3px);
 }
 ```
@@ -122,14 +121,14 @@
 ```css
 .sharp-button {
   border-radius: 6px;
-  border: 1px solid rgba(0, 198, 255, 0.3);
+  border: 1px solid rgba(46, 204, 113, 0.3);
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
 .sharp-button:hover {
-  border-color: rgba(0, 198, 255, 0.6);
-  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.4), 0 0 10px rgba(0, 198, 255, 0.4);
+  border-color: rgba(46, 204, 113, 0.6);
+  box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.4), 0 0 10px rgba(46, 204, 113, 0.4);
   transform: translateY(-2px);
 }
 
@@ -137,10 +136,10 @@
   transform: translateY(0);
 }
 ```
-- 主按钮：bg `#00c6ff` + 粗体白色/深色文字
+- 主按钮：bg `#2ecc71` + 粗体白色/深色文字
 - 次按钮：bg transparent + border `#2a3a50` + color `#94a3b8`
 - 危险按钮：bg `#e74c3c` + white 文字
-- 文字按钮：bg transparent + color `#00c6ff` + no border
+- 文字按钮：bg transparent + color `#2ecc71` + no border
 
 ## 2.3 Sharp Input（锐利输入框）
 ```css
@@ -158,8 +157,8 @@
 
 .sharp-input:focus {
   outline: none;
-  border-color: #00c6ff;
-  box-shadow: 0 0 0 3px rgba(0, 198, 255, 0.15);
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
 }
 
 .sharp-input.error {
@@ -185,7 +184,7 @@
 - 阴影：--shadow-card
 - 标题左对齐、加粗（16-18px，color #e2e8f0）
 - 底部操作按钮右对齐
-- hover：translateY(-3px) + border-color → rgba(0, 198, 255, 0.5) + 阴影增强
+- hover：translateY(-3px) + border-color → rgba(46, 204, 113, 0.5) + 阴影增强
 
 ## 3.3 表格（Data Table）
 ```css
@@ -229,14 +228,14 @@
 - 内边距：0 12px
 - 背景：#0c1220（dark-bg）
 - 边框：1px solid #2a3a50
-- 聚焦：border-color #00c6ff + box-shadow 0 0 0 3px rgba(0, 198, 255, 0.15)
+- 聚焦：border-color #2ecc71 + box-shadow 0 0 0 3px rgba(46, 204, 113, 0.15)
 - placeholder：color #64748b
 - 错误：border-color #e74c3c + 红色阴影
 
 ## 4.2 按钮（Sharp Button）
-- 主按钮：bg #00c6ff + bold 深色文字 + border rgba(0,198,255,0.3)
+- 主按钮：bg #2ecc71 + bold 深色文字 + border rgba(46,204,113,0.3)
 - 次按钮：bg transparent + border #2a3a50 + color #94a3b8
-- 文字按钮：bg transparent + color #00c6ff + no border
+- 文字按钮：bg transparent + color #2ecc71 + no border
 - 危险按钮：bg #e74c3c + white 文字
 - 禁用：opacity 0.5 + cursor not-allowed
 
@@ -271,7 +270,7 @@
 
 ## 6.1 状态标签
 - 待确认（PENDING）：text #94a3b8 + bg rgba(148, 163, 184, 0.1)
-- 处理中（CONFIRMED）：text #00c6ff + bg rgba(0, 198, 255, 0.1)
+- 处理中（CONFIRMED）：text #2ecc71 + bg rgba(46, 204, 113, 0.1)
 - 已完成（COMPLETED）：text #2ecc71 + bg rgba(46, 204, 113, 0.1)
 - 已过期（EXPIRED）：text #f39c12 + bg rgba(243, 156, 18, 0.1)
 - 已取消（CANCELLED）：text #e74c3c + bg rgba(231, 76, 60, 0.1)
@@ -321,7 +320,7 @@
 
 ## 10.2 微交互
 - 点击反馈：active 状态 translateY(0)，100ms
-- 输入框聚焦：border-color → #00c6ff + box-shadow glow，200ms
+- 输入框聚焦：border-color → #2ecc71 + box-shadow glow，200ms
 - 加载骨架屏：shimmer 动画，1.5s infinite
 
 ==========================================================
@@ -331,7 +330,7 @@
 ## 11.1 5 色系统
 | 系列 | 颜色 | 色值 | CSS 变量 |
 |------|------|------|---------|
-| 系列 1（主） | 蓝 | #00c6ff | --accent-blue |
+| 系列 1（主） | 绿 | #2ecc71 | --accent-green |
 | 系列 2（正） | 绿 | #2ecc71 | --accent-green |
 | 系列 3（辅） | 紫 | #9b59b6 | --accent-purple |
 | 系列 4（警） | 橙 | #f39c12 | --accent-yellow |
@@ -404,10 +403,22 @@
 | `.glass-input` | `.sharp-input` |
 | `.glass-modal` | `.sharp-modal` |
 | `backdrop-filter: blur(...)` | 移除（使用实色背景） |
-| `#667eea → #764ba2` | `#00c6ff` |
+| `#667eea → #764ba2` | `#00c6ff` (旧) |
 | `rgba(255, 255, 255, 0.x)` | `#162032` |
 
 完整玻璃态设计文档参见 `glassmorphism-design-system.md`（已标记 DEPRECATED）。
+
+==========================================================
+# 14.2 历史颜色令牌（Historical Color Tokens）
+==========================================================
+
+> 以下颜色令牌已从当前设计系统移除，仅供历史参考。
+
+| 令牌 | 色值 | 说明 |
+|------|------|------|
+| `--accent-blue` | `#00c6ff` | 旧主强调色（v2.0.0），v3.0.0 已替换为 `#2ecc71` |
+| `#667eea → #764ba2` | 渐变 | 玻璃态系统主色（v2.0.0 Customer 端），v3.0.0 已废弃 |
+| `#1677FF` | 蓝色 | 标准企业系统主色（v2.0.0 Admin 端），v3.0.0 已替换为 `#2ecc71` |
 
 ==========================================================
 # 附录 A：v2 → v3 对照表
@@ -416,8 +427,8 @@
 | 规范项 | v2.0.0（双系统） | v3.0.0（暗色单系统） |
 |--------|-----------------|---------------------|
 | 设计范式 | Admin 标准企业 + Customer 玻璃态 | 统一暗色优先（Dark-First） |
-| Admin 主色 | #1677FF | #00c6ff |
-| Customer 主色 | #667eea → #764ba2 渐变 | #00c6ff |
+| Admin 主色 | #1677FF | #2ecc71 (当前强调色) |
+| Customer 主色 | #667eea → #764ba2 渐变 | #2ecc71 (当前强调色) |
 | Admin 背景 | #F2F3F5 / #FFFFFF | #0c1220 / #162032 |
 | Customer 背景 | #f5f7fa → #e4e8ec 渐变 | #0c1220 / #162032 |
 | 卡片 | 白色 / 玻璃半透明 | sharp-card（#162032 + 1px 边框） |
@@ -427,4 +438,4 @@
 | 阴影 | 轻微 / 弥散 | 实色（无弥散） |
 | 动画 | 基础 / 丰富（含弹簧） | 基础过渡（无弹簧） |
 | backdrop-filter | Customer 全面使用 | 无（已移除） |
-| 图表色板 | #1677FF, #00B42A, #FF7D00, #764ba2, #F53F3F | #00c6ff, #2ecc71, #9b59b6, #f39c12, #e74c3c |
+| 图表色板 | #1677FF, #00B42A, #FF7D00, #764ba2, #F53F3F | #2ecc71 (当前强调色), #2ecc71, #9b59b6, #f39c12, #e74c3c |

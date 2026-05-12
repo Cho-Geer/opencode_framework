@@ -5,9 +5,9 @@ alwaysApply: false
 # 预约系统 - 系统架构设计文档（SAD） - Angular + NestJS 重构版
 
 ## 文档信息
-- **文档版本**: 2.3.0-fixed
+- **文档版本**: 2.5.0
 - **创建日期**: 2026-04-14
-- **最后更新**: 2026-05-06
+- **最后更新**: 2026-05-11
 - **适用版本**: angular-booking-frontend v1.0.0, nestjs-booking-backend v1.0.0
 - **文档状态**: 已基线化
 - **作者**: 系统架构分析工具
@@ -346,7 +346,11 @@ model Appointment {
   userId          String
   timeSlotId      String
   appointmentDate DateTime
-  slotSequence    Int      @default(0)      // 新增：槽位序号，用于原子化抢占
+  slotSequence    Int      @default(0)      // 槽位序号，用于原子化抢占
+  durationMinutes Int      @default(30)     // 预约时长(分钟)
+  price           Decimal?                  // 价格快照
+  taxRate         Decimal?                  // 税率快照
+  taxIncludedAmount Decimal?                // 含税总额
   status          AppointmentStatus @default(PENDING)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -632,7 +636,7 @@ angular_booking_system/
 | NFR-ID | 需求名称 | 描述 | 验收标准 |
 | :--- | :--- | :--- | :--- |
 | **NFR-01** | **定时任务互斥** | 所有定时任务必须支持分布式环境下的互斥执行。 | 启动 3 个后端实例，观察定时任务日志，同一时刻只有一个实例执行。 |
-| **NFR-02** | **预约并发安全** | 预约创建必须依赖数据库部分唯一索引实现原子化抢占，杜绝超卖。 | 并发压测下，有效预约数 ≤ 时段容量。 |
+| **NFR-02** | **预约并发安全** | 预约创建必须依赖数据库部分唯一索引实现原子化抢占，杜绝超卖。超时场景（overtimeMinutes）由应用层验证不会与相邻时段预约重叠。 | 并发压测下，有效预约数 ≤ 时段容量。Overtime 扩展不超过相邻时段边界。 |
 | **NFR-03** | **无状态服务** | 后端服务实例不得在本地内存存储会话或缓存状态。 | 任意实例宕机不影响其他实例处理请求。 |
 
 ## 16. 实施路线图建议
@@ -691,6 +695,8 @@ angular_booking_system/
 **文档变更记录**
 | 版本 | 变更内容 | 变更人 | 日期 |
 |------|---------|--------|------|
+| 2.4.0 | 新增 Appointment 模型字段 (durationMinutes/price/taxRate/taxIncludedAmount)；NFR-02 补充并发安全说明 | @Architect | 2026-05-11 |
+| 2.6.0 | 移除 BookingGroup 模型和 bookingGroupId 字段；改为 overtime-only 扩展机制；新增 overtime-overlap 应用层验证 | @Architect | 2026-05-11 |
 | 2.3.0 | 移除 ScheduleModule 子模块（Staff 模型已移除，SCH-001 端点已移除），AdminModule 子模块数 9→8 | @Architect | 2026-05-06 |
 | 2.2.0 | 新增 §2.2.1.1 AdminModule 子模块架构章节，完整定义管理员后台 9 个子模块（含 Schedule、Analytics、History、Settings 未来阶段模块） | @Architect | 2026-05-05 |
 | 2.1.0 | 新增 StatsModule (Admin Dashboard) 核心业务模块，支持 DASH-001~004 统计接口 | @Architect | 2026-05-04 |

@@ -33,7 +33,7 @@
 
 - **主色调**：
   - 背景：`#0c1220`（深空蓝黑）→ `#162032`（卡片背景）
-  - 强调色：`#00c6ff`（纯色强调蓝）→ `#0072ff`（深色变体）
+  - 强调色：`#2ecc71`（纯色强调绿）→ `#27ae60`（深色变体）
   - 文字：`#e2e8f0`（主文字）/ `#94a3b8`（次要文字）
 - **卡片样式**：sharp-card（8px 圆角 + 1px 实色边框 `#2a3a50`）
 - **按钮样式**：sharp-button（6px 圆角 + 实色边框）
@@ -50,8 +50,8 @@
 | `--color-border` | `#2a3a50` | 边框/分割线 |
 | `--color-text-primary` | `#e2e8f0` | 主文字色 |
 | `--color-text-secondary` | `#94a3b8` | 次要文字色 |
-| `--color-accent-blue` | `#00c6ff` | 强调色（按钮/链接/选中态） |
-| `--color-accent-blue-dark` | `#0072ff` | 强调色深色变体 |
+| `--color-accent-green` | `#2ecc71` | 主强调色（按钮/链接/选中态） |
+| `--color-accent-green-dark` | `#27ae60` | 强调色深色变体 |
 | `--color-accent-green` | `#2ecc71` | 成功/正向指标 |
 | `--color-accent-red` | `#e74c3c` | 危险/负向指标 |
 | `--color-accent-yellow` | `#f39c12` | 警告/待处理 |
@@ -88,8 +88,8 @@
 
 ### 关键配置文件
 - **设计令牌**：`booking-frontend/src/styles.scss`（`@theme` 块中的 CSS 自定义属性）
-- **图表色板**：`#00c6ff`（蓝）、`#2ecc71`（绿）、`#9b59b6`（紫）、`#f39c12`（橙）、`#e74c3c`（红）
-- **阴影**：`shadow-card`、`shadow-card-hover`、`shadow-glow-blue`
+  - **图表色板**：`#2ecc71`（绿）、`#1abc9c`（青）、`#9b59b6`（紫）、`#f39c12`（橙）、`#e74c3c`（红）
+- **阴影**：`shadow-card`、`shadow-card-hover`、`shadow-glow-green`
 
 =========================================================
 # 与已有文档的关系
@@ -163,8 +163,8 @@ booking-frontend/src/styles.scss（实现：Tailwind @theme 设计令牌）
 ## 颜色速查（统一 Sharp Design）
 | 用途 | 色值 | 说明 |
 |------|------|------|
-| 主色/强调色 | #00c6ff | 按钮、链接、选中态 |
-| 主色深色变体 | #0072ff | 渐变终点、hover 状态 |
+| 主色/强调色 | #2ecc71 | 按钮、链接、选中态 |
+| 主色深色变体 | #27ae60 | 渐变终点、hover 状态 |
 | 成功/正向 | #2ecc71 | 趋势上升、成功状态 |
 | 警告 | #f39c12 | 待处理、警告状态 |
 | 危险/负向 | #e74c3c | 趋势下降、错误状态 |

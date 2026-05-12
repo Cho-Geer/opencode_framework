@@ -60,6 +60,8 @@
 
 ## API 契约对照
 
+> **响应信封**：所有成功的 API 响应由 ResponseInterceptor 包装为统一信封格式 `{ statusCode, message, data, timestamp, requestId }`。下表中"响应"列仅描述 `data` 字段内部结构，信封外层隐式适用。
+
 | 方法 | 端点 | 请求参数/正文 | 响应 | 鉴权 | 调用时机 |
 |---|---|---|---|---|---|
 | `GET` | `/v1/admin/users` | `?page&limit&search&role&status` | `PaginatedResponse<AdminUserDto>`（`{id, name, email(masked), phone?(masked), role, status, createdAt}`） | Bearer ADMIN/SUPER_ADMIN | 页面初始化、筛选变化、分页变化 |
@@ -101,8 +103,49 @@
 8. 编辑模式：可修改姓名、角色、状态 → 提交
 9. 删除操作：仅 **SUPER_ADMIN** 可见「删除」按钮 → `deleteDialogVisible = true` → 确认 → `AdminService.deleteUser(id)` → `AdminStore.removeUserFromList()`
 
+## 表格列
+
+| 列 | 组件 | 说明 |
+|---|---|---|
+| **Name** | `Avatar + text` | 用户头像（首字母圆形背景）+ 名称 |
+| **Email** | `text` | 邮箱地址 |
+| **Role** | `<app-badge>` | 角色映射：`CUSTOMER→completed(蓝色)`，`ADMIN→processing(浅蓝)`，`SUPER_ADMIN→confirmed(绿色)`。标签通过 `customLabel="user.role"` 直接使用后端存储的大写值显示（`CUSTOMER` / `ADMIN` / `SUPER_ADMIN`）。 |
+| **Status** | `<app-badge>` | 状态映射：`ACTIVE→confirmed(绿色)`，`INACTIVE→pending(黄色)`，`BLOCKED→cancelled(红色)`，通过 `mapStatusToBadge()` 转换为 BadgeStatus |
+| **Created** | `date:'short'` | 创建时间 |
+| **Actions** | `<app-button>` | 编辑（ghost+pencil）+ 删除（danger+trash）
+
+## Dashboard 消耗
+
+| 仪表盘面板 | 消耗端点 | 参数 |
+|-----------|---------|------|
+| Recent Users | `GET /v1/admin/users` | `limit=5`, `page=1`, `orderBy=createdAt:desc` |
+
+Dashboard 面板复用此端点获取最近用户列表用于概览展示，与用户管理页的完整分页列表共享同一端点。
+
+## 统计卡片数据来源
+
+| 卡片 | 数据来源 | 系统级真实值? | 刷新机制 |
+|---|---|---|---|
+| **Total Users** | `GET /v1/admin/users` 响应中的 `total` 字段 | ✅ 系统级真实总数（跨分页） | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
+| **Active Users** | 从 `GET /v1/admin/users` 加载全量用户列表（limit=999）后按 `status='ACTIVE'` 过滤计算 | ✅ 系统级真实值 | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
+| **New This Week** | 从全量用户列表按 `createdAt >= 一周前` 过滤计算 | ✅ 系统级真实值 | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
+
+> **注意**：统计卡片使用独立的全量数据请求（与分页表格分开），确保 Active Users 和 New This Week 反映系统总览而非当前分页数据。Total Users 直接使用 API 响应的 `total` 字段。
+>
+> **文档缺口**：`admin.users` 当前缺少专用的 summary 统计端点（对比 `admin.services.summary`）。Active Users 和 New This Week 通过 `limit=999` 全量查询前端计算获得，仅适用于用户规模较小的场景。如需支持大规模用户管理，建议新增 `GET /v1/admin/users/summary` 统计端点，返回 `{ totalUsers, activeUsers, newThisWeek }` 三个聚合值。
+
+## 数据刷新
+
+| 事件 | 刷新行为 |
+|---|---|
+| 页面初始化 (`ngOnInit`) | 同时发起两个请求：1️⃣ `getUsers({limit:10})` 填充表格；2️⃣ `getUsers({limit:999})` 填充统计卡片 |
+| 筛选变化 (`applyFilter`) | 重新加载分页表格 + 统计卡片 |
+| 搜索/清空 (`clearFilters`) | 同上 |
+| 创建/编辑/删除用户 | 本地更新 store + 重新加载统计卡片 |
+| WebSocket 自动刷新 | ❌ 未实现（无用户变更 WebSocket 事件） |
+
 ## 数据来源
 
-- contract.yaml 1.6.4（admin.users CRUD）
+- contract.yaml 1.7.1（admin.users CRUD）
 - 安全架构设计文档 2.2.1（角色权限矩阵：SUPER_ADMIN 独占 create 和 delete ADMIN 用户）
 - 数据架构设计文档 2.2（User 实体状态枚举）

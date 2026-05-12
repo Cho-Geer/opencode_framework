@@ -56,7 +56,7 @@
 | `PUT` | `/v1/users/profile` | `{name?: string}` | `{ user: { id, name, email, phone, userType, status, createdAt } }` | Bearer | 保存编辑 |
 | `PUT` | `/v1/users/profile/password` | `{currentPassword*, newPassword*}` | `{message}` | Bearer | 修改密码对话框提交 |
 
-**注意**：`PUT /v1/users/profile` → `UsersController.updateProfile()`，含 ownership 校验，仅允许用户修改自己的资料。后端 `ProfileResponseDto` 包含脱敏邮箱/手机。
+**注意**：`PUT /v1/users/profile` → `UsersController.updateProfile()`，含 ownership 校验，仅允许用户修改自己的资料。请求体仅允许 name 字段，email/phone 不可通过此端点修改。后端 `ProfileResponseDto` 包含脱敏邮箱/手机。
 **修改密码**：`PUT /v1/users/profile/password` → `UsersController.updatePassword()`，需验证旧密码，仅允许修改自己的密码。
 
 ## 本地 store 信号（AuthStore）
@@ -85,7 +85,7 @@
 
 ## 数据来源
 
-- contract.yaml 1.6.4（users.get_profile, users.update_profile）
+- contract.yaml 1.7.1（users.get_profile, users.update_profile, users.update_password）
 - 接口设计规范 2.1（数据脱敏要求）
 - 安全架构设计文档 2.1（JWT payload 规范）
 - piiEncryptionStrategy 4（PII 三字段模型）

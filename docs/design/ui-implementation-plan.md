@@ -13,10 +13,10 @@
 
 ## v2.0.0 — 2026-05-04
 - **设计范式切换**：移除所有 glassmorphism 引用，统一为 dark-first sharp design
-- **色彩更新**：旧 #1677FF / #667eea / #764ba2 → 新 #00c6ff
+- **色彩更新**：旧 #1677FF / #667eea / #764ba2 → 新 #2ecc71
 - **组件重命名**：glass-* 类 → sharp-* 类
 - **移除**：backdrop-filter、glass-level-1/2/3、玻璃态层级系统
-- **Tailwind 配置**：更新为暗色令牌（#0c1220, #162032, #00c6ff 等）
+- **Tailwind 配置**：更新为暗色令牌（#0c1220, #162032, #2ecc71 等）
 
 ==========================================================
 # 1. 项目概览
@@ -63,16 +63,16 @@
   - `border-color`: '#2a3a50'
   - `text-primary`: '#e2e8f0'
   - `text-secondary`: '#94a3b8'
-  - `accent-blue`: '#00c6ff'
-  - `accent-blue-dark`: '#0072ff'
   - `accent-green`: '#2ecc71'
+  - `accent-green-dark`: '#27ae60'
+  - `accent-green-light`: '#2ecc71'
   - `accent-red`: '#e74c3c'
   - `accent-yellow`: '#f39c12'
   - `accent-purple`: '#9b59b6'
 - 阴影扩展：
   - `shadow-card`（实色暗影）
   - `shadow-card-hover`
-  - `shadow-glow-blue` / `shadow-glow-green`
+  - `shadow-glow-green`
 - 圆角扩展：
   - `radius-sharp`: '8px'（卡片）
   - `radius-button`: '6px'
@@ -106,12 +106,12 @@
 | app-modal | 原子 | Sharp Modal（暗色） | P0 |
 | app-badge | 原子 | 状态标签（暗色） | P0 |
 | app-toast | 原子 | 通知提示（暗色） | P0 |
-| app-spinner | 原子 | 加载动画（accent-blue） | P0 |
+| app-spinner | 原子 | 加载动画（accent-green） | P0 |
 | app-empty-state | 原子 | 空状态 | P0 |
 | app-calendar | 原子 | 日历（PrimeNG 暗色增强） | P0 |
 | app-time-slot | 原子 | 时间槽按钮（Sharp） | P0 |
 | app-dropdown | 原子 | 下拉选择（暗色） | P1 |
-| app-toggle | 原子 | 开关（accent-blue 轨道） | P1 |
+| app-toggle | 原子 | 开关（accent-green 轨道） | P1 |
 | app-avatar | 原子 | 头像（首字母 + 暗色背景） | P1 |
 | app-progress | 原子 | 进度条（accent 渐变填充） | P1 |
 
@@ -208,8 +208,8 @@
 **设计要点**：
 - 分屏布局：左侧品牌展示（暗色背景 + 装饰），右侧 Sharp Card 表单
 - 卡片：Sharp Card（bg #162032 + border #2a3a50 + radius 8px），padding 48px
-- 输入框：Sharp Input，聚焦 border-color #00c6ff + glow
-- 按钮：Sharp 主按钮（bg #00c6ff），全宽
+- 输入框：Sharp Input，聚焦 border-color #2ecc71 + glow
+- 按钮：Sharp 主按钮（bg #2ecc71），全宽
 
 #### 2.2.2 服务选择页面（3 天）
 **页面**：`/booking/services`
@@ -230,9 +230,9 @@
 
 **设计要点**：
 - 页面背景：dark-bg (#0c1220) + 可选网格背景
-- 服务卡片：Sharp Card，hover 上浮 + 阴影增强 + border-color → #00c6ff
+- 服务卡片：Sharp Card，hover 上浮 + 阴影增强 + border-color → #2ecc71
 - 搜索框：Sharp Input，聚焦 glow
-- 筛选标签：Sharp 标签，选中 bg rgba(0,198,255,0.15) + border #00c6ff + color #00c6ff
+- 筛选标签：Sharp 标签，选中 bg rgba(46,204,113,0.15) + border #2ecc71 + color #2ecc71
 
 #### 2.2.3 时间槽选择页面（3 天）
 **页面**：`/booking/time-slots`
@@ -252,11 +252,11 @@
 - 确认预约按钮
 
 **设计要点**：
-- 日历：Sharp Card 面板，选中日期 bg #00c6ff + white 文字
+- 日历：Sharp Card 面板，选中日期 bg #2ecc71 + white 文字
 - 时间槽：Sharp 按钮网格
   - 可用：bg #0c1220 + border #2a3a50 + color #e2e8f0
   - 已预约：bg rgba(148, 163, 184, 0.1) + color #94a3b8 + cursor not-allowed
-  - 选中：bg #00c6ff + white 文字 + box-shadow glow
+  - 选中：bg #2ecc71 + white 文字 + box-shadow glow
 - 摘要栏：Sharp Card，sticky bottom
 
 #### 2.2.4 预约确认弹窗（2 天）
@@ -312,7 +312,7 @@
 - 空状态
 
 **设计要点**：
-- 筛选标签：Sharp 标签，选中 bg rgba(0,198,255,0.15) + border #00c6ff
+- 筛选标签：Sharp 标签，选中 bg rgba(46,204,113,0.15) + border #2ecc71
 - 预约卡片：Sharp Card，状态标签颜色区分
 - 操作按钮：查看详情（文字）+ 取消（次按钮）
 - 详情弹窗：Sharp Modal（640px）
@@ -334,7 +334,7 @@
 - 表单验证
 
 **设计要点**：
-- 头像区域：Sharp Card，border #00c6ff（可选强调边框）
+- 头像区域：Sharp Card，border #2ecc71（可选强调边框）
 - 信息卡片：Sharp Card，字段列表
 - 编辑表单：Sharp Input
 - 密码弹窗：Sharp Modal（520px）
@@ -426,7 +426,7 @@
 
 **设计要点**：
 - 图片上传：暗色拖拽区域（bg #0c1220 + border 2px dashed #2a3a50）
-- 开关：accent-blue 轨道（Sharp 风格）
+- 开关：accent-green 轨道（Sharp 风格）
 
 #### 2.3.5 预约管理（3 天）
 **页面**：`/admin/appointments`
@@ -848,18 +848,22 @@ interface AppointmentDto {
 - Mock 数据结构与契约 API 响应保持一致
 - 便于后续切换真实 API
 
-## 5.3 预约创建 API 字段补充
-**contract.yaml 当前字段**（3个）：
-- `time_slot_id`（required）
-- `appointment_date`（required）
+## 5.3 预约创建 API 字段补充（contract.yaml v1.7.0）
+**contract.yaml 当前字段**（v1.7.0）：
+- `timeSlotId`（required）
+- `serviceId`（required）
+- `appointmentDate`（required）
+- `preferredSequence`（required）— 前端生成随机值（0-99），用于热点分片
+- `customerInfo`（optional, JSON）— 客户补充信息
 - `notes`（optional）
+- `overtimeMinutes`（optional, number）— 超时时长（分钟）
 
-**数据模型要求补充字段**（见 `数据架构设计文档.md`）：
-- `service_id`（required）— 从服务选择页传递
-- `customer_info`（optional, JSON）— 客户补充信息
-- `preferred_sequence`（required）— 前端生成随机值（0-99），用于热点分片
-
-**请求体示例**：
+**响应体新增字段**（v1.7.0）：
+- `durationMinutes`（number）— 预约时长
+- `price`（number）— 价格快照
+- `taxRate`（number）— 税率快照
+- `taxIncludedAmount`（number）— 含税总额
+**请求体示例**（单时段）：
 ```json
 {
   "timeSlotId": "uuid",

@@ -42,6 +42,8 @@
 | `Router` | 登录后导航 |
 | `RouteResolver` | 静态方法 `getPostLoginRoute(profile.userType)` 决定目标路由 |
 
+> **注意**：`ApiService` 通过拦截器自动为请求附加 `X-Request-ID`，登录响应中 `requestId` 字段可用于全链路追踪。
+
 ## 本地信号
 
 | 信号 | 类型 | 说明 |
@@ -63,6 +65,8 @@
 | `GET` | `/v1/users/profile` | — | `{id, name, email, phone, userType, createdAt}` | Bearer | 登录成功后获取用户信息 |
 | `POST` | `/v1/auth/refresh` | —（HttpOnly cookie） | `AuthResponseDto` | No | Token 刷新 |
 | `POST` | `/v1/auth/logout` | — | `LogoutResponseDto` | Bearer | 退出登录 |
+
+> **信封格式**：响应体遵循 `statusCode/message/data/timestamp/requestId` 信封格式（contract.yaml §response_envelope）。
 
 ## 认证后端映射
 
@@ -115,7 +119,7 @@
 
 ## 数据来源
 
-- contract.yaml 1.6.4
+- contract.yaml 1.7.1
 - SAD 2.3.1 (Pages 列表)
 - 接口设计规范 2.1.2
 - 安全架构设计文档 2.1 (JWT 双 Token), 2.3.2 (防枚举)

@@ -44,6 +44,9 @@
 | 信号 | 类型 | 说明 |
 |---|---|---|
 | `bookingReference` | `string` | 预约参考号（绑定 `BookingStore.lastAppointment?.appointmentNumber`） |
+| `bookingAmount` | `number` (computed) | 预约金额（`BookingStore.lastAppointment?.taxIncludedAmount`） |
+| `bookingDuration` | `number` (computed) | 预约时长（`BookingStore.lastAppointment?.durationMinutes`） |
+
 
 ## API 契约对照
 
@@ -55,11 +58,12 @@
 2. 页面展示成功图标 + 祝贺文案
 3. 显示预约参考号（`bookingReference`）
 4. 显示预约摘要（服务名称、日期时间、用户信息）
-5. 提供两个操作按钮：
+5. **财务摘要**：显示价格（`bookingAmount`）、含税总价（`taxIncludedAmount`）、时长（`bookingDuration` 分钟）
+6. 提供两个操作按钮：
    - 「查看我的预约」→ 导航至 `/my-bookings`
    - 「继续预约」→ 导航至 `/booking`（重新开始选择服务）
 
 ## 数据来源
 
-- contract.yaml 1.6.4（预约创建成功分支）
+- contract.yaml 1.7.2（预约创建成功响应 — 含 financial 字段）
 - 接口设计规范 2.5.3（乐观 UI）

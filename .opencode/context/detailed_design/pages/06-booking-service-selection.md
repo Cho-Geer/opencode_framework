@@ -61,7 +61,7 @@
 
 | 方法 | 端点 | 请求参数 | 响应 | 鉴权 | 调用时机 |
 |---|---|---|---|---|---|
-| `GET` | `/v1/services` | — | `Service[]` (`{id, name, description, duration, price, active}`) | Bearer | `ngOnInit()` 的 `loadServices()` |
+| `GET` | `/v1/services` | — | `Service[]` (`{id, name, description, duration, price, active, pricePerMinute?, taxRate?}`) | Bearer | `ngOnInit()` 的 `loadServices()` |
 
 **后端映射**：
 
@@ -78,7 +78,7 @@
 5. 分类 Tab 栏 → 点击按类别筛选
 6. 点击某个服务 → `selectedServiceId = service.id` → `BookingStore.setSelectedServiceId(serviceId)`
 7. 自动导航至 `/booking/slots`
-8. **高并发优化**：`preferredSequence`（0-99 随机散列）将在预约确认提交时生成并发送，用于高并发场景下的竞态控制
+8. `preferredSequence` 在确认提交时生成（见 08-booking-confirmation.md）
 
 ## 数据模型
 
@@ -89,11 +89,15 @@
 | `Service.description` | `string` | 服务描述 |
 | `Service.duration` | `number` | 时长（分钟） |
 | `Service.price` | `number (decimal)` | 价格 |
+| `Service.pricePerMinute` | `number (decimal)` | 每分钟单价（用于超时计费：`overtimeMinutes × pricePerMinute`） |
+| `Service.taxRate` | `number (decimal)` | 默认税率（如 0.0800 = 8%） |
 | `Service.active` | `boolean` | 是否激活 |
+
+> **v1.7.0 新增字段**：`pricePerMinute` 和 `taxRate` 在预约创建时快照至 Appointment，后续 Service 价格变动不影响已有预约账单。
 
 ## 数据来源
 
-- contract.yaml 1.6.4（services.list）
+- contract.yaml 1.7.2（services.list — 含 pricePerMinute、taxRate）
 - SAD 2.2.1（ServicesModule）
 - 接口设计规范 2.5.3（高并发乐观 UI）
 - 数据架构设计文档 2.2（Service 实体, ServiceCategory 实体）

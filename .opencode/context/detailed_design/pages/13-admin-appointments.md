@@ -9,7 +9,7 @@
 | **布局** | `AppLayoutComponent`（Admin 侧边栏） |
 | **惰性加载** | `features/admin/admin.routes.ts` → `ADMIN_ROUTES` (loadComponent) |
 | **组件** | `AppointmentManagementComponent` (`src/app/features/admin/pages/appointment-management/appointment-management.component.ts`) |
-| **设计依据** | contract.yaml `admin.appointments`（list/update/batch-cancel）, SAD 2.3.1（AdminBookingList） |
+| **设计依据** | contract.yaml `admin.appointments`（create/list/update-status/batch-cancel）, SAD 2.3.1（AdminBookingList） |
 
 ## 用户角色
 
@@ -62,8 +62,9 @@
 ## API 契约对照
 
 | 方法 | 端点 | 请求参数/正文 | 响应 | 鉴权 | 调用时机 |
-|---|---|---|---|---|---|
-| `GET` | `/v1/admin/appointments` | `?page&limit&status&startDate&endDate&serviceId&userId` | `PaginatedResponse<AdminAppointmentDto>`（`{id, appointmentNumber, userId, userName, serviceId, serviceName, timeSlotId, appointmentDate, status, createdAt}`） | Bearer ADMIN/SUPER_ADMIN | 页面初始化、筛选、分页 |
+|---|---|---|---|---|---|---|
+| `POST` | `/v1/admin/appointments` | `{userId*, serviceId*, timeSlotId*, appointmentDate*, notes?, overtimeMinutes?}` | `AdminAppointmentDto` (201)（`{id, userId, serviceId, timeSlotId, appointmentDate, status, durationMinutes, price, taxRate, taxIncludedAmount, createdAt}`） | Bearer ADMIN/SUPER_ADMIN | Quick Booking 管理员为客户创建预约 |
+| `GET` | `/v1/admin/appointments` | `?page&limit&status&startDate&endDate&serviceId&userId` | `PaginatedResponse<AdminAppointmentDto>`（`{id, appointmentNumber, userId, userName, serviceId, serviceName, timeSlotId, appointmentDate, status, createdAt, durationMinutes, price, taxRate, taxIncludedAmount}`） | Bearer ADMIN/SUPER_ADMIN | 页面初始化、筛选、分页 |
 | `PUT` | `/v1/admin/appointments/:id/status` | `{status*, reason?}` | `{id, status, updatedAt}` | Bearer ADMIN/SUPER_ADMIN | 单条状态更新 |
 | `POST` | `/v1/admin/appointments/batch-cancel` | `{ids*, reason?}` | `{successCount, failedCount, failedIds}` | Bearer ADMIN/SUPER_ADMIN | 批量取消 |
 
@@ -95,11 +96,17 @@
 6. 筛选栏：状态下拉 + 日期范围选择 + 搜索框
 7. 单条操作：点击「更新状态」→ `statusDialogVisible = true` → 选择目标状态 + 原因 → 提交 → `AdminStore.updateAppointmentStatusInList()`
 8. 批量操作：复选框选中多条 → 点击「批量取消」→ 填写原因 → `batchCancel()` → `AdminStore.removeAppointmentsFromList()`
-9. 状态变化后，后端通过 WebSocket `appointment_updated` 事件通知相关用户
+9. **Quick Booking**（管理员快速为客户创建预约）：
+   - 点击「新增预约」按钮 → 弹出对话框
+   - 表单字段：选择客户（搜索用户列表）、选择服务、选择日期时间、填写备注
+    - 支持超时设置（`overtimeMinutes`），系统自动验证超时不会与相邻时段预约重叠
+   - 提交 → `POST /v1/admin/appointments` → 成功后刷新列表
+   - 底层复用原子槽位抢占机制（PostgreSQL 部分唯一索引）
+10. 状态变化后，后端通过 WebSocket `appointment_updated` 事件通知相关用户
 
 ## 数据来源
 
-- contract.yaml 1.6.4（admin.appointments CRUD）
+- contract.yaml 1.7.1（admin.appointments create/list/update-status/batch-cancel）
 - SAD 2.3.1（AdminBookingList）
 - 接口设计规范 2.8（管理端预约管理）
 - 数据架构设计文档 2.2（Appointment 状态枚举 + AppointmentHistory）
