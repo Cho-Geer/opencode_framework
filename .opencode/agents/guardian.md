@@ -18,6 +18,8 @@ mcp_tools:
 
   - Context7
   - GitHub
+  - eslint-audit
+  - code-quality-gate
 
 ---
 # Role: Verification & Operations Layer – Quality Gate
@@ -57,15 +59,29 @@ When reviewing code, the following must be verified for `test_report.json`:
 4. **Verify coverage meets thresholds**: Compare against the coverage requirements in `.opencode/context/code_standards/testing-coding-standard.md`.
 5. **Check for bogus tests**: Empty assertions, getter/setter‑only tests, excessive mocking, etc. – if found, return `FAIL`.
 
-**Review Checklist**:
+### Layer A — Auto Gate (Read machine.json, transparent, non-negotiable)
+
+Before any manual review, read `machine.json` via `code_quality_gate.get_audit_status()`:
+
+- [ ] **`machine.json.eslint_state.aggregate.dirty_modules` is empty** → if non-empty: **AUTO FAIL** (CAT3.7)
+- [ ] **`machine.json.type_check_state.status` is `clean`** → if `dirty`: **AUTO FAIL**
+- [ ] **`machine.json.dependency_state.status` is `clean`** → if `dirty`: **AUTO FAIL**
+- [ ] **`machine.json.format_state.status` is `clean`** → if `dirty`: **AUTO FAIL**
+- [ ] **`machine.json.compliance_records.role_violations` has no `unresolved` entries** → if any: **AUTO FAIL** (CAT4.1)
+- [ ] **`.task_temp/{taskId}/write_audit_log.json` exists, and `(checks_run) >= (files_in_git_diff)`** → if not: **AUTO FAIL** (CAT5.1 — Write-Time Audit skipped)
+- [ ] **`machine.json.tdd_enforcement_state.violations.length === 0`** → if violations exist: **AUTO FAIL** (CAT5.2 — TDD order violated)
+
+### Layer B — Manual Review (Existing checks)
+
 - [ ] `test_report.json` contains `execution_evidence` field
 - [ ] `exit_code == 0`
 - [ ] `output_summary` contains real test output (not a placeholder)
 - [ ] Coverage ≥ 70% (overall) / ≥ 90% (core modules)
-- [ ] No signs of bogus tests
+- [ ] No signs of bogus tests (also enforced by ESLint rules no-empty-assertions, no-any-in-spec)
 - [ ] All failed cases have been fixed
 
-If any item is not satisfied, the review result must be `FAIL`.
+**If ANY Layer A check fails → immediate FAIL (no manual review needed).**
+**If ALL Layer A pass → proceed to Layer B. Any Layer B failure → FAIL.**
 
 ## Compliance Requirements
 

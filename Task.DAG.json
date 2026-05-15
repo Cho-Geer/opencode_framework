@@ -1,20 +1,273 @@
 {
+  "meta": {
+    "version": "2.0.0",
+    "generated_by": "@Meta-Planner → @Orchestrator",
+    "generated_at": "2026-05-12T14:23:00Z",
+    "last_updated": "2026-05-13T02:10:00Z",
+    "based_on": ".opencode/context/requirements/cross-doc-consistency-and-i18n-plan.md",
+    "tdd_enforcement": "Each coding task MUST follow RED→GREEN→REFACTOR phases. RED phase: write failing tests only. GREEN phase: write minimal business code to pass tests. REFACTOR phase: optional, keep tests passing.",
+    "execution_summary": "All 5 phases executed autonomously via multi-agent TDD workflow. Phase 1-4 implementation complete. Guardian reviews (@Guardian manual) + @Arbiter final sign-off remain. See .task_temp/_dispatch/ for full audit trail."
+  },
   "tasks": [
     {
       "id": "TIMESLOTS-PAGINATION-FIX",
       "name": "Fix TimeSlots module pagination format",
-      "description": "Align TimeSlots pagination return format with 接口设计规范文档",
       "status": "completed",
       "dependencies": [],
-      "assignee": "@Coder-BE"
+      "assignee": "@Coder-BE",
+      "tdd_phase": "completed"
     },
     {
       "id": "APPOINTMENTS-PAGINATION-FIX",
       "name": "Fix Appointments module pagination format",
-      "description": "Align Appointments pagination return format with 接口设计规范文档: change service return from {data,total,page,pageSize,totalPages} to {items,meta:{total,page,limit,totalPages,hasNext,hasPrev}}, controller query param pageSize→limit",
       "status": "completed",
       "dependencies": [],
-      "assignee": "@Coder-BE"
+      "assignee": "@Coder-BE",
+      "tdd_phase": "completed"
+    },
+    {
+      "id": "BE-ROLE-UNIFY",
+      "name": "[Phase1-CRITICAL-1] Unify User.role field (Backend)",
+      "status": "completed",
+      "dependencies": [],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/BE-ROLE-UNIFY/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/BE-ROLE-UNIFY/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/BE-ROLE-UNIFY/refactor_report.json"}
+      }
+    },
+    {
+      "id": "FE-ROLE-UNIFY",
+      "name": "[Phase1-CRITICAL-1] Unify User.role field (Frontend)",
+      "status": "completed",
+      "dependencies": ["BE-ROLE-UNIFY"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/FE-ROLE-UNIFY/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/FE-ROLE-UNIFY/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/FE-ROLE-UNIFY/refactor_report.json"}
+      }
+    },
+    {
+      "id": "BE-CATEGORY-NULLABLE",
+      "name": "[Phase1-CRITICAL-2] Make Service.categoryId nullable",
+      "status": "completed",
+      "dependencies": [],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/BE-CATEGORY-NULLABLE/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/BE-CATEGORY-NULLABLE/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/BE-CATEGORY-NULLABLE/refactor_report.json"}
+      }
+    },
+    {
+      "id": "BE-STATS-CONTRACT-FIXES",
+      "name": "[Phase1-HIGH] Stats + Business Hours contract fixes",
+      "status": "completed",
+      "dependencies": [],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/BE-STATS-CONTRACT-FIXES/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/BE-STATS-CONTRACT-FIXES/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/BE-STATS-CONTRACT-FIXES/refactor_report.json"}
+      }
+    },
+    {
+      "id": "DICT-BE-MODEL",
+      "name": "[Phase2.1] Add TranslationDictionary Prisma model + migration",
+      "status": "completed",
+      "dependencies": ["BE-ROLE-UNIFY", "BE-CATEGORY-NULLABLE", "BE-STATS-CONTRACT-FIXES"],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/DICT-BE-MODEL/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/DICT-BE-MODEL/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/DICT-BE-MODEL/refactor_report.json"}
+      }
+    },
+    {
+      "id": "DICT-BE-SERVICE",
+      "name": "[Phase2.2] Backend TranslationService",
+      "status": "completed",
+      "dependencies": ["DICT-BE-MODEL"],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/DICT-BE-SERVICE/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/DICT-BE-SERVICE/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/DICT-BE-SERVICE/refactor_report.json"}
+      }
+    },
+    {
+      "id": "DICT-BE-API",
+      "name": "[Phase2.3] Translation API endpoints",
+      "status": "completed",
+      "dependencies": ["DICT-BE-SERVICE"],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/DICT-BE-API/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/DICT-BE-API/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/DICT-BE-API/refactor_report.json"}
+      }
+    },
+    {
+      "id": "DICT-BE-SEED",
+      "name": "[Phase2.4] Default translation seed data",
+      "status": "completed",
+      "dependencies": ["DICT-BE-MODEL"],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/DICT-BE-SEED/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/DICT-BE-SEED/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/DICT-BE-SEED/refactor_report.json"}
+      }
+    },
+    {
+      "id": "DICT-FE-SERVICE",
+      "name": "[Phase3.1] Frontend TranslationService",
+      "status": "completed",
+      "dependencies": ["DICT-BE-API"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/DICT-FE-SERVICE/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/DICT-FE-SERVICE/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/DICT-FE-SERVICE/refactor_report.json"}
+      }
+    },
+    {
+      "id": "DICT-FE-PIPE",
+      "name": "[Phase3.2] Frontend TranslatePipe",
+      "status": "completed",
+      "dependencies": ["DICT-FE-SERVICE"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/DICT-FE-PIPE/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/DICT-FE-PIPE/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/DICT-FE-PIPE/refactor_report.json"}
+      }
+    },
+    {
+      "id": "DICT-FE-WS",
+      "name": "[Phase3.3] WebSocket incremental update integration",
+      "status": "completed",
+      "dependencies": ["DICT-FE-SERVICE"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/DICT-FE-WS/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/DICT-FE-WS/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/DICT-FE-WS/refactor_report.json"}
+      }
+    },
+    {
+      "id": "COPY-AUTH-PAGES",
+      "name": "[Phase4.1] Migrate auth pages to | t pipe",
+      "status": "completed",
+      "dependencies": ["DICT-FE-PIPE"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/COPY-AUTH-PAGES/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/COPY-AUTH-PAGES/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/COPY-AUTH-PAGES/refactor_report.json"}
+      }
+    },
+    {
+      "id": "COPY-DASHBOARD",
+      "name": "[Phase4.2] Migrate admin dashboard to | t pipe",
+      "status": "completed",
+      "dependencies": ["DICT-FE-PIPE"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/COPY-DASHBOARD/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/COPY-DASHBOARD/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/COPY-DASHBOARD/refactor_report.json"}
+      }
+    },
+    {
+      "id": "COPY-BOOKING-FLOW",
+      "name": "[Phase4.3] Migrate booking flow to | t pipe",
+      "status": "completed",
+      "dependencies": ["DICT-FE-PIPE"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/COPY-BOOKING-FLOW/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/COPY-BOOKING-FLOW/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/COPY-BOOKING-FLOW/refactor_report.json"}
+      }
+    },
+    {
+      "id": "COPY-SHARED",
+      "name": "[Phase4.4] Migrate shared components to | t pipe",
+      "status": "completed",
+      "dependencies": ["DICT-FE-PIPE"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/COPY-SHARED/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/COPY-SHARED/green_report.json"},
+        "refactor": {"status": "skipped", "artifact": ".task_temp/COPY-SHARED/refactor_report.json"}
+      }
+    },
+    {
+      "id": "TEST-BE-DICT",
+      "name": "[Phase5.1] Backend comprehensive testing",
+      "status": "completed",
+      "dependencies": ["DICT-BE-API", "DICT-BE-SEED"],
+      "assignee": "@Coder-BE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/TEST-BE-DICT/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/TEST-BE-DICT/green_report.json"}
+      }
+    },
+    {
+      "id": "TEST-FE-DICT",
+      "name": "[Phase5.2] Frontend comprehensive testing",
+      "status": "completed",
+      "dependencies": ["DICT-FE-PIPE", "DICT-FE-WS", "COPY-AUTH-PAGES", "COPY-DASHBOARD", "COPY-BOOKING-FLOW", "COPY-SHARED"],
+      "assignee": "@Coder-FE",
+      "tdd_phases": {
+        "red": {"status": "completed", "artifact": ".task_temp/TEST-FE-DICT/red_report.json"},
+        "green": {"status": "completed", "artifact": ".task_temp/TEST-FE-DICT/green_report.json"}
+      }
+    },
+    {
+      "id": "DOC-UPDATE",
+      "name": "[Phase5.3] Update design docs & finalize",
+      "status": "completed",
+      "dependencies": [],
+      "assignee": "@Architect",
+      "tdd_phases": {
+        "green": {"status": "completed", "artifact": ".task_temp/_dispatch/"}
+      }
+    },
+    {
+      "id": "BE-PHASE1-GUARDIAN",
+      "name": "[Guardian] Review Phase 1 backend changes",
+      "status": "pending_manual",
+      "dependencies": ["BE-ROLE-UNIFY", "BE-CATEGORY-NULLABLE", "BE-STATS-CONTRACT-FIXES"],
+      "assignee": "@Guardian",
+      "note": "Manual dispatch required — call /compliance-gate then /dispatch @Guardian"
+    },
+    {
+      "id": "FE-PHASE1-GUARDIAN",
+      "name": "[Guardian] Review Phase 1 frontend changes",
+      "status": "pending_manual",
+      "dependencies": ["FE-ROLE-UNIFY"],
+      "assignee": "@Guardian",
+      "note": "Manual dispatch required"
+    },
+    {
+      "id": "BE-PHASE2-GUARDIAN",
+      "name": "[Guardian] Review Phase 2 dictionary backend",
+      "status": "pending_manual",
+      "dependencies": ["TEST-BE-DICT"],
+      "assignee": "@Guardian",
+      "note": "Manual dispatch required"
+    },
+    {
+      "id": "FE-PHASE3-GUARDIAN",
+      "name": "[Guardian] Review Phase 3-4 frontend changes",
+      "status": "pending_manual",
+      "dependencies": ["TEST-FE-DICT"],
+      "assignee": "@Guardian",
+      "note": "Manual dispatch required"
     }
   ]
 }

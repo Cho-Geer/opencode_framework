@@ -107,6 +107,24 @@ function runGateCheck(taskDescription) {
     failed.push({ id: 'rule_mcp_inventory', desc: `mcp-tool-inventory.md not found at ${MCP_INVENTORY}`, severity: 'HIGH' });
   }
 
+  // Check for unresolved role violations
+  try {
+    const stateDir = resolveProjectState();
+    const machinePath = path2.join(stateDir, 'machine.json');
+    if (fs2.existsSync(machinePath)) {
+      const machine = JSON.parse(fs2.readFileSync(machinePath, 'utf-8'));
+      const violations = machine.compliance_records?.role_violations || [];
+      const unresolved = violations.filter(v => v.status === 'unresolved');
+      if (unresolved.length > 0) {
+        failed.push({
+          id: 'agent_role_violation',
+          desc: `CAT4.1: ${unresolved.length} unresolved role violations found in machine.json.compliance_records. Last: ${unresolved[unresolved.length-1].agent} wrote ${unresolved[unresolved.length-1].violation_file}`,
+          severity: 'HIGH'
+        });
+      }
+    }
+  } catch {} // Non-blocking if machine.json can't be read
+
   const passed = failed.length === 0;
   store.sessions[sessionId] = {
     session_id: sessionId,
@@ -165,6 +183,41 @@ function runGateComplete(sessionId, executionSummary) {
   }
   if (session.consumed_at) {
     return { status: 'rejected', reason: `session ${sessionId} already completed at ${session.consumed_at}. Cannot re-complete.` };
+  }
+
+  // ESLint mock-audit check: read machine.json.eslint_state
+  const stateDir = resolveProjectState();
+  const machinePath = path2.join(stateDir, 'machine.json');
+  let eslintFailed = false;
+  let dirtyModules = [];
+
+  try {
+    if (fs2.existsSync(machinePath)) {
+      const machine = JSON.parse(fs2.readFileSync(machinePath, 'utf-8'));
+      if (machine.eslint_state?.aggregate?.dirty_modules?.length > 0) {
+        dirtyModules = machine.eslint_state.aggregate.dirty_modules;
+        eslintFailed = true;
+      }
+    }
+  } catch {
+    // If machine.json can't be read, allow gate to proceed
+  }
+
+  if (eslintFailed) {
+    const now = new Date().toISOString();
+    session.gate_status = 'failed';
+    session.consumed_at = now;
+    session.fail_reason = 'ESLint mock-audit violations found in modules: ' + dirtyModules.join(', ');
+    session.audit = {
+      execution_summary: (executionSummary || '').substring(0, 1000),
+      completed_at: now
+    };
+    saveStore(store);
+    return {
+      status: 'failed',
+      reason: 'CAT3.7: ESLint mock-audit violations in modules: ' + dirtyModules.join(', ') + '. Run eslint-audit.run_audit({ full_scan: true }) to see details, then fix violations or obtain @Arbiter waivers.',
+      dirty_modules: dirtyModules
+    };
   }
 
   const now = new Date().toISOString();
@@ -238,7 +291,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'compliance_gate_complete',
-      description: 'Mark the compliance gate session as completed after task execution. Consumes the armed state and outputs an audit summary. This must be called AFTER compliance_gate_confirm and AFTER the task has been executed. Cannot be called twice for the same session.',
+      description: 'Mark the compliance gate session as completed after task execution. Consumes the armed state and outputs an audit summary. This must be called AFTER compliance_gate_confirm and AFTER the task has been executed. Cannot be called twice for the same session. INTERNALLY: reads machine.json.eslint_state and returns failed if dirty_modules exist (CAT3.7). Run eslint-audit.run_audit({ full_scan: true }) first.',
       inputSchema: {
         type: 'object',
         properties: {

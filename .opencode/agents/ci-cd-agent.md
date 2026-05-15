@@ -12,7 +12,7 @@ skills:
   - global-cicd-practices-enforcement
   - cross-directory-ci
   - Bash
-	- Write
+   - Write
   - Read
   - Glob
   - Grep

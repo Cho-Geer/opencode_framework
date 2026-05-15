@@ -41,7 +41,34 @@ Call `compliance_gate_confirm(session_id, plan_summary)` to arm the compliance g
 ### Step 8: Proceed with task execution
 Only now may you proceed with analysis, design, coding, or any other task work.
 
-### Step 9: Report invocation summary (MANDATORY — include in your output)
+### Step 8b: Write-Time Audit Protocol (P0 MANDATORY — After EVERY file change)
+
+After EACH successful `Write` or `Edit` operation, you MUST immediately:
+
+1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "<your_agent_type>", task_id: "<current_task_id>" })`
+2. Check response.overall:
+   - `"pass"` → append to `.task_temp/{taskId}/write_audit_log.json` with result `pass` → continue
+   - `"fail"` → examine each violation:
+     - `scope`: **REVERT the change immediately** — you lack write permission
+     - `tsc`: fix type errors
+     - `eslint` with tier1_mock: replace with Testcontainers
+     - `deps`: fix import paths
+     - `format`: auto-fixed if auto_fix enabled
+      - `eslint` (other): fix or document for review
+      - `tdd`: **Write test file BEFORE implementation file** — CAT5.2 BLOCKER if violated
+3. After fixing, re-run `run_write_check` to confirm
+4. Append to write_audit_log.json with result
+5. Only proceed to next file when `overall === "pass"`
+
+**⚠️ NEVER skip Step 8b.** The pre-commit hook and @Guardian will detect skipped checks via write_audit_log.json. Consecutive skips trigger @Arbiter circuit breaker.
+
+### Step 9: Close compliance gate (P0 MANDATORY)
+After completing implementation AND running tests, call `compliance_gate_complete(session_id, execution_summary)`.
+This records the task as complete AND runs ESLint mock-audit validation against machine.json.eslint_state.
+If `compliance_gate_complete` returns `failed`, you MUST fix violations (or get @Arbiter waiver) and retry.
+**未调用 compliance_gate_complete 的任务视为未完成。**
+
+### Step 10: Report invocation summary (MANDATORY — include in your output)
 
 After completing the task, append a section titled `## 📊 Invocation Summary` to your final output. It MUST include:
 

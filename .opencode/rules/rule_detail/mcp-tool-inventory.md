@@ -2,8 +2,8 @@
 # MCP工具清单与调用策略
 
 **制定时间**: 2026-04-10  
-**最后更新**: 2026-04-10  
-**版本**: v1.2.1（修正章节编号，确保完整）
+**最后更新**: 2026-05-14  
+**版本**: v2.0.0（新增 code-quality-gate MCP 工具 1.12 节，Write-Time Audit 5 项即时检查）
 
 ---
 
@@ -96,6 +96,46 @@
 | `keystone_validate` | 执行Keystone全量校验：契约哈希、任务生命周期证据、TDD合规性、合规门禁状态。读取`.opencode/state/machine.json`作为单数据源，返回结构化PASS/FAIL报告 | 多Agent系统内任意Agent在提交或完成阶段调用；CI管道中替代pre-commit hook |
 | CLI: `npm run keystone:validate` | 同上，支持`--pre-commit`/`--audit`/`--ci`三种模式 | 开发者在提交前手动检查；CI脚本中调用 |
 
+### 1.11 ESLint Audit MCP工具（v2.2.0新增）
+| 工具名称 | 功能描述 | 适用场景 |
+|---------|---------|---------|
+| `eslint_audit.run_audit` | 执行ESLint mock-audit合规扫描：(1)从`contract.yaml` `x-eslint-policy`自动生成`tier-rules.json`；(2)用`booking-mock-audit`插件扫描spec/test文件；(3)更新`machine.json.eslint_state`。检测CAT1.1(TIER1 mock)、CAT1.0(绕过审计)、CAT1.3(TIER3参数验证) | @Coder-BE/@Coder-FE write/edit后提前发现违规（Layer A）；`compliance_gate_complete`内部全量扫描（Layer B）；@Guardian审查时读取machine.json判定合规性 |
+
+**调用方式**:
+```
+eslint_audit.run_audit({ changed_file: "src/modules/time-slots/time-slots.service.spec.ts" })
+→ Layer A: 单文件快速扫描
+
+eslint_audit.run_audit({ full_scan: true })
+→ Layer B: compliance_gate_complete 内部全量扫描
+```
+
+### 1.12 Code Quality Gate MCP工具（v3.0.0 新增 — Write-Time Audit）
+| 工具名称 | 功能描述 | 适用场景 |
+|---------|---------|---------|
+| `code_quality_gate.run_write_check({ changed_file, agent_type })` | **Write-Time Audit** — 每次Write/Edit后即时执行5项检查：① Agent Write Scope（路径越界拦截，BLOCKER）② Prettier格式化（自动修复）③ dependency-cruiser架构边界 ④ ESLint mock-audit（TIER1 Mock BLOCKER）⑤ tsc增量类型检查（BLOCKER）。结果写入`machine.json.{type_check_state,dependency_state,format_state,write_audit_state}` | @Coder-BE/@Coder-FE **每次Write/Edit后必须调用**（P0强制，不可跳过）；违规当场阻断 |
+| `code_quality_gate.run_full_scan()` | **Commit-Time全量扫描** — 执行tsc全量类型检查 + depcruise全量依赖扫描 + prettier全量格式检查。用于`compliance_gate_complete`内部和pre-commit hook | `compliance_gate_complete`内部调用；Guardian审查前调用 |
+| `code_quality_gate.get_audit_status({ task_id })` | **审计状态读取** — 读取`machine.json.write_audit_state`，返回某任务的Write-Time检查记录。用于Guardian审查时验证Agent是否执行了Write-Time Audit | @Guardian审查时调用 |
+
+**调用方式**:
+```
+# Layer A — Write-Time（每次修改后立即执行）
+code_quality_gate.run_write_check({
+  changed_file: "booking-backend/src/modules/xxx/xxx.service.ts",
+  agent_type: "@Coder-BE",
+  task_id: "T-014"
+})
+→ 5项检查同步执行，<5秒返回，违规当场阻断
+
+# Layer B — Full Scan（compliance_gate_complete/pre-commit）
+code_quality_gate.run_full_scan()
+→ 全量tsc + depcruise + prettier
+
+# Guardian审计查询
+code_quality_gate.get_audit_status({ task_id: "T-014" })
+→ 返回write_audit_state，验证checks_run >= files_changed
+```
+
 ### 1.8 Task Agent工具（技术栈专家）
 | 工具名称 | 功能描述 | 适用场景 |
 |---------|---------|---------|
@@ -114,6 +154,8 @@
 |---------|------------|------------|
 | **技术栈咨询** | Context7 MCP | GitHub Search |
 | **代码开发** | Context7 MCP, Task(search) | GitHub MCP |
+| **Write-Time Audit** | **code-quality-gate** (P0强制) | eslint-audit |
+| **Commit-Time验证** | **code-quality-gate**, keystone-validate | eslint-audit |
 | **CI/CD配置** | Task(devops-architect) | GitHub MCP |
 | **GitHub操作** | GitHub MCP | - |
 | **Docker/容器化** | Docker MCP | Task(devops-architect) |
@@ -133,7 +175,10 @@
 | **技术栈确认** | Context7查询最新文档 | 重试3次 → 使用已知最佳实践 |
 | **安全扫描** | 依赖漏洞扫描 | 重试3次 → 记录风险继续 |
 | **合规门禁（前）** | `compliance_gate_check` + `compliance_gate_confirm` | 阻塞，未通过不得进行任何任务执行 |
-| **合规门禁（后）** | `compliance_gate_complete` | 阻塞，未完成不得标记任务结束 |
+| **合规门禁（后）** | `compliance_gate_complete` + `code_quality_gate.run_full_scan()` | 阻塞，未完成不得标记任务结束。读取 machine.json 全部 8 维状态，任一 dirty → failed |
+| **Write-Time Audit（P0强制）** | `code_quality_gate.run_write_check({ changed_file, agent_type })` | **P0阻塞不可跳过**。每次 Write/Edit 后必须执行。5项检查：scope/format/deps/eslint/tsc。违规当场阻断。跳过 → CAT5.1 违规 |
+| **测试编写/修改后** | `eslint_audit.run_audit({ changed_file })` | 建议非阻塞。提前发现 TIER1 mock 违规 |
+| **Guardian审查前** | `code_quality_gate.get_audit_status({ task_id })` | 阻塞。验证 write_audit_log 完整性 |
 
 ---
 

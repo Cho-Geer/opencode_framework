@@ -14,7 +14,10 @@
     "frontend_src": "booking-frontend/src/",
     "contracts": "contract.yaml",
     "node_modules_hint": "node_modules",
-    "mcp_gate_script": ".opencode/scripts/mcp-tools/compliance-gate.js"
+    "mcp_gate_script": ".opencode/scripts/mcp-tools/compliance-gate.js",
+    "mcp_keystone_script": ".opencode/scripts/mcp-tools/keystone-validate.js",
+    "mcp_eslint_audit_script": ".opencode/scripts/mcp-tools/eslint-audit.js",
+    "mcp_code_quality_gate_script": ".opencode/scripts/mcp-tools/code-quality-gate.js"
   },
   "tech_stack": {
     "backend": {
@@ -46,6 +49,50 @@
       "context7_query": "docker"
     }
   },
+
+  "agent_write_scopes": {
+    "@Architect": {
+      "allowed": [".opencode/**/*", "contract.yaml", "AGENTS.md", "**/*.md"],
+      "denied":  ["booking-backend/src/**", "booking-frontend/src/**", "e2e/**"],
+      "description": "Architect writes only architectural docs and contracts"
+    },
+    "@Coder-BE": {
+      "allowed": ["booking-backend/src/**", "booking-backend/prisma/**", "booking-backend/test/**"],
+      "denied":  ["contract.yaml", "booking-frontend/**", ".opencode/**", "AGENTS.md"],
+      "description": "Coder-BE writes only backend code"
+    },
+    "@Coder-FE": {
+      "allowed": ["booking-frontend/src/**", "e2e/**"],
+      "denied":  ["booking-backend/**", "contract.yaml", ".opencode/**", "AGENTS.md"],
+      "description": "Coder-FE writes only frontend code and E2E tests"
+    },
+    "@Guardian": {
+      "allowed": [".task_temp/**", ".opencode/state/**"],
+      "denied":  ["booking-backend/**", "booking-frontend/**", "contract.yaml", "AGENTS.md"],
+      "description": "Guardian is read-only on business code, writes only review artifacts"
+    },
+    "@Meta-Planner": {
+      "allowed": ["project.graph", "Task.DAG.json", ".task_temp/**"],
+      "denied":  ["src/**", "contract.yaml", ".opencode/agents/*.md"],
+      "description": "Meta-Planner writes only planning documents"
+    },
+    "@Orchestrator": {
+      "allowed": [".opencode/state/**", ".task_temp/**", "Task.DAG.json"],
+      "denied":  ["**/*.ts", "**/*.html", "**/*.scss", "contract.yaml"],
+      "description": "Orchestrator writes only state management files"
+    },
+    "@Arbiter": {
+      "allowed": [".task_temp/**", "WAIVE.md", "OVERRIDE.md", "TECH_DEBT_REGISTRY.md"],
+      "denied":  ["booking-backend/**", "booking-frontend/**", "contract.yaml", "**/*.ts", "**/*.html"],
+      "description": "Arbiter writes only arbitration artifacts and tech-debt registry"
+    },
+    "@CI-CD-Agent": {
+      "allowed": [".github/**", "docker-compose*.yml", "Dockerfile*", "scripts/**", ".task_temp/**"],
+      "denied":  ["booking-backend/**", "booking-frontend/**", "contract.yaml", ".opencode/agents/**"],
+      "description": "CI-CD-Agent writes only CI/CD pipeline and deployment configuration"
+    }
+  },
+
   "context7_task_mapping": [
     {
       "keywords": ["backend", "api", "service", "controller", "dto", "guard", "interceptor", "pipe", "decorator", "module", "provider"],
