@@ -1,0 +1,17 @@
+{
+  "tier1": [
+    "PrismaService",
+    "RedisService",
+    "ConfigService"
+  ],
+  "tier2": [
+    "JwtService",
+    "QueueService",
+    "NotificationGateway",
+    "RateLimiterService"
+  ],
+  "tier3": [
+    "EmailService",
+    "SMSService"
+  ]
+}

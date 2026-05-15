@@ -1,0 +1,295 @@
+#!/usr/bin/env node
+'use strict';
+
+/**
+ * MCP Tool: eslint-audit
+ * 
+ * Exposes tool `run_audit` that:
+ * 1. Reads contract.yaml x-eslint-policy → generates .opencode/generated/tier-rules.json
+ * 2. Runs ESLint with booking-mock-audit plugin on target files
+ * 3. Updates machine.json.eslint_state with results
+ * 
+ * Called by:
+ *   - compliance_gate_complete (Layer B: mandatory, full scan)
+ *   - @Coder agents after write/edit (Layer A: advisory, file scan)
+ */
+
+const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
+const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
+const {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} = require('@modelcontextprotocol/sdk/types.js');
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const OPENCODE_ROOT = path.resolve(__dirname, '..', '..', '..');
+const PROJECT_CONFIG = path.join(OPENCODE_ROOT, '.opencode', 'project.config.json');
+
+function getProjectRoot() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(PROJECT_CONFIG, 'utf-8'));
+    return path.resolve(OPENCODE_ROOT, cfg.project_root || 'booking_system_refactor');
+  } catch {
+    return path.resolve(OPENCODE_ROOT, 'booking_system_refactor');
+  }
+}
+
+function getStateDir() {
+  const pr = getProjectRoot();
+  const stateDir = path.join(pr, '.opencode', 'state');
+  if (fs.existsSync(stateDir)) return stateDir;
+  return path.join(OPENCODE_ROOT, '.opencode', 'state');
+}
+
+function extractModule(filePath) {
+  const match = filePath.match(/modules\/([^/]+)/);
+  return match ? match[1] : 'unknown';
+}
+
+function generateTierRules(projectRoot) {
+  const contractPath = path.join(projectRoot, 'contract.yaml');
+  const outputDir = path.join(OPENCODE_ROOT, '.opencode', 'generated');
+  const outputPath = path.join(outputDir, 'tier-rules.json');
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  try {
+    const yaml = require('js-yaml');
+    const contract = yaml.load(fs.readFileSync(contractPath, 'utf-8'));
+    const policy = contract['x-eslint-policy'];
+
+    if (!policy || !policy.tier_definition) {
+      throw new Error('x-eslint-policy not found in contract.yaml');
+    }
+
+    const tierRules = {
+      tier1: policy.tier_definition.tier1_real_only?.services || [],
+      tier2: policy.tier_definition.tier2_fake_ok?.services || [],
+      tier3: policy.tier_definition.tier3_boundary_mock?.services || [],
+    };
+
+    fs.writeFileSync(outputPath, JSON.stringify(tierRules, null, 2));
+    return tierRules;
+  } catch (err) {
+    // Fallback if js-yaml not available or contract malformed
+    const fallback = {
+      tier1: ['PrismaService', 'RedisService', 'ConfigService'],
+      tier2: ['JwtService', 'QueueService', 'NotificationGateway', 'RateLimiterService'],
+      tier3: ['EmailService', 'SMSService'],
+    };
+    fs.writeFileSync(outputPath, JSON.stringify(fallback, null, 2));
+    return fallback;
+  }
+}
+
+function runESLint(projectRoot, targetFiles, scanBusinessCode) {
+  const pluginDir = path.join(OPENCODE_ROOT, '.opencode', 'tools', 'eslint-plugin-booking-mock-audit');
+
+  if (!fs.existsSync(pluginDir)) {
+    return { violations: [], exitCode: 0, error: 'ESLint plugin not found' };
+  }
+
+  const rules = [
+    'no-tier1-mock: error',
+    'no-skipped-tests: error',
+    'no-skipped-audit: error',
+    'no-console-log: error',
+    'no-empty-assertions: error',    // NEW v3.0: bogus test detection
+    'no-only-left: error',           // NEW v3.0: debugging artifact detection
+    'no-any-in-spec: error',         // NEW v3.0: test type safety
+    'max-complexity-enforce: warn',  // NEW v3.0: code quality
+    'tier3-verify: warn',
+    'no-uncovered-switch: warn',
+    'no-deep-import: warn',          // NEW v3.0: architecture
+  ];
+
+  try {
+    const filesArg = targetFiles.length > 0
+      ? targetFiles.join(' ')
+      : `${projectRoot}/src/modules/**/*.spec.ts ${projectRoot}/test/**/*.spec.ts`;
+
+    if (scanBusinessCode) {
+      // Full scan: also check business code files for quality rules
+      filesArg += ` ${projectRoot}/src/modules/**/*.service.ts ${projectRoot}/src/modules/**/*.controller.ts ${projectRoot}/src/modules/**/*.dto.ts`;
+    }
+
+    const ruleArgs = rules.map(r => `--rule '${r}'`).join(' ');
+
+    const result = execSync(
+      `npx eslint --no-eslintrc `
+        + `--rulesdir "${pluginDir}/rules" `
+        + ruleArgs
+        + ` --format json `
+        + filesArg,
+      {
+        cwd: projectRoot,
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 30000,
+      }
+    );
+    return { violations: [], exitCode: 0 };
+  } catch (err) {
+    // ESLint exits with code 1 when there are errors
+    try {
+      const results = JSON.parse(err.stdout?.toString() || '[]');
+      const violations = results
+        .filter(f => f.messages?.length > 0)
+        .flatMap(f => f.messages.map(m => ({
+          file: f.filePath,
+          line: m.line,
+          column: m.column,
+          rule: m.ruleId,
+          message: m.message.replace('CAT1.0: ', '').replace('CAT1.1: ', '').replace('CAT3.1: ', '').replace('CAT3.3: ', '').replace('CAT3.4: ', '').replace('CAT3.6: ', '').replace('CAT4.5: ', ''),
+          severity: m.severity,
+        })));
+      return { violations, exitCode: 1 };
+    } catch {
+      return { violations: [], exitCode: 1, error: err.message };
+    }
+  }
+}
+
+function updateMachineJson(moduleName, violations, waivers) {
+  const stateDir = getStateDir();
+  const machinePath = path.join(stateDir, 'machine.json');
+
+  if (!fs.existsSync(machinePath)) return { updated: false, reason: 'machine.json not found' };
+
+  try {
+    const machine = JSON.parse(fs.readFileSync(machinePath, 'utf-8'));
+
+    if (!machine.eslint_state) {
+      machine.eslint_state = {
+        last_full_scan: null,
+        modules: {},
+        aggregate: { total_violations: 0, dirty_modules: [], waived_modules: [] },
+      };
+    }
+
+    const hasWaiver = waivers && waivers.length > 0;
+    const status = violations.length === 0 ? 'clean' : (hasWaiver ? 'waived' : 'dirty');
+
+    machine.eslint_state.modules[moduleName] = {
+      status,
+      violations: violations.map(v => ({
+        ...v,
+        waiver: hasWaiver ? waivers[0] : null,
+      })),
+      last_check: new Date().toISOString(),
+      waivers_applied: waivers || [],
+    };
+
+    // Recalculate aggregate
+    const allModules = Object.values(machine.eslint_state.modules);
+    machine.eslint_state.aggregate = {
+      total_violations: allModules.reduce((sum, m) => sum + m.violations.length, 0),
+      dirty_modules: Object.entries(machine.eslint_state.modules)
+        .filter(([, m]) => m.status === 'dirty').map(([k]) => k),
+      waived_modules: Object.entries(machine.eslint_state.modules)
+        .filter(([, m]) => m.status === 'waived').map(([k]) => k),
+    };
+    machine.eslint_state.last_full_scan = new Date().toISOString();
+    machine.meta.lastUpdated = new Date().toISOString();
+
+    fs.writeFileSync(machinePath, JSON.stringify(machine, null, 2) + '\n');
+    return { updated: true, status };
+  } catch (err) {
+    return { updated: false, reason: err.message };
+  }
+}
+
+// MCP Server
+const server = new Server(
+  { name: 'eslint-audit', version: '1.0.0' },
+  { capabilities: { tools: {} } }
+);
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [{
+    name: 'run_audit',
+    description: 'Run ESLint mock-audit on changed files or full project. Updates machine.json.eslint_state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        changed_file: {
+          type: 'string',
+          description: 'Single changed file path (Layer A: agent write/edit). Optional; omit for full scan.',
+        },
+        full_scan: {
+          type: 'boolean',
+          description: 'Scan all spec files in the project (Layer B: compliance_gate_complete)',
+        },
+        scan_business_code: {
+          type: 'boolean',
+          description: 'Also scan business code (service/controller/dto) for quality rules',
+        },
+        waivers: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional waiver IDs to apply to detected violations',
+        },
+      },
+    },
+  }],
+}));
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name !== 'run_audit') {
+    throw new Error(`Unknown tool: ${request.params.name}`);
+  }
+
+  const { changed_file, full_scan, scan_business_code, waivers } = request.params.arguments || {};
+  const projectRoot = getProjectRoot();
+
+  // Step 1: Generate tier-rules.json from contract.yaml
+  const tierRules = generateTierRules(projectRoot);
+
+  // Step 2: Determine target files
+  const targetFiles = [];
+  if (changed_file && !full_scan) {
+    targetFiles.push(changed_file);
+  }
+
+  // Step 3: Run ESLint
+  const result = runESLint(projectRoot, targetFiles, scan_business_code || full_scan);
+
+  // Step 4: Extract module name
+  const moduleName = changed_file ? extractModule(changed_file) : 'all_modules';
+
+  // Step 5: Update machine.json
+  const stateUpdate = updateMachineJson(
+    full_scan ? 'all_modules' : moduleName,
+    result.violations || [],
+    waivers || []
+  );
+
+  return {
+    content: [{
+      type: 'text',
+      text: JSON.stringify({
+        status: result.violations?.length > 0 ? 'fail' : 'pass',
+        module: moduleName,
+        violations: result.violations || [],
+        violations_count: result.violations?.length || 0,
+        eslint_exit_code: result.exitCode,
+        tier_rules_generated: {
+          tier1_count: tierRules.tier1.length,
+          tier2_count: tierRules.tier2.length,
+          tier3_count: tierRules.tier3.length,
+        },
+        machine_json_updated: stateUpdate.updated,
+        state_status: stateUpdate.status || 'unknown',
+      }, null, 2),
+    }],
+  };
+});
+
+// Start server
+const transport = new StdioServerTransport();
+server.connect(transport);

@@ -1,4 +1,37 @@
-# 测试代码规范（Testing Coding Standard）
+# 测试代码规范（Testing Coding Standard）v2.0
+
+> **版本**: 2.0.0  
+> **生效日期**: 2026-05-14  
+> **作者**: @Architect  
+> **审批**: @Arbiter  
+> **适用范围**: booking_system_refactor (backend + frontend + e2e)  
+> **上一版本**: v1.0 (2026-04-16)
+
+---
+
+## 目录
+
+1. [核心原则](#1-核心原则)
+2. [三层Mock治理策略](#2-三层mock治理策略)
+3. [TDD双速策略](#3-tdd双速策略)
+4. [测试禁令（AI Redlines）](#4-测试禁令ai-redlines)
+5. [测试分类与比例](#5-测试分类与比例)
+6. [后端测试规范](#6-后端测试规范nestjs)
+7. [前端测试规范](#7-前端测试规范angular)
+8. [测试基础设施](#8-测试基础设施)
+9. [测试数据管理](#9-测试数据管理)
+10. [覆盖率阈值矩阵](#10-覆盖率阈值矩阵)
+11. [高级测试策略](#11-高级测试策略)
+12. [CI/CD质量门禁](#12-cicd质量门禁)
+13. [Pre-Commit钩子](#13-pre-commit钩子)
+14. [证据链要求](#14-证据链要求)
+15. [测试审查清单](#15-测试审查清单)
+16. [缺陷管理](#16-缺陷管理)
+17. [架构约束规则](#17-架构约束规则)
+18. [ADR：架构决策记录](#18-adr架构决策记录)
+19. [相关文档](#19-相关文档)
+
+---
 
 ## 1. 核心原则
 
@@ -13,44 +46,171 @@
 2. **GREEN**: 仅编写最简代码使测试通过
 3. **REFACTOR**: 在测试保护下优化代码结构
 
-### 1.3 测试覆盖优先级
+### 1.3 Mock最小化原则
 
-| 优先级 | 模块类型 | 覆盖率要求 | 测试策略 |
-|--------|---------|-----------|---------|
-| P0 | 核心业务逻辑（预约创建、支付、鉴权） | ≥90% | 单元 + 集成 + 变异测试 |
-| P1 | 重要服务层（通知、缓存、限流） | ≥80% | 单元 + 集成 |
-| P2 | 辅助工具类、DTO 验证 | ≥70% | 单元测试为主 |
-| P3 | 配置类、入口文件 | 豁免 | 不纳入覆盖率统计 |
+**"宁可测试慢一点，也不要测试假一点"**。过度Mock是测试质量的头号杀手。本规范采用三层Mock治理策略（见第2节），严格限制Mock使用范围。
 
-## 2. 测试禁令（AI Redlines）
+### 1.4 测试覆盖优先级
 
-### 2.1 严禁编写"假性测试"
+| 优先级 | 模块类型 | 行覆盖率 | 分支覆盖率 | 函数覆盖率 | 变异杀除率 | 测试策略 |
+|--------|---------|:------:|:--------:|:--------:|:--------:|---------|
+| P0 | 核心业务逻辑（预约、认证、时段、用户） | ≥95% | ≥90% | ≥95% | ≥85% | 单元 + 集成 + 属性 + 变异 |
+| P1 | 重要服务层（通知、缓存、限流、邮件、验证、翻译） | ≥85% | ≥80% | ≥85% | ≥80% | 单元 + 集成 + 契约 |
+| P2 | 辅助模块（健康检查、统计、服务管理、留存、加密、公共工具） | ≥75% | ≥70% | ≥75% | — | 单元为主 |
+| P3 | 配置类、入口文件、DTO定义 | 豁免 | 豁免 | 豁免 | — | 不纳入覆盖率统计 |
+
+---
+
+## 2. 三层Mock治理策略
+
+### 2.1 策略总览
+
+本策略定义了三层Mock治理规则，由 `contract.yaml` 的 `x-test-mock-policy` 段声明，由 ESLint mock-audit 规则强制执行，由 @Guardian 最终审查。
+
+```
+┌──────────────────────────────────────────────────────┐
+│                 TIER1: REAL-ONLY                      │
+│  PrismaService / RedisService / ConfigService         │
+│  → 永不禁用 Testcontainers 真实实例                   │
+│  → ESLint 拦截 jest.spyOn 这些服务                   │
+├──────────────────────────────────────────────────────┤
+│                 TIER2: FAKE-OK                        │
+│  JwtService / QueueService / NotificationGateway     │
+│  RateLimiterService                                   │
+│  → 优先使用 test/fakes/ 实现                          │
+│  → Fake 行为真实、状态可观测、无外部依赖               │
+├──────────────────────────────────────────────────────┤
+│                 TIER3: BOUNDARY-MOCK                  │
+│  EmailService / SMSService / PaymentGateway           │
+│  → 允许Mock，但必须验证调用参数                        │
+│  → 每个Mock必须有 expect().toHaveBeenCalledWith()     │
+└──────────────────────────────────────────────────────┘
+```
+
+### 2.2 TIER1 — 真实依赖（永不禁用）
+
+以下服务**必须**使用 Testcontainers 真实实例，**严禁** `jest.spyOn` 或 `jest.mock`：
+
+| 服务 | 模块 | 理由 | 测试策略 |
+|------|------|------|---------|
+| **PrismaService** | `@prisma/client` | Mock隐藏SQL错误、事务Bug、约束违反 | Testcontainers PostgreSQL 16 + schema-per-worker隔离 |
+| **RedisService** | `src/modules/cache/` | Mock隐藏缓存穿透、序列化错误、TTL错误 | Testcontainers Redis 7 或 ioredis-mock（本地TDD阶段） |
+| **ConfigService** | `@nestjs/config` | Mock隐藏配置错误导致的线上故障 | 真实 ConfigModule + .env.test |
+
+**违规示例**：
+```typescript
+// ❌ TIER1违规：永远不要在 PrismaService 上使用 jest.spyOn
+jest.spyOn(prismaService.appointment, 'findUnique').mockResolvedValue(mockData);
+```
+
+### 2.3 TIER2 — Fake优先
+
+以下服务**应**使用 `test/fakes/` 目录中的Fake实现：
+
+| 服务 | Fake实现 | 位置 |
+|------|---------|------|
+| **JwtService** | LocalJwtSigner（Node.js crypto模块真实签名） | `test/fakes/local-jwt-signer.ts` |
+| **QueueService** | FakeMessageQueue（内存事件队列） | `test/fakes/fake-message-queue.ts` |
+| **NotificationGateway** | FakeEventBus（内存发布/订阅） | `test/fakes/fake-event-bus.ts` |
+| **RateLimiterService** | FakeRateLimiter（内存滑动窗口） | `test/fakes/fake-rate-limiter.ts` |
+
+### 2.4 TIER3 — 边界Mock（必须验证参数）
+
+以下外部系统边界服务可以Mock，但**必须**验证调用参数：
+
+```typescript
+// ✅ TIER3合规：Mock但验证了调用参数
+const emailSpy = jest.spyOn(emailService, 'send').mockResolvedValue(undefined);
+await service.create(dto);
+expect(emailSpy).toHaveBeenCalledWith({
+  to: dto.customerEmail,
+  subject: expect.stringContaining('预约确认'),
+  bookingId: expect.any(String),
+});
+```
+
+---
+
+## 3. TDD双速策略
+
+### 3.1 两层测试执行模式
+
+```
+┌─────────────────────────────────────────────────────┐
+│            TDD DUAL-SPEED STRATEGY                   │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│  RED/GREEN 阶段 (本地, <5s周期):                     │
+│  ┌──────────────────────────────────────────────┐   │
+│  │ npm run test -- --watch                       │   │
+│  │   → jest.config.unit.js                       │   │
+│  │   → RealTestModule.forUnit()                  │   │
+│  │   → Fake 模式 (FakePrismaClient + Fakes)      │   │
+│  │   → <5s 测试周期                              │   │
+│  │   → 编写测试 → RED → 编写代码 → GREEN         │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  REFACTOR 阶段 (CI, 30-60s):                         │
+│  ┌──────────────────────────────────────────────┐   │
+│  │ npm run test:integration                       │   │
+│  │   → jest.config.js (full)                      │   │
+│  │   → RealTestModule.forIntegration()            │   │
+│  │   → ContainerPool → PostgreSQL 16 + Redis 7    │   │
+│  │   → Schema-per-worker 隔离                     │   │
+│  │   → 验证无测试交叉污染                          │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+└─────────────────────────────────────────────────────┘
+```
+
+### 3.2 RealTestModule
+
+`RealTestModule` 是测试基础设施基类，自动检测Docker可用性并选择执行模式：
+
+- **Docker可用** → Testcontainers（真实PostgreSQL + Redis）
+- **Docker不可用** → Fake服务（内存实现）
+
+```typescript
+// 自动检测模式
+const module = await RealTestModule.forFeature({
+  controllers: [AppointmentController],
+  providers: [AppointmentService],
+}).compile();
+
+// 强制真实模式（CI使用）
+const module = await RealTestModule.forIntegration({ ... }).compile();
+
+// 强制Fake模式（本地RED/GREEN使用）
+const module = await RealTestModule.forUnit({ ... }).compile();
+```
+
+### 3.3 ContainerPool
+
+`ContainerPool` 是全局单例容器管理器，跨测试文件复用Testcontainers实例：
+
+- **启动一次**：jest globalSetup（per worker）
+- **Schema隔离**：每个测试文件独立PostgreSQL schema
+- **自动清理**：测试文件结束后DROP SCHEMA CASCADE
+- **性能提升**：从每次启动30s → 启动一次2s + schema创建0.5s/文件
+
+---
+
+## 4. 测试禁令（AI Redlines）
+
+### 4.1 严禁编写"假性测试"
 
 以下测试模式将被 CI 质量门禁自动拦截并标记为违规：
 
-#### 2.1.1 空断言测试
+#### 4.1.1 空断言测试
 ```typescript
 // ❌ 违规：断言了 Nothing
 it('should create a booking', async () => {
   await service.create(dto);
   // 没有断言任何结果
 });
-
-// ✅ 合规：验证返回结果和数据库状态
-it('should create a booking and persist it', async () => {
-  const result = await service.create(dto);
-  expect(result.id).toBeDefined();
-  expect(result.userId).toBe(dto.userId);
-
-  const persisted = await prisma.appointment.findUnique({
-    where: { id: result.id },
-  });
-  expect(persisted).not.toBeNull();
-  expect(persisted?.userId).toBe(dto.userId);
-});
 ```
 
-#### 2.1.2 仅测试 Getter/Setter
+#### 4.1.2 仅测试 Getter/Setter
 ```typescript
 // ❌ 违规：测试无逻辑的属性访问
 it('should set and get name', () => {
@@ -58,141 +218,85 @@ it('should set and get name', () => {
   user.name = 'test';
   expect(user.name).toBe('test');
 });
-
-// ✅ 合规：测试业务方法或跳过纯 Getter/Setter
-// 纯 Getter/Setter 不纳入测试范围，覆盖率配置中排除
 ```
 
-#### 2.1.3 过度 Mock 导致无实际验证
+#### 4.1.3 TIER1服务Mock
 ```typescript
-// ❌ 违规：所有依赖都被 mock，测试无法发现集成问题
-jest.spyOn(prisma, 'appointment').mockResolvedValue(mockAppointment);
-jest.spyOn(emailService, 'send').mockResolvedValue(undefined);
-jest.spyOn(cacheService, 'set').mockResolvedValue(undefined);
-
-const result = await service.create(dto);
-expect(result).toEqual(mockAppointment); // 仅验证 mock 返回值
-
-// ✅ 合规：关键路径使用真实依赖，边界使用 mock
-// 数据库：使用 Testcontainers（真实 PostgreSQL）
-// 外部服务（邮件/SMS）：可 mock，但需验证调用参数
-const emailSpy = jest.spyOn(emailService, 'send').mockResolvedValue(undefined);
-
-const result = await service.create(dto);
-
-expect(emailSpy).toHaveBeenCalledWith({
-  to: dto.userEmail,
-  subject: expect.stringContaining('预约确认'),
-  bookingId: expect.any(String),
-});
+// ❌ 违规：在PrismaService/RedisService/ConfigService上使用 spyOn
+jest.spyOn(prismaService.appointment, 'findUnique').mockResolvedValue(mockData);
+jest.spyOn(redisService, 'get').mockResolvedValue(cachedData);
 ```
 
-#### 2.1.4 Mock 不验证调用
+#### 4.1.4 Mock不验证调用
 ```typescript
-// ❌ 违规：创建了 mock 但未验证是否被调用
+// ❌ 违规：创建了mock但未验证是否被调用（TIER3服务）
 jest.spyOn(notificationService, 'notify');
 await service.processBooking(dto);
 // 未验证 notify 是否被调用
-
-// ✅ 合规：验证 mock 调用次数和参数
-const notifySpy = jest.spyOn(notificationService, 'notify');
-await service.processBooking(dto);
-
-expect(notifySpy).toHaveBeenCalledTimes(1);
-expect(notifySpy).toHaveBeenCalledWith({
-  userId: dto.userId,
-  type: 'booking_confirmed',
-  bookingId: expect.any(String),
-});
 ```
 
-#### 2.1.5 测试耦合实现细节
+#### 4.1.5 测试耦合实现细节
 ```typescript
 // ❌ 违规：测试耦合了内部实现，重构即破坏
 it('should call prisma.update before prisma.create', async () => {
   const updateSpy = jest.spyOn(prisma.timeSlot, 'update');
   const createSpy = jest.spyOn(prisma.appointment, 'create');
   await service.create(dto);
-  expect(updateSpy).toHaveBeenCalledBefore(createSpy); // 耦合实现顺序
-});
-
-// ✅ 合规：测试行为契约，不关心内部顺序
-it('should increment slot sequence when creating booking', async () => {
-  const slotBefore = await prisma.timeSlot.findUnique({
-    where: { id: dto.timeSlotId },
-  });
-
-  await service.create(dto);
-
-  const slotAfter = await prisma.timeSlot.findUnique({
-    where: { id: dto.timeSlotId },
-  });
-  expect(slotAfter?.currentSequence).toBe(slotBefore!.currentSequence + 1);
+  expect(updateSpy).toHaveBeenCalledBefore(createSpy);
 });
 ```
 
-### 2.2 AI 接受标准（代码生成自检）
+---
 
-生成的测试代码必须通过以下 5 项检查：
+## 5. 测试分类与比例
 
-| 检查项 | 通过标准 | 验证方法 |
-|--------|---------|---------|
-| **有效性** | 至少 1 个有意义的断言（非 trivial） | 人工审查 + CI 规则 |
-| **完整性** | 覆盖正常路径 + 异常路径 + 边界条件 | 覆盖率报告 |
-| **可维护性** | 测试描述清晰，Given-When-Then 结构 | 人工审查 |
-| **隔离性** | 测试间无状态依赖，可并行执行 | CI 随机顺序执行 |
-| **文档性** | 复杂测试包含注释说明测试意图 | 人工审查 |
-
-## 3. 测试分类与比例（测试金字塔模型）
-
-### 3.1 测试分布（与[测试策略与计划](../requirements/测试策略与计划.md) 一致）
+### 5.1 增强测试金字塔
 
 ```
-        ┌─────────────────┐
-        │   端到端测试     │ (10%)
-        │   (Playwright)  │
-        └─────────────────┘
-               │
-        ┌─────────────────┐
-        │   集成测试       │ (20%)
-        │ (Testcontainers)│
-        └─────────────────┘
-               │
-        ┌─────────────────┐
-        │   单元测试       │ (70%)
-        │     (Jest)      │
-        └─────────────────┘
+              ┌───────────────────┐
+              │   视觉回归测试     │ (Playwright screenshots)
+              ├───────────────────┤
+              │   混沌测试         │ (Toxiproxy, 每周)
+              ├───────────────────┤
+              │   端到端测试       │ (10%, Playwright 3浏览器)
+              ├───────────────────┤
+              │   变异测试         │ (核心模块, Stryker)
+              ├───────────────────┤
+              │   契约测试         │ (从contract.yaml生成)
+              ├───────────────────┤
+              │   集成测试         │ (20%, Testcontainers)
+              ├───────────────────┤
+              │   属性测试         │ (fast-check, 核心业务)
+              ├───────────────────┤
+              │   单元测试         │ (70%, Jest + Fakes)
+              └───────────────────┘
 ```
 
-**说明**：采用经典测试金字塔模型，单元测试占主导（70%），确保快速反馈和TDD开发效率。集成测试（20%）覆盖模块交互边界，E2E测试（10%）验证完整业务流程。
+### 5.2 各层级职责
 
-### 3.2 各层级职责
-
-| 测试类型 | 验证目标 | 执行速度 | 维护成本 | 典型场景 |
+| 测试类型 | 验证目标 | 执行速度 | 维护成本 | 执行频率 |
 |---------|---------|---------|---------|---------|
-| **单元测试** | 纯函数、算法、工具类、状态管理 | <100ms | 低 | 价格计算、时间格式化、SignalStore 逻辑 |
-| **集成测试** | 模块交互、数据库、缓存、HTTP 调用 | 1-5s | 中 | API 端点、事务边界、Repository 操作 |
-| **E2E 测试** | 完整用户流程、跨系统交互 | 10-30s | 高 | 用户注册→登录→预约→取消全流程 |
+| **单元测试** | 纯函数、算法、工具类、状态管理 | <100ms | 低 | 每次commit/PR |
+| **属性测试** | 数学不变量、业务规则恒成立 | <1s | 低 | 每次PR（P0模块） |
+| **集成测试** | 模块交互、数据库、缓存、HTTP | 1-5s | 中 | 每次PR |
+| **契约测试** | API契约一致性、自动生成 | 1-3s | 低 | 每次PR |
+| **变异测试** | 测试质量（杀除变异体） | 5-15min | 中 | 每次PR（核心模块） |
+| **E2E测试** | 完整用户流程 | 10-30s | 高 | 每次PR |
+| **视觉回归** | UI像素级变化检测 | 5-10s | 中 | 每次PR |
+| **混沌测试** | 基础设施故障恢复 | 1-5min | 高 | 每周 |
+| **模糊测试** | 恶意/随机输入处理 | 1-5min | 中 | 每日/PR |
 
-### 3.3 项目技术栈
+---
 
-| 测试层级 | 后端工具 | 前端工具 |
-|---------|---------|---------|
-| **单元测试** | Jest + ts-jest | Jest + Angular Testing Library |
-| **集成测试** | Jest + Supertest + Testcontainers | 组件集成测试 + HttpTestingController |
-| **E2E 测试** | - | Playwright |
-| **性能测试** | k6 / Artillery | Lighthouse CI |
-| **变异测试** | Stryker Mutator | - |
+## 6. 后端测试规范（NestJS）
 
-## 4. 后端测试规范（NestJS）
+### 6.1 单元测试
 
-### 4.1 单元测试
-
-#### 4.1.1 测试范围
+#### 6.1.1 测试范围
 
 **必须编写单元测试的场景**：
 - 工具函数（纯函数，无外部依赖）
-- 复杂业务逻辑（价格计算、时间槽冲突检测）
+- 复杂业务逻辑（价格计算、时间槽冲突检测、超时重叠检测）
 - Guards（权限判断逻辑）
 - Interceptors（数据转换逻辑）
 - Pipes（验证逻辑）
@@ -202,357 +306,115 @@ it('should increment slot sequence when creating booking', async () => {
 - 仅转发调用的薄封装（直接走集成测试）
 - 模块配置文件
 
-#### 4.1.2 测试结构（Arrange-Act-Assert）
+#### 6.1.2 测试结构（Arrange-Act-Assert + Given-When-Then）
 
 ```typescript
 describe('AppointmentService', () => {
-  let service: AppointmentService;
-  let prisma: PrismaService;
+  describe('create()', () => {
+    it('should create appointment and persist to database', async () => {
+      // Given: 有效的预约DTO和可用时段
+      const dto = createValidAppointmentDto();
+      const timeSlot = await prisma.timeSlot.create({ data: createAvailableTimeSlot() });
 
-  beforeEach(async () => {
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        AppointmentService,
-        {
-          provide: PrismaService,
-          useValue: createMock<PrismaService>(),
-        },
-      ],
-    }).compile();
+      // When: 调用创建方法
+      const result = await service.create({ ...dto, timeSlotId: timeSlot.id });
 
-    service = moduleRef.get(AppointmentService);
-    prisma = moduleRef.get(PrismaService);
-  });
-
-  it('should throw ConflictException when slot is full', async () => {
-    // Arrange
-    const dto: CreateAppointmentDto = {
-      userId: 'user-1',
-      timeSlotId: 'slot-1',
-    };
-
-    jest.spyOn(prisma.timeSlot, 'update').mockResolvedValue({
-      ...mockTimeSlot,
-      currentSequence: 11, // 超过容量
-      capacity: 10,
+      // Then: 预约被创建并持久化
+      expect(result.id).toBeDefined();
+      expect(result.status).toBe('confirmed');
+      const persisted = await prisma.appointment.findUnique({ where: { id: result.id } });
+      expect(persisted).not.toBeNull();
+      expect(persisted?.userId).toBe(dto.userId);
     });
 
-    // Act & Assert
-    await expect(service.create(dto)).rejects.toThrow(ConflictException);
-    await expect(service.create(dto)).rejects.toThrow('该时段预约名额已满');
+    it('should throw ConflictException when slot is full', async () => {
+      // Given: 已满的时段
+      const timeSlot = await prisma.timeSlot.create({
+        data: { ...createTimeSlot(), capacity: 1, currentSequence: 1 }
+      });
+
+      // When & Then: 创建预约应抛出冲突异常
+      await expect(service.create({ ...dto, timeSlotId: timeSlot.id }))
+        .rejects.toThrow(ConflictException);
+    });
   });
 });
 ```
 
-#### 4.1.3 高并发事务测试
+#### 6.1.3 高并发事务测试
 
 ```typescript
-describe('AppointmentService - High Concurrency', () => {
-  it('should handle concurrent booking requests atomically', async () => {
-    // Arrange: 创建仅剩 1 个名额的时段
+describe('Concurrent Booking - Atomicity', () => {
+  it('should allow exactly capacity bookings under concurrency', async () => {
+    const capacity = 3;
     const timeSlot = await prisma.timeSlot.create({
-      data: {
-        date: new Date('2026-04-20'),
-        startTime: '10:00',
-        endTime: '11:00',
-        capacity: 1,
-        currentSequence: 0,
-      },
+      data: { ...createTimeSlot(), capacity, currentSequence: 0 }
     });
 
-    // Act: 模拟 2 个并发请求
-    const bookingPromises = [
-      service.create({ userId: 'user-1', timeSlotId: timeSlot.id, serviceId: 'service-1' }),
-      service.create({ userId: 'user-2', timeSlotId: timeSlot.id, serviceId: 'service-1' }),
-    ];
+    // 模拟 10 个并发请求
+    const promises = Array.from({ length: 10 }, (_, i) =>
+      service.create({ userId: `user-${i}`, timeSlotId: timeSlot.id, serviceId: 'svc-1' })
+    );
 
-    const results = await Promise.allSettled(bookingPromises);
+    const results = await Promise.allSettled(promises);
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
 
-    // Assert: 仅 1 个成功，1 个失败
-    const succeeded = results.filter(r => r.status === 'fulfilled');
-    const failed = results.filter(r => r.status === 'rejected');
+    expect(succeeded).toBe(capacity); // 仅 capacity 个成功
+    expect(failed).toBe(10 - capacity);
 
-    expect(succeeded).toHaveLength(1);
-    expect(failed).toHaveLength(1);
-    expect((failed[0] as PromiseRejectedResult).reason).toBeInstanceOf(ConflictException);
-
-    // 验证 slot_sequence 仅增加 1 次
-    const updatedSlot = await prisma.timeSlot.findUnique({
-      where: { id: timeSlot.id },
-    });
-    expect(updatedSlot?.currentSequence).toBe(1);
+    const updated = await prisma.timeSlot.findUnique({ where: { id: timeSlot.id } });
+    expect(updated?.currentSequence).toBe(capacity); // 精确增加 capacity 次
   });
 });
 ```
 
-### 4.2 集成测试（Testcontainers）
+### 6.2 集成测试（Testcontainers）
 
-#### 4.2.1 测试容器配置
-
-```typescript
-// test/setup.ts
-import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import { RedisContainer } from '@testcontainers/redis';
-
-let postgresContainer: any;
-let redisContainer: any;
-
-beforeAll(async () => {
-  // 启动真实 PostgreSQL
-  postgresContainer = await new PostgreSqlContainer()
-    .withDatabase('booking_test')
-    .withUsername('test')
-    .withPassword('test')
-    .start();
-
-  // 启动真实 Redis
-  redisContainer = await new RedisContainer().start();
-
-  // 设置环境变量供 NestJS 应用使用
-  process.env.DATABASE_URL = postgresContainer.getConnectionUri();
-  process.env.REDIS_URL = redisContainer.getConnectionUrl();
-});
-
-afterAll(async () => {
-  await postgresContainer?.stop();
-  await redisContainer?.stop();
-});
-```
-
-#### 4.2.2 Controller 集成测试
+#### 6.2.1 Controller 集成测试
 
 ```typescript
-// src/appointment/appointment.e2e-spec.ts
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../app.module';
-import { PrismaService } from '../prisma/prisma.service';
-
 describe('AppointmentController (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaService;
   let authToken: string;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
+    const moduleRef = await RealTestModule.forIntegration({
       imports: [AppModule],
     }).compile();
 
     app = moduleRef.createNestApplication();
     await app.init();
-
-    prisma = moduleRef.get(PrismaService);
-
-    // 准备测试用户并获取 token
-    const loginRes = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ phone: '13800138000', password: 'test123' });
-
-    authToken = loginRes.body.accessToken;
+    authToken = await getTestUserToken(app);
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  beforeEach(async () => {
-    // 每个测试前清理数据
-    await prisma.appointment.deleteMany();
-  });
-
-  it('POST /api/appointments - should create appointment and return 201', async () => {
-    // Arrange: 创建可用时段
-    const timeSlot = await prisma.timeSlot.create({
-      data: {
-        date: new Date('2026-04-20'),
-        startTime: '10:00',
-        endTime: '11:00',
-        capacity: 5,
-        currentSequence: 0,
-      },
-    });
-
-    // Act
+  it('POST /v1/appointments - should return 201 on success', async () => {
+    const timeSlot = await createTimeSlotInDb(app);
     const response = await request(app.getHttpServer())
-      .post('/api/appointments')
+      .post('/v1/appointments')
       .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        timeSlotId: timeSlot.id,
-        customerName: '张三',
-        customerPhone: '13800138001',
-      })
+      .send({ timeSlotId: timeSlot.id, serviceId: 'svc-1' })
       .expect(201);
 
-    // Assert
     expect(response.body).toMatchObject({
       id: expect.any(String),
-      userId: expect.any(String),
-      timeSlotId: timeSlot.id,
       status: 'confirmed',
     });
-
-    // 验证数据库持久化
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: response.body.id },
-    });
-    expect(appointment).not.toBeNull();
-  });
-
-  it('POST /api/appointments - should return 409 when slot is full', async () => {
-    // Arrange: 创建已满时段
-    const timeSlot = await prisma.timeSlot.create({
-      data: {
-        date: new Date('2026-04-20'),
-        startTime: '14:00',
-        endTime: '15:00',
-        capacity: 1,
-        currentSequence: 1, // 已满
-      },
-    });
-
-    // Act & Assert
-    await request(app.getHttpServer())
-      .post('/api/appointments')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({
-        timeSlotId: timeSlot.id,
-        customerName: '李四',
-        customerPhone: '13800138002',
-      })
-      .expect(409)
-      .expect({
-        statusCode: 409,
-        message: '该时段预约名额已满',
-        error: 'Conflict',
-      });
   });
 });
 ```
 
-#### 4.2.3 认证 Guard 测试
+---
 
-```typescript
-describe('JwtAuthGuard (e2e)', () => {
-  it('should return 401 when no token is provided', async () => {
-    await request(app.getHttpServer())
-      .get('/api/appointments')
-      .expect(401);
-  });
+## 7. 前端测试规范（Angular）
 
-  it('should return 401 when token is invalid', async () => {
-    await request(app.getHttpServer())
-      .get('/api/appointments')
-      .set('Authorization', 'Bearer invalid-token')
-      .expect(401);
-  });
+### 7.1 单元测试
 
-  it('should return 200 when valid token is provided', async () => {
-    await request(app.getHttpServer())
-      .get('/api/appointments')
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
-  });
-
-  it('should allow access to @Public() endpoints without token', async () => {
-    await request(app.getHttpServer())
-      .get('/auth/login')
-      .send({ phone: '13800138000', password: 'test123' })
-      .expect(200);
-  });
-});
-```
-
-#### 4.2.4 限流策略测试
-
-```typescript
-describe('Rate Limiting (e2e)', () => {
-  it('should allow requests within rate limit', async () => {
-    // 发送 10 次请求（低于限制）
-    for (let i = 0; i < 10; i++) {
-      await request(app.getHttpServer())
-        .post('/api/appointments')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ /* ... */ });
-    }
-    // 应该都成功
-  });
-
-  it('should return 429 when exceeding rate limit', async () => {
-    // 快速发送 101 次请求（超过 100/min 限制）
-    const requests = Array.from({ length: 101 }, () =>
-      request(app.getHttpServer())
-        .post('/api/appointments')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({ /* ... */ }),
-    );
-
-    const responses = await Promise.all(requests);
-    const rateLimited = responses.filter(r => r.status === 429);
-
-    expect(rateLimited.length).toBeGreaterThan(0);
-  });
-});
-```
-
-### 4.3 变异测试（Mutation Testing）
-
-#### 4.3.1 Stryker 配置
-
-```json
-// stryker.conf.json
-{
-  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
-  "mutator": {
-    "plugins": []
-  },
-  "testRunner": "jest",
-  "coverageAnalysis": "perTest",
-  "thresholds": {
-    "high": 90,
-    "low": 80,
-    "break": 80
-  },
-  "reporters": ["html", "clear-text", "progress"],
-  "mutate": [
-    "src/appointment/**/*.ts",
-    "src/auth/**/*.ts",
-    "!src/**/*.spec.ts",
-    "!src/**/*.e2e-spec.ts",
-    "!src/**/*.module.ts"
-  ]
-}
-```
-
-#### 4.3.2 变异测试要求
-
-| 模块 | 变异杀除率要求 | 说明 |
-|------|--------------|------|
-| 预约核心逻辑 | ≥80% | 必须杀除大部分变异体 |
-| 认证/授权 | ≥80% | 安全相关代码高要求 |
-| 工具函数 | ≥70% | 纯函数容易测试 |
-
-#### 4.3.3 变异测试执行频率
-
-> **重要说明**：变异测试因需要生成和验证大量变异体，执行时间较长（通常 5-15 分钟），**不作为常规 PR 门禁**。
-
-| 触发场景 | 执行频率 | 阻塞合并 | 说明 |
-|---------|---------|---------|------|
-| **每日定时任务** | 每天凌晨 | 否（仅报告） | 全量变异测试，生成质量报告 |
-| **核心模块 PR** | 按需触发 | 是 | 仅针对 `src/appointment/**` 和 `src/auth/**` |
-| **main 分支合并** | 每次合并 | 否（记录趋势） | 跟踪变异杀除率变化趋势 |
-| **常规 PR** | 不执行 | - | 避免影响开发效率 |
-
-**CI 配置策略**：
-- 常规 PR 仅运行单元测试 + 集成测试（快速反馈）
-- 变异测试失败不阻塞合并，但会在 PR 评论中显示质量报告
-- 核心模块（预约、支付、鉴权）的 PR 可选择性启用变异测试验证
-
-## 5. 前端测试规范（Angular）
-
-### 5.1 单元测试
-
-#### 5.1.1 测试范围
+#### 7.1.1 测试范围
 
 **必须编写单元测试的场景**：
 - 纯函数（格式化、计算、验证）
@@ -564,29 +426,19 @@ describe('Rate Limiting (e2e)', () => {
 - 纯展示组件（无逻辑，仅模板绑定）
 - Getter/Setter（无额外逻辑）
 
-#### 5.1.2 Component 测试模式
+#### 7.1.2 Component 测试模式
 
 ```typescript
-import { render, screen, fireEvent } from '@testing-library/angular';
+import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
-import { AppointmentFormComponent } from './appointment-form.component';
 
 describe('AppointmentFormComponent', () => {
-  it('should render form with all fields', async () => {
-    await render(AppointmentFormComponent);
-
-    expect(screen.getByLabelText(/姓名/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/手机号/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/预约时间/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /提交预约/i })).toBeInTheDocument();
-  });
-
-  it('should show validation error when phone is invalid', async () => {
+  it('should show validation error for invalid phone', async () => {
     await render(AppointmentFormComponent);
 
     const phoneInput = screen.getByLabelText(/手机号/i);
-    await userEvent.type(phoneInput, '12345'); // 无效手机号
-    await userEvent.tab(); // 触发 blur
+    await userEvent.type(phoneInput, '12345');
+    await userEvent.tab();
 
     expect(screen.getByText(/手机号格式不正确/i)).toBeInTheDocument();
   });
@@ -594,334 +446,91 @@ describe('AppointmentFormComponent', () => {
   it('should emit formSubmitted when form is valid', async () => {
     const onSubmit = jest.fn();
     await render(AppointmentFormComponent, {
-      outputs: { formSubmitted: onSubmit },
+      componentOutputs: { formSubmitted: { emit: onSubmit } as any },
     });
 
     await userEvent.type(screen.getByLabelText(/姓名/i), '张三');
     await userEvent.type(screen.getByLabelText(/手机号/i), '13800138000');
-    await userEvent.click(screen.getByRole('button', { name: /提交预约/i }));
+    await userEvent.click(screen.getByRole('button', { name: /提交/i }));
 
-    expect(onSubmit).toHaveBeenCalledWith({
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       name: '张三',
       phone: '13800138000',
-      // ...
-    });
+    }));
   });
 });
 ```
 
-#### 5.1.3 SignalStore 测试
+---
+
+## 8. 测试基础设施
+
+### 8.1 RealTestModule
+
+详见第3.2节。位于 `test/setup/real-test-module.ts`。
+
+### 8.2 ContainerPool
+
+详见第3.3节。位于 `test/setup/container-pool.ts`。
+
+### 8.3 Fake服务目录
+
+位置：`test/fakes/`
+
+| 文件 | 说明 |
+|------|------|
+| `fake-event-bus.ts` | 内存发布/订阅（替代NotificationGateway） |
+| `fake-message-queue.ts` | 内存消息队列（替代BullMQ/QueueService） |
+| `local-jwt-signer.ts` | Node.js crypto JWT签名（替代JwtService） |
+| `fake-rate-limiter.ts` | 内存滑动窗口限流（替代RateLimiterService） |
+| `fake-prisma-client.ts` | 内存Prisma兼容客户端（可选，超快速本地TDD） |
+
+每个Fake必须有对应的 `.spec.ts` 自测文件。
+
+### 8.4 测试数据工厂
+
+位置：`test/factories/`
+
+用于快速创建标准测试数据，避免测试代码中重复的数据构造逻辑。
+
+---
+
+## 9. 测试数据管理
+
+### 9.1 数据隔离
+
+每个测试文件使用独立的 PostgreSQL schema（Schema-per-Worker隔离）：
+- Schema名格式：`worker_{jestWorkerId}_suite_{hash}`
+- 测试文件开始前创建schema并运行迁移
+- 测试文件结束后 DROP SCHEMA CASCADE
+- 确保零测试交叉污染
+
+### 9.2 数据清理
 
 ```typescript
-import { AppointmentStore } from './appointment.store';
-
-describe('AppointmentStore', () => {
-  it('should load appointments and update state', async () => {
-    const mockAppointments = [
-      { id: '1', customerName: '张三', status: 'confirmed' },
-      { id: '2', customerName: '李四', status: 'pending' },
-    ];
-
-    const appointmentService = {
-      findAll: jest.fn().mockResolvedValue(mockAppointments),
-    };
-
-    const store = new AppointmentStore(appointmentService as any);
-
-    expect(store.appointments()).toEqual([]);
-    expect(store.loading()).toBe(false);
-
-    await store.loadAppointments();
-
-    expect(appointmentService.findAll).toHaveBeenCalled();
-    expect(store.appointments()).toHaveLength(2);
-    expect(store.appointments()[0].customerName).toBe('张三');
-    expect(store.loading()).toBe(false);
-  });
-
-  it('should handle load error gracefully', async () => {
-    const appointmentService = {
-      findAll: jest.fn().mockRejectedValue(new Error('Network error')),
-    };
-
-    const store = new AppointmentStore(appointmentService as any);
-
-    await store.loadAppointments();
-
-    expect(store.error()).toBe('加载预约失败，请稍后重试');
-    expect(store.loading()).toBe(false);
-  });
-});
-```
-
-#### 5.1.4 Pipe 测试
-
-```typescript
-import { TimeFormatPipe } from './time-format.pipe';
-
-describe('TimeFormatPipe', () => {
-  const pipe = new TimeFormatPipe();
-
-  it('should format time to 12-hour format', () => {
-    expect(pipe.transform('14:00')).toBe('2:00 PM');
-    expect(pipe.transform('00:30')).toBe('12:30 AM');
-    expect(pipe.transform('12:00')).toBe('12:00 PM');
-  });
-
-  it('should handle invalid time input', () => {
-    expect(pipe.transform('invalid')).toBe('invalid');
-    expect(pipe.transform('')).toBe('');
-  });
-});
-```
-
-### 5.2 E2E 测试（Playwright）
-
-#### 5.2.1 测试用例结构
-
-```typescript
-// tests/e2e/appointment-flow.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('Appointment Booking Flow', () => {
-  test('should complete full booking flow from login to confirmation', async ({ page }) => {
-    // 1. Navigate to login
-    await page.goto('/login');
-
-    // 2. Login
-    await page.getByLabel('手机号').fill('13800138000');
-    await page.getByLabel('密码').fill('test123');
-    await page.getByRole('button', { name: '登录' }).click();
-
-    // 3. Verify redirect to dashboard
-    await expect(page).toHaveURL('/dashboard');
-
-    // 4. Navigate to booking page
-    await page.getByRole('link', { name: '预约服务' }).click();
-    await expect(page).toHaveURL('/appointments');
-
-    // 5. Select a time slot
-    await page.getByRole('button', { name: /2026-04-20.*10:00/ }).click();
-
-    // 6. Fill form
-    await page.getByLabel('姓名').fill('张三');
-    await page.getByLabel('手机号').fill('13800138001');
-
-    // 7. Submit
-    await page.getByRole('button', { name: '提交预约' }).click();
-
-    // 8. Verify confirmation
-    await expect(page.getByText('预约成功')).toBeVisible();
-    await expect(page.getByText(/预约编号/i)).toBeVisible();
-  });
-
-  test('should show validation errors for invalid form', async ({ page }) => {
-    await page.goto('/appointments/new');
-
-    // Try submitting with empty form
-    await page.getByRole('button', { name: '提交预约' }).click();
-
-    // Verify validation messages
-    await expect(page.getByText('请输入姓名')).toBeVisible();
-    await expect(page.getByText('请输入手机号')).toBeVisible();
-  });
-
-  // ⚠️ 关键 E2E 用例：验证前后端全链路原子化抢占机制
-  // 这是本系统最重要的 E2E 测试，确保高并发场景下不会出现超约
-  // 任何对此测试的修改必须经过架构师（@Architect）审查
-  test('should prevent double booking same slot [CRITICAL E2E]', async ({ browser }) => {
-    // Create two browser contexts for concurrent booking
-    const context1 = await browser.newContext();
-    const context2 = await browser.newContext();
-
-    const page1 = await context1.newPage();
-    const page2 = await context2.newPage();
-
-    // Login both users
-    await login(page1, 'user1@test.com', 'password');
-    await login(page2, 'user2@test.com', 'password');
-
-    // Navigate to same slot
-    await page1.goto('/appointments/new');
-    await page2.goto('/appointments/new');
-
-    // Select same time slot
-    await page1.getByRole('button', { name: /10:00/ }).click();
-    await page2.getByRole('button', { name: /10:00/ }).click();
-
-    // Submit both
-    await fillAndSubmit(page1, '张三', '13800138001');
-    await fillAndSubmit(page2, '李四', '13800138002');
-
-    // One should succeed, one should fail
-    const success1 = await page1.getByText('预约成功').isVisible();
-    const success2 = await page2.getByText('预约成功').isVisible();
-
-    expect(success1 || success2).toBe(true);
-    expect(success1 && success2).toBe(false); // Only one can succeed
-
-    await context1.close();
-    await context2.close();
-  });
-});
-```
-
-#### 5.2.2 可访问性测试
-
-```typescript
-// tests/e2e/accessibility.spec.ts
-import { test, expect } from '@playwright/test';
-import { injectAxe, checkA11y } from 'axe-playwright';
-
-test.describe('Accessibility', () => {
-  test('should meet WCAG 2.1 AA standards', async ({ page }) => {
-    await page.goto('/appointments');
-    await injectAxe(page);
-    const violations = await checkA11y(page);
-    expect(violations.length).toBe(0);
-  });
-
-  test('should be fully keyboard navigable', async ({ page }) => {
-    await page.goto('/appointments');
-
-    // Navigate using Tab key
-    await page.keyboard.press('Tab');
-    const focusedElement = await page.evaluate(() => document.activeElement?.tagName);
-    expect(focusedElement).toBe('BUTTON');
-
-    // Activate with Enter
-    await page.keyboard.press('Enter');
-    await expect(page.getByText('预约表单')).toBeVisible();
-  });
-});
-```
-
-## 6. 测试数据管理
-
-### 6.1 测试数据工厂
-
-```typescript
-// test/factories/appointment.factory.ts
-import { Prisma } from '@prisma/client';
-
-export function createAppointmentFactory(overrides: Partial<Prisma.AppointmentCreateInput> = {}) {
-  return {
-    userId: `user-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    timeSlot: {
-      create: {
-        date: new Date('2026-04-20'),
-        startTime: '10:00',
-        endTime: '11:00',
-        capacity: 5,
-        currentSequence: 0,
-      },
-    },
-    status: 'confirmed',
-    customerName: '测试用户',
-    customerPhone: '13800138000',
-    ...overrides,
-  };
-}
-
-export function createFullTimeSlot() {
-  return {
-    date: new Date('2026-04-20'),
-    startTime: '14:00',
-    endTime: '15:00',
-    capacity: 1,
-    currentSequence: 1, // 已满
-  };
-}
-
-export function createAvailableTimeSlot() {
-  return {
-    date: new Date('2026-04-20'),
-    startTime: '10:00',
-    endTime: '11:00',
-    capacity: 5,
-    currentSequence: 0,
-  };
-}
-```
-
-### 6.2 数据清理策略
-
-```typescript
-// test/teardown.ts
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-export default async function teardown() {
-  // 按依赖顺序删除数据（子表先删）
+// 按依赖顺序删除（子表先删）
+afterEach(async () => {
   await prisma.appointment.deleteMany();
   await prisma.timeSlot.deleteMany();
   await prisma.service.deleteMany();
   await prisma.user.deleteMany();
-
-  await prisma.$disconnect();
-}
-```
-
-### 6.3 数据隔离
-
-```typescript
-// 每个测试使用独立数据库 schema
-// test/setup.ts
-beforeEach(async () => {
-  // 使用事务包裹，测试后回滚
-  const transaction = await prisma.$transaction(async (tx) => {
-    // 测试逻辑
-  });
-
-  return async () => {
-    // 清理：删除测试创建的所有数据
-    await prisma.appointment.deleteMany({
-      where: { userId: { startsWith: 'test-' } },
-    });
-  };
 });
 ```
 
-## 7. 测试覆盖率配置
+---
 
-### 7.1 Jest 覆盖率阈值
+## 10. 覆盖率阈值矩阵
 
-```javascript
-// jest.config.js
-module.exports = {
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/main.ts',           // 入口文件排除
-    '!src/**/*.module.ts',    // 模块配置排除
-    '!src/**/*.dto.ts',       // DTO 定义排除
-    '!src/**/*.entity.ts',    // 实体定义排除
-    '!src/**/*.interface.ts', // 接口定义排除
-  ],
-  coverageThreshold: {
-    global: {
-      branches: 70,     // 分支覆盖率 ≥70%
-      functions: 70,    // 函数覆盖率 ≥70%
-      lines: 70,        // 行覆盖率 ≥70%
-      statements: 70,   // 语句覆盖率 ≥70%
-    },
-    'src/appointment/**': {
-      branches: 85,     // 核心业务模块要求更高
-      functions: 90,
-      lines: 90,
-      statements: 90,
-    },
-    'src/auth/**': {
-      branches: 85,     // 安全模块高要求
-      functions: 90,
-      lines: 90,
-      statements: 90,
-    },
-  },
-};
-```
+### 10.1 正式阈值（jest.config.js 强制执行）
 
-### 7.2 覆盖率排除项
+| 优先级 | 模块 | 行 | 分支 | 函数 | 语句 | 变异杀除 |
+|--------|------|:--:|:--:|:--:|:--:|:------:|
+| **全局** | 所有 | 85% | 80% | 85% | 85% | — |
+| **P0** | appointments, auth, time-slots, users | 95% | 90% | 95% | 95% | 85% |
+| **P1** | notifications, cache, rate-limiter, email, verification, translations | 85% | 80% | 85% | 85% | 80% |
+| **P2** | health, stats, services, retention, encryption, common | 75% | 70% | 75% | 75% | — |
+
+### 10.2 覆盖率排除项
 
 以下文件类型**不纳入**覆盖率统计：
 - DTO 定义文件（`*.dto.ts`）
@@ -931,298 +540,334 @@ module.exports = {
 - 应用入口（`main.ts`）
 - 纯常量定义（`*.constants.ts`）
 
-## 8. CI/CD 质量门禁
+---
 
-### 8.1 CI 检查项
+## 11. 高级测试策略
 
-| 检查项 | 通过标准 | 执行时机 |
-|--------|---------|---------|
-| **单元测试** | 100% 通过 | 每次 push/PR |
-| **集成测试** | 100% 通过 | 每次 push/PR |
-| **覆盖率门禁** | 达到阈值（70%/90%） | 每次 push/PR |
-| **变异测试** | 杀除率 ≥80%（核心模块） | 每日定时/PR（可选） |
-| **E2E 测试** | 100% 通过 | 每日定时/合并前 |
-| **性能测试** | P95 <500ms | 每周定时 |
-| **安全扫描** | 0 Critical/High 漏洞 | 每次 push/PR |
-| **依赖审计** | 0 已知高危漏洞 | 每次 push/PR |
+### 11.1 属性测试（Property-Based Testing）
 
-### 8.2 GitHub Actions 工作流
+使用 `fast-check` 测试数学不变量。适用于：
+- 价格计算（交换性、单调性）
+- 时间槽重叠检测（对称性、传递性）
+- PII加密（往返一致性、幂等性）
 
-```yaml
-# .github/workflows/test.yml
-name: Test Suite
+```typescript
+import fc from 'fast-check';
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
-
-jobs:
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm ci
-      - run: npm run test:unit -- --coverage
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: booking_test
-        ports:
-          - 5432:5432
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm ci
-      - run: npm run test:integration
-
-  e2e-tests:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm ci
-      - run: npx playwright install --with-deps
-      - run: npm run test:e2e
-
-  mutation-tests:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm ci
-      - run: npm run test:mutation
+it('should satisfy round-trip property for encryption', async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.string(), async (plaintext) => {
+      const encrypted = await encryptor.encrypt(plaintext);
+      const decrypted = await encryptor.decrypt(encrypted);
+      expect(decrypted).toBe(plaintext);
+    })
+  );
+});
 ```
 
-### 8.3 质量门禁拦截规则
+### 11.2 契约测试（Contract-Driven Testing）
 
-```yaml
-# 合并前必须满足的条件
-merge_requirements:
-  - all_unit_tests_pass: true
-  - all_integration_tests_pass: true
-  - coverage_threshold_met: true
-  - no_critical_vulnerabilities: true
-  - code_review_approved: true
-  - e2e_tests_pass: true  # 仅 main/develop 分支
+从 `contract.yaml` 的 `x-test-contract` 段自动生成API测试：
+- 正向测试（有效输入 → 预期响应）
+- 负向认证测试（无token、错误角色、过期token）
+- 负向验证测试（缺少必填字段、无效类型、越界值）
+- 限流测试（超出限制 → 429）
+- Schema验证（响应体格式匹配契约定义）
+
+### 11.3 模糊测试（Fuzz Testing）
+
+向所有端点发送随机、恶意或畸形输入：
+- SQL注入模式 → 预期 400/422
+- XSS模式 → 预期 400/422
+- 超长字符串 → 预期 400（非500）
+- Unicode边界字符 → 预期不崩溃
+
+### 11.4 混沌测试（Chaos Testing）
+
+验证基础设施故障恢复能力（每周执行）：
+- PostgreSQL断开 → 503，无数据损坏
+- Redis断开 → 优雅降级，回退到DB
+- 网络延迟注入 → 超时触发，无挂起连接
+- 容器重启 → 自动重连
+
+### 11.5 视觉回归测试（Visual Regression）
+
+Playwright截图像素级对比：
+- 关键页面：登录、仪表盘、预约表单、管理面板
+- 浏览器：Chromium + Firefox
+- 视口：Desktop (1280x720) + Mobile (375x667)
+
+### 11.6 负向测试矩阵
+
+每个端点必须覆盖以下维度：
+- 无token（401）、过期token（401）、错误角色（403）、权限不足（403）
+- 缺少必填字段（400）、无效类型（400）、越界值（400）
+- 超出限流（429）、重复幂等键、并发竞争（409）
+- 资源不存在（404）、资源已删除（404/410）
+
+---
+
+## 12. CI/CD质量门禁
+
+### 12.1 七阶段流水线（test-gates.yml）
+
+```
+Stage 1 [PARALLEL, ~3min]
+├── Unit Tests (Real Deps, Testcontainers)
+├── Lint (ESLint)
+├── Typecheck (tsc --noEmit)
+└── Mock-Audit (ESLint --rule mock-audit)
+     │
+Stage 2 [PARALLEL, ~5min]
+├── Integration Tests (Testcontainers, schema-per-worker)
+└── Contract Tests (从contract.yaml生成)
+     │
+Stage 3 [SERIAL, ~10min]
+└── Mutation Tests (核心模块, kill≥85%)
+     │
+Stage 4 [SERIAL, ~8min]
+└── E2E Tests (Playwright 3浏览器)
+     │
+Stage 5 [SERIAL, ~3min]
+└── Visual Regression (Playwright截图对比)
+     │
+Stage 6 [SERIAL, ~5min]
+└── Performance Tests (k6, P95<500ms)
+     │
+Stage 7 [SERIAL, ~2min]
+└── Contract Verification (contract.yaml vs API响应)
+     │
+     ▼ ALL PASS → MERGE ALLOWED
 ```
 
-## 9. 测试审查清单
+### 12.2 Flaky Test自动检测
 
-### 9.1 测试代码审查
+- 同一测试在7天内失败 ≥3 次 → 自动隔离（不阻塞合并）
+- 自动创建GitHub Issue追踪
+- 每周生成Flaky Test报告
 
-提交 PR 前，作者必须自检：
+### 12.3 合并前必须满足
+
+- [x] 所有单元测试100%通过
+- [x] 所有集成测试100%通过（排除隔离测试）
+- [x] 覆盖率阈值达标（P0≥95/90/95, Global≥85/80）
+- [x] 变异杀除率达标（P0≥85%, P1≥80%）
+- [x] E2E测试100%通过（3浏览器）
+- [x] 视觉回归无意外差异
+- [x] API P95延迟 <500ms
+- [x] 契约验证0不匹配
+- [x] Mock审计0违规
+- [x] 0 Critical/High漏洞
+
+---
+
+## 13. Pre-Commit钩子
+
+`.husky/pre-commit` 在每次提交前运行快速检查（<10s）：
+
+```bash
+1. tsc --noEmit           # TypeScript类型检查 (2-5s)
+2. keystone:hash:verify   # 契约哈希完整性 (0.5s)
+3. eslint mock-audit      # Mock策略强制执行 (1-2s)
+4. jest --onlyChanged --bail  # 变更文件测试Fake模式 (2-5s)
+```
+
+**全部通过 → 允许提交。任一失败 → 阻止提交。**
+
+---
+
+## 14. 证据链要求
+
+### 14.1 test_report.json Schema
+
+每个任务从Testing→Review状态转换时，`test_report.json` 必须包含：
+
+```json
+{
+  "execution_evidence": {
+    "exit_code": 0,
+    "output_summary": "Tests: 92 passed, 92 total"
+  },
+  "coverage": {
+    "lines": 91.5,
+    "branches": 85.2,
+    "functions": 93.1,
+    "statements": 91.8
+  },
+  "mock_audit": {
+    "total_mocks_used": 3,
+    "tier1_violations": 0,
+    "tier2_replaced_with_fakes": 2,
+    "tier3_args_verified": 3
+  },
+  "flaky_detection": {
+    "total_flaky_tests": 0,
+    "quarantined_tests": []
+  }
+}
+```
+
+### 14.2 强制证据字段
+
+| 字段 | 必填 | 说明 |
+|------|:--:|------|
+| `execution_evidence` | ✅ | 测试进程退出码和输出摘要 |
+| `coverage` | ✅ | 覆盖率数据 |
+| `mock_audit` | ✅ (v2.0新增) | Mock使用审计 |
+| `flaky_detection` | ✅ (v2.0新增) | Flaky test检测结果 |
+
+---
+
+## 15. 测试审查清单
+
+### 15.1 提交PR前自检
 
 - [ ] 每个测试是否有至少 1 个非 trivial 断言？
 - [ ] 是否覆盖了正常路径、异常路径、边界条件？
-- [ ] 测试描述是否清晰描述了测试意图？
-- [ ] 是否使用了 Given-When-Then 结构？
-- [ ] 是否避免了过度 mock？
-- [ ] Mock 是否验证调用次数和参数？
-- [ ] 测试之间是否相互独立（无状态依赖）？
-- [ ] 是否排除了纯 Getter/Setter 测试？
+- [ ] 是否遵循了Given-When-Then结构？
+- [ ] TIER1服务是否使用了真实依赖？
+- [ ] TIER2服务是否使用了Fake（而非Mock）？
+- [ ] TIER3 Mock是否验证了调用次数和参数？
+- [ ] 测试之间是否相互独立（schema-per-file隔离）？
+- [ ] test_report.json是否包含execution_evidence、mock_audit、flaky_detection？
 
-### 9.2 AI 生成测试审查
+### 15.2 @Guardian审查清单
 
-使用 AI 生成测试时，额外检查：
+- [ ] Mock审计0违规（CAT1.1-CAT1.3）
+- [ ] machine.json.eslint_state 所有模块 status="clean" 或有效 waiver（CAT1.0）
+- [ ] compliance_gate_complete 已调用且 ESLint audit 通过
+- [ ] 无跳过测试（CAT1.2）
+- [ ] 生产代码无 console.log（CAT2.1）
+- [ ] 角色越权记录为 0（CAT4.1）
+- [ ] 覆盖率达标（CAT2.1-CAT2.4）
+- [ ] TDD完整性（CAT3.1-CAT3.5）
+- [ ] test_report.json 包含 eslint_audit 字段
+- [ ] 测试基础设施齐全（CAT4.1-CAT4.6）
+- [ ] 契约完整性（CAT5.1-CAT5.5）
+- [ ] 证据链完整（CAT6.1-CAT6.3）
+- [ ] 性能达标（CAT7.1-CAT7.3）
+- [ ] 安全合规（CAT8.1-CAT8.3）
 
-- [ ] AI 生成的断言是否有实际业务意义？
-- [ ] 是否覆盖了项目特定场景（高并发预约、事务冲突）？
-- [ ] 测试数据是否符合实际业务约束？
-- [ ] 是否使用了项目约定的测试框架和工具？
-- [ ] 是否引用了正确的 DTO 类型和服务接口？
+### 15.3 阻断规则（CAT 代码索引）
 
-### 9.3 测试覆盖率审查
+| ID | 规则 | 阻断 |
+|:--:|------|:---:|
+| CAT1.0 | eslint-disable TIER1 mock 绕过审计未引用有效 waiver | ✅ |
+| CAT1.1 | jest.spyOn/mock 在 PrismaService/RedisService/ConfigService | ✅ |
+| CAT1.2 | 跳过测试: describe.skip / it.skip / xdescribe / xit | ✅ |
+| CAT1.3 | TIER3 Mock 未验证调用参数 | ✅ |
+| CAT2.1 | console.log/error/warn in production code | ✅ |
+| CAT2.2-2.9 | (保留给未来安全规则) | — |
+| CAT3.1 | TIER3 Mock 未验证调用参数 | ✅ |
+| CAT3.2 | switch 语句缺少 default 分支 | ⚠️ |
+| CAT3.4 | test_report.json 不含 eslint_audit 字段 | ✅ |
+| CAT3.5 | machine.json.eslint_state.tier1_violations > 0 | ✅ |
+| CAT3.6 | 业务模块缺少集成测试 | ✅ |
+| CAT3.7 | machine.json.eslint_state 含 dirty 模块且无有效 waiver | ✅ |
+| CAT4.1 | 角色越权: agent_write_scopes 违规 | ✅ |
+| CAT6.1 | test_report.json schema 不完整 | ✅ |
 
-- [ ] 核心业务模块覆盖率 ≥90%？
-- [ ] 整体覆盖率 ≥70%？
-- [ ] 覆盖率报告是否已上传 CI？
-- [ ] 未覆盖的代码行是否有合理说明？
+---
 
-## 10. 缺陷管理
+## 16. 缺陷管理
 
-### 10.1 缺陷修复流程
+### 16.1 缺陷修复流程
 
 1. **复现缺陷**：编写失败的测试用例（RED）
 2. **修复缺陷**：编写最简代码使测试通过（GREEN）
 3. **验证修复**：确认测试通过，回归测试全量通过
 4. **提交修复**：包含缺陷修复代码 + 新增/修改的测试用例
 
-### 10.2 回归测试要求
+### 16.2 缺陷不复发保证
 
-| 缺陷严重级别 | 回归测试范围 | 修复时限 |
-|------------|-------------|---------|
-| **致命** | 全量测试 + 性能测试 + 安全测试 | 24 小时内 |
-| **严重** | 相关模块全量测试 + 集成测试 | 3 个工作日内 |
-| **一般** | 相关模块单元测试 + 集成测试 | 1-2 个迭代 |
-| **轻微** | 相关单元测试 | 后续版本 |
+**每个缺陷修复必须附带至少 1 个新测试用例**，确保同类缺陷不再复发。
 
-### 10.3 缺陷不复发保证
+---
 
-**每个缺陷修复必须附带至少 1 个新测试用例**，确保同类缺陷不再复发。测试用例应：
-- 精确复现缺陷场景
-- 验证修复后的正确行为
-- 覆盖边界条件（如果适用）
+## 17. 架构约束规则
 
-## 11. 项目特定测试场景
+完整约束规则见 `.opencode/context/code_standards/architecture-constraint-rules.md`（由 @Architect 维护）。以下为关键规则摘要：
 
-### 11.1 高并发预约抢占
+### 阻断级规则（违反即拒绝PR）
 
-```typescript
-describe('Concurrent Appointment - Slot Preemption', () => {
-  it('should ensure atomic slot increment under concurrency', async () => {
-    const slot = await prisma.timeSlot.create({
-      data: {
-        date: new Date('2026-04-20'),
-        startTime: '10:00',
-        capacity: 3,
-        currentSequence: 0,
-      },
-    });
+| ID | 规则 |
+|----|------|
+| CAT1.1 | 禁止jest.spyOn在PrismaService/RedisService/ConfigService |
+| CAT1.3 | TIER3 Mock必须验证调用参数 |
+| CAT2.1-2.4 | 覆盖率阈值必须达标 |
+| CAT3.4 | test_report.json必须含execution_evidence |
+| CAT3.5 | mock_audit.tier1_violations必须为0 |
+| CAT5.4 | keystone哈希必须匹配 |
+| CAT6.1 | test_report.json schema必须完整 |
 
-    // 模拟 10 个并发请求
-    const promises = Array.from({ length: 10 }, (_, i) =>
-      service.create({
-        userId: `user-${i}`,
-        timeSlotId: slot.id,
-        serviceId: 'service-1',
-      }),
-    );
+---
 
-    const results = await Promise.allSettled(promises);
-    const succeeded = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+## 18. ADR：架构决策记录
 
-    expect(succeeded).toBe(3); // 仅 3 个成功
-    expect(failed).toBe(7);    // 7 个失败
+### ADR-001: 采用三层Mock治理策略
 
-    const updatedSlot = await prisma.timeSlot.findUnique({
-      where: { id: slot.id },
-    });
-    expect(updatedSlot?.currentSequence).toBe(3); // 精确增加 3 次
-  });
-});
-```
+**日期**: 2026-05-14  
+**状态**: 已采纳  
+**决策**: 采用TIER1(Real-Only) / TIER2(Fake-OK) / TIER3(Boundary-Mock)三层mock治理策略。  
+**理由**: 过度Mock是测试质量的头号杀手。完全禁止Mock过于激进（邮件/短信/Payment必须Mock）。三层策略在真实性和实用性间取得平衡。  
+**后果**: 需要在test/fakes/目录维护Fake实现；ESLint需要自定义mock-audit规则；@Guardian需要额外审查项。
 
-### 11.2 WebSocket 通知测试
+### ADR-002: 采用TDD双速策略
 
-```typescript
-describe('WebSocket Notifications', () => {
-  it('should emit booking confirmation event to user', async () => {
-    const gateway = moduleRef.get(AppointmentGateway);
-    const emitSpy = jest.spyOn(gateway.server, 'to').mockReturnValue({
-      emit: jest.fn(),
-    } as any);
+**日期**: 2026-05-14  
+**状态**: 已采纳  
+**决策**: 本地TDD使用Fake模式（<5s周期），CI验证使用Testcontainers真实模式。  
+**理由**: 纯Testcontainers启动一次30s，无法支撑TDD的快速反馈循环。纯Fake模式无法验证数据库约束和事务隔离。双速策略兼顾速度和真实性。  
+**后果**: RealTestModule需要自动检测Docker可用性；ContainerPool需要schema-per-worker隔离；CI需要额外阶段。
 
-    await service.confirmBooking(bookingId);
+### ADR-003: 采用Schema-per-Worker隔离策略
 
-    expect(gateway.server.to).toHaveBeenCalledWith(userId);
-    expect(gateway.server.to().emit).toHaveBeenCalledWith(
-      'booking:confirmed',
-      expect.objectContaining({ bookingId, status: 'confirmed' }),
-    );
-  });
-});
-```
+**日期**: 2026-05-14  
+**状态**: 已采纳  
+**决策**: 使用PostgreSQL schema隔离（而非database-per-worker或transaction-rollback）。  
+**理由**: Schema创建/删除比Database快10倍以上；单容器单连接池，运维简单；比transaction rollback更可靠（NestJS异步操作不受事务约束）。  
+**后果**: Prisma迁移需要在每个schema上运行；需要schema manager管理schema生命周期。
 
-### 11.3 RBAC 权限测试
+### ADR-004: 采用契约驱动测试生成
 
-```typescript
-describe('RBAC Authorization', () => {
-  const roles = ['admin', 'staff', 'user'];
+**日期**: 2026-05-14  
+**状态**: 已采纳  
+**决策**: 从contract.yaml自动生成API测试，而非手工编写。  
+**理由**: 手工编写的API测试容易与契约脱节；自动生成确保100%端点覆盖；contract.yaml是单一事实来源。  
+**后果**: contract.yaml需要x-test-contract扩展段；需要维护contract-test-generator工具。
 
-  it.each([
-    { role: 'admin', endpoint: '/api/users', method: 'DELETE', expected: 200 },
-    { role: 'staff', endpoint: '/api/users', method: 'DELETE', expected: 403 },
-    { role: 'user', endpoint: '/api/users', method: 'DELETE', expected: 403 },
-  ])(
-    '$role should get $expected when $method $endpoint',
-    async ({ role, endpoint, method, expected }) => {
-      const token = generateTokenForRole(role);
+### ADR-005: 七阶段CI门禁流水线
 
-      await request(app.getHttpServer())
-        [method.toLowerCase()](endpoint)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(expected);
-    },
-  );
-});
-```
+**日期**: 2026-05-14  
+**状态**: 已采纳  
+**决策**: 采用7阶段顺序流水线，每阶段有明确的依赖关系和失败处理。  
+**理由**: 并行运行所有测试虽然快，但浪费资源（E2E在单元测试失败时无意义）。分阶段运行可以在早期快速失败，节省CI资源。  
+**后果**: 最长流水线时间约36分钟；需要维护复杂的GitHub Actions workflow文件；Flaky test检测需要在Stage1和Stage2失败后运行。
 
-## 12. 性能测试
+---
 
-### 12.1 API 响应时间要求
-
-| API 类型 | P50 | P95 | P99 | 测试工具 |
-|---------|-----|-----|-----|---------|
-| 简单查询 | <50ms | <100ms | <200ms | k6 |
-| 复杂查询 | <100ms | <300ms | <500ms | k6 |
-| 创建操作 | <100ms | <200ms | <500ms | k6 |
-| 批量操作 | <500ms | <1000ms | <2000ms | k6 |
-
-### 12.2 k6 负载测试配置
-
-```javascript
-// test/performance/booking-load-test.js
-export const options = {
-  stages: [
-    { duration: '30s', target: 50 },   // 预热
-    { duration: '1m', target: 100 },   // 正常负载
-    { duration: '30s', target: 150 },  // 峰值负载
-    { duration: '30s', target: 0 },    // 冷却
-  ],
-  thresholds: {
-    'http_req_duration': ['p(95)<500'],
-    'http_req_failed': ['rate<0.05'],
-    'booking_success_rate': ['rate>0.95'],
-  },
-};
-```
-
-## 13. 相关文档
+## 19. 相关文档
 
 | 文档 | 说明 |
 |------|------|
-| [测试策略与计划](../requirements/测试策略与计划.md) | 测试策略总纲 |
-| [后端代码规范](./backend-coding-standard.md) | 后端开发规范（测试相关要求） |
-| [前端代码规范](./frontend-coding-standard.md) | 前端开发规范（测试相关要求） |
+| [contract.yaml](../../booking_system_refactor/contract.yaml) | API契约定义（含x-test-mock-policy, x-test-contract, x-coverage-matrix） |
 | [系统架构设计文档](../requirements/系统架构设计文档（SAD）.md) | 系统架构设计 |
 | [安全架构设计文档](../requirements/安全架构设计文档.md) | 安全测试要求 |
+| [测试策略与计划](../requirements/测试策略与计划.md) | 测试策略总纲 |
+| [后端代码规范](./backend-coding-standard.md) | 后端开发规范 |
+| [前端代码规范](./frontend-coding-standard.md) | 前端开发规范 |
+| [架构约束规则 (TEST-ARCH-V2)](../../.task_temp/TEST-ARCH-V2/architecture-constraint-rules.md) | @Guardian审查规则 |
+| [TECH_DEBT_REGISTRY.md](../../booking_system_refactor/TECH_DEBT_REGISTRY.md) | 技术债注册表 |
 
-## 14. 测试文档维护
+---
 
-### 14.1 版本历史
+## 版本历史
 
-| 版本 | 日期 | 变更内容 |
-|------|------|---------|
-| 1.0 | 2026-04-16 | 初始版本，整合测试策略与 AI 测试规范 |
+| 版本 | 日期 | 变更内容 | 作者 |
+|------|------|---------|------|
+| 2.0 | 2026-05-14 | 全面升级：三层Mock治理策略、TDD双速策略、RealTestModule、ContainerPool、7阶段CI门禁、属性/契约/模糊/混沌/视觉回归测试、证据链增强(Flaky detection + Mock-Audit)、ESLint mock规则、Pre-commit hooks、5项ADR | @Architect |
+| 1.0 | 2026-04-16 | 初始版本，整合测试策略与 AI 测试规范 | @Tester Agent |
 
-### 14.2 维护团队
+---
 
-- 质量保障团队
-- @Tester Agent
-- @Guardian Agent（审查合规性）
+*Architect Design | v2.0.0 | 2026-05-14 | Task: TEST-ARCH-V2*

@@ -5,7 +5,7 @@
 
 ### 🚨 P0 子Agent派遣规则: 必须使用 `/dispatch` 命令
 当主Agent需要委托子Agent（subagent）执行任务时，必须通过以下流程：
-1. 运行 `node .opencode/scripts/dispatch-subagent.js <agent_type> "<task>"` 生成包装后的Prompt
+1. 运行 `node .opencode/scripts/command-tools/dispatch-subagent.js <agent_type> "<task>"` 生成包装后的Prompt
 2. 将生成的包装Prompt原样传递给 `Task()` 工具的 `prompt` 参数
 3. 禁止手动编写子Agent Prompt绕过执行前检查
 
@@ -55,6 +55,11 @@
 3. 调用 `compliance_gate_confirm(plan_summary)` — 武装合规门禁
 
 合规门未武装，任何Agent不得进入分析、设计或编码阶段。此门禁优先级高于所有其他规则。
+
+### 🚨 任务完成强制：compliance_gate_complete（所有Agent无条件遵守）
+所有任务结束时必须调用 `compliance_gate_complete(session_id, execution_summary)` — 标记任务完成并消费武装状态。
+
+**未调用 compliance_gate_complete 的任务视为未完成。** @Orchestrator 拒绝调度未完成任务的下一个任务。compliance_gate_complete 内部执行 ESLint mock-audit 全量扫描，违规 > 0 时 complete 返回 failed。
 
 ### 🚨 TDD 强制铁律（所有Agent无条件遵守）
 1. 测试绝对先行：**无测试用例，禁止编写任何业务代码**
@@ -116,9 +121,10 @@
 2. @Orchestrator 调度任务 → @Architect 输出 contract.yaml（含 `x-keystone-state-hash`，接口/数据契约，TDD唯一依据）
 3. 【TDD-RED 阶段】@Coder-BE / @Coder-FE 基于契约+要件书 → 编写失败测试用例（Commit Message 标记 `[Red] {task_id}`）→ 执行测试（强制失败）
 4. 【TDD-GREEN 阶段】@Coder-FE / @Coder-BE **更新 TASK_LOG.md 工作记忆** → 基于测试用例 → 编写最简业务代码 → 让测试全部通过（Commit Message 标记 `[Green] {task_id}`）
-5. 【任务交接】执行 Agent 输出 **HANDOVER.md 交接摘要** + **test_report.json（含 execution_evidence）**
+5. 【任务交接】执行 Agent 输出 **HANDOVER.md 交接摘要** + **test_report.json（含 execution_evidence + eslint_audit）**
 6. 【TDD-REFACTOR 阶段】@Coder 重构代码 → 回归测试（保持全量通过）→ 更新 test_report.json
-7. @Guardian 代码审查（规范/安全/架构 + **测试执行证据验证（DoD 强制检查）**）→ 冲突由 @Arbiter 裁决
+7. 【合规门关闭环】@Coder 调用 **compliance_gate_complete** → 内部执行 ESLint mock-audit 全量扫描（CAT1.1 检查 + CAT1.0 绕过检查）→ machine.json.eslint_state 更新 → 违规 > 0 时返回 failed，@Coder 必须修复后重试
+8. @Guardian 代码审查（规范/安全/架构 + **machine.json.eslint_state 合规检查** + **测试执行证据验证（DoD 强制检查）**）→ 冲突由 @Arbiter 裁决
 8. Git Hook 校验 machine.json 契约哈希同步 → 代码合并
 9. @CI-CD-Agent 部署/自愈 → 结果回传@Orchestrator → 全流程闭环
 10. 【熔断重试】若连续3次未通过 → @Arbiter 介入 → @Orchestrator 执行降级重试/专家切换/人工待命

@@ -22,9 +22,11 @@ mcp_tools:
 
   - Context7
   - Playwright
-	- Task(playwright-mcp-expert)
+  - Task(playwright-mcp-expert)
   - GitHub
   - Salesforce DX
+  - eslint-audit
+  - code-quality-gate
 
 ---
 # Role: Orchestration & Execution Layer – Frontend Development Engineer
@@ -38,7 +40,7 @@ mcp_tools:
 
 ## Mandatory Constraints (Anti‑Goals)
 
-- ❌ Absolutely prohibited: writing implementation code without first writing corresponding **failing test cases**.
+- ❌ Absolutely prohibited: writing implementation code without first writing corresponding **failing test cases**. This is CAT5.2 — enforced physically by code-quality-gate.js Check 6 (Write-Time Audit). Any attempt to write an implementation (.ts/.js non-test) file before its corresponding test file will be BLOCKED with a BLOCKER violation.
 - ❌ Absolutely prohibited: modifying `contract.yaml`, backend code, databases, or deployment scripts.
 - ❌ Absolutely prohibited: bypassing @Guardian to commit code directly.
 - ❌ Absolutely prohibited: violating frontend coding standards and architectural constraints.
@@ -61,6 +63,27 @@ mcp_tools:
 - **HANDOVER.md** – task handover summary, containing core changes, key assumptions, potential pitfalls, and testing reminders (unified path `.task_temp/{taskId}/HANDOVER.md`)
 - **TDD Evidence** – Commit messages must include the `[Red] {task_id}` or `[Green] {task_id}` tag.
 - **test_report.json** – test execution report, must contain the `execution_evidence` field (key summary or assertion results from test command output; unified path `.task_temp/{taskId}/test_report.json`)
+
+## 🚨 Write-Time Audit Mandatory Rule (P0 — After EVERY Write/Edit)
+
+**Immediately after each `Write` or `Edit` operation, before any subsequent work:**
+
+1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "@Coder-FE", task_id: "<current_task_id>" })`
+2. Check the response:
+   - `overall: "pass"` → continue
+   - `overall: "fail"` → handle violations:
+     | Violation | Severity | Action |
+     |-----------|:--------:|--------|
+     | `scope` | BLOCKER | **Immediately revert** — you do not have permission for this file |
+     | `tsc` | BLOCKER | **Fix type errors** — cannot proceed with type violations |
+     | `eslint` (tier1 mock) | BLOCKER | **Replace with Testcontainers** — CAT1.1 violation |
+     | `deps` | ERROR | **Fix import paths** — architecture boundary violation |
+     | `format` | ERROR | Auto-fixed by prettier --write (if auto_fix enabled) |
+     | `eslint` (other) | ERROR | Fix or document for @Guardian review |
+3. Fix all violations, re-run `run_write_check` to confirm
+4. Append result to `.task_temp/{taskId}/write_audit_log.json`
+
+**Skipping this step is a CAT5.1 violation.** @Guardian will compare write_audit_log.json's checks_run against the number of files changed in git diff.
 
 ## Pre‑Commit Mandatory Actions
 

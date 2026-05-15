@@ -1,0 +1,43 @@
+#!/bin/bash
+# commit-msg hook — validates commit message format via commitlint
+# Enforces Conventional Commits + TDD [Red]/[Green]/[Refactor] tagging
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+INNER="$ROOT/booking_system_refactor"
+COMMITLINT="$INNER/node_modules/.bin/commitlint"
+COMMIT_EDITMSG="$1"
+
+if [ ! -f "$COMMITLINT" ]; then
+    echo "⚠️  [commitlint] not installed — skipping. Install with:"
+    echo "   cd $INNER && npm install --save-dev @commitlint/cli @commitlint/config-conventional"
+    exit 0
+fi
+
+if [ ! -f "$COMMIT_EDITMSG" ]; then
+    echo "⚠️  [commitlint] no commit message found — skipping"
+    exit 0
+fi
+
+MSG=$(cat "$COMMIT_EDITMSG")
+
+# Skip commitlint for TDD commits ([Red]/[Green]/[Refactor] + T{id})
+# TDD validation is enforced by pre-commit hook Phase 3.5
+if echo "$MSG" | grep -qiE '^\[(Red|Green|Refactor)\]\s+T[0-9]+\s+'; then
+    exit 0
+fi
+
+echo "🔍 [commitlint] Validating commit message format..."
+cd "$INNER" && npx commitlint --edit "$COMMIT_EDITMSG" || {
+    echo ""
+    echo "❌ Commit message rejected by commitlint."
+    echo ""
+    echo "Valid formats:"
+    echo "  TDD:   [Red] T{task_id} description"
+    echo "         [Green] T{task_id} description"
+    echo "         [Refactor] T{task_id} description"
+    echo "  Standard:  feat(scope): description"
+    echo "             fix(scope): description"
+    echo "             test(scope): description"
+    exit 1
+}

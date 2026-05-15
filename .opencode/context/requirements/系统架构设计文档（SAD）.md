@@ -5,9 +5,10 @@ alwaysApply: false
 # 预约系统 - 系统架构设计文档（SAD） - Angular + NestJS 重构版
 
 ## 文档信息
-- **文档版本**: 2.5.0
+- **文档版本**: 2.5.1
 - **创建日期**: 2026-04-14
-- **最后更新**: 2026-05-11
+- **最后更新**: 2026-05-12
+- **契约版本**: contract.yaml v1.7.5
 - **适用版本**: angular-booking-frontend v1.0.0, nestjs-booking-backend v1.0.0
 - **文档状态**: 已基线化
 - **作者**: 系统架构分析工具
@@ -86,6 +87,7 @@ alwaysApply: false
 | **TimeSlotsModule** | `src/modules/time-slots/` | 时间段管理 | TimeSlotsController, TimeSlotsService, TimeSlotEntity |
 | **EmailModule** | `src/modules/email/` | 邮件通知服务 | EmailService, 邮件模板 |
 | **RetentionModule** | `src/modules/retention/` | 数据保留策略 | RetentionScheduler, RetentionService |
+| **TimezoneModule** | `src/modules/timezone/` | 时区解析与营业时间管理（新增加于 v2.6.0） | ClinicTimezoneProvider, BusinessHoursController, BusinessHoursService |
 | **StatsModule** (Admin Dashboard) | `src/modules/stats/` | 管理员仪表盘统计（DASH-001~004），通过 Prisma 聚合查询计算 | StatsController, StatsService |
 
 #### 2.2.1.1 AdminModule 子模块架构 (管理员后台)
