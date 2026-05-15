@@ -15,22 +15,29 @@ if [ ! -f "$COMMITLINT" ]; then
 fi
 
 if [ ! -f "$COMMIT_EDITMSG" ]; then
-    echo "⚠️  [commitlint] no commit message file found — skipping"
+    echo "⚠️  [commitlint] no commit message found — skipping"
+    exit 0
+fi
+
+MSG=$(cat "$COMMIT_EDITMSG")
+
+# Skip commitlint for TDD commits ([Red]/[Green]/[Refactor] + T{id})
+# TDD validation is enforced by pre-commit hook Phase 3.5
+if echo "$MSG" | grep -qiE '^\[(Red|Green|Refactor)\]\s+T[0-9]+\s+'; then
     exit 0
 fi
 
 echo "🔍 [commitlint] Validating commit message format..."
-npx --prefix "$INNER" commitlint --edit "$COMMIT_EDITMSG" || {
+cd "$INNER" && npx commitlint --edit "$COMMIT_EDITMSG" || {
     echo ""
     echo "❌ Commit message rejected by commitlint."
     echo ""
     echo "Valid formats:"
-    echo "  TDD commits:  [Red] T{task_id} description"
-    echo "                [Green] T{task_id} description"
-    echo "                [Refactor] T{task_id} description"
-    echo "  Standard:     feat(scope): description"
-    echo "                fix(scope): description"
-    echo "                test(scope): description"
-    echo "                etc."
+    echo "  TDD:   [Red] T{task_id} description"
+    echo "         [Green] T{task_id} description"
+    echo "         [Refactor] T{task_id} description"
+    echo "  Standard:  feat(scope): description"
+    echo "             fix(scope): description"
+    echo "             test(scope): description"
     exit 1
 }
