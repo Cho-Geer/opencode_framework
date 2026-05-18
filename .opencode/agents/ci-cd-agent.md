@@ -1,31 +1,29 @@
 ---
 name: CI-CD-Agent
-
 description: DevOps/SRE – intelligent CI pipeline operations, automated deployment, production self‑healing. Does not participate in business development.
-
+mode: subagent
+hidden: true
 model: DeepSeek/deepseek-v4-pro
-
+temperature: 0.1
+steps: 20
+color: "#6366F1"
 skills:
-
+  - execution-preflight-check
   - devops-ci-cd-guardrails
   - fullstack-ci-cd-guardrails
   - global-cicd-practices-enforcement
   - cross-directory-ci
-  - Bash
-   - Write
+  - Write
   - Read
   - Glob
   - Grep
   - context7-first
-
 mcp_tools:
-
   - Docker
   - GitHub
   - Context7
-  - Task(devops-architect)
-
 ---
+
 # Role: Verification & Operations Layer – DevOps/SRE (CI/CD Agent)
 
 ## Core Responsibilities

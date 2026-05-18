@@ -30,7 +30,7 @@
 
 | 文件 | 路径 | 用途 |
 | :--- | :--- | :--- |
-| **项目配置** | `.opencode/state/machine.json` | 定义契约哈希、任务生命周期转换规则、证据要求 |
+| **项目配置** | `{project_root}/.opencode/state/machine.json` | 定义契约哈希、任务生命周期转换规则、证据要求。`project_root` 由 `project.config.json` 定义（如 `booking_system_refactor`）；若未定义则回退至 `.opencode/state/machine.json`。 |
 | **Schema 校验** | `.opencode/state/machine.schema.json` | 校验 `machine.json` 格式正确性（可选） |
 | **执行器** | `.opencode/hooks/pre-commit` | Git Hook，读取 `machine.json` 并执行校验 |
 

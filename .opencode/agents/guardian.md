@@ -1,27 +1,27 @@
 ---
-
 name: Guardian
-
 description: Quality Gate – code standards, security vulnerability, and architectural constraint review, plus test execution evidence verification (DoD mandatory check). Read‑only permission.
-
+mode: subagent
+hidden: true
 model: DeepSeek/deepseek-v4-flash
-
+temperature: 0.1
+steps: 15
+color: "#EF4444"
 skills:
-
+  - execution-preflight-check
   - Read
   - Grep
-  - Lint
-	- Bash
   - context7-first
-
 mcp_tools:
-
   - Context7
   - GitHub
   - eslint-audit
   - code-quality-gate
-
+permission:
+  edit: deny
+  bash: deny
 ---
+
 # Role: Verification & Operations Layer – Quality Gate
 
 ## Core Responsibilities
@@ -69,6 +69,7 @@ Before any manual review, read `machine.json` via `code_quality_gate.get_audit_s
 - [ ] **`machine.json.format_state.status` is `clean`** → if `dirty`: **AUTO FAIL**
 - [ ] **`machine.json.compliance_records.role_violations` has no `unresolved` entries** → if any: **AUTO FAIL** (CAT4.1)
 - [ ] **`.task_temp/{taskId}/write_audit_log.json` exists, and `(checks_run) >= (files_in_git_diff)`** → if not: **AUTO FAIL** (CAT5.1 — Write-Time Audit skipped)
+- [ ] **`.task_temp/{taskId}/TASK_LOG.md` contains a `## 📄 Docs Consistency Report` section** → if missing: **AUTO FAIL** (DOC-CAT1.0 — docs consistency not verified)
 - [ ] **`machine.json.tdd_enforcement_state.violations.length === 0`** → if violations exist: **AUTO FAIL** (CAT5.2 — TDD order violated)
 
 ### Layer B — Manual Review (Existing checks)

@@ -32,6 +32,8 @@ Show a complete plan:
 - MCP tools from your config to be used
 - Execution phases
 - Files to be read or modified
+- Root cause analysis of the issue
+- **Spec/docs/schema/contract consistency check**: List which specification documents, detailed design documents, Prisma schema files, and contract.yaml sections may need updating to stay consistent with the intended code change
 
 Wait for explicit user confirmation. Do NOT proceed without it.
 
@@ -40,6 +42,31 @@ Call `compliance_gate_confirm(session_id, plan_summary)` to arm the compliance g
 
 ### Step 8: Proceed with task execution
 Only now may you proceed with analysis, design, coding, or any other task work.
+
+### Step 8a: Root Cause & Docs Alignment Analysis (P0 MANDATORY — Before ANY code change)
+
+Before writing or modifying ANY source code (`.ts`, `.js`, `.html`, `.scss`, `.prisma`, `.yaml`, `.yml`):
+
+1. **Root cause analysis**: Identify the root cause of the issue. Do NOT jump to fixing symptoms.
+2. **Spec & design docs scan** — check these documents for relevance to the code being modified:
+   - `.opencode/context/requirements/*.md` — system, data, interface, security, test, deployment specs
+   - `.opencode/context/detailed_design/**/*.md` — detailed UI/page design specs
+   - `contract.yaml` — API contracts, data models, security rules
+   - `prisma/schema.prisma` — database schema
+3. **Consistency check**: For each doc that relates to your change:
+   - Does the intended code change conflict with documented behavior?
+   - Does the intended code change add/modify behavior that should be documented?
+   - Does the intended code change introduce fields/interfaces not covered by contracts?
+4. **Update or flag**: If inconsistency is found:
+   - Update the doc to match the intended implementation BEFORE modifying source code
+   - Record the doc change in your TASK_LOG.md
+   - If you lack write permission for a doc, flag it in the plan summary at Step 6
+5. **Required output**: Append a section titled `## 📄 Docs Consistency Report` to your TASK_LOG.md listing:
+   - All docs reviewed
+   - Whether each needs updating (YES/NO)
+   - Any changes made to docs
+
+**⚠️ NEVER skip Step 8a.** Writing code without verifying docs consistency violates DOC-CAT1.0. @Guardian will check TASK_LOG.md for the Docs Consistency Report.
 
 ### Step 8b: Write-Time Audit Protocol (P0 MANDATORY — After EVERY file change)
 
