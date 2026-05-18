@@ -52,78 +52,228 @@
 
   "agent_write_scopes": {
     "@Architect": {
-      "allowed": [".opencode/**/*", "contract.yaml", "AGENTS.md", "**/*.md"],
-      "denied":  ["booking-backend/src/**", "booking-frontend/src/**", "e2e/**"],
+      "allowed": [
+        ".opencode/**/*",
+        "booking_system_refactor/contract.yaml",
+        "AGENTS.md",
+        "**/*.md"
+      ],
+      "denied": [
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
+        "booking_system_refactor/e2e/**"
+      ],
       "description": "Architect writes only architectural docs and contracts"
     },
     "@Coder-BE": {
-      "allowed": ["booking-backend/src/**", "booking-backend/prisma/**", "booking-backend/test/**"],
-      "denied":  ["contract.yaml", "booking-frontend/**", ".opencode/**", "AGENTS.md"],
+      "allowed": [
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-backend/prisma/**",
+        "booking_system_refactor/booking-backend/test/**"
+      ],
+      "denied": [
+        "booking_system_refactor/contract.yaml",
+        "booking_system_refactor/booking-frontend/**",
+        ".opencode/**",
+        "AGENTS.md"
+      ],
       "description": "Coder-BE writes only backend code"
     },
     "@Coder-FE": {
-      "allowed": ["booking-frontend/src/**", "e2e/**"],
-      "denied":  ["booking-backend/**", "contract.yaml", ".opencode/**", "AGENTS.md"],
+      "allowed": [
+        "booking_system_refactor/booking-frontend/src/**",
+        "booking_system_refactor/e2e/**"
+      ],
+      "denied": [
+        "booking_system_refactor/booking-backend/**",
+        "booking_system_refactor/contract.yaml",
+        ".opencode/**",
+        "AGENTS.md"
+      ],
       "description": "Coder-FE writes only frontend code and E2E tests"
     },
     "@Guardian": {
       "allowed": [".task_temp/**", ".opencode/state/**"],
-      "denied":  ["booking-backend/**", "booking-frontend/**", "contract.yaml", "AGENTS.md"],
+      "denied": [
+        "booking_system_refactor/booking-backend/**",
+        "booking_system_refactor/booking-frontend/**",
+        "booking_system_refactor/contract.yaml",
+        "AGENTS.md"
+      ],
       "description": "Guardian is read-only on business code, writes only review artifacts"
     },
     "@Meta-Planner": {
       "allowed": ["project.graph", "Task.DAG.json", ".task_temp/**"],
-      "denied":  ["src/**", "contract.yaml", ".opencode/agents/*.md"],
+      "denied": [
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
+        "booking_system_refactor/contract.yaml",
+        ".opencode/agents/*.md"
+      ],
       "description": "Meta-Planner writes only planning documents"
     },
     "@Orchestrator": {
       "allowed": [".opencode/state/**", ".task_temp/**", "Task.DAG.json"],
-      "denied":  ["**/*.ts", "**/*.html", "**/*.scss", "contract.yaml"],
+      "denied": [
+        "**/*.ts",
+        "**/*.html",
+        "**/*.scss",
+        "booking_system_refactor/contract.yaml"
+      ],
       "description": "Orchestrator writes only state management files"
     },
     "@Arbiter": {
-      "allowed": [".task_temp/**", "WAIVE.md", "OVERRIDE.md", "TECH_DEBT_REGISTRY.md"],
-      "denied":  ["booking-backend/**", "booking-frontend/**", "contract.yaml", "**/*.ts", "**/*.html"],
+      "allowed": [
+        ".task_temp/**",
+        "WAIVE.md",
+        "OVERRIDE.md",
+        "TECH_DEBT_REGISTRY.md"
+      ],
+      "denied": [
+        "booking_system_refactor/booking-backend/**",
+        "booking_system_refactor/booking-frontend/**",
+        "booking_system_refactor/contract.yaml",
+        "**/*.ts",
+        "**/*.html"
+      ],
       "description": "Arbiter writes only arbitration artifacts and tech-debt registry"
     },
     "@CI-CD-Agent": {
-      "allowed": [".github/**", "docker-compose*.yml", "Dockerfile*", "scripts/**", ".task_temp/**"],
-      "denied":  ["booking-backend/**", "booking-frontend/**", "contract.yaml", ".opencode/agents/**"],
+      "allowed": [
+        ".github/**",
+        "docker-compose*.yml",
+        "Dockerfile*",
+        "scripts/**",
+        ".task_temp/**"
+      ],
+      "denied": [
+        "booking_system_refactor/booking-backend/**",
+        "booking_system_refactor/booking-frontend/**",
+        "booking_system_refactor/contract.yaml",
+        ".opencode/agents/**"
+      ],
       "description": "CI-CD-Agent writes only CI/CD pipeline and deployment configuration"
     }
   },
 
   "context7_task_mapping": [
     {
-      "keywords": ["backend", "api", "service", "controller", "dto", "guard", "interceptor", "pipe", "decorator", "module", "provider"],
+      "keywords": [
+        "backend",
+        "api",
+        "service",
+        "controller",
+        "dto",
+        "guard",
+        "interceptor",
+        "pipe",
+        "decorator",
+        "module",
+        "provider"
+      ],
       "stacks": ["backend", "database"]
     },
     {
-      "keywords": ["prisma", "migration", "migrate", "seed", "schema", "entity", "model", "orm"],
+      "keywords": [
+        "prisma",
+        "migration",
+        "migrate",
+        "seed",
+        "schema",
+        "entity",
+        "model",
+        "orm"
+      ],
       "stacks": ["database"]
     },
     {
-      "keywords": ["redis", "bullmq", "cache", "queue", "message", "lock", "distributed", "preempt", "concurrency"],
+      "keywords": [
+        "redis",
+        "bullmq",
+        "cache",
+        "queue",
+        "message",
+        "lock",
+        "distributed",
+        "preempt",
+        "concurrency"
+      ],
       "stacks": ["cache"]
     },
     {
-      "keywords": ["jwt", "passport", "auth", "token", "refresh", "login", "register", "session", "helmet", "csrf"],
+      "keywords": [
+        "jwt",
+        "passport",
+        "auth",
+        "token",
+        "refresh",
+        "login",
+        "register",
+        "session",
+        "helmet",
+        "csrf"
+      ],
       "stacks": ["auth", "backend"]
     },
     {
-      "keywords": ["frontend", "ui", "component", "page", "route", "style", "template", "html", "scss", "css", "layout", "prime", "tailwind"],
+      "keywords": [
+        "frontend",
+        "ui",
+        "component",
+        "page",
+        "route",
+        "style",
+        "template",
+        "html",
+        "scss",
+        "css",
+        "layout",
+        "prime",
+        "tailwind"
+      ],
       "stacks": ["frontend"]
     },
     {
-      "keywords": ["ngrx", "signalstore", "signal", "selector", "effect", "state", "store"],
+      "keywords": [
+        "ngrx",
+        "signalstore",
+        "signal",
+        "selector",
+        "effect",
+        "state",
+        "store"
+      ],
       "stacks": ["frontend"]
     },
     {
-      "keywords": ["test", "coverage", "spec", "e2e", "unit", "integration", "mock", "stryker", "lighthouse", "testcontainers", "k6"],
+      "keywords": [
+        "test",
+        "coverage",
+        "spec",
+        "e2e",
+        "unit",
+        "integration",
+        "mock",
+        "stryker",
+        "lighthouse",
+        "testcontainers",
+        "k6"
+      ],
       "stacks": ["testing"]
     },
     {
-      "keywords": ["ci", "cd", "deploy", "docker", "workflow", "action", "pipeline", "container", "pgbouncer", "compose"],
+      "keywords": [
+        "ci",
+        "cd",
+        "deploy",
+        "docker",
+        "workflow",
+        "action",
+        "pipeline",
+        "container",
+        "pgbouncer",
+        "compose"
+      ],
       "stacks": ["ci_cd"]
     }
   ]

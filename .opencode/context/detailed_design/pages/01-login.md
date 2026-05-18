@@ -54,6 +54,7 @@
 | `countdown` | `number` | 验证码发送倒计时（60秒） |
 | `codeLoginStep` | `1 \| 2` | 验证码登录步骤 |
 | `showAntiEnumMessage` | `boolean` | 反枚举通用提示 |
+| `passwordVisible` | `boolean` | 密码可见性切换（默认隐藏） |
 
 ## API 契约对照
 
@@ -101,6 +102,10 @@
 5. 如切换到「验证码登录」Tab，步骤 1：发送验证码 → 步骤 2：验证验证码
 6. 验证码发送后：60 秒倒计时，按钮置灰
 7. 登录成功后的路由：CUSTOMER → `/booking`, ADMIN/SUPER_ADMIN → `/admin/dashboard`
+8. 密码输入框右侧提供可见性切换按钮（`.password-toggle-btn`），
+   点击后通过 `togglePasswordVisibility()` 切换 `passwordVisible` 信号，
+   aria-label 在 "Show password" / "Hide password" 间动态切换，
+   按钮最小尺寸 44px × 44px 满足 WCAG 触摸友好标准
 
 ## 角色路由映射
 
