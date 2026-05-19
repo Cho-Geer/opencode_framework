@@ -2,17 +2,17 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-18T07:52:21.669Z",
+    "lastUpdated": "2026-05-19T00:18:41.575Z",
     "project": "booking-system",
     "framework": "opencode-v3"
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-18T07:52:21.669Z",
+    "last_full_scan": "2026-05-19T00:18:41.575Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-18T07:52:21.668Z",
+        "last_check": "2026-05-19T00:18:41.575Z",
         "waivers_applied": []
       }
     },
@@ -52,9 +52,11 @@
         "timestamp": "2026-05-18T07:51:55.628Z",
         "agent": "@Coder-BE",
         "violation_file": ".opencode/scripts/framework-self-test.js",
-        "status": "unresolved",
+        "status": "resolved",
         "severity": "BLOCKER",
-        "denied_by": ".opencode/scripts/**"
+        "denied_by": ".opencode/scripts/**",
+        "resolved_at": "2026-05-18T23:55:07.752Z",
+        "resolved_by": "@Orchestrator"
       }
     ],
     "gate_violations": [],
