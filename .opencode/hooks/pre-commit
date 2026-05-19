@@ -1,47 +1,66 @@
 #!/bin/bash
-# Root repo pre-commit hook — v3.0.0
+# Root repo pre-commit hook — v3.1.0
 # Multi-layer enforcement:
+#   0. Compliance Gate Armed Check (PHYSICAL ENFORCEMENT)
 #   1. lint-staged (formatting + eslint fix)
 #   2. keystone-validate (contract hash + evidence + type check + deps + full audit)
 #   3. commit-msg (delegated to commit-msg hook)
 set -e
 
 ROOT="$(git rev-parse --show-toplevel)"
-INNER="$ROOT/booking_system_refactor"
+INNER="$ROOT/$(node -e "console.log(require('./.opencode/project.config.json').project_root)")"
 VALIDATOR="$INNER/scripts/keystone-validate.js"
 MACHINE="$INNER/.opencode/state/machine.json"
+GATE_STATE="$INNER/.opencode/state/gate-state.json"
 
 echo "═══════════════════════════════════════════════════════════════"
-echo "  🔍 OpenCode v3.0 Pre-Commit Hook — Multi-Layer Enforcement"
+echo "  🔍 OpenCode v3.1 Pre-Commit Hook — Multi-Layer Enforcement"
 echo "═══════════════════════════════════════════════════════════════"
+
+# ── Layer 0: Compliance Gate Armed Check (BLOCKING) ──
+echo ""
+echo "[Layer 0/4] Checking compliance gate state..."
+if [ -f "$GATE_STATE" ]; then
+    ARMED=$(node -e "const g=require('$GATE_STATE'); console.log(g.active_sessions?.length || 0)" 2>/dev/null || echo "0")
+    if [ "$ARMED" = "0" ]; then
+        echo "❌ [GATE] No compliance gate session is armed for this commit."
+        echo "   Run: compliance_gate_check → compliance_gate_confirm before committing."
+        echo "   All tasks MUST go through the compliance gate lifecycle."
+        exit 1
+    fi
+    echo "  ✅ Compliance gate armed ($ARMED active session(s))"
+else
+    echo "  ⚠️  gate-state.json not found — compliance gate check skipped"
+fi
 
 # ── Layer 1: lint-staged (auto-format + eslint fix) ──
 if [ -f "$INNER/node_modules/.bin/lint-staged" ]; then
     echo ""
-    echo "[Layer 1/3] Auto-formatting staged files (lint-staged)..."
+    echo "[Layer 1/4] Auto-formatting staged files (lint-staged)..."
     npx --prefix "$INNER" lint-staged --concurrent false || {
         echo "⚠️  [lint-staged] Some files could not be auto-fixed."
-        echo "  → Staged files will still be checked by keystone-validate."
     }
 else
-    echo "[Layer 1/3] lint-staged not installed — skipping auto-format"
+    echo "[Layer 1/4] lint-staged not installed — skipping auto-format"
 fi
 
-# ── Layer 2.5: TDD Order Pre-Check — warn early ──
+# ── Layer 2.5: TDD Order Pre-Check (BLOCKING) ──
 TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
     if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
-        echo "⚠️  [TDD] Implementation files staged without test files and no TDD tag in commit message."
+        echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
         echo "  Impl files: $TDD_IMPL_FILES"
-        echo "  Either add corresponding test files or include [Red]/[Green]/[Refactor] in commit message."
+        echo "  This is a TDD violation. Commit BLOCKED."
+        echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+        exit 1
     fi
 fi
 
 # ── Layer 2: keystone-validate (contract hash + evidence + type + deps + eslint + format) ──
 echo ""
-echo "[Layer 2/3] Running keystone full validation..."
+echo "[Layer 2/4] Running keystone full validation..."
 
 if [ ! -f "$VALIDATOR" ]; then
     echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
@@ -63,7 +82,7 @@ else
 fi
 
 echo ""
-echo "[Layer 3/3] Commit message validation delegated to commit-msg hook"
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"

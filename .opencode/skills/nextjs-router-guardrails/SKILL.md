@@ -292,8 +292,8 @@ export const config = {
     '/register',
     '/account-disabled',
     '/admin/:path*',
-    '/bookings/:path*',
-    '/my-bookings/:path*',
+    '/{feature}/:path*',
+    '/{user_feature}/:path*',
   ],
 };
 
@@ -368,7 +368,7 @@ describe('withAuth HOC', () => {
 
 ```typescript
 // ❌ 错误：硬编码路径检查
-if (pathname === '/admin/bookings' || pathname === '/admin/users') {
+if (pathname === '/admin/{entity_1}' || pathname === '/admin/{entity_2}') {
   // 难以维护
 }
 ```

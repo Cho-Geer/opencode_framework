@@ -4,6 +4,8 @@ alwaysApply: true
 ---
 # 后端代码规范引用
 
+> **参见**：[coding-standard-common.md](coding-standard-common.md) — 框架无关的通用编码规范（命名约定、类型安全、TDD、文件分离等）。
+
 本文档引用 `.opencode/context/code_standards/backend-coding-standard.md` 中的全部规范。
 
 ## 适用范围

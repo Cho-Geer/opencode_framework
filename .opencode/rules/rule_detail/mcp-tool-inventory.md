@@ -99,7 +99,7 @@
 ### 1.11 ESLint Audit MCP工具（v2.2.0新增）
 | 工具名称 | 功能描述 | 适用场景 |
 |---------|---------|---------|
-| `eslint_audit.run_audit` | 执行ESLint mock-audit合规扫描：(1)从`contract.yaml` `x-eslint-policy`自动生成`tier-rules.json`；(2)用`booking-mock-audit`插件扫描spec/test文件；(3)更新`machine.json.eslint_state`。检测CAT1.1(TIER1 mock)、CAT1.0(绕过审计)、CAT1.3(TIER3参数验证) | @Coder-BE/@Coder-FE write/edit后提前发现违规（Layer A）；`compliance_gate_complete`内部全量扫描（Layer B）；@Guardian审查时读取machine.json判定合规性 |
+| `eslint_audit.run_audit` | 执行ESLint mock-audit合规扫描：(1)从`contract.yaml` `x-eslint-policy`自动生成`tier-rules.json`；(2)用`opencode-mock-audit`插件扫描spec/test文件；(3)更新`machine.json.eslint_state`。检测CAT1.1(TIER1 mock)、CAT1.0(绕过审计)、CAT1.3(TIER3参数验证) | @Coder-BE/@Coder-FE write/edit后提前发现违规（Layer A）；`compliance_gate_complete`内部全量扫描（Layer B）；@Guardian审查时读取machine.json判定合规性 |
 
 **调用方式**:
 ```

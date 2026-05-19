@@ -13,13 +13,19 @@ skills:
   - fullstack-ci-cd-guardrails
   - global-cicd-practices-enforcement
   - cross-directory-ci
-  - Write
-  - Read
-  - Glob
-  - Grep
   - context7-first
 mcp_tools:
-  - Docker
+  - docker_list_containers
+  - docker_run_container
+  - docker_build_image
+  - docker_create_network
+  - docker_create_volume
+  - docker_fetch_container_logs
+  - docker_remove_container
+  - docker_remove_image
+  - docker_recreate_container
+  - docker_start_container
+  - docker_stop_container
   - GitHub
   - Context7
 ---

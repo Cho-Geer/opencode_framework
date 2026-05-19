@@ -151,7 +151,7 @@ strategy:
 `*.compose.env.example` 中必须使用 `{{DOCKER_HUB_USER}}` 占位符，**严禁**硬编码用户名。
 
 ```bash
-BACKEND_IMAGE=docker.io/{{DOCKER_HUB_USER}}/booking-backend:dev-abc123def
+BACKEND_IMAGE=docker.io/{{DOCKER_HUB_USER}}/{backend_service}:dev-abc123def
 ```
 
 ### 4.4 验证脚本自愈能力
@@ -304,4 +304,4 @@ services:
 
 **生效日期**: 2026-04-10
 **维护团队**: DevOps / 前端架构组
-**适用范围**: 所有 `booking-*` 仓库及新建项目
+**适用范围**: 所有 `{project_prefix}-*` 仓库及新建项目

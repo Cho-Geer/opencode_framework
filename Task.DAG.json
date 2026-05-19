@@ -3,7 +3,7 @@
     "version": "3.0.0",
     "generated_by": "@Meta-Planner",
     "generated_at": "2026-05-18T03:05:00.000Z",
-    "last_updated": "2026-05-18T03:05:00.000Z",
+    "last_updated": "2026-05-18T03:31:34.891Z",
     "based_on": "Task.DAG.json v2.4.0 + 2 user bug reports: cost display broken + disabled service no cascade",
     "description": "v3.0.0: Framework Universality Refactoring — 17 tasks (P0-P3 + TECH-001) to remove all booking_system_refactor hardcoded references",
     "tdd_enforcement": "Each coding task MUST follow RED→GREEN→REFACTOR phases. RED phase: write failing tests only. GREEN phase: write minimal business code to pass tests. REFACTOR phase: optional, keep tests passing.",
@@ -988,7 +988,7 @@
       "agent": "@Coder-BE",
       "dependencies": [],
       "priority": "P0",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         ".opencode/scripts/mcp-tools/eslint-audit.js",
         ".opencode/scripts/mcp-tools/keystone-validate.js",
@@ -1010,7 +1010,9 @@
         "tests_pass": "Manual verification: run each script outside booking context; confirm they throw instead of silently using wrong paths",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 2
+      "estimated_effort_hours": 2,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-001-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-002",
@@ -1019,7 +1021,7 @@
       "agent": "@Coder-BE",
       "dependencies": [],
       "priority": "P0",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         ".git/hooks/pre-commit",
         ".opencode/hooks/pre-commit"
@@ -1039,7 +1041,9 @@
         "tests_pass": "Manual verification: run pre-commit hook; confirm it reads correct INNER path from config",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 1.5
+      "estimated_effort_hours": 1.5,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-002-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-003",
@@ -1048,7 +1052,7 @@
       "agent": "@Architect",
       "dependencies": [],
       "priority": "P0",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         ".opencode/tools/eslint-plugin-booking-mock-audit/index.js",
         ".opencode/tools/eslint-plugin-booking-mock-audit/rules/no-tier1-mock.js",
@@ -1071,7 +1075,9 @@
         "tests_pass": "ESLint mock-audit runs successfully with new plugin name; all existing rules function identically",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 2
+      "estimated_effort_hours": 2,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-003-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-004",
@@ -1169,7 +1175,7 @@
       "agent": "@Architect",
       "dependencies": [],
       "priority": "P1",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         ".opencode/skills/devops-ci-cd-guardrails/SKILL.md"
       ],
@@ -1187,7 +1193,9 @@
         "tests_pass": "Skill triggers correctly on a non-booking project with different paths",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 1
+      "estimated_effort_hours": 1,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-007-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-008",
@@ -1196,7 +1204,7 @@
       "agent": "@Meta-Planner",
       "dependencies": [],
       "priority": "P1",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         ".opencode/rules/rule_detail/dag-generation-standard.md"
       ],
@@ -1214,7 +1222,9 @@
         "tests_pass": "DAG standard can be applied to non-booking projects without modification",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 1.5
+      "estimated_effort_hours": 1.5,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-008-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-009",
@@ -1349,7 +1359,7 @@
       "agent": "@Arbiter",
       "dependencies": [],
       "priority": "P3",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         ".opencode/skills/learning-mode-executor/SKILL.md",
         ".opencode/skills/salesforce-dx-expert/SKILL.md",
@@ -1371,7 +1381,9 @@
         "tests_pass": "Framework operates correctly with dormant skills handled",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 1.5
+      "estimated_effort_hours": 1.5,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-013-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-014",
@@ -1380,7 +1392,7 @@
       "agent": "@CI-CD-Agent",
       "dependencies": [],
       "priority": "P3",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         ".opencode/skills/learning-mode-executor/SKILL.md.backup"
       ],
@@ -1396,7 +1408,9 @@
         "tests_pass": "Framework operates correctly without the backup file",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 0.25
+      "estimated_effort_hours": 0.25,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-014-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-015",
@@ -1434,7 +1448,7 @@
       "agent": "@Coder-FE",
       "dependencies": [],
       "priority": "P0",
-      "status": "pending",
+      "status": "dispatched",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/app-chart.component.ts"
       ],
@@ -1452,7 +1466,9 @@
         "tests_pass": "Visual verification: chart colors match design tokens; component tests pass",
         "guardian_approved": true
       },
-      "estimated_effort_hours": 1
+      "estimated_effort_hours": 1,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-016-2026-05-18T03-31-*.md"
     },
     {
       "id": "UNIV-017",

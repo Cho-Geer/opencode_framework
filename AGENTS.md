@@ -34,19 +34,19 @@
 ## 二、全局强制规则（Always Apply，最高优先级）
 所有智能体必须严格遵循以下项目规则文件（自动加载）：
 1. 核心规则
-- `.opencode\rules\common-project.md`：通用项目开发规范
-- `.opencode\rules\mcp-compliance-guide.md`：MCP工具使用合规要求
-- `.opencode\rules\skill-compliance-guide.md`：Skill调用权限与合规要求
+- `.opencode/rules/common-project.md`：通用项目开发规范
+- `.opencode/rules/mcp-compliance-guide.md`：MCP工具使用合规要求
+- `.opencode/rules/skill-compliance-guide.md`：Skill调用权限与合规要求
 2. 项目要件与设计文档（强制遵循）
-- `.opencode\context\requirements\系统架构设计文档（SAD）.md`
-- `.opencode\context\requirements\接口设计规范文档.md`
-- `.opencode\context\requirements\数据架构设计文档.md`
-- `.opencode\context\requirements\安全架构设计文档.md`
-- `.opencode\context\requirements\测试策略与计划.md`
-- `.opencode\context\requirements\运维与部署设计文档.md`
-- `.opencode\context\code_standards\frontend-coding-standard.md`（前端开发强制遵循）
-- `.opencode\context\code_standards\backend-coding-standard.md`（后端开发强制遵循）
-- `.opencode\context\code_standards\testing-coding-standard.md`（测试编写与审查强制遵循）
+- `.opencode/context/requirements/系统架构设计文档（SAD）.md`
+- `.opencode/context/requirements/接口设计规范文档.md`
+- `.opencode/context/requirements/数据架构设计文档.md`
+- `.opencode/context/requirements/安全架构设计文档.md`
+- `.opencode/context/requirements/测试策略与计划.md`
+- `.opencode/context/requirements/运维与部署设计文档.md`
+- `.opencode/context/code_standards/frontend-coding-standard.md`（前端开发强制遵循）
+- `.opencode/context/code_standards/backend-coding-standard.md`（后端开发强制遵循）
+- `.opencode/context/code_standards/testing-coding-standard.md`（测试编写与审查强制遵循）
 
 ### 🚨 合规门禁强制（所有Agent无条件遵守，最高优先级）
 所有任务开始前必须依序执行以下三步（均不可跳过）：
@@ -131,172 +131,5 @@
 
 ---
 
-# 附录：项目技术参考
-
-## 项目结构
-
-```
-/mnt/c/Users/User/Documents/Playground 2/
-├── booking_system_refactor/     # 主项目目录
-│   ├── booking-backend/         # NestJS v11+ API (port 3001)
-│   ├── booking-frontend/        # Angular v21+ SPA (port 4200)
-│   ├── e2e/                     # Playwright E2E tests
-│   ├── playwright/              # Playwright config & fixtures
-│   ├── scripts/                 # Build & utility scripts
-│   ├── contract.yaml            # API 契约定义
-│   └── Task.DAG.json            # 任务依赖图
-└── .opencode/                      # 项目规则与上下文
-```
-
-## 常用命令
-
-### booking-backend (NestJS v11+)
-
-```bash
-cd booking_system_refactor/booking-backend
-
-# Development
-npm run start:dev              # Hot reload dev server (port 3001)
-npm run start:debug            # Debug mode with watch
-
-# Build & Production
-npm run build
-npm run start:prod
-
-# Code Quality
-npm run typecheck              # tsc --noEmit
-npm run lint                   # ESLint with auto-fix
-
-# Testing
-npm run test                   # Unit tests (Jest)
-npm run test:watch             # Watch mode
-npm run test:cov               # Coverage (threshold: 70%)
-npm run test:integration       # Integration tests with Testcontainers
-npm run test:e2e               # E2E tests
-npm run test:mutation          # Stryker mutation testing
-
-# Database (Prisma)
-npm run prisma:generate        # Generate Prisma client
-npm run prisma:migrate:dev     # Development migrations
-npm run prisma:migrate:deploy  # Production migrations
-npm run prisma:studio          # Open Prisma Studio
-npm run prisma:seed            # Run seed script
-npm run prisma:reset           # Reset database
-```
-
-### booking-frontend (Angular v21+)
-
-```bash
-cd booking_system_refactor/booking-frontend
-
-# Development
-npm run start                  # ng serve (port 4200)
-npm run ng serve               # Alternative
-
-# Build
-npm run build                  # Production build
-npm run watch                  # Development build with watch
-
-# Testing
-npm run test                   # Jest + Angular Testing Library
-npm run test:audit-coverage    # Coverage audit
-```
-
-### E2E Tests (Playwright)
-
-```bash
-cd booking_system_refactor
-npx playwright test            # Run all E2E tests
-npx playwright test --ui       # UI mode
-npx playwright test --headed   # Headed mode
-```
-
-## 架构速查
-
-### Backend (NestJS v11+)
-
-**Modules** (`src/modules/`):
-- `appointments/` - 预约管理
-- `auth/` - JWT 认证
-- `cache/` - Redis 缓存
-- `email/` - 邮件服务
-- `health/` - 健康检查
-- `notifications/` - 通知服务
-- `rate-limiter/` - 限流控制
-- `services/` - 服务管理
-- `stats/` - 统计报表
-- `time-slots/` - 时间段管理
-- `users/` - 用户管理
-- `verification/` - 验证码服务
-
-**Common** (`src/common/`):
-- 共享基础设施模块
-
-**Stack**:
-- NestJS v11+, Node.js 22.x LTS
-- Prisma 7.6.0+ + PostgreSQL 16
-- Redis 7.x + BullMQ
-- JWT + Passport 认证
-- Jest + Testcontainers 测试
-
-### Frontend (Angular v21+)
-
-**Structure** (`src/app/`):
-- `core/` - 核心模块（服务、拦截器、守卫）
-- `features/` - 功能模块
-- `shared/` - 共享组件
-- `stores/` - NgRx Signals 状态管理
-
-**Stack**:
-- Angular v21+ with standalone components
-- NgRx Signals (@ngrx/signals) 状态管理
-- PrimeNG + Tailwind CSS v4
-- Jest + Angular Testing Library 测试
-
-## API 契约要点
-
-- **Base URL**: `http://localhost:3000/v1`
-- **Versioning**: URI path versioning
-- **Auth**: JWT Bearer Token (15分钟有效期, 7天刷新)
-- **Key Endpoints**:
-  - `POST /v1/auth/login/password` - 密码登录
-  - `POST /v1/auth/login/send-code` - 验证码登录(发送)
-  - `POST /v1/auth/login/verify-code` - 验证码登录(验证)
-  - `POST /v1/auth/register/send-code` - 注册(发送验证码)
-  - `POST /v1/auth/register/complete` - 注册(完成)
-  - `POST /v1/auth/refresh` - 刷新 Token
-  - `POST /v1/appointments` - 创建预约
-  - `GET /v1/appointments` - 查询预约列表
-  - `GET /v1/time-slots/available` - 可用时间段
-  - `GET /v1/services` - 服务列表
-
-- **Frontend Proxy**: Angular 开发服务器代理 `/api` → `http://localhost:3001/v1`
-
-## 环境配置
-
-### Backend (.env)
-```
-PORT=3001
-DATABASE_URL=postgresql://user:pass@localhost:5432/booking
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-secret
-JWT_REFRESH_SECRET=your-refresh-secret
-```
-
-### Frontend
-配置位于 `src/environments/`
-
-## 开发启动流程
-
-1. `docker compose -f docker-compose.dev.yml up -d` - 启动 PostgreSQL + Redis
-2. `cd booking-backend && npm run prisma:migrate:dev && npm run start:dev`
-3. `cd booking-frontend && npm run start`
-4. 打开 `http://localhost:4200`
-
-## 覆盖率阈值
-
-| 组件 | Lines | Branches | Functions | Statements |
-|------|-------|----------|-----------|------------|
-| Backend | 70% | 70% | 70% | 70% |
-| Frontend | Per lighthouserc.json | - | - | - |
+> **项目特定参考**: 技术栈、项目结构、常用命令、架构速查等具体信息请参见 [PROJECT_REFERENCE.md](./PROJECT_REFERENCE.md)。每个项目应自定义该文件中的 `{placeholder}` 占位符以匹配实际项目配置。
 

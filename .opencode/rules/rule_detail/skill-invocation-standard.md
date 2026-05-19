@@ -531,7 +531,7 @@ added_by: system
 skill_name: multi-agent-orchestration
 display_name: 多智能体编排
 category: P1-分析设计类
-description: 触发并编排三层九角色多智能体系统，用于复杂全生命周期开发任务。自动验证AGENTS.md对齐、检查9个Agent配置、启动标准多智能体工作流。
+description: 触发并编排三层八角色多智能体系统，用于复杂全生命周期开发任务。自动验证AGENTS.md对齐、检查8个Agent配置、启动标准多智能体工作流。
 trigger_keywords:
   - 多智能体模式
   - multi-agent

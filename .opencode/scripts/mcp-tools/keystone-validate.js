@@ -14,16 +14,27 @@ const { execSync } = require('child_process');
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT || path.resolve(__dirname, '..', '..', '..');
 
 function readProjectConfig() {
+  const configPath = path.join(OPENCODE_ROOT, '.opencode', 'project.config.json');
+  let cfg;
   try {
-    return JSON.parse(require('fs').readFileSync(
-      path.join(OPENCODE_ROOT, '.opencode', 'project.config.json'), 'utf8'
-    ));
-  } catch { return { project_root: 'booking_system_refactor' }; }
+    cfg = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+  } catch (readErr) {
+    throw new Error(
+      `[keystone-validate] Cannot read or parse project.config.json at ${configPath}: ${readErr.message}`
+    );
+  }
+  if (!cfg.project_root) {
+    throw new Error(
+      `[keystone-validate] 'project_root' is not defined in project.config.json (${configPath}). ` +
+      'Add "project_root": "<subdirectory>" to the config file.'
+    );
+  }
+  return cfg;
 }
 
 function findStateDir() {
   const cfg = readProjectConfig();
-  const pr = cfg.project_root || 'booking_system_refactor';
+  const pr = cfg.project_root;
   const innerRepo = path.resolve(OPENCODE_ROOT, pr);
   const stateDir = path.join(innerRepo, '.opencode', 'state');
   if (require('fs').existsSync(stateDir)) return stateDir;
@@ -86,4 +97,11 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
-main().catch(console.error);
+
+// Start server (only when run directly, not when require()d by tests)
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+// Export internals for testing
+module.exports = { readProjectConfig, findStateDir, runValidate };
