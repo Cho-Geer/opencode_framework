@@ -1,7 +1,8 @@
-# DAG 制定标准 v1.0
+# DAG 制定标准 v1.1
 
-**制定时间**: 2026-04-16  
-**版本**: v1.0.0  
+**制定时间**: 2026-04-16
+**最后更新**: 2026-05-18
+**版本**: v1.1.0（参数化重构 — 硬编码模块清单替换为动态占位符）
 **适用范围**: 所有涉及 Task.DAG.json 生成、更新、审查的任务
 
 ---
@@ -57,7 +58,8 @@ DAG 任务必须覆盖以下全部 6 份要件文档的每一个可验证条款�
 | 测试任务 | spec 文件（单元 + 集成） | `time-slots.service.spec.ts` |
 | 集成任务 | 与其他模块的连接/wiring | 在 `app.module.ts` 中注册 |
 
-**适用模块**: auth, users, services, time-slots, appointments, notifications, cache, rate-limiter, stats, health, email
+**适用模块**: 项目中的全部后端模块，数量记为 `{BACKEND_MODULES_COUNT}`（由 `{PROJECT_ROOT}/backend_src/modules/` 目录扫描得出）。
+> 示例（本项目当前值）: auth, users, services, time-slots, appointments, notifications, cache, rate-limiter, stats, health, email — 共 11 个模块
 
 ### C4 - 前端原子拆解
 
@@ -68,29 +70,24 @@ DAG 任务必须覆盖以下全部 6 份要件文档的每一个可验证条款�
 | 组件实现 | ts + html + scss + spec | `login.component.ts`, `login.component.html` |
 | Store wiring | NgRx Signals 连接 | `auth.store.ts` 连接到组件 |
 
-**适用组件族**: auth, booking, admin, shared
+**适用组件族**: 项目中的全部前端组件族，数量记为 `{FRONTEND_COMPONENT_FAMILIES_COUNT}`（由前端 `features/` 或页面目录结构分析得出）。
+> 示例（本项目当前值）: auth, booking, admin, shared — 共 4 个组件族
 
 ### C5 - 安全增强独立
 
-每个安全增强项必须是**独立任务**，不能合并在其他任务中：
+每个安全增强项必须是**独立任务**，不能合并在其他任务中。
 
-| 安全项 | 优先级 | 对应要件 |
-|--------|--------|---------|
-| CSRF protection | P1 | 安全架构设计文档 |
-| Rate limiting with Redis | P1 | 安全架构设计文档 |
-| Token blacklisting | P1 | 安全架构设计文档 |
-| Vault integration placeholder | P2 | 安全架构设计文档 |
+安全项清单由 `{SECURITY_ITEMS_COUNT}` 项组成，从安全架构设计文档（`.opencode/context/requirements/安全架构设计文档.md`）中提取。每项对应一个独立任务，其优先级遵循安全架构文档中的定义。
+
+> 示例（本项目当前值，共 4 项）: CSRF protection (P1), Rate limiting with Redis (P1), Token blacklisting (P1), Vault integration placeholder (P2)
 
 ### C6 - DevOps 独立
 
-以下各项必须是**独立任务**：
+以下各项必须是**独立任务**。
 
-| DevOps 项 | 优先级 | 对应要件 |
-|----------|--------|---------|
-| Docker Compose 配置 | P1 | 运维与部署设计文档 |
-| CI/CD Pipeline (GitHub Actions) | P1 | 运维与部署设计文档 |
-| 部署配置与环境变量 | P2 | 运维与部署设计文档 |
-| 监控与健康检查 | P2 | 运维与部署设计文档 |
+DevOps 项清单由 `{DEVOPS_ITEMS_COUNT}` 项组成，从运维与部署设计文档（`.opencode/context/requirements/运维与部署设计文档.md`）中提取。每项对应一个独立任务，其优先级遵循运维与部署文档中的定义。
+
+> 示例（本项目当前值，共 4 项）: Docker Compose 配置 (P1), CI/CD Pipeline (GitHub Actions) (P1), 部署配置与环境变量 (P2), 监控与健康检查 (P2)
 
 ---
 
@@ -110,13 +107,15 @@ DAG 任务必须覆盖以下全部 6 份要件文档的每一个可验证条款�
 总任务数 >= 后端模块数 x 3 + 前端组件族数 x 2 + 安全项数 + DevOps项数
 ```
 
-本项目参考值：
-- 后端模块数: 11 (auth, users, services, time-slots, appointments, notifications, cache, rate-limiter, stats, health, email)
-- 前端组件族数: 4 (auth, booking, admin, shared)
-- 安全项数: 4 (CSRF, rate limiting, token blacklisting, Vault)
-- DevOps项数: 4 (Docker Compose, CI/CD, 部署配置, 监控)
+占位符定义（DAG 生成时从项目实际结构解析）:
+- `{BACKEND_MODULES_COUNT}`: 后端模块总数（扫描 `{PROJECT_ROOT}/backend_src/modules/` 得出）
+- `{FRONTEND_COMPONENT_FAMILIES_COUNT}`: 前端组件族总数（分析前端功能模块目录得出）
+- `{SECURITY_ITEMS_COUNT}`: 安全增强项总数（提取自安全架构设计文档）
+- `{DEVOPS_ITEMS_COUNT}`: DevOps 独立项总数（提取自运维与部署设计文档）
 
-**最小任务数 >= 11x3 + 4x2 + 4 + 4 = 49**
+**最小任务数 >= {BACKEND_MODULES_COUNT}x3 + {FRONTEND_COMPONENT_FAMILIES_COUNT}x2 + {SECURITY_ITEMS_COUNT} + {DEVOPS_ITEMS_COUNT}**
+
+> 示例（本项目当前值）: 11x3 + 4x2 + 4 + 4 = 49
 
 ### G3 - 测试独立
 

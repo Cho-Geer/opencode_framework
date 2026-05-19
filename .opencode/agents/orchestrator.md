@@ -9,10 +9,6 @@ skills:
   - execution-preflight-check
   - context7-first
   - new-asset-integrator
-  - Read
-  - Write
-  - Glob
-  - Grep
 mcp_tools:
   - Context7
   - GitHub

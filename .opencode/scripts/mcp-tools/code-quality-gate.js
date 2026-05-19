@@ -30,16 +30,33 @@ const OPENCODE_ROOT = path.resolve(__dirname, '..', '..', '..');
 const PROJECT_CONFIG_PATH = path.join(OPENCODE_ROOT, '.opencode', 'project.config.json');
 
 function getProjectRoot() {
+  let cfg;
   try {
-    const cfg = JSON.parse(fs.readFileSync(PROJECT_CONFIG_PATH, 'utf-8'));
-    const pr = cfg.project_root || 'booking_system_refactor';
-    return path.resolve(OPENCODE_ROOT, pr);
-  } catch { return path.resolve(OPENCODE_ROOT, 'booking_system_refactor'); }
+    cfg = JSON.parse(fs.readFileSync(PROJECT_CONFIG_PATH, 'utf-8'));
+  } catch (readErr) {
+    throw new Error(
+      `[code-quality-gate] Cannot read or parse project.config.json at ${PROJECT_CONFIG_PATH}: ${readErr.message}`
+    );
+  }
+  if (!cfg.project_root) {
+    throw new Error(
+      `[code-quality-gate] 'project_root' is not defined in project.config.json (${PROJECT_CONFIG_PATH}). ` +
+      'Add "project_root": "<subdirectory>" to the config file.'
+    );
+  }
+  return path.resolve(OPENCODE_ROOT, cfg.project_root);
+}
+
+function ensureStateDir(stateDir) {
+  if (!fs.existsSync(stateDir)) {
+    fs.mkdirSync(stateDir, { recursive: true });
+  }
 }
 
 function getStatePath() {
   const pr = getProjectRoot();
   const stateDir = path.join(pr, '.opencode', 'state');
+  ensureStateDir(stateDir);
   return path.join(stateDir, 'machine.json');
 }
 
@@ -47,14 +64,76 @@ function getProjectConfig() {
   return JSON.parse(fs.readFileSync(PROJECT_CONFIG_PATH, 'utf-8'));
 }
 
+/**
+ * Extract the first path segment from a relative path string.
+ * e.g. "booking-backend/src/" → "booking-backend"
+ */
+function firstPathSegment(relativePath) {
+  return relativePath.replace(/\\/g, '/').split('/').filter(Boolean)[0] || relativePath;
+}
+
+/**
+ * Read backend_src path from config, extract first segment, resolve to absolute.
+ */
+function getBackendDir() {
+  const cfg = getProjectConfig();
+  if (!cfg.paths || !cfg.paths.backend_src) {
+    throw new Error(
+      "[code-quality-gate] 'paths.backend_src' is not defined in project.config.json. " +
+      'Add "paths": { "backend_src": "<relative_path>" } to the config file.'
+    );
+  }
+  const segment = firstPathSegment(cfg.paths.backend_src);
+  return path.resolve(getProjectRoot(), segment);
+}
+
+/**
+ * Read frontend_src path from config, extract first segment, resolve to absolute.
+ */
+function getFrontendDir() {
+  const cfg = getProjectConfig();
+  if (!cfg.paths || !cfg.paths.frontend_src) {
+    throw new Error(
+      "[code-quality-gate] 'paths.frontend_src' is not defined in project.config.json. " +
+      'Add "paths": { "frontend_src": "<relative_path>" } to the config file.'
+    );
+  }
+  const segment = firstPathSegment(cfg.paths.frontend_src);
+  return path.resolve(getProjectRoot(), segment);
+}
+
+function getDefaultMachine() {
+  return {
+    meta: { version: '1.0.0', createdAt: new Date().toISOString(), lastUpdated: null, project: 'unknown', framework: 'opencode-v3' },
+    eslint_state: { last_full_scan: null, modules: {}, aggregate: { total_violations: 0, dirty_modules: [], waived_modules: [] } },
+    type_check_state: { last_full_check: null, last_incremental_check: null, full_errors: 0, incremental_errors: 0, dirty_files: [], status: 'clean' },
+    dependency_state: { last_check: null, violations: [], forbidden_rules_applied: 0, status: 'clean' },
+    format_state: { last_check: null, unformatted_files: [], auto_fix_count: 0, status: 'clean' },
+    write_audit_state: { current_session: null, history: [] },
+    compliance_records: { role_violations: [], gate_violations: [], tdd_violations: [] },
+    tdd_enforcement_state: { enabled: true, current_session: null, violations: [], history: [] },
+    contracts: ['contract.yaml'],
+    keystone_hashes: {}
+  };
+}
+
 function getMachine() {
   try { return JSON.parse(fs.readFileSync(getStatePath(), 'utf-8')); }
-  catch { return null; }
+  catch {
+    const defaultMachine = getDefaultMachine();
+    writeMachine(defaultMachine);
+    return defaultMachine;
+  }
 }
 
 function writeMachine(machine) {
+  if (!machine.meta) {
+    machine.meta = { version: '1.0.0', createdAt: new Date().toISOString(), lastUpdated: null };
+  }
   machine.meta.lastUpdated = new Date().toISOString();
-  fs.writeFileSync(getStatePath(), JSON.stringify(machine, null, 2) + '\n');
+  const statePath = getStatePath();
+  ensureStateDir(path.dirname(statePath));
+  fs.writeFileSync(statePath, JSON.stringify(machine, null, 2) + '\n');
 }
 
 function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } }
@@ -181,7 +260,7 @@ function checkESLint(changedFile, projectRoot) {
   const isTestFile = filePath.includes('.spec.') || filePath.includes('.test.') || filePath.includes('/test/');
   if (!isTestFile) return { status: 'skip', message: 'Not a test file' };
 
-  const pluginDir = path.join(OPENCODE_ROOT, '.opencode', 'tools', 'eslint-plugin-booking-mock-audit');
+  const pluginDir = path.join(OPENCODE_ROOT, '.opencode', 'tools', 'eslint-plugin-opencode-mock-audit');
   if (!fs.existsSync(pluginDir)) return { status: 'skip', message: 'ESLint plugin not found' };
 
   try {
@@ -264,13 +343,13 @@ function checkTsc(changedFile, projectRoot) {
   if (!fs.existsSync(filePath)) return { status: 'skip', message: 'File not found' };
   if (!filePath.endsWith('.ts')) return { status: 'skip', message: 'Not a TypeScript file' };
 
-  const isBackend = filePath.includes('booking-backend');
-  const isFrontend = filePath.includes('booking-frontend');
+  const beDir = getBackendDir();
+  const feDir = getFrontendDir();
+  const isBackend = filePath.startsWith(beDir) || filePath.includes(path.basename(beDir));
+  const isFrontend = filePath.startsWith(feDir) || filePath.includes(path.basename(feDir));
   if (!isBackend && !isFrontend) return { status: 'skip', message: 'Not in backend or frontend src' };
 
-  const cwd = isBackend
-    ? path.resolve(projectRoot, 'booking-backend')
-    : path.resolve(projectRoot, 'booking-frontend');
+  const cwd = isBackend ? beDir : feDir;
 
   try {
     const start = Date.now();
@@ -425,8 +504,8 @@ function runFullScan() {
   const results = { overall: 'pass', violations: [] };
 
   // Check #1: TypeScript full check
-  const beCwd = path.resolve(projectRoot, 'booking-backend');
-  const feCwd = path.resolve(projectRoot, 'booking-frontend');
+  const beCwd = getBackendDir();
+  const feCwd = getFrontendDir();
   let tscErrors = 0;
 
   for (const cwd of [beCwd, feCwd]) {
@@ -560,9 +639,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   throw new Error(`Unknown tool: ${name}`);
 });
 
-// ─── Start Server ────────────────────────────────────────
-const transport = new StdioServerTransport();
-server.connect(transport).catch(err => {
-  process.stderr.write(`[code-quality-gate] Fatal error: ${err.message}\n`);
-  process.exit(1);
-});
+// ─── Start Server (only when run directly) ───────────────
+if (require.main === module) {
+  const transport = new StdioServerTransport();
+  server.connect(transport).catch(err => {
+    process.stderr.write(`[code-quality-gate] Fatal error: ${err.message}\n`);
+    process.exit(1);
+  });
+}
+
+// Export internals for testing
+module.exports = {
+  getProjectRoot,
+  getBackendDir,
+  getFrontendDir,
+  checkScope,
+  checkFormat,
+  checkDeps,
+  checkESLint,
+  checkTDDOrder,
+  checkTsc,
+  runWriteCheck,
+  runFullScan,
+};

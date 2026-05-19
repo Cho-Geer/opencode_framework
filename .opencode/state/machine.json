@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "createdAt": "2026-05-18T07:30:00.000Z",
+    "lastUpdated": "2026-05-18T07:52:21.669Z",
+    "project": "booking-system",
+    "framework": "opencode-v3"
+  },
+  "eslint_state": {
+    "last_full_scan": "2026-05-18T07:52:21.669Z",
+    "modules": {
+      "all_modules": {
+        "status": "clean",
+        "violations": [],
+        "last_check": "2026-05-18T07:52:21.668Z",
+        "waivers_applied": []
+      }
+    },
+    "aggregate": {
+      "total_violations": 0,
+      "dirty_modules": [],
+      "waived_modules": []
+    }
+  },
+  "type_check_state": {
+    "last_full_check": null,
+    "last_incremental_check": null,
+    "full_errors": 0,
+    "incremental_errors": 0,
+    "dirty_files": [],
+    "status": "clean"
+  },
+  "dependency_state": {
+    "last_check": null,
+    "violations": [],
+    "forbidden_rules_applied": 0,
+    "status": "clean"
+  },
+  "format_state": {
+    "last_check": null,
+    "unformatted_files": [],
+    "auto_fix_count": 0,
+    "status": "clean"
+  },
+  "write_audit_state": {
+    "current_session": null,
+    "history": []
+  },
+  "compliance_records": {
+    "role_violations": [
+      {
+        "timestamp": "2026-05-18T07:51:55.628Z",
+        "agent": "@Coder-BE",
+        "violation_file": ".opencode/scripts/framework-self-test.js",
+        "status": "unresolved",
+        "severity": "BLOCKER",
+        "denied_by": ".opencode/scripts/**"
+      }
+    ],
+    "gate_violations": [],
+    "tdd_violations": []
+  },
+  "tdd_enforcement_state": {
+    "enabled": true,
+    "current_session": null,
+    "violations": [],
+    "history": []
+  },
+  "contracts": [
+    "contract.yaml"
+  ],
+  "keystone_hashes": {}
+}

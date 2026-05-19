@@ -6,7 +6,7 @@
  * 
  * Exposes tool `run_audit` that:
  * 1. Reads contract.yaml x-eslint-policy → generates .opencode/generated/tier-rules.json
- * 2. Runs ESLint with booking-mock-audit plugin on target files
+ * 2. Runs ESLint with opencode-mock-audit plugin on target files
  * 3. Updates machine.json.eslint_state with results
  * 
  * Called by:
@@ -29,12 +29,21 @@ const OPENCODE_ROOT = path.resolve(__dirname, '..', '..', '..');
 const PROJECT_CONFIG = path.join(OPENCODE_ROOT, '.opencode', 'project.config.json');
 
 function getProjectRoot() {
+  let cfg;
   try {
-    const cfg = JSON.parse(fs.readFileSync(PROJECT_CONFIG, 'utf-8'));
-    return path.resolve(OPENCODE_ROOT, cfg.project_root || 'booking_system_refactor');
-  } catch {
-    return path.resolve(OPENCODE_ROOT, 'booking_system_refactor');
+    cfg = JSON.parse(fs.readFileSync(PROJECT_CONFIG, 'utf-8'));
+  } catch (readErr) {
+    throw new Error(
+      `[eslint-audit] Cannot read or parse project.config.json at ${PROJECT_CONFIG}: ${readErr.message}`
+    );
   }
+  if (!cfg.project_root) {
+    throw new Error(
+      `[eslint-audit] 'project_root' is not defined in project.config.json (${PROJECT_CONFIG}). ` +
+      'Add "project_root": "<subdirectory>" to the config file.'
+    );
+  }
+  return path.resolve(OPENCODE_ROOT, cfg.project_root);
 }
 
 function getStateDir() {
@@ -88,7 +97,7 @@ function generateTierRules(projectRoot) {
 }
 
 function runESLint(projectRoot, targetFiles, scanBusinessCode) {
-  const pluginDir = path.join(OPENCODE_ROOT, '.opencode', 'tools', 'eslint-plugin-booking-mock-audit');
+  const pluginDir = path.join(OPENCODE_ROOT, '.opencode', 'tools', 'eslint-plugin-opencode-mock-audit');
 
   if (!fs.existsSync(pluginDir)) {
     return { violations: [], exitCode: 0, error: 'ESLint plugin not found' };
@@ -290,6 +299,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   };
 });
 
-// Start server
-const transport = new StdioServerTransport();
-server.connect(transport);
+// Start server (only when run directly, not when require()d by tests)
+if (require.main === module) {
+  const transport = new StdioServerTransport();
+  server.connect(transport);
+}
+
+// Export internals for testing
+module.exports = { getProjectRoot, generateTierRules, runESLint };

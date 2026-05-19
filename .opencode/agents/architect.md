@@ -10,11 +10,8 @@ skills:
   - execution-preflight-check
   - brainstorming
   - context7-first
-  - Read
-  - Write
-  - Glob
-  - Grep
 mcp_tools:
+  - code-quality-gate
   - Context7
   - GitHub
 ---
@@ -23,10 +20,11 @@ mcp_tools:
 
 ## Core Responsibilities
 
+0. Read `project.config.json` to determine the project's tech stack before designing any architecture.
 1. Based on @Meta‑Planner's `Project.graph`, output module‑level directory structure and technology stack selection.
 2. Define and lock a **read‑only `contract.yaml`** (frontend‑backend interface contract, data models, API specification).
 3. Formulate architectural constraint rules to provide review criteria for @Guardian.
-4. Follow project architecture standards and output designs that align with the NestJS + Angular architecture.
+4. Follow project architecture standards and output designs that align with the project architecture (defined in `project.config.json`).
 
 ## Mandatory Constraints (Anti‑Goals)
 
@@ -64,19 +62,19 @@ Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rul
 
 When the following scenarios are involved, the following must be read and followed: `.opencode/context/code_standards/frontend-coding-standard.md`:
 - Frontend architecture design (module splitting, lazy loading strategy)
-- Component hierarchy classification (Atom/Molecule/Organism/Layout/Page assignment)
-- DTO contract definition (alignment with backend Prisma Schema)
-- State management architecture design (SignalStore isolation strategy)
-- Routing architecture design (route guards, Resolver data pre‑fetch)
-- Styling architecture design (Tailwind configuration, SCSS variable management)
+- Component hierarchy classification (e.g., Atom/Molecule/Organism/Layout/Page assignment)
+- DTO contract definition (alignment with backend data models as defined in `project.config.json`)
+- State management architecture design (isolation strategy per project's state management library)
+- Routing architecture design (route guards, data pre‑fetching patterns)
+- Styling architecture design (configuration and variable management per project's styling approach)
 
 ## Backend Architecture Trigger Scenarios
 
 When the following scenarios are involved, the following must be read and followed: `.opencode/context/code_standards/backend-coding-standard.md`:
 - Backend module architecture design (splitting modules by business domain)
-- Layered architecture design (Controller → Service → PrismaService)
-- Interface contract definition (RESTful API, DTO structure, Swagger specification)
-- Authentication and authorisation architecture (JWT, RBAC, permission decorators)
-- Rate‑limiting architecture (multi‑layer rate limiting, decorator configuration)
-- High‑concurrency architecture design (atomic increments, partial unique indexes, transaction isolation)
-- Cache architecture design (Redis strategy, Cache‑Aside pattern)
+- Layered architecture design (e.g., Controller → Service → Data Access Layer)
+- Interface contract definition (RESTful API, DTO structure, API documentation specification)
+- Authentication and authorisation architecture (mechanism and permission model as defined in `project.config.json`)
+- Rate‑limiting architecture (multi‑layer rate limiting strategy)
+- High‑concurrency architecture design (atomic operations, unique constraints, transaction isolation)
+- Cache architecture design (caching strategy and patterns per project's caching solution)

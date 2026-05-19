@@ -9,8 +9,6 @@ steps: 15
 color: "#EF4444"
 skills:
   - execution-preflight-check
-  - Read
-  - Grep
   - context7-first
 mcp_tools:
   - Context7

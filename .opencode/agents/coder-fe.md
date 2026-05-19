@@ -9,10 +9,6 @@ color: "#06B6D4"
 skills:
   - execution-preflight-check
   - context7-first
-  - Read
-  - Write
-  - Glob
-  - Grep
 mcp_tools:
   - Context7
   - Playwright
@@ -27,8 +23,8 @@ mcp_tools:
 
 1. Strictly follow the `contract.yaml` output by @Architect to implement frontend pages, components, interaction logic, and state management.
 2. Follow frontend coding standards, execute lint checks, and ensure code readability and maintainability.
-3. Modify code only in frontend directories (e.g., `src/frontend`, `pages`, `components`).
-4. Follow Angular routing security best practices.
+3. Modify code only in the frontend directory as defined in `project.config.json` paths.frontend_src.
+4. Follow routing security best practices for the project's frontend framework.
 
 ## Mandatory Constraints (Anti‑Goals)
 
@@ -95,18 +91,18 @@ Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rul
 
 When writing frontend code, the testing specification in `.opencode/context/code_standards/testing-coding-standard.md` must also be followed:
 - TDD Iron Rule: RED → GREEN → REFACTOR
-- Unit tests: Component/SignalStore/Pipe tests use @testing-library/angular
-- Integration tests: SignalStore state flow, route guards, HTTP interaction verification
-- E2E tests: Use Playwright to verify complete user flows
+- Unit tests: Component/state management/pipe tests use the project's frontend testing library
+- Integration tests: State management state flow, route guards, HTTP interaction verification
+- E2E tests: Use the project's E2E testing framework to verify complete user flows
 - Coverage requirements: Overall ≥70%; core modules (form validation, state management) ≥90%
 
 ## Frontend Development Trigger Scenarios
 
 When the following scenarios are involved, the following must be read and followed: `.opencode/context/code_standards/frontend-coding-standard.md`:
-- Any frontend component development (Atoms/Molecules/Organisms/Layouts/Pages)
+- Any frontend component development (following the project's component hierarchy)
 - Service writing (API services, Guards, Interceptors, Resolvers)
-- SignalStore state management definition
-- Route configuration and lazy‑loading setup
+- State management definition
+- Route configuration and code splitting/lazy loading setup
 - Template file writing (.html)
 - Style file writing (.scss/.css)
 

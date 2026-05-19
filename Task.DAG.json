@@ -1,14 +1,26 @@
 {
   "meta": {
-    "version": "2.5.0",
+    "version": "3.0.0",
     "generated_by": "@Meta-Planner",
-    "generated_at": "2026-05-17T02:10:17.052Z",
-    "last_updated": "2026-05-17T15:25:00.000Z",
+    "generated_at": "2026-05-18T03:05:00.000Z",
+    "last_updated": "2026-05-18T03:31:34.891Z",
     "based_on": "Task.DAG.json v2.4.0 + 2 user bug reports: cost display broken + disabled service no cascade",
-    "description": "v2.5.0: Fix cost display (translation seeds) + disabled service cascade (architectural decision + implementation)",
+    "description": "v3.0.0: Framework Universality Refactoring — 17 tasks (P0-P3 + TECH-001) to remove all booking_system_refactor hardcoded references",
     "tdd_enforcement": "Each coding task MUST follow RED→GREEN→REFACTOR phases. RED phase: write failing tests only. GREEN phase: write minimal business code to pass tests. REFACTOR phase: optional, keep tests passing.",
     "execution_summary": "v2.5.0 complete. ARCHITECT: cascade design. BE: 80/80 tests (cascade + overtime + mapper). FE: 90/90 tests (cost display + status indicator + warning modal). Guardian: CONDITIONAL PASS.",
     "changelog": [
+      {
+        "version": "3.0.0",
+        "date": "2026-05-18T03:05:00.000Z",
+        "changes": [
+          "[P0] UNIV-001~004: Remove hardcoded booking_system_refactor fallbacks, parameterize hooks, rename eslint plugin, parameterize dirs",
+          "[P1] UNIV-005~008: Generalize architect/coder agents, devops guardrails, dag-standard module lists",
+          "[P2] UNIV-009~012: Split AGENTS.md, extract guardian triggers, generalize skills, create project.template/",
+          "[P3] UNIV-013~015: Handle dormant skills, remove stale backup, create PROJECT_TEMPLATE.md",
+          "[TECH-DEBT] UNIV-016: TECH-001 repayment (chart palette sync, deadline 2026-05-20)",
+          "[GATE] UNIV-017: Guardian universality audit"
+        ]
+      },
       {
         "version": "2.5.0",
         "date": "2026-05-17T14:35:00.000Z",
@@ -968,6 +980,547 @@
         "review_pass": "All Layer B checks pass",
         "tests_verified": "All tests pass with execution evidence"
       }
+    },
+    {
+      "id": "UNIV-001",
+      "name": "[P0-UNIV] Replace hardcoded 'booking_system_refactor' fallbacks with error-on-undefined",
+      "description": "In eslint-audit.js:34,36, keystone-validate.js:21,26, and code-quality-gate.js:35,37, replace the hardcoded 'booking_system_refactor' fallback string with a thrown error when project_root is not defined in project.config.json. Each script must read config and throw a descriptive error instead of silently using a wrong default.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "priority": "P0",
+      "status": "dispatched",
+      "target_files": [
+        ".opencode/scripts/mcp-tools/eslint-audit.js",
+        ".opencode/scripts/mcp-tools/keystone-validate.js",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P0 Blockers",
+        "clause": "UNIV-R01 — Replace hardcoded 'booking_system_refactor' fallbacks with error-on-undefined"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/mcp-tools/eslint-audit.js",
+          ".opencode/scripts/mcp-tools/keystone-validate.js",
+          ".opencode/scripts/mcp-tools/code-quality-gate.js"
+        ],
+        "logic_complete": "All 3 scripts read project_root from project.config.json; if undefined, throw descriptive Error with instructions to set project_root",
+        "tests_pass": "Manual verification: run each script outside booking context; confirm they throw instead of silently using wrong paths",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 2,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-001-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-002",
+      "name": "[P0-UNIV] Parameterize pre-commit hooks with PROJECT_ROOT from config",
+      "description": "Replace hardcoded INNER=\"$ROOT/booking_system_refactor\" in .git/hooks/pre-commit (line 10) and .opencode/hooks/pre-commit (line 10) with a dynamic read from project.config.json. Read the config with node -e or jq to extract project_root, and use it as the INNER path. Also add a commit-msg hook if missing.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "priority": "P0",
+      "status": "dispatched",
+      "target_files": [
+        ".git/hooks/pre-commit",
+        ".opencode/hooks/pre-commit"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P0 Blockers",
+        "clause": "UNIV-R02 — Parameterize pre-commit and commit-msg hooks with PROJECT_ROOT from config"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".git/hooks/pre-commit",
+          ".opencode/hooks/pre-commit"
+        ],
+        "logic_complete": "Both hooks read INNER path dynamically from project.config.json project_root field; no hardcoded 'booking_system_refactor' string",
+        "tests_pass": "Manual verification: run pre-commit hook; confirm it reads correct INNER path from config",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1.5,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-002-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-003",
+      "name": "[P0-UNIV] Rename eslint-plugin-booking-mock-audit to eslint-plugin-opencode-mock-audit",
+      "description": "Rename directory .opencode/tools/eslint-plugin-booking-mock-audit/ to .opencode/tools/eslint-plugin-opencode-mock-audit/. Update all internal references: index.js plugin name, package references, and any imports in eslint-audit.js or code-quality-gate.js. Update all 12 rule files as needed. Verify no 'booking-mock-audit' string remains in .opencode/.",
+      "agent": "@Architect",
+      "dependencies": [],
+      "priority": "P0",
+      "status": "dispatched",
+      "target_files": [
+        ".opencode/tools/eslint-plugin-booking-mock-audit/index.js",
+        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/no-tier1-mock.js",
+        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/no-deep-import.js",
+        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/no-console-log.js",
+        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/tier3-verify.js"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P0 Blockers",
+        "clause": "UNIV-R03 — Rename eslint-plugin-booking-mock-audit to eslint-plugin-opencode-mock-audit"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/tools/eslint-plugin-opencode-mock-audit/index.js",
+          ".opencode/tools/eslint-plugin-opencode-mock-audit/rules/"
+        ],
+        "logic_complete": "Directory renamed; all internal references updated; old directory does not exist; grep 'booking-mock-audit' in .opencode/ returns zero results",
+        "tests_pass": "ESLint mock-audit runs successfully with new plugin name; all existing rules function identically",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 2,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-003-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-004",
+      "name": "[P0-UNIV] Parameterize backend/frontend dir detection in code-quality-gate.js",
+      "description": "Replace hardcoded 'booking-backend'/'booking-frontend' strings in code-quality-gate.js (lines 267-268 checkTsc, lines 272-273 cwd, lines 428-429 runFullScan) with configurable paths from project.config.json. Read project.config.json at startup and reference paths.backend_src and paths.frontend_src for directory detection and tsc commands.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "UNIV-001"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "target_files": [
+        ".opencode/scripts/mcp-tools/code-quality-gate.js"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P0 Blockers",
+        "clause": "UNIV-R04 — Replace hardcoded 'booking-backend'/'booking-frontend' with configurable paths"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/mcp-tools/code-quality-gate.js"
+        ],
+        "logic_complete": "checkTsc() reads directory names from project.config.json paths.backend_src / paths.frontend_src; runFullScan() uses same config; grep 'booking-backend OR booking-frontend' in code-quality-gate.js returns zero results",
+        "tests_pass": "Manual verification: tsc incremental check works on booking project AND on a test project with different dir names",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 2
+    },
+    {
+      "id": "UNIV-005",
+      "name": "[P1-UNIV] Generalize architect.md from NestJS+Angular to project-architecture",
+      "description": "Review and refactor .opencode/agents/architect.md. Replace all NestJS+Angular-specific role descriptions, module examples, and architecture templates with generic project-architecture language. Add instructions to read project.config.json tech_stack for technology-specific guidance. Preserve all governance protocols and the contract.yaml-driven development mandate.",
+      "agent": "@Architect",
+      "dependencies": [
+        "UNIV-003"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "target_files": [
+        ".opencode/agents/architect.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P1 High",
+        "clause": "UNIV-R05 — Generalize architect.md from NestJS+Angular to project architecture"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/agents/architect.md"
+        ],
+        "logic_complete": "Architect.md contains no NestJS/Angular-specific examples; all technology references are parameterized via project.config.json tech_stack; role description is framework-agnostic; all governance protocols intact",
+        "tests_pass": "Architect agent can operate on a non-booking project (manual verification with test project.config.json)",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1.5
+    },
+    {
+      "id": "UNIV-006",
+      "name": "[P1-UNIV] Remove stack-specific paths from coder-be.md/coder-fe.md",
+      "description": "Generalize coder-be.md and coder-fe.md. Replace all hardcoded references to 'booking-backend/src/', 'booking-frontend/src/' with references to project.config.json agent_write_scopes. Replace stack-specific technology requirements (NestJS → generic backend, Angular → generic frontend) with project.config.json tech_stack lookups. Preserve TDD requirements and compliance protocols.",
+      "agent": "@Architect",
+      "dependencies": [
+        "UNIV-005"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "target_files": [
+        ".opencode/agents/coder-be.md",
+        ".opencode/agents/coder-fe.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P1 High",
+        "clause": "UNIV-R06 — Remove stack-specific paths from coder-be.md/coder-fe.md"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/agents/coder-be.md",
+          ".opencode/agents/coder-fe.md"
+        ],
+        "logic_complete": "Both agent configs reference project.config.json for paths and tech_stack; no hardcoded 'booking-backend' or 'booking-frontend' strings; TDD and compliance protocols preserved",
+        "tests_pass": "Coder agents can be dispatched for non-booking projects (manual verification)",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1
+    },
+    {
+      "id": "UNIV-007",
+      "name": "[P1-UNIV] Generalize devops-ci-cd-guardrails trigger conditions",
+      "description": "Refactor .opencode/skills/devops-ci-cd-guardrails/SKILL.md. Replace booking-specific trigger conditions (mentions of booking-backend, booking-frontend, specific deploy paths) with config-driven triggers that read from project.config.json. Maintain all CI/CD best-practice guardrails while making triggers generic.",
+      "agent": "@Architect",
+      "dependencies": [],
+      "priority": "P1",
+      "status": "dispatched",
+      "target_files": [
+        ".opencode/skills/devops-ci-cd-guardrails/SKILL.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P1 High",
+        "clause": "UNIV-R07 — Generalize devops-ci-cd-guardrails trigger conditions"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/skills/devops-ci-cd-guardrails/SKILL.md"
+        ],
+        "logic_complete": "Trigger section reads from project.config.json; no hardcoded 'booking-backend' or 'booking-frontend' in triggers; CI/CD guardrails preserved",
+        "tests_pass": "Skill triggers correctly on a non-booking project with different paths",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-007-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-008",
+      "name": "[P1-UNIV] Parameterize dag-generation-standard.md concrete module lists",
+      "description": "Replace hardcoded module counts in dag-generation-standard.md: '11 backend modules (auth, users, ...)' → formula referencing project structure; '4 frontend component families (auth, booking, ...)' → generic component decomposition rule; 'min 49 tasks' → dynamic formula based on G2. Preserve all C1-C6, G1-G4, T1-T4, D1-D4 rules. Update example values to use placeholder notation like {BACKEND_MODULES_COUNT}.",
+      "agent": "@Meta-Planner",
+      "dependencies": [],
+      "priority": "P1",
+      "status": "dispatched",
+      "target_files": [
+        ".opencode/rules/rule_detail/dag-generation-standard.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P1 High",
+        "clause": "UNIV-R08 — Parameterize dag-generation-standard.md concrete module lists"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/rules/rule_detail/dag-generation-standard.md"
+        ],
+        "logic_complete": "All hardcoded module counts replaced with parameterized formulas; concrete module names (auth, users, services, ...) replaced with 'extracted from project structure' instruction; min task count uses formula; example values marked as 'example: {PROJECT_NAME}'",
+        "tests_pass": "DAG standard can be applied to non-booking projects without modification",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1.5,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-008-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-009",
+      "name": "[P2-UNIV] Split AGENTS.md into generic protocol + PROJECT_REFERENCE.md",
+      "description": "Split the current AGENTS.md into two files: (1) AGENTS.md — pure generic multi-agent protocol with 3-layer 8-role architecture, global rules, compliance gate, TDD enforcement, skill invocation rules; (2) PROJECT_REFERENCE.md — booking_system_refactor-specific appendix with tech stack, paths, module lists, contract locations. AGENTS.md must reference PROJECT_REFERENCE.md for project-specific details. All governance protocols preserved.",
+      "agent": "@Architect",
+      "dependencies": [
+        "UNIV-005"
+      ],
+      "priority": "P2",
+      "status": "pending",
+      "target_files": [
+        "AGENTS.md",
+        "PROJECT_REFERENCE.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P2 Medium",
+        "clause": "UNIV-R09 — Split AGENTS.md into generic protocol + PROJECT_REFERENCE.md"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          "AGENTS.md",
+          "PROJECT_REFERENCE.md"
+        ],
+        "logic_complete": "AGENTS.md contains zero booking_system_refactor references; AGENTS.md is fully generic and reusable; PROJECT_REFERENCE.md contains all booking-specific details; cross-reference between the two files is explicit",
+        "tests_pass": "AGENTS.md can be copied to a new project and serve as the generic protocol without modification",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 2
+    },
+    {
+      "id": "UNIV-010",
+      "name": "[P2-UNIV] Extract stack-specific review triggers from guardian.md",
+      "description": "Refactor .opencode/agents/guardian.md to remove booking-specific review triggers (module names, service patterns, API paths). Extract these into project.config.json or a separate guardian-rules config. Guardian.md should define generic review principles (code standards, security, architecture, TDD evidence) with triggers parameterized from project config.",
+      "agent": "@Architect",
+      "dependencies": [
+        "UNIV-006"
+      ],
+      "priority": "P2",
+      "status": "pending",
+      "target_files": [
+        ".opencode/agents/guardian.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P2 Medium",
+        "clause": "UNIV-R10 — Extract stack-specific review triggers from guardian.md"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/agents/guardian.md"
+        ],
+        "logic_complete": "Guardian.md contains no booking-specific module names or service patterns; review triggers parameterized from project.config.json; all generic review principles preserved",
+        "tests_pass": "Guardian can review a non-booking project with appropriate triggers",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1.5
+    },
+    {
+      "id": "UNIV-011",
+      "name": "[P2-UNIV] Generalize booking-specific skill examples",
+      "description": "Scan all .opencode/skills/*/SKILL.md files for 'booking_system_refactor' references in examples and path descriptions. Replace with config-driven placeholders like {PROJECT_ROOT} or {PROJECT_NAME}. Update skill trigger conditions to be project-agnostic. Skills to check: devops-ci-cd-guardrails, fullstack-ci-cd-guardrails, global-cicd-practices-enforcement, cross-directory-ci, prisma-seed-cicd, nextjs-router-guardrails, auto-commit, multi-agent-orchestration.",
+      "agent": "@Architect",
+      "dependencies": [
+        "UNIV-007"
+      ],
+      "priority": "P2",
+      "status": "pending",
+      "target_files": [
+        ".opencode/skills/devops-ci-cd-guardrails/SKILL.md",
+        ".opencode/skills/fullstack-ci-cd-guardrails/SKILL.md",
+        ".opencode/skills/cross-directory-ci/SKILL.md",
+        ".opencode/skills/multi-agent-orchestration/SKILL.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P2 Medium",
+        "clause": "UNIV-R11 — Generalize booking-specific skill examples"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/skills/"
+        ],
+        "logic_complete": "No skill SKILL.md contains 'booking_system_refactor' in examples or paths; all examples use placeholder notation or config references",
+        "tests_pass": "Skills can be invoked in non-booking project context without confusion",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 2
+    },
+    {
+      "id": "UNIV-012",
+      "name": "[P2-UNIV] Create project.template/ directory",
+      "description": "Create .opencode/project.template/ directory with scaffolding for new project adoption. Must include: (1) minimal project.config.json template with all required fields but empty/placeholder values; (2) minimal agents/ directory with generic agent configs; (3) minimal rules/ directory with only framework-generic rules; (4) README.md with adoption guide. Exclude booking-specific files (requirements/, detailed_design/, code_standards/).",
+      "agent": "@Architect",
+      "dependencies": [
+        "UNIV-009"
+      ],
+      "priority": "P2",
+      "status": "pending",
+      "target_files": [
+        ".opencode/project.template/project.config.json",
+        ".opencode/project.template/README.md",
+        ".opencode/project.template/agents/",
+        ".opencode/project.template/rules/",
+        ".opencode/project.template/skills/"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P2 Medium",
+        "clause": "UNIV-R12 — Create project.template/ directory"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/project.template/project.config.json",
+          ".opencode/project.template/README.md"
+        ],
+        "logic_complete": "Template contains all necessary files for new project setup; project.config.json has placeholder values that must be filled in; README.md contains step-by-step adoption guide; all booking-specific content excluded",
+        "tests_pass": "A new project can be initialized by copying project.template/ and filling in project.config.json",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 3
+    },
+    {
+      "id": "UNIV-013",
+      "name": "[P3-UNIV] Handle dormant skills",
+      "description": "Audit dormant skills: learning-mode-executor, salesforce-dx-expert, playwright-mcp-expert, devops-architect, auto-commit. For each: determine if skill is actively used, has functioning code, or is obsolete. Active skills: ensure SKILL.md is up to date. Obsolete skills: add DEPRECATED.md marker with deprecation date and reason. Remove only if confirmed dead by @Arbiter.",
+      "agent": "@Arbiter",
+      "dependencies": [],
+      "priority": "P3",
+      "status": "dispatched",
+      "target_files": [
+        ".opencode/skills/learning-mode-executor/SKILL.md",
+        ".opencode/skills/salesforce-dx-expert/SKILL.md",
+        ".opencode/skills/playwright-mcp-expert/SKILL.md",
+        ".opencode/skills/devops-architect/SKILL.md",
+        ".opencode/skills/auto-commit/SKILL.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P3 Polish",
+        "clause": "UNIV-R13 — Handle dormant skills"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/skills/"
+        ],
+        "logic_complete": "Each dormant skill evaluated and categorized: ACTIVE, DEPRECATED (with DEPRECATED.md), or REMOVED; decision rationale documented in @Arbiter ruling; TECH_DEBT_REGISTRY updated if skills create tech debt",
+        "tests_pass": "Framework operates correctly with dormant skills handled",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1.5,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-013-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-014",
+      "name": "[P3-UNIV] Remove stale backup file",
+      "description": "Delete .opencode/skills/learning-mode-executor/SKILL.md.backup. This is a stale backup file that serves no purpose and creates confusion. Verify no other .backup files exist in .opencode/. Document removal in changelog.",
+      "agent": "@CI-CD-Agent",
+      "dependencies": [],
+      "priority": "P3",
+      "status": "dispatched",
+      "target_files": [
+        ".opencode/skills/learning-mode-executor/SKILL.md.backup"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P3 Polish",
+        "clause": "UNIV-R14 — Remove stale backup file"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [],
+        "logic_complete": "SKILL.md.backup deleted; git rm confirmed; no other .backup files in .opencode/; changelog records removal",
+        "tests_pass": "Framework operates correctly without the backup file",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 0.25,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-014-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-015",
+      "name": "[P3-UNIV] Create PROJECT_TEMPLATE.md adoption guide",
+      "description": "Create PROJECT_TEMPLATE.md in project root. Contents: (1) Quick Start — how to adopt the Opencode framework for a new project; (2) Configuration — walkthrough of project.config.json fields; (3) Customization — how to add tech stacks, agents, skills; (4) Checklist — step-by-step adoption checklist; (5) FAQ — common pitfalls and solutions. Must reference project.template/ directory.",
+      "agent": "@Architect",
+      "dependencies": [
+        "UNIV-012"
+      ],
+      "priority": "P3",
+      "status": "pending",
+      "target_files": [
+        "PROJECT_TEMPLATE.md"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "P3 Polish",
+        "clause": "UNIV-R15 — Create PROJECT_TEMPLATE.md"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          "PROJECT_TEMPLATE.md"
+        ],
+        "logic_complete": "Document covers Quick Start, Configuration, Customization, Checklist, and FAQ; references project.template/ directory; written in clear, actionable language; includes copy-paste ready commands",
+        "tests_pass": "A new user can follow PROJECT_TEMPLATE.md to set up a new project in under 30 minutes",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 2
+    },
+    {
+      "id": "UNIV-016",
+      "name": "[TECH-DEBT] TECH-001: Verify chart-js-token-map.md sync with Sharp Design (#2ecc71) palette",
+      "description": "TECH_DEBT_REGISTRY TECH-001 (deadline 2026-05-20, 2 days remaining). Verify chart-js-token-map.md is synchronized with Sharp Design (#2ecc71) color palette. If not synced, update app-chart.component.ts to use correct palette colors. Verify chart rendering matches design tokens.",
+      "agent": "@Coder-FE",
+      "dependencies": [],
+      "priority": "P0",
+      "status": "dispatched",
+      "target_files": [
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/app-chart.component.ts"
+      ],
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "TECH-001",
+        "clause": "chart-js-token-map.md sync with Sharp Design (#2ecc71) palette"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/app-chart.component.ts"
+        ],
+        "logic_complete": "chart-js-token-map.md verified or updated to match Sharp Design palette; app-chart.component.ts color references updated if needed; chart renders correct colors",
+        "tests_pass": "Visual verification: chart colors match design tokens; component tests pass",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1,
+      "dispatched_at": "2026-05-18T03:31:34.891Z",
+      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-016-2026-05-18T03-31-*.md"
+    },
+    {
+      "id": "UNIV-017",
+      "name": "[GATE] Guardian: Verify all hardcoded refs removed — universality audit",
+      "description": "Final validation gate. @Guardian executes framework-level grep audit: (a) grep -r 'booking_system_refactor' .opencode/scripts/ returns ZERO results; (b) grep -r 'booking-backend OR booking-frontend' .opencode/scripts/ returns ZERO results; (c) grep -r 'booking-mock-audit' .opencode/ returns ZERO results; (d) grep 'booking_system_refactor' .git/hooks/ .opencode/hooks/ returns ZERO results. Verify all agent configs reference project.config.json for paths. Verify AGENTS.md is generic. Verify project.template/ exists. Confirm all 15 universality clauses satisfied.",
+      "agent": "@Guardian",
+      "dependencies": [
+        "UNIV-001",
+        "UNIV-002",
+        "UNIV-003",
+        "UNIV-004",
+        "UNIV-005",
+        "UNIV-006",
+        "UNIV-007",
+        "UNIV-008",
+        "UNIV-009",
+        "UNIV-010",
+        "UNIV-011",
+        "UNIV-012",
+        "UNIV-013",
+        "UNIV-014",
+        "UNIV-015",
+        "UNIV-016"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "target_files": [
+        ".opencode/scripts/mcp-tools/",
+        ".opencode/agents/",
+        ".opencode/skills/",
+        ".opencode/hooks/",
+        ".git/hooks/",
+        "AGENTS.md",
+        "PROJECT_REFERENCE.md",
+        "PROJECT_TEMPLATE.md",
+        ".opencode/project.template/"
+      ],
+      "requirement_source": {
+        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
+        "section": "Quality Gate",
+        "clause": "All 15 universality clauses verified"
+      },
+      "contract_reference": null,
+      "definition_of_done": {
+        "files_exist": [
+          "All 15 universality requirements verified as satisfied"
+        ],
+        "logic_complete": "Grep audit confirms zero hardcoded booking references in framework scripts; agent configs are generic; project.template exists; AGENTS.md split complete; all dormant skills handled",
+        "tests_pass": "Framework can be applied to a non-booking project without modification",
+        "guardian_approved": true
+      },
+      "estimated_effort_hours": 1
     }
   ]
 }

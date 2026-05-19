@@ -30,44 +30,44 @@ Changed files:
 ### Red 阶段示例
 
 ```
-[Red] TASK-001: 编写预约创建单元测试
+[Red] TASK-001: 编写 {feature} 创建单元测试
 
-- 创建 AppointmentService 单元测试
-- 测试用例：创建预约成功场景
-- 测试用例：时间槽冲突场景
-- 测试用例：用户不存在场景
+- 创建 {FeatureService} 单元测试
+- 测试用例：创建 {entity} 成功场景
+- 测试用例：{conflict_scenario} 冲突场景
+- 测试用例：{dependency} 不存在场景
 
 Changed files:
-- booking-backend/src/modules/appointments/appointments.service.spec.ts (+150/-0)
+- {backend_src_dir}/modules/{module}/{module}.service.spec.ts (+150/-0)
 ```
 
 ### Green 阶段示例
 
 ```
-[Green] TASK-001: 实现预约创建服务逻辑
+[Green] TASK-001: 实现 {feature} 创建服务逻辑
 
-- 实现 AppointmentService.create() 方法
-- 添加时间槽冲突检测
-- 添加用户存在性验证
+- 实现 {FeatureService}.create() 方法
+- 添加 {conflict_detection} 冲突检测
+- 添加 {dependency} 存在性验证
 - 使用 prisma.$transaction() 管理事务
 
 Changed files:
-- booking-backend/src/modules/appointments/appointments.service.ts (+85/-10)
-- booking-backend/src/modules/appointments/dto/create-appointment.dto.ts (+25/-0)
-- booking-backend/src/modules/appointments/appointments.service.spec.ts (+20/-5)
+- {backend_src_dir}/modules/{module}/{module}.service.ts (+85/-10)
+- {backend_src_dir}/modules/{module}/dto/create-{entity}.dto.ts (+25/-0)
+- {backend_src_dir}/modules/{module}/{module}.service.spec.ts (+20/-5)
 ```
 
 ### Refactor 阶段示例
 
 ```
-[Refactor] TASK-001: 优化预约服务事务管理
+[Refactor] TASK-001: 优化 {feature} 服务事务管理
 
 - 提取事务边界到独立方法
 - 优化错误处理逻辑
-- 简化时间槽冲突检测算法
+- 简化 {conflict_detection} 冲突检测算法
 
 Changed files:
-- booking-backend/src/modules/appointments/appointments.service.ts (+30/-45)
+- {backend_src_dir}/modules/{module}/{module}.service.ts (+30/-45)
 ```
 
 ## 注意事项
