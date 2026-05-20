@@ -1,6 +1,37 @@
 {
   "formatVersion": "2.0",
   "sessions": {
+    "cg_ses_1779148491575": {
+      "session_id": "cg_ses_1779148491575",
+      "created_at": "2026-05-18T23:54:51.576Z",
+      "task_description": "Commit all pending infrastructure changes: rebrand mock-audit plugin, add state/machine.json, framework-self-test, coding-standard-common, PROJECT_REFERENCE.md, update all 8 agents, hooks, MCP tools, project config, AGENTS.md, TECH_DEBT_REGISTRY.md, Task.DAG.json, skills, and add MCP tool unit tests",
+      "gate_status": "failed",
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/scripts/framework-self-test.js",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779148509612": {
+      "session_id": "cg_ses_1779148509612",
+      "created_at": "2026-05-18T23:55:09.613Z",
+      "task_description": "Commit all pending infrastructure changes: rebrand mock-audit plugin, add state/machine.json, framework-self-test, coding-standard-common, PROJECT_REFERENCE.md, update all 8 agents, hooks, MCP tools, project config, AGENTS.md, TECH_DEBT_REGISTRY.md, Task.DAG.json, skills, and add MCP tool unit tests",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Commit all pending infrastructure changes: mock-audit rebrand, state/machine.json, framework-self-test, coding-standard-common, PROJECT_REFERENCE.md, all 8 agents updates, hooks, MCP tools, project config, AGENTS.md, TECH_DEBT_REGISTRY.md, Task.DAG.json, skills cleanup, and MCP tool tests",
+      "confirmed_at": "2026-05-19T00:18:22.116Z",
+      "consumed_at": "2026-05-19T00:18:44.036Z",
+      "audit": {
+        "execution_summary": "Committed infrastructure updates to develop branch (21efd8c2): rebranded eslint-plugin-booking-mock-audit to eslint-plugin-opencode-mock-audit, added .opencode/state/ (gate-state.json, machine.json, project.config.schema.json), added framework-self-test.js, coding-standard-common.md, PROJECT_REFERENCE.md, MCP tool tests; updated all 8 agents, hooks, MCP tools, project.config.json, AGENTS.md, TECH_DEBT_REGISTRY.md, Task.DAG.json, and skills; cleaned up deprecated files.",
+        "completed_at": "2026-05-19T00:18:44.036Z"
+      }
+    },
     "cg_ses_1779277405597": {
       "session_id": "cg_ses_1779277405597",
       "created_at": "2026-05-20T11:43:25.598Z",
@@ -12,5 +43,9 @@
       "consumed_at": null,
       "audit": null
     }
-  }
+  },
+  "active_sessions": [
+    "cg_ses_1779148509612"
+  ],
+  "last_updated": "2026-05-19T00:18:35.915Z"
 }
