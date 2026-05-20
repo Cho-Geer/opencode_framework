@@ -2,23 +2,29 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-19T15:48:57.768Z",
+    "lastUpdated": "2026-05-20T07:09:43.100Z",
     "project": "booking-system",
     "framework": "opencode-v3"
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-19T15:48:57.768Z",
+    "last_full_scan": "2026-05-20T07:09:43.100Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-19T09:50:31.145Z",
+        "last_check": "2026-05-20T07:09:43.099Z",
         "waivers_applied": []
       },
       "unknown": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-19T15:48:57.768Z",
+        "last_check": "2026-05-20T06:37:20.603Z",
+        "waivers_applied": []
+      },
+      "admin": {
+        "status": "clean",
+        "violations": [],
+        "last_check": "2026-05-20T06:05:01.857Z",
         "waivers_applied": []
       }
     },
@@ -30,20 +36,20 @@
   },
   "type_check_state": {
     "last_full_check": "2026-05-19T03:12:34.419Z",
-    "last_incremental_check": "2026-05-19T04:56:38.175Z",
+    "last_incremental_check": "2026-05-20T06:35:41.803Z",
     "full_errors": 2,
     "incremental_errors": 0,
     "dirty_files": [],
     "status": "dirty"
   },
   "dependency_state": {
-    "last_check": "2026-05-19T04:56:38.175Z",
+    "last_check": "2026-05-20T06:35:41.803Z",
     "violations": [],
-    "forbidden_rules_applied": 3,
+    "forbidden_rules_applied": 7,
     "status": "clean"
   },
   "format_state": {
-    "last_check": "2026-05-19T04:56:38.175Z",
+    "last_check": "2026-05-20T06:35:41.803Z",
     "unformatted_files": [],
     "auto_fix_count": 0,
     "status": "dirty"
@@ -55,14 +61,18 @@
       "files_written": [
         "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/notification-bell/notification-bell.component.html",
         "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/notification-bell/notification-bell.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html"
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.html",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.scss",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.html",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.scss"
       ],
-      "checks_run": 3,
+      "checks_run": 7,
       "checks_passed": 0,
-      "checks_failed": 3,
-      "violations_found": 3,
+      "checks_failed": 7,
+      "violations_found": 7,
       "violations_resolved": 0,
-      "scope_violations_attempted": 3
+      "scope_violations_attempted": 7
     },
     "history": []
   },
