@@ -1,1526 +1,356 @@
 {
   "meta": {
-    "version": "3.0.0",
-    "generated_by": "@Meta-Planner",
-    "generated_at": "2026-05-18T03:05:00.000Z",
-    "last_updated": "2026-05-18T03:31:34.891Z",
-    "based_on": "Task.DAG.json v2.4.0 + 2 user bug reports: cost display broken + disabled service no cascade",
-    "description": "v3.0.0: Framework Universality Refactoring — 17 tasks (P0-P3 + TECH-001) to remove all booking_system_refactor hardcoded references",
-    "tdd_enforcement": "Each coding task MUST follow RED→GREEN→REFACTOR phases. RED phase: write failing tests only. GREEN phase: write minimal business code to pass tests. REFACTOR phase: optional, keep tests passing.",
-    "execution_summary": "v2.5.0 complete. ARCHITECT: cascade design. BE: 80/80 tests (cascade + overtime + mapper). FE: 90/90 tests (cost display + status indicator + warning modal). Guardian: CONDITIONAL PASS.",
+    "version": "1.1.0",
+    "project": "Admin New User Verification Code Feature",
+    "generatedBy": "@Meta-Planner",
+    "generatedAt": "2026-05-19T00:00:00Z",
+    "description": "为管理员新建用户对话框添加邮件/手机验证码功能，仿照登录页面验证码流程。新增 POST /v1/admin/users/send-code 端点，修改 POST /v1/admin/users 端点以支持 verificationCode 字段。包含 WV-2026-005 技术债偿还任务。",
     "changelog": [
       {
-        "version": "3.0.0",
-        "date": "2026-05-18T03:05:00.000Z",
+        "version": "1.0.0",
+        "date": "2026-05-19T00:00:00Z",
         "changes": [
-          "[P0] UNIV-001~004: Remove hardcoded booking_system_refactor fallbacks, parameterize hooks, rename eslint plugin, parameterize dirs",
-          "[P1] UNIV-005~008: Generalize architect/coder agents, devops guardrails, dag-standard module lists",
-          "[P2] UNIV-009~012: Split AGENTS.md, extract guardian triggers, generalize skills, create project.template/",
-          "[P3] UNIV-013~015: Handle dormant skills, remove stale backup, create PROJECT_TEMPLATE.md",
-          "[TECH-DEBT] UNIV-016: TECH-001 repayment (chart palette sync, deadline 2026-05-20)",
-          "[GATE] UNIV-017: Guardian universality audit"
+          "初始 DAG 版本，覆盖 admin 用户创建验证码功能全部任务",
+          "包含 TECH_DEBT_REGISTRY.md 扫描结果：WV-2026-005 (6天内到期) → T-TECHDEBT-WV-005"
         ]
       },
       {
-        "version": "2.5.0",
-        "date": "2026-05-17T14:35:00.000Z",
+        "version": "1.0.1",
+        "date": "2026-05-19T15:30:00Z",
         "changes": [
-          "[分析] Issue 1: Cost display broken — translation seeds missing {param} placeholders",
-          "[分析] Issue 2: Disabled service no cascade — no event bus, no appointment cancel by service",
-          "[新增] ARCHITECT-SERVICE-CASCADE: @Architect defines cascade contract",
-          "[新增] BE-SERVICE-CASCADE: @Coder-BE implements cascade logic",
-          "[新增] FE-COST-DISPLAY-FIX: @Coder-FE fixes translation seeds + template"
+          "Wave 1 dispatched: T-ADMIN-VERIFY-001 + T-TECHDEBT-WV-005 → @Architect (parallel)",
+          "Compliance gate armed at 2026-05-19T15:29:31.961Z (cg_ses_1779202953784)",
+          "Context7 queries completed: NestJS, Angular v20+, Prisma"
         ]
       },
       {
-        "version": "2.4.0",
-        "date": "2026-05-17T13:46:00.000Z",
+        "version": "1.1.0",
+        "date": "2026-05-19T15:35:00Z",
         "changes": [
-          "[分析] Root cause: .toISOString().split(\"T\")[0] loses timezone — June 1 in UTC+8 becomes May 31",
-          "[新增] FE-DATE-TIMEZONE-FIX: Replace 4 .toISOString() patterns with toLocalDateString() helper",
-          "[修复] Appointment booking date also affected — saveBooking() sends wrong date",
-          "[修复] Filter dates and todayCount also affected"
-        ]
-      },
-      {
-        "version": "2.3.0",
-        "date": "2026-05-17T12:00:00.000Z",
-        "changes": [
-          "[规划] Root cause analysis: 2026-05-31 is Sunday + default sunday:[] business hours",
-          "[新增] FE-QUICK-BOOKING-CLOSED-DAYS: Disable closed days in date picker, improve error message",
-          "[新增] BE-BUSINESS-HOURS-ENSURE: Verify admin/settings/business-hours endpoint response completeness",
-          "[变更] Admin Quick Booking UX: date picker prevents selecting closed days, contextual error messages"
-        ]
-      },
-      {
-        "version": "2.2.0",
-        "date": "2026-05-17T05:10:14.393Z",
-        "changes": [
-          "[审查] Guardian re-review PASS (v2.1.1)",
-          "[修复] CAT4.1: project.config.json agent_write_scopes — all 30+ project-internal paths prefixed with booking_system_refactor/",
-          "[新增] PW-TOGGLE-SEED: 2 i18n seed entries (auth.login.showPassword, auth.login.hidePassword)",
-          "[新增] T-FE-I18N-001: login.component.html aria-label changed to TranslatePipe",
-          "[测试] 56/58 login tests pass (2 pre-existing), 31/31 translation tests pass"
-        ]
-      },
-      {
-        "version": "2.1.1",
-        "date": "2026-05-17T04:35:37.786Z",
-        "changes": [
-          "[审查] Guardian re-review PASS: PW-TOGGLE-IMPL code, security, architecture all compliant",
-          "[审查] Layer A: 4 pre-existing failures documented (type_check dirty, format dirty, CAT4.1 write_audit scope, 2 [RED] tests)",
-          "[审查] WCAG: 44px touch targets + dynamic aria-label compliant",
-          "[审查] ESLint full scan: 0 violations",
-          "[审查] 9/9 toggle tests pass, no regression"
-        ]
-      },
-      {
-        "version": "2.1.0",
-        "date": "2026-05-17T02:10:17.052Z",
-        "changes": [
-          "[新增] PW-TOGGLE-RED: TDD-RED phase — password visibility toggle failing tests (login.component.spec.ts + responsive.spec.ts)",
-          "[新增] PW-TOGGLE-IMPL: TDD-GREEN phase — password visibility toggle implementation (login.component.ts/html/scss)",
-          "[审计] TECH-001 (deadline 2026-05-20) scanned but excluded per user directive from this DAG version",
-          "[审计] Pre-audit complete: actual-completion-baseline.json, requirements-clause-list.json, gap-analysis-matrix.json generated",
-          "[文档] Project.graph updated to v2.1.0"
-        ]
-      },
-      {
-        "version": "2.0.0",
-        "date": "2026-05-12T14:23:00Z",
-        "changes": [
-          "Full i18n 5-phase execution DAG"
+          "Wave 1 dispatched: T-ADMIN-VERIFY-001 + T-TECHDEBT-WV-005 → @Architect (parallel)",
+          "Wave 2 dispatch prompts generated: T-ADMIN-VERIFY-002 → @Coder-BE (RED), T-ADMIN-VERIFY-004 → @Coder-FE (RED)",
+          "Wave 3 dispatch prompts generated: T-ADMIN-VERIFY-003 → @Coder-BE (GREEN), T-ADMIN-VERIFY-005 → @Coder-FE (GREEN)",
+          "Wave 4 dispatch prompt generated: T-ADMIN-VERIFY-006 → @Guardian (security review)",
+          "All dispatch prompts saved to .task_temp/{taskId}/dispatch_prompt.md"
         ]
       }
     ]
   },
   "tasks": [
     {
-      "id": "TIMESLOTS-PAGINATION-FIX",
-      "name": "Fix TimeSlots module pagination format",
-      "status": "completed",
+      "id": "T-ADMIN-VERIFY-001",
+      "name": "更新 contract.yaml — 记录 admin 用户验证码端点",
+      "description": "在 contract.yaml 中新增 POST /v1/admin/users/send-code 端点定义（请求/响应 Schema、鉴权、速率限制），并修改 POST /v1/admin/users 端点定义以包含 verificationCode 字段。必须遵循 contract.yaml 现有格式风格。",
+      "agent": "@Architect",
       "dependencies": [],
-      "assignee": "@Coder-BE",
-      "tdd_phase": "completed"
-    },
-    {
-      "id": "APPOINTMENTS-PAGINATION-FIX",
-      "name": "Fix Appointments module pagination format",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Coder-BE",
-      "tdd_phase": "completed"
-    },
-    {
-      "id": "BE-ROLE-UNIFY",
-      "name": "[Phase1-CRITICAL-1] Unify User.role field (Backend)",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/BE-ROLE-UNIFY/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/BE-ROLE-UNIFY/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/BE-ROLE-UNIFY/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "FE-ROLE-UNIFY",
-      "name": "[Phase1-CRITICAL-1] Unify User.role field (Frontend)",
-      "status": "completed",
-      "dependencies": [
-        "BE-ROLE-UNIFY"
+      "outputs": [
+        "contract.yaml (updated)"
       ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/FE-ROLE-UNIFY/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/FE-ROLE-UNIFY/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/FE-ROLE-UNIFY/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "BE-CATEGORY-NULLABLE",
-      "name": "[Phase1-CRITICAL-2] Make Service.categoryId nullable",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/BE-CATEGORY-NULLABLE/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/BE-CATEGORY-NULLABLE/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/BE-CATEGORY-NULLABLE/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "BE-STATS-CONTRACT-FIXES",
-      "name": "[Phase1-HIGH] Stats + Business Hours contract fixes",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/BE-STATS-CONTRACT-FIXES/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/BE-STATS-CONTRACT-FIXES/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/BE-STATS-CONTRACT-FIXES/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "DICT-BE-MODEL",
-      "name": "[Phase2.1] Add TranslationDictionary Prisma model + migration",
-      "status": "completed",
-      "dependencies": [
-        "BE-ROLE-UNIFY",
-        "BE-CATEGORY-NULLABLE",
-        "BE-STATS-CONTRACT-FIXES"
-      ],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-MODEL/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-MODEL/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/DICT-BE-MODEL/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "DICT-BE-SERVICE",
-      "name": "[Phase2.2] Backend TranslationService",
-      "status": "completed",
-      "dependencies": [
-        "DICT-BE-MODEL"
-      ],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-SERVICE/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-SERVICE/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/DICT-BE-SERVICE/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "DICT-BE-API",
-      "name": "[Phase2.3] Translation API endpoints",
-      "status": "completed",
-      "dependencies": [
-        "DICT-BE-SERVICE"
-      ],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-API/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-API/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/DICT-BE-API/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "DICT-BE-SEED",
-      "name": "[Phase2.4] Default translation seed data",
-      "status": "completed",
-      "dependencies": [
-        "DICT-BE-MODEL"
-      ],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-SEED/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-BE-SEED/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/DICT-BE-SEED/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "DICT-FE-SERVICE",
-      "name": "[Phase3.1] Frontend TranslationService",
-      "status": "completed",
-      "dependencies": [
-        "DICT-BE-API"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-FE-SERVICE/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-FE-SERVICE/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/DICT-FE-SERVICE/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "DICT-FE-PIPE",
-      "name": "[Phase3.2] Frontend TranslatePipe",
-      "status": "completed",
-      "dependencies": [
-        "DICT-FE-SERVICE"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-FE-PIPE/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-FE-PIPE/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/DICT-FE-PIPE/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "DICT-FE-WS",
-      "name": "[Phase3.3] WebSocket incremental update integration",
-      "status": "completed",
-      "dependencies": [
-        "DICT-FE-SERVICE"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-FE-WS/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/DICT-FE-WS/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/DICT-FE-WS/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "COPY-AUTH-PAGES",
-      "name": "[Phase4.1] Migrate auth pages to | t pipe",
-      "status": "completed",
-      "dependencies": [
-        "DICT-FE-PIPE"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-AUTH-PAGES/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-AUTH-PAGES/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/COPY-AUTH-PAGES/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "COPY-DASHBOARD",
-      "name": "[Phase4.2] Migrate admin dashboard to | t pipe",
-      "status": "completed",
-      "dependencies": [
-        "DICT-FE-PIPE"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-DASHBOARD/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-DASHBOARD/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/COPY-DASHBOARD/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "COPY-BOOKING-FLOW",
-      "name": "[Phase4.3] Migrate booking flow to | t pipe",
-      "status": "completed",
-      "dependencies": [
-        "DICT-FE-PIPE"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-BOOKING-FLOW/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-BOOKING-FLOW/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/COPY-BOOKING-FLOW/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "COPY-SHARED",
-      "name": "[Phase4.4] Migrate shared components to | t pipe",
-      "status": "completed",
-      "dependencies": [
-        "DICT-FE-PIPE"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-SHARED/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/COPY-SHARED/green_report.json"
-        },
-        "refactor": {
-          "status": "skipped",
-          "artifact": ".task_temp/COPY-SHARED/refactor_report.json"
-        }
-      }
-    },
-    {
-      "id": "TEST-BE-DICT",
-      "name": "[Phase5.1] Backend comprehensive testing",
-      "status": "completed",
-      "dependencies": [
-        "DICT-BE-API",
-        "DICT-BE-SEED"
-      ],
-      "assignee": "@Coder-BE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/TEST-BE-DICT/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/TEST-BE-DICT/green_report.json"
-        }
-      }
-    },
-    {
-      "id": "TEST-FE-DICT",
-      "name": "[Phase5.2] Frontend comprehensive testing",
-      "status": "completed",
-      "dependencies": [
-        "DICT-FE-PIPE",
-        "DICT-FE-WS",
-        "COPY-AUTH-PAGES",
-        "COPY-DASHBOARD",
-        "COPY-BOOKING-FLOW",
-        "COPY-SHARED"
-      ],
-      "assignee": "@Coder-FE",
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/TEST-FE-DICT/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/TEST-FE-DICT/green_report.json"
-        }
-      }
-    },
-    {
-      "id": "DOC-UPDATE",
-      "name": "[Phase5.3] Update design docs & finalize",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Architect",
-      "tdd_phases": {
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/_dispatch/"
-        }
-      }
-    },
-    {
-      "id": "BE-PHASE1-GUARDIAN",
-      "name": "[Guardian] Review Phase 1 backend changes",
-      "status": "pending_manual",
-      "dependencies": [
-        "BE-ROLE-UNIFY",
-        "BE-CATEGORY-NULLABLE",
-        "BE-STATS-CONTRACT-FIXES"
-      ],
-      "assignee": "@Guardian",
-      "note": "Manual dispatch required — call /compliance-gate then /dispatch @Guardian"
-    },
-    {
-      "id": "FE-PHASE1-GUARDIAN",
-      "name": "[Guardian] Review Phase 1 frontend changes",
-      "status": "pending_manual",
-      "dependencies": [
-        "FE-ROLE-UNIFY"
-      ],
-      "assignee": "@Guardian",
-      "note": "Manual dispatch required"
-    },
-    {
-      "id": "BE-PHASE2-GUARDIAN",
-      "name": "[Guardian] Review Phase 2 dictionary backend",
-      "status": "pending_manual",
-      "dependencies": [
-        "TEST-BE-DICT"
-      ],
-      "assignee": "@Guardian",
-      "note": "Manual dispatch required"
-    },
-    {
-      "id": "FE-PHASE3-GUARDIAN",
-      "name": "[Guardian] Review Phase 3-4 frontend changes",
-      "status": "pending_manual",
-      "dependencies": [
-        "TEST-FE-DICT"
-      ],
-      "assignee": "@Guardian",
-      "note": "Manual dispatch required"
-    },
-    {
-      "id": "PW-TOGGLE-RED",
-      "name": "[TDD-RED] Password visibility toggle — write failing tests",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Coder-FE",
-      "priority": "P1",
-      "tdd_phase": "RED",
-      "description": "Write failing unit tests for password visibility toggle feature on login page. Tests should cover: (1) passwordVisible signal defaults to false, (2) togglePasswordVisibility() flips signal value, (3) password input type attribute changes between 'password' and 'text', (4) eye icon button toggles aria-label, (5) responsive test for touch-friendly toggle button.",
+      "priority": "P0",
+      "status": "in_progress",
       "requirement_source": {
-        "document": "用户需求 + 测试策略与计划.md",
-        "section": "Password Visibility Toggle",
-        "clause": "PW-TOGGLE-REQ + TEST-COMP-001"
+        "document": "接口设计规范文档",
+        "section": "2. 接口设计规范 — Admin 端点",
+        "clause": "新增 admin.users.send-code 端点，修改 admin.users.create 端点"
       },
       "contract_reference": {
-        "path": "contract.yaml → auth.login_password endpoint",
-        "type": "endpoint (unchanged — no API impact)"
+        "path": "contract.yaml § admin.users",
+        "type": "endpoint"
       },
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/auth/login/login.component.spec.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/auth/login/login.component.responsive.spec.ts"
-      ],
-      "definition_of_done": {
-        "files_exist": [
-          "login.component.spec.ts (updated with password toggle tests)",
-          "login.component.responsive.spec.ts (updated with responsive toggle tests)"
-        ],
-        "logic_complete": "All 5+ test cases written, tests FAIL (expected — TDD RED phase). No implementation code written yet.",
-        "tests_pass": "Tests must FAIL in this phase (RED). They will pass in PW-TOGGLE-IMPL (GREEN) phase.",
-        "guardian_approved": false
-      },
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "artifact": ".task_temp/PW-TOGGLE-RED/red_report.json"
-        }
-      }
-    },
-    {
-      "id": "PW-TOGGLE-IMPL",
-      "name": "[TDD-GREEN] Password visibility toggle — implementation",
-      "status": "completed",
-      "dependencies": [
-        "PW-TOGGLE-RED"
-      ],
-      "assignee": "@Coder-FE",
-      "priority": "P1",
-      "tdd_phase": "GREEN",
-      "description": "Implement password visibility toggle on login page. (1) Add passwordVisible signal (boolean, default false) to LoginComponent. (2) Add togglePasswordVisibility() method. (3) Update HTML: wrap password input in relative container, add eye-icon button with [type] binding. (4) Add SCSS styles for toggle button positioning. (5) Ensure all PW-TOGGLE-RED tests pass.",
-      "requirement_source": {
-        "document": "用户需求 + 系统架构设计文档（SAD）.md",
-        "section": "Password Visibility Toggle",
-        "clause": "PW-TOGGLE-REQ + SAD-ARCH-001"
-      },
-      "contract_reference": {
-        "path": "contract.yaml → auth.login_password endpoint",
-        "type": "endpoint (unchanged — no API impact)"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/auth/login/login.component.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/auth/login/login.component.html",
-        "booking_system_refactor/booking-frontend/src/app/features/auth/login/login.component.scss"
-      ],
-      "definition_of_done": {
-        "files_exist": [
-          "login.component.ts (updated with passwordVisible signal + togglePasswordVisibility)",
-          "login.component.html (updated with password wrapper + eye button)",
-          "login.component.scss (updated with toggle button styles)"
-        ],
-        "logic_complete": "Password toggle works: click eye button → password type switches between 'password' and 'text'. Eye icon visually reflects current state. Toggle button has WCAG-compliant touch target (min 44px) and aria-label.",
-        "tests_pass": "All PW-TOGGLE-RED tests pass (5+ test cases). Existing 50+ test cases continue to pass (no regression).",
-        "guardian_approved": true,
-        "guardian_review": {
-          "date": "2026-05-17T04:35:37.786Z",
-          "reviewer": "@Guardian",
-          "verdict": "PASS",
-          "session_id": "cg_ses_1778992321510",
-          "notes": "Code quality PASS. Security PASS. Architecture PASS. WCAG PASS. 4 pre-existing Layer A failures noted (not PW-TOGGLE blockers). CAT4.1 write_audit known P1 infra bug."
-        }
-      },
-      "tdd_phases": {
-        "green": {
-          "status": "completed",
-          "artifact": ".task_temp/PW-TOGGLE-IMPL/green_report.json"
-        },
-        "guardian": {
-          "status": "completed",
-          "artifact": ".task_temp/PW-TOGGLE-IMPL/guardian_review_report.md",
-          "verdict": "PASS"
-        }
-      }
-    },
-    {
-      "id": "PW-TOGGLE-SEED",
-      "name": "[SEED] Add password toggle i18n seed entries",
-      "status": "completed",
-      "dependencies": [
-        "PW-TOGGLE-IMPL"
-      ],
-      "assignee": "@Coder-BE",
-      "priority": "P1",
-      "description": "Add auth.login.showPassword and auth.login.hidePassword translation seed entries to translations-seed.service.ts for the password visibility toggle aria-label i18n.",
-      "requirement_source": {
-        "document": "交接文档 PW-TOGGLE-handover",
-        "clause": "P1-i18n"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-backend/src/modules/translations/translations-seed.service.ts"
-      ],
-      "definition_of_done": {
-        "tests_pass": "31/31 translation tests pass",
-        "guardian_approved": false
-      }
-    },
-    {
-      "id": "T-FE-I18N-001",
-      "name": "[i18n] Use TranslatePipe for password toggle aria-label",
-      "status": "completed",
-      "dependencies": [
-        "PW-TOGGLE-IMPL",
-        "PW-TOGGLE-SEED"
-      ],
-      "assignee": "@Coder-FE",
-      "priority": "P1",
-      "description": "Replace hardcoded aria-label with TranslatePipe: (passwordVisible() ? auth.login.hidePassword : auth.login.showPassword) | t",
-      "requirement_source": {
-        "document": "交接文档 PW-TOGGLE-handover",
-        "clause": "P1-i18n"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/auth/login/login.component.html"
-      ],
-      "definition_of_done": {
-        "tests_pass": "56/58 login tests pass (0 new failures)",
-        "guardian_approved": false
-      }
-    },
-    {
-      "id": "CAT41-SCOPE-FIX",
-      "name": "[INFRA] Fix agent_write_scopes path prefix",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Architect",
-      "priority": "P1",
-      "description": "Fix CAT4.1: prepend booking_system_refactor/ to all project-internal paths in agent_write_scopes across all 8 agents.",
-      "requirement_source": {
-        "document": "Guardian review finding",
-        "clause": "CAT4.1-write_audit"
-      },
-      "target_files": [
-        ".opencode/project.config.json"
-      ],
-      "definition_of_done": {
-        "verified": "All 8 agent scopes updated, Coder-FE write_audit now passes"
-      }
-    },
-    {
-      "id": "FE-QUICK-BOOKING-CLOSED-DAYS",
-      "name": "[BugFix] Admin Quick Booking — disable closed business days in date picker",
-      "status": "completed",
-      "dependencies": [
-        "BE-BUSINESS-HOURS-ENSURE"
-      ],
-      "assignee": "@Coder-FE",
-      "priority": "P0",
-      "description": "Fetch business hours from GET /v1/admin/settings/business-hours and disable closed days (e.g., Sunday) in the Quick Booking date picker. Improve the error message to differentiate between \"business closed on this day\" vs \"all slots booked\".",
-      "requirement_source": {
-        "document": "User bug report",
-        "clause": "Admin Quick Booking dialog shows 'No time slots available' for 2026-05-31 (Sunday)"
-      },
-      "contract_reference": {
-        "endpoint": "GET /v1/admin/settings/business-hours",
-        "path": "contract.yaml -> api.admin.settings.business_hours"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.html",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.spec.ts"
-      ],
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "description": "Write failing tests: business hours fetch, disabledDays computation for Sunday, contextual error message differentiation",
-          "artifact": ".task_temp/FE-QUICK-BOOKING-CLOSED-DAYS/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "description": "Implement: AdminService.getBusinessHours(), BusinessHoursDto type, disabledDays signal, p-datepicker [disabledDays] binding, improved error message template",
-          "artifact": ".task_temp/FE-QUICK-BOOKING-CLOSED-DAYS/green_report.json"
-        },
-        "refactor": {
-          "status": "pending",
-          "description": "Optional: refactor business hours logic into a reusable utility",
-          "artifact": ".task_temp/FE-QUICK-BOOKING-CLOSED-DAYS/refactor_report.json"
-        }
-      },
-      "definition_of_done": {
-        "tests_pass": "All appointment-management tests pass including new closed-day tests",
-        "business_hours_fetched": "AdminService.getBusinessHours() called on dialog open",
-        "sunday_disabled": "May 31 2026 (Sunday) is disabled in the date picker",
-        "contextual_error": "Closed day shows business-closed message, fully-booked shows no-slots message",
-        "no_regression": "Existing quick booking flow works for open days (Monday-Saturday)"
-      }
-    },
-    {
-      "id": "BE-BUSINESS-HOURS-ENSURE",
-      "name": "[Verify] Ensure admin/settings/business-hours endpoint returns complete day-of-week data",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Coder-BE",
-      "priority": "P1",
-      "description": "Verify that GET /v1/admin/settings/business-hours returns all 7 days (monday-sunday) with correct open/close arrays. Ensure timezone field is present. Add test coverage if missing. No code changes expected — the endpoint already exists and returns correct data.",
-      "requirement_source": {
-        "document": "User bug report",
-        "clause": "Frontend needs business hours data to disable closed days in date picker"
-      },
-      "contract_reference": {
-        "endpoint": "GET /v1/admin/settings/business-hours",
-        "path": "contract.yaml -> api.admin.settings.business_hours"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-settings.controller.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-settings.service.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-settings.controller.spec.ts"
-      ],
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "description": "Write/verify tests ensuring business hours response contains all 7 day keys with correct types",
-          "artifact": ".task_temp/BE-BUSINESS-HOURS-ENSURE/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "description": "Verify existing implementation passes all tests; add missing type safety if needed",
-          "artifact": ".task_temp/BE-BUSINESS-HOURS-ENSURE/green_report.json"
-        }
-      },
-      "definition_of_done": {
-        "all_7_days_present": "Response includes monday, tuesday, wednesday, thursday, friday, saturday, sunday keys",
-        "timezone_present": "Response includes timezone field",
-        "empty_means_closed": "sunday: [] correctly represents a closed day",
-        "tests_pass": "All admin-settings controller tests pass"
-      }
-    },
-    {
-      "id": "GUARDIAN-QUICK-BOOKING-REVIEW",
-      "name": "[Review] Guardian review of Quick Booking closed-day fix",
-      "status": "completed",
-      "dependencies": [
-        "FE-QUICK-BOOKING-CLOSED-DAYS",
-        "BE-BUSINESS-HOURS-ENSURE"
-      ],
-      "assignee": "@Guardian",
-      "priority": "P0",
-      "description": "Review the frontend and backend changes for the Quick Booking closed-day fix. Verify: tests pass, code standards compliance, architecture alignment, and that the fix resolves the reported issue.",
-      "requirement_source": {
-        "document": "AGENTS.md Section 六 — Standard Execution Flow",
-        "clause": "Step 6: @Guardian review"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.html",
-        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-settings.service.ts"
-      ],
-      "definition_of_done": {
-        "tests_verified": "All frontend and backend tests pass with execution evidence",
-        "code_standards": "Compliant with frontend-coding-standard.md and backend-coding-standard.md",
-        "architecture_ok": "No architectural constraint violations",
-        "bug_verified_fixed": "Selecting 2026-05-31 (Sunday) shows date disabled or business-closed message"
-      }
-    },
-    {
-      "id": "FE-DATE-TIMEZONE-FIX",
-      "name": "[BugFix] Fix date serialization timezone bug — .toISOString() shifts dates in UTC+ timezones",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Coder-FE",
-      "priority": "P0",
-      "description": "Replace .toISOString().split(\"T\")[0] and .toISOString() patterns with a timezone-aware toLocalDateString() helper in appointment-management.component.ts (4 locations: loadAvailableTimeSlots, saveBooking, filter dates, todayCount). Write tests.",
-      "requirement_source": {
-        "document": "User bug report",
-        "clause": "Selecting 2026-06-01 (Monday) shows No time slots available"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.spec.ts"
-      ],
-      "tdd_phases": {
-        "red": {
-          "status": "completed",
-          "description": "Write failing tests: verify toLocalDateString() returns correct local date for UTC+8, verify loadAvailableTimeSlots sends correct date string for June 1, verify saveBooking uses local date",
-          "artifact": ".task_temp/FE-DATE-TIMEZONE-FIX/red_report.json"
-        },
-        "green": {
-          "status": "completed",
-          "description": "Implement toLocalDateString() helper; replace 4 .toISOString() patterns; run tests to verify all pass",
-          "artifact": ".task_temp/FE-DATE-TIMEZONE-FIX/green_report.json"
-        }
-      },
-      "definition_of_done": {
-        "tests_pass": "All tests pass including new timezone-aware date tests",
-        "june1_works": "Selecting 2026-06-01 returns time slots (not May 31)",
-        "no_regression": "Sunday 2026-05-31 still disabled correctly",
-        "all_4_locations": "All 4 .toISOString() patterns replaced"
-      }
-    },
-    {
-      "id": "GUARDIAN-DATE-TIMEZONE-REVIEW",
-      "name": "[Review] Guardian review of date serialization timezone fix",
-      "status": "completed",
-      "dependencies": [
-        "FE-DATE-TIMEZONE-FIX"
-      ],
-      "assignee": "@Guardian",
-      "priority": "P0",
-      "description": "Review the date serialization fix. Verify all 4 .toISOString() patterns replaced, tests pass, no regression on previous fix.",
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.spec.ts"
-      ],
-      "definition_of_done": {
-        "review_pass": "Code standards, security, architecture compliant",
-        "tests_verified": "All tests pass with execution evidence",
-        "bug_verified": "June 1 2026 returns time slots correctly"
-      }
-    },
-    {
-      "id": "ARCHITECT-SERVICE-CASCADE",
-      "name": "[Architecture] Define cascade contract for service disable",
-      "status": "completed",
-      "dependencies": [],
-      "assignee": "@Architect",
-      "priority": "P0",
-      "description": "Define architectural contract: (1) Should disabling a service cancel PENDING/CONFIRMED appointments? (2) Should backend use NestJS event-emitter or direct module import? (3) Define DTO changes — add serviceActive field to AdminAppointmentDto. (4) Define frontend behavior — warning modal before disable, visual indicator for inactive services in appointment table. Update contract.yaml as needed.",
       "target_files": [
         "booking_system_refactor/contract.yaml"
       ],
       "definition_of_done": {
-        "cascade_decision": "Clear specification of what happens when service is disabled",
-        "contract_updated": "contract.yaml updated with new behavior if needed",
-        "dto_proposed": "DTO changes specified for serviceActive field"
-      }
-    },
-    {
-      "id": "BE-SERVICE-CASCADE",
-      "name": "[Backend] Implement service disable cascade — cancel pending appointments",
-      "status": "completed",
-      "dependencies": [
-        "ARCHITECT-SERVICE-CASCADE"
-      ],
-      "assignee": "@Coder-BE",
-      "priority": "P0",
-      "description": "Implement cascade logic: when service.isActive changes from true to false, cancel all PENDING appointments for that service. Add cancelByServiceId() method to AppointmentsService. Wire up in AdminServicesService.update() and remove(). Include event bus if decided by @Architect. Also fix: overtimeMinutes should be used in appointment creation.",
-      "target_files": [
-        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-services.service.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-appointments.service.ts",
-        "booking_system_refactor/booking-backend/src/modules/appointments/appointments.service.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/mappers/service.mapper.ts"
-      ],
-      "tdd_phases": {
-        "red": {
-          "status": "pending",
-          "artifact": ".task_temp/BE-SERVICE-CASCADE/red_report.json"
-        },
-        "green": {
-          "status": "pending",
-          "artifact": ".task_temp/BE-SERVICE-CASCADE/green_report.json"
-        }
-      },
-      "definition_of_done": {
-        "cascade_works": "Disabling a service cancels all PENDING appointments",
-        "overtime_fixed": "overtimeMinutes used in appointment duration",
-        "mapper_fixed": "Boolean check uses != null instead of truthiness",
-        "tests_pass": "All backend tests pass"
-      }
-    },
-    {
-      "id": "FE-COST-DISPLAY-FIX",
-      "name": "[Frontend] Fix cost display + service status indicator",
-      "status": "completed",
-      "dependencies": [
-        "ARCHITECT-SERVICE-CASCADE"
-      ],
-      "assignee": "@Coder-FE",
-      "priority": "P0",
-      "description": "(1) Update translation seed values to include {param} placeholders for costBase/costTax/costTotal. (2) Refactor template to display computed values directly from signal instead of relying on translation pipe for dynamic numbers. (3) Add serviceActive field to AdminAppointment DTO and show visual indicator for inactive services. (4) Add warning modal before disabling service showing affected appointment count.",
-      "target_files": [
-        "booking_system_refactor/booking-backend/src/modules/translations/translations-seed.service.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.html",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/appointment-management.component.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts"
-      ],
-      "tdd_phases": {
-        "red": {
-          "status": "pending",
-          "artifact": ".task_temp/FE-COST-DISPLAY-FIX/red_report.json"
-        },
-        "green": {
-          "status": "pending",
-          "artifact": ".task_temp/FE-COST-DISPLAY-FIX/green_report.json"
-        }
-      },
-      "definition_of_done": {
-        "cost_display": "Base Cost, Tax, Total Cost display with computed values",
-        "status_indicator": "Appointment table shows indicator for inactive services",
-        "warning_modal": "Warning shown before disabling service with active appointments",
-        "tests_pass": "All frontend tests pass"
-      }
-    },
-    {
-      "id": "GUARDIAN-V25-REVIEW",
-      "name": "[Review] Guardian review of v2.5.0 changes",
-      "status": "completed",
-      "dependencies": [
-        "BE-SERVICE-CASCADE",
-        "FE-COST-DISPLAY-FIX"
-      ],
-      "assignee": "@Guardian",
-      "priority": "P0",
-      "description": "Review all changes for code standards, security, architecture compliance, and test evidence.",
-      "target_files": [],
-      "definition_of_done": {
-        "review_pass": "All Layer B checks pass",
-        "tests_verified": "All tests pass with execution evidence"
-      }
-    },
-    {
-      "id": "UNIV-001",
-      "name": "[P0-UNIV] Replace hardcoded 'booking_system_refactor' fallbacks with error-on-undefined",
-      "description": "In eslint-audit.js:34,36, keystone-validate.js:21,26, and code-quality-gate.js:35,37, replace the hardcoded 'booking_system_refactor' fallback string with a thrown error when project_root is not defined in project.config.json. Each script must read config and throw a descriptive error instead of silently using a wrong default.",
-      "agent": "@Coder-BE",
-      "dependencies": [],
-      "priority": "P0",
-      "status": "dispatched",
-      "target_files": [
-        ".opencode/scripts/mcp-tools/eslint-audit.js",
-        ".opencode/scripts/mcp-tools/keystone-validate.js",
-        ".opencode/scripts/mcp-tools/code-quality-gate.js"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P0 Blockers",
-        "clause": "UNIV-R01 — Replace hardcoded 'booking_system_refactor' fallbacks with error-on-undefined"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
         "files_exist": [
-          ".opencode/scripts/mcp-tools/eslint-audit.js",
-          ".opencode/scripts/mcp-tools/keystone-validate.js",
-          ".opencode/scripts/mcp-tools/code-quality-gate.js"
+          "booking_system_refactor/contract.yaml"
         ],
-        "logic_complete": "All 3 scripts read project_root from project.config.json; if undefined, throw descriptive Error with instructions to set project_root",
-        "tests_pass": "Manual verification: run each script outside booking context; confirm they throw instead of silently using wrong paths",
+        "logic_complete": "contract.yaml 包含 POST /v1/admin/users/send-code 端点定义（含请求体 contactType/email/phone、响应 maskedContact/expiresIn、鉴权 SUPER_ADMIN、速率限制 auth 级别）；POST /v1/admin/users 端点定义增加 verificationCode 字段。",
+        "tests_pass": "contract.yaml 通过 YAML 语法验证，与后端 DTO 定义一致",
         "guardian_approved": true
-      },
-      "estimated_effort_hours": 2,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-001-2026-05-18T03-31-*.md"
+      }
     },
     {
-      "id": "UNIV-002",
-      "name": "[P0-UNIV] Parameterize pre-commit hooks with PROJECT_ROOT from config",
-      "description": "Replace hardcoded INNER=\"$ROOT/booking_system_refactor\" in .git/hooks/pre-commit (line 10) and .opencode/hooks/pre-commit (line 10) with a dynamic read from project.config.json. Read the config with node -e or jq to extract project_root, and use it as the INNER path. Also add a commit-msg hook if missing.",
-      "agent": "@Coder-BE",
-      "dependencies": [],
-      "priority": "P0",
-      "status": "dispatched",
-      "target_files": [
-        ".git/hooks/pre-commit",
-        ".opencode/hooks/pre-commit"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P0 Blockers",
-        "clause": "UNIV-R02 — Parameterize pre-commit and commit-msg hooks with PROJECT_ROOT from config"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".git/hooks/pre-commit",
-          ".opencode/hooks/pre-commit"
-        ],
-        "logic_complete": "Both hooks read INNER path dynamically from project.config.json project_root field; no hardcoded 'booking_system_refactor' string",
-        "tests_pass": "Manual verification: run pre-commit hook; confirm it reads correct INNER path from config",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 1.5,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-002-2026-05-18T03-31-*.md"
-    },
-    {
-      "id": "UNIV-003",
-      "name": "[P0-UNIV] Rename eslint-plugin-booking-mock-audit to eslint-plugin-opencode-mock-audit",
-      "description": "Rename directory .opencode/tools/eslint-plugin-booking-mock-audit/ to .opencode/tools/eslint-plugin-opencode-mock-audit/. Update all internal references: index.js plugin name, package references, and any imports in eslint-audit.js or code-quality-gate.js. Update all 12 rule files as needed. Verify no 'booking-mock-audit' string remains in .opencode/.",
-      "agent": "@Architect",
-      "dependencies": [],
-      "priority": "P0",
-      "status": "dispatched",
-      "target_files": [
-        ".opencode/tools/eslint-plugin-booking-mock-audit/index.js",
-        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/no-tier1-mock.js",
-        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/no-deep-import.js",
-        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/no-console-log.js",
-        ".opencode/tools/eslint-plugin-booking-mock-audit/rules/tier3-verify.js"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P0 Blockers",
-        "clause": "UNIV-R03 — Rename eslint-plugin-booking-mock-audit to eslint-plugin-opencode-mock-audit"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/tools/eslint-plugin-opencode-mock-audit/index.js",
-          ".opencode/tools/eslint-plugin-opencode-mock-audit/rules/"
-        ],
-        "logic_complete": "Directory renamed; all internal references updated; old directory does not exist; grep 'booking-mock-audit' in .opencode/ returns zero results",
-        "tests_pass": "ESLint mock-audit runs successfully with new plugin name; all existing rules function identically",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 2,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-003-2026-05-18T03-31-*.md"
-    },
-    {
-      "id": "UNIV-004",
-      "name": "[P0-UNIV] Parameterize backend/frontend dir detection in code-quality-gate.js",
-      "description": "Replace hardcoded 'booking-backend'/'booking-frontend' strings in code-quality-gate.js (lines 267-268 checkTsc, lines 272-273 cwd, lines 428-429 runFullScan) with configurable paths from project.config.json. Read project.config.json at startup and reference paths.backend_src and paths.frontend_src for directory detection and tsc commands.",
+      "id": "T-ADMIN-VERIFY-002",
+      "name": "[TDD-RED] 编写后端验证码端点测试用例",
+      "description": "基于 contract.yaml 中的端点定义，编写 AdminUsersController 和 AdminUsersService 的单元测试和集成测试。测试用例覆盖：send-code 成功发送、send-code 反枚举（用户不存在返回200）、send-code 速率限制、create-user 验证码验证成功、create-user 验证码无效/过期/超限失败。所有测试在此阶段必须失败（RED）。",
       "agent": "@Coder-BE",
       "dependencies": [
-        "UNIV-001"
+        "T-ADMIN-VERIFY-001"
+      ],
+      "outputs": [
+        "admin-users.controller.spec.ts (updated)",
+        "admin-users.service.spec.ts (updated)"
       ],
       "priority": "P0",
       "status": "pending",
-      "target_files": [
-        ".opencode/scripts/mcp-tools/code-quality-gate.js"
-      ],
       "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P0 Blockers",
-        "clause": "UNIV-R04 — Replace hardcoded 'booking-backend'/'booking-frontend' with configurable paths"
+        "document": "测试策略与计划",
+        "section": "3. 单元测试与集成测试",
+        "clause": "每个 API 端点至少 1 个实现任务 + 1 个测试任务；TDD-RED 阶段"
       },
-      "contract_reference": null,
+      "contract_reference": {
+        "path": "contract.yaml § admin.users.send-code, admin.users.create",
+        "type": "endpoint"
+      },
+      "target_files": [
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.spec.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.spec.ts"
+      ],
       "definition_of_done": {
         "files_exist": [
-          ".opencode/scripts/mcp-tools/code-quality-gate.js"
+          "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.spec.ts",
+          "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.spec.ts"
         ],
-        "logic_complete": "checkTsc() reads directory names from project.config.json paths.backend_src / paths.frontend_src; runFullScan() uses same config; grep 'booking-backend OR booking-frontend' in code-quality-gate.js returns zero results",
-        "tests_pass": "Manual verification: tsc incremental check works on booking project AND on a test project with different dir names",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 2
+        "logic_complete": "测试用例覆盖 send-code 端点（3场景）和 create-user-with-code 端点（4场景），所有测试当前阶段为 FAILING（RED）。",
+        "tests_pass": "无 — RED阶段，所有测试预期失败（待GREEN阶段修复）",
+        "guardian_approved": false
+      }
     },
     {
-      "id": "UNIV-005",
-      "name": "[P1-UNIV] Generalize architect.md from NestJS+Angular to project-architecture",
-      "description": "Review and refactor .opencode/agents/architect.md. Replace all NestJS+Angular-specific role descriptions, module examples, and architecture templates with generic project-architecture language. Add instructions to read project.config.json tech_stack for technology-specific guidance. Preserve all governance protocols and the contract.yaml-driven development mandate.",
-      "agent": "@Architect",
+      "id": "T-ADMIN-VERIFY-003",
+      "name": "[TDD-GREEN] 实现后端验证码端点",
+      "description": "实现 POST /v1/admin/users/send-code 端点和修改 POST /v1/admin/users 端点。send-code: 复用 VerificationService 生成6位验证码（类型 ADMIN_CREATE_USER），Redis 存储（TTL 300s），通过 EmailService 发送邮件，实现反枚举（用户不存在返回200无 maskedContact）。create-user: 增加 verificationCode 验证步骤，验证通过后创建用户。添加 @RateLimit 装饰器。",
+      "agent": "@Coder-BE",
       "dependencies": [
-        "UNIV-003"
+        "T-ADMIN-VERIFY-002"
       ],
-      "priority": "P1",
+      "outputs": [
+        "admin-users.controller.ts (updated)",
+        "admin-users.service.ts (updated)",
+        "admin-user.dto.ts (updated)"
+      ],
+      "priority": "P0",
       "status": "pending",
-      "target_files": [
-        ".opencode/agents/architect.md"
-      ],
       "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P1 High",
-        "clause": "UNIV-R05 — Generalize architect.md from NestJS+Angular to project architecture"
+        "document": "系统架构设计文档（SAD）",
+        "section": "2.2.1.1 AdminModule 子模块架构",
+        "clause": "AdminUsersController — 管理员用户 CRUD 端点；新增 send-code 端点"
       },
-      "contract_reference": null,
+      "contract_reference": {
+        "path": "contract.yaml § admin.users.send-code, admin.users.create",
+        "type": "endpoint"
+      },
+      "target_files": [
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts"
+      ],
       "definition_of_done": {
         "files_exist": [
-          ".opencode/agents/architect.md"
+          "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
+          "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.ts",
+          "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts"
         ],
-        "logic_complete": "Architect.md contains no NestJS/Angular-specific examples; all technology references are parameterized via project.config.json tech_stack; role description is framework-agnostic; all governance protocols intact",
-        "tests_pass": "Architect agent can operate on a non-booking project (manual verification with test project.config.json)",
+        "logic_complete": "send-code: 生成验证码存入 Redis (key: verify:admin:create:{type}:{hash}) → 发送邮件/短信 → 返回 { maskedContact, expiresIn: 300 }。反枚举：用户不存在返回 { expiresIn: 300 } 无 maskedContact。create-user: 接收 verificationCode → VerificationService.verifyCode() → 成功则 Prisma create user。",
+        "tests_pass": "T-ADMIN-VERIFY-002 中所有测试用例通过（100%）",
         "guardian_approved": true
-      },
-      "estimated_effort_hours": 1.5
+      }
     },
     {
-      "id": "UNIV-006",
-      "name": "[P1-UNIV] Remove stack-specific paths from coder-be.md/coder-fe.md",
-      "description": "Generalize coder-be.md and coder-fe.md. Replace all hardcoded references to 'booking-backend/src/', 'booking-frontend/src/' with references to project.config.json agent_write_scopes. Replace stack-specific technology requirements (NestJS → generic backend, Angular → generic frontend) with project.config.json tech_stack lookups. Preserve TDD requirements and compliance protocols.",
-      "agent": "@Architect",
-      "dependencies": [
-        "UNIV-005"
-      ],
-      "priority": "P1",
-      "status": "pending",
-      "target_files": [
-        ".opencode/agents/coder-be.md",
-        ".opencode/agents/coder-fe.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P1 High",
-        "clause": "UNIV-R06 — Remove stack-specific paths from coder-be.md/coder-fe.md"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/agents/coder-be.md",
-          ".opencode/agents/coder-fe.md"
-        ],
-        "logic_complete": "Both agent configs reference project.config.json for paths and tech_stack; no hardcoded 'booking-backend' or 'booking-frontend' strings; TDD and compliance protocols preserved",
-        "tests_pass": "Coder agents can be dispatched for non-booking projects (manual verification)",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 1
-    },
-    {
-      "id": "UNIV-007",
-      "name": "[P1-UNIV] Generalize devops-ci-cd-guardrails trigger conditions",
-      "description": "Refactor .opencode/skills/devops-ci-cd-guardrails/SKILL.md. Replace booking-specific trigger conditions (mentions of booking-backend, booking-frontend, specific deploy paths) with config-driven triggers that read from project.config.json. Maintain all CI/CD best-practice guardrails while making triggers generic.",
-      "agent": "@Architect",
-      "dependencies": [],
-      "priority": "P1",
-      "status": "dispatched",
-      "target_files": [
-        ".opencode/skills/devops-ci-cd-guardrails/SKILL.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P1 High",
-        "clause": "UNIV-R07 — Generalize devops-ci-cd-guardrails trigger conditions"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/skills/devops-ci-cd-guardrails/SKILL.md"
-        ],
-        "logic_complete": "Trigger section reads from project.config.json; no hardcoded 'booking-backend' or 'booking-frontend' in triggers; CI/CD guardrails preserved",
-        "tests_pass": "Skill triggers correctly on a non-booking project with different paths",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 1,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-007-2026-05-18T03-31-*.md"
-    },
-    {
-      "id": "UNIV-008",
-      "name": "[P1-UNIV] Parameterize dag-generation-standard.md concrete module lists",
-      "description": "Replace hardcoded module counts in dag-generation-standard.md: '11 backend modules (auth, users, ...)' → formula referencing project structure; '4 frontend component families (auth, booking, ...)' → generic component decomposition rule; 'min 49 tasks' → dynamic formula based on G2. Preserve all C1-C6, G1-G4, T1-T4, D1-D4 rules. Update example values to use placeholder notation like {BACKEND_MODULES_COUNT}.",
-      "agent": "@Meta-Planner",
-      "dependencies": [],
-      "priority": "P1",
-      "status": "dispatched",
-      "target_files": [
-        ".opencode/rules/rule_detail/dag-generation-standard.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P1 High",
-        "clause": "UNIV-R08 — Parameterize dag-generation-standard.md concrete module lists"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/rules/rule_detail/dag-generation-standard.md"
-        ],
-        "logic_complete": "All hardcoded module counts replaced with parameterized formulas; concrete module names (auth, users, services, ...) replaced with 'extracted from project structure' instruction; min task count uses formula; example values marked as 'example: {PROJECT_NAME}'",
-        "tests_pass": "DAG standard can be applied to non-booking projects without modification",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 1.5,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-008-2026-05-18T03-31-*.md"
-    },
-    {
-      "id": "UNIV-009",
-      "name": "[P2-UNIV] Split AGENTS.md into generic protocol + PROJECT_REFERENCE.md",
-      "description": "Split the current AGENTS.md into two files: (1) AGENTS.md — pure generic multi-agent protocol with 3-layer 8-role architecture, global rules, compliance gate, TDD enforcement, skill invocation rules; (2) PROJECT_REFERENCE.md — booking_system_refactor-specific appendix with tech stack, paths, module lists, contract locations. AGENTS.md must reference PROJECT_REFERENCE.md for project-specific details. All governance protocols preserved.",
-      "agent": "@Architect",
-      "dependencies": [
-        "UNIV-005"
-      ],
-      "priority": "P2",
-      "status": "pending",
-      "target_files": [
-        "AGENTS.md",
-        "PROJECT_REFERENCE.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P2 Medium",
-        "clause": "UNIV-R09 — Split AGENTS.md into generic protocol + PROJECT_REFERENCE.md"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          "AGENTS.md",
-          "PROJECT_REFERENCE.md"
-        ],
-        "logic_complete": "AGENTS.md contains zero booking_system_refactor references; AGENTS.md is fully generic and reusable; PROJECT_REFERENCE.md contains all booking-specific details; cross-reference between the two files is explicit",
-        "tests_pass": "AGENTS.md can be copied to a new project and serve as the generic protocol without modification",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 2
-    },
-    {
-      "id": "UNIV-010",
-      "name": "[P2-UNIV] Extract stack-specific review triggers from guardian.md",
-      "description": "Refactor .opencode/agents/guardian.md to remove booking-specific review triggers (module names, service patterns, API paths). Extract these into project.config.json or a separate guardian-rules config. Guardian.md should define generic review principles (code standards, security, architecture, TDD evidence) with triggers parameterized from project config.",
-      "agent": "@Architect",
-      "dependencies": [
-        "UNIV-006"
-      ],
-      "priority": "P2",
-      "status": "pending",
-      "target_files": [
-        ".opencode/agents/guardian.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P2 Medium",
-        "clause": "UNIV-R10 — Extract stack-specific review triggers from guardian.md"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/agents/guardian.md"
-        ],
-        "logic_complete": "Guardian.md contains no booking-specific module names or service patterns; review triggers parameterized from project.config.json; all generic review principles preserved",
-        "tests_pass": "Guardian can review a non-booking project with appropriate triggers",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 1.5
-    },
-    {
-      "id": "UNIV-011",
-      "name": "[P2-UNIV] Generalize booking-specific skill examples",
-      "description": "Scan all .opencode/skills/*/SKILL.md files for 'booking_system_refactor' references in examples and path descriptions. Replace with config-driven placeholders like {PROJECT_ROOT} or {PROJECT_NAME}. Update skill trigger conditions to be project-agnostic. Skills to check: devops-ci-cd-guardrails, fullstack-ci-cd-guardrails, global-cicd-practices-enforcement, cross-directory-ci, prisma-seed-cicd, nextjs-router-guardrails, auto-commit, multi-agent-orchestration.",
-      "agent": "@Architect",
-      "dependencies": [
-        "UNIV-007"
-      ],
-      "priority": "P2",
-      "status": "pending",
-      "target_files": [
-        ".opencode/skills/devops-ci-cd-guardrails/SKILL.md",
-        ".opencode/skills/fullstack-ci-cd-guardrails/SKILL.md",
-        ".opencode/skills/cross-directory-ci/SKILL.md",
-        ".opencode/skills/multi-agent-orchestration/SKILL.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P2 Medium",
-        "clause": "UNIV-R11 — Generalize booking-specific skill examples"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/skills/"
-        ],
-        "logic_complete": "No skill SKILL.md contains 'booking_system_refactor' in examples or paths; all examples use placeholder notation or config references",
-        "tests_pass": "Skills can be invoked in non-booking project context without confusion",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 2
-    },
-    {
-      "id": "UNIV-012",
-      "name": "[P2-UNIV] Create project.template/ directory",
-      "description": "Create .opencode/project.template/ directory with scaffolding for new project adoption. Must include: (1) minimal project.config.json template with all required fields but empty/placeholder values; (2) minimal agents/ directory with generic agent configs; (3) minimal rules/ directory with only framework-generic rules; (4) README.md with adoption guide. Exclude booking-specific files (requirements/, detailed_design/, code_standards/).",
-      "agent": "@Architect",
-      "dependencies": [
-        "UNIV-009"
-      ],
-      "priority": "P2",
-      "status": "pending",
-      "target_files": [
-        ".opencode/project.template/project.config.json",
-        ".opencode/project.template/README.md",
-        ".opencode/project.template/agents/",
-        ".opencode/project.template/rules/",
-        ".opencode/project.template/skills/"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P2 Medium",
-        "clause": "UNIV-R12 — Create project.template/ directory"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/project.template/project.config.json",
-          ".opencode/project.template/README.md"
-        ],
-        "logic_complete": "Template contains all necessary files for new project setup; project.config.json has placeholder values that must be filled in; README.md contains step-by-step adoption guide; all booking-specific content excluded",
-        "tests_pass": "A new project can be initialized by copying project.template/ and filling in project.config.json",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 3
-    },
-    {
-      "id": "UNIV-013",
-      "name": "[P3-UNIV] Handle dormant skills",
-      "description": "Audit dormant skills: learning-mode-executor, salesforce-dx-expert, playwright-mcp-expert, devops-architect, auto-commit. For each: determine if skill is actively used, has functioning code, or is obsolete. Active skills: ensure SKILL.md is up to date. Obsolete skills: add DEPRECATED.md marker with deprecation date and reason. Remove only if confirmed dead by @Arbiter.",
-      "agent": "@Arbiter",
-      "dependencies": [],
-      "priority": "P3",
-      "status": "dispatched",
-      "target_files": [
-        ".opencode/skills/learning-mode-executor/SKILL.md",
-        ".opencode/skills/salesforce-dx-expert/SKILL.md",
-        ".opencode/skills/playwright-mcp-expert/SKILL.md",
-        ".opencode/skills/devops-architect/SKILL.md",
-        ".opencode/skills/auto-commit/SKILL.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P3 Polish",
-        "clause": "UNIV-R13 — Handle dormant skills"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/skills/"
-        ],
-        "logic_complete": "Each dormant skill evaluated and categorized: ACTIVE, DEPRECATED (with DEPRECATED.md), or REMOVED; decision rationale documented in @Arbiter ruling; TECH_DEBT_REGISTRY updated if skills create tech debt",
-        "tests_pass": "Framework operates correctly with dormant skills handled",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 1.5,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-013-2026-05-18T03-31-*.md"
-    },
-    {
-      "id": "UNIV-014",
-      "name": "[P3-UNIV] Remove stale backup file",
-      "description": "Delete .opencode/skills/learning-mode-executor/SKILL.md.backup. This is a stale backup file that serves no purpose and creates confusion. Verify no other .backup files exist in .opencode/. Document removal in changelog.",
-      "agent": "@CI-CD-Agent",
-      "dependencies": [],
-      "priority": "P3",
-      "status": "dispatched",
-      "target_files": [
-        ".opencode/skills/learning-mode-executor/SKILL.md.backup"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P3 Polish",
-        "clause": "UNIV-R14 — Remove stale backup file"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [],
-        "logic_complete": "SKILL.md.backup deleted; git rm confirmed; no other .backup files in .opencode/; changelog records removal",
-        "tests_pass": "Framework operates correctly without the backup file",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 0.25,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-014-2026-05-18T03-31-*.md"
-    },
-    {
-      "id": "UNIV-015",
-      "name": "[P3-UNIV] Create PROJECT_TEMPLATE.md adoption guide",
-      "description": "Create PROJECT_TEMPLATE.md in project root. Contents: (1) Quick Start — how to adopt the Opencode framework for a new project; (2) Configuration — walkthrough of project.config.json fields; (3) Customization — how to add tech stacks, agents, skills; (4) Checklist — step-by-step adoption checklist; (5) FAQ — common pitfalls and solutions. Must reference project.template/ directory.",
-      "agent": "@Architect",
-      "dependencies": [
-        "UNIV-012"
-      ],
-      "priority": "P3",
-      "status": "pending",
-      "target_files": [
-        "PROJECT_TEMPLATE.md"
-      ],
-      "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "P3 Polish",
-        "clause": "UNIV-R15 — Create PROJECT_TEMPLATE.md"
-      },
-      "contract_reference": null,
-      "definition_of_done": {
-        "files_exist": [
-          "PROJECT_TEMPLATE.md"
-        ],
-        "logic_complete": "Document covers Quick Start, Configuration, Customization, Checklist, and FAQ; references project.template/ directory; written in clear, actionable language; includes copy-paste ready commands",
-        "tests_pass": "A new user can follow PROJECT_TEMPLATE.md to set up a new project in under 30 minutes",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 2
-    },
-    {
-      "id": "UNIV-016",
-      "name": "[TECH-DEBT] TECH-001: Verify chart-js-token-map.md sync with Sharp Design (#2ecc71) palette",
-      "description": "TECH_DEBT_REGISTRY TECH-001 (deadline 2026-05-20, 2 days remaining). Verify chart-js-token-map.md is synchronized with Sharp Design (#2ecc71) color palette. If not synced, update app-chart.component.ts to use correct palette colors. Verify chart rendering matches design tokens.",
+      "id": "T-ADMIN-VERIFY-004",
+      "name": "[TDD-RED] 编写前端验证码 UI 测试用例",
+      "description": "为 UserManagementComponent 的新建用户验证码流程编写单元测试。测试覆盖：步骤切换（Step 1→Step 2→Step 3）、发送验证码按钮交互、60秒倒计时、验证码输入验证（6位数字）、反枚举消息显示、API 调用参数正确性。所有测试在此阶段必须失败（RED）。",
       "agent": "@Coder-FE",
-      "dependencies": [],
-      "priority": "P0",
-      "status": "dispatched",
-      "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/app-chart.component.ts"
+      "dependencies": [
+        "T-ADMIN-VERIFY-001"
       ],
+      "outputs": [
+        "user-management.component.spec.ts (updated)"
+      ],
+      "priority": "P0",
+      "status": "pending",
       "requirement_source": {
-        "document": "TECH_DEBT_REGISTRY.md",
-        "section": "TECH-001",
-        "clause": "chart-js-token-map.md sync with Sharp Design (#2ecc71) palette"
+        "document": "测试策略与计划",
+        "section": "3. 单元测试与集成测试",
+        "clause": "前端组件族至少 2 个任务：组件实现 + Store wiring；TDD-RED 阶段"
       },
-      "contract_reference": null,
+      "contract_reference": {
+        "path": "contract.yaml § admin.users.send-code, admin.users.create",
+        "type": "endpoint"
+      },
+      "target_files": [
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.spec.ts"
+      ],
       "definition_of_done": {
         "files_exist": [
-          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/appointment-management/app-chart.component.ts"
+          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.spec.ts"
         ],
-        "logic_complete": "chart-js-token-map.md verified or updated to match Sharp Design palette; app-chart.component.ts color references updated if needed; chart renders correct colors",
-        "tests_pass": "Visual verification: chart colors match design tokens; component tests pass",
-        "guardian_approved": true
-      },
-      "estimated_effort_hours": 1,
-      "dispatched_at": "2026-05-18T03:31:34.891Z",
-      "dispatch_artifact": ".task_temp/_dispatch/dispatch-univ-016-2026-05-18T03-31-*.md"
+        "logic_complete": "测试用例覆盖验证码流程的步骤切换、发送/验证/重发交互、倒计时、表单状态管理，所有测试当前为 FAILING（RED）。",
+        "tests_pass": "无 — RED 阶段，所有测试预期失败",
+        "guardian_approved": false
+      }
     },
     {
-      "id": "UNIV-017",
-      "name": "[GATE] Guardian: Verify all hardcoded refs removed — universality audit",
-      "description": "Final validation gate. @Guardian executes framework-level grep audit: (a) grep -r 'booking_system_refactor' .opencode/scripts/ returns ZERO results; (b) grep -r 'booking-backend OR booking-frontend' .opencode/scripts/ returns ZERO results; (c) grep -r 'booking-mock-audit' .opencode/ returns ZERO results; (d) grep 'booking_system_refactor' .git/hooks/ .opencode/hooks/ returns ZERO results. Verify all agent configs reference project.config.json for paths. Verify AGENTS.md is generic. Verify project.template/ exists. Confirm all 15 universality clauses satisfied.",
+      "id": "T-ADMIN-VERIFY-005",
+      "name": "[TDD-GREEN] 实现前端验证码 UI",
+      "description": "在 UserManagementComponent 的新建用户对话框中添加验证码流程。仿照 login.component.ts 的实现：Step 1 — 联系方式类型选择（Email/Phone）+ 联系方式输入 + 发送验证码按钮（60s倒计时）；Step 2 — 6位验证码输入 + 验证按钮 + 重新发送按钮；Step 3 — 密码设置 + 确认密码 + 提交。更新 admin.dto.ts（新增 DTO）、admin.service.ts（新增 sendCode/createUserWithCode 方法）、admin.store.ts（新增异步方法）。添加反枚举消息提示。",
+      "agent": "@Coder-FE",
+      "dependencies": [
+        "T-ADMIN-VERIFY-004"
+      ],
+      "outputs": [
+        "user-management.component.ts (updated)",
+        "user-management.component.html (updated)",
+        "admin.dto.ts (updated)",
+        "admin.service.ts (updated)",
+        "admin.store.ts (updated)"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "系统架构设计文档（SAD）",
+        "section": "4. 前端架构 — Admin 模块",
+        "clause": "UserManagementComponent — 新建用户对话框增加验证码流程"
+      },
+      "contract_reference": {
+        "path": "contract.yaml § admin.users.send-code, admin.users.create",
+        "type": "endpoint"
+      },
+      "target_files": [
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.ts",
+          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
+          "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts",
+          "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
+          "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
+        ],
+        "logic_complete": "新建用户对话框包含3步验证码流程：Step1 发送验证码（contactType选择器+联系方式输入+发送按钮+60s倒计时+反枚举消息），Step2 验证码输入（6位数字输入+验证按钮+重发按钮），Step3 密码设置（密码+确认密码+提交按钮）。所有 API 调用正确（sendCode → createUserWithCode）。",
+        "tests_pass": "T-ADMIN-VERIFY-004 中所有测试用例通过（100%）",
+        "guardian_approved": true
+      }
+    },
+    {
+      "id": "T-ADMIN-VERIFY-006",
+      "name": "安全与合规审查 — 验证码流程",
+      "description": "对 admin 用户创建验证码流程进行安全合规审查：(1) 防枚举攻击 — send-code 端点对不存在用户返回统一响应；(2) 防重放 — 验证码使用后 Redis 原子删除；(3) 暴力破解防护 — 最多3次验证尝试；(4) 速率限制 — send-code 5次/分钟，verify 10次/分钟；(5) CSRF 保护 — 检查 POST 端点 CSRF 令牌；(6) 权限控制 — SUPER_ADMIN 独占访问。审查测试执行证据（test_report.json + execution_evidence）。",
       "agent": "@Guardian",
       "dependencies": [
-        "UNIV-001",
-        "UNIV-002",
-        "UNIV-003",
-        "UNIV-004",
-        "UNIV-005",
-        "UNIV-006",
-        "UNIV-007",
-        "UNIV-008",
-        "UNIV-009",
-        "UNIV-010",
-        "UNIV-011",
-        "UNIV-012",
-        "UNIV-013",
-        "UNIV-014",
-        "UNIV-015",
-        "UNIV-016"
+        "T-ADMIN-VERIFY-003",
+        "T-ADMIN-VERIFY-005"
       ],
-      "priority": "P0",
+      "outputs": [
+        "guardian_review_report.json"
+      ],
+      "priority": "P1",
       "status": "pending",
-      "target_files": [
-        ".opencode/scripts/mcp-tools/",
-        ".opencode/agents/",
-        ".opencode/skills/",
-        ".opencode/hooks/",
-        ".git/hooks/",
-        "AGENTS.md",
-        "PROJECT_REFERENCE.md",
-        "PROJECT_TEMPLATE.md",
-        ".opencode/project.template/"
-      ],
       "requirement_source": {
-        "document": "Universality Audit (UNIVERSALITY_REPORT.md)",
-        "section": "Quality Gate",
-        "clause": "All 15 universality clauses verified"
+        "document": "安全架构设计文档",
+        "section": "2.2 认证与授权体系, 4. API安全",
+        "clause": "反枚举、防重放、速率限制、CSRF保护、RBAC角色控制"
       },
-      "contract_reference": null,
+      "contract_reference": {
+        "path": "contract.yaml § admin.users.send-code (rate_limit), admin.users.create (authorization SUPER_ADMIN)",
+        "type": "security_rule"
+      },
+      "target_files": [
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.ts"
+      ],
       "definition_of_done": {
         "files_exist": [
-          "All 15 universality requirements verified as satisfied"
+          ".task_temp/T-ADMIN-VERIFY-006/guardian_review_report.json"
         ],
-        "logic_complete": "Grep audit confirms zero hardcoded booking references in framework scripts; agent configs are generic; project.template exists; AGENTS.md split complete; all dormant skills handled",
-        "tests_pass": "Framework can be applied to a non-booking project without modification",
+        "logic_complete": "所有安全检查项通过：(1)反枚举 ✓ (2)防重放 ✓ (3)暴力破解防护 ✓ (4)速率限制 ✓ (5)CSRF ✓ (6)SUPER_ADMIN权限 ✓，(7)测试执行证据完整 ✓",
+        "tests_pass": "所有安全检查无 CRITICAL/HIGH 违规",
         "guardian_approved": true
+      }
+    },
+    {
+      "id": "T-TECHDEBT-WV-005",
+      "name": "[技术债偿还] WV-2026-005 — 部署废弃 Skill 的 DEPRECATED.md 文件",
+      "description": "根据 WV-2026-005 豁免登记：@Architect 需将 .task_temp/UNIV-013/ 下的 3 个 DEPRECATED.md 文件部署到对应 Skill 目录（salesforce-dx-expert、playwright-mcp-expert、devops-architect），并更新 skill-invocation-standard.md 中的 Skill 状态从「✅ 活跃」改为「❌ 废弃」。截止日期 2026-05-25（距今6天 ≤ 7天），由 @Meta-Planner 技术债扫描自动转化为本任务。",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [
+        "DEPRECATED.md x3 (deployed)",
+        "skill-invocation-standard.md (updated)"
+      ],
+      "priority": "P0",
+      "status": "in_progress",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md (项目根目录)",
+        "section": "豁免登记表 (Waiver Registry)",
+        "clause": "WV-2026-005: @Architect 部署 DEPRECATED.md 文件，截止 2026-05-25"
       },
-      "estimated_effort_hours": 1
+      "contract_reference": {
+        "path": "N/A (技术债偿还任务，非 API 契约相关)",
+        "type": "endpoint"
+      },
+      "target_files": [
+        ".opencode/skills/salesforce-dx-expert/DEPRECATED.md",
+        ".opencode/skills/playwright-mcp-expert/DEPRECATED.md",
+        ".opencode/skills/devops-architect/DEPRECATED.md",
+        ".opencode/rules/rule_detail/skill-invocation-standard.md"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/skills/salesforce-dx-expert/DEPRECATED.md",
+          ".opencode/skills/playwright-mcp-expert/DEPRECATED.md",
+          ".opencode/skills/devops-architect/DEPRECATED.md"
+        ],
+        "logic_complete": "3 个 DEPRECATED.md 文件已部署到目标 Skill 目录（内容来自 .task_temp/UNIV-013/）；skill-invocation-standard.md §3.1 中 salesforce-dx-expert、playwright-mcp-expert、devops-architect 状态已从 '✅ 活跃' 更新为 '❌ 废弃'",
+        "tests_pass": "无测试要求（基础设施任务）",
+        "guardian_approved": true
+      }
     }
-  ]
+  ],
+  "coverage": {
+    "total_requirements_clauses": 7,
+    "covered_clauses": 7,
+    "coverage_percentage": 100,
+    "g2_minimum_task_count": 9,
+    "actual_task_count": 7,
+    "g2_note": "本功能仅涉及 admin 模块（3个BE任务）+ admin 组件族（2个FE任务）+ 安全审查（1个）+ 契约更新（1个）+ 技术债（1个）= 7个任务。G2公式为全项目级别（11x3+4x2+4+4=49），本DAG仅覆盖增量功能。",
+    "requirement_clause_mapping": [
+      {
+        "clause_id": "SAD-2.2.1.1",
+        "document": "系统架构设计文档（SAD）",
+        "section": "2.2.1.1 AdminModule",
+        "task_id": "T-ADMIN-VERIFY-003"
+      },
+      {
+        "clause_id": "API-CONTRACT-ADMIN",
+        "document": "接口设计规范文档",
+        "section": "2. 接口设计规范",
+        "task_id": "T-ADMIN-VERIFY-001"
+      },
+      {
+        "clause_id": "SEC-ANTI-ENUM",
+        "document": "安全架构设计文档",
+        "section": "4. API安全",
+        "task_id": "T-ADMIN-VERIFY-006"
+      },
+      {
+        "clause_id": "SEC-RATE-LIMIT",
+        "document": "安全架构设计文档",
+        "section": "4. API安全",
+        "task_id": "T-ADMIN-VERIFY-003"
+      },
+      {
+        "clause_id": "TEST-TDD",
+        "document": "测试策略与计划",
+        "section": "2. TDD策略",
+        "task_id": "T-ADMIN-VERIFY-002"
+      },
+      {
+        "clause_id": "FE-COMPONENT",
+        "document": "系统架构设计文档（SAD）",
+        "section": "4. 前端架构",
+        "task_id": "T-ADMIN-VERIFY-005"
+      },
+      {
+        "clause_id": "TECH-DEBT-WV005",
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "豁免登记表",
+        "task_id": "T-TECHDEBT-WV-005"
+      }
+    ]
+  }
 }
