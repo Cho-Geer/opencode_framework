@@ -20,6 +20,7 @@ This skill enforces the project's strict execution framework by verifying:
 3. Relevant skills have been identified
 4. TodoWrite tracking is initialized
 5. **Compliance gate is armed** (via `compliance_gate_check` + `compliance_gate_confirm`)
+6. **DAG readiness is confirmed** (Meta-Planner has analyzed the task)
 
 ## Pre-Flight Checklist (MUST COMPLETE BEFORE PROCEEDING)
 
@@ -57,6 +58,29 @@ Classify the user's task and identify required skills:
 
 **Action:** Immediately invoke ALL relevant skills before proceeding.
 
+### ✅ Step 2.5: Meta-Planner DAG Readiness Check 🚨
+
+**BEFORE any analysis or coding**, check whether the current task has been analyzed by @Meta-Planner:
+
+- [ ] Check project root for `Task.DAG.json` existence
+- [ ] If NOT exists → **STOP. Must dispatch @Meta-Planner first** to generate DAG
+- [ ] If exists → check if it contains an entry for the current task
+- [ ] If NO matching entry → **STOP. Must dispatch @Meta-Planner** to append new task
+- [ ] If entry exists → verify task `status` is `pending`
+- [ ] If status is not `pending` → confirm whether re-execution is needed
+
+**DAG Decision Matrix:**
+
+| DAG State                        | Action Required                          |
+|----------------------------------|------------------------------------------|
+| No `Task.DAG.json` exists        | 🛑 Dispatch @Meta-Planner to generate    |
+| DAG exists, no current task      | 🛑 Dispatch @Meta-Planner to append      |
+| DAG exists, task is `pending`    | ✅ Proceed with scheduling per DAG        |
+| DAG exists, task is `in_progress`| ⚠️ Resume previous session or verify     |
+| DAG exists, task is `completed`  | ✅ Skip (task already done)               |
+
+**Rule of thumb:** Any work item requiring code changes → must have DAG coverage. If unsure, dispatch @Meta-Planner.
+
 ### ✅ Step 3: MCP Invocation Planning
 
 Create a concrete MCP invocation plan:
@@ -87,7 +111,7 @@ Initialize TodoWrite with these mandatory sections:
 
 ### Available MCP Tools
 
-- **GitHub MCP** - search\_repositories, get\_file\_contents, create\_issue, create\_pull\_request, etc.
+- **GitHub MCP** - search_repositories, get_file_contents, create_issue, create_pull_request, etc.
 - **Context7 MCP** - resolve-library-id, query-docs (for tech stack documentation)
 - **Pandoc MCP** - convert-contents (document format conversion)
 - **PostgreSQL MCP** - query (database queries)
@@ -113,6 +137,7 @@ Initialize TodoWrite with these mandatory sections:
 - ❌ Make code changes before MCP completion
 - ❌ Ignore TodoWrite tracking
 - ❌ Proceed after MCP failure without proper handling
+- ❌ **Analyze requirements without first checking DAG readiness** (Step 2.5)
 
 ### ✅ MANDATORY EXECUTION PATTERN
 
@@ -120,12 +145,13 @@ Initialize TodoWrite with these mandatory sections:
 1. Invoke THIS skill (execution-preflight-check)
 2. Invoke ALL relevant skills
 3. Initialize TodoWrite with MCP checklist
-4. Execute BLOCKING MCP calls FIRST
-5. Verify ALL MCP succeeded (or handled)
-6. Call compliance_gate_check(task_description)  ← BLOCKING
-7. Show plan to user and wait for confirmation  ← BLOCKING (user must respond)
-8. Call compliance_gate_confirm(plan_summary)   ← arms the gate
-9. ONLY THEN proceed to analysis/implementation
+4. ✅ [NEW] Check DAG Readiness (Step 2.5) ← dispatch @Meta-Planner if needed
+5. Execute BLOCKING MCP calls FIRST
+6. Verify ALL MCP succeeded (or handled)
+7. Call compliance_gate_check(task_description)  ← BLOCKING
+8. Show plan to user and wait for confirmation  ← BLOCKING (user must respond)
+9. Call compliance_gate_confirm(plan_summary)   ← arms the gate
+10. ONLY THEN proceed to analysis/implementation
 ```
 
 ## Task Type Boundaries

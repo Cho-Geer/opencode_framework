@@ -1,4 +1,16 @@
 {
-  "active_sessions": [],
-  "history": []
+  "formatVersion": "2.0",
+  "sessions": {
+    "cg_ses_1779277405597": {
+      "session_id": "cg_ses_1779277405597",
+      "created_at": "2026-05-20T11:43:25.598Z",
+      "task_description": "Use multi-agent system to fix two issues: (1) Verify code step guidance icons style consistency across light/dark mode between login page and admin New User dialog; (2) Fix 'property contact_type should not exist' error when clicking Send Code on admin New User dialog",
+      "gate_status": "checked",
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    }
+  }
 }

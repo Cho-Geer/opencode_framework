@@ -11,6 +11,20 @@ Activate when user conversation contains any of:
 - "多智能体模式" (multi-agent mode)
 - "multi-agent"
 - Complex full-lifecycle development tasks requiring multiple roles
+- **Any new issue / bug / style inconsistency / error fix** (详见下方自动触发规则)
+
+### 🚨 Automatic Trigger Rule
+
+以下场景**自动触发** multi-agent 流程，无论用户是否明确提及"multi-agent"：
+
+| 场景 | 示例 | 是否触发 |
+|------|------|---------|
+| 描述了一个可验证的**代码问题或需求** | "样式不一致"、"报错了"、"按钮不工作" | ✅ 触发 |
+| 问题**涉及代码变更**（非纯信息查询） | "修复这个 bug"、"调整布局" | ✅ 触发 |
+| 问题**跨越多个组件/模块** | "前后端联调问题"、"暗亮模式主题色" | ✅ 触发 |
+| **纯信息查询** | "这个 API 参数含义是什么"、"文档哪里写了" | ❌ 不触发 |
+
+**满⾜以上任意一条代码变更场景** → 必须走完整 multi-agent 流程，**以 dispatch @Meta-Planner 为第一动作**。
 
 ## Pre-flight Validation
 
@@ -56,7 +70,10 @@ If any misalignment found, report specific discrepancies and halt until resolved
 Once validation passes, follow the standard flow from AGENTS.md Section 六:
 
 ```
-1. 需求输入 → @Meta-Planner 读取要件 → 生成 Project.graph + Task.DAG.json
+0. 【Entry Gate】收到新工作项 → 检查 Task.DAG.json
+   - 无 DAG → dispatch @Meta-Planner
+   - 有 DAG 有对应条目且 pending → 按 DAG 执行
+1. @Meta-Planner 读取要件 → 生成 Project.graph + Task.DAG.json
 2. @Orchestrator 调度 → @Architect 输出 contract.yaml（TDD唯一依据）
 3. 【TDD-RED】@Coder-FE/@Coder-BE 基于契约+要件 → 编写失败测试用例 → 执行（强制失败）
 4. 【TDD-GREEN】@Coder-FE/@Coder-BE 基于测试 → 编写最简代码 → 测试全通过
@@ -96,7 +113,7 @@ All agents must strictly follow:
 ```
 Meta Layer (元认知层)
   ├── @Meta-Planner   → Project.graph, Task.DAG.json
-  └── @Orchestrator   → Task scheduling, state management
+  └── @Orchestrator   → Task scheduling ONLY (NO requirement analysis)
 
 Execution Layer (编排与执行层)
   ├── @Architect      → contract.yaml, architecture docs
