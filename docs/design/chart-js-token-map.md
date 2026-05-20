@@ -2,7 +2,7 @@
 
 > **Document Purpose**: Provides a definitive mapping from Sharp Design CSS custom properties (defined in `styles.scss`) to Chart.js-safe hex/RGBA values.  
 > **Target Audience**: Frontend developers configuring Chart.js datasets, scales, tooltips, and legends.  
-> **Last Updated**: 2026-05-08
+> **Last Updated**: 2026-05-18
 
 ---
 
@@ -84,6 +84,7 @@ scales: {
 | `--color-accent-yellow` | `#f39c12` | `rgba(243, 156, 18, 1)` | Warning datasets, pending states | Amber |
 | `--color-accent-purple` | `#9b59b6` | `rgba(155, 89, 182, 1)` | Secondary datasets | Amethyst |
 | `--color-accent-teal` | `#1abc9c` | `rgba(26, 188, 156, 1)` | Tertiary datasets | Turquoise |
+| `--color-accent-blue` | `#00c6ff` | `rgba(0, 198, 255, 1)` | Secondary datasets | Sky Blue |
 | `--color-accent-orange` | `#e67e22` | `rgba(230, 126, 34, 1)` | Highlight datasets | Pumpkin |
 
 **Chart.js Code Convention — Line Chart with Gradient Fill:**
@@ -124,16 +125,17 @@ scales: {
 // ═══════════════════════════════════════════════════
 // Token: Multi-accent palette
 // Usage: Doughnut chart segments
-// Order: Primary → Purple → Green → Yellow → Red
+// Order: Green → Purple → Teal → Yellow → Red → Blue
 // ═══════════════════════════════════════════════════
 {
-  data: [35, 25, 20, 15, 5],
+  data: [35, 25, 20, 15, 5, 3],
   backgroundColor: [
-    '#2ecc71',    // --color-accent-green    (primary)
-    '#9b59b6',
-    '#1abc9c',    // --color-accent-teal     (tertiary)
-    '#f39c12',    // --color-accent-yellow  (quaternary)
-    '#e74c3c',    // --color-accent-red     (quinary)
+    '#2ecc71',    // --color-accent-green    (1st)
+    '#9b59b6',    // --color-accent-purple   (2nd)
+    '#1abc9c',    // --color-accent-teal     (3rd)
+    '#f39c12',    // --color-accent-yellow   (4th)
+    '#e74c3c',    // --color-accent-red      (5th)
+    '#00c6ff',    // --color-accent-blue     (6th)
   ],
   borderWidth: 0,       // Clean look for doughnuts
   hoverOffset: 4,       // Pop effect on hover
@@ -532,6 +534,7 @@ All Chart.js color values in `.ts` files **must** use this comment block format:
 │  Danger:       #e74c3c  →  rgba(231, 76, 60, a) │
 │  Purple:       #9b59b6  →  rgba(155, 89, 182, a)│
 │  Teal:         #1abc9c  →  rgba(26, 188, 156, a)│
+│  Blue:         #00c6ff  →  rgba(0, 198, 255, a)  │
 │  Orange:       #e67e22  →  rgba(230, 126, 34, a)│
 ├─────────────────────────────────────────────────┤
 │  Text Primary:   #e2e8f0 (dark) / #1e293b (light)│
@@ -551,7 +554,7 @@ All Chart.js color values in `.ts` files **must** use this comment block format:
 | Line chart colors | `dashboard-chart-factories.ts` | `borderColor: '#2ecc71'`, `pointBackgroundColor: '#2ecc71'` |
 | Line chart gradient | `dashboard-chart-factories.ts` | `rgba(46, 204, 113, 0.05)` → `rgba(46, 204, 113, 0.35)` |
 | Revenue line | `dashboard-chart-factories.ts` | `borderColor: '#2ecc71'`, `backgroundColor: 'rgba(46, 204, 113, 0.1)'` |
-| Doughnut palette | `dashboard-chart-factories.ts` | `['#2ecc71', '#9b59b6', '#1abc9c', '#f39c12', '#e74c3c']` |
+| Doughnut palette | `dashboard-chart-factories.ts` | `['#2ecc71', '#9b59b6', '#1abc9c', '#f39c12', '#e74c3c', '#00c6ff']` |
 | Bar chart | `dashboard-chart-factories.ts` | `backgroundColor: 'rgba(46, 204, 113, 0.7)'`, `borderColor: '#2ecc71'` |
 | Tooltip styling | `dashboard-chart-factories.ts` | `backgroundColor: 'rgba(22, 32, 50, 0.9)'`, `titleColor: '#e2e8f0'`, `bodyColor: '#94a3b8'` |
 | Grid lines | `dashboard-chart-factories.ts` | `color: 'rgba(42, 58, 80, 0.2)'` |

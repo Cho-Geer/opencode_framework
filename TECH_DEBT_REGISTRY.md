@@ -22,7 +22,7 @@
 
 | ID | 描述 | 影响 | 批准人 | 批准日期 | 截止日期 | 状态 | 关联任务 |
 |----|------|------|--------|----------|----------|------|---------|
-| TECH-001 | chart-js-token-map.md 未确认是否已同步 Sharp Design (#2ecc71) 调色板；若未同步则需更新 app-chart.component.ts | 低 | @Arbiter | 2026-05-13 | 2026-05-20 | **OPEN** | PHASE1-THEME-REDESIGN |
+| TECH-001 | chart-js-token-map.md 调色板已于 2026-05-18 同步 Sharp Design (#2ecc71) — ✅ @Coder-FE 修复 dashboard-chart-factories.ts（teal #1abc9c + blue #00c6ff），@Architect 更新 docs/design/chart-js-token-map.md；26/26 测试通过 | 低 | @Arbiter | 2026-05-13 | 2026-05-20 | **repaid** ✅ | T-TECHDEBT-001 |
 | TECH-002 | Backend `price` 字段返回类型为 `string` 而非 `number` (contract.yaml § Service/Appointment data_models 标注 TICKET-001)；计划 v2.0.0 修复，前端需继续做 parseFloat 兼容 | 中 | @Arbiter | 2026-05-13 | 2026-06-30 | **approved** | — |
 | TECH-003 | i18n 字典参数化架构 (Phases 2-5) 尚未实现；约 7-8 工作日工作量，当前所有 UI 文本为硬编码，fallback keys `{{domain.key}}` 可见 | 低 | @Arbiter | 2026-05-13 | — | **waived** | — |
 
@@ -48,6 +48,13 @@
 | ARB-001 | **Registered as TD-2026-004** | mutation_kill_rate field in x-coverage-matrix requires Stryker CI integration; not enforceable by jest.config.js alone. |
 | ARB-002 | **Condition** | Existing `testing:` section must be marked `deprecated: true` (not deleted) for backward compatibility. |
 | ARB-003 | **Condition** | CI mock-audit ESLint enforcement must be gated on fake file existence validation. |
+
+### 2026-05-18 — @Arbiter TECH-001 Repayment Review
+
+| Item | Decision | Rationale |
+|------|----------|-----------|
+| TECH-001 | **Repaid** ✅ | chart-js-token-map.md 已同步 Sharp Design 调色板。@Coder-FE 修复 dashboard-chart-factories.ts：index 2 重复绿色 (#2ecc71) → 蓝绿色 (#1abc9c)，index 5 添加蓝色 (#00c6ff)。@Architect 更新 docs/design/chart-js-token-map.md §2.3/§8/§9 添加 blue token。26/26 测试通过，调色板与原型一致。偿还于 2026-05-18。|
+
 
 ---
 

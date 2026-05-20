@@ -6,9 +6,9 @@
 本文档定义了在Trae IDE中执行任务时的Skill调用标准流程，确保每次任务都能正确、完整地调用相关Skill，提高任务执行质量和一致性。
 
 **制定时间**: 2026-04-09  
-**最后更新**: 2026-04-13  
+**最后更新**: 2026-05-18  
 **适用范围**: 所有在Trae IDE中执行的任务  
-**版本**: v2.1.3（添加技能执行完整性规范）
+**版本**: v2.1.4（废弃3个draft占位Skill：salesforce-dx-expert、playwright-mcp-expert、devops-architect）
 
 ---
 
@@ -92,9 +92,9 @@ added_by: 添加者  # 添加者标识
 | 头脑风暴分析 | brainstorming | P1-分析设计类 | 分析, 调查, 为什么, 如何, 方案, 设计, 根因, 模糊需求 | P1 | ✅ 活跃 | 2026-04-09 |
 | 多智能体编排 | multi-agent-orchestration | P1-分析设计类 | 多智能体模式, multi-agent, 全生命周期开发 | P1 | ✅ 活跃 | 2026-04-15 |
 | Context7优先 | context7-first | P1-领域专业类 | 开发, 代码, 实现, 技术栈, library, framework, 调试 | P1 | ✅ 活跃 | 2026-04-09 |
-| DevOps架构师 | devops-architect | P2-技术栈类 | pipeline, GitOps, Kubernetes, cloud, architecture, 容器化, 云基础设施 | P2 | ✅ 活跃 | 2026-04-09 |
-| Salesforce DX专家 | salesforce-dx-expert | P2-技术栈类 | Salesforce, Apex, LWC, Flow, SOQL | P2 | ✅ 活跃 | 2026-04-09 |
-| Playwright MCP专家 | playwright-mcp-expert | P2-技术栈类 | Playwright, browser, automation, UI test | P2 | ✅ 活跃 | 2026-04-09 |
+| DevOps架构师 | devops-architect | P2-技术栈类 | pipeline, GitOps, Kubernetes, cloud, architecture, 容器化, 云基础设施 | P2 | ❌ 废弃 | 2026-04-09 |
+| Salesforce DX专家 | salesforce-dx-expert | P2-技术栈类 | Salesforce, Apex, LWC, Flow, SOQL | P2 | ❌ 废弃 | 2026-04-09 |
+| Playwright MCP专家 | playwright-mcp-expert | P2-技术栈类 | Playwright, browser, automation, UI test | P2 | ❌ 废弃 | 2026-04-09 |
 | Skill创建器 | skill-creator | P2-工具创建类 | 创建skill, 新skill | P2 | ✅ 活跃 | 2026-04-09 |
 | 学习模式执行器 | learning-mode-executor | P2-技术栈类 | /learn, 学习模式 | P2 | ✅ 活跃 | 2026-04-23 |
 | 自动提交助手 | auto-commit | P1-领域专业类 | Write, Edit, 文件修改，提交，commit, git commit, TDD提交，状态转换 | P1 | ✅ 活跃 | 2026-04-21 |
@@ -621,7 +621,10 @@ core_features:
   - 容器化最佳实践
   - 云基础设施架构
 always_first: false
-status: active
+status: deprecated
+deprecated_date: 2026-05-18
+deprecated_reason: draft占位桩（19行样板代码），从未实际开发；功能已被active的devops-ci-cd-guardrails（P1）完全替代（@Arbiter UNIV-013审计 TD-2026-007-DEPR）
+replaced_by: devops-ci-cd-guardrails
 added_date: 2026-04-09
 added_by: system
 ```
@@ -653,7 +656,10 @@ core_features:
   - 部署故障排除
   - CI/CD管道设置
 always_first: false
-status: active
+status: deprecated
+deprecated_date: 2026-05-18
+deprecated_reason: draft占位桩（19行样板代码），自2026-04-23创建以来从未实际开发；无agent引用，不在available_skills中（@Arbiter UNIV-013审计 TD-2026-005-DEPR）
+replaced_by: 无可直接替代的Skill；如需Salesforce功能请创建新专用Skill
 added_date: 2026-04-09
 added_by: system
 ```
@@ -683,7 +689,10 @@ core_features:
   - 连接问题排除
   - 元素定位策略优化
 always_first: false
-status: active
+status: deprecated
+deprecated_date: 2026-05-18
+deprecated_reason: draft占位桩（19行样板代码），从未实际开发；系统已内置原生Playwright MCP工具（playwright_browser_*系列），此Skill完全冗余（@Arbiter UNIV-013审计 TD-2026-006-DEPR）
+replaced_by: 原生Playwright MCP工具（playwright_browser_navigate等）
 added_date: 2026-04-09
 added_by: system
 ```
@@ -824,8 +833,9 @@ added_by: system
 [ ] 涉及多目录/多仓库吗？ → cross-directory-ci
 [ ] 需要分析根因吗？ → brainstorming
 [ ] 需要写代码吗？ → context7-first
-[ ] 是Salesforce项目吗？ → salesforce-dx-expert
-[ ] 涉及Playwright吗？ → playwright-mcp-expert
+[ ] ~~是Salesforce项目吗？ → salesforce-dx-expert（❌ 已废弃）~~
+[ ] ~~涉及Playwright吗？ → playwright-mcp-expert（❌ 已废弃，请使用原生 playwright_browser_* 工具）~~
+[ ] 涉及DevOps架构吗？ → 使用 devops-ci-cd-guardrails（❌ devops-architect 已废弃）
 [ ] 还有其他匹配的Skill吗？（查阅3.1表格）
 ```
 
