@@ -1,356 +1,251 @@
 {
-  "meta": {
-    "version": "1.1.0",
-    "project": "Admin New User Verification Code Feature",
-    "generatedBy": "@Meta-Planner",
-    "generatedAt": "2026-05-19T00:00:00Z",
-    "description": "为管理员新建用户对话框添加邮件/手机验证码功能，仿照登录页面验证码流程。新增 POST /v1/admin/users/send-code 端点，修改 POST /v1/admin/users 端点以支持 verificationCode 字段。包含 WV-2026-005 技术债偿还任务。",
-    "changelog": [
-      {
-        "version": "1.0.0",
-        "date": "2026-05-19T00:00:00Z",
-        "changes": [
-          "初始 DAG 版本，覆盖 admin 用户创建验证码功能全部任务",
-          "包含 TECH_DEBT_REGISTRY.md 扫描结果：WV-2026-005 (6天内到期) → T-TECHDEBT-WV-005"
-        ]
-      },
-      {
-        "version": "1.0.1",
-        "date": "2026-05-19T15:30:00Z",
-        "changes": [
-          "Wave 1 dispatched: T-ADMIN-VERIFY-001 + T-TECHDEBT-WV-005 → @Architect (parallel)",
-          "Compliance gate armed at 2026-05-19T15:29:31.961Z (cg_ses_1779202953784)",
-          "Context7 queries completed: NestJS, Angular v20+, Prisma"
-        ]
-      },
-      {
-        "version": "1.1.0",
-        "date": "2026-05-19T15:35:00Z",
-        "changes": [
-          "Wave 1 dispatched: T-ADMIN-VERIFY-001 + T-TECHDEBT-WV-005 → @Architect (parallel)",
-          "Wave 2 dispatch prompts generated: T-ADMIN-VERIFY-002 → @Coder-BE (RED), T-ADMIN-VERIFY-004 → @Coder-FE (RED)",
-          "Wave 3 dispatch prompts generated: T-ADMIN-VERIFY-003 → @Coder-BE (GREEN), T-ADMIN-VERIFY-005 → @Coder-FE (GREEN)",
-          "Wave 4 dispatch prompt generated: T-ADMIN-VERIFY-006 → @Guardian (security review)",
-          "All dispatch prompts saved to .task_temp/{taskId}/dispatch_prompt.md"
-        ]
-      }
-    ]
-  },
+  "version": "2.0.0",
+  "project": "booking-system",
+  "feature": "MSG-Inbox-Messages-Dropdown",
+  "description": "Envelope icon click handler + messages inbox dropdown – Approach B full implementation",
+  "generated_by": "@Meta-Planner",
+  "generated_at": "2026-05-19T10:00:00Z",
+  "change_log": [
+    {
+      "version": "2.0.0",
+      "date": "2026-05-19",
+      "summary": "Initial DAG for messages/inbox envelope icon feature – Approach B (full implementation: MSG-001 backend + MessagesDropdown frontend)"
+    }
+  ],
   "tasks": [
     {
-      "id": "T-ADMIN-VERIFY-001",
-      "name": "更新 contract.yaml — 记录 admin 用户验证码端点",
-      "description": "在 contract.yaml 中新增 POST /v1/admin/users/send-code 端点定义（请求/响应 Schema、鉴权、速率限制），并修改 POST /v1/admin/users 端点定义以包含 verificationCode 字段。必须遵循 contract.yaml 现有格式风格。",
-      "agent": "@Architect",
-      "dependencies": [],
-      "outputs": [
-        "contract.yaml (updated)"
-      ],
+      "id": "B-MSG-CONTRACT",
+      "title": "Update contract.yaml with MSG-001 endpoint definition",
+      "status": "pending",
+      "owner": "@Architect",
       "priority": "P0",
-      "status": "in_progress",
-      "requirement_source": {
-        "document": "接口设计规范文档",
-        "section": "2. 接口设计规范 — Admin 端点",
-        "clause": "新增 admin.users.send-code 端点，修改 admin.users.create 端点"
-      },
-      "contract_reference": {
-        "path": "contract.yaml § admin.users",
-        "type": "endpoint"
-      },
+      "dependencies": [],
+      "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001",
       "target_files": [
         "booking_system_refactor/contract.yaml"
       ],
-      "definition_of_done": {
-        "files_exist": [
-          "booking_system_refactor/contract.yaml"
-        ],
-        "logic_complete": "contract.yaml 包含 POST /v1/admin/users/send-code 端点定义（含请求体 contactType/email/phone、响应 maskedContact/expiresIn、鉴权 SUPER_ADMIN、速率限制 auth 级别）；POST /v1/admin/users 端点定义增加 verificationCode 字段。",
-        "tests_pass": "contract.yaml 通过 YAML 语法验证，与后端 DTO 定义一致",
-        "guardian_approved": true
-      }
+      "acceptance_criteria": [
+        "contract.yaml contains GET /v1/admin/messages with query params (page, limit)",
+        "contract.yaml contains MessageItemDto response schema",
+        "contract.yaml contains MessageListResponseDto envelope"
+      ],
+      "estimated_effort": "S"
     },
     {
-      "id": "T-ADMIN-VERIFY-002",
-      "name": "[TDD-RED] 编写后端验证码端点测试用例",
-      "description": "基于 contract.yaml 中的端点定义，编写 AdminUsersController 和 AdminUsersService 的单元测试和集成测试。测试用例覆盖：send-code 成功发送、send-code 反枚举（用户不存在返回200）、send-code 速率限制、create-user 验证码验证成功、create-user 验证码无效/过期/超限失败。所有测试在此阶段必须失败（RED）。",
-      "agent": "@Coder-BE",
-      "dependencies": [
-        "T-ADMIN-VERIFY-001"
-      ],
-      "outputs": [
-        "admin-users.controller.spec.ts (updated)",
-        "admin-users.service.spec.ts (updated)"
-      ],
-      "priority": "P0",
+      "id": "B-MSG-RED-001",
+      "title": "Backend RED: Write failing tests for AdminMessagesController (MSG-001 + MSG-004)",
       "status": "pending",
-      "requirement_source": {
-        "document": "测试策略与计划",
-        "section": "3. 单元测试与集成测试",
-        "clause": "每个 API 端点至少 1 个实现任务 + 1 个测试任务；TDD-RED 阶段"
-      },
-      "contract_reference": {
-        "path": "contract.yaml § admin.users.send-code, admin.users.create",
-        "type": "endpoint"
-      },
+      "owner": "@Coder-BE",
+      "priority": "P0",
+      "dependencies": ["B-MSG-CONTRACT"],
+      "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004",
+      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
-        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.spec.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.spec.ts"
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-messages.controller.spec.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-messages.service.spec.ts"
       ],
-      "definition_of_done": {
-        "files_exist": [
-          "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.spec.ts",
-          "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.spec.ts"
-        ],
-        "logic_complete": "测试用例覆盖 send-code 端点（3场景）和 create-user-with-code 端点（4场景），所有测试当前阶段为 FAILING（RED）。",
-        "tests_pass": "无 — RED阶段，所有测试预期失败（待GREEN阶段修复）",
-        "guardian_approved": false
-      }
+      "acceptance_criteria": [
+        "Controller spec tests MSG-001 GET /admin/messages returns paginated list",
+        "Controller spec tests MSG-004 GET /admin/messages/unread-count returns { count }",
+        "Service spec tests findAll with pagination (page, limit)",
+        "Service spec tests findUnreadCount returns count of unread messages for userId",
+        "All tests FAIL on initial run (RED phase – controller/service not yet implemented)"
+      ],
+      "estimated_effort": "M"
     },
     {
-      "id": "T-ADMIN-VERIFY-003",
-      "name": "[TDD-GREEN] 实现后端验证码端点",
-      "description": "实现 POST /v1/admin/users/send-code 端点和修改 POST /v1/admin/users 端点。send-code: 复用 VerificationService 生成6位验证码（类型 ADMIN_CREATE_USER），Redis 存储（TTL 300s），通过 EmailService 发送邮件，实现反枚举（用户不存在返回200无 maskedContact）。create-user: 增加 verificationCode 验证步骤，验证通过后创建用户。添加 @RateLimit 装饰器。",
-      "agent": "@Coder-BE",
-      "dependencies": [
-        "T-ADMIN-VERIFY-002"
-      ],
-      "outputs": [
-        "admin-users.controller.ts (updated)",
-        "admin-users.service.ts (updated)",
-        "admin-user.dto.ts (updated)"
-      ],
-      "priority": "P0",
+      "id": "B-MSG-GREEN-001",
+      "title": "Backend GREEN: Implement AdminMessagesController + AdminMessagesService (MSG-001 + MSG-004)",
       "status": "pending",
-      "requirement_source": {
-        "document": "系统架构设计文档（SAD）",
-        "section": "2.2.1.1 AdminModule 子模块架构",
-        "clause": "AdminUsersController — 管理员用户 CRUD 端点；新增 send-code 端点"
-      },
-      "contract_reference": {
-        "path": "contract.yaml § admin.users.send-code, admin.users.create",
-        "type": "endpoint"
-      },
+      "owner": "@Coder-BE",
+      "priority": "P0",
+      "dependencies": ["B-MSG-RED-001"],
+      "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004; 数据架构设计文档.md §2.2.6 Message model",
+      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
-        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts"
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-messages.controller.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-messages.service.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-messages.dto.ts"
       ],
-      "definition_of_done": {
-        "files_exist": [
-          "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
-          "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.ts",
-          "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts"
-        ],
-        "logic_complete": "send-code: 生成验证码存入 Redis (key: verify:admin:create:{type}:{hash}) → 发送邮件/短信 → 返回 { maskedContact, expiresIn: 300 }。反枚举：用户不存在返回 { expiresIn: 300 } 无 maskedContact。create-user: 接收 verificationCode → VerificationService.verifyCode() → 成功则 Prisma create user。",
-        "tests_pass": "T-ADMIN-VERIFY-002 中所有测试用例通过（100%）",
-        "guardian_approved": true
-      }
+      "acceptance_criteria": [
+        "AdminMessagesController created with base path 'admin/messages'",
+        "MSG-001 GET /admin/messages returns paginated list: { items: MessageItemDto[], total, page, limit }",
+        "MSG-001 query params: page (optional, default 1), limit (optional, default 20)",
+        "MSG-004 GET /admin/messages/unread-count returns { count: integer } from Message table",
+        "Auth: @Roles('ADMIN', 'SUPER_ADMIN') on both endpoints",
+        "Rate limit: 60/min on MSG-001, 120/min on MSG-004",
+        "AdminMessagesService.findAll(): queries Prisma message for recipient=userId, ordered by createdAt desc",
+        "AdminMessagesService.findUnreadCount(): counts messages WHERE recipientId=userId AND readAt IS NULL",
+        "DTOs: MessageItemDto { id, sender, subject, body, read, createdAt }, MessageListResponseDto, UnreadCountDto",
+        "Sender name resolved via Prisma include { sender: { select: { name: true } } }",
+        "Registered in AdminModule controllers and providers",
+        "All RED tests pass"
+      ],
+      "estimated_effort": "L"
     },
     {
-      "id": "T-ADMIN-VERIFY-004",
-      "name": "[TDD-RED] 编写前端验证码 UI 测试用例",
-      "description": "为 UserManagementComponent 的新建用户验证码流程编写单元测试。测试覆盖：步骤切换（Step 1→Step 2→Step 3）、发送验证码按钮交互、60秒倒计时、验证码输入验证（6位数字）、反枚举消息显示、API 调用参数正确性。所有测试在此阶段必须失败（RED）。",
-      "agent": "@Coder-FE",
-      "dependencies": [
-        "T-ADMIN-VERIFY-001"
-      ],
-      "outputs": [
-        "user-management.component.spec.ts (updated)"
-      ],
-      "priority": "P0",
+      "id": "B-MSG-RED-FE",
+      "title": "Frontend RED: Write failing tests for MessagesDropdown + AdminService + header wiring",
       "status": "pending",
-      "requirement_source": {
-        "document": "测试策略与计划",
-        "section": "3. 单元测试与集成测试",
-        "clause": "前端组件族至少 2 个任务：组件实现 + Store wiring；TDD-RED 阶段"
-      },
-      "contract_reference": {
-        "path": "contract.yaml § admin.users.send-code, admin.users.create",
-        "type": "endpoint"
-      },
+      "owner": "@Coder-FE",
+      "priority": "P1",
+      "dependencies": ["B-MSG-CONTRACT"],
+      "requirement_source": "接口设计规范文档.md §2.12–2.13; SAD line 99",
+      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.spec.ts"
+        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.spec.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.spec.ts"
       ],
-      "definition_of_done": {
-        "files_exist": [
-          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.spec.ts"
-        ],
-        "logic_complete": "测试用例覆盖验证码流程的步骤切换、发送/验证/重发交互、倒计时、表单状态管理，所有测试当前为 FAILING（RED）。",
-        "tests_pass": "无 — RED 阶段，所有测试预期失败",
-        "guardian_approved": false
-      }
+      "acceptance_criteria": [
+        "AdminService.getMessages() spec exists and FAILS (method not yet implemented)",
+        "AdminService.getMessageUnreadCount() spec exists and FAILS",
+        "MessagesDropdownComponent spec: clicking envelope icon opens dropdown, clicking again closes it",
+        "MessagesDropdownComponent spec: badge displays unread count",
+        "MessagesDropdownComponent spec: renders message items from input",
+        "All new tests FAIL on initial run"
+      ],
+      "estimated_effort": "M"
     },
     {
-      "id": "T-ADMIN-VERIFY-005",
-      "name": "[TDD-GREEN] 实现前端验证码 UI",
-      "description": "在 UserManagementComponent 的新建用户对话框中添加验证码流程。仿照 login.component.ts 的实现：Step 1 — 联系方式类型选择（Email/Phone）+ 联系方式输入 + 发送验证码按钮（60s倒计时）；Step 2 — 6位验证码输入 + 验证按钮 + 重新发送按钮；Step 3 — 密码设置 + 确认密码 + 提交。更新 admin.dto.ts（新增 DTO）、admin.service.ts（新增 sendCode/createUserWithCode 方法）、admin.store.ts（新增异步方法）。添加反枚举消息提示。",
-      "agent": "@Coder-FE",
-      "dependencies": [
-        "T-ADMIN-VERIFY-004"
-      ],
-      "outputs": [
-        "user-management.component.ts (updated)",
-        "user-management.component.html (updated)",
-        "admin.dto.ts (updated)",
-        "admin.service.ts (updated)",
-        "admin.store.ts (updated)"
-      ],
-      "priority": "P0",
+      "id": "B-MSG-GREEN-FE-COMPONENT",
+      "title": "Frontend GREEN: Build MessagesDropdownComponent with dropdown panel",
       "status": "pending",
-      "requirement_source": {
-        "document": "系统架构设计文档（SAD）",
-        "section": "4. 前端架构 — Admin 模块",
-        "clause": "UserManagementComponent — 新建用户对话框增加验证码流程"
-      },
-      "contract_reference": {
-        "path": "contract.yaml § admin.users.send-code, admin.users.create",
-        "type": "endpoint"
-      },
+      "owner": "@Coder-FE",
+      "priority": "P1",
+      "dependencies": ["B-MSG-RED-FE"],
+      "requirement_source": "接口设计规范文档.md §2.12 – '信封图标点击后的下拉面板'",
       "target_files": [
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.html",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.scss"
+      ],
+      "acceptance_criteria": [
+        "MessagesDropdownComponent created as standalone component (similar pattern to NotificationBellComponent)",
+        "Has messageCount signal input for unread badge (blue dot/count)",
+        "Has messages signal input for MessageItem[] list",
+        "Has dropdownOpen signal for panel toggle",
+        "Clicking envelope icon toggles dropdown (stopPropagation fix applied)",
+        "Close button (X) closes dropdown",
+        "Dropdown panel shows message items: sender name, subject, body preview, relative time",
+        "empty state when messages() is empty",
+        "MessagesDropdownComponent RED tests pass"
+      ],
+      "estimated_effort": "L"
+    },
+    {
+      "id": "B-MSG-GREEN-FE-SERVICE",
+      "title": "Frontend GREEN: Add getMessages() and getMessageUnreadCount() to AdminService + DTOs",
+      "status": "pending",
+      "owner": "@Coder-FE",
+      "priority": "P1",
+      "dependencies": ["B-MSG-RED-FE"],
+      "requirement_source": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
+      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
+      "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts"
+      ],
+      "acceptance_criteria": [
+        "DTO added: MessageItem { id, sender, subject, body, read, createdAt }",
+        "DTO added: MessageListResponse { items: MessageItem[], total, page, limit }",
+        "AdminService.getMessages(page, limit): calls GET /api/admin/messages with params",
+        "AdminService.getMessageUnreadCount(): calls GET /api/admin/messages/unread-count",
+        "Both methods use standard error handling pattern (handleError)",
+        "AdminService RED tests pass"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "B-MSG-GREEN-FE-HEADER",
+      "title": "Frontend GREEN: Wire envelope icon in AppHeader + AppLayout to use MessagesDropdown",
+      "status": "pending",
+      "owner": "@Coder-FE",
+      "priority": "P1",
+      "dependencies": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
+      "requirement_source": "接口设计规范文档.md §2.12 – '顶部导航栏信封图标'",
+      "target_files": [
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.html",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-layout/app-layout.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-layout/app-layout.component.html"
+      ],
+      "acceptance_criteria": [
+        "AppHeaderComponent: add messageCount input<number>(0)",
+        "AppHeaderComponent: add messages input for MessageItem[] list",
+        "AppLayoutComponent: add messageCount computed signal (from adminStore or dedicated store)",
+        "AppLayoutComponent: passes [messageCount] to app-header",
+        "AppHeader HTML: replace static envelope button with <app-messages-dropdown> component",
+        "AppHeader HTML: MessagesDropdown shown for both admin and non-admin users (not conditional on isAdmin)",
+        "Existing notification bell and other header elements unaffected",
+        "Header RED tests pass"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "B-MSG-GREEN-FE-STORE",
+      "title": "Frontend GREEN (optional): Add messages state to AdminStore",
+      "status": "pending",
+      "owner": "@Coder-FE",
+      "priority": "P2",
+      "dependencies": ["B-MSG-GREEN-FE-SERVICE"],
+      "requirement_source": "SAD line 99 – StatsModule includes 未读消息数",
+      "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
       ],
-      "definition_of_done": {
-        "files_exist": [
-          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.ts",
-          "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
-          "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts",
-          "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
-          "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
-        ],
-        "logic_complete": "新建用户对话框包含3步验证码流程：Step1 发送验证码（contactType选择器+联系方式输入+发送按钮+60s倒计时+反枚举消息），Step2 验证码输入（6位数字输入+验证按钮+重发按钮），Step3 密码设置（密码+确认密码+提交按钮）。所有 API 调用正确（sendCode → createUserWithCode）。",
-        "tests_pass": "T-ADMIN-VERIFY-004 中所有测试用例通过（100%）",
-        "guardian_approved": true
-      }
+      "acceptance_criteria": [
+        "AdminStore extended with messageCount: number state",
+        "loadMessageUnreadCount() method that calls adminService.getMessageUnreadCount()",
+        "setMessageUnreadCount(count) patch method"
+      ],
+      "estimated_effort": "S"
     },
     {
-      "id": "T-ADMIN-VERIFY-006",
-      "name": "安全与合规审查 — 验证码流程",
-      "description": "对 admin 用户创建验证码流程进行安全合规审查：(1) 防枚举攻击 — send-code 端点对不存在用户返回统一响应；(2) 防重放 — 验证码使用后 Redis 原子删除；(3) 暴力破解防护 — 最多3次验证尝试；(4) 速率限制 — send-code 5次/分钟，verify 10次/分钟；(5) CSRF 保护 — 检查 POST 端点 CSRF 令牌；(6) 权限控制 — SUPER_ADMIN 独占访问。审查测试执行证据（test_report.json + execution_evidence）。",
-      "agent": "@Guardian",
-      "dependencies": [
-        "T-ADMIN-VERIFY-003",
-        "T-ADMIN-VERIFY-005"
-      ],
-      "outputs": [
-        "guardian_review_report.json"
-      ],
-      "priority": "P1",
+      "id": "B-MSG-GUARDIAN",
+      "title": "Guardian Review: Validate all backend and frontend changes",
       "status": "pending",
-      "requirement_source": {
-        "document": "安全架构设计文档",
-        "section": "2.2 认证与授权体系, 4. API安全",
-        "clause": "反枚举、防重放、速率限制、CSRF保护、RBAC角色控制"
-      },
-      "contract_reference": {
-        "path": "contract.yaml § admin.users.send-code (rate_limit), admin.users.create (authorization SUPER_ADMIN)",
-        "type": "security_rule"
-      },
-      "target_files": [
-        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
-        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.ts"
-      ],
-      "definition_of_done": {
-        "files_exist": [
-          ".task_temp/T-ADMIN-VERIFY-006/guardian_review_report.json"
-        ],
-        "logic_complete": "所有安全检查项通过：(1)反枚举 ✓ (2)防重放 ✓ (3)暴力破解防护 ✓ (4)速率限制 ✓ (5)CSRF ✓ (6)SUPER_ADMIN权限 ✓，(7)测试执行证据完整 ✓",
-        "tests_pass": "所有安全检查无 CRITICAL/HIGH 违规",
-        "guardian_approved": true
-      }
-    },
-    {
-      "id": "T-TECHDEBT-WV-005",
-      "name": "[技术债偿还] WV-2026-005 — 部署废弃 Skill 的 DEPRECATED.md 文件",
-      "description": "根据 WV-2026-005 豁免登记：@Architect 需将 .task_temp/UNIV-013/ 下的 3 个 DEPRECATED.md 文件部署到对应 Skill 目录（salesforce-dx-expert、playwright-mcp-expert、devops-architect），并更新 skill-invocation-standard.md 中的 Skill 状态从「✅ 活跃」改为「❌ 废弃」。截止日期 2026-05-25（距今6天 ≤ 7天），由 @Meta-Planner 技术债扫描自动转化为本任务。",
-      "agent": "@Architect",
-      "dependencies": [],
-      "outputs": [
-        "DEPRECATED.md x3 (deployed)",
-        "skill-invocation-standard.md (updated)"
-      ],
+      "owner": "@Guardian",
       "priority": "P0",
-      "status": "in_progress",
-      "requirement_source": {
-        "document": "TECH_DEBT_REGISTRY.md (项目根目录)",
-        "section": "豁免登记表 (Waiver Registry)",
-        "clause": "WV-2026-005: @Architect 部署 DEPRECATED.md 文件，截止 2026-05-25"
-      },
-      "contract_reference": {
-        "path": "N/A (技术债偿还任务，非 API 契约相关)",
-        "type": "endpoint"
-      },
+      "dependencies": ["B-MSG-GREEN-001", "B-MSG-GREEN-FE-HEADER"],
+      "requirement_source": "All MSG-001 requirements; all contract.yaml definitions",
       "target_files": [
-        ".opencode/skills/salesforce-dx-expert/DEPRECATED.md",
-        ".opencode/skills/playwright-mcp-expert/DEPRECATED.md",
-        ".opencode/skills/devops-architect/DEPRECATED.md",
-        ".opencode/rules/rule_detail/skill-invocation-standard.md"
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-messages.controller.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-messages.service.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-messages.dto.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/*.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/*.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-layout/app-layout.component.ts"
       ],
-      "definition_of_done": {
-        "files_exist": [
-          ".opencode/skills/salesforce-dx-expert/DEPRECATED.md",
-          ".opencode/skills/playwright-mcp-expert/DEPRECATED.md",
-          ".opencode/skills/devops-architect/DEPRECATED.md"
-        ],
-        "logic_complete": "3 个 DEPRECATED.md 文件已部署到目标 Skill 目录（内容来自 .task_temp/UNIV-013/）；skill-invocation-standard.md §3.1 中 salesforce-dx-expert、playwright-mcp-expert、devops-architect 状态已从 '✅ 活跃' 更新为 '❌ 废弃'",
-        "tests_pass": "无测试要求（基础设施任务）",
-        "guardian_approved": true
-      }
+      "acceptance_criteria": [
+        "All backend tests pass (controller spec, service spec)",
+        "All frontend tests pass (messages-dropdown spec, admin.service spec, header spec)",
+        "ESLint audit: 0 violations",
+        "No spec/contract violations",
+        "TDD cycle verified (RED tests existed before GREEN implementation)",
+        "Envelope icon click opens dropdown, close button works, badge displays correctly"
+      ],
+      "estimated_effort": "M"
     }
   ],
-  "coverage": {
-    "total_requirements_clauses": 7,
-    "covered_clauses": 7,
-    "coverage_percentage": 100,
-    "g2_minimum_task_count": 9,
-    "actual_task_count": 7,
-    "g2_note": "本功能仅涉及 admin 模块（3个BE任务）+ admin 组件族（2个FE任务）+ 安全审查（1个）+ 契约更新（1个）+ 技术债（1个）= 7个任务。G2公式为全项目级别（11x3+4x2+4+4=49），本DAG仅覆盖增量功能。",
-    "requirement_clause_mapping": [
-      {
-        "clause_id": "SAD-2.2.1.1",
-        "document": "系统架构设计文档（SAD）",
-        "section": "2.2.1.1 AdminModule",
-        "task_id": "T-ADMIN-VERIFY-003"
-      },
-      {
-        "clause_id": "API-CONTRACT-ADMIN",
-        "document": "接口设计规范文档",
-        "section": "2. 接口设计规范",
-        "task_id": "T-ADMIN-VERIFY-001"
-      },
-      {
-        "clause_id": "SEC-ANTI-ENUM",
-        "document": "安全架构设计文档",
-        "section": "4. API安全",
-        "task_id": "T-ADMIN-VERIFY-006"
-      },
-      {
-        "clause_id": "SEC-RATE-LIMIT",
-        "document": "安全架构设计文档",
-        "section": "4. API安全",
-        "task_id": "T-ADMIN-VERIFY-003"
-      },
-      {
-        "clause_id": "TEST-TDD",
-        "document": "测试策略与计划",
-        "section": "2. TDD策略",
-        "task_id": "T-ADMIN-VERIFY-002"
-      },
-      {
-        "clause_id": "FE-COMPONENT",
-        "document": "系统架构设计文档（SAD）",
-        "section": "4. 前端架构",
-        "task_id": "T-ADMIN-VERIFY-005"
-      },
-      {
-        "clause_id": "TECH-DEBT-WV005",
-        "document": "TECH_DEBT_REGISTRY.md",
-        "section": "豁免登记表",
-        "task_id": "T-TECHDEBT-WV-005"
-      }
+  "execution_order": {
+    "phase_1_backend": ["B-MSG-CONTRACT", "B-MSG-RED-001"],
+    "phase_2_parallel": {
+      "backend": ["B-MSG-GREEN-001"],
+      "frontend": ["B-MSG-RED-FE"]
+    },
+    "phase_3_frontend": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
+    "phase_4_integration": ["B-MSG-GREEN-FE-HEADER", "B-MSG-GREEN-FE-STORE"],
+    "phase_5_review": ["B-MSG-GUARDIAN"]
+  },
+  "meta": {
+    "total_tasks": 9,
+    "backlog_estimate": "2-3 days",
+    "coverage_target": "≥ 70% for backend, ≥ 70% for frontend",
+    "spec_documents": [
+      ".opencode/context/requirements/接口设计规范文档.md §2.12-2.13",
+      ".opencode/context/requirements/数据架构设计文档.md §2.2.6",
+      ".opencode/context/requirements/系统架构设计文档（SAD）.md",
+      "booking_system_refactor/contract.yaml"
     ]
   }
 }
