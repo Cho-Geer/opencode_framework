@@ -45,8 +45,31 @@ if command -v jq &> /dev/null; then
     echo "❌ [Orchestrator Gate] 工作项 '${TASK_ID}' 的状态为 '${TASK_STATUS}'，非 'pending'。请检查 DAG 状态。"
     exit 1
   fi
+elif command -v python3 &> /dev/null; then
+  # Fallback: use python3 for JSON parsing if jq is not available
+  PYTHON_CHECK=$(python3 -c "
+import json, sys
+try:
+    with open('$DAG_FILE', 'r') as f:
+        dag = json.load(f)
+    task = next((t for t in dag.get('tasks', []) if t.get('id') == '$TASK_ID'), None)
+    if task is None:
+        print('NOT_FOUND')
+    else:
+        print(task.get('status', ''))
+except Exception as e:
+    print('ERROR')
+" 2>/dev/null)
+  if [ "$PYTHON_CHECK" = "NOT_FOUND" ]; then
+    echo "❌ [Orchestrator Gate] 工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+    exit 1
+  fi
+  if [ "$PYTHON_CHECK" != "pending" ]; then
+    echo "❌ [Orchestrator Gate] 工作项 '${TASK_ID}' 的状态为 '${PYTHON_CHECK}'，非 'pending'。请检查 DAG 状态。"
+    exit 1
+  fi
 else
-  # Fallback: use node for JSON parsing if jq is not available
+  # Fallback: use node for JSON parsing if neither jq nor python3 is available
   if command -v node &> /dev/null; then
     NODE_CHECK=$(node -e "
       const fs = require('fs');
