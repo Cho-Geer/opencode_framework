@@ -14,6 +14,16 @@ mcp_tools:
   - GitHub
 permission:
   edit: deny
+agent_tools_whitelist:
+  - task
+  - todowrite
+  - compliance-gate_*
+  - dispatch-subagent
+agent_tools_blacklist:
+  - read
+  - grep
+  - glob
+  - webfetch
 ---
 
 # Role: Meta‑Cognitive Layer – Project Manager
