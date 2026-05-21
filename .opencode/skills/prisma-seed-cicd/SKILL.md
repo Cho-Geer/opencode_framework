@@ -1,6 +1,8 @@
 ---
 name: "prisma-seed-cicd"
 description: "Provides validated solutions for executing Prisma seed scripts in CI/CD environments, preventing 'Cannot find module' errors. Invoke when working with Prisma seed in CI/CD pipelines."
+deprecated: true
+replaced_by: "cicd-database-seeding"
 ---
 
 # SKILL: 在 CI/CD 环境中正确执行 Prisma Seed 脚本
