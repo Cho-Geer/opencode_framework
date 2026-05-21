@@ -22,18 +22,43 @@ alwaysApply: true
 
 ## 核心规范速查
 
-1. **文件分离**：每个 NestJS artifact 独立文件（controller/service/dto/guard 分离）
+### Tier 1 — 通用规范（Universal）
+
+以下规范为框架无关的通用要求，所有后端项目必须遵守：
+
+1. **文件分离**：每个 artifact 独立文件（controller/service/dto/guard 分离）
 2. **模块化**：按业务领域划分模块，禁止循环依赖
 3. **命名约定**：接口无 `I` 前缀，文件使用 `kebab-case`
-4. **事务管理**：使用 `prisma.$transaction()` 管理事务边界
-5. **类型安全**：禁止 `any`，DTO 使用 class + class-validator
-6. **认证授权**：JWT + Passport，`@Public()` 跳过认证，`@Roles()` 角色控制
-7. **限流策略**：多层限流（用户/时间槽/IP/全局）
-8. **错误处理**：统一使用 `GlobalExceptionFilter`，映射 Prisma 错误
-9. **日志规范**：使用 NestJS Logger 类，LoggingInterceptor 自动记录请求
-10. **Swagger**：所有端点必须有完整 OpenAPI 文档
-11. **TDD**：RED → GREEN → REFACTOR，覆盖率 ≥70%
-12. **缓存**：Redis Cache-Aside 模式，write-through 会话缓存
+4. **类型安全**：禁止 `any`，DTO 使用 class + class-validator
+5. **TDD**：RED → GREEN → REFACTOR，覆盖率 ≥70%
+
+### Tier 2 — 框架参数化规范（Framework-Parameterized）
+
+以下规范根据项目技术栈参数化，占位符由 `project.config.json` 中的对应配置解析：
+
+6. **事务管理**：使用 `{backend.orm.transaction}` 管理事务边界
+7. **认证授权**：`{backend.auth}`
+8. **限流策略**：`{backend.rate_limit}`
+9. **错误处理**：`{backend.error_handler}`
+10. **日志规范**：`{backend.logger}`
+11. **API 文档**：`{backend.api_docs}`
+12. **缓存**：`{backend.cache_pattern}`
+
+## 占位符解析规则
+
+占位符在项目初始化时由 `project.config.json` 解析为具体技术栈指令。各占位符的解析源映射如下：
+
+| 占位符 | 配置路径 | 解析说明 |
+|--------|---------|---------|
+| `{backend.orm.transaction}` | `tech_stack.database.orm` | ORM 事务管理 API（如 `prisma.$transaction()`） |
+| `{backend.auth}` | `tech_stack.auth` | 认证授权机制（机制 + 跳过/角色控制装饰器） |
+| `{backend.rate_limit}` | `tech_stack.backend.framework` | 框架限流方案（多层限流：用户/时间槽/IP/全局） |
+| `{backend.error_handler}` | `tech_stack.backend.framework` | 框架错误处理（全局异常过滤器 + ORM 错误映射） |
+| `{backend.logger}` | `tech_stack.backend.framework` | 框架日志方案（Logger 类 + 请求拦截器） |
+| `{backend.api_docs}` | `tech_stack.backend.framework` | API 文档规范（OpenAPI/Swagger 完整文档覆盖） |
+| `{backend.cache_pattern}` | `tech_stack.cache` | 缓存策略（引擎 + 客户端 + 缓存模式） |
+
+> **注意**：占位符的具体实例化值定义在 `.opencode/context/code_standards/backend-coding-standard.md` 中。本文件仅提供占位符引用框架，实际开发时应读取完整文档获取当前技术栈对应的规范细节。
 
 ## 完整文档
 
