@@ -2,17 +2,17 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-21T09:46:25.219Z",
+    "lastUpdated": "2026-05-21T14:48:46.532Z",
     "project": "booking-system",
     "framework": "opencode-v3"
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-21T03:18:33.535Z",
+    "last_full_scan": "2026-05-21T14:48:46.532Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-21T02:07:22.225Z",
+        "last_check": "2026-05-21T14:48:46.532Z",
         "waivers_applied": []
       },
       "unknown": {

@@ -483,156 +483,28 @@
       "consumed_at": null,
       "audit": null
     },
-    "cg_ses_1779350408237": {
-      "session_id": "cg_ses_1779350408237",
-      "created_at": "2026-05-21T08:00:08.240Z",
-      "task_description": "Dispatch @Architect to perform a read-only deep inspection of the Opencode Framework architecture",
+    "cg_ses_1779374721056": {
+      "session_id": "cg_ses_1779374721056",
+      "created_at": "2026-05-21T14:45:21.057Z",
+      "task_description": "Merge develop branch into work-one branch in local workspace repo",
       "gate_status": "completed",
       "last_check_failed_items": [],
-      "plan_summary": "Dispatch @Architect for read-only deep inspection of OpenCode Framework architecture in .opencode/ directory. Output report to .task_temp/architect-inspection/. No modifications.",
-      "confirmed_at": "2026-05-21T08:02:59.220Z",
-      "consumed_at": "2026-05-21T08:26:40.359Z",
+      "plan_summary": "Merge develop branch into work-one via fast-forward (diff: 1 commit ahead, clean working tree)",
+      "confirmed_at": "2026-05-21T14:48:06.659Z",
+      "consumed_at": "2026-05-21T14:48:51.002Z",
       "audit": {
-        "execution_summary": "Dispatched @Architect for read-only deep inspection of OpenCode Framework. Agent completed full P0 protocol, analyzed all 8 agents, 19 skills, 13 rules, state machine, MCP tools, and hooks. Produced 649-line ARCHITECTURE_REPORT.md with 13 identified gaps (4 P0, 3 P1, 4 P2, 2 P3) and 15 recommendations (4 P0, 4 P1, 4 P2, 3 P3). No files modified.",
-        "completed_at": "2026-05-21T08:26:40.359Z"
+        "execution_summary": "Merged develop branch into work-one (fast-forward). The develop branch was 1 commit ahead (8fcdfb4e - FW-REPAIR: 11 framework repair tasks). No merge conflicts in business code. Stash conflict in gate-state.json resolved by accepting merged version. ESLint audit: 0 violations. Work-one now at 8fcdfb4e, identical to develop.",
+        "completed_at": "2026-05-21T14:48:51.002Z"
       }
     },
-    "cg_ses_1779350696626": {
-      "session_id": "cg_ses_1779350696626",
-      "created_at": "2026-05-21T08:04:56.627Z",
-      "task_description": "Perform a read-only deep-dive inspection of the OpenCode Framework architecture located in the .opencode/ directory. Analyze the full architecture: agents, rules, scripts, MCP tools, skills, hooks, state management (gate-state.json, machine.json), project.config.json, Task.DAG.json, contract.yaml, and all subagent configs. Identify design patterns, enforcement mechanisms, integration risks like schema drifts between gate state producers/consumers, and gaps. Output a structured architecture report.",
-      "gate_status": "completed",
-      "last_check_failed_items": [],
-      "plan_summary": "Read-only deep-dive inspection of the OpenCode Framework architecture under .opencode/. 9 phases: directory mapping, agent analysis (8 configs), rules/standards enforcement chain, state machine design (machine.json, gate-state.json), skills framework, MCP tool inventory, hooks/pre-commit enforcement, gap analysis (schema drifts, integration risks, dead code), ranked recommendations. Output: .task_temp/architect-inspection/ARCHITECTURE_REPORT.md. No files will be modified.",
-      "confirmed_at": "2026-05-21T08:16:35.802Z",
-      "consumed_at": "2026-05-21T08:25:52.482Z",
-      "audit": {
-        "execution_summary": "Architect read-only deep-dive inspection of OpenCode Framework architecture completed. Analyzed: 8 agent configs, 13 rule documents, 19 skills, 4 MCP tool scripts, 2 Git hooks, 2 state files (machine.json + gate-state.json with 37 sessions), project.config.json, Task.DAG.json (v2.3.1), contract.yaml status. Output: comprehensive ARCHITECTURE_REPORT.md (9 sections, 15 recommendations, 13 identified gaps with file:line references) to .task_temp/architect-inspection/. No files modified.",
-        "completed_at": "2026-05-21T08:25:52.482Z"
-      }
-    },
-    "cg_ses_1779352994934": {
-      "session_id": "cg_ses_1779352994934",
-      "created_at": "2026-05-21T08:43:14.935Z",
-      "task_description": "Dispatch @Meta-Planner to plan framework repair tasks based on @Architect inspection report",
+    "cg_ses_1779374978329": {
+      "session_id": "cg_ses_1779374978329",
+      "created_at": "2026-05-21T14:49:38.330Z",
+      "task_description": "Commit updated state files (gate-state.json, machine.json) on work-one branch",
       "gate_status": "armed",
       "last_check_failed_items": [],
-      "plan_summary": "Dispatch @Meta-Planner to plan framework repair tasks based on @Architect inspection report. Fix P0/P1 issues: template_resolution, contract.yaml, machine.schema.json, machine.json cleanup, keystone hashes, gate-state.json sync.",
-      "confirmed_at": "2026-05-21T08:43:24.019Z",
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779353112865": {
-      "session_id": "cg_ses_1779353112865",
-      "created_at": "2026-05-21T08:45:12.865Z",
-      "task_description": "@Meta-Planner: Plan framework repair tasks based on @Architect architecture inspection report. Analyze 13 gaps, prioritize P0/P1 fixes (template_resolution, contract.yaml, machine.schema.json, machine.json cleanup, keystone hashes, gate-state.json sync), generate Task.DAG.json v2.4.0 with repair task entries appended.",
-      "gate_status": "armed",
-      "last_check_failed_items": [],
-      "plan_summary": "Generate Task.DAG.json v2.4.0 with 11 framework repair tasks (4 P0 + 4 P1 + 3 P2) appended to existing 32-task DAG. All tasks assigned to @Architect. Dependencies: FW-REPAIR-02→FW-REPAIR-05, FW-REPAIR-01→FW-REPAIR-06, FW-REPAIR-04→FW-REPAIR-03/FW-REPAIR-05/FW-REPAIR-09, FW-REPAIR-06→FW-REPAIR-11. Existing 32 tasks preserved unchanged.",
-      "confirmed_at": "2026-05-21T08:47:10.890Z",
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779353872288": {
-      "session_id": "cg_ses_1779353872288",
-      "created_at": "2026-05-21T08:57:52.289Z",
-      "task_description": "Re-dispatch @Meta-Planner to update Task.DAG.json with framework repair tasks",
-      "gate_status": "completed",
-      "last_check_failed_items": [],
-      "plan_summary": "Directly dispatch @Meta-Planner to append 11 framework repair tasks to Task.DAG.json v2.4.0 based on the approved plan from the previous session.",
-      "confirmed_at": "2026-05-21T08:57:57.072Z",
-      "consumed_at": "2026-05-21T09:13:27.848Z",
-      "audit": {
-        "execution_summary": "Dispatched @Meta-Planner to update Task.DAG.json from v2.3.1 to v2.4.0. Appended 11 framework repair tasks (FW-REPAIR-01 through 11) covering P0-P2 fixes for template_resolution, contract.yaml, machine.schema.json, state cleanup, keystone hashes, gate-state sync, and more. DAG now has 43 tasks total.",
-        "completed_at": "2026-05-21T09:13:27.848Z"
-      }
-    },
-    "cg_ses_1779353995724": {
-      "session_id": "cg_ses_1779353995724",
-      "created_at": "2026-05-21T08:59:55.725Z",
-      "task_description": "Meta-Planner: Update Task.DAG.json to version 2.4.0 by appending 11 framework repair tasks (FW-REPAIR-01 through FW-REPAIR-11) based on @Architect inspection report. Framework repair tasks cover: template_resolution, contract.yaml creation, machine.schema.json, state contamination cleanup, keystone_hashes population, template resolution engine, state machine reset script, gate-state.json sync, cross-workspace protection, subagent-preamble path fix, and template variable standard. All tasks owned by @Architect with specified dependency chains.",
-      "gate_status": "completed",
-      "last_check_failed_items": [],
-      "plan_summary": "Update Task.DAG.json from v2.3.1 to v2.4.0: append 11 FW-REPAIR framework repair tasks (01-11) for @Architect based on Architecture Report recommendations. Dependencies: FW-REPAIR-01->06, 02->05, 04->03->05, 04->09. P0 tasks: template_resolution, contract.yaml, machine.schema.json, state cleanup. P1 tasks: keystone_hashes, template engine, reset script, gate-state sync. P2 tasks: cross-workspace protection, path fix, template standard doc. Single file modified: Task.DAG.json.",
-      "confirmed_at": "2026-05-21T09:01:29.999Z",
-      "consumed_at": "2026-05-21T09:12:09.496Z",
-      "audit": {
-        "execution_summary": "Meta-Planner updated Task.DAG.json from v2.3.1 to v2.4.0. Appended 11 FW-REPAIR framework repair tasks (01-11) owned by @Architect, based on Architecture Report at .task_temp/architect-inspection/ARCHITECTURE_REPORT.md. P0 tasks: FW-REPAIR-01 (template_resolution), FW-REPAIR-02 (contract.yaml), FW-REPAIR-03 (machine.schema.json), FW-REPAIR-04 (state cleanup). P1 tasks: FW-REPAIR-05 (keystone_hashes), FW-REPAIR-06 (template engine), FW-REPAIR-07 (reset script), FW-REPAIR-08 (gate-state sync). P2 tasks: FW-REPAIR-09 (cross-workspace protection), FW-REPAIR-10 (path fix), FW-REPAIR-11 (template variable standard). Dependencies enforced: 01->06, 02+03->05, 04->03, 04->09. Total tasks: 43. No other files modified. Write audit: pass.",
-        "completed_at": "2026-05-21T09:12:09.496Z"
-      }
-    },
-    "cg_ses_1779355602377": {
-      "session_id": "cg_ses_1779355602377",
-      "created_at": "2026-05-21T09:26:42.377Z",
-      "task_description": "Dispatch @Architect to execute P0 framework repair tasks: FW-REPAIR-01 (template_resolution), FW-REPAIR-02 (contract.yaml), FW-REPAIR-04 (machine.json cleanup)",
-      "gate_status": "completed",
-      "last_check_failed_items": [],
-      "plan_summary": "Dispatch @Architect to execute 3 P0 framework repair tasks: FW-REPAIR-01 (add template_resolution to project.config.json), FW-REPAIR-02 (create contract.yaml at root), FW-REPAIR-04 (clean machine.json contamination). All read the existing Architect inspection report for context.",
-      "confirmed_at": "2026-05-21T09:26:45.779Z",
-      "consumed_at": "2026-05-21T09:35:39.405Z",
-      "audit": {
-        "execution_summary": "Dispatched @Architect for P0 framework repairs. FW-REPAIR-01 (template_resolution in project.config.json): DONE. FW-REPAIR-02 (contract.yaml): DONE, hash computed and stored. FW-REPAIR-04 (machine.json contamination cleanup): DONE - type_check/format/write_audit reset, keystone hash populated.",
-        "completed_at": "2026-05-21T09:35:39.405Z"
-      }
-    },
-    "cg_ses_1779355740759": {
-      "session_id": "cg_ses_1779355740759",
-      "created_at": "2026-05-21T09:29:00.759Z",
-      "task_description": "Execute 3 P0 framework repair tasks: FW-REPAIR-01 (add template_resolution to project.config.json), FW-REPAIR-02 (create contract.yaml at project root with skeleton OpenAPI structure), FW-REPAIR-04 (clean machine.json state contamination: reset type_check_state, format_state, clear write_audit_state.current_session, remove cross-workspace paths). All config/state file modifications - no business code.",
-      "gate_status": "armed",
-      "last_check_failed_items": [],
-      "plan_summary": "Execute 3 P0 framework repair tasks: FW-REPAIR-01 (add template_resolution to project.config.json with contract_hash_command, backend.orm.schema, frontend.dto_path, frontend.env_path, cache/queue configs), FW-REPAIR-02 (create root contract.yaml with x-keystone-state-hash header and skeleton OpenAPI structure), FW-REPAIR-04 (clean machine.json: reset type_check_state, format_state, write_audit_state, purge cross-workspace paths from /home/zhaoge/workspace/opencode/work-one/). Run write-time audit after each file change.",
-      "confirmed_at": "2026-05-21T09:30:29.946Z",
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779356275395": {
-      "session_id": "cg_ses_1779356275395",
-      "created_at": "2026-05-21T09:37:55.395Z",
-      "task_description": "Dispatch @Architect to execute FW-REPAIR-03 (machine.schema.json), FW-REPAIR-06 (template engine), FW-REPAIR-07 (reset script), FW-REPAIR-08 (gate sync), FW-REPAIR-10 (path fix), FW-REPAIR-11 (template docs)",
-      "gate_status": "completed",
-      "last_check_failed_items": [],
-      "plan_summary": "Dispatch @Architect to execute 6 framework repair tasks: FW-REPAIR-03 (machine.schema.json), FW-REPAIR-06 (template engine in dispatch-subagent.js), FW-REPAIR-07 (state reset script), FW-REPAIR-08 (gate-state sync), FW-REPAIR-10 (subagent-preamble path fix), FW-REPAIR-11 (template docs). All read-only inspection already done.",
-      "confirmed_at": "2026-05-21T09:37:58.602Z",
-      "consumed_at": "2026-05-21T09:50:07.217Z",
-      "audit": {
-        "execution_summary": "Dispatched @Architect for 6 framework repair tasks. Completed: FW-REPAIR-03 (machine.schema.json), FW-REPAIR-07 (state-reset.js), FW-REPAIR-10 (subagent-preamble path), FW-REPAIR-11 (template-variable-standard.md). Partially done: FW-REPAIR-06 (dispatch-subagent.js template engine code written, audit pending). Not done: FW-REPAIR-08 (gate-state sync).",
-        "completed_at": "2026-05-21T09:50:07.217Z"
-      }
-    },
-    "cg_ses_1779356428111": {
-      "session_id": "cg_ses_1779356428111",
-      "created_at": "2026-05-21T09:40:28.112Z",
-      "task_description": "Execute 6 framework repair tasks: FW-REPAIR-03 (machine.schema.json), FW-REPAIR-06 (template resolution in dispatch-subagent.js), FW-REPAIR-07 (state-reset.js), FW-REPAIR-08 (gate-state.json sync), FW-REPAIR-10 (subagent-preamble.md path fix), FW-REPAIR-11 (template-variable-standard.md)",
-      "gate_status": "armed",
-      "last_check_failed_items": [],
-      "plan_summary": "Execute 6 framework repair tasks: FW-REPAIR-03 (machine.schema.json JSON Schema for all 9 sub-states), FW-REPAIR-06 (template resolution in dispatch-subagent.js resolving {project.*}/{backend.*}/{frontend.*}/{cache.*}/{queue.*} from template_resolution), FW-REPAIR-07 (state-reset.js idempotent bootstrap script), FW-REPAIR-08 (gate-state.json active_sessions sync + reconciliation), FW-REPAIR-10 (subagent-preamble.md line 55 replace hardcoded prisma/schema.prisma with {backend.orm.schema}), FW-REPAIR-11 (template-variable-standard.md documenting all placeholders and resolution)",
-      "confirmed_at": "2026-05-21T09:41:26.208Z",
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779359511590": {
-      "session_id": "cg_ses_1779359511590",
-      "created_at": "2026-05-21T10:31:51.591Z",
-      "task_description": "Dispatch @Architect for FW-REPAIR-08: Fix gate-state.json active_sessions synchronization in compliance-gate.js",
-      "gate_status": "completed",
-      "last_check_failed_items": [],
-      "plan_summary": "Dispatch @Architect for FW-REPAIR-08: Patch compliance-gate.js to sync active_sessions array on arm/consume, update last_updated, add reconciliation pass. Read existing compliance-gate.js and gate-state.json first.",
-      "confirmed_at": "2026-05-21T10:31:54.929Z",
-      "consumed_at": "2026-05-21T11:53:56.339Z",
-      "audit": {
-        "execution_summary": "Completed FW-REPAIR-08: Fixed compliance-gate.js active_sessions sync. Added active_sessions push on runGateConfirm, filter on runGateComplete, reconciliation in loadStore, last_updated timestamps. Fixed syntax error from earlier sed misplacement. Syntax check: PASS.",
-        "completed_at": "2026-05-21T11:53:56.339Z"
-      }
-    },
-    "cg_ses_1779359626769": {
-      "session_id": "cg_ses_1779359626769",
-      "created_at": "2026-05-21T10:33:46.769Z",
-      "task_description": "FW-REPAIR-08: Fix gate-state.json active_sessions synchronization. Patch compliance-gate.js to: (1) Add session_id to active_sessions in runGateConfirm(); (2) Remove session_id from active_sessions in runGateComplete(); (3) Update last_updated timestamp on each mutation; (4) Add reconciliation pass in loadStore() to clean completed/expired sessions from active_sessions.",
-      "gate_status": "armed",
-      "last_check_failed_items": [],
-      "plan_summary": "FW-REPAIR-08: Fix gate-state.json active_sessions sync. Modify compliance-gate.js: (1) getFreshStore() add active_sessions+last_updated; (2) loadStore() add reconciliation pass; (3) runGateConfirm() push session_id to active_sessions; (4) runGateComplete() remove session_id from active_sessions. Update last_updated on each mutation. Only file modified: .opencode/scripts/mcp-tools/compliance-gate.js.",
-      "confirmed_at": "2026-05-21T10:34:48.688Z",
+      "plan_summary": "Commit state file updates (gate-state.json, machine.json) after merge develop into work-one",
+      "confirmed_at": "2026-05-21T14:50:20.168Z",
       "consumed_at": null,
       "audit": null
     }
