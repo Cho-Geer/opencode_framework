@@ -8,26 +8,34 @@ alwaysApply: true
 You are launched as a sub-agent. Execute the following P0 protocol FIRST, before any analysis, design, implementation, testing, or deployment work. This protocol applies to ALL task types.
 
 ### Step 1: Read your own agent configuration
+
 Read `.opencode/agents/{agent_type}.md`. Extract the `skills` and `mcp_tools` lists from its YAML frontmatter. These define your capabilities.
 
 ### Step 2: Read the project configuration
+
 Read `.opencode/project.config.json`. It contains:
+
 - `project.name` — your project name
 - `tech_stack` — all technologies used (backend, frontend, database, testing, CI/CD)
 - `paths` — source code directory locations
 - `context7_task_mapping` — which context7 queries to run per task type
 
 ### Step 3: Invoke all listed skills (P0 mandatory)
+
 For each skill in your config's `skills` list, invoke it in order. P0 skills like `execution-preflight-check` and `context7-first` MUST be called first.
 
 ### Step 4: Call context7 for your project's tech stacks
+
 Use `context7_resolve-library-id` + `context7_query-docs` for the tech stacks relevant to your task. Refer to `project.config.json`'s `tech_stack` and `context7_task_mapping` to determine which stacks apply.
 
 ### Step 5: Compliance gate check (P0 blocking)
+
 Call `compliance_gate_check(task_description="<your task>")` and record the returned `session_id`.
 
 ### Step 6: Present plan and wait for user confirmation
+
 Show a complete plan:
+
 - Skills from your config to be invoked
 - MCP tools from your config to be used
 - Execution phases
@@ -38,9 +46,11 @@ Show a complete plan:
 Wait for explicit user confirmation. Do NOT proceed without it.
 
 ### Step 7: Arm the gate
+
 Call `compliance_gate_confirm(session_id, plan_summary)` to arm the compliance gate.
 
 ### Step 8: Proceed with task execution
+
 Only now may you proceed with analysis, design, coding, or any other task work.
 
 ### Step 8a: Root Cause & Docs Alignment Analysis (P0 MANDATORY — Before ANY code change)
@@ -52,7 +62,7 @@ Before writing or modifying ANY source code (`.ts`, `.js`, `.html`, `.scss`, `.p
    - `.opencode/context/requirements/*.md` — system, data, interface, security, test, deployment specs
    - `.opencode/context/detailed_design/**/*.md` — detailed UI/page design specs
    - `contract.yaml` — API contracts, data models, security rules
-   - `prisma/schema.prisma` — database schema
+   - `{backend.orm.schema}` — database schema (resolved via template_resolution in project.config.json)
 3. **Consistency check**: For each doc that relates to your change:
    - Does the intended code change conflict with documented behavior?
    - Does the intended code change add/modify behavior that should be documented?
@@ -81,8 +91,8 @@ After EACH successful `Write` or `Edit` operation, you MUST immediately:
      - `eslint` with tier1_mock: replace with Testcontainers
      - `deps`: fix import paths
      - `format`: auto-fixed if auto_fix enabled
-      - `eslint` (other): fix or document for review
-      - `tdd`: **Write test file BEFORE implementation file** — CAT5.2 BLOCKER if violated
+     - `eslint` (other): fix or document for review
+     - `tdd`: **Write test file BEFORE implementation file** — CAT5.2 BLOCKER if violated
 3. After fixing, re-run `run_write_check` to confirm
 4. Append to write_audit_log.json with result
 5. Only proceed to next file when `overall === "pass"`
@@ -90,6 +100,7 @@ After EACH successful `Write` or `Edit` operation, you MUST immediately:
 **⚠️ NEVER skip Step 8b.** The pre-commit hook and @Guardian will detect skipped checks via write_audit_log.json. Consecutive skips trigger @Arbiter circuit breaker.
 
 ### Step 9: Close compliance gate (P0 MANDATORY)
+
 After completing implementation AND running tests, call `compliance_gate_complete(session_id, execution_summary)`.
 This records the task as complete AND runs ESLint mock-audit validation against machine.json.eslint_state.
 If `compliance_gate_complete` returns `failed`, you MUST fix violations (or get @Arbiter waiver) and retry.
@@ -110,6 +121,7 @@ After completing the task, append a section titled `## 📊 Invocation Summary` 
 | Context7 | ✅ resolved: /nestjs/nest → queried "validation pipe" | Key finding: enableImplicitConversion deprecated |
 
 **Context7 details**: For each tech stack queried, include what library was resolved and what query returned:
+
 - `nestjs` → resolved `/nestjs/nest` → queried "DTO validation" → found class-validator + autoValidate best practice
 - `prisma` → resolved `/prisma/prisma` → queried "transaction" → maxWait default 2000ms
 
@@ -121,6 +133,7 @@ After completing the task, append a section titled `## 📊 Invocation Summary` 
 | compliance_gate_complete | Completed at: 2026-04-28T05:30:00Z |
 
 **System-level tools**: Also report these if called:
+
 - `compliance_gate_check` / `compliance_gate_confirm` / `compliance_gate_complete`
 - `context7_resolve-library-id` / `context7_query-docs`
 - `bash`, `read`, `write` (count of calls)

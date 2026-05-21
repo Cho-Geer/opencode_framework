@@ -2,7 +2,7 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-21T03:33:40.949Z",
+    "lastUpdated": "2026-05-21T09:46:25.219Z",
     "project": "booking-system",
     "framework": "opencode-v3"
   },
@@ -35,56 +35,42 @@
     }
   },
   "type_check_state": {
-    "last_full_check": "2026-05-19T03:12:34.419Z",
-    "last_incremental_check": "2026-05-21T03:33:40.949Z",
-    "full_errors": 2,
-    "incremental_errors": 1,
-    "dirty_files": [
-      "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.spec.ts"
-    ],
-    "status": "dirty"
+    "status": "clean",
+    "dirty_files": [],
+    "incremental_errors": 0,
+    "last_incremental_check": "2026-05-21T09:46:25.219Z"
   },
   "dependency_state": {
-    "last_check": "2026-05-21T03:33:40.949Z",
+    "last_check": "2026-05-21T09:46:25.219Z",
     "violations": [],
-    "forbidden_rules_applied": 17,
+    "forbidden_rules_applied": 27,
     "status": "clean"
   },
   "format_state": {
-    "last_check": "2026-05-21T03:33:40.949Z",
+    "status": "clean",
     "unformatted_files": [],
-    "auto_fix_count": 3,
-    "status": "dirty"
+    "last_run": null,
+    "last_check": "2026-05-21T09:46:25.219Z",
+    "auto_fix_count": 2
   },
   "write_audit_state": {
+    "enabled": true,
     "current_session": {
-      "agent": "@Coder-FE",
-      "task_id": "FE-NOTIFICATION-BELL-FIX",
+      "agent": "@Architect",
+      "task_id": "FW-REPAIR-03",
       "files_written": [
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/notification-bell/notification-bell.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/notification-bell/notification-bell.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.scss",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.scss",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.spec.ts",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.scss",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/BUG-SENDCODE-ANALYSIS/TASK_LOG.md",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/contract.yaml",
-        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/agents/orchestrator.md",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/compliance-audit.sh",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/rules/frontend-coding-standard.md",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/agents/coder-be.md"
+        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.task_temp/FW-REPAIR-03-06-07-08-10-11/TASK_LOG.md",
+        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/state/machine.schema.json",
+        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/subagent-preamble.md",
+        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/rules/rule_detail/template-variable-standard.md",
+        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/project.config.json"
       ],
-      "checks_run": 17,
+      "checks_run": 5,
       "checks_passed": 4,
-      "checks_failed": 13,
-      "violations_found": 13,
+      "checks_failed": 1,
+      "violations_found": 1,
       "violations_resolved": 0,
-      "scope_violations_attempted": 13
+      "scope_violations_attempted": 1
     },
     "history": []
   },
@@ -113,5 +99,7 @@
   "contracts": [
     "contract.yaml"
   ],
-  "keystone_hashes": {}
+  "keystone_hashes": {
+    "contract.yaml": "sha256-ead50d41f3aaa532dbe28be01288ffc3b1bcb5c056420299cf29b4475ca7a478"
+  }
 }

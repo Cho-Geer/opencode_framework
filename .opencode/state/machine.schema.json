@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/machine.schema.json",
+  "title": "OpenCode State Machine",
+  "description": "JSON Schema for .opencode/state/machine.json — validates all 9 sub-state sections enforcing required fields and types.",
+  "type": "object",
+  "required": [
+    "meta",
+    "eslint_state",
+    "type_check_state",
+    "dependency_state",
+    "format_state",
+    "write_audit_state",
+    "compliance_records",
+    "tdd_enforcement_state",
+    "contracts",
+    "keystone_hashes"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Machine metadata — version, project identity, and timestamps.",
+      "required": [
+        "version",
+        "createdAt",
+        "lastUpdated",
+        "project",
+        "framework"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "SemVer of the state machine format."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp."
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 last-updated timestamp."
+        },
+        "project": {
+          "type": "string",
+          "description": "Project name from project.config.json."
+        },
+        "framework": {
+          "type": "string",
+          "description": "Framework identifier (e.g., opencode-v3)."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "eslint_state": {
+      "type": "object",
+      "description": "ESLint mock-audit state tracking per-module and aggregate.",
+      "required": ["last_full_scan", "modules", "aggregate"],
+      "properties": {
+        "last_full_scan": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of last full scan."
+        },
+        "modules": {
+          "type": "object",
+          "description": "Per-module audit state keyed by module name.",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "status",
+              "violations",
+              "last_check",
+              "waivers_applied"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["clean", "dirty", "waived"],
+                "description": "Current audit status for this module."
+              },
+              "violations": {
+                "type": "array",
+                "items": { "type": "object" },
+                "description": "List of ESLint violation objects."
+              },
+              "last_check": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp of last check."
+              },
+              "waivers_applied": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Waiver IDs applied to this module."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "aggregate": {
+          "type": "object",
+          "description": "Aggregate ESLint state across all modules.",
+          "required": ["total_violations", "dirty_modules", "waived_modules"],
+          "properties": {
+            "total_violations": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total violation count across all modules."
+            },
+            "dirty_modules": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of module names currently in dirty status."
+            },
+            "waived_modules": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of module names with active waivers."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "type_check_state": {
+      "type": "object",
+      "description": "TypeScript incremental type-check state.",
+      "required": ["status", "dirty_files", "incremental_errors"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["clean", "dirty"],
+          "description": "Current type-check status."
+        },
+        "dirty_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Files with unresolved type errors."
+        },
+        "incremental_errors": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of incremental type errors."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "dependency_state": {
+      "type": "object",
+      "description": "Dependency-cruiser module boundary state.",
+      "required": [
+        "last_check",
+        "violations",
+        "forbidden_rules_applied",
+        "status"
+      ],
+      "properties": {
+        "last_check": {
+          "oneOf": [
+            { "type": "string", "format": "date-time" },
+            { "type": "null" }
+          ],
+          "description": "ISO 8601 timestamp of last check, or null."
+        },
+        "violations": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Dependency violation objects."
+        },
+        "forbidden_rules_applied": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of forbidden import rules applied."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["clean", "dirty"],
+          "description": "Current dependency audit status."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "format_state": {
+      "type": "object",
+      "description": "Prettier format check state.",
+      "required": ["status", "unformatted_files", "last_run"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["clean", "dirty"],
+          "description": "Current formatting status."
+        },
+        "unformatted_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Files not conforming to Prettier."
+        },
+        "last_run": {
+          "oneOf": [
+            { "type": "string", "format": "date-time" },
+            { "type": "null" }
+          ],
+          "description": "ISO 8601 timestamp of last format run, or null."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "write_audit_state": {
+      "type": "object",
+      "description": "Write-time audit tracking for every file change.",
+      "required": ["enabled", "current_session", "history"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether write-time audit enforcement is active."
+        },
+        "current_session": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "Active write-audit session ID, or null."
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["session", "files", "timestamp", "result"],
+            "properties": {
+              "session": {
+                "type": "string",
+                "description": "Write-audit session ID."
+              },
+              "files": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Files changed in this session."
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Session timestamp."
+              },
+              "result": {
+                "type": "string",
+                "enum": ["pass", "fail"],
+                "description": "Session audit result."
+              }
+            },
+            "additionalProperties": true
+          },
+          "description": "History of write-audit sessions."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "compliance_records": {
+      "type": "object",
+      "description": "Compliance violation records across role, gate, and TDD enforcement.",
+      "required": ["role_violations", "gate_violations", "tdd_violations"],
+      "properties": {
+        "role_violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "timestamp",
+              "agent",
+              "violation_file",
+              "status",
+              "severity"
+            ],
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "agent": {
+                "type": "string",
+                "description": "Agent that caused the violation."
+              },
+              "violation_file": {
+                "type": "string",
+                "description": "File path that triggered the violation."
+              },
+              "status": {
+                "type": "string",
+                "enum": ["unresolved", "resolved", "waived"],
+                "description": "Resolution status."
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"],
+                "description": "Violation severity level."
+              },
+              "denied_by": {
+                "type": "string",
+                "description": "Deny pattern that matched."
+              },
+              "resolved_at": { "type": "string", "format": "date-time" },
+              "resolved_by": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "gate_violations": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Compliance gate violation records."
+        },
+        "tdd_violations": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "TDD enforcement violation records."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "tdd_enforcement_state": {
+      "type": "object",
+      "description": "TDD enforcement tracking state.",
+      "required": ["enabled", "current_session", "violations", "history"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether TDD enforcement is active."
+        },
+        "current_session": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "Active TDD enforcement session ID, or null."
+        },
+        "violations": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Current TDD violations."
+        },
+        "history": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "TDD enforcement history."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "contracts": {
+      "type": "array",
+      "description": "List of contract files tracked by keystone hash.",
+      "items": {
+        "type": "string",
+        "description": "Relative path to a contract file."
+      }
+    },
+
+    "keystone_hashes": {
+      "type": "object",
+      "description": "SHA-256 hashes of contract files for integrity verification.",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^sha256-[a-f0-9]{64}$",
+        "description": "SHA-256 hash with sha256- prefix."
+      }
+    }
+  },
+  "additionalProperties": false
+}

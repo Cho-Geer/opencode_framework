@@ -19,43 +19,56 @@
  *   3. Use the content as the prompt for Task(subagent_type)
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const OPENCODE_ROOT = process.env.OPENCODE_ROOT || path.resolve(__dirname, '..', '..', '..');
-const AGENTS_DIR = path.join(OPENCODE_ROOT, '.opencode', 'agents');
-const PREAMBLE_FILE = path.join(OPENCODE_ROOT, '.opencode', 'subagent-preamble.md');
-const PROJECT_CONFIG = path.join(OPENCODE_ROOT, '.opencode', 'project.config.json');
-const OUTPUT_DIR = path.join(OPENCODE_ROOT, '.task_temp', '_dispatch');
+const OPENCODE_ROOT =
+  process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", "..", "..");
+const AGENTS_DIR = path.join(OPENCODE_ROOT, ".opencode", "agents");
+const PREAMBLE_FILE = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "subagent-preamble.md",
+);
+const PROJECT_CONFIG = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "project.config.json",
+);
+const OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
 
 // ──────────────────────────────────────────────
 // 1. Parse CLI arguments
 // ──────────────────────────────────────────────
 const agentType = process.argv[2];
-const taskDescription = process.argv[3] || '';
+const taskDescription = process.argv[3] || "";
 
 if (!agentType) {
-  console.error('Usage: node dispatch-subagent.js <agent_type> "<task_description>"');
-  console.error('Example: node dispatch-subagent.js Architect "Validate architecture"');
+  console.error(
+    'Usage: node dispatch-subagent.js <agent_type> "<task_description>"',
+  );
+  console.error(
+    'Example: node dispatch-subagent.js Architect "Validate architecture"',
+  );
   process.exit(1);
 }
 
 if (!taskDescription) {
-  console.error('ERROR: task_description is required');
+  console.error("ERROR: task_description is required");
   process.exit(1);
 }
 
 // ──────────────────────────────────────────────
 // 2. Read project config
 // ──────────────────────────────────────────────
-const projectConfig = JSON.parse(fs.readFileSync(PROJECT_CONFIG, 'utf8'));
-const projectRoot = projectConfig.project_root || '.';
+const projectConfig = JSON.parse(fs.readFileSync(PROJECT_CONFIG, "utf8"));
+const projectRoot = projectConfig.project_root || ".";
 const techStack = projectConfig.tech_stack || {};
 const taskMapping = projectConfig.context7_task_mapping || [];
 
 // Resolve a path: OPENCODE_ROOT / project_root / path_value
 function resolveProjectPath(relativePath) {
-  if (projectRoot === '.' || projectRoot === '') {
+  if (projectRoot === "." || projectRoot === "") {
     return path.join(OPENCODE_ROOT, relativePath);
   }
   return path.join(OPENCODE_ROOT, projectRoot, relativePath);
@@ -65,12 +78,18 @@ function resolveProjectPath(relativePath) {
 function findRelevantStacks(description, mapping, stackConfig) {
   const result = [];
   for (const entry of mapping) {
-    const match = entry.keywords.some(kw => description.toLowerCase().includes(kw));
+    const match = entry.keywords.some((kw) =>
+      description.toLowerCase().includes(kw),
+    );
     if (match) {
       for (const stackKey of entry.stacks) {
         const stack = stackConfig[stackKey];
-        if (stack && !result.find(r => r.key === stackKey)) {
-          result.push({ key: stackKey, label: stack.name, query: stack.context7_query });
+        if (stack && !result.find((r) => r.key === stackKey)) {
+          result.push({
+            key: stackKey,
+            label: stack.name,
+            query: stack.context7_query,
+          });
         }
       }
     }
@@ -78,56 +97,67 @@ function findRelevantStacks(description, mapping, stackConfig) {
   return result;
 }
 
-const relevantStacks = findRelevantStacks(taskDescription, taskMapping, techStack);
+const relevantStacks = findRelevantStacks(
+  taskDescription,
+  taskMapping,
+  techStack,
+);
 
 // ──────────────────────────────────────────────
 // 3. Read agent config file (case-insensitive lookup)
 // ──────────────────────────────────────────────
 const agentFiles = fs.readdirSync(AGENTS_DIR);
-const agentFileEntry = agentFiles.find(f => f.toLowerCase() === `${agentType.toLowerCase()}.md`);
+const agentFileEntry = agentFiles.find(
+  (f) => f.toLowerCase() === `${agentType.toLowerCase()}.md`,
+);
 if (!agentFileEntry) {
-  console.error(`ERROR: Agent config not found for "${agentType}". Available: ${agentFiles.filter(f => f.endsWith('.md')).join(', ')}`);
+  console.error(
+    `ERROR: Agent config not found for "${agentType}". Available: ${agentFiles.filter((f) => f.endsWith(".md")).join(", ")}`,
+  );
   process.exit(1);
 }
 const agentFile = path.join(AGENTS_DIR, agentFileEntry);
-const agentContent = fs.readFileSync(agentFile, 'utf8');
+const agentContent = fs.readFileSync(agentFile, "utf8");
 
 // Parse YAML frontmatter
 function parseFrontmatter(content) {
-  const lines = content.split('\n');
+  const lines = content.split("\n");
   let inFrontmatter = false;
   let frontmatterLines = [];
   let frontmatterCount = 0;
 
   for (const line of lines) {
-    if (line.trim() === '---') {
+    if (line.trim() === "---") {
       frontmatterCount++;
-      if (frontmatterCount === 1) { inFrontmatter = true; continue; }
+      if (frontmatterCount === 1) {
+        inFrontmatter = true;
+        continue;
+      }
       if (frontmatterCount === 2) break;
     }
     if (inFrontmatter) frontmatterLines.push(line);
   }
 
-  return parseYamlSimple(frontmatterLines.join('\n'));
+  return parseYamlSimple(frontmatterLines.join("\n"));
 }
 
 function parseYamlSimple(yaml) {
   const result = {};
   let currentKey = null;
 
-  for (const line of yaml.split('\n')) {
+  for (const line of yaml.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed || trimmed.startsWith("#")) continue;
 
     const topMatch = trimmed.match(/^(\w[\w_-]*):\s*(.*)/);
-    if (topMatch && !trimmed.startsWith('-')) {
+    if (topMatch && !trimmed.startsWith("-")) {
       currentKey = topMatch[1];
       const val = topMatch[2].trim();
       if (val.startsWith('"') && val.endsWith('"')) {
         result[currentKey] = val.slice(1, -1);
       } else if (val.startsWith("'") && val.endsWith("'")) {
         result[currentKey] = val.slice(1, -1);
-      } else if (val !== '') {
+      } else if (val !== "") {
         result[currentKey] = val;
       } else {
         result[currentKey] = [];
@@ -150,21 +180,128 @@ const agentName = agentConfig.name || agentType;
 const skills = agentConfig.skills || [];
 const mcpTools = agentConfig.mcp_tools || [];
 
+// ──────────────────────────────────────────────
+// 3.5 Build template variable resolution map
+// ──────────────────────────────────────────────
+function buildTemplateResolutionMap(projectConfig) {
+  const map = {};
+  const tr = projectConfig.template_resolution || {};
+
+  // §2.1: {project.*} from root project fields
+  if (projectConfig.project) {
+    map["project.name"] = projectConfig.project.name || "";
+    map["project.version"] = projectConfig.project.version || "";
+  }
+  map["project_root"] = projectConfig.project_root || ".";
+  if (tr.contract_hash_command) {
+    map["project.contract_hash_command"] = tr.contract_hash_command;
+  }
+
+  // §2.2: {backend.*} from template_resolution + tech_stack.backend
+  const beStack = projectConfig.tech_stack?.backend || {};
+  map["backend.framework"] = beStack.framework || "";
+  map["backend.runtime"] = beStack.runtime || "";
+  map["backend.language"] = beStack.language || "";
+  if (tr["backend.orm.schema"])
+    map["backend.orm.schema"] = tr["backend.orm.schema"];
+  if (projectConfig.paths?.backend_src)
+    map["backend.src"] = projectConfig.paths.backend_src;
+
+  // §2.3: {frontend.*} from template_resolution + tech_stack.frontend
+  const feStack = projectConfig.tech_stack?.frontend || {};
+  map["frontend.framework"] = feStack.framework || "";
+  map["frontend.state_management"] = feStack.state_management || "";
+  map["frontend.ui_library"] = feStack.ui_library || "";
+  map["frontend.css"] = feStack.css || "";
+  if (tr["frontend.dto_path"])
+    map["frontend.dto_path"] = tr["frontend.dto_path"];
+  if (tr["frontend.env_path"])
+    map["frontend.env_path"] = tr["frontend.env_path"];
+  if (projectConfig.paths?.frontend_src)
+    map["frontend.src"] = projectConfig.paths.frontend_src;
+
+  // §2.4: {cache.*} from template_resolution
+  if (tr["cache.engine"]) map["cache.engine"] = tr["cache.engine"];
+  if (tr["cache.client"]) map["cache.client"] = tr["cache.client"];
+
+  // §2.5: {queue.*} from template_resolution
+  if (tr["queue.engine"]) map["queue.engine"] = tr["queue.engine"];
+
+  // §2.6: {db.*} from tech_stack.database
+  const dbStack = projectConfig.tech_stack?.database || {};
+  map["db.orm"] = dbStack.orm || "";
+  map["db.engine"] = dbStack.engine || "";
+
+  // §2.7: {auth.*} from tech_stack.auth
+  const authStack = projectConfig.tech_stack?.auth || {};
+  map["auth.mechanism"] = authStack.mechanism || "";
+  map["auth.token_validity"] = authStack.token_validity || "";
+  map["auth.refresh_validity"] = authStack.refresh_validity || "";
+
+  // §2.8: {testing.*} from tech_stack.testing
+  const testStack = projectConfig.tech_stack?.testing || {};
+  map["testing.unit"] = testStack.unit || "";
+  map["testing.e2e"] = testStack.e2e || "";
+  map["testing.integration"] = testStack.integration || "";
+  map["testing.coverage_threshold"] = testStack.coverage_threshold
+    ? String(testStack.coverage_threshold)
+    : "";
+
+  return map;
+}
+
+// ──────────────────────────────────────────────
+// 3.6 Template variable resolution function
+// ──────────────────────────────────────────────
+function resolveTemplateVariables(content, templateMap, sourceLabel) {
+  if (!content || Object.keys(templateMap).length === 0) return content;
+
+  return content.replace(/\{([a-z_]+\.[a-z_.]+)\}/g, (match, key) => {
+    if (templateMap.hasOwnProperty(key)) {
+      return templateMap[key];
+    }
+    console.error(
+      `[dispatch] WARNING: Unresolvable placeholder '${match}' in ${sourceLabel}`,
+    );
+    return `UNRESOLVED${match}`;
+  });
+}
+
+const templateMap = buildTemplateResolutionMap(projectConfig);
+console.error(
+  `[dispatch] Template resolution map: ${Object.keys(templateMap).length} keys`,
+);
+
+// Resolve placeholders in agent content
+const resolvedAgentContent = resolveTemplateVariables(
+  agentContent,
+  templateMap,
+  agentFileEntry,
+);
+
 console.error(`[dispatch] Project: ${projectConfig.project.name}`);
 console.error(`[dispatch] Project root: ${projectRoot}`);
 console.error(`[dispatch] OPENCODE_ROOT: ${OPENCODE_ROOT}`);
 console.error(`[dispatch] Agent: ${agentName}`);
-console.error(`[dispatch] Skills: ${skills.join(', ')}`);
-console.error(`[dispatch] MCP tools: ${mcpTools.join(', ')}`);
-console.error(`[dispatch] Context7 stacks matched: ${relevantStacks.map(s => s.label).join(', ')}`);
+console.error(`[dispatch] Skills: ${skills.join(", ")}`);
+console.error(`[dispatch] MCP tools: ${mcpTools.join(", ")}`);
+console.error(
+  `[dispatch] Context7 stacks matched: ${relevantStacks.map((s) => s.label).join(", ")}`,
+);
 
 // ──────────────────────────────────────────────
 // 4. Read preamble template
 // ──────────────────────────────────────────────
-let preamble = '';
+let preamble = "";
 if (fs.existsSync(PREAMBLE_FILE)) {
-  preamble = fs.readFileSync(PREAMBLE_FILE, 'utf8');
-  preamble = preamble.replace(/^---[\s\S]*?---\n*/, ''); // strip frontmatter
+  preamble = fs.readFileSync(PREAMBLE_FILE, "utf8");
+  preamble = preamble.replace(/^---[\s\S]*?---\n*/, ""); // strip frontmatter
+  // Resolve template variables in preamble
+  preamble = resolveTemplateVariables(
+    preamble,
+    templateMap,
+    "subagent-preamble.md",
+  );
 }
 
 // ──────────────────────────────────────────────
@@ -172,17 +309,24 @@ if (fs.existsSync(PREAMBLE_FILE)) {
 // ──────────────────────────────────────────────
 
 // Context7 section — generated from project.config.json
-let context7Section = '- (determine based on task — see `project.config.json` `context7_task_mapping`)';
+let context7Section =
+  "- (determine based on task — see `project.config.json` `context7_task_mapping`)";
 if (relevantStacks.length > 0) {
-  context7Section = `This task touches the following stacks. Resolve and query each via \`context7_resolve-library-id\` + \`context7_query-docs\`:\n${
-    relevantStacks.map(s => `- **${s.label}** — query: \`${s.query}\``).join('\n')
-  }`;
+  context7Section = `This task touches the following stacks. Resolve and query each via \`context7_resolve-library-id\` + \`context7_query-docs\`:\n${relevantStacks
+    .map((s) => `- **${s.label}** — query: \`${s.query}\``)
+    .join("\n")}`;
 }
 
 // Resolve actual paths for display
-const resolvedBackend = resolveProjectPath(projectConfig.paths.backend_src || '');
-const resolvedFrontend = resolveProjectPath(projectConfig.paths.frontend_src || '');
-const resolvedContracts = resolveProjectPath(projectConfig.paths.contracts || '');
+const resolvedBackend = resolveProjectPath(
+  projectConfig.paths.backend_src || "",
+);
+const resolvedFrontend = resolveProjectPath(
+  projectConfig.paths.frontend_src || "",
+);
+const resolvedContracts = resolveProjectPath(
+  projectConfig.paths.contracts || "",
+);
 
 // Project context section
 const projectContext = [
@@ -194,7 +338,7 @@ const projectContext = [
   `**Backend path**: \`${resolvedBackend}\``,
   `**Frontend path**: \`${resolvedFrontend}\``,
   `**Contracts**: \`${resolvedContracts}\``,
-].join('\n');
+].join("\n");
 
 const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
 
@@ -209,10 +353,10 @@ ${preamble}
 **Agent Name**: ${agentName}
 
 **Your Skills** (invoke in this order; P0 skills first):
-${skills.map(s => `- \`${s}\``).join('\n')}
+${skills.map((s) => `- \`${s}\``).join("\n")}
 
 **Your MCP Tools** (call as needed):
-${mcpTools.map(t => `- \`${t}\``).join('\n')}
+${mcpTools.map((t) => `- \`${t}\``).join("\n")}
 
 ---
 
@@ -233,10 +377,10 @@ ${context7Section}
 After task completion, you MUST append a section titled \`## 📊 Invocation Summary\` to your output. Include:
 
 **Skills** (from your agent config above):
-${skills.map(s => `- \`${s}\`: ✅ Invoked or ❌ Not needed (state reason)`).join('\n')}
+${skills.map((s) => `- \`${s}\`: ✅ Invoked or ❌ Not needed (state reason)`).join("\n")}
 
 **MCP Tools** (from your agent config above):
-${mcpTools.map(t => `- \`${t}\`: ✅ Called or ❌ Not applicable (state reason)`).join('\n')}
+${mcpTools.map((t) => `- \`${t}\`: ✅ Called or ❌ Not applicable (state reason)`).join("\n")}
 
 **Context7** (for each tech stack queried):
 - Library resolved: ... → Query: ... → Key finding: ...
@@ -272,9 +416,12 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const outputFile = path.join(OUTPUT_DIR, `dispatch-${agentType}-${timestamp}.md`);
-fs.writeFileSync(outputFile, wrappedPrompt, 'utf8');
+const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+const outputFile = path.join(
+  OUTPUT_DIR,
+  `dispatch-${agentType}-${timestamp}.md`,
+);
+fs.writeFileSync(outputFile, wrappedPrompt, "utf8");
 
 console.error(`[dispatch] Output: ${outputFile}`);
 
