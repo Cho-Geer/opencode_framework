@@ -1,5 +1,5 @@
 {
-  "version": "2.3.0",
+  "version": "2.3.1",
   "project": "booking-system",
   "feature": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement",
   "description": "Envelope icon click handler + messages inbox dropdown – Approach B full implementation + Bug fix for 'Contact type must be email or phone' validation error on admin New User dialog Send Code button",
@@ -45,6 +45,11 @@
       "version": "2.3.1",
       "date": "2026-05-21",
       "summary": "UNIV-P6-O completed: Added 4 new tech debt entries (TD-2026-008 through TD-2026-011) to TECH_DEBT_REGISTRY.md; Updated skill-invocation-standard.md §3.1 §4: deprecated nextjs-router-guardrails → fullstack-ci-cd-guardrails, deprecated prisma-seed-cicd → cicd-database-seeding, registered new cicd-database-seeding skill. Added 2026-05-21 @Architect裁决记录."
+    },
+    {
+      "version": "2.3.1",
+      "date": "2026-05-21",
+      "summary": "All 14 UNIV tasks marked completed. Full universality enhancement implementation done."
     }
   ],
   "tasks": [
@@ -483,7 +488,7 @@
     {
       "id": "UNIV-P1-C",
       "title": "Phase 1: Convert backend-coding-standard.md to tiered template",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [
@@ -502,7 +507,7 @@
     {
       "id": "UNIV-P1-D",
       "title": "Phase 1: Convert frontend-coding-standard.md to tiered template",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [
@@ -521,7 +526,7 @@
     {
       "id": "UNIV-P2-A",
       "title": "Phase 2: Parameterize coder-be.md with placeholders",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [
@@ -539,7 +544,7 @@
     {
       "id": "UNIV-P2-B",
       "title": "Phase 2: Parameterize coder-fe.md with placeholders",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [
@@ -557,7 +562,7 @@
     {
       "id": "UNIV-P2-J",
       "title": "Phase 2: Remove (含Salesforce) from AGENTS.md Coder-BE description",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [],
@@ -572,7 +577,7 @@
     {
       "id": "UNIV-P3-F",
       "title": "Phase 3: Refactor guardian.md with conditional checklists",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [
@@ -593,7 +598,7 @@
     {
       "id": "UNIV-P3-G",
       "title": "Phase 3: Parameterize architect.md references",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [
@@ -612,7 +617,7 @@
     {
       "id": "UNIV-P4-H",
       "title": "Phase 4: Rename prisma-seed-cicd to cicd-database-seeding with generic layer",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
@@ -630,7 +635,7 @@
     {
       "id": "UNIV-P4-I",
       "title": "Phase 4: Deprecate nextjs-router-guardrails skill, extract principles",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
@@ -647,7 +652,7 @@
     {
       "id": "UNIV-P5-K",
       "title": "Phase 5: Add placeholder compliance checks to framework-self-test.js",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [
@@ -666,7 +671,7 @@
     {
       "id": "UNIV-P5-L",
       "title": "Phase 5: Improve compliance-audit.sh pattern matching",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
@@ -682,7 +687,7 @@
     {
       "id": "UNIV-P5-M",
       "title": "Phase 5: Add python3 fallback to pre-execution-hook.sh",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
@@ -698,7 +703,7 @@
     {
       "id": "UNIV-P5-N",
       "title": "Phase 5: Support OPENCODE_ROOT env var in dispatch-subagent.js",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
