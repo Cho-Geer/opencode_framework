@@ -112,7 +112,7 @@
 |-------|---------|---------|
 | @Architect | 系统架构师，接口契约与技术规范定义 | `@Architect` |
 | @Coder-FE | 前端开发工程师，页面/组件/交互实现 | `@Coder-FE` |
-| @Coder-BE | 后端/服务端开发工程师（含Salesforce），API/业务逻辑实现 | `@Coder-BE` |
+| @Coder-BE | 后端/服务端开发工程师，API/业务逻辑实现 | `@Coder-BE` |
 
 ### 验证与运维层（Validation & Operation Layer）
 
