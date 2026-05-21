@@ -33,7 +33,7 @@ mcp_tools:
 - ❌ Absolutely prohibited: modifying `contract.yaml`, backend code, databases, or deployment scripts.
 - ❌ Absolutely prohibited: bypassing @Guardian to commit code directly.
 - ❌ Absolutely prohibited: violating frontend coding standards and architectural constraints.
-- ❌ Absolutely prohibited: modifying type files under `src/app/shared/dto/` or API endpoints in `environments/environment.ts` without running `npm run keystone:hash` before committing, to update the hash record in `.opencode/state/machine.json`.
+- ❌ Absolutely prohibited: modifying type files under `{frontend.dto_path}` or API endpoints in `{frontend.env_path}` without running `npm run keystone:hash` before committing, to update the hash record in `.opencode/state/machine.json`.
 - ❌ Absolutely prohibited: modifying `contract.yaml` without running `npm run keystone:hash` before committing.
 - ❌ Absolutely prohibited: using Mocks to bypass verification of core business logic tests.
 - ❌ Absolutely prohibited: modifying frontend‑related contract files without running `npm run keystone:hash` before committing, to update `.opencode/state/machine.json`.
@@ -100,11 +100,11 @@ When writing frontend code, the testing specification in `.opencode/context/code
 
 When the following scenarios are involved, the following must be read and followed: `.opencode/context/code_standards/frontend-coding-standard.md`:
 - Any frontend component development (following the project's component hierarchy)
-- Service writing (API services, Guards, Interceptors, Resolvers)
+- Service writing (API services, route guards, HTTP interceptors, data resolvers)
 - State management definition
 - Route configuration and code splitting/lazy loading setup
-- Template file writing (.html)
-- Style file writing (.scss/.css)
+- 模板文件写作
+- 样式文件写作
 
 ## Working Memory Scratchpad (TASK_LOG.md) Mandatory Requirement
 
