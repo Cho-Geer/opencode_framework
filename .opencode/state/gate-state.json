@@ -418,6 +418,70 @@
         "execution_summary": "UNIV-P6-O completed: (A) TECH_DEBT_REGISTRY.md: appended TD-2026-008/009/010/011 with arbitration records. (B) skill-invocation-standard.md §3.1: deprecated prisma-seed-cicd→cicd-database-seeding, deprecated nextjs-router-guardrails→fullstack-ci-cd-guardrails, added cicd-database-seeding entry. Updated §4 detailed metadata, §2.1, §5.3, version→v2.1.5. (C) Task.DAG.json: UNIV-P6-O status→completed, change_log v2.3.1 added.",
         "completed_at": "2026-05-21T03:57:47.081Z"
       }
+    },
+    "cg_ses_1779336767350": {
+      "session_id": "cg_ses_1779336767350",
+      "created_at": "2026-05-21T04:12:47.351Z",
+      "task_description": "Complete outstanding tasks: close compliance gate and verify universality implementation state",
+      "gate_status": "checked",
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779337925005": {
+      "session_id": "cg_ses_1779337925005",
+      "created_at": "2026-05-21T04:32:05.005Z",
+      "task_description": "Sort out all deprecated Opencode Framework skill documents by creating DEPRECATED.md files for each deprecated skill",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Create DEPRECATED.md files in all deprecated skill directories: salesforce-dx-expert, playwright-mcp-expert, devops-architect, prisma-seed-cicd, nextjs-router-guardrails",
+      "confirmed_at": "2026-05-21T04:32:09.458Z",
+      "consumed_at": "2026-05-21T04:33:09.932Z",
+      "audit": {
+        "execution_summary": "Sorted all deprecated Opencode Framework docs: created DEPRECATED.md for prisma-seed-cicd and nextjs-router-guardrails (3 others already had DEPRECATED.md). Added deprecated frontmatter to prisma-seed-cicd/SKILL.md. Marked WV-2026-005 as CLOSED in TECH_DEBT_REGISTRY.md.",
+        "completed_at": "2026-05-21T04:33:09.932Z"
+      }
+    },
+    "cg_ses_1779338083057": {
+      "session_id": "cg_ses_1779338083057",
+      "created_at": "2026-05-21T04:34:43.058Z",
+      "task_description": "Analyze how to safely manage deprecated Opencode Framework skills without breaking agent references, skill loading, or MCP tool invocations",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Analyze all agent configs, skill-invocation-standard, available_skills, and dispatch system to map every touch point of deprecated skills and identify safe cleanup path",
+      "confirmed_at": "2026-05-21T04:34:47.259Z",
+      "consumed_at": "2026-05-21T04:35:39.019Z",
+      "audit": {
+        "execution_summary": "Complete audit of deprecated skill touch points across agent configs, skill-invocation-standard, available_skills, and dispatch system. No agent configs reference deprecated skills. 3/5 SKILL.md files lack deprecated frontmatter. Provided detailed safe-handling strategy.",
+        "completed_at": "2026-05-21T04:35:39.019Z"
+      }
+    },
+    "cg_ses_1779338350257": {
+      "session_id": "cg_ses_1779338350257",
+      "created_at": "2026-05-21T04:39:10.257Z",
+      "task_description": "Architect review of deprecated skill safe-handling analysis for Opencode Framework",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Architect review of deprecated skill handling strategies: audit agent refs, skill-invocation-standard, dispatch system, and recommend best approach",
+      "confirmed_at": "2026-05-21T04:39:13.774Z",
+      "consumed_at": "2026-05-21T04:44:44.961Z",
+      "audit": {
+        "execution_summary": "Architect completed review of deprecated skill handling. Recommended Hybrid Strategy B+A: delete 3 zero-value SKILL.md from draft stubs, keep all content from prisma-seed-cicd and nextjs-router-guardrails. Zero breakage risk.",
+        "completed_at": "2026-05-21T04:44:44.961Z"
+      }
+    },
+    "cg_ses_1779338381631": {
+      "session_id": "cg_ses_1779338381631",
+      "created_at": "2026-05-21T04:39:41.631Z",
+      "task_description": "Review Deprecated Skill Safe-Handling Analysis: audit 5 deprecated skills, assess 3 handling strategies, verify agent/dispatch references, and recommend best approach",
+      "gate_status": "checked",
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
     }
   },
   "active_sessions": [
