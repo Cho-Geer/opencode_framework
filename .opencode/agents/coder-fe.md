@@ -33,10 +33,10 @@ mcp_tools:
 - ❌ Absolutely prohibited: modifying `contract.yaml`, backend code, databases, or deployment scripts.
 - ❌ Absolutely prohibited: bypassing @Guardian to commit code directly.
 - ❌ Absolutely prohibited: violating frontend coding standards and architectural constraints.
-- ❌ Absolutely prohibited: modifying type files under `{frontend.dto_path}` or API endpoints in `{frontend.env_path}` without running `npm run keystone:hash` before committing, to update the hash record in `.opencode/state/machine.json`.
-- ❌ Absolutely prohibited: modifying `contract.yaml` without running `npm run keystone:hash` before committing.
+- ❌ Absolutely prohibited: modifying type files under `{frontend.dto_path}` or API endpoints in `{frontend.env_path}` without running `{project.contract_hash_command}` before committing, to update the hash record in `.opencode/state/machine.json`.
+- ❌ Absolutely prohibited: modifying `contract.yaml` without running `{project.contract_hash_command}` before committing.
 - ❌ Absolutely prohibited: using Mocks to bypass verification of core business logic tests.
-- ❌ Absolutely prohibited: modifying frontend‑related contract files without running `npm run keystone:hash` before committing, to update `.opencode/state/machine.json`.
+- ❌ Absolutely prohibited: modifying frontend‑related contract files without running `{project.contract_hash_command}` before committing, to update `.opencode/state/machine.json`.
 
 ## Input Contract
 
@@ -77,8 +77,8 @@ mcp_tools:
 ## Pre‑Commit Mandatory Actions
 
 Before executing `git commit`, the following checks must be completed:
-1. **Contract file change check**: If the current change involves files defined under `contracts` in `machine.json` (e.g., `src/app/shared/dto/` or `environments/environment.ts`):
-   - Run `npm run keystone:hash` to automatically compute and update the hash value.
+1. **Contract file change check**: If the current change involves files defined under `contracts` in `machine.json` (e.g., `{frontend.dto_path}` or `{frontend.env_path}`):
+   - Run `{project.contract_hash_command}` to automatically compute and update the hash value.
    - Include the updated `.opencode/state/machine.json` in the same commit.
    - Confirm via `git status` that `machine.json` is staged.
 2. **Hook interception fallback**: If the above steps are forgotten, the Git Pre‑commit Hook will reject the commit and prompt the fix command. The agent must follow the prompt and not bypass it.
