@@ -77,6 +77,21 @@
 | TD-2026-005-DEPR | Deprecate `salesforce-dx-expert` — draft placeholder skill, never developed since 2026-04-23; SKILL.md is 19-line boilerplate ("此技能待完善"). No agent refs, not in available_skills. | 低 | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
 | TD-2026-006-DEPR | Deprecate `playwright-mcp-expert` — draft placeholder skill, never developed; native Playwright MCP tools (`playwright_browser_*`) already available in system prompt. | 低 | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
 | TD-2026-007-DEPR | Deprecate `devops-architect` — draft placeholder skill, superseded by active `devops-ci-cd-guardrails` (P1, in available_skills). | 低 | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
+| TD-2026-008 | Framework Agent Config Parameterization | 高 | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
+| TD-2026-009 | Rule File Template Resolution | 高 | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
+| TD-2026-010 | Skill Registry Stale References | 中 | @Architect | 2026-05-21 | 2026-05-30 | **active** | UNIV-P6-O | SKILL |
+| TD-2026-011 | Deprecated Skill Cleanup | 中 | @Architect | 2026-05-21 | 2026-06-01 | **active** | UNIV-P6-O | SKILL |
+
+---
+
+### 2026-05-21 — @Architect UNIV-P6-O Framework Universality Post-Mortem
+
+| Item | Decision | Rationale |
+|------|----------|-----------|
+| TD-2026-008 | **Registered** | Agent configs (coder-be.md, coder-fe.md) now use `{placeholder}` patterns. Every new project must resolve these before use. Repayment: configure `project.config.json` and verify zero unresolved placeholders via `framework-self-test.js`. |
+| TD-2026-009 | **Registered** | Backend + frontend coding standards are now tiered templates with `{placeholder}`s. New projects must configure `template_resolution` in `project.config.json` or the rules will render with visible fallback placeholders. |
+| TD-2026-010 | **Registered** | `skill-invocation-standard.md` §3.1 still lists deprecated skills (`salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect`) — though their status was already corrected to `❌ 废弃`, the remaining references in category descriptions (§2.1) and quick checklists (§5.3) need audit. |
+| TD-2026-011 | **Registered** | `nextjs-router-guardrails` deprecated and `prisma-seed-cicd` renamed to `cicd-database-seeding`. Old skill files remain as reference. Full cleanup including DEPRECATED.md deployment to target directories is tracked by WV-2026-005. |
 
 ---
 

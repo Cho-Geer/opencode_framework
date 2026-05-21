@@ -40,6 +40,11 @@
       "version": "2.3.0",
       "date": "2026-05-21",
       "summary": "Appended 15 universality enhancement tasks across 6 phases (UNIV-P0 through UNIV-P6). Phase 0: common standard agnostic; Phase 1: tiered templates; Phase 2: agent parameterization; Phase 3: enforcement generalization; Phase 4: skill consolidation; Phase 5: script enhancement; Phase 6: registry update."
+    },
+    {
+      "version": "2.3.1",
+      "date": "2026-05-21",
+      "summary": "UNIV-P6-O completed: Added 4 new tech debt entries (TD-2026-008 through TD-2026-011) to TECH_DEBT_REGISTRY.md; Updated skill-invocation-standard.md §3.1 §4: deprecated nextjs-router-guardrails → fullstack-ci-cd-guardrails, deprecated prisma-seed-cicd → cicd-database-seeding, registered new cicd-database-seeding skill. Added 2026-05-21 @Architect裁决记录."
     }
   ],
   "tasks": [
@@ -708,7 +713,7 @@
     {
       "id": "UNIV-P6-O",
       "title": "Phase 6: Update TECH_DEBT_REGISTRY.md and skill-invocation-standard.md",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [

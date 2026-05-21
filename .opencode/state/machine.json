@@ -2,7 +2,7 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-21T03:18:33.535Z",
+    "lastUpdated": "2026-05-21T03:33:40.949Z",
     "project": "booking-system",
     "framework": "opencode-v3"
   },
@@ -36,7 +36,7 @@
   },
   "type_check_state": {
     "last_full_check": "2026-05-19T03:12:34.419Z",
-    "last_incremental_check": "2026-05-21T02:12:32.501Z",
+    "last_incremental_check": "2026-05-21T03:33:40.949Z",
     "full_errors": 2,
     "incremental_errors": 1,
     "dirty_files": [
@@ -45,15 +45,15 @@
     "status": "dirty"
   },
   "dependency_state": {
-    "last_check": "2026-05-21T02:12:32.501Z",
+    "last_check": "2026-05-21T03:33:40.949Z",
     "violations": [],
-    "forbidden_rules_applied": 15,
+    "forbidden_rules_applied": 17,
     "status": "clean"
   },
   "format_state": {
-    "last_check": "2026-05-21T02:12:32.501Z",
+    "last_check": "2026-05-21T03:33:40.949Z",
     "unformatted_files": [],
-    "auto_fix_count": 1,
+    "auto_fix_count": 3,
     "status": "dirty"
   },
   "write_audit_state": {
@@ -75,10 +75,12 @@
         "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/contract.yaml",
         "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
         "/home/zhaoge/workspace/opencode/work-one/.opencode/agents/orchestrator.md",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/compliance-audit.sh"
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/compliance-audit.sh",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/rules/frontend-coding-standard.md",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/agents/coder-be.md"
       ],
-      "checks_run": 15,
-      "checks_passed": 2,
+      "checks_run": 17,
+      "checks_passed": 4,
       "checks_failed": 13,
       "violations_found": 13,
       "violations_resolved": 0,
