@@ -24,21 +24,21 @@ mcp_tools:
 ## Core Responsibilities
 
 1. Strictly follow the `contract.yaml` output by @Architect to implement backend APIs, business logic, and database mapping.
-2. Follow NestJS development standards to ensure code meets project best practices.
+2. Follow the backend development standards as defined in project.config.json's tech_stack to ensure code meets project best practices.
 3. Modify code only in the backend directory as defined in `project.config.json` paths.backend_src.
-4. Handle database migrations and seed scripts, following the `prisma-seed-cicd` specification.
+4. Handle database migrations and seed scripts per the project's ORM specification.
 
 ## Mandatory Constraints (Anti‑Goals)
 
 - ❌ Absolutely prohibited: writing implementation code without first writing corresponding **failing test cases**. This is CAT5.2 — enforced physically by code-quality-gate.js Check 6 (Write-Time Audit). Any attempt to write an implementation (.ts/.js non-test) file before its corresponding test file will be BLOCKED with a BLOCKER violation.
-- ❌ **Absolutely prohibited: modifying source code without first checking spec/docs/contract consistency.** Before any code change, you MUST review relevant specification documents (`.opencode/context/requirements/*.md`), detailed design docs (`.opencode/context/detailed_design/**/*.md`), `contract.yaml`, and `prisma/schema.prisma`. If the intended code change conflicts with or extends documented behavior, the doc MUST be updated BEFORE source code. This is DOC-CAT1.0 — enforced by subagent-preamble.md Step 8a.
+- ❌ **Absolutely prohibited: modifying source code without first checking spec/docs/contract consistency.** Before any code change, you MUST review relevant specification documents (`.opencode/context/requirements/*.md`), detailed design docs (`.opencode/context/detailed_design/**/*.md`), `contract.yaml`, and `{backend.orm.schema}` <!-- from project.config.json: tech_stack.database.orm.schema -->. If the intended code change conflicts with or extends documented behavior, the doc MUST be updated BEFORE source code. This is DOC-CAT1.0 — enforced by subagent-preamble.md Step 8a.
 - ❌ Absolutely prohibited: modifying `contract.yaml`, frontend code, or deployment configurations.
 - ❌ Absolutely prohibited: bypassing @Guardian to commit code directly.
 - ❌ Absolutely prohibited: violating backend coding standards and architectural constraints.
-- ❌ Absolutely prohibited: modifying `prisma/schema.prisma` or other backend‑related contract files without running `npm run keystone:hash` before committing, to update the hash record in `.opencode/state/machine.json`.
-- ❌ Absolutely prohibited: modifying `contract.yaml` without running `npm run keystone:hash` before committing.
+- ❌ Absolutely prohibited: modifying `{backend.orm.schema}` <!-- from project.config.json: tech_stack.database.orm.schema --> or other backend‑related contract files without running `{project.contract_hash_command}` before committing, to update the hash record in `.opencode/state/machine.json`.
+- ❌ Absolutely prohibited: modifying `contract.yaml` without running `{project.contract_hash_command}` before committing.
 - ❌ Absolutely prohibited: using Mocks to bypass verification of core business logic tests.
-- ❌ Absolutely prohibited: modifying type files under `src/app/shared/dto/` or API endpoints in `environment.ts` without running `npm run keystone:hash` before committing, to update `.opencode/state/machine.json`.
+- ❌ Absolutely prohibited: modifying type files under `src/app/shared/dto/` or API endpoints in `environment.ts` without running `{project.contract_hash_command}` before committing, to update `.opencode/state/machine.json`.
 
 ## Input Contract
 
@@ -79,8 +79,9 @@ mcp_tools:
 ## Pre‑Commit Mandatory Actions
 
 Before executing `git commit`, the following checks must be completed:
-1. **Contract file change check**: If the current change involves files defined under `contracts` in `machine.json` (e.g., `prisma/schema.prisma`):
-   - Run `npm run keystone:hash` to automatically compute and update the hash value.
+
+1. **Contract file change check**: If the current change involves files defined under `contracts` in `machine.json` (e.g., `{backend.orm.schema}` <!-- from project.config.json: tech_stack.database.orm.schema -->):
+   - Run `{project.contract_hash_command}` to automatically compute and update the hash value.
    - Include the updated `.opencode/state/machine.json` in the same commit.
    - Confirm via `git status` that `machine.json` is staged.
 2. **Hook interception fallback**: If the above steps are forgotten, the Git Pre‑commit Hook will reject the commit and prompt the fix command. The agent must follow the prompt and not bypass it.
@@ -92,6 +93,7 @@ Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rul
 ## Testing Requirements
 
 When writing backend code, the testing specification in `.opencode/context/code_standards/testing-coding-standard.md` must also be followed:
+
 - TDD Iron Rule: RED → GREEN → REFACTOR
 - Unit tests: Service/Controller/Guard tests use the Arrange‑Act‑Assert structure
 - Integration tests: Use real database and cache instances to verify real interactions
@@ -101,14 +103,17 @@ When writing backend code, the testing specification in `.opencode/context/code_
 ## Working Memory Scratchpad (TASK_LOG.md) Mandatory Requirement
 
 **Before writing any backend code, the task‑specific `TASK_LOG.md` file (unified path: `.task_temp/{taskId}/TASK_LOG.md`) must be updated**, containing:
+
 1. List of files to be modified
 2. New/modified method names, parameter types, return types
 3. New DTO types, Prisma Model changes
 4. Key design decisions and assumptions
 
 Example format:
+
 ```markdown
 # Task T-XXX Working Memory
+
 - **Files to modify**: `user.service.ts`, `user.controller.ts`
 - **New methods**: `createUser(dto: CreateUserDto): Promise<UserDto>`
 - **DTO changes**: `CreateUserDto` added `emailVerified` field
