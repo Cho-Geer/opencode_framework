@@ -1,6 +1,8 @@
 ---
 name: "nextjs-router-guardrails"
 description: "Enforces Next.js router guardrails and authentication best practices for secure routing. Invoke when working with Next.js routing, authentication, or middleware."
+deprecated: true
+replaced_by: "fullstack-ci-cd-guardrails"
 ---
 
 # Next.js 路由守卫最佳实践
