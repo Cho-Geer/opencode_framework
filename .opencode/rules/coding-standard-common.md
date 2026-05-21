@@ -32,7 +32,7 @@ alwaysApply: true
 | **枚举** | `PascalCase`，成员 `UPPER_SNAKE_CASE` | `enum AppointmentStatus { PENDING, CONFIRMED }` |
 | **常量** | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT`, `JWT_EXPIRES_IN` |
 | **变量/函数** | `camelCase` | `currentUser`, `findAvailableSlots()` |
-| **私有成员** | 前/后端各自约定（前端 `_` 前缀，后端 `private readonly`） | `_http` (FE), `private readonly prisma` (BE) |
+| **私有成员** | 前/后端各自约定（前端 `_` 前缀或框架约定，后端 `private readonly`） | `_http` (FE), `private readonly userRepository` (BE) |
 
 ### 理由
 
@@ -101,20 +101,20 @@ const items: Appointment[] = [];
 
 导入语句必须按以下顺序分组，组间用空行分隔：
 
-1. **外部依赖**（第三方包，如 `@angular/core`、`@nestjs/common`、`rxjs`、`class-validator`）
-2. **内部模块**（项目内 `src/` 下的绝对路径导入，如 `../../common/database/prisma.service`）
+1. **外部依赖**（第三方包，如 `express`、`react`、`lodash`、`class-validator`）
+2. **内部模块**（项目内 `src/` 下的绝对路径导入，如 `../../common/database/database.service`）
 3. **相对导入**（同级或子目录的相对路径，如 `./dto/create-appointment.dto`）
 
 每组内按字母顺序排列。
 
 ```typescript
 // 1. 外部依赖
-import { Injectable, Logger } from '@nestjs/common';
+import { Router, Request, Response } from 'express';
 import { IsString, IsUUID } from 'class-validator';
-import { firstValueFrom } from 'rxjs';
+import { debounce, cloneDeep } from 'lodash';
 
 // 2. 内部模块
-import { PrismaService } from '../../common/database/prisma.service';
+import { DatabaseService } from '../../common/database/database.service';
 import { EmailService } from '../email/email.service';
 
 // 3. 相对导入
@@ -141,13 +141,13 @@ import { Appointment } from './interfaces/appointment.interface';
 
 | 异常类型 | 使用场景 | HTTP 状态码 |
 | :--- | :--- | :--- |
-| `NotFoundException` | 资源不存在 | 404 |
-| `ConflictException` | 预约冲突、重复操作 | 409 |
-| `BadRequestException` | 参数校验失败 | 400 |
-| `UnauthorizedException` | 认证失败 | 401 |
-| `ForbiddenException` | 权限不足 | 403 |
+| 资源不存在 (404) | 请求的资源未找到 | 404 |
+| 业务冲突 (409) | 预约冲突、重复操作 | 409 |
+| 参数校验失败 (400) | 请求参数不符合规则 | 400 |
+| 认证失败 (401) | 未提供有效身份凭证 | 401 |
+| 权限不足 (403) | 身份已验证但权限不够 | 403 |
 
-使用统一的 `GlobalExceptionFilter` 处理 Prisma 错误映射。
+使用统一的"全局异常处理层"进行错误捕获，并将数据库/ORM 错误映射为上述标准 HTTP 错误响应。
 
 #### 前端
 
@@ -158,7 +158,7 @@ import { Appointment } from './interfaces/appointment.interface';
 ```typescript
 // 后端示例
 if (timeSlot.currentSequence > timeSlot.capacity) {
-  throw new ConflictException('该时段预约名额已满');
+  throw new Error('该时段预约名额已满'); // 实际项目中应使用框架对应的业务异常类型
 }
 
 // 前端示例 (Store)
@@ -195,22 +195,21 @@ async loadAppointments(date: string): Promise<void> {
 
 #### 后端
 
-使用 NestJS `Logger` 类：
+使用项目的日志框架（如 NestJS Logger、Winston、Pino 等）：
 
 ```typescript
-private readonly logger = new Logger(AppointmentService.name);
-
-this.logger.log('Appointment created successfully');     // INFO — 正常业务流程
-this.logger.warn('Slot capacity approaching limit');     // WARNING — 需要关注
-this.logger.error('Failed to create appointment', err);  // ERROR — 需要修复
-this.logger.debug(`Processing slot: ${slotId}`);         // DEBUG — 仅开发环境
+// 选择适合项目技术栈的日志方案，以下为通用日志级别模式
+logger.info('Appointment created successfully');     // INFO — 正常业务流程
+logger.warn('Slot capacity approaching limit');     // WARNING — 需要关注
+logger.error('Failed to create appointment', err);  // ERROR — 需要修复
+logger.debug(`Processing slot: ${slotId}`);         // DEBUG — 仅开发环境
 ```
 
-`LoggingInterceptor` 自动记录每个请求的方法、路径、用户 ID、状态码、耗时。
+"请求日志中间件"（或通用的日志拦截机制）应自动记录每个请求的关键信息（方法、路径、用户标识、状态码、耗时）。
 
 #### 前端
 
-- 使用 Angular 的 `console` 方法时应保持克制，优先通过 Store 的 `error` 状态传递错误
+- 使用前端框架的控制台方法时应保持克制，优先通过状态管理的 `error` 状态传递错误
 - 关键 API 调用失败应在开发环境输出详细错误日志
 - 生产环境禁止输出 `console.log`
 
@@ -301,8 +300,8 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> { ... }
 
 #### API 文档
 
-- 后端所有端点必须有完整的 `@ApiOperation` 和 `@ApiResponse` Swagger 装饰器
-- 所有 DTO 字段必须有 `@ApiProperty` 装饰器
+- 后端所有端点必须有完整的 API 文档装饰器（如 NestJS/Swagger 的 `@ApiOperation`、`@ApiResponse`，或 OpenAPI 注解）
+- 所有 DTO 字段必须有对应的文档描述装饰器
 
 #### 内联注释
 

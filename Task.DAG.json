@@ -1,7 +1,7 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "project": "booking-system",
-  "feature": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization",
+  "feature": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement",
   "description": "Envelope icon click handler + messages inbox dropdown – Approach B full implementation + Bug fix for 'Contact type must be email or phone' validation error on admin New User dialog Send Code button",
   "generated_by": "@Meta-Planner",
   "generated_at": "2026-05-21T00:36:00Z",
@@ -30,6 +30,16 @@
       "version": "2.2.0",
       "date": "2026-05-21",
       "summary": "Appended 4 Opencode Framework optimization tasks: Orchestrator Tool ACL, DAG Gate Hook, Self-Check Prompt, Role Compliance Audit"
+    },
+    {
+      "version": "2.2.1",
+      "date": "2026-05-21",
+      "summary": "OPC-FW-SELFCHECK and OPC-FW-AUDIT completed. All 4 framework optimization tasks done."
+    },
+    {
+      "version": "2.3.0",
+      "date": "2026-05-21",
+      "summary": "Appended 15 universality enhancement tasks across 6 phases (UNIV-P0 through UNIV-P6). Phase 0: common standard agnostic; Phase 1: tiered templates; Phase 2: agent parameterization; Phase 3: enforcement generalization; Phase 4: skill consolidation; Phase 5: script enhancement; Phase 6: registry update."
     }
   ],
   "tasks": [
@@ -411,7 +421,7 @@
     {
       "id": "OPC-FW-SELFCHECK",
       "title": "Self-Check Prompt: Add MUST-RUN self-check to orchestrator.md body",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [
@@ -430,7 +440,7 @@
     {
       "id": "OPC-FW-AUDIT",
       "title": "Role Compliance Audit: Extend compliance_gate_complete for Orchestrator",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [
@@ -446,6 +456,274 @@
         "Violations cause task to be marked FAILED"
       ],
       "estimated_effort": "M"
+    },
+    {
+      "id": "UNIV-P0-E",
+      "title": "Phase 0: Make coding-standard-common.md truly framework-agnostic",
+      "status": "completed",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/rules/coding-standard-common.md"
+      ],
+      "acceptance_criteria": [
+        "Section 5: NestJS exception types replaced with generic HTTP status code patterns",
+        "Section 6: NestJS Logger replaced with generic logging pattern",
+        "Section 3.2: Framework-specific private member conventions removed",
+        "No hardcoded framework names in file"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "UNIV-P1-C",
+      "title": "Phase 1: Convert backend-coding-standard.md to tiered template",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "UNIV-P0-E"
+      ],
+      "target_files": [
+        ".opencode/rules/backend-coding-standard.md"
+      ],
+      "acceptance_criteria": [
+        "8 universal rules preserved as-is",
+        "7 framework-specific rules use {backend.*} placeholders",
+        "Resolution instruction block added at top"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "UNIV-P1-D",
+      "title": "Phase 1: Convert frontend-coding-standard.md to tiered template",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "UNIV-P0-E"
+      ],
+      "target_files": [
+        ".opencode/rules/frontend-coding-standard.md"
+      ],
+      "acceptance_criteria": [
+        "7 universal rules preserved",
+        "5 framework-specific rules use {frontend.*} placeholders",
+        "Resolution instruction added"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "UNIV-P2-A",
+      "title": "Phase 2: Parameterize coder-be.md with placeholders",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "UNIV-P1-C"
+      ],
+      "target_files": [
+        ".opencode/agents/coder-be.md"
+      ],
+      "acceptance_criteria": [
+        "5 hardcoded NestJS/Prisma refs replaced with {backend.*}",
+        "4x keystone:hash refs replaced with {project.contract_hash_command}"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "UNIV-P2-B",
+      "title": "Phase 2: Parameterize coder-fe.md with placeholders",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "UNIV-P1-D"
+      ],
+      "target_files": [
+        ".opencode/agents/coder-fe.md"
+      ],
+      "acceptance_criteria": [
+        "2 Angular path refs replaced with {frontend.*} placeholders",
+        "Component hierarchy language broadened"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "UNIV-P2-J",
+      "title": "Phase 2: Remove (含Salesforce) from AGENTS.md Coder-BE description",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [],
+      "target_files": [
+        "AGENTS.md"
+      ],
+      "acceptance_criteria": [
+        "Line 115: \"后端/服务端开发工程师（含Salesforce）\" → \"后端/服务端开发工程师\""
+      ],
+      "estimated_effort": "XS"
+    },
+    {
+      "id": "UNIV-P3-F",
+      "title": "Phase 3: Refactor guardian.md with conditional checklists",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "UNIV-P2-A",
+        "UNIV-P2-B"
+      ],
+      "target_files": [
+        ".opencode/agents/guardian.md"
+      ],
+      "acceptance_criteria": [
+        "Hardcoded NestJS/Angular checklists replaced with conditional triggers",
+        "Layer A (Auto Gate) unchanged",
+        "Default trigger for unconfigured stacks",
+        "Concrete checklists per framework"
+      ],
+      "estimated_effort": "L"
+    },
+    {
+      "id": "UNIV-P3-G",
+      "title": "Phase 3: Parameterize architect.md references",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "UNIV-P2-A",
+        "UNIV-P2-B"
+      ],
+      "target_files": [
+        ".opencode/agents/architect.md"
+      ],
+      "acceptance_criteria": [
+        "npm run keystone:hash → {project.contract_hash_command}",
+        "Atom/Molecule→ broadened component language"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "UNIV-P4-H",
+      "title": "Phase 4: Rename prisma-seed-cicd to cicd-database-seeding with generic layer",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/skills/prisma-seed-cicd/SKILL.md"
+      ],
+      "acceptance_criteria": [
+        "Skill renamed to cicd-database-seeding",
+        "Generic CI/CD seeding section 1 added",
+        "Prisma-specific content preserved as section 2",
+        "coden-be.md skill reference updated"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "UNIV-P4-I",
+      "title": "Phase 4: Deprecate nextjs-router-guardrails skill, extract principles",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/skills/nextjs-router-guardrails/SKILL.md"
+      ],
+      "acceptance_criteria": [
+        "Mark status as deprecated with replaced_by",
+        "Extract universal security principles to fullstack-ci-cd-guardrails",
+        "Framework-specific code preserved as reference appendix"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "UNIV-P5-K",
+      "title": "Phase 5: Add placeholder compliance checks to framework-self-test.js",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "UNIV-P1-C",
+        "UNIV-P1-D"
+      ],
+      "target_files": [
+        ".opencode/scripts/framework-self-test.js"
+      ],
+      "acceptance_criteria": [
+        "Check 17: No unresolved {placeholder} in rule/agent files",
+        "Check 18: template_resolution config exists"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "UNIV-P5-L",
+      "title": "Phase 5: Improve compliance-audit.sh pattern matching",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/scripts/compliance-audit.sh"
+      ],
+      "acceptance_criteria": [
+        "grep -c -i replaced with grep -c -i -w or structured patterns",
+        "False positive reduction"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "UNIV-P5-M",
+      "title": "Phase 5: Add python3 fallback to pre-execution-hook.sh",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/scripts/pre-execution-hook.sh"
+      ],
+      "acceptance_criteria": [
+        "python3 fallback added between jq and node",
+        "Priority order: jq → python3 → node"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "UNIV-P5-N",
+      "title": "Phase 5: Support OPENCODE_ROOT env var in dispatch-subagent.js",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/scripts/command-tools/dispatch-subagent.js"
+      ],
+      "acceptance_criteria": [
+        "Line 25: OPENCODE_ROOT checked from env with __dirname fallback"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "UNIV-P6-O",
+      "title": "Phase 6: Update TECH_DEBT_REGISTRY.md and skill-invocation-standard.md",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [
+        "UNIV-P4-H",
+        "UNIV-P4-I"
+      ],
+      "target_files": [
+        "TECH_DEBT_REGISTRY.md",
+        ".opencode/rules/rule_detail/skill-invocation-standard.md"
+      ],
+      "acceptance_criteria": [
+        "New universality tech debts TD-2026-008/009/010/011 registered",
+        "skill-invocation-standard.md §3.1 deprecated skills status corrected"
+      ],
+      "estimated_effort": "S"
     }
   ],
   "execution_order": {
@@ -491,10 +769,39 @@
     "phase_fw_selfcheck_audit": [
       "OPC-FW-SELFCHECK",
       "OPC-FW-AUDIT"
+    ],
+    "univ_phase_0": [
+      "UNIV-P0-E"
+    ],
+    "univ_phase_1": [
+      "UNIV-P1-C",
+      "UNIV-P1-D"
+    ],
+    "univ_phase_2": [
+      "UNIV-P2-A",
+      "UNIV-P2-B",
+      "UNIV-P2-J"
+    ],
+    "univ_phase_3": [
+      "UNIV-P3-F",
+      "UNIV-P3-G"
+    ],
+    "univ_phase_4_parallel": [
+      "UNIV-P4-H",
+      "UNIV-P4-I"
+    ],
+    "univ_phase_5_parallel": [
+      "UNIV-P5-K",
+      "UNIV-P5-L",
+      "UNIV-P5-M",
+      "UNIV-P5-N"
+    ],
+    "univ_phase_6": [
+      "UNIV-P6-O"
     ]
   },
   "meta": {
-    "total_tasks": 17,
+    "total_tasks": 32,
     "backlog_estimate": "3-4 days",
     "coverage_target": "≥ 70% for backend, ≥ 70% for frontend",
     "spec_documents": [
