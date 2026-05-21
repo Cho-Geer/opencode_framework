@@ -88,21 +88,39 @@ Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rul
 
 ## Frontend Review Trigger Scenarios
 
-When the following scenarios are involved, the following must be read and followed: `.opencode/context/code_standards/frontend-coding-standard.md`:
-- Frontend code review (naming conventions, file separation strategy)
-- Atomic design hierarchy compliance check (Atoms → Molecules → Organisms → Layouts → Pages)
-- Styling strategy review (Tailwind First, SCSS supplementary rules)
-- Sass import method check (@use mandatory, @import forbidden)
-- Template size review (single file no more than 200 lines)
-- Store isolation review (page injection, child components receive via @Input)
+When reviewing frontend code, apply the following conditional checklist based on project.config.json tech stack:
+
+### Universal Checks (always apply)
+- TDD evidence verification (RED→GREEN→REFACTOR cycle)
+- Test coverage threshold validation (≥70%)
+- No any types
+- File size limits (≤400 lines logic, ≤200 lines template)
+- Import ordering compliance
+
+### Framework-Specific Checks (resolved from project.config.json)
+
+| Framework | Checks to Apply |
+|-----------|-----------------|
+| Angular | • Atomic design hierarchy (Atoms→Molecules→Organisms→Layouts→Pages)<br>• Tailwind First, SCSS supplementary<br>• Sass @use mandatory (no @import)<br>• Store isolation via @Input()<br>• @defer for non-critical content<br>• Component standalone by default |
+| React | • Component composition pattern<br>• CSS-in-JS or Tailwind strategy<br>• State management pattern (Redux/Context/Zustand)<br>• Hook rules compliance<br>• Code-splitting via lazy/Suspense |
+| Vue | • SFC structure (template/script/style)<br>• Composition API vs Options API consistency<br>• Pinia/Vuex state management<br>• Scoped styles |
+| *(unconfigured)* | ⚠️ WARNING: No framework configured. Apply universal checks only. Flag for @Architect review. |
 
 ## Backend Review Trigger Scenarios
 
-When the following scenarios are involved, the following must be read and followed: `.opencode/context/code_standards/backend-coding-standard.md`:
+When reviewing backend code, apply the following conditional checklist:
+
+### Universal Checks (always apply)
 - Backend code review (naming conventions, modularisation, file separation)
-- Transaction management review (`prisma.$transaction()` compliance)
-- DTO validation review (class-validator + Swagger decorator completeness)
-- Authentication and authorisation review (JWT, @Public(), @Roles() compliance)
-- Rate‑limiting review (@RateLimit decorator configuration)
-- Error handling review (GlobalExceptionFilter usage, exception type selection)
-- Swagger documentation review (@ApiOperation, @ApiResponse completeness)
+- TDD evidence verification
+- Coverage threshold validation
+- No any types
+
+### Framework-Specific Checks (resolved from project.config.json)
+
+| Framework | Checks to Apply |
+|-----------|-----------------|
+| NestJS | • prisma.$transaction() compliance<br>• class-validator + Swagger decorator completeness<br>• JWT + Passport @Public()/@Roles() compliance<br>• @RateLimit decorator configuration<br>• GlobalExceptionFilter usage<br>• @ApiOperation/@ApiResponse completeness |
+| Express | • express-validator middleware<br>• JWT middleware configuration<br>• express-rate-limit configuration<br>• Custom error handler middleware<br>• swagger-jsdoc completeness |
+| Fastify | • fastify-type-provider-typebox validation<br>• Fastify JWT plugin configuration<br>• fastify-rate-limit configuration<br>• Fastify lifecycle hook error handling<br>• @fastify/swagger completeness |
+| *(unconfigured)* | ⚠️ WARNING: No framework configured. Apply universal checks only. Flag for @Architect review. |
