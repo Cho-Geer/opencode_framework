@@ -4,10 +4,10 @@
 /**
  * framework-self-test.js — OpenCode Framework Binding Force Self-Test
  * ===================================================================
- * Validates 16 critical framework integrity checks.
+ * Validates 18 critical framework integrity checks.
  * Usage: node .opencode/scripts/framework-self-test.js
  *
- * Exit code: 0 if ALL 16 checks pass, 1 if any fail.
+ * Exit code: 0 if ALL 18 checks pass, 1 if any fail.
  */
 
 const fs = require("fs");
@@ -535,6 +535,96 @@ function checkReferencedFiles() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 17: Scan rule/agent files for unresolved {placeholder} strings
+// ═══════════════════════════════════════════════════════════════
+function checkUnresolvedPlaceholders() {
+  const dirsToScan = [
+    path.join(OPENCODE_ROOT, ".opencode", "agents"),
+    path.join(OPENCODE_ROOT, ".opencode", "rules"),
+    path.join(OPENCODE_ROOT, ".opencode", "skills"),
+  ];
+
+  let totalFiles = 0;
+  let violations = [];
+
+  for (const dir of dirsToScan) {
+    if (!fs.existsSync(dir)) continue;
+
+    function walkDir(d) {
+      const entries = fs.readdirSync(d, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(d, entry.name);
+        if (entry.isDirectory()) {
+          walkDir(fullPath);
+        } else if (entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".js") || entry.name.endsWith(".sh") || entry.name.endsWith(".json"))) {
+          totalFiles++;
+          const content = readFile(fullPath);
+          if (!content) continue;
+
+          // Match literal {placeholder} or {xxx} patterns that are NOT valid template variables
+          // Valid template: {project.xxx} or {backend.xxx} etc.
+          const literalPlaceholderPattern = /\{(placeholder|xxx|todo|fixme)\}/gi;
+          const matches = content.match(literalPlaceholderPattern);
+          if (matches) {
+            violations.push(`${path.relative(OPENCODE_ROOT, fullPath)}: ${matches.join(", ")}`);
+          }
+        }
+      }
+    }
+    walkDir(dir);
+  }
+
+  const ok = violations.length === 0;
+  return check(
+    17,
+    ok,
+    ok
+      ? `No unresolved {placeholder} strings in ${totalFiles} framework files`
+      : `Found ${violations.length} files with unresolved placeholders: ${violations.slice(0, 5).join("; ")}${violations.length > 5 ? ` ... and ${violations.length - 5} more` : ""}`,
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 18: Validate template_resolution exists in project.config.json
+// ═══════════════════════════════════════════════════════════════
+function checkTemplateResolution() {
+  const cfgPath = path.join(OPENCODE_ROOT, ".opencode", "project.config.json");
+  const raw = readFile(cfgPath);
+  if (!raw)
+    return check(18, false, "project.config.json not found");
+
+  try {
+    const cfg = JSON.parse(raw);
+    const hasTemplateResolution = !!cfg.template_resolution && typeof cfg.template_resolution === "object";
+
+    // Required keys for template_resolution
+    const requiredKeys = ["contract_hash_command"];
+    let missingKeys = [];
+    let invalidKeys = [];
+
+    if (hasTemplateResolution) {
+      missingKeys = requiredKeys.filter(k => !(k in cfg.template_resolution));
+      for (const k of Object.keys(cfg.template_resolution)) {
+        if (typeof cfg.template_resolution[k] !== "string" || cfg.template_resolution[k].trim() === "") {
+          invalidKeys.push(k);
+        }
+      }
+    }
+
+    const ok = hasTemplateResolution && missingKeys.length === 0 && invalidKeys.length === 0;
+    let detail = "";
+    if (!hasTemplateResolution) detail = "template_resolution section missing from project.config.json";
+    else if (missingKeys.length > 0) detail = `Missing required keys in template_resolution: ${missingKeys.join(", ")}`;
+    else if (invalidKeys.length > 0) detail = `Invalid/empty values in template_resolution: ${invalidKeys.join(", ")}`;
+    else detail = `All ${requiredKeys.length} required keys present with valid values`;
+
+    return check(18, ok, detail);
+  } catch (e) {
+    return check(18, false, `JSON parse error: ${e.message}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main execution
 // ═══════════════════════════════════════════════════════════════
 console.log("═══════════════════════════════════════════════════════════════");
@@ -558,6 +648,8 @@ checkProjectRefNoPlaceholders();
 checkThreeLayersEightRoles();
 checkCQGBootstrap();
 checkReferencedFiles();
+checkUnresolvedPlaceholders();
+checkTemplateResolution();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
