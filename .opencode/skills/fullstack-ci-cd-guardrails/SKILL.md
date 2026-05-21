@@ -258,6 +258,111 @@ services:
 
 ---
 
+## 9. 路由守卫通用安全原则
+
+本部分提取自 `nextjs-router-guardrails`（已废弃），提供框架无关的路由守卫安全原则，适用于所有前端框架（Next.js, React, Angular, Vue 等）。
+
+### 9.1 分层防护策略
+
+在任何 Web 应用中实施至少三层防护：
+
+| 层级 | 作用域 | 典型实现 | 保护范围 |
+|------|--------|----------|----------|
+| **L1 - 网关/边缘层** | 请求入口 | Middleware / API Gateway / Reverse Proxy | 所有路由请求 |
+| **L2 - 页面/组件层** | 客户端渲染 | Auth HOC / Route Guard / CanActivate | 受保护页面 |
+| **L3 - API 层** | 服务端 | API 路由验证 / 拦截器 / 中间件 | API 端点 |
+
+**原则**：不得依赖单一验证点。每一层都应独立验证身份和权限。
+
+### 9.2 JWT Token 验证标准
+
+```typescript
+// 通用 JWT 验证流程（框架无关）
+interface JwtPayload {
+  sub: string;
+  role: string;
+  exp: number;
+  iat: number;
+}
+
+function validateToken(token: string): JwtPayload | null {
+  try {
+    const decoded = decodeToken(token);
+    // 验证过期时间
+    if (decoded.exp && Date.now() >= decoded.exp * 1000) return null;
+    // 验证签名（由 token 库内部处理）
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+```
+
+**原则**：
+- 始终验证 JWT 的签名和过期时间
+- Token 验证不应依赖单一来源
+- 敏感操作需要重新验证
+
+### 9.3 强制安全头部
+
+所有 Web 应用响应必须包含以下安全头部：
+
+```typescript
+response.headers.set('X-XSS-Protection', '1; mode=block');
+response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+response.headers.set('X-Content-Type-Options', 'nosniff');
+response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+response.headers.set('Content-Security-Policy', "default-src 'self'");
+```
+
+**原则**：
+- 安全头部应在网关/边缘层统一设置
+- 不得在子路由或子组件中遗漏安全头部
+
+### 9.4 路由匹配器优化
+
+```typescript
+// ✅ 正确：只匹配需要的路径，避免全局匹配
+const matcher = [
+  '/',
+  '/login',
+  '/register',
+  '/admin/:path*',
+  '/{feature}/:path*',
+];
+
+// ❌ 错误：匹配所有路径，导致不必要的中间件执行
+// const matcher = '/:path*';
+```
+
+**原则**：
+- 精确匹配所需路径，避免使用全局通配符
+- 公开路径应明确定义列表（如 `/login`, `/register`, `/public`）
+- 静态资源路径应在 matcher 中排除或快速跳过
+
+### 9.5 禁止模式
+
+| ❌ 禁止模式 | 说明 | 正确做法 |
+| :--- | :--- | :--- |
+| 单一验证点 | 只在 middleware 中验证 | 实施多层防护（L1+L2+L3） |
+| 硬编码路径 | 路径字符串散落在代码中 | 集中管理路由路径常量 |
+| 客户端验证为主 | 只依赖前端路由守卫 | 服务端也必须验证 |
+| 泄露敏感信息 | 重定向 URL 中包含详细错误信息 | 只提供通用错误提示 |
+| Token 明文存储 | localStorage 存储敏感 token | 使用 httpOnly cookies |
+
+### 9.6 验收检查清单
+
+- [ ] **分层防护**：已实施三层保护（网关层、页面层、API 层）
+- [ ] **安全头部**：所有响应都包含必需的安全头部
+- [ ] **公开路径**：已明确定义公开路径列表
+- [ ] **Token 验证**：已实现完整的 JWT 过期时间签名验证
+- [ ] **重定向处理**：已正确处理登录后跳转
+- [ ] **错误处理**：已妥善处理 CSRF、角色变更、账户禁用等场景
+- [ ] **Matcher 优化**：已优化路由匹配配置避免不必要处理
+- [ ] **测试覆盖**：已为路由守卫逻辑编写测试
+
+---
+
 ## 验证机制
 
 使用本技能时，必须验证：
