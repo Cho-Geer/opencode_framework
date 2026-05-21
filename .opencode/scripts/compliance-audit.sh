@@ -68,9 +68,13 @@ for tool in "${FORBIDDEN_TOOLS[@]}"; do
         continue
       fi
 
-      # Count tool mentions in this file
-      file_count=$(grep -c -i "$tool" "$file" 2>/dev/null || echo "0")
+      # Count tool mentions in this file (word-boundary match)
+      file_count=$(grep -c -i -w "$tool" "$file" 2>/dev/null || echo "0")
       count=$((count + file_count))
+
+      # Also search for structured invocation patterns: <invoke name="$tool">
+      invoke_pattern_count=$(grep -c -i "<invoke name=\"$tool\">" "$file" 2>/dev/null || echo "0")
+      count=$((count + invoke_pattern_count))
     done < <(find "$TASK_TEMP_DIR" -type f \( -name "*.log" -o -name "*.md" -o -name "*.json" -o -name "*.txt" \) -print0 2>/dev/null || true)
   fi
 
