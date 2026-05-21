@@ -22,7 +22,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const OPENCODE_ROOT = path.resolve(__dirname, '..', '..', '..');
+const OPENCODE_ROOT = process.env.OPENCODE_ROOT || path.resolve(__dirname, '..', '..', '..');
 const AGENTS_DIR = path.join(OPENCODE_ROOT, '.opencode', 'agents');
 const PREAMBLE_FILE = path.join(OPENCODE_ROOT, '.opencode', 'subagent-preamble.md');
 const PROJECT_CONFIG = path.join(OPENCODE_ROOT, '.opencode', 'project.config.json');
