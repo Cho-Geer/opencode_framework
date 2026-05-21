@@ -1,15 +1,35 @@
 {
-  "version": "2.0.0",
+  "version": "2.2.0",
   "project": "booking-system",
-  "feature": "MSG-Inbox-Messages-Dropdown",
-  "description": "Envelope icon click handler + messages inbox dropdown – Approach B full implementation",
+  "feature": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization",
+  "description": "Envelope icon click handler + messages inbox dropdown – Approach B full implementation + Bug fix for 'Contact type must be email or phone' validation error on admin New User dialog Send Code button",
   "generated_by": "@Meta-Planner",
-  "generated_at": "2026-05-19T10:00:00Z",
+  "generated_at": "2026-05-21T00:36:00Z",
   "change_log": [
+    {
+      "version": "2.1.1",
+      "date": "2026-05-21",
+      "summary": "BUG-SENDCODE-RED completed: Added 5 DTO validation tests for SendCreateUserCodeDto ContactType case sensitivity. Tests confirm lowercase accepted, uppercase rejected."
+    },
+    {
+      "version": "2.1.0",
+      "date": "2026-05-21",
+      "summary": "Appended 4 bug-fix tasks (BUG-SENDCODE-ANALYSIS → RED → GREEN → REVIEW) for ContactType validation error. Root cause: contract.yaml declares UPPERCASE enum values ['EMAIL','PHONE'] but backend ContactType enum uses lowercase ['email','phone']. HTML template comparison bug also fixed."
+    },
     {
       "version": "2.0.0",
       "date": "2026-05-19",
       "summary": "Initial DAG for messages/inbox envelope icon feature – Approach B (full implementation: MSG-001 backend + MessagesDropdown frontend)"
+    },
+    {
+      "version": "2.1.1",
+      "date": "2026-05-21",
+      "summary": "BUG-SENDCODE fix pipeline completed. All 4 bug-fix tasks marked completed."
+    },
+    {
+      "version": "2.2.0",
+      "date": "2026-05-21",
+      "summary": "Appended 4 Opencode Framework optimization tasks: Orchestrator Tool ACL, DAG Gate Hook, Self-Check Prompt, Role Compliance Audit"
     }
   ],
   "tasks": [
@@ -37,7 +57,9 @@
       "status": "pending",
       "owner": "@Coder-BE",
       "priority": "P0",
-      "dependencies": ["B-MSG-CONTRACT"],
+      "dependencies": [
+        "B-MSG-CONTRACT"
+      ],
       "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -59,7 +81,9 @@
       "status": "pending",
       "owner": "@Coder-BE",
       "priority": "P0",
-      "dependencies": ["B-MSG-RED-001"],
+      "dependencies": [
+        "B-MSG-RED-001"
+      ],
       "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004; 数据架构设计文档.md §2.2.6 Message model",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -89,7 +113,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-CONTRACT"],
+      "dependencies": [
+        "B-MSG-CONTRACT"
+      ],
       "requirement_source": "接口设计规范文档.md §2.12–2.13; SAD line 99",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -112,7 +138,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-RED-FE"],
+      "dependencies": [
+        "B-MSG-RED-FE"
+      ],
       "requirement_source": "接口设计规范文档.md §2.12 – '信封图标点击后的下拉面板'",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.ts",
@@ -138,7 +166,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-RED-FE"],
+      "dependencies": [
+        "B-MSG-RED-FE"
+      ],
       "requirement_source": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -161,7 +191,10 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
+      "dependencies": [
+        "B-MSG-GREEN-FE-COMPONENT",
+        "B-MSG-GREEN-FE-SERVICE"
+      ],
       "requirement_source": "接口设计规范文档.md §2.12 – '顶部导航栏信封图标'",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.ts",
@@ -187,7 +220,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P2",
-      "dependencies": ["B-MSG-GREEN-FE-SERVICE"],
+      "dependencies": [
+        "B-MSG-GREEN-FE-SERVICE"
+      ],
       "requirement_source": "SAD line 99 – StatsModule includes 未读消息数",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
@@ -205,7 +240,10 @@
       "status": "pending",
       "owner": "@Guardian",
       "priority": "P0",
-      "dependencies": ["B-MSG-GREEN-001", "B-MSG-GREEN-FE-HEADER"],
+      "dependencies": [
+        "B-MSG-GREEN-001",
+        "B-MSG-GREEN-FE-HEADER"
+      ],
       "requirement_source": "All MSG-001 requirements; all contract.yaml definitions",
       "target_files": [
         "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-messages.controller.ts",
@@ -225,27 +263,251 @@
         "Envelope icon click opens dropdown, close button works, badge displays correctly"
       ],
       "estimated_effort": "M"
+    },
+    {
+      "id": "BUG-SENDCODE-ANALYSIS",
+      "title": "Root Cause Analysis: Trace ContactType validation error on Send Code endpoint",
+      "status": "completed",
+      "owner": "@Coder-BE",
+      "priority": "P0",
+      "dependencies": [],
+      "requirement_source": "Bug Report: 'Contact type must be email or phone' error on admin New User dialog Send Code button with email 'zhaogeyinzuo@163.com'",
+      "contract_reference": "contract.yaml → /v1/admin/users/send-code (contact_type enum: ['EMAIL','PHONE'])",
+      "target_files": [
+        "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
+        "booking_system_refactor/contract.yaml"
+      ],
+      "acceptance_criteria": [
+        "Confirm exact HTTP request body sent by frontend (console log or network trace)",
+        "Verify what value NestJS ValidationPipe receives for contactType field",
+        "Determine whether @IsEnum(ContactType) passes or fails with the received value",
+        "Check if whitelist:true + forbidNonWhitelisted:true strips contactType before validation",
+        "Identify root cause definitively (not hypothesis)",
+        "Document finding in TASK_LOG.md under BUG-SENDCODE-ANALYSIS task"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "BUG-SENDCODE-RED",
+      "title": "RED: Write failing tests that reproduce the ContactType validation error",
+      "status": "completed",
+      "owner": "@Coder-BE",
+      "priority": "P0",
+      "dependencies": [
+        "BUG-SENDCODE-ANALYSIS"
+      ],
+      "requirement_source": "Bug Report: ContactType validation error + contract.yaml send_code spec",
+      "contract_reference": "contract.yaml → /v1/admin/users/send-code",
+      "target_files": [
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.spec.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.spec.ts"
+      ],
+      "acceptance_criteria": [
+        "Controller spec: test that sending { contactType: 'email', email: 'zhaogeyinzuo@163.com' } passes validation (if root cause is contract-code mismatch, this test FAILS initially)",
+        "Controller spec: test that sending { contactType: 'EMAIL', email: 'zhaogeyinzuo@163.com' } passes or fails per root cause finding",
+        "Service spec: verify sendCode() is called with correct ContactType enum value",
+        "Test that the ValidationPipe correctly handles the exact payload the frontend sends",
+        "All new tests FAIL on initial run (RED phase)"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "BUG-SENDCODE-GREEN",
+      "title": "GREEN: Fix ContactType validation error — align contract.yaml, backend DTO, and frontend template",
+      "status": "completed",
+      "owner": "@Coder-BE",
+      "priority": "P0",
+      "dependencies": [
+        "BUG-SENDCODE-RED"
+      ],
+      "requirement_source": "Bug Report: ContactType validation error; contract.yaml send_code definition; Docs Consistency Report in TASK_LOG.md",
+      "contract_reference": "contract.yaml → /v1/admin/users/send-code",
+      "target_files": [
+        "booking_system_refactor/contract.yaml",
+        "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts"
+      ],
+      "acceptance_criteria": [
+        "contract.yaml: align contact_type enum values with backend ContactType enum (lowercase: ['email','phone'] or uppercase per decision)",
+        "Backend admin-user.dto.ts: ensure @IsEnum(ContactType) receives correct enum import at runtime",
+        "Frontend admin.dto.ts: ensure ContactType enum values match backend (consistency check)",
+        "Frontend user-management.component.html: fix template comparisons from 'EMAIL'/'PHONE' string literals to ContactType.EMAIL/ContactType.PHONE (or lowercase 'email'/'phone')",
+        "Frontend sendCode() payload matches what backend expects",
+        "Manual test: admin opens New User dialog, enters email 'zhaogeyinzuo@163.com', clicks Send Code — SUCCESS (200 with maskedContact)",
+        "All BUG-SENDCODE-RED tests PASS",
+        "No regression in existing auth send-code endpoints (auth/register/send-code, auth/login/send-code, auth/reset-password/send-code)"
+      ],
+      "estimated_effort": "M",
+      "notes": "If root cause requires only frontend change, backend target_files may be skipped. If root cause requires only backend change, frontend target_files may be skipped. Exact fix determined by ANALYSIS phase."
+    },
+    {
+      "id": "BUG-SENDCODE-REVIEW",
+      "title": "Guardian Review: Validate ContactType fix — TDD evidence, contract consistency, ESLint audit",
+      "status": "completed",
+      "owner": "@Guardian",
+      "priority": "P0",
+      "dependencies": [
+        "BUG-SENDCODE-GREEN"
+      ],
+      "requirement_source": "Bug Report resolution; contract.yaml send_code; all security/validation requirements",
+      "contract_reference": "contract.yaml → /v1/admin/users/send-code",
+      "target_files": [
+        "booking_system_refactor/contract.yaml",
+        "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.spec.ts",
+        "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.spec.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/pages/user-management/user-management.component.html"
+      ],
+      "acceptance_criteria": [
+        "All BUG-SENDCODE-RED tests pass (GREEN phase verified)",
+        "RED→GREEN TDD cycle evidence present (RED commit before GREEN commit)",
+        "ESLint audit: 0 violations on all changed files",
+        "contract.yaml enum values match backend ContactType enum values (consistency verified)",
+        "Frontend template comparisons use enum values, not hardcoded strings",
+        "No regression: existing auth send-code tests still pass",
+        "Write audit log (write_audit_log.json) present for each changed file"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "OPC-FW-ACL",
+      "title": "Orchestrator Tool ACL: Add whitelist/blacklist to orchestrator.md frontmatter",
+      "status": "completed",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/agents/orchestrator.md"
+      ],
+      "acceptance_criteria": [
+        "orchestrator.md frontmatter has agent_tools_whitelist: [task, todowrite, compliance-gate_*, dispatch-subagent]",
+        "orchestrator.md frontmatter has agent_tools_blacklist: [read, grep, glob, webfetch]",
+        "Orchestrator cannot call grep/read/glob at MCP gateway level"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "OPC-FW-DAG-GATE",
+      "title": "DAG Gate Pre-Execution Hook: Create pre-execution-hook.sh",
+      "status": "completed",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [],
+      "target_files": [
+        ".opencode/scripts/pre-execution-hook.sh"
+      ],
+      "acceptance_criteria": [
+        ".opencode/scripts/pre-execution-hook.sh exists and is executable",
+        "Script checks Task.DAG.json for current task with status=pending",
+        "Blocks execution if DAG missing or task not in DAG",
+        "Error message: \"❌ [Orchestrator Gate] ...\" format"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "OPC-FW-SELFCHECK",
+      "title": "Self-Check Prompt: Add MUST-RUN self-check to orchestrator.md body",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "OPC-FW-ACL"
+      ],
+      "target_files": [
+        ".opencode/agents/orchestrator.md"
+      ],
+      "acceptance_criteria": [
+        "orchestrator.md body includes \"## 强制执行前自检（MUST-RUN 协议）\" section",
+        "Self-check classifies actions as scheduling vs analysis",
+        "Analysis actions redirect to dispatch subagent"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "OPC-FW-AUDIT",
+      "title": "Role Compliance Audit: Extend compliance_gate_complete for Orchestrator",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "OPC-FW-ACL"
+      ],
+      "target_files": [
+        ".opencode/scripts/compliance-audit.sh"
+      ],
+      "acceptance_criteria": [
+        "Compliance audit script created",
+        "Scans session for unauthorized grep/read usage by Orchestrator",
+        "Violations logged to .task_temp/_global/orchestrator_violations.json",
+        "Violations cause task to be marked FAILED"
+      ],
+      "estimated_effort": "M"
     }
   ],
   "execution_order": {
-    "phase_1_backend": ["B-MSG-CONTRACT", "B-MSG-RED-001"],
+    "phase_0_bugfix": [
+      "BUG-SENDCODE-ANALYSIS"
+    ],
+    "phase_0b_bugfix_red": [
+      "BUG-SENDCODE-RED"
+    ],
+    "phase_0c_bugfix_green": [
+      "BUG-SENDCODE-GREEN"
+    ],
+    "phase_0d_bugfix_review": [
+      "BUG-SENDCODE-REVIEW"
+    ],
+    "phase_1_backend": [
+      "B-MSG-CONTRACT",
+      "B-MSG-RED-001"
+    ],
     "phase_2_parallel": {
-      "backend": ["B-MSG-GREEN-001"],
-      "frontend": ["B-MSG-RED-FE"]
+      "backend": [
+        "B-MSG-GREEN-001"
+      ],
+      "frontend": [
+        "B-MSG-RED-FE"
+      ]
     },
-    "phase_3_frontend": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
-    "phase_4_integration": ["B-MSG-GREEN-FE-HEADER", "B-MSG-GREEN-FE-STORE"],
-    "phase_5_review": ["B-MSG-GUARDIAN"]
+    "phase_3_frontend": [
+      "B-MSG-GREEN-FE-COMPONENT",
+      "B-MSG-GREEN-FE-SERVICE"
+    ],
+    "phase_4_integration": [
+      "B-MSG-GREEN-FE-HEADER",
+      "B-MSG-GREEN-FE-STORE"
+    ],
+    "phase_5_review": [
+      "B-MSG-GUARDIAN"
+    ],
+    "phase_fw_optimization": [
+      "OPC-FW-ACL",
+      "OPC-FW-DAG-GATE"
+    ],
+    "phase_fw_selfcheck_audit": [
+      "OPC-FW-SELFCHECK",
+      "OPC-FW-AUDIT"
+    ]
   },
   "meta": {
-    "total_tasks": 9,
-    "backlog_estimate": "2-3 days",
+    "total_tasks": 17,
+    "backlog_estimate": "3-4 days",
     "coverage_target": "≥ 70% for backend, ≥ 70% for frontend",
     "spec_documents": [
       ".opencode/context/requirements/接口设计规范文档.md §2.12-2.13",
       ".opencode/context/requirements/数据架构设计文档.md §2.2.6",
       ".opencode/context/requirements/系统架构设计文档（SAD）.md",
       "booking_system_refactor/contract.yaml"
-    ]
+    ],
+    "bug_fix": {
+      "bug_id": "BUG-SENDCODE-001",
+      "symptom": "'Contact type must be email or phone' validation error on admin New User dialog Send Code button",
+      "root_cause_hypothesis": "Contract-Code Mismatch: contract.yaml declares enum ['EMAIL','PHONE'] (UPPERCASE) but backend ContactType enum uses lowercase ['email','phone']. HTML template comparison bug: 'EMAIL'/'PHONE' hardcoded string literals vs lowercase enum values.",
+      "analysis_doc": ".task_temp/BUG-SENDCODE-PLAN/TASK_LOG.md"
+    }
   }
 }
