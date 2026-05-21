@@ -62,70 +62,215 @@
     "ci_cd": "GitHub Actions",
     "container": "Docker Compose v2"
   },
+  "template_resolution": {
+    "contract_hash_command": "node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml",
+    "backend.orm.schema": "prisma/schema.prisma",
+    "frontend.dto_path": "src/app/shared/dto/",
+    "frontend.env_path": "src/environments/environment.ts",
+    "cache.engine": "Redis 7.x",
+    "cache.client": "ioredis",
+    "queue.engine": "BullMQ"
+  },
   "context7_task_mapping": [
     {
       "agent": "@Coder-BE",
-      "keywords": ["backend", "api", "controller", "service", "database", "prisma", "nest", "endpoint", "module", "auth", "jwt", "redis", "cache", "queue", "rate limit"],
+      "keywords": [
+        "backend",
+        "api",
+        "controller",
+        "service",
+        "database",
+        "prisma",
+        "nest",
+        "endpoint",
+        "module",
+        "auth",
+        "jwt",
+        "redis",
+        "cache",
+        "queue",
+        "rate limit"
+      ],
       "stacks": ["backend", "database", "cache"],
       "priority": 1
     },
     {
       "agent": "@Coder-FE",
-      "keywords": ["frontend", "component", "page", "ui", "angular", "signal", "store", "style", "tailwind", "primeng", "routing", "guard"],
+      "keywords": [
+        "frontend",
+        "component",
+        "page",
+        "ui",
+        "angular",
+        "signal",
+        "store",
+        "style",
+        "tailwind",
+        "primeng",
+        "routing",
+        "guard"
+      ],
       "stacks": ["frontend"],
       "priority": 1
     },
     {
       "agent": "@Architect",
-      "keywords": ["architecture", "design", "contract", "schema", "api design", "database design", "module", "interface"],
+      "keywords": [
+        "architecture",
+        "design",
+        "contract",
+        "schema",
+        "api design",
+        "database design",
+        "module",
+        "interface"
+      ],
       "stacks": ["backend", "frontend", "database"],
       "priority": 1
     },
     {
       "agent": "@Guardian",
-      "keywords": ["review", "audit", "security", "lint", "quality", "eslint", "tdd"],
+      "keywords": [
+        "review",
+        "audit",
+        "security",
+        "lint",
+        "quality",
+        "eslint",
+        "tdd"
+      ],
       "stacks": ["backend", "frontend"],
       "priority": 2
     },
     {
       "agent": "@CI-CD-Agent",
-      "keywords": ["deploy", "docker", "ci", "cd", "pipeline", "container", "build", "release", "migrate"],
+      "keywords": [
+        "deploy",
+        "docker",
+        "ci",
+        "cd",
+        "pipeline",
+        "container",
+        "build",
+        "release",
+        "migrate"
+      ],
       "stacks": ["backend", "frontend"],
       "priority": 2
     }
   ],
   "agent_write_scopes": {
     "@Coder-BE": {
-      "allowed": ["booking-backend/src/**", "booking-backend/test/**", "booking-backend/prisma/**", "booking-backend/*.{json,js,ts}", ".task_temp/**", "contract.yaml"],
-      "denied": ["booking-frontend/**", ".opencode/agents/**", ".opencode/rules/**", ".opencode/tools/**", ".opencode/state/**", ".opencode/scripts/**", "AGENTS.md", "PROJECT_REFERENCE.md", "TECH_DEBT_REGISTRY.md"]
+      "allowed": [
+        "booking-backend/src/**",
+        "booking-backend/test/**",
+        "booking-backend/prisma/**",
+        "booking-backend/*.{json,js,ts}",
+        ".task_temp/**",
+        "contract.yaml"
+      ],
+      "denied": [
+        "booking-frontend/**",
+        ".opencode/agents/**",
+        ".opencode/rules/**",
+        ".opencode/tools/**",
+        ".opencode/state/**",
+        ".opencode/scripts/**",
+        "AGENTS.md",
+        "PROJECT_REFERENCE.md",
+        "TECH_DEBT_REGISTRY.md"
+      ]
     },
     "@Coder-FE": {
       "allowed": ["booking-frontend/**", ".task_temp/**", "contract.yaml"],
-      "denied": ["booking-backend/**", ".opencode/agents/**", ".opencode/rules/**", ".opencode/tools/**", ".opencode/state/**", ".opencode/scripts/**", "AGENTS.md", "PROJECT_REFERENCE.md", "TECH_DEBT_REGISTRY.md"]
+      "denied": [
+        "booking-backend/**",
+        ".opencode/agents/**",
+        ".opencode/rules/**",
+        ".opencode/tools/**",
+        ".opencode/state/**",
+        ".opencode/scripts/**",
+        "AGENTS.md",
+        "PROJECT_REFERENCE.md",
+        "TECH_DEBT_REGISTRY.md"
+      ]
     },
     "@Architect": {
-      "allowed": [".opencode/state/**", "contract.yaml", ".task_temp/**", ".opencode/project.config.json", "PROJECT_REFERENCE.md", ".opencode/context/**", ".opencode/rules/**", ".opencode/agents/**"],
-      "denied": ["booking-backend/src/**", "booking-frontend/src/**", "booking-backend/test/**"]
+      "allowed": [
+        ".opencode/state/**",
+        "contract.yaml",
+        ".task_temp/**",
+        ".opencode/project.config.json",
+        "PROJECT_REFERENCE.md",
+        ".opencode/context/**",
+        ".opencode/rules/**",
+        ".opencode/agents/**",
+        ".opencode/subagent-preamble.md",
+        ".opencode/scripts/**"
+      ],
+      "denied": [
+        "booking-backend/src/**",
+        "booking-frontend/src/**",
+        "booking-backend/test/**"
+      ]
     },
     "@Meta-Planner": {
       "allowed": [".task_temp/**", "Task.DAG.json", "Project.graph"],
-      "denied": ["booking-backend/src/**", "booking-frontend/src/**", ".opencode/tools/**", ".opencode/scripts/**", ".opencode/state/**", "contract.yaml"]
+      "denied": [
+        "booking-backend/src/**",
+        "booking-frontend/src/**",
+        ".opencode/tools/**",
+        ".opencode/scripts/**",
+        ".opencode/state/**",
+        "contract.yaml"
+      ]
     },
     "@Orchestrator": {
       "allowed": [".task_temp/**", "Task.DAG.json"],
-      "denied": ["booking-backend/src/**", "booking-frontend/src/**", "contract.yaml", ".opencode/tools/**", ".opencode/scripts/**"]
+      "denied": [
+        "booking-backend/src/**",
+        "booking-frontend/src/**",
+        "contract.yaml",
+        ".opencode/tools/**",
+        ".opencode/scripts/**"
+      ]
     },
     "@Guardian": {
       "allowed": [".task_temp/**"],
-      "denied": ["booking-backend/src/**", "booking-frontend/src/**", "contract.yaml", ".opencode/**", "AGENTS.md", "PROJECT_REFERENCE.md"]
+      "denied": [
+        "booking-backend/src/**",
+        "booking-frontend/src/**",
+        "contract.yaml",
+        ".opencode/**",
+        "AGENTS.md",
+        "PROJECT_REFERENCE.md"
+      ]
     },
     "@Arbiter": {
       "allowed": [".task_temp/**", "WAIVE.md", "TECH_DEBT_REGISTRY.md"],
-      "denied": ["booking-backend/src/**", "booking-frontend/src/**", "contract.yaml", ".opencode/tools/**", ".opencode/scripts/**"]
+      "denied": [
+        "booking-backend/src/**",
+        "booking-frontend/src/**",
+        "contract.yaml",
+        ".opencode/tools/**",
+        ".opencode/scripts/**"
+      ]
     },
     "@CI-CD-Agent": {
-      "allowed": ["docker-compose*.yml", ".github/workflows/**", "Dockerfile*", ".env.*", "booking-backend/prisma/**", ".task_temp/**"],
-      "denied": ["booking-backend/src/**", "booking-frontend/src/**", ".opencode/agents/**", ".opencode/rules/**"]
+      "allowed": [
+        "docker-compose*.yml",
+        ".github/workflows/**",
+        "Dockerfile*",
+        ".env.*",
+        "booking-backend/prisma/**",
+        ".task_temp/**"
+      ],
+      "denied": [
+        "booking-backend/src/**",
+        "booking-frontend/src/**",
+        ".opencode/agents/**",
+        ".opencode/rules/**"
+      ]
     }
   }
 }
