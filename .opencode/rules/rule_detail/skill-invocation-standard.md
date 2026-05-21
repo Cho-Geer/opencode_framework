@@ -6,9 +6,9 @@
 本文档定义了在Trae IDE中执行任务时的Skill调用标准流程，确保每次任务都能正确、完整地调用相关Skill，提高任务执行质量和一致性。
 
 **制定时间**: 2026-04-09  
-**最后更新**: 2026-05-18  
+**最后更新**: 2026-05-21  
 **适用范围**: 所有在Trae IDE中执行的任务  
-**版本**: v2.1.4（废弃3个draft占位Skill：salesforce-dx-expert、playwright-mcp-expert、devops-architect）
+**版本**: v2.1.5（废弃nextjs-router-guardrails → fullstack-ci-cd-guardrails；prisma-seed-cicd重命名为cicd-database-seeding；注册新Skill cicd-database-seeding）
 
 ---
 
@@ -44,7 +44,7 @@ Skill按功能分为以下类别，添加新Skill时必须归类：
 | **P0 - 基础检查类** | 所有任务的前置检查，必须调用 | P0 | execution-preflight-check |
 | **P1 - 领域专业类** | 特定技术领域的专业指导 | P1 | devops-ci-cd-guardrails, cross-directory-ci, context7-first |
 | **P1 - 分析设计类** | 需求分析、方案设计、根因分析 | P1 | brainstorming |
-| **P2 - 技术栈类** | 特定技术栈的专项支持 | P2 | salesforce-dx-expert, playwright-mcp-expert, devops-architect |
+| **P2 - 技术栈类** | 特定技术栈的专项支持 | P2 | ~~salesforce-dx-expert（❌废弃）~~, ~~playwright-mcp-expert（❌废弃）~~, ~~devops-architect（❌废弃）~~, learning-mode-executor |
 | **P2 - 工具创建类** | 创建新工具、新Skill的支持 | P2 | skill-creator |
 
 ### 2.2 Skill元数据规范
@@ -84,8 +84,9 @@ added_by: 添加者  # 添加者标识
 | DevOps CI/CD保护 | devops-ci-cd-guardrails | P1-领域专业类 | CI, CD, workflow, GitHub Actions, Docker, compose, deploy, E2E, 镜像, 部署 | P1 | ✅ 活跃 | 2026-04-09 |
 | 跨目录CI指导 | cross-directory-ci | P1-领域专业类 | working-directory, path, CWD, subdirectory, monorepo, checkout多个仓库, 路径解析 | P1 | ✅ 活跃 | 2026-04-09 |
 | 全局CI/CD实践强制执行 | global-cicd-practices-enforcement | P1-领域专业类 | CI/CD, pipeline, best practices, enforcement, DORA, quality gate, secret management | P1 | ✅ 活跃 | 2026-04-09 |
-| Prisma Seed CI/CD执行 | prisma-seed-cicd | P1-领域专业类 | Prisma, seed, ts-node, Cannot find module, database seeding, CI/CD | P1 | ✅ 活跃 | 2026-04-09 |
-| Next.js路由守卫 | nextjs-router-guardrails | P1-领域专业类 | Next.js, router, middleware, authentication, guard, withAuth, withAdmin, routing | P1 | ✅ 活跃 | 2026-04-09 |
+| Prisma Seed CI/CD执行 | prisma-seed-cicd | P1-领域专业类 | Prisma, seed, ts-node, Cannot find module, database seeding, CI/CD | P1 | ❌ 废弃 | 2026-04-09 |
+| CI/CD数据库播种 | cicd-database-seeding | P1-领域专业类 | database, seeding, Prisma, SQL, seed, CI/CD, db seed, 数据库播种 | P1 | ✅ 活跃 | 2026-05-21 |
+| Next.js路由守卫 | nextjs-router-guardrails | P1-领域专业类 | ~~Next.js, router, middleware, authentication, guard, withAuth, withAdmin, routing~~ | P1 | ❌ 废弃 | 2026-04-09 |
 | 全栈CI/CD规范 | fullstack-ci-cd-guardrails | P1-领域专业类 | Docker, GitHub Actions, 镜像构建, 部署验证, 全栈项目 | P1 | ✅ 活跃 | 2026-04-10 |
 | 电子表格处理器 | spreadsheet-processor | P1-领域专业类 | wps, 表格, excel, wps表格, 电子表格, spreadsheet | P1 | ✅ 活跃 | 2026-04-10 |
 | 新资产集成器 | new-asset-integrator | P1-领域专业类 | 新的MCP工具, 新的skill追加, 新MCP工具, 新skill追加 | P1 | ✅ 活跃 | 2026-04-10 |
@@ -290,8 +291,48 @@ core_features:
   - 最佳实践执行
 
 always_first: false
-status: active
+status: deprecated
+deprecated_date: 2026-05-21
+deprecated_reason: 重命名为cicd-database-seeding以提升通用性；原Skill已扩展为通用CI/CD数据库播种框架，Prisma仅为第二节特化内容（@Architect UNIV-P4-H）
+replaced_by: cicd-database-seeding
 added_date: 2026-04-09
+added_by: system
+```
+
+---
+
+### 4.5b cicd-database-seeding
+
+```yaml
+skill_name: cicd-database-seeding
+display_name: CI/CD数据库播种
+category: P1-领域专业类
+description: 通用CI/CD数据库播种框架，支持多种ORM和数据库连接的种子脚本执行与问题排查
+trigger_keywords:
+  - database
+  - seeding
+  - Prisma
+  - SQL
+  - seed
+  - CI/CD
+  - db seed
+  - 数据库播种
+  - migration seed
+use_cases:
+  - CI/CD管道中的数据库初始化和播种
+  - 多种ORM（Prisma、TypeORM、Sequelize）的种子脚本执行
+  - 数据库连接和路径解析问题排查
+  - 前后端分离项目的种子脚本执行
+priority: P1
+core_features:
+  - 通用CI/CD播种架构（第二节）
+  - Prisma特化播种执行（第一节）
+  - 多ORM支持框架
+  - 数据库连接验证
+  - 调试检查清单
+always_first: false
+status: active
+added_date: 2026-05-21
 added_by: system
 ```
 
@@ -303,7 +344,7 @@ added_by: system
 skill_name: nextjs-router-guardrails
 display_name: Next.js路由守卫
 category: P1-领域专业类
-description: 强制执行Next.js路由守卫和身份验证最佳实践，确保安全的路由保护
+description: 强制执行Next.js路由守卫和身份验证最佳实践，确保安全的路由保护（⚠️ 已废弃，通用路由安全原则已提取到fullstack-ci-cd-guardrails）
 trigger_keywords:
   - Next.js
   - nextjs
@@ -340,7 +381,10 @@ core_features:
   - 安全头部配置
   - 特殊场景处理（CSRF、角色变更、账户禁用）
 always_first: false
-status: active
+status: deprecated
+deprecated_date: 2026-05-21
+deprecated_reason: Next.js特定路由守卫已废弃；通用路由安全原则已提取到fullstack-ci-cd-guardrails，Next.js框架特定代码保留为参考附录（@Architect UNIV-P4-I）
+replaced_by: fullstack-ci-cd-guardrails
 added_date: 2026-04-09
 added_by: system
 ```
@@ -836,6 +880,8 @@ added_by: system
 [ ] ~~是Salesforce项目吗？ → salesforce-dx-expert（❌ 已废弃）~~
 [ ] ~~涉及Playwright吗？ → playwright-mcp-expert（❌ 已废弃，请使用原生 playwright_browser_* 工具）~~
 [ ] 涉及DevOps架构吗？ → 使用 devops-ci-cd-guardrails（❌ devops-architect 已废弃）
+[ ] 涉及Next.js路由吗？ → 使用 fullstack-ci-cd-guardrails（❌ nextjs-router-guardrails 已废弃）
+[ ] 需要数据库播种吗？ → cicd-database-seeding（❌ prisma-seed-cicd 已废弃）
 [ ] 还有其他匹配的Skill吗？（查阅3.1表格）
 ```
 

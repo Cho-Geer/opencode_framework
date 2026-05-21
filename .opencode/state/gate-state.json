@@ -339,12 +339,85 @@
       "session_id": "cg_ses_1779333251500",
       "created_at": "2026-05-21T03:14:11.501Z",
       "task_description": "UNIV-P0-E: Make coding-standard-common.md truly framework-agnostic. Replace all NestJS, Prisma, Angular, RxJS specific references with generic equivalents in Sections 5 (Error Handling), 6 (Logging), and other affected sections. Preserve all TDD, naming, file structure, type safety, commit, and code review rules.",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_failed_items": [],
       "plan_summary": "UNIV-P0-E: Replace 12 framework-specific references (NestJS exceptions, NestJS Logger, Angular console, Prisma, RxJS) with generic equivalents across Sections 1,4,5,6,9 of coding-standard-common.md. Preserve all universal TDD/naming/structure/commit rules intact. Commit with [UNIV] Phase 0 tag.",
       "confirmed_at": "2026-05-21T03:14:44.782Z",
-      "consumed_at": null,
-      "audit": null
+      "consumed_at": "2026-05-21T03:19:41.383Z",
+      "audit": {
+        "execution_summary": "UNIV-P0-E: Made coding-standard-common.md framework-agnostic. Replaced 12 NestJS/Angular/Prisma/RxJS references with generic equivalents across Sections 1,4,5,6,9. ESLint audit: 0 violations. Git commit a8bea2b3. Task.DAG.json updated to completed.",
+        "completed_at": "2026-05-21T03:19:41.383Z"
+      }
+    },
+    "cg_ses_1779333638041": {
+      "session_id": "cg_ses_1779333638041",
+      "created_at": "2026-05-21T03:20:38.041Z",
+      "task_description": "Restructure .opencode/rules/backend-coding-standard.md into tiered template: Tier 1 (Universal, 5 rules preserved), Tier 2 (Framework-parameterized, 7 rules with {backend.*} placeholders), plus resolution block at bottom. Commit with message: [UNIV] Phase 1: Backend coding-standard tiered template",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Restructure backend-coding-standard.md into Tier 1 (5 universal rules: file separation, modularization, naming conventions, type safety, TDD) and Tier 2 (7 framework-parameterized rules with {backend.*} placeholders: transaction, auth, rate limit, error handling, logging, API docs, caching). Add resolution block mapping placeholders to project.config.json config paths. Commit with message: [UNIV] Phase 1: Backend coding-standard tiered template.",
+      "confirmed_at": "2026-05-21T03:22:01.566Z",
+      "consumed_at": "2026-05-21T03:23:13.891Z",
+      "audit": {
+        "execution_summary": "Restructured .opencode/rules/backend-coding-standard.md into tiered template: Tier 1 (Universal) with 5 rules (file separation, modularization, naming conventions, type safety, TDD) preserved as-is. Tier 2 (Framework-Parameterized) with 7 rules using {backend.*} placeholders (transaction, auth, rate limit, error handling, logging, API docs, caching). Added resolution block mapping each placeholder to its project.config.json config path. Committed as [UNIV] Phase 1: Backend coding-standard tiered template.",
+        "completed_at": "2026-05-21T03:23:13.891Z"
+      }
+    },
+    "cg_ses_1779333825859": {
+      "session_id": "cg_ses_1779333825859",
+      "created_at": "2026-05-21T03:23:45.860Z",
+      "task_description": "Restructure frontend-coding-standard.md into tiered template with Tier 1 (universal) and Tier 2 (framework-parameterized with placeholders), add resolution block with mapping table. Commit with [UNIV] Phase 1 message.",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Restructure frontend-coding-standard.md into tiered template with Tier 1 (7 universal rules preserved as-is) and Tier 2 (5 framework-parameterized rules with {frontend.*} placeholders), plus resolution mapping table at bottom. Commit with [UNIV] Phase 1 message. No changes to project.config.json or context/.",
+      "confirmed_at": "2026-05-21T03:28:22.735Z",
+      "consumed_at": "2026-05-21T03:28:33.527Z",
+      "audit": {
+        "execution_summary": "Restructured .opencode/rules/frontend-coding-standard.md into tiered template: Tier 1 (7 universal rules: file separation, no any, import ordering, TDD RED-GREEN-REFACTOR, file length limits, JSDoc, git commit format) preserved as-is; Tier 2 (5 framework-parameterized rules: CSS strategy {frontend.css_strategy}, state management {frontend.state_pattern}, component hierarchy {frontend.component_hierarchy}, lazy loading {frontend.lazy_loading}, API encapsulation {frontend.api_pattern}) with placeholders; Resolution block with mapping table linking to Angular-specific values from project.config.json and context/code_standards/. Committed as [UNIV] Phase 1: Frontend coding-standard tiered template.",
+        "completed_at": "2026-05-21T03:28:33.527Z"
+      }
+    },
+    "cg_ses_1779334754490": {
+      "session_id": "cg_ses_1779334754490",
+      "created_at": "2026-05-21T03:39:14.491Z",
+      "task_description": "UNIV-P3-F — Refactor guardian.md with Conditional Checklists: Replace hardcoded Angular/NestJS frontend/backend review sections with conditional framework-specific checklists triggered by project.config.json tech stack. Guardian enforcement strength must NOT decrease.",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "UNIV-P3-F: Refactor guardian.md Frontend and Backend Review sections from hardcoded Angular/NestJS to conditional framework-specific checklists resolved from project.config.json. Layer A (Auto Gate) left unchanged. Commitment: Guardian enforcement strength must NOT decrease — conditional triggers produce CONCRETE, VERIFIABLE checklists.",
+      "confirmed_at": "2026-05-21T03:39:25.960Z",
+      "consumed_at": "2026-05-21T03:42:23.623Z",
+      "audit": {
+        "execution_summary": "UNIV-P3-F: Refactored .opencode/agents/guardian.md Frontend and Backend Review sections from hardcoded Angular/NestJS to conditional framework-specific checklists resolved from project.config.json. Layer A (Auto Gate) preserved unchanged. Enforcement strength INCREASED: old had 13 framework checks; new has 21 total checks (9 universal + 12 framework-specific for current stack), adding TDD evidence, coverage thresholds, and no-any-types as universal gates. Now supports Angular/React/Vue on frontend and NestJS/Express/Fastify on backend with unconfigured warnings.",
+        "completed_at": "2026-05-21T03:42:23.623Z"
+      }
+    },
+    "cg_ses_1779334976238": {
+      "session_id": "cg_ses_1779334976238",
+      "created_at": "2026-05-21T03:42:56.238Z",
+      "task_description": "Architect: Execute 7 parameterization/deprecation/improvement tasks (UNIV-P3-G through UNIV-P5-N) for the opencode framework",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Execute 7 UNIV framework improvement tasks: (1) Parameterize architect.md with template variables, (2) Rename prisma-seed-cicd to cicd-database-seeding with generic layer, (3) Deprecate nextjs-router-guardrails and extract principles to fullstack-ci-cd-guardrails, (4) Add placeholder checks to framework-self-test.js, (5) Improve compliance-audit.sh pattern matching, (6) Add python3 fallback to pre-execution-hook.sh, (7) Support OPENCODE_ROOT env var in dispatch-subagent.js. All file modifications only — no project.config.json or context/ changes.",
+      "confirmed_at": "2026-05-21T03:43:06.525Z",
+      "consumed_at": "2026-05-21T03:52:35.104Z",
+      "audit": {
+        "execution_summary": "Completed all 7 UNIV framework tasks: (1) Parameterized architect.md with template variables and generic architecture descriptions, (2) Created cicd-database-seeding skill with generic multi-ORM layer + Prisma section, updated coder-be.md reference, (3) Deprecated nextjs-router-guardrails, extracted universal router guardrail principles to fullstack-ci-cd-guardrails Section 9, (4) Added Check 17 (placeholder scan) and Check 18 (template_resolution validation) to framework-self-test.js, (5) Improved compliance-audit.sh with word-boundary grep and structured invocation pattern detection, (6) Added python3 JSON fallback to pre-execution-hook.sh (jq→python3→node), (7) Added OPENCODE_ROOT env var support to dispatch-subagent.js. All 7 file modifications committed in 6 separate commits.",
+        "completed_at": "2026-05-21T03:52:35.104Z"
+      }
+    },
+    "cg_ses_1779335590936": {
+      "session_id": "cg_ses_1779335590936",
+      "created_at": "2026-05-21T03:53:10.936Z",
+      "task_description": "UNIV-P6-O: Update TECH_DEBT_REGISTRY.md with 4 new entries, fix skill-invocation-standard.md §3.1 skill registry statuses, and update Task.DAG.json to mark task completed.",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "UNIV-P6-O: (A) Append 4 new tech debt entries (TD-2026-008 through TD-2026-011) to TECH_DEBT_REGISTRY.md. (B) Update skill-invocation-standard.md §3.1: mark nextjs-router-guardrails as deprecated, add cicd-database-seeding entry, update prisma-seed-cicd to deprecated. Also update §4 detailed metadata. (C) Set UNIV-P6-O to completed in Task.DAG.json.",
+      "confirmed_at": "2026-05-21T03:54:11.953Z",
+      "consumed_at": "2026-05-21T03:57:47.081Z",
+      "audit": {
+        "execution_summary": "UNIV-P6-O completed: (A) TECH_DEBT_REGISTRY.md: appended TD-2026-008/009/010/011 with arbitration records. (B) skill-invocation-standard.md §3.1: deprecated prisma-seed-cicd→cicd-database-seeding, deprecated nextjs-router-guardrails→fullstack-ci-cd-guardrails, added cicd-database-seeding entry. Updated §4 detailed metadata, §2.1, §5.3, version→v2.1.5. (C) Task.DAG.json: UNIV-P6-O status→completed, change_log v2.3.1 added.",
+        "completed_at": "2026-05-21T03:57:47.081Z"
+      }
     }
   },
   "active_sessions": [
