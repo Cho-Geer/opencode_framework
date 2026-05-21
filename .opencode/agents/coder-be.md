@@ -9,7 +9,7 @@ color: "#10B981"
 skills:
   - execution-preflight-check
   - context7-first
-  - prisma-seed-cicd
+  - cicd-database-seeding
 mcp_tools:
   - Context7
   - PostgreSQL
