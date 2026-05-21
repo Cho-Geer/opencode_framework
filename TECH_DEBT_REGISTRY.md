@@ -119,7 +119,7 @@
 | WV-2026-002 | 2026-05-14 | @Coder-BE / @CI-CD-Agent | Stryker mutation testing not yet integrated in CI — mutation_kill_rate in x-coverage-matrix requires Stryker; jest.config.js alone cannot enforce this threshold (TD-2026-004) | 2026-06-14 | OPEN |
 | WV-2026-003 | 2026-05-14 | @Coder-BE | Deprecation of existing `testing:` section in contract.yaml — must be marked `deprecated: true` (not deleted) for backward compatibility (ARB-002) | During TEST-ARCH-V2 implementation | OPEN |
 | WV-2026-004 | 2026-05-14 | @Coder-BE / @Guardian | CI mock-audit ESLint enforcement gated on fake file existence validation — fake files must exist and pass their own tests before TIER2 rules are enforced (ARB-003) | During TEST-ARCH-V2 implementation | OPEN |
-| WV-2026-005 | 2026-05-18 | @Architect | Scope limitation: @Arbiter cannot write to `.opencode/skills/`. @Architect must place DEPRECATED.md files (×3) from `.task_temp/UNIV-013/` into target skill directories and update `skill-invocation-standard.md` references. | 2026-05-25 | OPEN |
+| WV-2026-005 | 2026-05-18 | @Architect | Scope limitation: @Arbiter cannot write to `.opencode/skills/`. @Architect must place DEPRECATED.md files (×3) from `.task_temp/UNIV-013/` into target skill directories and update `skill-invocation-standard.md` references. | 2026-05-25 | **CLOSED（已履约）** |
 
 ---
 
