@@ -119,7 +119,7 @@ Template resolution is performed by `.opencode/scripts/command-tools/dispatch-su
       - template_resolution keys (e.g., "backend.orm.schema" → "prisma/schema.prisma")
       - tech_stack nested values (e.g., "cache.engine" → "Redis 7.x")
       - project root-level fields (e.g., "name" → "booking-system")
-   c. Scan agent config for {placeholder} patterns
+   c. Scan agent config for `{variable_name}` patterns
    d. Replace resolved placeholders with their values
    e. Log warnings for unresolvable placeholders
 4. Assemble final wrapped prompt
@@ -137,7 +137,7 @@ The resolution map is built from three sources, merged in order (later sources o
 
 ### §3.3 Unresolvable Placeholders
 
-Any `{placeholder}` that cannot be resolved is replaced with the string `UNRESOLVED{placeholder}` and logged as a warning to stderr.
+Any template variable that cannot be resolved is replaced with the string `UNRESOLVED{var}` and logged as a warning to stderr.
 
 **Warning format:**
 
