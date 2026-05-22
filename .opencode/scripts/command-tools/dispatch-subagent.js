@@ -183,62 +183,52 @@ const mcpTools = agentConfig.mcp_tools || [];
 // ──────────────────────────────────────────────
 // 3.5 Build template variable resolution map
 // ──────────────────────────────────────────────
+// Resolution priority (highest wins):
+//   1. template_resolution section (authoritative overrides)
+//   2. tech_stack.* fields (standard technology descriptors)
+//   3. paths.* fields (directory layout)
+//   4. project.* fields (project metadata)
+// All non-empty template_resolution entries are included automatically,
+// so new placeholders added to project.config.json resolve without
+// requiring code changes in this file.
 function buildTemplateResolutionMap(projectConfig) {
   const map = {};
   const tr = projectConfig.template_resolution || {};
 
-  // §2.1: {project.*} from root project fields
+  // ── Phase 1: Base values from project metadata ──
   if (projectConfig.project) {
     map["project.name"] = projectConfig.project.name || "";
     map["project.version"] = projectConfig.project.version || "";
   }
   map["project_root"] = projectConfig.project_root || ".";
-  if (tr.contract_hash_command) {
-    map["project.contract_hash_command"] = tr.contract_hash_command;
-  }
 
-  // §2.2: {backend.*} from template_resolution + tech_stack.backend
+  // ── Phase 2: Base values from tech_stack (standard descriptors) ──
   const beStack = projectConfig.tech_stack?.backend || {};
   map["backend.framework"] = beStack.framework || "";
   map["backend.runtime"] = beStack.runtime || "";
   map["backend.language"] = beStack.language || "";
-  if (tr["backend.orm.schema"])
-    map["backend.orm.schema"] = tr["backend.orm.schema"];
-  if (projectConfig.paths?.backend_src)
-    map["backend.src"] = projectConfig.paths.backend_src;
 
-  // §2.3: {frontend.*} from template_resolution + tech_stack.frontend
   const feStack = projectConfig.tech_stack?.frontend || {};
   map["frontend.framework"] = feStack.framework || "";
   map["frontend.state_management"] = feStack.state_management || "";
   map["frontend.ui_library"] = feStack.ui_library || "";
   map["frontend.css"] = feStack.css || "";
-  if (tr["frontend.dto_path"])
-    map["frontend.dto_path"] = tr["frontend.dto_path"];
-  if (tr["frontend.env_path"])
-    map["frontend.env_path"] = tr["frontend.env_path"];
-  if (projectConfig.paths?.frontend_src)
-    map["frontend.src"] = projectConfig.paths.frontend_src;
 
-  // §2.4: {cache.*} from template_resolution
-  if (tr["cache.engine"]) map["cache.engine"] = tr["cache.engine"];
-  if (tr["cache.client"]) map["cache.client"] = tr["cache.client"];
+  const cacheStack = projectConfig.tech_stack?.cache || {};
+  map["cache.engine"] = cacheStack.engine || "";
+  map["cache.client"] = cacheStack.client || "";
 
-  // §2.5: {queue.*} from template_resolution
-  if (tr["queue.engine"]) map["queue.engine"] = tr["queue.engine"];
+  map["queue.engine"] = projectConfig.tech_stack?.queue || "";
 
-  // §2.6: {db.*} from tech_stack.database
   const dbStack = projectConfig.tech_stack?.database || {};
   map["db.orm"] = dbStack.orm || "";
   map["db.engine"] = dbStack.engine || "";
 
-  // §2.7: {auth.*} from tech_stack.auth
   const authStack = projectConfig.tech_stack?.auth || {};
   map["auth.mechanism"] = authStack.mechanism || "";
   map["auth.token_validity"] = authStack.token_validity || "";
   map["auth.refresh_validity"] = authStack.refresh_validity || "";
 
-  // §2.8: {testing.*} from tech_stack.testing
   const testStack = projectConfig.tech_stack?.testing || {};
   map["testing.unit"] = testStack.unit || "";
   map["testing.e2e"] = testStack.e2e || "";
@@ -246,6 +236,27 @@ function buildTemplateResolutionMap(projectConfig) {
   map["testing.coverage_threshold"] = testStack.coverage_threshold
     ? String(testStack.coverage_threshold)
     : "";
+
+  // ── Phase 3: Base values from paths ──
+  if (projectConfig.paths?.backend_src)
+    map["backend.src"] = projectConfig.paths.backend_src;
+  if (projectConfig.paths?.frontend_src)
+    map["frontend.src"] = projectConfig.paths.frontend_src;
+
+  // ── Phase 4: template_resolution overrides (authoritative) ──
+  // ALL non-empty string entries in template_resolution are added to the map.
+  // Keys with a dot (e.g. "backend.orm.schema") are used as-is.
+  // Bare keys without a dot (e.g. "contract_hash_command") are namespaced
+  // under "project.*" since they represent project-level settings.
+  // This ensures any placeholder defined in project.config.json is
+  // automatically resolvable without code changes to this file.
+  for (const key of Object.keys(tr)) {
+    const val = tr[key];
+    if (typeof val === "string" && val.trim() !== "") {
+      const mapKey = key.includes(".") ? key : `project.${key}`;
+      map[mapKey] = val;
+    }
+  }
 
   return map;
 }
