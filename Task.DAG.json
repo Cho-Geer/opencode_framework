@@ -1,10 +1,10 @@
 {
-  "version": "2.4.0",
+  "version": "2.5.0",
   "project": "booking-system",
   "feature": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement",
   "description": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement + Framework Repair (Architect Inspection Report)",
   "generated_by": "@Meta-Planner",
-  "generated_at": "2026-05-21T09:01:00Z",
+  "generated_at": "2026-05-22T00:00:00Z",
   "change_log": [
     {
       "version": "2.1.1",
@@ -55,6 +55,11 @@
       "version": "2.4.0",
       "date": "2026-05-21",
       "summary": "Appended 11 framework repair tasks (FW-REPAIR-01 through FW-REPAIR-11) based on @Architect Architecture Report (.task_temp/architect-inspection/ARCHITECTURE_REPORT.md). Covers P0 (template_resolution, contract.yaml, machine.schema.json, state cleanup), P1 (keystone_hashes, template engine, reset script, gate-state sync), and P2 (cross-workspace protection, path fix, template variable standard). All tasks owned by @Architect."
+    },
+    {
+      "version": "2.5.0",
+      "date": "2026-05-22",
+      "summary": "Appended 9 review remediation tasks (RVW-REVIEW-01 through RVW-REVIEW-09) based on 2026-05-21 Opencode Framework Core Feature & Risk Assessment Review. Gap analysis mapped 9 findings against existing FW-REPAIR/OPC/UNIV tasks; created independent tasks where partial overlap exists (RW-01 extends FW-03+08, RW-02 extends FW-04+09, RW-03 extends OPC-DAG-GATE, RW-05 extends FW-05, RW-06 extends FW-10, RW-07 depends on RW-01, RW-09 depends on UNIV-P6-O). All new tasks owned by @Architect."
     }
   ],
   "tasks": [
@@ -66,7 +71,9 @@
       "priority": "P0",
       "dependencies": [],
       "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001",
-      "target_files": ["booking_system_refactor/contract.yaml"],
+      "target_files": [
+        "booking_system_refactor/contract.yaml"
+      ],
       "acceptance_criteria": [
         "contract.yaml contains GET /v1/admin/messages with query params (page, limit)",
         "contract.yaml contains MessageItemDto response schema",
@@ -80,7 +87,9 @@
       "status": "pending",
       "owner": "@Coder-BE",
       "priority": "P0",
-      "dependencies": ["B-MSG-CONTRACT"],
+      "dependencies": [
+        "B-MSG-CONTRACT"
+      ],
       "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -102,7 +111,9 @@
       "status": "pending",
       "owner": "@Coder-BE",
       "priority": "P0",
-      "dependencies": ["B-MSG-RED-001"],
+      "dependencies": [
+        "B-MSG-RED-001"
+      ],
       "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004; 数据架构设计文档.md §2.2.6 Message model",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -132,7 +143,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-CONTRACT"],
+      "dependencies": [
+        "B-MSG-CONTRACT"
+      ],
       "requirement_source": "接口设计规范文档.md §2.12–2.13; SAD line 99",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -155,7 +168,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-RED-FE"],
+      "dependencies": [
+        "B-MSG-RED-FE"
+      ],
       "requirement_source": "接口设计规范文档.md §2.12 – '信封图标点击后的下拉面板'",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.ts",
@@ -181,7 +196,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-RED-FE"],
+      "dependencies": [
+        "B-MSG-RED-FE"
+      ],
       "requirement_source": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
@@ -204,7 +221,10 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P1",
-      "dependencies": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
+      "dependencies": [
+        "B-MSG-GREEN-FE-COMPONENT",
+        "B-MSG-GREEN-FE-SERVICE"
+      ],
       "requirement_source": "接口设计规范文档.md §2.12 – '顶部导航栏信封图标'",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.ts",
@@ -230,7 +250,9 @@
       "status": "pending",
       "owner": "@Coder-FE",
       "priority": "P2",
-      "dependencies": ["B-MSG-GREEN-FE-SERVICE"],
+      "dependencies": [
+        "B-MSG-GREEN-FE-SERVICE"
+      ],
       "requirement_source": "SAD line 99 – StatsModule includes 未读消息数",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
@@ -248,7 +270,10 @@
       "status": "pending",
       "owner": "@Guardian",
       "priority": "P0",
-      "dependencies": ["B-MSG-GREEN-001", "B-MSG-GREEN-FE-HEADER"],
+      "dependencies": [
+        "B-MSG-GREEN-001",
+        "B-MSG-GREEN-FE-HEADER"
+      ],
       "requirement_source": "All MSG-001 requirements; all contract.yaml definitions",
       "target_files": [
         "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-messages.controller.ts",
@@ -299,7 +324,9 @@
       "status": "completed",
       "owner": "@Coder-BE",
       "priority": "P0",
-      "dependencies": ["BUG-SENDCODE-ANALYSIS"],
+      "dependencies": [
+        "BUG-SENDCODE-ANALYSIS"
+      ],
       "requirement_source": "Bug Report: ContactType validation error + contract.yaml send_code spec",
       "contract_reference": "contract.yaml → /v1/admin/users/send-code",
       "target_files": [
@@ -321,7 +348,9 @@
       "status": "completed",
       "owner": "@Coder-BE",
       "priority": "P0",
-      "dependencies": ["BUG-SENDCODE-RED"],
+      "dependencies": [
+        "BUG-SENDCODE-RED"
+      ],
       "requirement_source": "Bug Report: ContactType validation error; contract.yaml send_code definition; Docs Consistency Report in TASK_LOG.md",
       "contract_reference": "contract.yaml → /v1/admin/users/send-code",
       "target_files": [
@@ -350,7 +379,9 @@
       "status": "completed",
       "owner": "@Guardian",
       "priority": "P0",
-      "dependencies": ["BUG-SENDCODE-GREEN"],
+      "dependencies": [
+        "BUG-SENDCODE-GREEN"
+      ],
       "requirement_source": "Bug Report resolution; contract.yaml send_code; all security/validation requirements",
       "contract_reference": "contract.yaml → /v1/admin/users/send-code",
       "target_files": [
@@ -379,7 +410,9 @@
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
-      "target_files": [".opencode/agents/orchestrator.md"],
+      "target_files": [
+        ".opencode/agents/orchestrator.md"
+      ],
       "acceptance_criteria": [
         "orchestrator.md frontmatter has agent_tools_whitelist: [task, todowrite, compliance-gate_*, dispatch-subagent]",
         "orchestrator.md frontmatter has agent_tools_blacklist: [read, grep, glob, webfetch]",
@@ -394,7 +427,9 @@
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
-      "target_files": [".opencode/scripts/pre-execution-hook.sh"],
+      "target_files": [
+        ".opencode/scripts/pre-execution-hook.sh"
+      ],
       "acceptance_criteria": [
         ".opencode/scripts/pre-execution-hook.sh exists and is executable",
         "Script checks Task.DAG.json for current task with status=pending",
@@ -409,8 +444,12 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["OPC-FW-ACL"],
-      "target_files": [".opencode/agents/orchestrator.md"],
+      "dependencies": [
+        "OPC-FW-ACL"
+      ],
+      "target_files": [
+        ".opencode/agents/orchestrator.md"
+      ],
       "acceptance_criteria": [
         "orchestrator.md body includes \"## 强制执行前自检（MUST-RUN 协议）\" section",
         "Self-check classifies actions as scheduling vs analysis",
@@ -424,8 +463,12 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["OPC-FW-ACL"],
-      "target_files": [".opencode/scripts/compliance-audit.sh"],
+      "dependencies": [
+        "OPC-FW-ACL"
+      ],
+      "target_files": [
+        ".opencode/scripts/compliance-audit.sh"
+      ],
       "acceptance_criteria": [
         "Compliance audit script created",
         "Scans session for unauthorized grep/read usage by Orchestrator",
@@ -441,7 +484,9 @@
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
-      "target_files": [".opencode/rules/coding-standard-common.md"],
+      "target_files": [
+        ".opencode/rules/coding-standard-common.md"
+      ],
       "acceptance_criteria": [
         "Section 5: NestJS exception types replaced with generic HTTP status code patterns",
         "Section 6: NestJS Logger replaced with generic logging pattern",
@@ -456,8 +501,12 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
-      "dependencies": ["UNIV-P0-E"],
-      "target_files": [".opencode/rules/backend-coding-standard.md"],
+      "dependencies": [
+        "UNIV-P0-E"
+      ],
+      "target_files": [
+        ".opencode/rules/backend-coding-standard.md"
+      ],
       "acceptance_criteria": [
         "8 universal rules preserved as-is",
         "7 framework-specific rules use {backend.*} placeholders",
@@ -471,8 +520,12 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
-      "dependencies": ["UNIV-P0-E"],
-      "target_files": [".opencode/rules/frontend-coding-standard.md"],
+      "dependencies": [
+        "UNIV-P0-E"
+      ],
+      "target_files": [
+        ".opencode/rules/frontend-coding-standard.md"
+      ],
       "acceptance_criteria": [
         "7 universal rules preserved",
         "5 framework-specific rules use {frontend.*} placeholders",
@@ -486,8 +539,12 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["UNIV-P1-C"],
-      "target_files": [".opencode/agents/coder-be.md"],
+      "dependencies": [
+        "UNIV-P1-C"
+      ],
+      "target_files": [
+        ".opencode/agents/coder-be.md"
+      ],
       "acceptance_criteria": [
         "5 hardcoded NestJS/Prisma refs replaced with {backend.*}",
         "4x keystone:hash refs replaced with {project.contract_hash_command}"
@@ -500,8 +557,12 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["UNIV-P1-D"],
-      "target_files": [".opencode/agents/coder-fe.md"],
+      "dependencies": [
+        "UNIV-P1-D"
+      ],
+      "target_files": [
+        ".opencode/agents/coder-fe.md"
+      ],
       "acceptance_criteria": [
         "2 Angular path refs replaced with {frontend.*} placeholders",
         "Component hierarchy language broadened"
@@ -515,7 +576,9 @@
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [],
-      "target_files": ["AGENTS.md"],
+      "target_files": [
+        "AGENTS.md"
+      ],
       "acceptance_criteria": [
         "Line 115: \"后端/服务端开发工程师（含Salesforce）\" → \"后端/服务端开发工程师\""
       ],
@@ -527,8 +590,13 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
-      "dependencies": ["UNIV-P2-A", "UNIV-P2-B"],
-      "target_files": [".opencode/agents/guardian.md"],
+      "dependencies": [
+        "UNIV-P2-A",
+        "UNIV-P2-B"
+      ],
+      "target_files": [
+        ".opencode/agents/guardian.md"
+      ],
       "acceptance_criteria": [
         "Hardcoded NestJS/Angular checklists replaced with conditional triggers",
         "Layer A (Auto Gate) unchanged",
@@ -543,8 +611,13 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["UNIV-P2-A", "UNIV-P2-B"],
-      "target_files": [".opencode/agents/architect.md"],
+      "dependencies": [
+        "UNIV-P2-A",
+        "UNIV-P2-B"
+      ],
+      "target_files": [
+        ".opencode/agents/architect.md"
+      ],
       "acceptance_criteria": [
         "npm run keystone:hash → {project.contract_hash_command}",
         "Atom/Molecule→ broadened component language"
@@ -558,7 +631,9 @@
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "target_files": [".opencode/skills/prisma-seed-cicd/SKILL.md"],
+      "target_files": [
+        ".opencode/skills/prisma-seed-cicd/SKILL.md"
+      ],
       "acceptance_criteria": [
         "Skill renamed to cicd-database-seeding",
         "Generic CI/CD seeding section 1 added",
@@ -574,7 +649,9 @@
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "target_files": [".opencode/skills/nextjs-router-guardrails/SKILL.md"],
+      "target_files": [
+        ".opencode/skills/nextjs-router-guardrails/SKILL.md"
+      ],
       "acceptance_criteria": [
         "Mark status as deprecated with replaced_by",
         "Extract universal security principles to fullstack-ci-cd-guardrails",
@@ -588,8 +665,13 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["UNIV-P1-C", "UNIV-P1-D"],
-      "target_files": [".opencode/scripts/framework-self-test.js"],
+      "dependencies": [
+        "UNIV-P1-C",
+        "UNIV-P1-D"
+      ],
+      "target_files": [
+        ".opencode/scripts/framework-self-test.js"
+      ],
       "acceptance_criteria": [
         "Check 17: No unresolved {placeholder} in rule/agent files",
         "Check 18: template_resolution config exists"
@@ -603,7 +685,9 @@
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "target_files": [".opencode/scripts/compliance-audit.sh"],
+      "target_files": [
+        ".opencode/scripts/compliance-audit.sh"
+      ],
       "acceptance_criteria": [
         "grep -c -i replaced with grep -c -i -w or structured patterns",
         "False positive reduction"
@@ -617,7 +701,9 @@
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "target_files": [".opencode/scripts/pre-execution-hook.sh"],
+      "target_files": [
+        ".opencode/scripts/pre-execution-hook.sh"
+      ],
       "acceptance_criteria": [
         "python3 fallback added between jq and node",
         "Priority order: jq → python3 → node"
@@ -631,7 +717,9 @@
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "target_files": [".opencode/scripts/command-tools/dispatch-subagent.js"],
+      "target_files": [
+        ".opencode/scripts/command-tools/dispatch-subagent.js"
+      ],
       "acceptance_criteria": [
         "Line 25: OPENCODE_ROOT checked from env with __dirname fallback"
       ],
@@ -643,7 +731,10 @@
       "status": "completed",
       "owner": "@Architect",
       "priority": "P2",
-      "dependencies": ["UNIV-P4-H", "UNIV-P4-I"],
+      "dependencies": [
+        "UNIV-P4-H",
+        "UNIV-P4-I"
+      ],
       "target_files": [
         "TECH_DEBT_REGISTRY.md",
         ".opencode/rules/rule_detail/skill-invocation-standard.md"
@@ -662,7 +753,9 @@
       "priority": "P0",
       "dependencies": [],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-01; GAP-3 (template_resolution missing from project.config.json)",
-      "target_files": [".opencode/project.config.json"],
+      "target_files": [
+        ".opencode/project.config.json"
+      ],
       "acceptance_criteria": [
         "project.config.json contains new 'template_resolution' section",
         "template_resolution.contract_hash_command set to 'node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml'",
@@ -680,7 +773,9 @@
       "priority": "P0",
       "dependencies": [],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-02; GAP-1 (contract.yaml missing at root)",
-      "target_files": ["contract.yaml"],
+      "target_files": [
+        "contract.yaml"
+      ],
       "acceptance_criteria": [
         "contract.yaml exists at project root",
         "contract.yaml contains valid x-keystone-state-hash header",
@@ -696,9 +791,13 @@
       "status": "pending",
       "owner": "@Architect",
       "priority": "P0",
-      "dependencies": ["FW-REPAIR-04"],
+      "dependencies": [
+        "FW-REPAIR-04"
+      ],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-03; GAP-2 (machine.schema.json referenced but nonexistent)",
-      "target_files": [".opencode/state/machine.schema.json"],
+      "target_files": [
+        ".opencode/state/machine.schema.json"
+      ],
       "acceptance_criteria": [
         "machine.schema.json created in .opencode/state/ with JSON Schema validating machine.json structure",
         "Schema validates all 9 sub-state sections (meta, eslint_state, type_check_state, dependency_state, format_state, write_audit_state, compliance_records, tdd_enforcement_state, contracts/keystone_hashes)",
@@ -716,7 +815,9 @@
       "priority": "P0",
       "dependencies": [],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-04; GAP-5 (type_check_state stale), GAP-6 (format_state contradictory), GAP-7 (cross-workspace scope violations)",
-      "target_files": [".opencode/state/machine.json"],
+      "target_files": [
+        ".opencode/state/machine.json"
+      ],
       "acceptance_criteria": [
         "type_check_state.status reset to 'clean', dirty_files cleared",
         "format_state.status reset to 'clean', unformatted_files cleared",
@@ -734,9 +835,14 @@
       "status": "pending",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["FW-REPAIR-02", "FW-REPAIR-03"],
+      "dependencies": [
+        "FW-REPAIR-02",
+        "FW-REPAIR-03"
+      ],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-05; GAP-10 (keystone_hashes never populated)",
-      "target_files": [".opencode/state/machine.json"],
+      "target_files": [
+        ".opencode/state/machine.json"
+      ],
       "acceptance_criteria": [
         "machine.json.keystone_hashes is non-empty",
         "contract.yaml hash stored under appropriate key",
@@ -752,9 +858,13 @@
       "status": "pending",
       "owner": "@Architect",
       "priority": "P1",
-      "dependencies": ["FW-REPAIR-01"],
+      "dependencies": [
+        "FW-REPAIR-01"
+      ],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-06; GAP-3 (unresolvable {placeholder}s), GAP-4 (orphaned backend/frontend variables)",
-      "target_files": [".opencode/scripts/command-tools/dispatch-subagent.js"],
+      "target_files": [
+        ".opencode/scripts/command-tools/dispatch-subagent.js"
+      ],
       "acceptance_criteria": [
         "dispatch-subagent.js resolves {project.*}, {backend.*}, {frontend.*}, {cache.*} placeholders before injecting agent configs",
         "Resolution reads template_resolution section from project.config.json",
@@ -772,7 +882,9 @@
       "priority": "P1",
       "dependencies": [],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-07 (state machine bootstrap/reset script)",
-      "target_files": [".opencode/scripts/state-machine-reset.sh"],
+      "target_files": [
+        ".opencode/scripts/state-machine-reset.sh"
+      ],
       "acceptance_criteria": [
         "state-machine-reset.sh created and executable",
         "Script resets machine.json to clean baseline (all sub-states clean)",
@@ -810,9 +922,13 @@
       "status": "pending",
       "owner": "@Architect",
       "priority": "P2",
-      "dependencies": ["FW-REPAIR-04"],
+      "dependencies": [
+        "FW-REPAIR-04"
+      ],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-09 (+ REC-12 cross-workspace protection); GAP-7 (write audit state pollution)",
-      "target_files": [".opencode/scripts/mcp-tools/code-quality-gate.js"],
+      "target_files": [
+        ".opencode/scripts/mcp-tools/code-quality-gate.js"
+      ],
       "acceptance_criteria": [
         "code-quality-gate.js bootstrap verifies file paths in machine.json belong to current OPENCODE_ROOT",
         "Cross-workspace paths (different OPENCODE_ROOT) trigger state reset warning",
@@ -830,7 +946,9 @@
       "priority": "P2",
       "dependencies": [],
       "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-11 (+ REC-14 template variable doc); GAP-9 (nonexistent prisma/ path)",
-      "target_files": [".opencode/subagent-preamble.md"],
+      "target_files": [
+        ".opencode/subagent-preamble.md"
+      ],
       "acceptance_criteria": [
         "Line referencing 'prisma/schema.prisma' replaced with '{backend.orm.schema}' placeholder",
         "Placeholder resolves to 'booking-backend/prisma/schema.prisma' via template_resolution",
@@ -859,47 +977,353 @@
         "Includes escalation path for unresolvable placeholders"
       ],
       "estimated_effort": "M"
+    },
+    {
+      "id": "RVW-REVIEW-01",
+      "title": "P0: Implement Unified State Transaction Envelope (atomic commit: operation ID, monotonic revision, two-phase write + recovery marker)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-REPAIR-03",
+        "FW-REPAIR-08"
+      ],
+      "requirement_source": "REVIEW_REPORT §P0#1 — Unified State Transaction Envelope; FW-REPAIR-03 (machine.schema.json), FW-REPAIR-08 (gate-state sync) provide structural prerequisites but no transaction protocol",
+      "target_files": [
+        ".opencode/state/machine.schema.json",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/scripts/state-transaction.js",
+        ".opencode/state/.transaction-log"
+      ],
+      "acceptance_criteria": [
+        "Every state mutation (gate-state.json, machine.json) generates a unique operation_id (UUID v4)",
+        "machine.json.meta gains monotonic revision counter (incremented per mutation, never skipped)",
+        "Two-phase write protocol: Phase 1 writes .prepared marker with checksum → Phase 2 commits → failed Phase 2 triggers recovery scan on next bootstrap",
+        ".opencode/state/.transaction-log records operation_id, timestamp, file, old_hash, new_hash, agent, task_id",
+        "Recovery marker: on bootstrap, scan for .prepared files without matching .committed → rollback or replay",
+        "Both compliance_gate_confirm() and code-quality-gate write operations honor transaction envelope",
+        "machine.schema.json updated to validate new fields (operation_id, revision, transaction_log pointer)"
+      ],
+      "estimated_effort": "L"
+    },
+    {
+      "id": "RVW-REVIEW-02",
+      "title": "P0: Implement Workspace-Root Canonicalization Runtime Enforcement (auto-scrub foreign paths at read/write boundary across all state sections)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-REPAIR-04",
+        "FW-REPAIR-09"
+      ],
+      "requirement_source": "REVIEW_REPORT §P0#2 — Strict Workspace-Root Canonicalization; FW-REPAIR-04 cleans existing contamination, FW-REPAIR-09 adds bootstrap check; gap is runtime enforcement at every read/write boundary",
+      "target_files": [
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/scripts/state-canonicalize.js",
+        ".opencode/state/machine.schema.json",
+        ".opencode/scripts/workspace-root-validator.js"
+      ],
+      "acceptance_criteria": [
+        "state-canonicalize.js created: scans a JSON state file and replaces all absolute paths outside OPENCODE_ROOT with relative equivalents",
+        "code-quality-gate.js extended: before reading machine.json, invokes workspace-root-validator.js → rejects if foreign paths detected",
+        "code-quality-gate.js extended: before writing machine.json, invokes state-canonicalize.js → auto-scrubs any foreign paths that slipped through",
+        "Works for ALL state sections: write_audit_state, type_check_state, eslint_state, format_state, dependency_state, compliance_records, tdd_enforcement_state",
+        "machine.schema.json updated to add 'x-workspace-root' constraint validating paths are within OPENCODE_ROOT",
+        "Bootstrap warning if write_audit_state.current_session still references foreign workspace after FW-REPAIR-04 cleanup"
+      ],
+      "estimated_effort": "L"
+    },
+    {
+      "id": "RVW-REVIEW-03",
+      "title": "P0: Add Semantic Version Checks to Gate Preflight (rule digest/version compatibility assertions replacing presence-only checks)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "OPC-FW-DAG-GATE"
+      ],
+      "requirement_source": "REVIEW_REPORT §P0#3 — Semantic Version Checks in Gate Preflight; OPC-FW-DAG-GATE created presence-only file-existence checks in pre-execution-hook.sh",
+      "target_files": [
+        ".opencode/scripts/pre-execution-hook.sh",
+        ".opencode/scripts/rule-digest-validate.js",
+        ".opencode/state/rule-digests.json"
+      ],
+      "acceptance_criteria": [
+        "rule-digest-validate.js created: computes SHA-256 digest for each critical rule file (common-project.md, mcp-compliance-guide.md, skill-compliance-guide.md, dag-generation-standard.md, backend/frontend coding standards)",
+        ".opencode/state/rule-digests.json stores expected digests with semantic version tags (e.g., 'common-project.md': {'version': '1.2.0', 'sha256': '...'})",
+        "pre-execution-hook.sh extended: before task execution, compares current file digests against expected → mismatch triggers version compatibility check",
+        "Version compatibility: if a rule file digest changed but version didn't increment → WARNING (possible unauthorized modification). If version incremented → compare agent config compatibility assertions",
+        "Presence-only checks retained as fast path (if digests match, skip deep check)",
+        "New check output format: '✅ [Gate Preflight v2] 5/5 rule digests verified (compatible)' or '❌ [Gate Preflight v2] common-project.md digest mismatch (expected v1.2.0/sha256-abc, got sha256-def)'"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "RVW-REVIEW-04",
+      "title": "P1: Build Reconciliation Daemon/Check Command (validate DAG ↔ gate sessions ↔ machine.json consistency)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-REPAIR-03",
+        "FW-REPAIR-08"
+      ],
+      "requirement_source": "REVIEW_REPORT §P1#4 — Reconciliation Daemon/Check Command; validate consistency among Task.DAG.json, gate-state.json active_sessions, and machine.json sub-states",
+      "target_files": [
+        ".opencode/scripts/reconciliation-check.sh",
+        ".opencode/scripts/mcp-tools/reconciliation-validate.js",
+        ".github/workflows/reconciliation.yml"
+      ],
+      "acceptance_criteria": [
+        "reconciliation-validate.js created: cross-references Task.DAG.json task statuses against gate-state.json active_sessions and machine.json write_audit_state",
+        "Check 1 (DAG ↔ Gate): every task with status='in_progress' MUST have a corresponding active gate session in gate-state.json; every active session MUST reference a valid pending/in_progress DAG task",
+        "Check 2 (Gate ↔ Machine): every armed gate session MUST have matching write_audit_state.current_session entry; orphaned sessions (armed but no write audit) flagged",
+        "Check 3 (DAG ↔ Machine): tasks with status='completed' must have corresponding write_audit_state.history entries; tasks with status='pending' must NOT have write audit entries",
+        "reconciliation-check.sh wrapper: runs before git commit (pre-commit hook) AND before @Orchestrator dispatch",
+        "Output format: '✅ [Reconciliation] DAG(52 tasks) ↔ Gate(3 armed) ↔ Machine(clean) — consistent' or '❌ [Reconciliation] DAG task FW-REPAIR-03 marked completed but no write audit found'",
+        "GitHub Actions reconciliation.yml: runs on PR → blocks merge if reconciliation fails"
+      ],
+      "estimated_effort": "L"
+    },
+    {
+      "id": "RVW-REVIEW-05",
+      "title": "P1: Extend Integrity Chaining to All Critical Docs (hash bundle for rules + requirements + agent configs, verified in hook/toolchain)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-REPAIR-05"
+      ],
+      "requirement_source": "REVIEW_REPORT §P1#5 — Integrity Chaining; FW-REPAIR-05 populates keystone_hashes for contract.yaml only; gap is broader hash bundle for all critical framework docs",
+      "target_files": [
+        ".opencode/state/machine.json",
+        ".opencode/scripts/integrity-chain-bundle.sh",
+        ".opencode/scripts/mcp-tools/keystone-validate.js",
+        ".opencode/state/rule-digests.json"
+      ],
+      "acceptance_criteria": [
+        "keystone_hashes in machine.json extended beyond contract.yaml to include: (a) all 6 requirement docs, (b) all .opencode/rules/*.md files, (c) all .opencode/agents/*.md files, (d) AGENTS.md, (e) PROJECT_REFERENCE.md",
+        "integrity-chain-bundle.sh created: computes SHA-256 for each tracked file, updates machine.json.keystone_hashes, generates diff from previous bundle",
+        "keystone-validate.js extended to accept --bundle flag validating entire hash chain (not just contract.yaml)",
+        "Pre-commit hook Layer 2 extended: validates full integrity chain (not just contract.yaml hash)",
+        "Pre-dispatch hook (@Orchestrator): warns if any critical rule/agent file hash changed since last DAG generation",
+        "Rule digest version tags (from RVW-REVIEW-03's rule-digests.json) included in integrity chain if available"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "RVW-REVIEW-06",
+      "title": "P1: CI Linting for Absolute Path Leakage (normalize all docs/configs to repo-relative paths with automated CI enforcement)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-REPAIR-10"
+      ],
+      "requirement_source": "REVIEW_REPORT §P1#6 — Normalize All Docs and References to Repo-Relative Paths; FW-REPAIR-10 fixes single path in subagent-preamble.md; gap is comprehensive CI linting",
+      "target_files": [
+        ".opencode/scripts/path-canonical-lint.sh",
+        ".github/workflows/path-lint.yml",
+        ".opencode/scripts/workspace-root-validator.js"
+      ],
+      "acceptance_criteria": [
+        "path-canonical-lint.sh created: scans all .md, .yaml/.yml, .json, .sh, .js, .ts files in .opencode/ and root for absolute paths (patterns: /home/, /Users/, C:\\, /tmp/ that don't resolve to within OPENCODE_ROOT)",
+        "Whitelist: /tmp/opencode (system temp), /usr/bin/ (system tools), ${OPENCODE_ROOT} (placeholder) — these are acceptable absolute paths",
+        "Violation report: file path + line number + offending path + suggested relative replacement",
+        "GitHub Actions path-lint.yml: runs on PR → blocks merge if absolute path leakage found (exit code 1)",
+        "workspace-root-validator.js reused (from RVW-REVIEW-02) for path validation logic",
+        "FW-REPAIR-10's single-file fix verified by CI lint (subagent-preamble.md must pass)",
+        "Documentation added to TEMPLATE_VARIABLE_STANDARD.md (from FW-REPAIR-11) specifying that all file references must use {placeholder} or repo-relative paths"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "RVW-REVIEW-07",
+      "title": "P2: Implement Event-Sourced Audit Log Layer (append-only events → derived materialized states for gate/machine)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [
+        "RVW-REVIEW-01"
+      ],
+      "requirement_source": "REVIEW_REPORT §P2#7 — Event-Sourced Audit Log Layer; depends on RVW-REVIEW-01 transaction envelope for operation_id and revision tracking",
+      "target_files": [
+        ".opencode/state/audit-events.jsonl",
+        ".opencode/scripts/audit-event-processor.js",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/state/machine.schema.json"
+      ],
+      "acceptance_criteria": [
+        ".opencode/state/audit-events.jsonl created as append-only event log (JSON Lines format, one event per line)",
+        "Event schema: { event_id, operation_id, timestamp, event_type (gate_armed|gate_closed|state_mutation|tdd_violation|compliance_violation), agent, task_id, payload, parent_operation_id }",
+        "audit-event-processor.js created: replays events from audit-events.jsonl to derive materialized state snapshots (can rebuild machine.json and gate-state.json from event log)",
+        "compliance-gate.js extended: gate_confirm emits EventType.GATE_ARMED, gate_complete emits EventType.GATE_CLOSED, both with operation_id from RVW-REVIEW-01 transaction",
+        "Event log is append-only: no updates or deletions allowed. Validation: last event checksum + sequence number verify integrity",
+        "machine.schema.json updated: add audit_event_log field pointing to audit-events.jsonl with last_event_sequence validation",
+        "Performance: event replay for 10k events must complete in < 2 seconds"
+      ],
+      "estimated_effort": "L"
+    },
+    {
+      "id": "RVW-REVIEW-08",
+      "title": "P2: Formalize Enforcement Modes (advisory/strict/locked for environment tiers)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [],
+      "requirement_source": "REVIEW_REPORT §P2#8 — Formalize Enforcement Modes; advisory/strict/locked modes for different environments",
+      "target_files": [
+        ".opencode/rules/rule_detail/enforcement-modes-standard.md",
+        ".opencode/scripts/enforcement-mode-check.sh",
+        ".opencode/project.config.json"
+      ],
+      "acceptance_criteria": [
+        "enforcement-modes-standard.md created documenting three enforcement tiers: (a) advisory — violations logged but never block, suitable for development; (b) strict — violations block commit/PR, suitable for CI/staging; (c) locked — violations block everything including local development, suitable for production-config branches",
+        "enforcement-mode-check.sh created: reads enforcement_mode from project.config.json or ENFORCEMENT_MODE env var → adjusts gate behavior accordingly",
+        "Advisory mode: compliance_gate_check always passes, violations → warnings only; eslint-audit runs but does not fail",
+        "Strict mode: compliance_gate_check enforces DAG coverage, reconciliation, integrity chain; eslint-audit fails on violations",
+        "Locked mode: all strict checks + workspace-root enforcement + gate-state sync enforcement + write_audit validation; no waivers accepted",
+        "Mode transition: advisory → strict → locked is one-way (can't downgrade without explicit reset); locked → advisory requires state-machine-reset.sh --force",
+        "project.config.json template_resolution extended with enforcement_mode default: 'advisory'"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "RVW-REVIEW-09",
+      "title": "P2: Create Universal Compatibility Profile for Non-Angular/Nest Stacks (React, Vue, Express, Django, etc.)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [
+        "UNIV-P6-O"
+      ],
+      "requirement_source": "REVIEW_REPORT §P2#9 — Universal Compatibility Profile; UNIV tasks parameterize for Angular/NestJS but don't define formal profile for completely different stacks",
+      "target_files": [
+        ".opencode/rules/rule_detail/universal-compatibility-profile.md",
+        ".opencode/project.config.json"
+      ],
+      "acceptance_criteria": [
+        "universal-compatibility-profile.md created documenting: (a) Required MCP tools per stack category, (b) Minimum agent config adjustments per stack, (c) Contract schema compatibility requirements, (d) Testing framework adapter patterns, (e) CI/CD pipeline template mapping",
+        "Stack categories defined with conformance levels: (1) Native (Angular/NestJS — all features), (2) Compatible (React/Next.js + Express/Fastify — core features, some adapters needed), (3) Partial (Vue/Svelte + Django/Flask — requires custom adapters for signal-store, Prisma alternatives), (4) Minimal (any stack — only AGENTS.md + Task.DAG.json + contract.yaml workflow)",
+        "For each conformance level: list of features that work out-of-box, features requiring adapters, features that are unavailable",
+        "Adapter interface defined: for non-Prisma ORMs, non-NgRx state management, non-Jest test runners — what contract each adapter must fulfill",
+        "project.config.json template_resolution extended with 'compatibility_profile' field defaulting to 'native'",
+        "Cross-reference table: which UNIV-P* tasks are stack-agnostic vs. stack-specific (reference for future adopters)"
+      ],
+      "estimated_effort": "M"
     }
   ],
   "execution_order": {
-    "phase_0_bugfix": ["BUG-SENDCODE-ANALYSIS"],
-    "phase_0b_bugfix_red": ["BUG-SENDCODE-RED"],
-    "phase_0c_bugfix_green": ["BUG-SENDCODE-GREEN"],
-    "phase_0d_bugfix_review": ["BUG-SENDCODE-REVIEW"],
-    "phase_1_backend": ["B-MSG-CONTRACT", "B-MSG-RED-001"],
+    "phase_0_bugfix": [
+      "BUG-SENDCODE-ANALYSIS"
+    ],
+    "phase_0b_bugfix_red": [
+      "BUG-SENDCODE-RED"
+    ],
+    "phase_0c_bugfix_green": [
+      "BUG-SENDCODE-GREEN"
+    ],
+    "phase_0d_bugfix_review": [
+      "BUG-SENDCODE-REVIEW"
+    ],
+    "phase_1_backend": [
+      "B-MSG-CONTRACT",
+      "B-MSG-RED-001"
+    ],
     "phase_2_parallel": {
-      "backend": ["B-MSG-GREEN-001"],
-      "frontend": ["B-MSG-RED-FE"]
+      "backend": [
+        "B-MSG-GREEN-001"
+      ],
+      "frontend": [
+        "B-MSG-RED-FE"
+      ]
     },
-    "phase_3_frontend": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
-    "phase_4_integration": ["B-MSG-GREEN-FE-HEADER", "B-MSG-GREEN-FE-STORE"],
-    "phase_5_review": ["B-MSG-GUARDIAN"],
-    "phase_fw_optimization": ["OPC-FW-ACL", "OPC-FW-DAG-GATE"],
-    "phase_fw_selfcheck_audit": ["OPC-FW-SELFCHECK", "OPC-FW-AUDIT"],
-    "univ_phase_0": ["UNIV-P0-E"],
-    "univ_phase_1": ["UNIV-P1-C", "UNIV-P1-D"],
-    "univ_phase_2": ["UNIV-P2-A", "UNIV-P2-B", "UNIV-P2-J"],
-    "univ_phase_3": ["UNIV-P3-F", "UNIV-P3-G"],
-    "univ_phase_4_parallel": ["UNIV-P4-H", "UNIV-P4-I"],
+    "phase_3_frontend": [
+      "B-MSG-GREEN-FE-COMPONENT",
+      "B-MSG-GREEN-FE-SERVICE"
+    ],
+    "phase_4_integration": [
+      "B-MSG-GREEN-FE-HEADER",
+      "B-MSG-GREEN-FE-STORE"
+    ],
+    "phase_5_review": [
+      "B-MSG-GUARDIAN"
+    ],
+    "phase_fw_optimization": [
+      "OPC-FW-ACL",
+      "OPC-FW-DAG-GATE"
+    ],
+    "phase_fw_selfcheck_audit": [
+      "OPC-FW-SELFCHECK",
+      "OPC-FW-AUDIT"
+    ],
+    "univ_phase_0": [
+      "UNIV-P0-E"
+    ],
+    "univ_phase_1": [
+      "UNIV-P1-C",
+      "UNIV-P1-D"
+    ],
+    "univ_phase_2": [
+      "UNIV-P2-A",
+      "UNIV-P2-B",
+      "UNIV-P2-J"
+    ],
+    "univ_phase_3": [
+      "UNIV-P3-F",
+      "UNIV-P3-G"
+    ],
+    "univ_phase_4_parallel": [
+      "UNIV-P4-H",
+      "UNIV-P4-I"
+    ],
     "univ_phase_5_parallel": [
       "UNIV-P5-K",
       "UNIV-P5-L",
       "UNIV-P5-M",
       "UNIV-P5-N"
     ],
-    "univ_phase_6": ["UNIV-P6-O"],
-    "fw_repair_p0": ["FW-REPAIR-01", "FW-REPAIR-02", "FW-REPAIR-04"],
-    "fw_repair_p0_dep": ["FW-REPAIR-03"],
+    "univ_phase_6": [
+      "UNIV-P6-O"
+    ],
+    "fw_repair_p0": [
+      "FW-REPAIR-01",
+      "FW-REPAIR-02",
+      "FW-REPAIR-04"
+    ],
+    "fw_repair_p0_dep": [
+      "FW-REPAIR-03"
+    ],
     "fw_repair_p1": [
       "FW-REPAIR-05",
       "FW-REPAIR-06",
       "FW-REPAIR-07",
       "FW-REPAIR-08"
     ],
-    "fw_repair_p2": ["FW-REPAIR-09", "FW-REPAIR-10", "FW-REPAIR-11"]
+    "fw_repair_p2": [
+      "FW-REPAIR-09",
+      "FW-REPAIR-10",
+      "FW-REPAIR-11"
+    ],
+    "phase_review_p0": [
+      "RVW-REVIEW-01",
+      "RVW-REVIEW-02",
+      "RVW-REVIEW-03"
+    ],
+    "phase_review_p1": [
+      "RVW-REVIEW-04",
+      "RVW-REVIEW-05",
+      "RVW-REVIEW-06"
+    ],
+    "phase_review_p2": [
+      "RVW-REVIEW-07",
+      "RVW-REVIEW-08",
+      "RVW-REVIEW-09"
+    ]
   },
   "meta": {
-    "total_tasks": 43,
+    "total_tasks": 52,
     "backlog_estimate": "3-4 days",
     "coverage_target": "≥ 70% for backend, ≥ 70% for frontend",
     "spec_documents": [
@@ -914,6 +1338,6 @@
       "root_cause_hypothesis": "Contract-Code Mismatch: contract.yaml declares enum ['EMAIL','PHONE'] (UPPERCASE) but backend ContactType enum uses lowercase ['email','phone']. HTML template comparison bug: 'EMAIL'/'PHONE' hardcoded string literals vs lowercase enum values.",
       "analysis_doc": ".task_temp/BUG-SENDCODE-PLAN/TASK_LOG.md"
     },
-    "description": "Appended 11 framework repair tasks (FW-REPAIR-01 through FW-REPAIR-11) per @Architect Architecture Report v2.4.0"
+    "description": "Appended 9 review remediation tasks (RVW-REVIEW-01 through RVW-REVIEW-09) based on 2026-05-21 Opencode Framework Core Feature & Risk Assessment Review. Covers P0 (state transaction envelope, workspace canonicalization, semantic gate preflight), P1 (reconciliation daemon, integrity chaining, path normalization CI linting), and P2 (event-sourced audit log, enforcement modes, universal compatibility profile)."
   }
 }

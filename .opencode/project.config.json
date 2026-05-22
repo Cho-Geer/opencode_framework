@@ -63,10 +63,51 @@
     "container": "Docker Compose v2"
   },
   "template_resolution": {
+    "enforcement_mode": "advisory",
+    "enforcement_config": {
+      "advisory": {
+        "description": "Warnings only, non-blocking. Suitable for local development.",
+        "block_on": [],
+        "log_level": "warn"
+      },
+      "strict": {
+        "description": "Blocks non-compliant actions. Suitable for CI/staging.",
+        "block_on": ["gate_armed", "keystone_hash", "tdd_order", "dag_gate", "eslint_audit", "role_scope"],
+        "log_level": "error"
+      },
+      "locked": {
+        "description": "Prevents all changes without governance override. Suitable for production config branches.",
+        "block_on": ["gate_armed", "keystone_hash", "keystone_integrity", "tdd_order", "dag_gate", "eslint_audit", "role_scope", "workspace_root", "gate_state_sync", "write_audit_integrity"],
+        "log_level": "error",
+        "allow_waivers": false,
+        "allow_downgrade": false
+      }
+    },
     "contract_hash_command": "node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml",
-    "backend.orm.schema": "prisma/schema.prisma",
+    "backend.src": "booking-backend/src/",
+    "backend.framework": "NestJS",
+    "backend.runtime": "Node.js 22.x",
+    "backend.language": "TypeScript 5.x",
+    "backend.orm.schema": "booking-backend/prisma/schema.prisma",
+    "backend.orm.transaction": "Prisma $transaction() with interactive transactions",
+    "backend.auth": "JWT + Passport with @Roles() and @SkipAuth() decorators",
+    "backend.rate_limit": "NestJS ThrottlerModule: 15/min auth, 60/min admin, 120/min health",
+    "backend.error_handler": "Global ExceptionFilter + PrismaExceptionFilter, unified ResponseDto envelope",
+    "backend.logger": "NestJS Logger with request interceptor (method, URL, status, duration)",
+    "backend.api_docs": "Swagger/OpenAPI via @nestjs/swagger with @ApiProperty decorators",
+    "backend.cache_pattern": "Redis 7.x + ioredis, cache-aside pattern (TTL 300s)",
+    "frontend.src": "booking-frontend/",
+    "frontend.framework": "Angular 21+",
+    "frontend.state_management": "NgRx SignalStore",
+    "frontend.ui_library": "PrimeNG",
+    "frontend.css": "Tailwind CSS v4",
     "frontend.dto_path": "src/app/shared/dto/",
     "frontend.env_path": "src/environments/environment.ts",
+    "frontend.css_strategy": "Tailwind CSS v4 First; SCSS for complex animations; BEM naming for private styles",
+    "frontend.state_pattern": "NgRx SignalStore: signalStore() + withState() + withComputed() + withMethods()",
+    "frontend.component_hierarchy": "Atomic Design: Atoms → Molecules → Organisms → Layouts → Pages",
+    "frontend.lazy_loading": "Angular loadChildren/loadComponent + @defer(on viewport)",
+    "frontend.api_pattern": "Service encapsulation + DTO alignment; HttpClient forbidden in components",
     "cache.engine": "Redis 7.x",
     "cache.client": "ioredis",
     "queue.engine": "BullMQ"
@@ -159,6 +200,53 @@
       "priority": 2
     }
   ],
+  "path_lint": {
+    "$description": "Absolute path leakage detection configuration. Used by Check 19 in framework-self-test.js and path-canonical-lint.sh.",
+    "scan_roots": [
+      ".opencode/",
+      "."
+    ],
+    "file_extensions": [
+      ".md",
+      ".json",
+      ".yaml",
+      ".yml",
+      ".sh",
+      ".js",
+      ".ts"
+    ],
+    "leak_patterns": [
+      { "name": "Linux home", "pattern": "/home/" },
+      { "name": "macOS home", "pattern": "/Users/" },
+      { "name": "root user", "pattern": "/root/" },
+      { "name": "Windows absolute", "pattern": "[A-Za-z]:\\\\" }
+    ],
+    "whitelist": {
+      "approved_absolute_paths": [
+        "/tmp/opencode",
+        "/usr/bin/"
+      ],
+      "template_patterns": [
+        "{\\w+}",
+        "\\$\\{"
+      ],
+      "url_patterns": [
+        "https?://",
+        "ftp://"
+      ],
+      "skip_directories": [
+        ".opencode/state/"
+      ]
+    },
+    "suggestion_templates": {
+      "project_root_match": "{project_root}/<relative> OR ./<relative>",
+      "github_runner_match": "${GITHUB_WORKSPACE}/<relative> OR ./<relative>",
+      "generic_home_match": "Consider replacing with {project_root}/... or a repo-relative path",
+      "windows_drive_match": "Consider replacing with a repo-relative path (./...)",
+      "tmp_not_opencode": "Consider using /tmp/opencode/ (approved) or $TMPDIR",
+      "fallback": "Consider replacing with a repo-relative path or {placeholder}"
+    }
+  },
   "agent_write_scopes": {
     "@Coder-BE": {
       "allowed": [
