@@ -2,23 +2,24 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-21T09:46:25.219Z",
+    "lastUpdated": "2026-05-22T01:41:59.982Z",
     "project": "booking-system",
-    "framework": "opencode-v3"
+    "framework": "opencode-v3",
+    "revision": 4
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-21T03:18:33.535Z",
+    "last_full_scan": "2026-05-22T01:37:44.044Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-21T02:07:22.225Z",
+        "last_check": "2026-05-22T01:37:44.044Z",
         "waivers_applied": []
       },
       "unknown": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-21T03:18:33.534Z",
+        "last_check": "2026-05-21T23:36:06.946Z",
         "waivers_applied": []
       },
       "admin": {
@@ -38,39 +39,63 @@
     "status": "clean",
     "dirty_files": [],
     "incremental_errors": 0,
-    "last_incremental_check": "2026-05-21T09:46:25.219Z"
+    "last_incremental_check": "2026-05-22T01:40:48.660Z"
   },
   "dependency_state": {
-    "last_check": "2026-05-21T09:46:25.219Z",
+    "last_check": "2026-05-22T01:40:48.660Z",
     "violations": [],
-    "forbidden_rules_applied": 27,
+    "forbidden_rules_applied": 56,
     "status": "clean"
   },
   "format_state": {
     "status": "clean",
     "unformatted_files": [],
     "last_run": null,
-    "last_check": "2026-05-21T09:46:25.219Z",
-    "auto_fix_count": 2
+    "last_check": "2026-05-22T01:40:48.660Z",
+    "auto_fix_count": 16
   },
   "write_audit_state": {
     "enabled": true,
     "current_session": {
       "agent": "@Architect",
-      "task_id": "FW-REPAIR-03",
+      "task_id": "FW-REPAIR-01",
       "files_written": [
-        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.task_temp/FW-REPAIR-03-06-07-08-10-11/TASK_LOG.md",
-        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/state/machine.schema.json",
-        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/subagent-preamble.md",
-        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/rules/rule_detail/template-variable-standard.md",
-        "/home/zhaoge/workspace/opencode/Playground2.backup.20260426_012219/.opencode/project.config.json"
+        ".opencode/project.config.json",
+        ".opencode/project.config.json",
+        ".opencode/state/machine.json",
+        "contract.yaml",
+        ".opencode/state/machine.json",
+        ".opencode/scripts/state-machine-reset.sh",
+        ".opencode/rules/rule_detail/template-variable-standard.md",
+        ".task_temp/FW-REPAIR-07/TASK_LOG.md",
+        ".opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md",
+        ".opencode/state/machine.schema.json",
+        ".opencode/rules/rule_detail/state-machine-standard.md",
+        ".opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/scripts/state-transaction.js",
+        ".opencode/rules/rule_detail/COMPATIBILITY_PROFILE.md",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/state/rule_registry.json",
+        ".opencode/scripts/reconciliation-check.sh",
+        ".opencode/scripts/pre-execution-hook.sh",
+        ".opencode/scripts/framework-self-test.js",
+        ".opencode/scripts/framework-self-test.js",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/scripts/framework-self-test.js",
+        ".opencode/scripts/state-transaction.js",
+        ".opencode/scripts/__tests__/state-transaction.test.js",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/state/machine.schema.json",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js"
       ],
-      "checks_run": 5,
-      "checks_passed": 4,
-      "checks_failed": 1,
-      "violations_found": 1,
+      "checks_run": 29,
+      "checks_passed": 22,
+      "checks_failed": 7,
+      "violations_found": 7,
       "violations_resolved": 0,
-      "scope_violations_attempted": 1
+      "scope_violations_attempted": 0
     },
     "history": []
   },
@@ -92,14 +117,108 @@
   },
   "tdd_enforcement_state": {
     "enabled": true,
-    "current_session": null,
-    "violations": [],
+    "current_session": {
+      "test_written": true,
+      "impl_files_attempted": [
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/scripts/state-transaction.js",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/scripts/framework-self-test.js",
+        ".opencode/scripts/framework-self-test.js",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/scripts/state-transaction.js"
+      ],
+      "blocked_attempts": [
+        {
+          "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
+          "timestamp": "2026-05-21T23:37:12.915Z"
+        },
+        {
+          "file": ".opencode/scripts/state-transaction.js",
+          "timestamp": "2026-05-22T01:31:28.926Z"
+        },
+        {
+          "file": ".opencode/scripts/mcp-tools/compliance-gate.js",
+          "timestamp": "2026-05-22T01:36:42.416Z"
+        },
+        {
+          "file": ".opencode/scripts/framework-self-test.js",
+          "timestamp": "2026-05-22T01:37:00.387Z"
+        },
+        {
+          "file": ".opencode/scripts/framework-self-test.js",
+          "timestamp": "2026-05-22T01:37:22.044Z"
+        },
+        {
+          "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
+          "timestamp": "2026-05-22T01:37:32.320Z"
+        },
+        {
+          "file": ".opencode/scripts/state-transaction.js",
+          "timestamp": "2026-05-22T01:39:17.790Z"
+        }
+      ],
+      "test_files_written": [
+        ".opencode/scripts/__tests__/state-transaction.test.js"
+      ],
+      "initialized": true
+    },
+    "violations": [
+      {
+        "timestamp": "2026-05-21T23:37:12.915Z",
+        "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        "code": "CAT5.2",
+        "message": "Implementation written without preceding test: code-quality-gate.js"
+      },
+      {
+        "timestamp": "2026-05-22T01:31:28.926Z",
+        "file": ".opencode/scripts/state-transaction.js",
+        "code": "CAT5.2",
+        "message": "Implementation written without preceding test: state-transaction.js"
+      },
+      {
+        "timestamp": "2026-05-22T01:36:42.416Z",
+        "file": ".opencode/scripts/mcp-tools/compliance-gate.js",
+        "code": "CAT5.2",
+        "message": "Implementation written without preceding test: compliance-gate.js"
+      },
+      {
+        "timestamp": "2026-05-22T01:37:00.387Z",
+        "file": ".opencode/scripts/framework-self-test.js",
+        "code": "CAT5.2",
+        "message": "Implementation written without preceding test: framework-self-test.js"
+      },
+      {
+        "timestamp": "2026-05-22T01:37:22.044Z",
+        "file": ".opencode/scripts/framework-self-test.js",
+        "code": "CAT5.2",
+        "message": "Implementation written without preceding test: framework-self-test.js"
+      },
+      {
+        "timestamp": "2026-05-22T01:37:32.320Z",
+        "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        "code": "CAT5.2",
+        "message": "Implementation written without preceding test: code-quality-gate.js"
+      },
+      {
+        "timestamp": "2026-05-22T01:39:17.790Z",
+        "file": ".opencode/scripts/state-transaction.js",
+        "code": "CAT5.2",
+        "message": "Implementation written without preceding test: state-transaction.js"
+      }
+    ],
     "history": []
   },
   "contracts": [
     "contract.yaml"
   ],
   "keystone_hashes": {
-    "contract.yaml": "sha256-ead50d41f3aaa532dbe28be01288ffc3b1bcb5c056420299cf29b4475ca7a478"
+    "contract.yaml": "sha256-be27d37a9b996597b5e4162315c58ab03fd504947dea205d1fffa61fc85fec83"
+  },
+  "transaction_state": {
+    "last_operation_id": "b9bc7d33-a9c7-4a1d-9b8c-9ff348e262ba",
+    "last_transaction_at": "2026-05-22T13:24:16.036Z",
+    "pending_operations": [],
+    "transaction_log_path": ".opencode/state/.transaction-log"
   }
 }
