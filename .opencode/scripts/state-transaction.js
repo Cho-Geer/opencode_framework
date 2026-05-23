@@ -610,9 +610,11 @@ function verifyTransactionLog() {
     }
   }
 
-  // Check 4: Revision monotonicity (for entries with new_revision)
+  // Check 4: Revision monotonicity (only COMMIT entries, since COMMIT represents
+  // the definitive state change. BEGIN entries may carry new_revision from legacy
+  // logs, but only COMMIT is authoritative for the revision sequence.)
   const revisionEntries = entries
-    .filter((e) => e.new_revision != null)
+    .filter((e) => e.phase === "COMMIT" && e.new_revision != null)
     .sort((a, b) => a.new_revision - b.new_revision);
 
   let prevRevision = -1;

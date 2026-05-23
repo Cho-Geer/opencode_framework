@@ -7,12 +7,12 @@
   },
   "project_root": ".",
   "paths": {
-    "backend_src": "booking-backend/src/",
-    "frontend_src": "booking-frontend/",
+    "backend_src": "booking_system_refactor/booking-backend/src/",
+    "frontend_src": "booking_system_refactor/booking-frontend/",
     "contracts": "contract.yaml",
     "requirements": ".opencode/context/requirements/",
     "code_standards": ".opencode/context/code_standards/",
-    "tests": "booking-backend/test/",
+    "tests": "booking_system_refactor/booking-backend/test/",
     "state": ".opencode/state/"
   },
   "tech_stack": {
@@ -64,6 +64,7 @@
   },
   "template_resolution": {
     "enforcement_mode": "strict",
+    "compatibility_profile": "native",
     "enforcement_config": {
       "advisory": {
         "description": "Warnings only, non-blocking. Suitable for local development.",
@@ -72,23 +73,41 @@
       },
       "strict": {
         "description": "Blocks non-compliant actions. Suitable for CI/staging.",
-        "block_on": ["gate_armed", "keystone_hash", "tdd_order", "dag_gate", "eslint_audit", "role_scope"],
+        "block_on": [
+          "gate_armed",
+          "keystone_hash",
+          "tdd_order",
+          "dag_gate",
+          "eslint_audit",
+          "role_scope"
+        ],
         "log_level": "error"
       },
       "locked": {
         "description": "Prevents all changes without governance override. Suitable for production config branches.",
-        "block_on": ["gate_armed", "keystone_hash", "keystone_integrity", "tdd_order", "dag_gate", "eslint_audit", "role_scope", "workspace_root", "gate_state_sync", "write_audit_integrity"],
+        "block_on": [
+          "gate_armed",
+          "keystone_hash",
+          "keystone_integrity",
+          "tdd_order",
+          "dag_gate",
+          "eslint_audit",
+          "role_scope",
+          "workspace_root",
+          "gate_state_sync",
+          "write_audit_integrity"
+        ],
         "log_level": "error",
         "allow_waivers": false,
         "allow_downgrade": false
       }
     },
     "contract_hash_command": "node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml",
-    "backend.src": "booking-backend/src/",
+    "backend.src": "booking_system_refactor/booking-backend/src/",
     "backend.framework": "NestJS",
     "backend.runtime": "Node.js 22.x",
     "backend.language": "TypeScript 5.x",
-    "backend.orm.schema": "booking-backend/prisma/schema.prisma",
+    "backend.orm.schema": "booking_system_refactor/booking-backend/prisma/schema.prisma",
     "backend.orm.transaction": "Prisma $transaction() with interactive transactions",
     "backend.auth": "JWT + Passport with @Roles() and @SkipAuth() decorators",
     "backend.rate_limit": "NestJS ThrottlerModule: 15/min auth, 60/min admin, 120/min health",
@@ -96,7 +115,7 @@
     "backend.logger": "NestJS Logger with request interceptor (method, URL, status, duration)",
     "backend.api_docs": "Swagger/OpenAPI via @nestjs/swagger with @ApiProperty decorators",
     "backend.cache_pattern": "Redis 7.x + ioredis, cache-aside pattern (TTL 300s)",
-    "frontend.src": "booking-frontend/",
+    "frontend.src": "booking_system_refactor/booking-frontend/",
     "frontend.framework": "Angular 21+",
     "frontend.state_management": "NgRx SignalStore",
     "frontend.ui_library": "PrimeNG",
@@ -202,19 +221,8 @@
   ],
   "path_lint": {
     "$description": "Absolute path leakage detection configuration. Used by Check 19 in framework-self-test.js and path-canonical-lint.sh.",
-    "scan_roots": [
-      ".opencode/",
-      "."
-    ],
-    "file_extensions": [
-      ".md",
-      ".json",
-      ".yaml",
-      ".yml",
-      ".sh",
-      ".js",
-      ".ts"
-    ],
+    "scan_roots": [".opencode/", "."],
+    "file_extensions": [".md", ".json", ".yaml", ".yml", ".sh", ".js", ".ts"],
     "leak_patterns": [
       { "name": "Linux home", "pattern": "/home/" },
       { "name": "macOS home", "pattern": "/Users/" },
@@ -222,21 +230,10 @@
       { "name": "Windows absolute", "pattern": "[A-Za-z]:\\\\" }
     ],
     "whitelist": {
-      "approved_absolute_paths": [
-        "/tmp/opencode",
-        "/usr/bin/"
-      ],
-      "template_patterns": [
-        "{\\w+}",
-        "\\$\\{"
-      ],
-      "url_patterns": [
-        "https?://",
-        "ftp://"
-      ],
-      "skip_directories": [
-        ".opencode/state/"
-      ]
+      "approved_absolute_paths": ["/tmp/opencode", "/usr/bin/"],
+      "template_patterns": ["{\\w+}", "\\$\\{"],
+      "url_patterns": ["https?://", "ftp://"],
+      "skip_directories": [".opencode/state/"]
     },
     "suggestion_templates": {
       "project_root_match": "{project_root}/<relative> OR ./<relative>",
@@ -250,15 +247,15 @@
   "agent_write_scopes": {
     "@Coder-BE": {
       "allowed": [
-        "booking-backend/src/**",
-        "booking-backend/test/**",
-        "booking-backend/prisma/**",
-        "booking-backend/*.{json,js,ts}",
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-backend/test/**",
+        "booking_system_refactor/booking-backend/prisma/**",
+        "booking_system_refactor/booking-backend/*.{json,js,ts}",
         ".task_temp/**",
         "contract.yaml"
       ],
       "denied": [
-        "booking-frontend/**",
+        "booking_system_refactor/booking-frontend/**",
         ".opencode/agents/**",
         ".opencode/rules/**",
         ".opencode/tools/**",
@@ -270,9 +267,13 @@
       ]
     },
     "@Coder-FE": {
-      "allowed": ["booking-frontend/**", ".task_temp/**", "contract.yaml"],
+      "allowed": [
+        "booking_system_refactor/booking-frontend/**",
+        ".task_temp/**",
+        "contract.yaml"
+      ],
       "denied": [
-        "booking-backend/**",
+        "booking_system_refactor/booking-backend/**",
         ".opencode/agents/**",
         ".opencode/rules/**",
         ".opencode/tools/**",
@@ -297,16 +298,16 @@
         ".opencode/scripts/**"
       ],
       "denied": [
-        "booking-backend/src/**",
-        "booking-frontend/src/**",
-        "booking-backend/test/**"
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
+        "booking_system_refactor/booking-backend/test/**"
       ]
     },
     "@Meta-Planner": {
       "allowed": [".task_temp/**", "Task.DAG.json", "Project.graph"],
       "denied": [
-        "booking-backend/src/**",
-        "booking-frontend/src/**",
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
         ".opencode/tools/**",
         ".opencode/scripts/**",
         ".opencode/state/**",
@@ -316,8 +317,8 @@
     "@Orchestrator": {
       "allowed": [".task_temp/**", "Task.DAG.json"],
       "denied": [
-        "booking-backend/src/**",
-        "booking-frontend/src/**",
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
         "contract.yaml",
         ".opencode/tools/**",
         ".opencode/scripts/**"
@@ -326,8 +327,8 @@
     "@Guardian": {
       "allowed": [".task_temp/**"],
       "denied": [
-        "booking-backend/src/**",
-        "booking-frontend/src/**",
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
         "contract.yaml",
         ".opencode/**",
         "AGENTS.md",
@@ -337,8 +338,8 @@
     "@Arbiter": {
       "allowed": [".task_temp/**", "WAIVE.md", "TECH_DEBT_REGISTRY.md"],
       "denied": [
-        "booking-backend/src/**",
-        "booking-frontend/src/**",
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
         "contract.yaml",
         ".opencode/tools/**",
         ".opencode/scripts/**"
@@ -350,12 +351,12 @@
         ".github/workflows/**",
         "Dockerfile*",
         ".env.*",
-        "booking-backend/prisma/**",
+        "booking_system_refactor/booking-backend/prisma/**",
         ".task_temp/**"
       ],
       "denied": [
-        "booking-backend/src/**",
-        "booking-frontend/src/**",
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
         ".opencode/agents/**",
         ".opencode/rules/**"
       ]

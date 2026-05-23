@@ -2,24 +2,24 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-23T06:23:57.722Z",
+    "lastUpdated": "2026-05-23T11:29:32.194Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 31
+    "revision": 209
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-23T06:23:57.722Z",
+    "last_full_scan": "2026-05-23T11:29:32.194Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-22T01:37:44.044Z",
+        "last_check": "2026-05-23T11:29:32.194Z",
         "waivers_applied": []
       },
       "unknown": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-23T06:23:57.722Z",
+        "last_check": "2026-05-23T11:17:34.991Z",
         "waivers_applied": []
       },
       "admin": {
@@ -36,23 +36,33 @@
     }
   },
   "type_check_state": {
-    "status": "clean",
-    "dirty_files": [],
-    "incremental_errors": 0,
-    "last_incremental_check": "2026-05-22T01:40:48.660Z"
+    "status": "dirty",
+    "dirty_files": [
+      "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.spec.ts",
+      "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.ts",
+      "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.spec.ts",
+      "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-layout/app-layout.component.ts",
+      "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts",
+      "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.spec.ts",
+      "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
+    ],
+    "incremental_errors": 7,
+    "last_incremental_check": "2026-05-23T11:14:27.139Z"
   },
   "dependency_state": {
-    "last_check": "2026-05-22T01:40:48.660Z",
+    "last_check": "2026-05-23T11:14:27.139Z",
     "violations": [],
-    "forbidden_rules_applied": 56,
+    "forbidden_rules_applied": 82,
     "status": "clean"
   },
   "format_state": {
-    "status": "clean",
-    "unformatted_files": [],
+    "status": "dirty",
+    "unformatted_files": [
+      "contract.yaml"
+    ],
     "last_run": null,
-    "last_check": "2026-05-22T01:40:48.660Z",
-    "auto_fix_count": 16
+    "last_check": "2026-05-23T11:14:27.139Z",
+    "auto_fix_count": 24
   },
   "write_audit_state": {
     "enabled": true,
@@ -88,12 +98,38 @@
         ".opencode/scripts/mcp-tools/compliance-gate.js",
         ".opencode/scripts/mcp-tools/code-quality-gate.js",
         ".opencode/state/machine.schema.json",
-        ".opencode/scripts/mcp-tools/code-quality-gate.js"
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/project.config.json",
+        ".opencode/state/rule_registry.json",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/state/gate-state.json",
+        ".opencode/project.config.json",
+        ".opencode/state/machine.schema.json",
+        ".opencode/scripts/mcp-tools/code-quality-gate.js",
+        ".opencode/state/machine.json",
+        "contract.yaml",
+        ".opencode/rules/rule_detail/universal-compatibility-profile.md",
+        ".opencode/project.config.json",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.spec.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.html",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.spec.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-layout/app-layout.component.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.spec.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/TASK_LOG.md",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
+        ".task_temp/_dispatch/INVOCATION_SUMMARY.md",
+        ".opencode/scripts/mcp-tools/eslint-audit.js",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js"
       ],
-      "checks_run": 29,
-      "checks_passed": 22,
-      "checks_failed": 7,
-      "violations_found": 7,
+      "checks_run": 55,
+      "checks_passed": 40,
+      "checks_failed": 15,
+      "violations_found": 15,
       "violations_resolved": 0,
       "scope_violations_attempted": 0
     },
@@ -159,7 +195,14 @@
         }
       ],
       "test_files_written": [
-        ".opencode/scripts/__tests__/state-transaction.test.js"
+        ".opencode/scripts/__tests__/state-transaction.test.js",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.spec.ts",
+        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.spec.ts",
+        "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.spec.ts",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js"
       ],
       "initialized": true
     },
@@ -213,11 +256,34 @@
     "contract.yaml"
   ],
   "keystone_hashes": {
-    "contract.yaml": "sha256-be27d37a9b996597b5e4162315c58ab03fd504947dea205d1fffa61fc85fec83"
+    "contract.yaml": "sha256-03714e9299df9d66b05ca4a062ceb4c633545a88441a2664be3dc7580f35fedd",
+    ".opencode/context/requirements/系统架构设计文档（SAD）.md": "sha256-8ea014ffde9b54080dcabebee3f4afb70a842e1d5f8d5911734ef3a18d30c0e3",
+    ".opencode/context/requirements/接口设计规范文档.md": "sha256-0097fae4cff4357e329cae89982484b062bf0d0a125ff7e606650ecaf1bb8b05",
+    ".opencode/context/requirements/数据架构设计文档.md": "sha256-19e7342426d025cc2ec710fa09ae719b2d9943e01a2f145524985d77abfc6f64",
+    ".opencode/context/requirements/安全架构设计文档.md": "sha256-f7beb7bd5e109db35aa26db9d4e123700462cbfeae908a404ae207b21ef390fb",
+    ".opencode/context/requirements/测试策略与计划.md": "sha256-02898064a36f83705a1dc264ff99439ed486a19271ce3e6369f9f997546323ef",
+    ".opencode/context/requirements/运维与部署设计文档.md": "sha256-a324cdfe091ba8db0b557ebf2d59b16ab1cce52d4a578db0296a55153ad9808d",
+    ".opencode/rules/backend-coding-standard.md": "sha256-4ad6b97b9615e2eb590bda8de1a49e8258caf6b425972b4f8d0da7fbd27f9c76",
+    ".opencode/rules/coding-standard-common.md": "sha256-3015c3e4a9557762cf639546060d6a4475ca1e6589717bc50951ad2c3062bbce",
+    ".opencode/rules/common-project.md": "sha256-264dad21a63f580f55c77f36c14660ac986c572d28af6c5d5628a3394ab87634",
+    ".opencode/rules/frontend-coding-standard.md": "sha256-bb632d7dc6d87b9d6b46731590468fc53d10ae4eaedda48e13366b2deff69f8d",
+    ".opencode/rules/mcp-compliance-guide.md": "sha256-1fa0b6842912ac410e8315598b3e7e74915d51f0e8847c7321284813166b51dd",
+    ".opencode/rules/skill-compliance-guide.md": "sha256-f5850e9a6aaa54c1d1567273cb098387c42413839b844d9c6db0d7d9cd7cc97f",
+    ".opencode/rules/test-coding-standard.md": "sha256-c3f3cb547d5b981d082e100c754f585b76b0c13c64849d5978cbed928c72a441",
+    ".opencode/agents/arbiter.md": "sha256-dc112fa9c4df9998321578e70c7bc3b8649c1a6e4ad6688bda7770b260964588",
+    ".opencode/agents/architect.md": "sha256-ca1f8bcca61839ebb90eae8432cc86afebb860aaa9590bb6b7388919de489e45",
+    ".opencode/agents/ci-cd-agent.md": "sha256-aba478bcce9a1d90d0395afc72e8c06c488794e617c789ad3f7ba3fddc501250",
+    ".opencode/agents/coder-be.md": "sha256-2a85d8c9b20f9b3d40dc5639aa66a14fbadd45f424bec5edf109314e3773aac6",
+    ".opencode/agents/coder-fe.md": "sha256-aa97377bf0de2d17f5353bb093fad3de591508ab6e086287ae4f5dcd28fe392a",
+    ".opencode/agents/guardian.md": "sha256-88a291a403d21b95ba8a6453a3e371f2e2d413834c408c46be2dd7e4454097ca",
+    ".opencode/agents/meta-planner.md": "sha256-eb6a75956ebeb5988c61f56ac6ec45fe3ff38ef36d0d233a3470521e176f04b9",
+    ".opencode/agents/orchestrator.md": "sha256-9ebadf94732ea96b63ddab19784faae8e864f518584b94e822f858504be9aef8",
+    "AGENTS.md": "sha256-c73f2e280c390ad297a8e1ec355cc59e2ab2071e741f0bf824458cf16dc49b46",
+    "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "b8b74164-3efb-4c26-95e6-3f86b00f60cd",
-    "last_transaction_at": "2026-05-23T06:35:06.222Z",
+    "last_operation_id": "33aa2a62-f67a-4e88-b8c2-eccf017d485a",
+    "last_transaction_at": "2026-05-23T11:29:36.990Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }
