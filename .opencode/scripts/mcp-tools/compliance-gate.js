@@ -119,11 +119,21 @@ function writeJson(p, data) {
       `[compliance-gate] ✓ txn ${txn.operationId} committed (rev ${txn.newRevision}) → ${path.relative(OPENCODE_ROOT, p)}\n`,
     );
   } catch (txnErr) {
-    // Fallback: direct write if transaction engine fails
-    process.stderr.write(
-      `[compliance-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write for ${path.relative(OPENCODE_ROOT, p)}\n`,
-    );
-    fs.writeFileSync(p, content, "utf8");
+    // F6 Fix: Read enforcement mode before handling transaction failure
+    const enfMode = getEnforcementMode();
+    if (enfMode === "advisory") {
+      // Advisory: preserve existing fallback
+      process.stderr.write(
+        `[compliance-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write for ${path.relative(OPENCODE_ROOT, p)}\n`,
+      );
+      fs.writeFileSync(p, content, "utf8");
+    } else {
+      // Strict/locked: fail-closed — NO file written
+      process.stderr.write(
+        `[compliance-gate] ❌ Transaction failed (${txnErr.message}) for ${path.relative(OPENCODE_ROOT, p)} in ${enfMode} mode — file NOT written (fail-closed)\n`,
+      );
+      throw txnErr;
+    }
   }
 }
 
@@ -143,10 +153,19 @@ function writeJsonWithContext(p, data, agent, taskId) {
       `[compliance-gate] ✓ txn ${txn.operationId} committed (rev ${txn.newRevision}) → ${path.relative(OPENCODE_ROOT, p)}\n`,
     );
   } catch (txnErr) {
-    process.stderr.write(
-      `[compliance-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write for ${path.relative(OPENCODE_ROOT, p)}\n`,
-    );
-    fs.writeFileSync(p, content, "utf8");
+    // F6 Fix: Read enforcement mode before handling transaction failure
+    const enfMode = getEnforcementMode();
+    if (enfMode === "advisory") {
+      process.stderr.write(
+        `[compliance-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write for ${path.relative(OPENCODE_ROOT, p)}\n`,
+      );
+      fs.writeFileSync(p, content, "utf8");
+    } else {
+      process.stderr.write(
+        `[compliance-gate] ❌ Transaction failed (${txnErr.message}) for ${path.relative(OPENCODE_ROOT, p)} in ${enfMode} mode — file NOT written (fail-closed)\n`,
+      );
+      throw txnErr;
+    }
   }
 }
 
@@ -448,6 +467,78 @@ function saveStore(store) {
   writeJson(GATE_STATE_FILE, store);
 }
 
+// ── Session Purge (F5) ──────────────────────────────────────────────
+const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(/\.json$/, ".drained_sessions.json");
+
+/**
+ * Purge stale gate sessions based on age thresholds.
+ * - Armed sessions > 24h since confirmed_at → drained
+ * - Checked (unconfirmed) sessions > 48h since created_at → drained
+ * Drained sessions are moved to gate-state.json.drained_sessions to preserve audit trail.
+ * @returns {{ purged: number, drained_sessions: Array, remaining_active: number }}
+ */
+function purgeStaleSessions() {
+  const store = loadStore();
+  const drainedSessions = readJson(DRAINED_STORE_FILE) || { formatVersion: "2.0", drained_sessions: {}, last_drained: null };
+  const nowTs = Date.now();
+  const ARMED_STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
+  const CHECKED_STALE_MS = 48 * 60 * 60 * 1000; // 48 hours
+  let purged = 0;
+  const sessionIds = Object.keys(store.sessions);
+
+  for (const sid of sessionIds) {
+    const ses = store.sessions[sid];
+    if (!ses) continue;
+
+    let shouldDrain = false;
+    let reason = "";
+
+    // Armed but never consumed > 24h
+    if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
+      const age = nowTs - new Date(ses.confirmed_at).getTime();
+      if (age > ARMED_STALE_MS) {
+        shouldDrain = true;
+        reason = `armed for ${Math.floor(age / 3600000)}h without completion`;
+      }
+    }
+
+    // Checked but never confirmed > 48h
+    if (ses.gate_status === "checked" && !ses.confirmed_at) {
+      const age = nowTs - new Date(ses.created_at).getTime();
+      if (age > CHECKED_STALE_MS) {
+        shouldDrain = true;
+        reason = `checked for ${Math.floor(age / 3600000)}h without confirmation`;
+      }
+    }
+
+    if (shouldDrain) {
+      drainedSessions.drained_sessions[sid] = {
+        ...ses,
+        drained_at: new Date().toISOString(),
+        drain_reason: reason,
+      };
+      delete store.sessions[sid];
+      store.active_sessions = store.active_sessions.filter((a) => a !== sid);
+      purged++;
+    }
+  }
+
+  if (purged > 0) {
+    drainedSessions.last_drained = new Date().toISOString();
+    drainedSessions.total_drained = Object.keys(drainedSessions.drained_sessions).length;
+    writeJson(DRAINED_STORE_FILE, drainedSessions);
+    store.last_updated = new Date().toISOString();
+    saveStore(store);
+  }
+
+  return {
+    purged,
+    drained_sessions: purged > 0 ? Object.keys(drainedSessions.drained_sessions).slice(-purged) : [],
+    remaining_active: store.active_sessions.length,
+    remaining_total: Object.keys(store.sessions).length,
+  };
+}
+
 function isSkillLoadedInSession() {
   return fileExists(SKILL_FILE);
 }
@@ -461,6 +552,18 @@ function wasRuleConsulted() {
 }
 
 function runGateCheck(taskDescription) {
+  // ── F5 Auto-purge stale sessions before creating new one ──
+  const enforcementMode = getEnforcementMode();
+  const purgeResult = purgeStaleSessions();
+  if (purgeResult.purged > 0) {
+    const msg = `Purged ${purgeResult.purged} stale session(s) (${purgeResult.remaining_total} remaining, ${purgeResult.remaining_active} active)`;
+    if (enforcementMode === "advisory") {
+      process.stderr.write(`[ADVISORY] ${msg}\n`);
+    } else {
+      process.stderr.write(`[compliance-gate] ${msg}\n`);
+    }
+  }
+
   const store = loadStore();
   const sessionId = generateSessionId();
   const ruleStatus = wasRuleConsulted();
@@ -527,8 +630,11 @@ function runGateCheck(taskDescription) {
     });
   }
 
+  // ── Capture pre-advisory pass/fail BEFORE downgrade ──
+  const hasHighSeverityItems = failed.some((f) => f.severity === "HIGH");
+
   // ── Enforcement Mode: advisory downgrades failures to warnings ──
-  const enforcementMode = getEnforcementMode();
+  // enforcementMode already declared above (line 556)
   if (enforcementMode === "advisory") {
     // Downgrade all HIGH severity items to WARNING
     for (const item of failed) {
@@ -546,6 +652,7 @@ function runGateCheck(taskDescription) {
     task_description: taskDescription || "",
     enforcement_mode: enforcementMode,
     gate_status: "checked",
+    last_check_passed: !hasHighSeverityItems,
     last_check_failed_items: failed,
     plan_summary: null,
     confirmed_at: null,
@@ -588,6 +695,15 @@ function runGateConfirm(sessionId, planSummary) {
     return {
       status: "rejected",
       reason: "plan_summary must be at least 10 characters",
+    };
+  }
+
+  // ── F1 Fix: Block arming if gate check had HIGH severity failures ──
+  const enforcementMode = getEnforcementMode();
+  if (session.last_check_passed === false && enforcementMode !== "advisory") {
+    return {
+      status: "rejected",
+      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${sessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${enforcementMode} enforcement mode.`,
     };
   }
 
@@ -785,6 +901,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ["session_id", "execution_summary"],
       },
     },
+    {
+      name: "compliance_gate_purge",
+      description:
+        "Force-purge all stale compliance gate sessions. Drains armed sessions > 24h since confirmation and checked (unconfirmed) sessions > 48h since creation. Drained sessions are moved to gate-state.json.drained_sessions to preserve audit trail. Returns count of purged sessions and remaining state.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    },
   ],
 }));
 
@@ -823,6 +948,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       isError: result.status !== "completed",
+    };
+  }
+
+  if (name === "compliance_gate_purge") {
+    const result = purgeStaleSessions();
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      isError: false,
     };
   }
 

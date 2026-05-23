@@ -9,10 +9,27 @@ set -e
 
 ROOT="$(git rev-parse --show-toplevel)"
 INNER="$ROOT/$(node -e "console.log(require('./.opencode/project.config.json').project_root)")"
+
+# ── Fallback path resolution: when $INNER paths don't exist, try $ROOT/.opencode/ ──
+# Handles monorepo edge cases where project_root nesting differs from .opencode layout
 VALIDATOR="$INNER/scripts/keystone-validate.js"
 MACHINE="$INNER/.opencode/state/machine.json"
 GATE_STATE="$INNER/.opencode/state/gate-state.json"
 ENF_SCRIPT="$INNER/.opencode/scripts/enforcement-mode-check.sh"
+
+# If INNER-prefixed paths don't resolve, fall back to ROOT/.opencode/
+if [ ! -f "$VALIDATOR" ]; then
+  VALIDATOR="$ROOT/.opencode/scripts/mcp-tools/keystone-validate.js"
+fi
+if [ ! -f "$MACHINE" ]; then
+  MACHINE="$ROOT/.opencode/state/machine.json"
+fi
+if [ ! -f "$GATE_STATE" ]; then
+  GATE_STATE="$ROOT/.opencode/state/gate-state.json"
+fi
+if [ ! -f "$ENF_SCRIPT" ] && [ -f "$ROOT/.opencode/scripts/enforcement-mode-check.sh" ]; then
+  ENF_SCRIPT="$ROOT/.opencode/scripts/enforcement-mode-check.sh"
+fi
 
 # ── Resolve Enforcement Mode ──────────────────────────────────────────
 ENF_MODE="advisory"
