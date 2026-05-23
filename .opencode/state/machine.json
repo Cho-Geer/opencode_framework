@@ -175,7 +175,7 @@
     ".opencode/rules/frontend-coding-standard.md": "sha256-bb632d7dc6d87b9d6b46731590468fc53d10ae4eaedda48e13366b2deff69f8d",
     ".opencode/rules/mcp-compliance-guide.md": "sha256-1fa0b6842912ac410e8315598b3e7e74915d51f0e8847c7321284813166b51dd",
     ".opencode/rules/skill-compliance-guide.md": "sha256-f5850e9a6aaa54c1d1567273cb098387c42413839b844d9c6db0d7d9cd7cc97f",
-    ".opencode/rules/test-coding-standard.md": "sha256-c3f3cb547d5b981d082e100c754f585b76b0c13c64849d5978cbed928c72a441",
+    ".opencode/rules/test-coding-standard.md": "sha256-e1231b7183cff8e29e3bd1d628b3c92b201ddc536acb55077b7d63de4784bedf",
     ".opencode/agents/arbiter.md": "sha256-dc112fa9c4df9998321578e70c7bc3b8649c1a6e4ad6688bda7770b260964588",
     ".opencode/agents/architect.md": "sha256-ca1f8bcca61839ebb90eae8432cc86afebb860aaa9590bb6b7388919de489e45",
     ".opencode/agents/ci-cd-agent.md": "sha256-aba478bcce9a1d90d0395afc72e8c06c488794e617c789ad3f7ba3fddc501250",
