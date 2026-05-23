@@ -248,12 +248,14 @@ class StateTransaction {
     }
 
     // ═══ Write BEGIN to WAL ═══
+    // NOTE: new_revision is intentionally NOT recorded on BEGIN.
+    // It is only recorded on COMMIT to avoid duplicate revision entries
+    // in the WAL that cause false-positive non-monotonic errors in the verifier.
     appendTransactionLog({
       phase: "BEGIN",
       operation_id: this.operationId,
       file: path.relative(OPENCODE_ROOT, this.filePath),
       old_hash: this.oldHash,
-      new_revision: this.newRevision,
       timestamp,
       agent: this.agent,
       task_id: this.taskId,
@@ -608,9 +610,11 @@ function verifyTransactionLog() {
     }
   }
 
-  // Check 4: Revision monotonicity (for entries with new_revision)
+  // Check 4: Revision monotonicity (only COMMIT entries, since COMMIT represents
+  // the definitive state change. BEGIN entries may carry new_revision from legacy
+  // logs, but only COMMIT is authoritative for the revision sequence.)
   const revisionEntries = entries
-    .filter((e) => e.new_revision != null)
+    .filter((e) => e.phase === "COMMIT" && e.new_revision != null)
     .sort((a, b) => a.new_revision - b.new_revision);
 
   let prevRevision = -1;
