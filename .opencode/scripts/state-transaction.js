@@ -248,12 +248,14 @@ class StateTransaction {
     }
 
     // ═══ Write BEGIN to WAL ═══
+    // NOTE: new_revision is intentionally NOT recorded on BEGIN.
+    // It is only recorded on COMMIT to avoid duplicate revision entries
+    // in the WAL that cause false-positive non-monotonic errors in the verifier.
     appendTransactionLog({
       phase: "BEGIN",
       operation_id: this.operationId,
       file: path.relative(OPENCODE_ROOT, this.filePath),
       old_hash: this.oldHash,
-      new_revision: this.newRevision,
       timestamp,
       agent: this.agent,
       task_id: this.taskId,

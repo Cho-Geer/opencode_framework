@@ -79,7 +79,7 @@
 | TD-2026-007-DEPR | Deprecate `devops-architect` — draft placeholder skill, superseded by active `devops-ci-cd-guardrails` (P1, in available_skills). | 低 | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
 | TD-2026-008 | Framework Agent Config Parameterization | 高 | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
 | TD-2026-009 | Rule File Template Resolution | 高 | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
-| TD-2026-010 | Skill Registry Stale References | 中 | @Architect | 2026-05-21 | 2026-05-30 | **active** | UNIV-P6-O | SKILL |
+| TD-2026-010 | Skill Registry Stale References | 中 | @Architect | 2026-05-21 | 2026-05-30 | **repaid** ✅ | UNIV-P6-O | SKILL |
 | TD-2026-011 | Deprecated Skill Cleanup | 中 | @Architect | 2026-05-21 | 2026-06-01 | **active** | UNIV-P6-O | SKILL |
 
 ---
@@ -123,7 +123,15 @@
 
 ---
 
-**最后更新**: 2026-05-18  
+### 2026-05-23 — @Architect TD-2026-010 Repayment
+
+| Item | Decision | Rationale |
+|------|----------|-----------|
+| TD-2026-010 | **Repaid** ✅ | `skill-invocation-standard.md` §3.1 all three deprecated skills (`salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect`) already marked `❌ 废弃` with `replaced_by` fields in §4 metadata. §2.1 category descriptions and §5.3 quick checklists already audited — deprecated references struck through with alternatives. DEPRECATED.md ×3 already deployed to target directories. WV-2026-005 already closed. Only remaining action was updating TECH_DEBT_REGISTRY.md status from `active` → `repaid`. Repaid 2026-05-23. |
+
+---
+
+**最后更新**: 2026-05-23  
 **维护者**: @Arbiter  
-**签名**: `@Arbiter — 2026-05-18T03:42:00Z`  
+**签名**: `@Architect — 2026-05-23T06:26:00Z`  
 **位置**: 项目根目录
