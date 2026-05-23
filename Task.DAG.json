@@ -1,10 +1,10 @@
 {
-  "version": "2.5.0",
+  "version": "2.6.0",
   "project": "booking-system",
-  "feature": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement",
-  "description": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement + Framework Repair (Architect Inspection Report)",
+  "feature": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement + Framework Repair + Review Remediation + Second Review Remediation (2026-05-23 Gap Analysis)",
+  "description": "MSG-Inbox-Messages-Dropdown + BugFix: SendCode ContactType Validation + Opencode Framework Optimization + Framework Universality Enhancement + Framework Repair (Architect Inspection Report) + Review Remediation (2026-05-21) + Second Review Remediation (2026-05-23 Gap Analysis: Git hooks, strict enforcement, session purge, CRLF fix, digest regen, self-test fix, MCP deps, path alignment, DAG traceability, CI checks, WAL dedup, tech-debt repayment TD-2026-010)",
   "generated_by": "@Meta-Planner",
-  "generated_at": "2026-05-22T00:00:00Z",
+  "generated_at": "2026-05-23T00:00:00Z",
   "change_log": [
     {
       "version": "2.1.1",
@@ -14,12 +14,12 @@
     {
       "version": "2.1.0",
       "date": "2026-05-21",
-      "summary": "Appended 4 bug-fix tasks (BUG-SENDCODE-ANALYSIS → RED → GREEN → REVIEW) for ContactType validation error. Root cause: contract.yaml declares UPPERCASE enum values ['EMAIL','PHONE'] but backend ContactType enum uses lowercase ['email','phone']. HTML template comparison bug also fixed."
+      "summary": "Appended 4 bug-fix tasks (BUG-SENDCODE-ANALYSIS \u2192 RED \u2192 GREEN \u2192 REVIEW) for ContactType validation error. Root cause: contract.yaml declares UPPERCASE enum values ['EMAIL','PHONE'] but backend ContactType enum uses lowercase ['email','phone']. HTML template comparison bug also fixed."
     },
     {
       "version": "2.0.0",
       "date": "2026-05-19",
-      "summary": "Initial DAG for messages/inbox envelope icon feature – Approach B (full implementation: MSG-001 backend + MessagesDropdown frontend)"
+      "summary": "Initial DAG for messages/inbox envelope icon feature \u2013 Approach B (full implementation: MSG-001 backend + MessagesDropdown frontend)"
     },
     {
       "version": "2.1.1",
@@ -44,7 +44,7 @@
     {
       "version": "2.3.1",
       "date": "2026-05-21",
-      "summary": "UNIV-P6-O completed: Added 4 new tech debt entries (TD-2026-008 through TD-2026-011) to TECH_DEBT_REGISTRY.md; Updated skill-invocation-standard.md §3.1 §4: deprecated nextjs-router-guardrails → fullstack-ci-cd-guardrails, deprecated prisma-seed-cicd → cicd-database-seeding, registered new cicd-database-seeding skill. Added 2026-05-21 @Architect裁决记录."
+      "summary": "UNIV-P6-O completed: Added 4 new tech debt entries (TD-2026-008 through TD-2026-011) to TECH_DEBT_REGISTRY.md; Updated skill-invocation-standard.md \u00a73.1 \u00a74: deprecated nextjs-router-guardrails \u2192 fullstack-ci-cd-guardrails, deprecated prisma-seed-cicd \u2192 cicd-database-seeding, registered new cicd-database-seeding skill. Added 2026-05-21 @Architect\u88c1\u51b3\u8bb0\u5f55."
     },
     {
       "version": "2.3.1",
@@ -60,6 +60,11 @@
       "version": "2.5.0",
       "date": "2026-05-22",
       "summary": "Appended 9 review remediation tasks (RVW-REVIEW-01 through RVW-REVIEW-09) based on 2026-05-21 Opencode Framework Core Feature & Risk Assessment Review. Gap analysis mapped 9 findings against existing FW-REPAIR/OPC/UNIV tasks; created independent tasks where partial overlap exists (RW-01 extends FW-03+08, RW-02 extends FW-04+09, RW-03 extends OPC-DAG-GATE, RW-05 extends FW-05, RW-06 extends FW-10, RW-07 depends on RW-01, RW-09 depends on UNIV-P6-O). All new tasks owned by @Architect."
+    },
+    {
+      "version": "2.6.0",
+      "date": "2026-05-23",
+      "summary": "Appended 12 new remediation tasks (RVW2-INSTALL-HOOKS through RVW2-FIX-WAL-DUP + TD-2026-010-REPAY) based on 2026-05-23 gap analysis of second review document. Covers P0 (Git hooks enforcement, strict mode, session purge), P1 (CRLF fix, digest regeneration, self-test fix, MCP deps, path alignment, WAL dedup), P2 (DAG traceability, CI checks), plus tech-debt conversion of TD-2026-010 (Skill Registry Stale References, deadline 2026-05-30). Owners: @Architect (10), @Meta-Planner (1), @CI-CD-Agent (1)."
     }
   ],
   "tasks": [
@@ -70,7 +75,7 @@
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
-      "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001",
+      "requirement_source": "\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md \u00a72.13.1 MSG-001",
       "target_files": [
         "booking_system_refactor/contract.yaml"
       ],
@@ -90,8 +95,8 @@
       "dependencies": [
         "B-MSG-CONTRACT"
       ],
-      "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004",
-      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
+      "requirement_source": "\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md \u00a72.13.1 MSG-001, \u00a72.13.4 MSG-004",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
         "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-messages.controller.spec.ts",
         "booking_system_refactor/booking-backend/src/modules/admin/services/admin-messages.service.spec.ts"
@@ -101,7 +106,7 @@
         "Controller spec tests MSG-004 GET /admin/messages/unread-count returns { count }",
         "Service spec tests findAll with pagination (page, limit)",
         "Service spec tests findUnreadCount returns count of unread messages for userId",
-        "All tests FAIL on initial run (RED phase – controller/service not yet implemented)"
+        "All tests FAIL on initial run (RED phase \u2013 controller/service not yet implemented)"
       ],
       "estimated_effort": "M"
     },
@@ -114,8 +119,8 @@
       "dependencies": [
         "B-MSG-RED-001"
       ],
-      "requirement_source": "接口设计规范文档.md §2.13.1 MSG-001, §2.13.4 MSG-004; 数据架构设计文档.md §2.2.6 Message model",
-      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
+      "requirement_source": "\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md \u00a72.13.1 MSG-001, \u00a72.13.4 MSG-004; \u6570\u636e\u67b6\u6784\u8bbe\u8ba1\u6587\u6863.md \u00a72.2.6 Message model",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
         "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-messages.controller.ts",
         "booking_system_refactor/booking-backend/src/modules/admin/services/admin-messages.service.ts",
@@ -146,8 +151,8 @@
       "dependencies": [
         "B-MSG-CONTRACT"
       ],
-      "requirement_source": "接口设计规范文档.md §2.12–2.13; SAD line 99",
-      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
+      "requirement_source": "\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md \u00a72.12\u20132.13; SAD line 99",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.spec.ts",
         "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.spec.ts"
@@ -171,7 +176,7 @@
       "dependencies": [
         "B-MSG-RED-FE"
       ],
-      "requirement_source": "接口设计规范文档.md §2.12 – '信封图标点击后的下拉面板'",
+      "requirement_source": "\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md \u00a72.12 \u2013 '\u4fe1\u5c01\u56fe\u6807\u70b9\u51fb\u540e\u7684\u4e0b\u62c9\u9762\u677f'",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.ts",
         "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.html",
@@ -199,8 +204,8 @@
       "dependencies": [
         "B-MSG-RED-FE"
       ],
-      "requirement_source": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
-      "contract_reference": "contract.yaml → /v1/admin/messages, /v1/admin/messages/unread-count",
+      "requirement_source": "contract.yaml \u2192 /v1/admin/messages, /v1/admin/messages/unread-count",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/messages, /v1/admin/messages/unread-count",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/services/admin.service.ts",
         "booking_system_refactor/booking-frontend/src/app/features/admin/dto/admin.dto.ts"
@@ -225,7 +230,7 @@
         "B-MSG-GREEN-FE-COMPONENT",
         "B-MSG-GREEN-FE-SERVICE"
       ],
-      "requirement_source": "接口设计规范文档.md §2.12 – '顶部导航栏信封图标'",
+      "requirement_source": "\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md \u00a72.12 \u2013 '\u9876\u90e8\u5bfc\u822a\u680f\u4fe1\u5c01\u56fe\u6807'",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.ts",
         "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.html",
@@ -253,7 +258,7 @@
       "dependencies": [
         "B-MSG-GREEN-FE-SERVICE"
       ],
-      "requirement_source": "SAD line 99 – StatsModule includes 未读消息数",
+      "requirement_source": "SAD line 99 \u2013 StatsModule includes \u672a\u8bfb\u6d88\u606f\u6570",
       "target_files": [
         "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
       ],
@@ -302,7 +307,7 @@
       "priority": "P0",
       "dependencies": [],
       "requirement_source": "Bug Report: 'Contact type must be email or phone' error on admin New User dialog Send Code button with email 'zhaogeyinzuo@163.com'",
-      "contract_reference": "contract.yaml → /v1/admin/users/send-code (contact_type enum: ['EMAIL','PHONE'])",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/users/send-code (contact_type enum: ['EMAIL','PHONE'])",
       "target_files": [
         "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts",
         "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.ts",
@@ -328,7 +333,7 @@
         "BUG-SENDCODE-ANALYSIS"
       ],
       "requirement_source": "Bug Report: ContactType validation error + contract.yaml send_code spec",
-      "contract_reference": "contract.yaml → /v1/admin/users/send-code",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/users/send-code",
       "target_files": [
         "booking_system_refactor/booking-backend/src/modules/admin/controllers/admin-users.controller.spec.ts",
         "booking_system_refactor/booking-backend/src/modules/admin/services/admin-users.service.spec.ts"
@@ -344,7 +349,7 @@
     },
     {
       "id": "BUG-SENDCODE-GREEN",
-      "title": "GREEN: Fix ContactType validation error — align contract.yaml, backend DTO, and frontend template",
+      "title": "GREEN: Fix ContactType validation error \u2014 align contract.yaml, backend DTO, and frontend template",
       "status": "completed",
       "owner": "@Coder-BE",
       "priority": "P0",
@@ -352,7 +357,7 @@
         "BUG-SENDCODE-RED"
       ],
       "requirement_source": "Bug Report: ContactType validation error; contract.yaml send_code definition; Docs Consistency Report in TASK_LOG.md",
-      "contract_reference": "contract.yaml → /v1/admin/users/send-code",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/users/send-code",
       "target_files": [
         "booking_system_refactor/contract.yaml",
         "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts",
@@ -366,7 +371,7 @@
         "Frontend admin.dto.ts: ensure ContactType enum values match backend (consistency check)",
         "Frontend user-management.component.html: fix template comparisons from 'EMAIL'/'PHONE' string literals to ContactType.EMAIL/ContactType.PHONE (or lowercase 'email'/'phone')",
         "Frontend sendCode() payload matches what backend expects",
-        "Manual test: admin opens New User dialog, enters email 'zhaogeyinzuo@163.com', clicks Send Code — SUCCESS (200 with maskedContact)",
+        "Manual test: admin opens New User dialog, enters email 'zhaogeyinzuo@163.com', clicks Send Code \u2014 SUCCESS (200 with maskedContact)",
         "All BUG-SENDCODE-RED tests PASS",
         "No regression in existing auth send-code endpoints (auth/register/send-code, auth/login/send-code, auth/reset-password/send-code)"
       ],
@@ -375,7 +380,7 @@
     },
     {
       "id": "BUG-SENDCODE-REVIEW",
-      "title": "Guardian Review: Validate ContactType fix — TDD evidence, contract consistency, ESLint audit",
+      "title": "Guardian Review: Validate ContactType fix \u2014 TDD evidence, contract consistency, ESLint audit",
       "status": "completed",
       "owner": "@Guardian",
       "priority": "P0",
@@ -383,7 +388,7 @@
         "BUG-SENDCODE-GREEN"
       ],
       "requirement_source": "Bug Report resolution; contract.yaml send_code; all security/validation requirements",
-      "contract_reference": "contract.yaml → /v1/admin/users/send-code",
+      "contract_reference": "contract.yaml \u2192 /v1/admin/users/send-code",
       "target_files": [
         "booking_system_refactor/contract.yaml",
         "booking_system_refactor/booking-backend/src/modules/admin/dto/admin-user.dto.ts",
@@ -394,7 +399,7 @@
       ],
       "acceptance_criteria": [
         "All BUG-SENDCODE-RED tests pass (GREEN phase verified)",
-        "RED→GREEN TDD cycle evidence present (RED commit before GREEN commit)",
+        "RED\u2192GREEN TDD cycle evidence present (RED commit before GREEN commit)",
         "ESLint audit: 0 violations on all changed files",
         "contract.yaml enum values match backend ContactType enum values (consistency verified)",
         "Frontend template comparisons use enum values, not hardcoded strings",
@@ -434,7 +439,7 @@
         ".opencode/scripts/pre-execution-hook.sh exists and is executable",
         "Script checks Task.DAG.json for current task with status=pending",
         "Blocks execution if DAG missing or task not in DAG",
-        "Error message: \"❌ [Orchestrator Gate] ...\" format"
+        "Error message: \"\u274c [Orchestrator Gate] ...\" format"
       ],
       "estimated_effort": "S"
     },
@@ -451,7 +456,7 @@
         ".opencode/agents/orchestrator.md"
       ],
       "acceptance_criteria": [
-        "orchestrator.md body includes \"## 强制执行前自检（MUST-RUN 协议）\" section",
+        "orchestrator.md body includes \"## \u5f3a\u5236\u6267\u884c\u524d\u81ea\u68c0\uff08MUST-RUN \u534f\u8bae\uff09\" section",
         "Self-check classifies actions as scheduling vs analysis",
         "Analysis actions redirect to dispatch subagent"
       ],
@@ -571,7 +576,7 @@
     },
     {
       "id": "UNIV-P2-J",
-      "title": "Phase 2: Remove (含Salesforce) from AGENTS.md Coder-BE description",
+      "title": "Phase 2: Remove (\u542bSalesforce) from AGENTS.md Coder-BE description",
       "status": "completed",
       "owner": "@Architect",
       "priority": "P1",
@@ -580,7 +585,7 @@
         "AGENTS.md"
       ],
       "acceptance_criteria": [
-        "Line 115: \"后端/服务端开发工程师（含Salesforce）\" → \"后端/服务端开发工程师\""
+        "Line 115: \"\u540e\u7aef/\u670d\u52a1\u7aef\u5f00\u53d1\u5de5\u7a0b\u5e08\uff08\u542bSalesforce\uff09\" \u2192 \"\u540e\u7aef/\u670d\u52a1\u7aef\u5f00\u53d1\u5de5\u7a0b\u5e08\""
       ],
       "estimated_effort": "XS"
     },
@@ -619,8 +624,8 @@
         ".opencode/agents/architect.md"
       ],
       "acceptance_criteria": [
-        "npm run keystone:hash → {project.contract_hash_command}",
-        "Atom/Molecule→ broadened component language"
+        "npm run keystone:hash \u2192 {project.contract_hash_command}",
+        "Atom/Molecule\u2192 broadened component language"
       ],
       "estimated_effort": "S"
     },
@@ -706,7 +711,7 @@
       ],
       "acceptance_criteria": [
         "python3 fallback added between jq and node",
-        "Priority order: jq → python3 → node"
+        "Priority order: jq \u2192 python3 \u2192 node"
       ],
       "estimated_effort": "S"
     },
@@ -741,7 +746,7 @@
       ],
       "acceptance_criteria": [
         "New universality tech debts TD-2026-008/009/010/011 registered",
-        "skill-invocation-standard.md §3.1 deprecated skills status corrected"
+        "skill-invocation-standard.md \u00a73.1 deprecated skills status corrected"
       ],
       "estimated_effort": "S"
     },
@@ -752,7 +757,7 @@
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-01; GAP-3 (template_resolution missing from project.config.json)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-01; GAP-3 (template_resolution missing from project.config.json)",
       "target_files": [
         ".opencode/project.config.json"
       ],
@@ -772,7 +777,7 @@
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-02; GAP-1 (contract.yaml missing at root)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-02; GAP-1 (contract.yaml missing at root)",
       "target_files": [
         "contract.yaml"
       ],
@@ -794,7 +799,7 @@
       "dependencies": [
         "FW-REPAIR-04"
       ],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-03; GAP-2 (machine.schema.json referenced but nonexistent)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-03; GAP-2 (machine.schema.json referenced but nonexistent)",
       "target_files": [
         ".opencode/state/machine.schema.json"
       ],
@@ -802,7 +807,7 @@
         "machine.schema.json created in .opencode/state/ with JSON Schema validating machine.json structure",
         "Schema validates all 9 sub-state sections (meta, eslint_state, type_check_state, dependency_state, format_state, write_audit_state, compliance_records, tdd_enforcement_state, contracts/keystone_hashes)",
         "Schema enforces required fields and types for each sub-state",
-        "state-machine-standard.md §35 reference is accurate",
+        "state-machine-standard.md \u00a735 reference is accurate",
         "Validation integrated into code-quality-gate.js bootstrap"
       ],
       "estimated_effort": "M"
@@ -814,7 +819,7 @@
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-04; GAP-5 (type_check_state stale), GAP-6 (format_state contradictory), GAP-7 (cross-workspace scope violations)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-04; GAP-5 (type_check_state stale), GAP-6 (format_state contradictory), GAP-7 (cross-workspace scope violations)",
       "target_files": [
         ".opencode/state/machine.json"
       ],
@@ -839,7 +844,7 @@
         "FW-REPAIR-02",
         "FW-REPAIR-03"
       ],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-05; GAP-10 (keystone_hashes never populated)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-05; GAP-10 (keystone_hashes never populated)",
       "target_files": [
         ".opencode/state/machine.json"
       ],
@@ -861,7 +866,7 @@
       "dependencies": [
         "FW-REPAIR-01"
       ],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-06; GAP-3 (unresolvable {placeholder}s), GAP-4 (orphaned backend/frontend variables)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-06; GAP-3 (unresolvable {placeholder}s), GAP-4 (orphaned backend/frontend variables)",
       "target_files": [
         ".opencode/scripts/command-tools/dispatch-subagent.js"
       ],
@@ -881,7 +886,7 @@
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-07 (state machine bootstrap/reset script)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-07 (state machine bootstrap/reset script)",
       "target_files": [
         ".opencode/scripts/state-machine-reset.sh"
       ],
@@ -902,7 +907,7 @@
       "owner": "@Architect",
       "priority": "P1",
       "dependencies": [],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-08; GAP-8 (active_sessions stale)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-08; GAP-8 (active_sessions stale)",
       "target_files": [
         ".opencode/state/gate-state.json",
         ".opencode/scripts/mcp-tools/compliance-gate.js"
@@ -925,7 +930,7 @@
       "dependencies": [
         "FW-REPAIR-04"
       ],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-09 (+ REC-12 cross-workspace protection); GAP-7 (write audit state pollution)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-09 (+ REC-12 cross-workspace protection); GAP-7 (write audit state pollution)",
       "target_files": [
         ".opencode/scripts/mcp-tools/code-quality-gate.js"
       ],
@@ -940,12 +945,12 @@
     },
     {
       "id": "FW-REPAIR-10",
-      "title": "P2: Fix subagent-preamble.md path reference (prisma/schema.prisma → {backend.orm.schema})",
+      "title": "P2: Fix subagent-preamble.md path reference (prisma/schema.prisma \u2192 {backend.orm.schema})",
       "status": "pending",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-11 (+ REC-14 template variable doc); GAP-9 (nonexistent prisma/ path)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-11 (+ REC-14 template variable doc); GAP-9 (nonexistent prisma/ path)",
       "target_files": [
         ".opencode/subagent-preamble.md"
       ],
@@ -964,7 +969,7 @@
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "requirement_source": "ARCHITECTURE_REPORT.md §9 REC-14 (document template variable convention); GAP-4 (orphaned variables)",
+      "requirement_source": "ARCHITECTURE_REPORT.md \u00a79 REC-14 (document template variable convention); GAP-4 (orphaned variables)",
       "target_files": [
         ".opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md"
       ],
@@ -988,7 +993,7 @@
         "FW-REPAIR-03",
         "FW-REPAIR-08"
       ],
-      "requirement_source": "REVIEW_REPORT §P0#1 — Unified State Transaction Envelope; FW-REPAIR-03 (machine.schema.json), FW-REPAIR-08 (gate-state sync) provide structural prerequisites but no transaction protocol",
+      "requirement_source": "REVIEW_REPORT \u00a7P0#1 \u2014 Unified State Transaction Envelope; FW-REPAIR-03 (machine.schema.json), FW-REPAIR-08 (gate-state sync) provide structural prerequisites but no transaction protocol",
       "target_files": [
         ".opencode/state/machine.schema.json",
         ".opencode/scripts/mcp-tools/compliance-gate.js",
@@ -999,9 +1004,9 @@
       "acceptance_criteria": [
         "Every state mutation (gate-state.json, machine.json) generates a unique operation_id (UUID v4)",
         "machine.json.meta gains monotonic revision counter (incremented per mutation, never skipped)",
-        "Two-phase write protocol: Phase 1 writes .prepared marker with checksum → Phase 2 commits → failed Phase 2 triggers recovery scan on next bootstrap",
+        "Two-phase write protocol: Phase 1 writes .prepared marker with checksum \u2192 Phase 2 commits \u2192 failed Phase 2 triggers recovery scan on next bootstrap",
         ".opencode/state/.transaction-log records operation_id, timestamp, file, old_hash, new_hash, agent, task_id",
-        "Recovery marker: on bootstrap, scan for .prepared files without matching .committed → rollback or replay",
+        "Recovery marker: on bootstrap, scan for .prepared files without matching .committed \u2192 rollback or replay",
         "Both compliance_gate_confirm() and code-quality-gate write operations honor transaction envelope",
         "machine.schema.json updated to validate new fields (operation_id, revision, transaction_log pointer)"
       ],
@@ -1017,7 +1022,7 @@
         "FW-REPAIR-04",
         "FW-REPAIR-09"
       ],
-      "requirement_source": "REVIEW_REPORT §P0#2 — Strict Workspace-Root Canonicalization; FW-REPAIR-04 cleans existing contamination, FW-REPAIR-09 adds bootstrap check; gap is runtime enforcement at every read/write boundary",
+      "requirement_source": "REVIEW_REPORT \u00a7P0#2 \u2014 Strict Workspace-Root Canonicalization; FW-REPAIR-04 cleans existing contamination, FW-REPAIR-09 adds bootstrap check; gap is runtime enforcement at every read/write boundary",
       "target_files": [
         ".opencode/scripts/mcp-tools/code-quality-gate.js",
         ".opencode/scripts/state-canonicalize.js",
@@ -1026,8 +1031,8 @@
       ],
       "acceptance_criteria": [
         "state-canonicalize.js created: scans a JSON state file and replaces all absolute paths outside OPENCODE_ROOT with relative equivalents",
-        "code-quality-gate.js extended: before reading machine.json, invokes workspace-root-validator.js → rejects if foreign paths detected",
-        "code-quality-gate.js extended: before writing machine.json, invokes state-canonicalize.js → auto-scrubs any foreign paths that slipped through",
+        "code-quality-gate.js extended: before reading machine.json, invokes workspace-root-validator.js \u2192 rejects if foreign paths detected",
+        "code-quality-gate.js extended: before writing machine.json, invokes state-canonicalize.js \u2192 auto-scrubs any foreign paths that slipped through",
         "Works for ALL state sections: write_audit_state, type_check_state, eslint_state, format_state, dependency_state, compliance_records, tdd_enforcement_state",
         "machine.schema.json updated to add 'x-workspace-root' constraint validating paths are within OPENCODE_ROOT",
         "Bootstrap warning if write_audit_state.current_session still references foreign workspace after FW-REPAIR-04 cleanup"
@@ -1043,7 +1048,7 @@
       "dependencies": [
         "OPC-FW-DAG-GATE"
       ],
-      "requirement_source": "REVIEW_REPORT §P0#3 — Semantic Version Checks in Gate Preflight; OPC-FW-DAG-GATE created presence-only file-existence checks in pre-execution-hook.sh",
+      "requirement_source": "REVIEW_REPORT \u00a7P0#3 \u2014 Semantic Version Checks in Gate Preflight; OPC-FW-DAG-GATE created presence-only file-existence checks in pre-execution-hook.sh",
       "target_files": [
         ".opencode/scripts/pre-execution-hook.sh",
         ".opencode/scripts/rule-digest-validate.js",
@@ -1052,16 +1057,16 @@
       "acceptance_criteria": [
         "rule-digest-validate.js created: computes SHA-256 digest for each critical rule file (common-project.md, mcp-compliance-guide.md, skill-compliance-guide.md, dag-generation-standard.md, backend/frontend coding standards)",
         ".opencode/state/rule-digests.json stores expected digests with semantic version tags (e.g., 'common-project.md': {'version': '1.2.0', 'sha256': '...'})",
-        "pre-execution-hook.sh extended: before task execution, compares current file digests against expected → mismatch triggers version compatibility check",
-        "Version compatibility: if a rule file digest changed but version didn't increment → WARNING (possible unauthorized modification). If version incremented → compare agent config compatibility assertions",
+        "pre-execution-hook.sh extended: before task execution, compares current file digests against expected \u2192 mismatch triggers version compatibility check",
+        "Version compatibility: if a rule file digest changed but version didn't increment \u2192 WARNING (possible unauthorized modification). If version incremented \u2192 compare agent config compatibility assertions",
         "Presence-only checks retained as fast path (if digests match, skip deep check)",
-        "New check output format: '✅ [Gate Preflight v2] 5/5 rule digests verified (compatible)' or '❌ [Gate Preflight v2] common-project.md digest mismatch (expected v1.2.0/sha256-abc, got sha256-def)'"
+        "New check output format: '\u2705 [Gate Preflight v2] 5/5 rule digests verified (compatible)' or '\u274c [Gate Preflight v2] common-project.md digest mismatch (expected v1.2.0/sha256-abc, got sha256-def)'"
       ],
       "estimated_effort": "M"
     },
     {
       "id": "RVW-REVIEW-04",
-      "title": "P1: Build Reconciliation Daemon/Check Command (validate DAG ↔ gate sessions ↔ machine.json consistency)",
+      "title": "P1: Build Reconciliation Daemon/Check Command (validate DAG \u2194 gate sessions \u2194 machine.json consistency)",
       "status": "pending",
       "owner": "@Architect",
       "priority": "P1",
@@ -1069,7 +1074,7 @@
         "FW-REPAIR-03",
         "FW-REPAIR-08"
       ],
-      "requirement_source": "REVIEW_REPORT §P1#4 — Reconciliation Daemon/Check Command; validate consistency among Task.DAG.json, gate-state.json active_sessions, and machine.json sub-states",
+      "requirement_source": "REVIEW_REPORT \u00a7P1#4 \u2014 Reconciliation Daemon/Check Command; validate consistency among Task.DAG.json, gate-state.json active_sessions, and machine.json sub-states",
       "target_files": [
         ".opencode/scripts/reconciliation-check.sh",
         ".opencode/scripts/mcp-tools/reconciliation-validate.js",
@@ -1077,12 +1082,12 @@
       ],
       "acceptance_criteria": [
         "reconciliation-validate.js created: cross-references Task.DAG.json task statuses against gate-state.json active_sessions and machine.json write_audit_state",
-        "Check 1 (DAG ↔ Gate): every task with status='in_progress' MUST have a corresponding active gate session in gate-state.json; every active session MUST reference a valid pending/in_progress DAG task",
-        "Check 2 (Gate ↔ Machine): every armed gate session MUST have matching write_audit_state.current_session entry; orphaned sessions (armed but no write audit) flagged",
-        "Check 3 (DAG ↔ Machine): tasks with status='completed' must have corresponding write_audit_state.history entries; tasks with status='pending' must NOT have write audit entries",
+        "Check 1 (DAG \u2194 Gate): every task with status='in_progress' MUST have a corresponding active gate session in gate-state.json; every active session MUST reference a valid pending/in_progress DAG task",
+        "Check 2 (Gate \u2194 Machine): every armed gate session MUST have matching write_audit_state.current_session entry; orphaned sessions (armed but no write audit) flagged",
+        "Check 3 (DAG \u2194 Machine): tasks with status='completed' must have corresponding write_audit_state.history entries; tasks with status='pending' must NOT have write audit entries",
         "reconciliation-check.sh wrapper: runs before git commit (pre-commit hook) AND before @Orchestrator dispatch",
-        "Output format: '✅ [Reconciliation] DAG(52 tasks) ↔ Gate(3 armed) ↔ Machine(clean) — consistent' or '❌ [Reconciliation] DAG task FW-REPAIR-03 marked completed but no write audit found'",
-        "GitHub Actions reconciliation.yml: runs on PR → blocks merge if reconciliation fails"
+        "Output format: '\u2705 [Reconciliation] DAG(52 tasks) \u2194 Gate(3 armed) \u2194 Machine(clean) \u2014 consistent' or '\u274c [Reconciliation] DAG task FW-REPAIR-03 marked completed but no write audit found'",
+        "GitHub Actions reconciliation.yml: runs on PR \u2192 blocks merge if reconciliation fails"
       ],
       "estimated_effort": "L"
     },
@@ -1095,7 +1100,7 @@
       "dependencies": [
         "FW-REPAIR-05"
       ],
-      "requirement_source": "REVIEW_REPORT §P1#5 — Integrity Chaining; FW-REPAIR-05 populates keystone_hashes for contract.yaml only; gap is broader hash bundle for all critical framework docs",
+      "requirement_source": "REVIEW_REPORT \u00a7P1#5 \u2014 Integrity Chaining; FW-REPAIR-05 populates keystone_hashes for contract.yaml only; gap is broader hash bundle for all critical framework docs",
       "target_files": [
         ".opencode/state/machine.json",
         ".opencode/scripts/integrity-chain-bundle.sh",
@@ -1121,17 +1126,17 @@
       "dependencies": [
         "FW-REPAIR-10"
       ],
-      "requirement_source": "REVIEW_REPORT §P1#6 — Normalize All Docs and References to Repo-Relative Paths; FW-REPAIR-10 fixes single path in subagent-preamble.md; gap is comprehensive CI linting",
+      "requirement_source": "REVIEW_REPORT \u00a7P1#6 \u2014 Normalize All Docs and References to Repo-Relative Paths; FW-REPAIR-10 fixes single path in subagent-preamble.md; gap is comprehensive CI linting",
       "target_files": [
         ".opencode/scripts/path-canonical-lint.sh",
         ".github/workflows/path-lint.yml",
         ".opencode/scripts/workspace-root-validator.js"
       ],
       "acceptance_criteria": [
-        "path-canonical-lint.sh created: scans all .md, .yaml/.yml, .json, .sh, .js, .ts files in .opencode/ and root for absolute paths (patterns: /home/, /Users/, C:\\, /tmp/ that don't resolve to within OPENCODE_ROOT)",
-        "Whitelist: /tmp/opencode (system temp), /usr/bin/ (system tools), ${OPENCODE_ROOT} (placeholder) — these are acceptable absolute paths",
+        "path-canonical-lint.sh created: scans all .md, .yaml/.yml, .json, .sh, .js, .ts files in .opencode/ and root for absolute paths (patterns: /home/, /Users/, C:\\\\, /tmp/ that don't resolve to within OPENCODE_ROOT)",
+        "Whitelist: /tmp/opencode (system temp), /usr/bin/ (system tools), ${OPENCODE_ROOT} (placeholder) \u2014 these are acceptable absolute paths",
         "Violation report: file path + line number + offending path + suggested relative replacement",
-        "GitHub Actions path-lint.yml: runs on PR → blocks merge if absolute path leakage found (exit code 1)",
+        "GitHub Actions path-lint.yml: runs on PR \u2192 blocks merge if absolute path leakage found (exit code 1)",
         "workspace-root-validator.js reused (from RVW-REVIEW-02) for path validation logic",
         "FW-REPAIR-10's single-file fix verified by CI lint (subagent-preamble.md must pass)",
         "Documentation added to TEMPLATE_VARIABLE_STANDARD.md (from FW-REPAIR-11) specifying that all file references must use {placeholder} or repo-relative paths"
@@ -1140,14 +1145,14 @@
     },
     {
       "id": "RVW-REVIEW-07",
-      "title": "P2: Implement Event-Sourced Audit Log Layer (append-only events → derived materialized states for gate/machine)",
+      "title": "P2: Implement Event-Sourced Audit Log Layer (append-only events \u2192 derived materialized states for gate/machine)",
       "status": "pending",
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [
         "RVW-REVIEW-01"
       ],
-      "requirement_source": "REVIEW_REPORT §P2#7 — Event-Sourced Audit Log Layer; depends on RVW-REVIEW-01 transaction envelope for operation_id and revision tracking",
+      "requirement_source": "REVIEW_REPORT \u00a7P2#7 \u2014 Event-Sourced Audit Log Layer; depends on RVW-REVIEW-01 transaction envelope for operation_id and revision tracking",
       "target_files": [
         ".opencode/state/audit-events.jsonl",
         ".opencode/scripts/audit-event-processor.js",
@@ -1172,19 +1177,19 @@
       "owner": "@Architect",
       "priority": "P2",
       "dependencies": [],
-      "requirement_source": "REVIEW_REPORT §P2#8 — Formalize Enforcement Modes; advisory/strict/locked modes for different environments",
+      "requirement_source": "REVIEW_REPORT \u00a7P2#8 \u2014 Formalize Enforcement Modes; advisory/strict/locked modes for different environments",
       "target_files": [
         ".opencode/rules/rule_detail/enforcement-modes-standard.md",
         ".opencode/scripts/enforcement-mode-check.sh",
         ".opencode/project.config.json"
       ],
       "acceptance_criteria": [
-        "enforcement-modes-standard.md created documenting three enforcement tiers: (a) advisory — violations logged but never block, suitable for development; (b) strict — violations block commit/PR, suitable for CI/staging; (c) locked — violations block everything including local development, suitable for production-config branches",
-        "enforcement-mode-check.sh created: reads enforcement_mode from project.config.json or ENFORCEMENT_MODE env var → adjusts gate behavior accordingly",
-        "Advisory mode: compliance_gate_check always passes, violations → warnings only; eslint-audit runs but does not fail",
+        "enforcement-modes-standard.md created documenting three enforcement tiers: (a) advisory \u2014 violations logged but never block, suitable for development; (b) strict \u2014 violations block commit/PR, suitable for CI/staging; (c) locked \u2014 violations block everything including local development, suitable for production-config branches",
+        "enforcement-mode-check.sh created: reads enforcement_mode from project.config.json or ENFORCEMENT_MODE env var \u2192 adjusts gate behavior accordingly",
+        "Advisory mode: compliance_gate_check always passes, violations \u2192 warnings only; eslint-audit runs but does not fail",
         "Strict mode: compliance_gate_check enforces DAG coverage, reconciliation, integrity chain; eslint-audit fails on violations",
         "Locked mode: all strict checks + workspace-root enforcement + gate-state sync enforcement + write_audit validation; no waivers accepted",
-        "Mode transition: advisory → strict → locked is one-way (can't downgrade without explicit reset); locked → advisory requires state-machine-reset.sh --force",
+        "Mode transition: advisory \u2192 strict \u2192 locked is one-way (can't downgrade without explicit reset); locked \u2192 advisory requires state-machine-reset.sh --force",
         "project.config.json template_resolution extended with enforcement_mode default: 'advisory'"
       ],
       "estimated_effort": "M"
@@ -1198,20 +1203,294 @@
       "dependencies": [
         "UNIV-P6-O"
       ],
-      "requirement_source": "REVIEW_REPORT §P2#9 — Universal Compatibility Profile; UNIV tasks parameterize for Angular/NestJS but don't define formal profile for completely different stacks",
+      "requirement_source": "REVIEW_REPORT \u00a7P2#9 \u2014 Universal Compatibility Profile; UNIV tasks parameterize for Angular/NestJS but don't define formal profile for completely different stacks",
       "target_files": [
         ".opencode/rules/rule_detail/universal-compatibility-profile.md",
         ".opencode/project.config.json"
       ],
       "acceptance_criteria": [
         "universal-compatibility-profile.md created documenting: (a) Required MCP tools per stack category, (b) Minimum agent config adjustments per stack, (c) Contract schema compatibility requirements, (d) Testing framework adapter patterns, (e) CI/CD pipeline template mapping",
-        "Stack categories defined with conformance levels: (1) Native (Angular/NestJS — all features), (2) Compatible (React/Next.js + Express/Fastify — core features, some adapters needed), (3) Partial (Vue/Svelte + Django/Flask — requires custom adapters for signal-store, Prisma alternatives), (4) Minimal (any stack — only AGENTS.md + Task.DAG.json + contract.yaml workflow)",
+        "Stack categories defined with conformance levels: (1) Native (Angular/NestJS \u2014 all features), (2) Compatible (React/Next.js + Express/Fastify \u2014 core features, some adapters needed), (3) Partial (Vue/Svelte + Django/Flask \u2014 requires custom adapters for signal-store, Prisma alternatives), (4) Minimal (any stack \u2014 only AGENTS.md + Task.DAG.json + contract.yaml workflow)",
         "For each conformance level: list of features that work out-of-box, features requiring adapters, features that are unavailable",
-        "Adapter interface defined: for non-Prisma ORMs, non-NgRx state management, non-Jest test runners — what contract each adapter must fulfill",
+        "Adapter interface defined: for non-Prisma ORMs, non-NgRx state management, non-Jest test runners \u2014 what contract each adapter must fulfill",
         "project.config.json template_resolution extended with 'compatibility_profile' field defaulting to 'native'",
         "Cross-reference table: which UNIV-P* tasks are stack-agnostic vs. stack-specific (reference for future adopters)"
       ],
       "estimated_effort": "M"
+    },
+    {
+      "id": "RVW2-INSTALL-HOOKS",
+      "title": "P0: Install Git hook enforcement \u2014 set core.hooksPath to .opencode/hooks",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #1: Git Hooks Not Enforced (core.hooksPath not configured, hooks present but inactive)",
+      "target_files": [],
+      "acceptance_criteria": [
+        "git config core.hooksPath set to .opencode/hooks",
+        "Verified via 'git config --get core.hooksPath' returning '.opencode/hooks'",
+        "Pre-commit hook fires on git commit (verified by intentional violation test)",
+        "Commit-msg hook fires on git commit with message (verified by intentional violation test)",
+        "Existing hook scripts (.opencode/hooks/pre-commit, .opencode/hooks/commit-msg) execute successfully",
+        "Hook enforcement survives repo clone (hooksPath is tracked in .git/config)"
+      ],
+      "estimated_effort": "XS"
+    },
+    {
+      "id": "RVW2-ENFORCE-STRICT",
+      "title": "P0: Switch project to strict enforcement mode in project.config.json",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "RVW2-INSTALL-HOOKS"
+      ],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #2: Enforcement Mode Set to 'advisory' Only (strict mode needed for CI/staging readiness)",
+      "target_files": [
+        ".opencode/project.config.json"
+      ],
+      "acceptance_criteria": [
+        "project.config.json template_resolution.enforcement_mode set to 'strict'",
+        "template_resolution.enforcement_config.strict.block_on array populated with: ['gate_armed', 'keystone_hash', 'tdd_order', 'dag_gate', 'eslint_audit', 'role_scope']",
+        "compliance-gate.js enforces real checks (not advisory warnings) \u2014 verified by intentional violation test that is BLOCKED",
+        "enforcement-mode-check.sh reports 'strict' mode active",
+        "Gate preflight returns HIGH severity for digest mismatches (not INFO)",
+        "Advisory mode can be restored for local development via ENFORCEMENT_MODE=advisory env var"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "RVW2-PURGE-SESSIONS",
+      "title": "P0: Purge stale completed/consumed sessions from gate-state.json.active_sessions",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-REPAIR-08"
+      ],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #3: Stale Gate Sessions (completed/consumed sessions still in active_sessions, inflating armed count)",
+      "target_files": [
+        ".opencode/state/gate-state.json"
+      ],
+      "acceptance_criteria": [
+        "Only unconsumed armed sessions remain in gate-state.json.active_sessions",
+        "All completed/consumed session entries removed from active_sessions array",
+        "gate-state.json.last_updated timestamp reflects purge operation",
+        "Pre-commit hook Layer 0 reports accurate armed session count",
+        "No orphaned session_ids that reference completed tasks",
+        "Reconciliation check (RVW-REVIEW-04) passes: active_sessions count matches actual armed sessions"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "RVW2-FIX-CRLF",
+      "title": "P1: Normalize shell scripts to LF line endings and enforce via .gitattributes",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #4: CRLF Line Endings in Shell Scripts (causes execution failures on Unix)",
+      "target_files": [
+        ".opencode/hooks/pre-commit",
+        ".opencode/hooks/commit-msg",
+        ".opencode/scripts/reconciliation-check.sh",
+        ".opencode/scripts/pre-execution-hook.sh",
+        ".gitattributes"
+      ],
+      "acceptance_criteria": [
+        "All 4 shell scripts normalized to LF line endings (dos2unix or equivalent)",
+        ".gitattributes created or updated with '*.sh text eol=lf' rule",
+        ".gitattributes includes '.opencode/hooks/* text eol=lf' rule for hook scripts",
+        "Verified via 'file' command: all .sh files report 'ASCII text' or 'UTF-8 Unicode text' (NOT 'with CRLF line terminators')",
+        "git add --renormalize . applied to ensure all files match .gitattributes",
+        "Future CRLF commits blocked by .gitattributes enforcement"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "RVW2-REGEN-DIGESTS",
+      "title": "P1: Regenerate rule_registry.json digests from actual file contents",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #5: Rule Registry Digest Mismatches (24 entries have stale digests not matching actual file contents)",
+      "target_files": [
+        ".opencode/state/rule_registry.json"
+      ],
+      "acceptance_criteria": [
+        "All 24/24 rule_registry.json entries have digests matching SHA-256 of actual file contents",
+        "Each entry's 'status' field set to 'verified' after digest regeneration",
+        "rule_registry.json 'last_regenerated' timestamp updated to 2026-05-23",
+        "Gate preflight (compliance_gate_check) reports 0 mismatches (HIGH) and 0 warnings",
+        "Version tags (semver) verified or updated if rule files have changed semantically",
+        "Regeneration script/logic documented for future use"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "RVW2-FIX-SELFTEST",
+      "title": "P1: Fix 3 failing framework-self-test.js checks (checks 18, 19, 20)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-REPAIR-01",
+        "RVW-REVIEW-04",
+        "RVW-REVIEW-06"
+      ],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #6: 3 Failing Self-Test Checks (checks 18, 19, 20 fail in framework-self-test.js)",
+      "target_files": [
+        ".opencode/scripts/framework-self-test.js"
+      ],
+      "acceptance_criteria": [
+        "Check 18 (template_resolution config exists) passes",
+        "Check 19 (path canonicalization lint check) passes",
+        "Check 20 (gate-state integrity) passes",
+        "All 20 self-test checks return PASS status",
+        "node .opencode/scripts/framework-self-test.js exits with code 0",
+        "Self-test integrated into pre-commit hook for early failure detection",
+        "Failing checks produce actionable error messages (not cryptic failures)"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "RVW2-INSTALL-MCP-DEPS",
+      "title": "P1: Install Node dependencies for MCP scripts and document bootstrap process",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #7: Missing MCP Script Dependencies (@modelcontextprotocol/sdk not installed, no bootstrap docs)",
+      "target_files": [
+        ".opencode/package.json",
+        ".opencode/scripts/mcp-tools/"
+      ],
+      "acceptance_criteria": [
+        "npm install succeeds in .opencode/ directory",
+        "@modelcontextprotocol/sdk is resolvable (node -e \"require('@modelcontextprotocol/sdk')\" exits 0)",
+        ".opencode/package.json exists with dependencies listed (or created if missing)",
+        "Bootstrap documentation added to .opencode/README.md or MCP_SETUP.md covering: (a) npm install step, (b) required Node version, (c) MCP server configuration, (d) verification commands",
+        "All MCP tool scripts (.opencode/scripts/mcp-tools/*.js) can require their dependencies without MODULE_NOT_FOUND",
+        "GitHub Actions workflow (if any) includes npm install step for .opencode/"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "RVW2-FIX-PATHS",
+      "title": "P1: Align project.config.json backend_src/frontend_src paths with actual booking_system_refactor layout",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-REPAIR-02"
+      ],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #8: Project Path Misalignment (backend_src/frontend_src in project.config.json point to non-existent directories)",
+      "target_files": [
+        ".opencode/project.config.json"
+      ],
+      "acceptance_criteria": [
+        "project.config.json paths.backend_src resolves to 'booking_system_refactor/booking-backend/src/'",
+        "project.config.json paths.frontend_src resolves to 'booking_system_refactor/booking-frontend/'",
+        "Directory existence verified: ls booking_system_refactor/booking-backend/src/ succeeds",
+        "Directory existence verified: ls booking_system_refactor/booking-frontend/ succeeds",
+        "All agent_write_scopes referencing booking-backend/booking-frontend paths updated to match new base paths",
+        "template_resolution backend.src and frontend.src updated to match resolved paths",
+        "framework-self-test.js check for path validity passes"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "RVW2-FIX-DAG-TRACE",
+      "title": "P2: Complete requirement_source field for 19 untraced DAG tasks",
+      "status": "pending",
+      "owner": "@Meta-Planner",
+      "priority": "P2",
+      "dependencies": [],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #9: 19 DAG Tasks Missing requirement_source (untraced to requirement documents)",
+      "target_files": [
+        "Task.DAG.json"
+      ],
+      "acceptance_criteria": [
+        "All 64 tasks in Task.DAG.json have non-empty requirement_source field",
+        "Previously untraced 19 tasks (OPC-FW-*, some UNIV-P*, some FW-REPAIR-*) mapped to their originating requirement documents or review reports",
+        "Each requirement_source specifies document name + section/paragraph reference",
+        "DAG traceability audit script (or manual check) confirms 64/64 tasks traced",
+        "No placeholder or generic requirement_source values (e.g., 'TBD', 'N/A')"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "RVW2-CI-CHECKS",
+      "title": "P2: Add CI checks for hook path enforcement, LF line endings, digest freshness, and transaction log validity",
+      "status": "pending",
+      "owner": "@CI-CD-Agent",
+      "priority": "P2",
+      "dependencies": [
+        "RVW2-INSTALL-HOOKS",
+        "RVW2-FIX-CRLF",
+        "RVW2-REGEN-DIGESTS"
+      ],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #10: Missing CI Pipeline Checks (no automated validation of hooks, line endings, digests, or transaction log)",
+      "target_files": [
+        ".github/workflows/framework-ci.yml"
+      ],
+      "acceptance_criteria": [
+        ".github/workflows/framework-ci.yml created with 4 check jobs: (a) hook-path-check: verifies git config core.hooksPath == .opencode/hooks, (b) lf-check: verifies no CRLF in .sh files via 'file' command patterns, (c) digest-check: runs rule_registry.json digest validation (or framework-self-test.js checks), (d) wal-check: runs 'node .opencode/scripts/state-transaction.js verify'",
+        "All checks run on PR and push to main/develop branches",
+        "Any check failure blocks PR merge",
+        "CI workflow uses checkout@v4 with fetch-depth: 0 for full git history access",
+        "Workflow documented with comments explaining each check's purpose",
+        "CI badge/status visible in README.md or PROJECT_REFERENCE.md"
+      ],
+      "estimated_effort": "M"
+    },
+    {
+      "id": "RVW2-FIX-WAL-DUP",
+      "title": "P1: Fix state-transaction.js WAL duplicate revision bug \u2014 record new_revision only on COMMIT or update verifier to group by operation_id",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [],
+      "requirement_source": "2026-05-23 Review Gap Analysis \u2014 RVW2 Finding #11: WAL Duplicate Revision Bug (state-transaction.js records duplicate new_revision on PREPARE + COMMIT phases instead of only on COMMIT)",
+      "target_files": [
+        ".opencode/scripts/state-transaction.js"
+      ],
+      "acceptance_criteria": [
+        "'node .opencode/scripts/state-transaction.js verify' passes cleanly with exit code 0",
+        "new_revision recorded only on COMMIT phase (not on PREPARE phase)",
+        "Alternative fix accepted: update verifier to group transaction entries by operation_id and accept PREPARE+COMMIT pair as single revision increment",
+        "Duplicate revision entries no longer appear in .opencode/state/.transaction-log",
+        "Monotonic revision counter in machine.json.meta correctly incremented once per operation (not twice)",
+        "Regression test: simulate PREPARE \u2192 COMMIT cycle and verify revision increments by exactly 1"
+      ],
+      "estimated_effort": "S"
+    },
+    {
+      "id": "TD-2026-010-REPAY",
+      "title": "P0 [Tech-Debt]: Repay TD-2026-010 \u2014 Clean up Skill Registry Stale References (deadline 2026-05-30)",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [],
+      "requirement_source": "TECH_DEBT_REGISTRY.md \u2014 TD-2026-010: Skill Registry Stale References. skill-invocation-standard.md \u00a73.1 lists deprecated skills (salesforce-dx-expert, playwright-mcp-expert, devops-architect) with incorrect status; category descriptions \u00a72.1 and quick checklists \u00a75.3 need audit.",
+      "target_files": [
+        ".opencode/rules/rule_detail/skill-invocation-standard.md",
+        ".opencode/skills/salesforce-dx-expert/SKILL.md",
+        ".opencode/skills/playwright-mcp-expert/SKILL.md",
+        ".opencode/skills/devops-architect/SKILL.md"
+      ],
+      "acceptance_criteria": [
+        "skill-invocation-standard.md \u00a73.1: deprecated skills marked with correct '\u274c \u5e9f\u5f03' status (not '\u2705 \u6d3b\u8dc3')",
+        "skill-invocation-standard.md \u00a72.1 category descriptions audited: no references to deprecated skills in active categories",
+        "skill-invocation-standard.md \u00a75.3 quick checklists audited: no deprecated skill names",
+        "DEPRECATED.md files (\u00d73 from .task_temp/UNIV-013/) deployed to target skill directories: salesforce-dx-expert/, playwright-mcp-expert/, devops-architect/",
+        "WV-2026-005 formally closed in TECH_DEBT_REGISTRY.md or WAIVE.md",
+        "TD-2026-010 status updated to 'repaid' in TECH_DEBT_REGISTRY.md",
+        "framework-self-test.js skill registry check passes"
+      ],
+      "estimated_effort": "S"
     }
   ],
   "execution_order": {
@@ -1320,16 +1599,38 @@
       "RVW-REVIEW-07",
       "RVW-REVIEW-08",
       "RVW-REVIEW-09"
+    ],
+    "rvw2_p0_independent": [
+      "RVW2-INSTALL-HOOKS",
+      "TD-2026-010-REPAY"
+    ],
+    "rvw2_p0_dependent": [
+      "RVW2-ENFORCE-STRICT",
+      "RVW2-PURGE-SESSIONS"
+    ],
+    "rvw2_p1_independent": [
+      "RVW2-FIX-CRLF",
+      "RVW2-REGEN-DIGESTS",
+      "RVW2-INSTALL-MCP-DEPS",
+      "RVW2-FIX-WAL-DUP"
+    ],
+    "rvw2_p1_dependent": [
+      "RVW2-FIX-SELFTEST",
+      "RVW2-FIX-PATHS"
+    ],
+    "rvw2_p2": [
+      "RVW2-FIX-DAG-TRACE",
+      "RVW2-CI-CHECKS"
     ]
   },
   "meta": {
-    "total_tasks": 52,
-    "backlog_estimate": "3-4 days",
-    "coverage_target": "≥ 70% for backend, ≥ 70% for frontend",
+    "total_tasks": 64,
+    "backlog_estimate": "4-5 days",
+    "coverage_target": "\u2265 70% for backend, \u2265 70% for frontend",
     "spec_documents": [
-      ".opencode/context/requirements/接口设计规范文档.md §2.12-2.13",
-      ".opencode/context/requirements/数据架构设计文档.md §2.2.6",
-      ".opencode/context/requirements/系统架构设计文档（SAD）.md",
+      ".opencode/context/requirements/\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md \u00a72.12-2.13",
+      ".opencode/context/requirements/\u6570\u636e\u67b6\u6784\u8bbe\u8ba1\u6587\u6863.md \u00a72.2.6",
+      ".opencode/context/requirements/\u7cfb\u7edf\u67b6\u6784\u8bbe\u8ba1\u6587\u6863\uff08SAD\uff09.md",
       "booking_system_refactor/contract.yaml"
     ],
     "bug_fix": {
@@ -1338,6 +1639,13 @@
       "root_cause_hypothesis": "Contract-Code Mismatch: contract.yaml declares enum ['EMAIL','PHONE'] (UPPERCASE) but backend ContactType enum uses lowercase ['email','phone']. HTML template comparison bug: 'EMAIL'/'PHONE' hardcoded string literals vs lowercase enum values.",
       "analysis_doc": ".task_temp/BUG-SENDCODE-PLAN/TASK_LOG.md"
     },
-    "description": "Appended 9 review remediation tasks (RVW-REVIEW-01 through RVW-REVIEW-09) based on 2026-05-21 Opencode Framework Core Feature & Risk Assessment Review. Covers P0 (state transaction envelope, workspace canonicalization, semantic gate preflight), P1 (reconciliation daemon, integrity chaining, path normalization CI linting), and P2 (event-sourced audit log, enforcement modes, universal compatibility profile)."
+    "tech_debt_conversion": {
+      "item": "TD-2026-010",
+      "description": "Skill Registry Stale References \u2014 skill-invocation-standard.md \u00a73.1 deprecated skills with incorrect status + \u00a72.1/\u00a75.3 stale references",
+      "deadline": "2026-05-30",
+      "days_remaining": 7,
+      "converted_to": "TD-2026-010-REPAY"
+    },
+    "description": "Appended 12 new remediation tasks (RVW2-INSTALL-HOOKS through RVW2-FIX-WAL-DUP + TD-2026-010-REPAY) based on 2026-05-23 second review gap analysis. Covers P0 (Git hooks, strict mode, session purge, tech-debt repayment), P1 (CRLF fix, digests, self-tests, MCP deps, path alignment, WAL dedup), P2 (DAG traceability, CI checks). Owners: @Architect (10), @Meta-Planner (1), @CI-CD-Agent (1). TD-2026-010 automatically converted from TECH_DEBT_REGISTRY.md per \u22647 day repayment rule."
   }
 }

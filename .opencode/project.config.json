@@ -63,7 +63,7 @@
     "container": "Docker Compose v2"
   },
   "template_resolution": {
-    "enforcement_mode": "advisory",
+    "enforcement_mode": "strict",
     "enforcement_config": {
       "advisory": {
         "description": "Warnings only, non-blocking. Suitable for local development.",
