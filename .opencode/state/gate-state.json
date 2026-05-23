@@ -1840,20 +1840,1243 @@
         "execution_summary": "Task.DAG.json v2.7.2 update: (1) Marked RVW-REVIEW-01-TXNFIX-REVIEW status from pending to completed. (2) Prepended v2.7.2 change_log entry documenting @Arbiter waiver for 3 pre-existing Layer A state issues, all 67 tasks completed, 5/5 GREEN tests pass, ESLint 0 violations, WAL integrity confirmed, TECH_DEBT_REGISTRY updated with TD-2026-013/014/015. (3) meta.total_tasks verified at 67. No other fields or tasks modified. All 67 tasks now completed.",
         "completed_at": "2026-05-23T11:29:03.241Z"
       }
+    },
+    "cg_ses_1779536342061": {
+      "session_id": "cg_ses_1779536342061",
+      "created_at": "2026-05-23T11:39:02.063Z",
+      "task_description": "Repay 3 open tech debts: TD-2026-013 (7 frontend TS errors), TD-2026-014 (contract.yaml formatting), TD-2026-015 (7 historical CAT5.2 TDD violations). Dispatch @Meta-Planner for DAG generation, then schedule sub-agents.",
+      "enforcement_mode": "strict",
+      "gate_status": "failed",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779536651016": {
+      "session_id": "cg_ses_1779536651016",
+      "created_at": "2026-05-23T11:44:11.033Z",
+      "task_description": "Generate Task.DAG.json v2.8.0: Append 3 tech-debt repayment tasks (TD-2026-013: Fix 7 Angular TS errors via TDD RED→GREEN; TD-2026-014: Format contract.yaml with Prettier; TD-2026-015: Write TDD-compliance tests for 4 framework tool files via RED→GREEN). Update meta.total_tasks 67→70.",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Append 3 tech-debt repayment tasks to Task.DAG.json v2.8.0: T-TECHDEBT-013 (@Coder-FE, fix 7 Angular TS errors via TDD RED→GREEN), T-TECHDEBT-014 (@Architect, Prettier format contract.yaml), T-TECHDEBT-015 (@Coder-BE, write retroactive tests for 4 framework tools via RED→GREEN). meta.total_tasks: 67→70. All 3 P0, parallel execution, existing tasks unmodified.",
+      "confirmed_at": "2026-05-23T11:45:00.087Z",
+      "consumed_at": "2026-05-23T11:46:35.943Z",
+      "audit": {
+        "execution_summary": "@Meta-Planner updated Task.DAG.json from v2.7.2 to v2.8.0. Appended 3 P0 tech-debt repayment tasks: T-TECHDEBT-013 (fix 7 Angular TS errors, @Coder-FE), T-TECHDEBT-014 (format contract.yaml, @Architect), T-TECHDEBT-015 (write TDD tests for 4 framework tools, @Coder-BE). meta.total_tasks: 67→70. All 67 existing tasks unmodified. Added tech_debt_repayment execution_order phase for parallel execution. Change_log entry v2.8.0 recorded.",
+        "completed_at": "2026-05-23T11:46:35.943Z"
+      }
+    },
+    "cg_ses_1779536825544": {
+      "session_id": "cg_ses_1779536825544",
+      "created_at": "2026-05-23T11:47:05.545Z",
+      "task_description": "Repay TD-2026-013: Fix 7 TypeScript compilation errors in booking_system_refactor/booking-frontend/. Affected files include messages-dropdown spec, app-header component & spec, app-layout component, admin.store.ts & spec.",
+      "enforcement_mode": "strict",
+      "gate_status": "failed",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779536829380": {
+      "session_id": "cg_ses_1779536829380",
+      "created_at": "2026-05-23T11:47:09.381Z",
+      "task_description": "T-TECHDEBT-014: Format contract.yaml with Prettier and recompute keystone hash. Steps: (1) npx prettier --write contract.yaml, (2) keystone-validate --hash, (3) update machine.json format_state and keystone_hashes.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "T-TECHDEBT-014: Format contract.yaml with Prettier, recompute keystone hash via keystone-validate, and update machine.json format_state to clean + keystone_hashes.",
+      "confirmed_at": "2026-05-23T11:53:06.606Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779536831488": {
+      "session_id": "cg_ses_1779536831488",
+      "created_at": "2026-05-23T11:47:11.489Z",
+      "task_description": "Repay TD-2026-015 — Write retroactive TDD compliance test files for 4 framework-internal MCP tool files (code-quality-gate.js, state-transaction.js, compliance-gate.js, framework-self-test.js) to clear historical CAT5.2 violations",
+      "enforcement_mode": "strict",
+      "gate_status": "failed",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205593": {
+      "session_id": "cg_ses_1779537205593",
+      "created_at": "2026-05-23T11:53:25.595Z",
+      "task_description": "test task description",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205607": {
+      "session_id": "cg_ses_1779537205607",
+      "created_at": "2026-05-23T11:53:25.608Z",
+      "task_description": "test task for rule status",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205617": {
+      "session_id": "cg_ses_1779537205617",
+      "created_at": "2026-05-23T11:53:25.618Z",
+      "task_description": "test task for enforcement mode",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205630": {
+      "session_id": "cg_ses_1779537205630",
+      "created_at": "2026-05-23T11:53:25.631Z",
+      "task_description": "test for short summary",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205644": {
+      "session_id": "cg_ses_1779537205644",
+      "created_at": "2026-05-23T11:53:25.644Z",
+      "task_description": "test for arming",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for arming the compliance gate test",
+      "confirmed_at": "2026-05-23T11:53:25.653Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205665": {
+      "session_id": "cg_ses_1779537205665",
+      "created_at": "2026-05-23T11:53:25.666Z",
+      "task_description": "test for double arm",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "first arm of this session for testing",
+      "confirmed_at": "2026-05-23T11:53:25.680Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205690": {
+      "session_id": "cg_ses_1779537205690",
+      "created_at": "2026-05-23T11:53:25.691Z",
+      "task_description": "test for complete without confirm",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537205700": {
+      "session_id": "cg_ses_1779537205700",
+      "created_at": "2026-05-23T11:53:25.701Z",
+      "task_description": "test for full lifecycle",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for full lifecycle test completion",
+      "confirmed_at": "2026-05-23T11:53:25.711Z",
+      "consumed_at": "2026-05-23T11:53:25.721Z",
+      "audit": {
+        "execution_summary": "exec summary for full lifecycle test",
+        "completed_at": "2026-05-23T11:53:25.721Z"
+      }
+    },
+    "cg_ses_1779537205731": {
+      "session_id": "cg_ses_1779537205731",
+      "created_at": "2026-05-23T11:53:25.732Z",
+      "task_description": "test for double complete",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan for double complete test session",
+      "confirmed_at": "2026-05-23T11:53:25.741Z",
+      "consumed_at": "2026-05-23T11:53:25.750Z",
+      "audit": {
+        "execution_summary": "first completion",
+        "completed_at": "2026-05-23T11:53:25.750Z"
+      }
+    },
+    "cg_ses_1779537205765": {
+      "session_id": "cg_ses_1779537205765",
+      "created_at": "2026-05-23T11:53:25.766Z",
+      "task_description": "integration test full lifecycle",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "integration test plan for confirming full gate",
+      "confirmed_at": "2026-05-23T11:53:25.776Z",
+      "consumed_at": "2026-05-23T11:53:25.785Z",
+      "audit": {
+        "execution_summary": "integration test completed successfully",
+        "completed_at": "2026-05-23T11:53:25.785Z"
+      }
+    },
+    "cg_ses_1779537205796": {
+      "session_id": "cg_ses_1779537205796",
+      "created_at": "2026-05-23T11:53:25.797Z",
+      "task_description": "test for gate state file creation",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269496": {
+      "session_id": "cg_ses_1779537269496",
+      "created_at": "2026-05-23T11:54:29.497Z",
+      "task_description": "test task description",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269520": {
+      "session_id": "cg_ses_1779537269520",
+      "created_at": "2026-05-23T11:54:29.521Z",
+      "task_description": "test task for rule status",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269548": {
+      "session_id": "cg_ses_1779537269548",
+      "created_at": "2026-05-23T11:54:29.553Z",
+      "task_description": "test task for enforcement mode",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269577": {
+      "session_id": "cg_ses_1779537269577",
+      "created_at": "2026-05-23T11:54:29.578Z",
+      "task_description": "test for short summary",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269601": {
+      "session_id": "cg_ses_1779537269601",
+      "created_at": "2026-05-23T11:54:29.602Z",
+      "task_description": "test for arming",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for arming the compliance gate test",
+      "confirmed_at": "2026-05-23T11:54:29.623Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269647": {
+      "session_id": "cg_ses_1779537269647",
+      "created_at": "2026-05-23T11:54:29.648Z",
+      "task_description": "test for double arm",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "first arm of this session for testing",
+      "confirmed_at": "2026-05-23T11:54:29.680Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269690": {
+      "session_id": "cg_ses_1779537269690",
+      "created_at": "2026-05-23T11:54:29.691Z",
+      "task_description": "test for complete without confirm",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537269702": {
+      "session_id": "cg_ses_1779537269702",
+      "created_at": "2026-05-23T11:54:29.703Z",
+      "task_description": "test for full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for full lifecycle test completion",
+      "confirmed_at": "2026-05-23T11:54:29.712Z",
+      "consumed_at": "2026-05-23T11:54:29.722Z",
+      "audit": {
+        "execution_summary": "exec summary for full lifecycle test",
+        "completed_at": "2026-05-23T11:54:29.722Z"
+      }
+    },
+    "cg_ses_1779537269732": {
+      "session_id": "cg_ses_1779537269732",
+      "created_at": "2026-05-23T11:54:29.733Z",
+      "task_description": "test for double complete",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan for double complete test session",
+      "confirmed_at": "2026-05-23T11:54:29.743Z",
+      "consumed_at": "2026-05-23T11:54:29.753Z",
+      "audit": {
+        "execution_summary": "first completion",
+        "completed_at": "2026-05-23T11:54:29.753Z"
+      }
+    },
+    "cg_ses_1779537269764": {
+      "session_id": "cg_ses_1779537269764",
+      "created_at": "2026-05-23T11:54:29.765Z",
+      "task_description": "integration test full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "integration test plan for confirming full gate",
+      "confirmed_at": "2026-05-23T11:54:29.775Z",
+      "consumed_at": "2026-05-23T11:54:29.791Z",
+      "audit": {
+        "execution_summary": "integration test completed successfully",
+        "completed_at": "2026-05-23T11:54:29.791Z"
+      }
+    },
+    "cg_ses_1779537269807": {
+      "session_id": "cg_ses_1779537269807",
+      "created_at": "2026-05-23T11:54:29.808Z",
+      "task_description": "test for gate state file creation",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355074": {
+      "session_id": "cg_ses_1779537355074",
+      "created_at": "2026-05-23T11:55:55.075Z",
+      "task_description": "test task description",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355087": {
+      "session_id": "cg_ses_1779537355087",
+      "created_at": "2026-05-23T11:55:55.087Z",
+      "task_description": "test task for rule status",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355096": {
+      "session_id": "cg_ses_1779537355096",
+      "created_at": "2026-05-23T11:55:55.101Z",
+      "task_description": "test task for enforcement mode",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355110": {
+      "session_id": "cg_ses_1779537355110",
+      "created_at": "2026-05-23T11:55:55.111Z",
+      "task_description": "test for short summary",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355121": {
+      "session_id": "cg_ses_1779537355121",
+      "created_at": "2026-05-23T11:55:55.121Z",
+      "task_description": "test for arming",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for arming the compliance gate test",
+      "confirmed_at": "2026-05-23T11:55:55.129Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355138": {
+      "session_id": "cg_ses_1779537355138",
+      "created_at": "2026-05-23T11:55:55.139Z",
+      "task_description": "test for double arm",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "first arm of this session for testing",
+      "confirmed_at": "2026-05-23T11:55:55.148Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355158": {
+      "session_id": "cg_ses_1779537355158",
+      "created_at": "2026-05-23T11:55:55.159Z",
+      "task_description": "test for complete without confirm",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537355170": {
+      "session_id": "cg_ses_1779537355170",
+      "created_at": "2026-05-23T11:55:55.171Z",
+      "task_description": "test for full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for full lifecycle test completion",
+      "confirmed_at": "2026-05-23T11:55:55.178Z",
+      "consumed_at": "2026-05-23T11:55:55.188Z",
+      "audit": {
+        "execution_summary": "exec summary for full lifecycle test",
+        "completed_at": "2026-05-23T11:55:55.188Z"
+      }
+    },
+    "cg_ses_1779537355197": {
+      "session_id": "cg_ses_1779537355197",
+      "created_at": "2026-05-23T11:55:55.198Z",
+      "task_description": "test for double complete",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan for double complete test session",
+      "confirmed_at": "2026-05-23T11:55:55.206Z",
+      "consumed_at": "2026-05-23T11:55:55.216Z",
+      "audit": {
+        "execution_summary": "first completion",
+        "completed_at": "2026-05-23T11:55:55.216Z"
+      }
+    },
+    "cg_ses_1779537355226": {
+      "session_id": "cg_ses_1779537355226",
+      "created_at": "2026-05-23T11:55:55.227Z",
+      "task_description": "integration test full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "integration test plan for confirming full gate",
+      "confirmed_at": "2026-05-23T11:55:55.238Z",
+      "consumed_at": "2026-05-23T11:55:55.246Z",
+      "audit": {
+        "execution_summary": "integration test completed successfully",
+        "completed_at": "2026-05-23T11:55:55.246Z"
+      }
+    },
+    "cg_ses_1779537355255": {
+      "session_id": "cg_ses_1779537355255",
+      "created_at": "2026-05-23T11:55:55.256Z",
+      "task_description": "test for gate state file creation",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426732": {
+      "session_id": "cg_ses_1779537426732",
+      "created_at": "2026-05-23T11:57:06.733Z",
+      "task_description": "test task description",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426755": {
+      "session_id": "cg_ses_1779537426755",
+      "created_at": "2026-05-23T11:57:06.756Z",
+      "task_description": "test task for rule status",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426771": {
+      "session_id": "cg_ses_1779537426771",
+      "created_at": "2026-05-23T11:57:06.771Z",
+      "task_description": "test task for enforcement mode",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426782": {
+      "session_id": "cg_ses_1779537426782",
+      "created_at": "2026-05-23T11:57:06.783Z",
+      "task_description": "test for short summary",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426792": {
+      "session_id": "cg_ses_1779537426792",
+      "created_at": "2026-05-23T11:57:06.793Z",
+      "task_description": "test for arming",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for arming the compliance gate test",
+      "confirmed_at": "2026-05-23T11:57:06.801Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426811": {
+      "session_id": "cg_ses_1779537426811",
+      "created_at": "2026-05-23T11:57:06.812Z",
+      "task_description": "test for double arm",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "first arm of this session for testing",
+      "confirmed_at": "2026-05-23T11:57:06.822Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426833": {
+      "session_id": "cg_ses_1779537426833",
+      "created_at": "2026-05-23T11:57:06.833Z",
+      "task_description": "test for complete without confirm",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779537426847": {
+      "session_id": "cg_ses_1779537426847",
+      "created_at": "2026-05-23T11:57:06.847Z",
+      "task_description": "test for full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for full lifecycle test completion",
+      "confirmed_at": "2026-05-23T11:57:06.856Z",
+      "consumed_at": "2026-05-23T11:57:06.865Z",
+      "audit": {
+        "execution_summary": "exec summary for full lifecycle test",
+        "completed_at": "2026-05-23T11:57:06.865Z"
+      }
+    },
+    "cg_ses_1779537426874": {
+      "session_id": "cg_ses_1779537426874",
+      "created_at": "2026-05-23T11:57:06.875Z",
+      "task_description": "test for double complete",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan for double complete test session",
+      "confirmed_at": "2026-05-23T11:57:06.884Z",
+      "consumed_at": "2026-05-23T11:57:06.892Z",
+      "audit": {
+        "execution_summary": "first completion",
+        "completed_at": "2026-05-23T11:57:06.892Z"
+      }
+    },
+    "cg_ses_1779537426901": {
+      "session_id": "cg_ses_1779537426901",
+      "created_at": "2026-05-23T11:57:06.902Z",
+      "task_description": "integration test full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "integration test plan for confirming full gate",
+      "confirmed_at": "2026-05-23T11:57:06.911Z",
+      "consumed_at": "2026-05-23T11:57:06.920Z",
+      "audit": {
+        "execution_summary": "integration test completed successfully",
+        "completed_at": "2026-05-23T11:57:06.920Z"
+      }
+    },
+    "cg_ses_1779537426929": {
+      "session_id": "cg_ses_1779537426929",
+      "created_at": "2026-05-23T11:57:06.929Z",
+      "task_description": "test for gate state file creation",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762451": {
+      "session_id": "cg_ses_1779538762451",
+      "created_at": "2026-05-23T12:19:22.454Z",
+      "task_description": "test task description",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762467": {
+      "session_id": "cg_ses_1779538762467",
+      "created_at": "2026-05-23T12:19:22.468Z",
+      "task_description": "test task for rule status",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762477": {
+      "session_id": "cg_ses_1779538762477",
+      "created_at": "2026-05-23T12:19:22.478Z",
+      "task_description": "test task for enforcement mode",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762487": {
+      "session_id": "cg_ses_1779538762487",
+      "created_at": "2026-05-23T12:19:22.488Z",
+      "task_description": "test for short summary",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762497": {
+      "session_id": "cg_ses_1779538762497",
+      "created_at": "2026-05-23T12:19:22.497Z",
+      "task_description": "test for arming",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for arming the compliance gate test",
+      "confirmed_at": "2026-05-23T12:19:22.506Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762516": {
+      "session_id": "cg_ses_1779538762516",
+      "created_at": "2026-05-23T12:19:22.517Z",
+      "task_description": "test for double arm",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "first arm of this session for testing",
+      "confirmed_at": "2026-05-23T12:19:22.526Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762537": {
+      "session_id": "cg_ses_1779538762537",
+      "created_at": "2026-05-23T12:19:22.538Z",
+      "task_description": "test for complete without confirm",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538762547": {
+      "session_id": "cg_ses_1779538762547",
+      "created_at": "2026-05-23T12:19:22.548Z",
+      "task_description": "test for full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for full lifecycle test completion",
+      "confirmed_at": "2026-05-23T12:19:22.556Z",
+      "consumed_at": "2026-05-23T12:19:22.569Z",
+      "audit": {
+        "execution_summary": "exec summary for full lifecycle test",
+        "completed_at": "2026-05-23T12:19:22.569Z"
+      }
+    },
+    "cg_ses_1779538762579": {
+      "session_id": "cg_ses_1779538762579",
+      "created_at": "2026-05-23T12:19:22.579Z",
+      "task_description": "test for double complete",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan for double complete test session",
+      "confirmed_at": "2026-05-23T12:19:22.588Z",
+      "consumed_at": "2026-05-23T12:19:22.597Z",
+      "audit": {
+        "execution_summary": "first completion",
+        "completed_at": "2026-05-23T12:19:22.597Z"
+      }
+    },
+    "cg_ses_1779538762607": {
+      "session_id": "cg_ses_1779538762607",
+      "created_at": "2026-05-23T12:19:22.608Z",
+      "task_description": "integration test full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "integration test plan for confirming full gate",
+      "confirmed_at": "2026-05-23T12:19:22.617Z",
+      "consumed_at": "2026-05-23T12:19:22.626Z",
+      "audit": {
+        "execution_summary": "integration test completed successfully",
+        "completed_at": "2026-05-23T12:19:22.626Z"
+      }
+    },
+    "cg_ses_1779538762634": {
+      "session_id": "cg_ses_1779538762634",
+      "created_at": "2026-05-23T12:19:22.635Z",
+      "task_description": "test for gate state file creation",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791181": {
+      "session_id": "cg_ses_1779538791181",
+      "created_at": "2026-05-23T12:19:51.183Z",
+      "task_description": "test task description",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791208": {
+      "session_id": "cg_ses_1779538791208",
+      "created_at": "2026-05-23T12:19:51.209Z",
+      "task_description": "test task for rule status",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791227": {
+      "session_id": "cg_ses_1779538791227",
+      "created_at": "2026-05-23T12:19:51.228Z",
+      "task_description": "test task for enforcement mode",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791238": {
+      "session_id": "cg_ses_1779538791238",
+      "created_at": "2026-05-23T12:19:51.239Z",
+      "task_description": "test for short summary",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791249": {
+      "session_id": "cg_ses_1779538791249",
+      "created_at": "2026-05-23T12:19:51.250Z",
+      "task_description": "test for arming",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for arming the compliance gate test",
+      "confirmed_at": "2026-05-23T12:19:51.259Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791269": {
+      "session_id": "cg_ses_1779538791269",
+      "created_at": "2026-05-23T12:19:51.270Z",
+      "task_description": "test for double arm",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "first arm of this session for testing",
+      "confirmed_at": "2026-05-23T12:19:51.279Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791292": {
+      "session_id": "cg_ses_1779538791292",
+      "created_at": "2026-05-23T12:19:51.293Z",
+      "task_description": "test for complete without confirm",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538791303": {
+      "session_id": "cg_ses_1779538791303",
+      "created_at": "2026-05-23T12:19:51.304Z",
+      "task_description": "test for full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan summary for full lifecycle test completion",
+      "confirmed_at": "2026-05-23T12:19:51.313Z",
+      "consumed_at": "2026-05-23T12:19:51.321Z",
+      "audit": {
+        "execution_summary": "exec summary for full lifecycle test",
+        "completed_at": "2026-05-23T12:19:51.321Z"
+      }
+    },
+    "cg_ses_1779538791331": {
+      "session_id": "cg_ses_1779538791331",
+      "created_at": "2026-05-23T12:19:51.332Z",
+      "task_description": "test for double complete",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "plan for double complete test session",
+      "confirmed_at": "2026-05-23T12:19:51.342Z",
+      "consumed_at": "2026-05-23T12:19:51.350Z",
+      "audit": {
+        "execution_summary": "first completion",
+        "completed_at": "2026-05-23T12:19:51.350Z"
+      }
+    },
+    "cg_ses_1779538791362": {
+      "session_id": "cg_ses_1779538791362",
+      "created_at": "2026-05-23T12:19:51.362Z",
+      "task_description": "integration test full lifecycle",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "integration test plan for confirming full gate",
+      "confirmed_at": "2026-05-23T12:19:51.371Z",
+      "consumed_at": "2026-05-23T12:19:51.380Z",
+      "audit": {
+        "execution_summary": "integration test completed successfully",
+        "completed_at": "2026-05-23T12:19:51.380Z"
+      }
+    },
+    "cg_ses_1779538791389": {
+      "session_id": "cg_ses_1779538791389",
+      "created_at": "2026-05-23T12:19:51.390Z",
+      "task_description": "test for gate state file creation",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538815072": {
+      "session_id": "cg_ses_1779538815072",
+      "created_at": "2026-05-23T12:20:15.073Z",
+      "task_description": "T-TECHDEBT-013: Repay TD-2026-013 - verify TS errors resolved, update machine.json",
+      "enforcement_mode": "strict",
+      "gate_status": "failed",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538815441": {
+      "session_id": "cg_ses_1779538815441",
+      "created_at": "2026-05-23T12:20:15.442Z",
+      "task_description": "T-TECHDEBT-014: Repay TD-2026-014 - format contract.yaml with Prettier, update keystone hash and machine.json",
+      "enforcement_mode": "strict",
+      "gate_status": "failed",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538815797": {
+      "session_id": "cg_ses_1779538815797",
+      "created_at": "2026-05-23T12:20:15.798Z",
+      "task_description": "T-TECHDEBT-015: Repay TD-2026-015 - write TDD test files for 4 framework tools, clear violations",
+      "enforcement_mode": "strict",
+      "gate_status": "failed",
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779538885381": {
+      "session_id": "cg_ses_1779538885381",
+      "created_at": "2026-05-23T12:21:25.382Z",
+      "task_description": "Close-out steps for 3 completed tech-debt tasks T-TECHDEBT-013/014/015: git staging, committing, DAG status update, eslint audit, and compliance gate completion",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Close-out 3 tech-debt tasks: git staging, 3 commits, DAG status update, eslint audit, compliance gate complete",
+      "confirmed_at": "2026-05-23T12:23:41.853Z",
+      "consumed_at": null,
+      "audit": null
     }
   },
   "active_sessions": [
     "cg_ses_1779517025364",
     "cg_ses_1779518075661",
     "cg_ses_1779518286659",
+    "cg_ses_1779520239683",
+    "cg_ses_1779520434028",
+    "cg_ses_1779532234035",
+    "cg_ses_1779533547292",
+    "cg_ses_1779536829380",
+    "cg_ses_1779537205644",
+    "cg_ses_1779537205665",
+    "cg_ses_1779537269601",
+    "cg_ses_1779537269647",
+    "cg_ses_1779537355121",
+    "cg_ses_1779537355138",
+    "cg_ses_1779537426792",
+    "cg_ses_1779537426811",
+    "cg_ses_1779538762497",
+    "cg_ses_1779538762516",
+    "cg_ses_1779538791249",
+    "cg_ses_1779538791269",
     "cg_ses_1779322955929",
     "cg_ses_1779328521198",
     "cg_ses_1779329331185",
     "cg_ses_1779333126790",
-    "cg_ses_1779520239683",
-    "cg_ses_1779520434028",
-    "cg_ses_1779532234035",
-    "cg_ses_1779533547292"
+    "cg_ses_1779538885381"
   ],
-  "last_updated": "2026-05-23T11:29:36.990Z"
+  "last_updated": "2026-05-23T12:23:41.853Z"
 }

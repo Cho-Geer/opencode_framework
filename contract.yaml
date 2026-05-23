@@ -4,7 +4,7 @@
 # Version: 1.10.0
 # Date: 2026-05-23
 # Last Sync: 2026-05-23
-# 
+#
 # Change Log:
 # v1.10.0 (2026-05-23):
 #   - [形式化] admin.messages.list (MSG-001): 新增 DTO 命名注解 — MessageItemDto（条目 DTO: id, sender, subject, body, read, createdAt）和 MessageListResponseDto（信封: items, total, page, limit）
@@ -173,7 +173,7 @@ project:
   version: "1.0.0"
   description: "Modern appointment booking system with high-concurrency handling"
   repository: "booking_system_refactor"
-  
+
   technology_stack:
     frontend:
       framework: "Angular v21+"
@@ -181,7 +181,7 @@ project:
       state_management: "NgRx Signals (@ngrx/signals)"
       testing: "Jest + Angular Testing Library"
       e2e_testing: "Playwright"
-    
+
     backend:
       framework: "NestJS v11+"
       runtime: "Node.js 22.x LTS"
@@ -189,12 +189,12 @@ project:
       authentication: "JWT + Passport"
       security: "helmet, CORS, CSRF protection"
       testing: "Jest + Supertest + Testcontainers"
-    
+
     database:
       primary: "PostgreSQL 16"
       cache: "Redis 7.x"
       queue: "BullMQ (Redis backend)"
-    
+
     deployment:
       container_runtime: "Docker 24.x"
       orchestration: "Docker Compose v2"
@@ -209,20 +209,20 @@ api:
   base_path: "/v1"
   versioning_strategy: "URI path versioning"
   default_content_type: "application/json"
-  
+
   authentication:
     type: "JWT Bearer Token"
     token_lifetime: "15 minutes"
     refresh_token_lifetime: "7 days"
     endpoints:
       # [方案 C v4 TASK-D5 修复] 旧单步端点已废弃，替换为分步端点
-      login_password: "POST /v1/auth/login/password"           # 密码登录
-      login_send_code: "POST /v1/auth/login/send-code"         # 验证码登录第一步
-      login_verify_code: "POST /v1/auth/login/verify-code"     # 验证码登录第二步
-      register_send_code: "POST /v1/auth/register/send-code"   # 注册第一步
-      register_complete: "POST /v1/auth/register/complete"     # 注册第二步
-      reset_password_send_code: "POST /v1/auth/reset-password/send-code"  # 忘记密码第一步
-      reset_password_verify: "POST /v1/auth/reset-password/verify"        # 忘记密码第二步
+      login_password: "POST /v1/auth/login/password" # 密码登录
+      login_send_code: "POST /v1/auth/login/send-code" # 验证码登录第一步
+      login_verify_code: "POST /v1/auth/login/verify-code" # 验证码登录第二步
+      register_send_code: "POST /v1/auth/register/send-code" # 注册第一步
+      register_complete: "POST /v1/auth/register/complete" # 注册第二步
+      reset_password_send_code: "POST /v1/auth/reset-password/send-code" # 忘记密码第一步
+      reset_password_verify: "POST /v1/auth/reset-password/verify" # 忘记密码第二步
       refresh: "POST /v1/auth/refresh"
       logout: "POST /v1/auth/logout"
       # deprecated (勿用，已被上方分步端点替代)
@@ -279,7 +279,6 @@ api:
       requestId: "string — UUID v4 with 'req-' prefix"
 
   endpoints:
-    
     # Auth endpoints
     # [方案 C v4 TASK-D5 修复] 以下旧端点已废弃，请使用 pii_encryption_contract.auth_endpoints 中的分步端点
     auth:
@@ -315,14 +314,18 @@ api:
                     id: { type: "string" }
                     email: { type: "string" }
                     name: { type: "string" }
-                    role: { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"] }
+                    role:
+                      {
+                        type: "string",
+                        enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"],
+                      }
           error:
             status: 401
             body:
               type: "object"
               properties:
                 error: { type: "string", example: "Invalid credentials" }
-      
+
       # ⚠️ DEPRECATED: 不再使用，由 /auth/register/send-code + /register/complete 替代
       register_DEPRECATED:
         deprecated: true
@@ -363,7 +366,7 @@ api:
               type: "object"
               properties:
                 error: { type: "string", example: "User already exists" }
-    
+
     # User endpoints
     users:
       get_profile:
@@ -379,12 +382,23 @@ api:
               type: "object"
               properties:
                 id: { type: "string" }
-                email: { type: "string", description: "脱敏展示，如 us***@example.com" }
+                email:
+                  {
+                    type: "string",
+                    description: "脱敏展示，如 us***@example.com",
+                  }
                 name: { type: "string" }
-                phone: { type: "string", description: "脱敏展示，如 138****5678" }
-                role: { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"] }
-                status: { type: "string", enum: ["ACTIVE", "INACTIVE", "BLOCKED"] }
-                preferredTimezone: { type: "string", description: "用户偏好时区（IANA 字符串，可空）" }
+                phone:
+                  { type: "string", description: "脱敏展示，如 138****5678" }
+                role:
+                  { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"] }
+                status:
+                  { type: "string", enum: ["ACTIVE", "INACTIVE", "BLOCKED"] }
+                preferredTimezone:
+                  {
+                    type: "string",
+                    description: "用户偏好时区（IANA 字符串，可空）",
+                  }
                 created_at: { type: "string", format: "date-time" }
 
       update_profile:
@@ -404,11 +418,18 @@ api:
               type: "object"
               properties:
                 id: { type: "string" }
-                email: { type: "string", description: "脱敏展示，如 us***@example.com" }
+                email:
+                  {
+                    type: "string",
+                    description: "脱敏展示，如 us***@example.com",
+                  }
                 name: { type: "string" }
-                phone: { type: "string", description: "脱敏展示，如 138****5678" }
-                role: { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"] }
-                status: { type: "string", enum: ["ACTIVE", "INACTIVE", "BLOCKED"] }
+                phone:
+                  { type: "string", description: "脱敏展示，如 138****5678" }
+                role:
+                  { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"] }
+                status:
+                  { type: "string", enum: ["ACTIVE", "INACTIVE", "BLOCKED"] }
                 created_at: { type: "string", format: "date-time" }
                 _message: { type: "string", example: "资料已更新" }
 
@@ -460,12 +481,32 @@ api:
             type: "object"
             properties:
               time_slot_id: { type: "string", required: true }
-              service_id: { type: "string", required: true, description: "服务ID，从服务选择页传递" }
-              appointment_date: { type: "string", format: "date-time", required: true }
-              preferred_sequence: { type: "integer", required: true, description: "前端生成的随机值(0-99)，用于高并发热点分片" }
-              customer_info: { type: "object", description: "客户补充信息(JSON格式)" }
-              notes: { type: "string", description: "备注信息(前端字段名notes，对应数据库remarks字段)" }
-              overtime_minutes: { type: "integer", description: "超时时长(分钟). 后端验证不会与相邻时段的已有预约重叠; 若重叠返回 409 Conflict" }
+              service_id:
+                {
+                  type: "string",
+                  required: true,
+                  description: "服务ID，从服务选择页传递",
+                }
+              appointment_date:
+                { type: "string", format: "date-time", required: true }
+              preferred_sequence:
+                {
+                  type: "integer",
+                  required: true,
+                  description: "前端生成的随机值(0-99)，用于高并发热点分片",
+                }
+              customer_info:
+                { type: "object", description: "客户补充信息(JSON格式)" }
+              notes:
+                {
+                  type: "string",
+                  description: "备注信息(前端字段名notes，对应数据库remarks字段)",
+                }
+              overtime_minutes:
+                {
+                  type: "integer",
+                  description: "超时时长(分钟). 后端验证不会与相邻时段的已有预约重叠; 若重叠返回 409 Conflict",
+                }
         response:
           success:
             status: 201
@@ -480,11 +521,27 @@ api:
                     service_id: { type: "string" }
                     time_slot_id: { type: "string" }
                     appointment_date: { type: "string", format: "date-time" }
-                    status: { type: "string", enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"] }
+                    status:
+                      {
+                        type: "string",
+                        enum:
+                          [
+                            "PENDING",
+                            "CONFIRMED",
+                            "CANCELLED",
+                            "COMPLETED",
+                            "EXPIRED",
+                          ],
+                      }
                     slot_sequence: { type: "integer" }
                     duration_minutes: { type: "integer" }
                     price: { type: "number", format: "decimal" }
-                    tax_rate: { type: "number", format: "decimal", description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage." }
+                    tax_rate:
+                      {
+                        type: "number",
+                        format: "decimal",
+                        description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage.",
+                      }
                     tax_included_amount: { type: "number", format: "decimal" }
                     created_at: { type: "string", format: "date-time" }
           conflict:
@@ -492,19 +549,37 @@ api:
             body:
               type: "object"
               properties:
-                error: { type: "string", example: "Time slot is already booked" }
-      
+                error:
+                  { type: "string", example: "Time slot is already booked" }
+
       list:
         method: "GET"
         path: "/v1/appointments"
         authentication: true
         authorization: ["CUSTOMER"]
         query_parameters:
-          page: { type: "integer", required: false, default: 1, description: "Page number" }
-          limit: { type: "integer", required: false, default: 20, description: "Items per page" }
+          page:
+            {
+              type: "integer",
+              required: false,
+              default: 1,
+              description: "Page number",
+            }
+          limit:
+            {
+              type: "integer",
+              required: false,
+              default: 20,
+              description: "Items per page",
+            }
           start_date: { type: "string", format: "date" }
           end_date: { type: "string", format: "date" }
-          status: { type: "string", enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"] }
+          status:
+            {
+              type: "string",
+              enum:
+                ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"],
+            }
         response:
           success:
             status: 200
@@ -519,13 +594,29 @@ api:
                       id: { type: "string" }
                       time_slot_id: { type: "string" }
                       appointment_date: { type: "string", format: "date-time" }
-                      status: { type: "string", enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"] }
+                      status:
+                        {
+                          type: "string",
+                          enum:
+                            [
+                              "PENDING",
+                              "CONFIRMED",
+                              "CANCELLED",
+                              "COMPLETED",
+                              "EXPIRED",
+                            ],
+                        }
                       service_name: { type: "string" }
                       time_slot_start: { type: "string", format: "date-time" }
                       time_slot_end: { type: "string", format: "date-time" }
                       duration_minutes: { type: "integer" }
                       price: { type: "number", format: "decimal" }
-                      tax_rate: { type: "number", format: "decimal", description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage." }
+                      tax_rate:
+                        {
+                          type: "number",
+                          format: "decimal",
+                          description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage.",
+                        }
                       tax_included_amount: { type: "number", format: "decimal" }
                 pagination:
                   type: "object"
@@ -534,7 +625,7 @@ api:
                     limit: { type: "integer" }
                     total: { type: "integer" }
                     total_pages: { type: "integer" }
-    
+
       cancel:
         method: "POST"
         path: "/v1/appointments/:id/cancel"
@@ -548,8 +639,12 @@ api:
             body:
               type: "object"
               properties:
-                message: { type: "string", example: "Appointment cancelled successfully" }
-    
+                message:
+                  {
+                    type: "string",
+                    example: "Appointment cancelled successfully",
+                  }
+
     # Service endpoints
     services:
       list:
@@ -568,12 +663,18 @@ api:
                   id: { type: "string" }
                   name: { type: "string" }
                   description: { type: "string" }
-                  duration: { type: "integer", description: "Duration in minutes" }
+                  duration:
+                    { type: "integer", description: "Duration in minutes" }
                   price: { type: "number", format: "decimal" }
                   active: { type: "boolean" }
                   price_per_minute: { type: "number", format: "decimal" }
-                  tax_rate: { type: "number", format: "decimal", description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage." }
-   
+                  tax_rate:
+                    {
+                      type: "number",
+                      format: "decimal",
+                      description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage.",
+                    }
+
     # Time slot endpoints
     time_slots:
       available:
@@ -583,10 +684,32 @@ api:
         description: "公开端点 — 获取可用时间段。未登录用户（访客）也可查询可用时段"
         query_parameters:
           service_id: { type: "string", required: true }
-          startDate: { type: "string", format: "date", required: true, description: "起始日期 (ISO 8601)。传入单一日期：startDate=2026-05-12&endDate=2026-05-12 查询单日可用时段" }
-          endDate: { type: "string", format: "date", required: true, description: "结束日期 (ISO 8601)。与 startDate 配合定义可查询日期范围" }
-          overtime_minutes: { type: "integer", required: false, description: "当提供时, 每个时槽返回 maxOvertimeMinutes 反映安全超时上限" }
-          timezone: { type: "string", required: false, description: "IANA 时区字符串（如 Asia/Shanghai）。后端据此将营业时间配置转换到正确的时间边界。缺省时由 X-Timezone header → User.preferredTimezone → DEFAULT_TIMEZONE 解析" }
+          startDate:
+            {
+              type: "string",
+              format: "date",
+              required: true,
+              description: "起始日期 (ISO 8601)。传入单一日期：startDate=2026-05-12&endDate=2026-05-12 查询单日可用时段",
+            }
+          endDate:
+            {
+              type: "string",
+              format: "date",
+              required: true,
+              description: "结束日期 (ISO 8601)。与 startDate 配合定义可查询日期范围",
+            }
+          overtime_minutes:
+            {
+              type: "integer",
+              required: false,
+              description: "当提供时, 每个时槽返回 maxOvertimeMinutes 反映安全超时上限",
+            }
+          timezone:
+            {
+              type: "string",
+              required: false,
+              description: "IANA 时区字符串（如 Asia/Shanghai）。后端据此将营业时间配置转换到正确的时间边界。缺省时由 X-Timezone header → User.preferredTimezone → DEFAULT_TIMEZONE 解析",
+            }
         response:
           success:
             status: 200
@@ -601,8 +724,12 @@ api:
                   capacity: { type: "integer" }
                   booked_count: { type: "integer" }
                   available: { type: "boolean" }
-                  max_overtime_minutes: { type: "integer", description: "当前时槽允许的最大安全超时(分钟), 超过可能导致与相邻时段重叠" }
-    
+                  max_overtime_minutes:
+                    {
+                      type: "integer",
+                      description: "当前时槽允许的最大安全超时(分钟), 超过可能导致与相邻时段重叠",
+                    }
+
     # Admin endpoints (v1.3.0新增, v1.4.0扩展DASH-001~004)
     admin:
       stats:
@@ -613,10 +740,41 @@ api:
         rate_limit: "30次/分钟/IP"
         query_parameters:
           # x-frontend-driver: BookingDistributionPanelComponent "Time" button dropdown → timeRange change → loadStats(timeRange)
-          timeRange: { type: "string", enum: ["last24h", "last7d", "last30d", "thisMonth", "lastMonth", "custom"], required: false, description: "时间范围筛选（由前端仪表盘 Booking Distribution Panel 的 Time 按钮下拉菜单驱动）" }
-          startDate: { type: "string", format: "date", required: false, description: "自定义起始日期 (ISO 8601)" }
-          endDate: { type: "string", format: "date", required: false, description: "自定义结束日期 (ISO 8601)" }
-          timezone: { type: "string", required: false, description: "IANA 时区字符串（如 Asia/Shanghai）。后端据此计算日期边界（「今天」、「本月」等），确保聚合统计在正确的日历日内" }
+          timeRange:
+            {
+              type: "string",
+              enum:
+                [
+                  "last24h",
+                  "last7d",
+                  "last30d",
+                  "thisMonth",
+                  "lastMonth",
+                  "custom",
+                ],
+              required: false,
+              description: "时间范围筛选（由前端仪表盘 Booking Distribution Panel 的 Time 按钮下拉菜单驱动）",
+            }
+          startDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义起始日期 (ISO 8601)",
+            }
+          endDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义结束日期 (ISO 8601)",
+            }
+          timezone:
+            {
+              type: "string",
+              required: false,
+              description: "IANA 时区字符串（如 Asia/Shanghai）。后端据此计算日期边界（「今天」、「本月」等），确保聚合统计在正确的日历日内",
+            }
         response:
           success:
             status: 200
@@ -660,7 +818,12 @@ api:
                   items:
                     type: "object"
                     properties:
-                      date: { type: "string", format: "date", description: "日期 (YYYY-MM-DD)" }
+                      date:
+                        {
+                          type: "string",
+                          format: "date",
+                          description: "日期 (YYYY-MM-DD)",
+                        }
                       count: { type: "integer", description: "当日预约数量" }
                       revenue: { type: "number", description: "当日收入金额" }
                     required: ["date", "count", "revenue"]
@@ -690,24 +853,67 @@ api:
         authorization: ["ADMIN", "SUPER_ADMIN"]
         rate_limit: "30次/分钟/IP"
         query_parameters:
-          range: { type: "string", enum: ["weekly", "monthly", "yearly"], default: "weekly", description: "时间范围粒度" }
-          granularity: { type: "string", enum: ["day", "week", "month"], default: "day", description: "数据聚合粒度" }
-          timeRange: { type: "string", enum: ["last24h", "last7d", "last30d", "thisMonth", "lastMonth", "custom"], required: false, description: "时间范围筛选" }
-          startDate: { type: "string", format: "date", required: false, description: "自定义起始日期" }
-          endDate: { type: "string", format: "date", required: false, description: "自定义结束日期" }
+          range:
+            {
+              type: "string",
+              enum: ["weekly", "monthly", "yearly"],
+              default: "weekly",
+              description: "时间范围粒度",
+            }
+          granularity:
+            {
+              type: "string",
+              enum: ["day", "week", "month"],
+              default: "day",
+              description: "数据聚合粒度",
+            }
+          timeRange:
+            {
+              type: "string",
+              enum:
+                [
+                  "last24h",
+                  "last7d",
+                  "last30d",
+                  "thisMonth",
+                  "lastMonth",
+                  "custom",
+                ],
+              required: false,
+              description: "时间范围筛选",
+            }
+          startDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义起始日期",
+            }
+          endDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义结束日期",
+            }
         response:
-            success:
-              status: 200
-              body:
-                type: "array"
-                items:
-                  type: "object"
-                  properties:
-                    date: { type: "string", format: "date", description: "日期 (YYYY-MM-DD)" }
-                    count: { type: "integer", description: "当日预约数量" }
-                    revenue: { type: "number", description: "当日收入金额" }
-                  required: ["date", "count", "revenue"]
-                description: "预约趋势图表数据（按日期升序排列）"
+          success:
+            status: 200
+            body:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  date:
+                    {
+                      type: "string",
+                      format: "date",
+                      description: "日期 (YYYY-MM-DD)",
+                    }
+                  count: { type: "integer", description: "当日预约数量" }
+                  revenue: { type: "number", description: "当日收入金额" }
+                required: ["date", "count", "revenue"]
+              description: "预约趋势图表数据（按日期升序排列）"
 
       service_distribution:
         method: "GET"
@@ -716,9 +922,35 @@ api:
         authorization: ["ADMIN", "SUPER_ADMIN"]
         rate_limit: "30次/分钟/IP"
         query_parameters:
-          timeRange: { type: "string", enum: ["last24h", "last7d", "last30d", "thisMonth", "lastMonth", "custom"], required: false, description: "时间范围筛选" }
-          startDate: { type: "string", format: "date", required: false, description: "自定义起始日期" }
-          endDate: { type: "string", format: "date", required: false, description: "自定义结束日期" }
+          timeRange:
+            {
+              type: "string",
+              enum:
+                [
+                  "last24h",
+                  "last7d",
+                  "last30d",
+                  "thisMonth",
+                  "lastMonth",
+                  "custom",
+                ],
+              required: false,
+              description: "时间范围筛选",
+            }
+          startDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义起始日期",
+            }
+          endDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义结束日期",
+            }
         response:
           success:
             status: 200
@@ -739,9 +971,35 @@ api:
         rate_limit: "30次/分钟/IP"
         # x-frontend-driver: BookingDistributionPanelComponent "Time" button → Custom Range → DatePicker panel (From/To) → Apply → timeRange=custom + startDate + endDate
         query_parameters:
-          timeRange: { type: "string", enum: ["last24h", "last7d", "last30d", "thisMonth", "lastMonth", "custom"], required: false, description: "时间范围筛选" }
-          startDate: { type: "string", format: "date", required: false, description: "自定义起始日期" }
-          endDate: { type: "string", format: "date", required: false, description: "自定义结束日期" }
+          timeRange:
+            {
+              type: "string",
+              enum:
+                [
+                  "last24h",
+                  "last7d",
+                  "last30d",
+                  "thisMonth",
+                  "lastMonth",
+                  "custom",
+                ],
+              required: false,
+              description: "时间范围筛选",
+            }
+          startDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义起始日期",
+            }
+          endDate:
+            {
+              type: "string",
+              format: "date",
+              required: false,
+              description: "自定义结束日期",
+            }
         response:
           success:
             status: 200
@@ -772,12 +1030,37 @@ api:
               body:
                 type: "object"
                 properties:
-                  server: { type: "string", description: "Server status indicator (Online/Degraded/Offline)" }
-                  database: { type: "string", description: "Database status indicator (Online/Degraded/Offline)" }
-                  api: { type: "string", description: "API status indicator (Online/Degraded/Offline)" }
-                  redis: { type: "string", description: "Redis status indicator (Online/Degraded/Offline)" }
-                  lastBackup: { type: "string", format: "date-time", description: "Timestamp of last database backup (ISO 8601)" }
-                  uptime: { type: "string", description: "Uptime percentage display string (e.g. '99.9%')" }
+                  server:
+                    {
+                      type: "string",
+                      description: "Server status indicator (Online/Degraded/Offline)",
+                    }
+                  database:
+                    {
+                      type: "string",
+                      description: "Database status indicator (Online/Degraded/Offline)",
+                    }
+                  api:
+                    {
+                      type: "string",
+                      description: "API status indicator (Online/Degraded/Offline)",
+                    }
+                  redis:
+                    {
+                      type: "string",
+                      description: "Redis status indicator (Online/Degraded/Offline)",
+                    }
+                  lastBackup:
+                    {
+                      type: "string",
+                      format: "date-time",
+                      description: "Timestamp of last database backup (ISO 8601)",
+                    }
+                  uptime:
+                    {
+                      type: "string",
+                      description: "Uptime percentage display string (e.g. '99.9%')",
+                    }
         metrics:
           method: "GET"
           path: "/v1/admin/system/metrics"
@@ -791,9 +1074,21 @@ api:
               body:
                 type: "object"
                 properties:
-                  cpuUsage: { type: "number", description: "CPU usage percentage (0-100)" }
-                  memoryUsage: { type: "number", description: "Memory usage percentage (0-100)" }
-                  diskUsage: { type: "number", description: "Disk usage percentage (0-100)" }
+                  cpuUsage:
+                    {
+                      type: "number",
+                      description: "CPU usage percentage (0-100)",
+                    }
+                  memoryUsage:
+                    {
+                      type: "number",
+                      description: "Memory usage percentage (0-100)",
+                    }
+                  diskUsage:
+                    {
+                      type: "number",
+                      description: "Disk usage percentage (0-100)",
+                    }
 
       notifications:
         list:
@@ -805,7 +1100,12 @@ api:
           query_parameters:
             page: { type: "integer", default: 1 }
             limit: { type: "integer", default: 20 }
-            unread_only: { type: "boolean", required: false, description: "仅显示未读通知" }
+            unread_only:
+              {
+                type: "boolean",
+                required: false,
+                description: "仅显示未读通知",
+              }
           response:
             success:
               status: 200
@@ -818,7 +1118,11 @@ api:
                       type: "object"
                       properties:
                         id: { type: "string" }
-                        type: { type: "string", enum: ["info", "warning", "error", "success"] }
+                        type:
+                          {
+                            type: "string",
+                            enum: ["info", "warning", "error", "success"],
+                          }
                         title: { type: "string" }
                         body: { type: "string" }
                         read: { type: "boolean" }
@@ -861,12 +1165,26 @@ api:
                     items:
                       type: "object"
                       properties:
-                        id: { type: "string", format: "uuid", description: "消息ID" }
+                        id:
+                          {
+                            type: "string",
+                            format: "uuid",
+                            description: "消息ID",
+                          }
                         sender: { type: "string", description: "发送者名称" }
                         subject: { type: "string", description: "消息主题" }
                         body: { type: "string", description: "消息正文" }
-                        read: { type: "boolean", description: "是否已读（readAt !== null）" }
-                        created_at: { type: "string", format: "date-time", description: "发送时间（wire: snake_case → frontend: createdAt）" }
+                        read:
+                          {
+                            type: "boolean",
+                            description: "是否已读（readAt !== null）",
+                          }
+                        created_at:
+                          {
+                            type: "string",
+                            format: "date-time",
+                            description: "发送时间（wire: snake_case → frontend: createdAt）",
+                          }
                   total: { type: "integer" }
                   page: { type: "integer" }
                   limit: { type: "integer" }
@@ -908,31 +1226,87 @@ api:
                   monday:
                     type: "array"
                     description: "星期一营业时段。空数组表示休息"
-                    items: { type: "object", properties: { open: { type: "string", example: "09:00" }, close: { type: "string", example: "17:00" } } }
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string", example: "09:00" },
+                            close: { type: "string", example: "17:00" },
+                          },
+                      }
                   tuesday:
                     type: "array"
                     description: "星期二营业时段"
-                    items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } } }
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                      }
                   wednesday:
                     type: "array"
                     description: "星期三营业时段"
-                    items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } } }
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                      }
                   thursday:
                     type: "array"
                     description: "星期四营业时段"
-                    items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } } }
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                      }
                   friday:
                     type: "array"
                     description: "星期五营业时段"
-                    items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } } }
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                      }
                   saturday:
                     type: "array"
                     description: "星期六营业时段"
-                    items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } } }
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                      }
                   sunday:
                     type: "array"
                     description: "星期日营业时段。空数组表示休息"
-                    items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } } }
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                      }
                   updatedAt:
                     type: "string"
                     format: "date-time"
@@ -948,20 +1322,121 @@ api:
           request:
             body:
               type: "object"
-              required: ["timezone", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+              required:
+                [
+                  "timezone",
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                  "saturday",
+                  "sunday",
+                ]
               properties:
                 timezone:
                   type: "string"
                   required: true
                   description: "诊所默认时区（IANA）"
                   example: "Asia/Shanghai"
-                monday:    { type: "array", items: { type: "object", properties: { open: { type: "string", example: "09:00" }, close: { type: "string", example: "17:00" } }, required: ["open", "close"] } }
-                tuesday:   { type: "array", items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } }, required: ["open", "close"] } }
-                wednesday: { type: "array", items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } }, required: ["open", "close"] } }
-                thursday:  { type: "array", items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } }, required: ["open", "close"] } }
-                friday:    { type: "array", items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } }, required: ["open", "close"] } }
-                saturday:  { type: "array", items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } }, required: ["open", "close"] } }
-                sunday:    { type: "array", items: { type: "object", properties: { open: { type: "string" }, close: { type: "string" } }, required: ["open", "close"] } }
+                monday:
+                  {
+                    type: "array",
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string", example: "09:00" },
+                            close: { type: "string", example: "17:00" },
+                          },
+                        required: ["open", "close"],
+                      },
+                  }
+                tuesday:
+                  {
+                    type: "array",
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                        required: ["open", "close"],
+                      },
+                  }
+                wednesday:
+                  {
+                    type: "array",
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                        required: ["open", "close"],
+                      },
+                  }
+                thursday:
+                  {
+                    type: "array",
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                        required: ["open", "close"],
+                      },
+                  }
+                friday:
+                  {
+                    type: "array",
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                        required: ["open", "close"],
+                      },
+                  }
+                saturday:
+                  {
+                    type: "array",
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                        required: ["open", "close"],
+                      },
+                  }
+                sunday:
+                  {
+                    type: "array",
+                    items:
+                      {
+                        type: "object",
+                        properties:
+                          {
+                            open: { type: "string" },
+                            close: { type: "string" },
+                          },
+                        required: ["open", "close"],
+                      },
+                  }
           response:
             success:
               status: 200
@@ -1004,7 +1479,7 @@ api:
                   total: { type: "integer" }
                   page: { type: "integer" }
                   limit: { type: "integer" }
-        
+
         create:
           method: "POST"
           path: "/v1/admin/users"
@@ -1018,9 +1493,26 @@ api:
                 name: { type: "string", required: true }
                 email: { type: "string", required: true }
                 phone: { type: "string" }
-                role: { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"], default: "CUSTOMER" }
-                password: { type: "string", required: false, minLength: 8, description: "可选 — 验证码登录用户可不设置密码" }
-                verification_code: { type: "string", required: false, pattern: "^[0-9]{6}$", description: "管理员身份验证码（6位数字）。创建用户前需通过 POST /v1/admin/users/send-code 获取验证码" }
+                role:
+                  {
+                    type: "string",
+                    enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"],
+                    default: "CUSTOMER",
+                  }
+                password:
+                  {
+                    type: "string",
+                    required: false,
+                    minLength: 8,
+                    description: "可选 — 验证码登录用户可不设置密码",
+                  }
+                verification_code:
+                  {
+                    type: "string",
+                    required: false,
+                    pattern: "^[0-9]{6}$",
+                    description: "管理员身份验证码（6位数字）。创建用户前需通过 POST /v1/admin/users/send-code 获取验证码",
+                  }
           response:
             success:
               status: 201
@@ -1032,7 +1524,7 @@ api:
                   email: { type: "string", description: "脱敏展示" }
                   role: { type: "string" }
                   created_at: { type: "string", format: "date-time" }
-        
+
         update:
           method: "PUT"
           path: "/v1/admin/users/:id"
@@ -1044,8 +1536,10 @@ api:
               type: "object"
               properties:
                 name: { type: "string" }
-                role: { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"] }
-                status: { type: "string", enum: ["ACTIVE", "INACTIVE", "BLOCKED"] }
+                role:
+                  { type: "string", enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"] }
+                status:
+                  { type: "string", enum: ["ACTIVE", "INACTIVE", "BLOCKED"] }
           response:
             success:
               status: 200
@@ -1057,7 +1551,7 @@ api:
                   role: { type: "string" }
                   status: { type: "string" }
                   updated_at: { type: "string", format: "date-time" }
-        
+
         delete:
           method: "DELETE"
           path: "/v1/admin/users/:id"
@@ -1067,7 +1561,7 @@ api:
           response:
             success:
               status: 204
-        
+
         send_code:
           method: "POST"
           path: "/v1/admin/users/send-code"
@@ -1081,18 +1575,44 @@ api:
             body:
               type: "object"
               properties:
-                contact_type: { type: "string", enum: ["email", "phone"], required: true, description: "联系方式类型：email 或 phone" }
-                email: { type: "string", format: "email", required: false, description: "邮箱地址。contact_type=EMAIL 时必填，contact_type=PHONE 时不填" }
-                phone: { type: "string", required: false, description: "手机号。contact_type=PHONE 时必填，contact_type=EMAIL 时不填" }
+                contact_type:
+                  {
+                    type: "string",
+                    enum: ["email", "phone"],
+                    required: true,
+                    description: "联系方式类型：email 或 phone",
+                  }
+                email:
+                  {
+                    type: "string",
+                    format: "email",
+                    required: false,
+                    description: "邮箱地址。contact_type=EMAIL 时必填，contact_type=PHONE 时不填",
+                  }
+                phone:
+                  {
+                    type: "string",
+                    required: false,
+                    description: "手机号。contact_type=PHONE 时必填，contact_type=EMAIL 时不填",
+                  }
           response:
             success:
               status: 200
               body:
                 type: "object"
                 properties:
-                  masked_contact: { type: "string", description: "脱敏后的联系方式（如 138****5678 或 us***@example.com）。目标无对应联系方式时为 null" }
-                  expires_in: { type: "integer", default: 300, description: "验证码有效期（秒），固定 300 秒（5分钟）" }
-      
+                  masked_contact:
+                    {
+                      type: "string",
+                      description: "脱敏后的联系方式（如 138****5678 或 us***@example.com）。目标无对应联系方式时为 null",
+                    }
+                  expires_in:
+                    {
+                      type: "integer",
+                      default: 300,
+                      description: "验证码有效期（秒），固定 300 秒（5分钟）",
+                    }
+
       services:
         list:
           method: "GET"
@@ -1125,8 +1645,18 @@ api:
                         active: { type: "boolean" }
                         category: { type: "string" }
                         image_url: { type: "string" }
-                        price_per_minute: { type: "number", format: "decimal", description: "每分钟单价" }
-                        tax_rate: { type: "number", format: "decimal", description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage." }
+                        price_per_minute:
+                          {
+                            type: "number",
+                            format: "decimal",
+                            description: "每分钟单价",
+                          }
+                        tax_rate:
+                          {
+                            type: "number",
+                            format: "decimal",
+                            description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage.",
+                          }
                       created_at: { type: "string", format: "date-time" }
                   total: { type: "integer" }
                   page: { type: "integer" }
@@ -1146,8 +1676,10 @@ api:
                 type: "object"
                 properties:
                   totalServices: { type: "integer", description: "服务总数" }
-                  activeServicesCount: { type: "integer", description: "激活服务数" }
-                  inactiveServicesCount: { type: "integer", description: "未激活服务数" }
+                  activeServicesCount:
+                    { type: "integer", description: "激活服务数" }
+                  inactiveServicesCount:
+                    { type: "integer", description: "未激活服务数" }
                   averagePrice: { type: "number", description: "平均价格" }
                   categories:
                     type: "array"
@@ -1155,7 +1687,8 @@ api:
                       type: "object"
                       properties:
                         category: { type: "string", description: "分类名称" }
-                        count: { type: "integer", description: "该分类下服务数量" }
+                        count:
+                          { type: "integer", description: "该分类下服务数量" }
 
         create:
           method: "POST"
@@ -1169,12 +1702,27 @@ api:
               properties:
                 name: { type: "string", required: true }
                 description: { type: "string" }
-                duration: { type: "integer", required: true, description: "Duration in minutes" }
+                duration:
+                  {
+                    type: "integer",
+                    required: true,
+                    description: "Duration in minutes",
+                  }
                 price: { type: "number", format: "decimal" }
                 active: { type: "boolean", default: true }
                 image_url: { type: "string" }
-                price_per_minute: { type: "number", format: "decimal", description: "自动计算：price / duration；不传递则由后端计算" }
-                tax_rate: { type: "number", format: "decimal", description: "税率百分比 (e.g. 8 = 8%). API wire format is percentage; DB stores as decimal fraction (0.08)." }
+                price_per_minute:
+                  {
+                    type: "number",
+                    format: "decimal",
+                    description: "自动计算：price / duration；不传递则由后端计算",
+                  }
+                tax_rate:
+                  {
+                    type: "number",
+                    format: "decimal",
+                    description: "税率百分比 (e.g. 8 = 8%). API wire format is percentage; DB stores as decimal fraction (0.08).",
+                  }
                 category: { type: "string", description: "服务分类" }
           response:
             success:
@@ -1190,56 +1738,81 @@ api:
                   active: { type: "boolean" }
                   created_at: { type: "string", format: "date-time" }
                   price_per_minute: { type: "number", format: "decimal" }
-                  tax_rate: { type: "number", format: "decimal", description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage." }
-          
-         update:
-            method: "PUT"
-            path: "/v1/admin/services/:id"
-           authentication: true
-           authorization: ["ADMIN", "SUPER_ADMIN"]
-           rate_limit: "30次/分钟/IP"
-           description: "更新服务信息。当 active 从 true 变为 false（禁用服务）时，自动级联取消该服务下所有状态为 PENDING 的预约。CONFIRMED/COMPLETED 状态的预约保持不变，由管理员手动处理。"
-           cascade_behavior:
-             trigger: "active: false (服务从激活变为禁用)"
-             action: "自动取消所有 PENDING 预约 → 状态变更为 CANCELLED"
-             reason: "remarks 字段写入 'Service \"{serviceName}\" was disabled by admin'"
-             non_affected: "CONFIRMED, COMPLETED, CANCELLED, EXPIRED 状态的预约不受影响"
-             notifications: "向管理员发送 WebSocket 通知和邮件通知（复用 batchCancel 通知管道）"
-             audit_log: "每条取消记录创建 activity_log 条目（action: BOOKING_CANCEL）"
-           request:
-             body:
-               type: "object"
-               properties:
-                 name: { type: "string" }
-                 description: { type: "string" }
-                 duration: { type: "integer" }
-                 price: { type: "number" }
-                 active: { type: "boolean" }
-                 image_url: { type: "string" }
-                 price_per_minute: { type: "number", format: "decimal", description: "自动计算：price / duration；不传递则由后端计算" }
-                 tax_rate: { type: "number", format: "decimal", description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage." }
-                 category: { type: "string", description: "服务分类" }
-           response:
-             success:
-               status: 200
-               body:
-                 type: "object"
-                 properties:
-                   id: { type: "string" }
-                   name: { type: "string" }
-                   duration: { type: "integer" }
-                   price: { type: "number" }
-                   active: { type: "boolean" }
-                   updated_at: { type: "string", format: "date-time" }
-                   price_per_minute: { type: "number", format: "decimal" }
-                   tax_rate: { type: "number", format: "decimal", description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage." }
-                   cascade:
-                     type: "object"
-                     description: "仅当 active: false 且存在 PENDING 预约时返回"
-                     properties:
-                       cancelled_count: { type: "integer", description: "成功取消的 PENDING 预约数量" }
-                       failed_count: { type: "integer", description: "取消失败的预约数量" }
-        
+                  tax_rate:
+                    {
+                      type: "number",
+                      format: "decimal",
+                      description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage.",
+                    }
+
+        update:
+          method: "PUT"
+          path: "/v1/admin/services/:id"
+          authentication: true
+          authorization: ["ADMIN", "SUPER_ADMIN"]
+          rate_limit: "30次/分钟/IP"
+          description: "更新服务信息。当 active 从 true 变为 false（禁用服务）时，自动级联取消该服务下所有状态为 PENDING 的预约。CONFIRMED/COMPLETED 状态的预约保持不变，由管理员手动处理。"
+          cascade_behavior:
+            trigger: "active: false (服务从激活变为禁用)"
+            action: "自动取消所有 PENDING 预约 → 状态变更为 CANCELLED"
+            reason: 'remarks 字段写入 ''Service "{serviceName}" was disabled by admin'''
+            non_affected: "CONFIRMED, COMPLETED, CANCELLED, EXPIRED 状态的预约不受影响"
+            notifications: "向管理员发送 WebSocket 通知和邮件通知（复用 batchCancel 通知管道）"
+            audit_log: "每条取消记录创建 activity_log 条目（action: BOOKING_CANCEL）"
+          request:
+            body:
+              type: "object"
+              properties:
+                name: { type: "string" }
+                description: { type: "string" }
+                duration: { type: "integer" }
+                price: { type: "number" }
+                active: { type: "boolean" }
+                image_url: { type: "string" }
+                price_per_minute:
+                  {
+                    type: "number",
+                    format: "decimal",
+                    description: "自动计算：price / duration；不传递则由后端计算",
+                  }
+                tax_rate:
+                  {
+                    type: "number",
+                    format: "decimal",
+                    description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage.",
+                  }
+                category: { type: "string", description: "服务分类" }
+          response:
+            success:
+              status: 200
+              body:
+                type: "object"
+                properties:
+                  id: { type: "string" }
+                  name: { type: "string" }
+                  duration: { type: "integer" }
+                  price: { type: "number" }
+                  active: { type: "boolean" }
+                  updated_at: { type: "string", format: "date-time" }
+                  price_per_minute: { type: "number", format: "decimal" }
+                  tax_rate:
+                    {
+                      type: "number",
+                      format: "decimal",
+                      description: "税率百分比 (e.g. 8 = 8%). Wire format is percentage.",
+                    }
+                  cascade:
+                    type: "object"
+                    description: "仅当 active: false 且存在 PENDING 预约时返回"
+                    properties:
+                      cancelled_count:
+                        {
+                          type: "integer",
+                          description: "成功取消的 PENDING 预约数量",
+                        }
+                      failed_count:
+                        { type: "integer", description: "取消失败的预约数量" }
+
         image_upload:
           method: "POST"
           path: "/v1/admin/services/:id/image"
@@ -1262,38 +1835,50 @@ api:
               body:
                 type: "object"
                 properties:
-                 image_url:
-                     type: "string"
-                     description: "Uploaded image URL"
-          
-         affected_appointments:
-            method: "GET"
-            path: "/v1/admin/services/:id/affected-appointments"
-           authentication: true
-           authorization: ["ADMIN", "SUPER_ADMIN"]
-           rate_limit: "30次/分钟/IP"
-           description: "查询禁用服务时会受影响的预约计数。用于前端在禁用前展示警告弹窗。"
-           response:
-             success:
-               status: 200
-               body:
-                 type: "object"
-                 properties:
-                   service_name: { type: "string", description: "服务名称" }
-                   pending_count: { type: "integer", description: "PENDING 状态的预约数（将被自动取消）" }
-                   confirmed_count: { type: "integer", description: "CONFIRMED 状态的预约数（不会被自动取消）" }
-                   total_affected: { type: "integer", description: "受影响预约总数 (pending + confirmed)" }
-         
-         delete:
-            method: "DELETE"
-            path: "/v1/admin/services/:id"
-           authentication: true
-           authorization: ["ADMIN", "SUPER_ADMIN"]
-           rate_limit: "20次/分钟/IP"
-           response:
-             success:
-               status: 204
-      
+                  image_url:
+                    type: "string"
+                    description: "Uploaded image URL"
+
+        affected_appointments:
+          method: "GET"
+          path: "/v1/admin/services/:id/affected-appointments"
+          authentication: true
+          authorization: ["ADMIN", "SUPER_ADMIN"]
+          rate_limit: "30次/分钟/IP"
+          description: "查询禁用服务时会受影响的预约计数。用于前端在禁用前展示警告弹窗。"
+          response:
+            success:
+              status: 200
+              body:
+                type: "object"
+                properties:
+                  service_name: { type: "string", description: "服务名称" }
+                  pending_count:
+                    {
+                      type: "integer",
+                      description: "PENDING 状态的预约数（将被自动取消）",
+                    }
+                  confirmed_count:
+                    {
+                      type: "integer",
+                      description: "CONFIRMED 状态的预约数（不会被自动取消）",
+                    }
+                  total_affected:
+                    {
+                      type: "integer",
+                      description: "受影响预约总数 (pending + confirmed)",
+                    }
+
+        delete:
+          method: "DELETE"
+          path: "/v1/admin/services/:id"
+          authentication: true
+          authorization: ["ADMIN", "SUPER_ADMIN"]
+          rate_limit: "20次/分钟/IP"
+          response:
+            success:
+              status: 204
+
       appointments:
         create:
           method: "POST"
@@ -1306,12 +1891,20 @@ api:
             body:
               type: "object"
               properties:
-                user_id: { type: "string", required: true, description: "客户用户ID" }
-                service_id: { type: "string", required: true, description: "服务ID" }
-                time_slot_id: { type: "string", required: true, description: "时间段ID" }
-                appointment_date: { type: "string", format: "date-time", required: true }
+                user_id:
+                  { type: "string", required: true, description: "客户用户ID" }
+                service_id:
+                  { type: "string", required: true, description: "服务ID" }
+                time_slot_id:
+                  { type: "string", required: true, description: "时间段ID" }
+                appointment_date:
+                  { type: "string", format: "date-time", required: true }
                 notes: { type: "string", description: "备注" }
-                overtime_minutes: { type: "integer", description: "超时时长(分钟). 后端验证不会与相邻时段的已有预约重叠; 若重叠返回 409 Conflict" }
+                overtime_minutes:
+                  {
+                    type: "integer",
+                    description: "超时时长(分钟). 后端验证不会与相邻时段的已有预约重叠; 若重叠返回 409 Conflict",
+                  }
           response:
             success:
               status: 201
@@ -1323,10 +1916,26 @@ api:
                   service_id: { type: "string" }
                   time_slot_id: { type: "string" }
                   appointment_date: { type: "string", format: "date-time" }
-                  status: { type: "string", enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"] }
+                  status:
+                    {
+                      type: "string",
+                      enum:
+                        [
+                          "PENDING",
+                          "CONFIRMED",
+                          "CANCELLED",
+                          "COMPLETED",
+                          "EXPIRED",
+                        ],
+                    }
                   duration_minutes: { type: "integer" }
                   price: { type: "number", format: "decimal" }
-                  tax_rate: { type: "number", format: "decimal", description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage." }
+                  tax_rate:
+                    {
+                      type: "number",
+                      format: "decimal",
+                      description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage.",
+                    }
                   tax_included_amount: { type: "number", format: "decimal" }
                   created_at: { type: "string", format: "date-time" }
 
@@ -1339,12 +1948,21 @@ api:
           query_parameters:
             page: { type: "integer", default: 1 }
             limit: { type: "integer", default: 10, description: "每页记录数" }
-            status: { type: "string", enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"] }
+            status:
+              {
+                type: "string",
+                enum:
+                  ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"],
+              }
             start_date: { type: "string", format: "date" }
             end_date: { type: "string", format: "date" }
             service_id: { type: "string" }
             user_id: { type: "string" }
-            search: { type: "string", description: "搜索预约编号、客户姓名或服务名称" }
+            search:
+              {
+                type: "string",
+                description: "搜索预约编号、客户姓名或服务名称",
+              }
           response:
             success:
               status: 200
@@ -1360,24 +1978,35 @@ api:
                         appointment_number: { type: "string" }
                         user_id: { type: "string" }
                         user_name: { type: "string" }
-                         service_id: { type: "string" }
-                         service_name: { type: "string" }
-                         service_active: { type: "boolean", description: "关联服务是否激活。false 表示服务已被禁用，前端应显示 '⚠️ Inactive' 标记。" }
-                         time_slot_id: { type: "string" }
-                         appointment_date: { type: "string", format: "date-time" }
-                         status: { type: "string" }
-                         created_at: { type: "string", format: "date-time" }
-                         duration_minutes: { type: "integer" }
-                         price: { type: "number", format: "decimal" }
-                         tax_rate: { type: "number", format: "decimal", description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage." }
-                         tax_included_amount: { type: "number", format: "decimal" }
-                   total: { type: "integer" }
-                   page: { type: "integer" }
-                   limit: { type: "integer" }
-          
-         update_status:
-           method: "PUT"
-           path: "/v1/admin/appointments/:id/status"
+                        service_id: { type: "string" }
+                        service_name: { type: "string" }
+                        service_active:
+                          {
+                            type: "boolean",
+                            description: "关联服务是否激活。false 表示服务已被禁用，前端应显示 '⚠️ Inactive' 标记。",
+                          }
+                        time_slot_id: { type: "string" }
+                        appointment_date:
+                          { type: "string", format: "date-time" }
+                        status: { type: "string" }
+                        created_at: { type: "string", format: "date-time" }
+                        duration_minutes: { type: "integer" }
+                        price: { type: "number", format: "decimal" }
+                        tax_rate:
+                          {
+                            type: "number",
+                            format: "decimal",
+                            description: "税率百分比快照 (e.g. 8 = 8%). Wire format is percentage.",
+                          }
+                        tax_included_amount:
+                          { type: "number", format: "decimal" }
+                  total: { type: "integer" }
+                  page: { type: "integer" }
+                  limit: { type: "integer" }
+
+        update_status:
+          method: "PUT"
+          path: "/v1/admin/appointments/:id/status"
           authentication: true
           authorization: ["ADMIN", "SUPER_ADMIN"]
           rate_limit: "30次/分钟/IP"
@@ -1385,7 +2014,19 @@ api:
             body:
               type: "object"
               properties:
-                status: { type: "string", enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "EXPIRED"], required: true }
+                status:
+                  {
+                    type: "string",
+                    enum:
+                      [
+                        "PENDING",
+                        "CONFIRMED",
+                        "CANCELLED",
+                        "COMPLETED",
+                        "EXPIRED",
+                      ],
+                    required: true,
+                  }
                 reason: { type: "string", description: "状态变更原因" }
           response:
             success:
@@ -1396,7 +2037,6 @@ api:
                   id: { type: "string" }
                   status: { type: "string" }
                   updated_at: { type: "string", format: "date-time" }
-        
         batch_cancel:
           method: "POST"
           path: "/v1/admin/appointments/batch-cancel"
@@ -1407,7 +2047,13 @@ api:
             body:
               type: "object"
               properties:
-                ids: { type: "array", items: { type: "string" }, required: true, description: "预约ID列表" }
+                ids:
+                  {
+                    type: "array",
+                    items: { type: "string" },
+                    required: true,
+                    description: "预约ID列表",
+                  }
                 reason: { type: "string", description: "批量取消原因" }
           response:
             success:
@@ -1418,7 +2064,7 @@ api:
                   success_count: { type: "integer" }
                   failed_count: { type: "integer" }
                   failed_ids: { type: "array", items: { type: "string" } }
-        
+
         reports:
         # ⚠️ DEPRECATED (v1.6.0, 2026-05-05): Reports module replaced by Analytics dashboard endpoints.
         # See admin-ui-spec.md v2.1.0 — the prototype dashboard has no Reports UI.
@@ -1442,10 +2088,11 @@ api:
                 properties:
                   total_bookings: { type: "integer" }
                   total_revenue: { type: "number" }
-                  cancellation_rate: { type: "number", description: "取消率(0-1)" }
+                  cancellation_rate:
+                    { type: "number", description: "取消率(0-1)" }
                   top_services: { type: "array", description: "热门服务排行" }
                   daily_stats: { type: "array", description: "每日统计数据" }
-   
+
     # Translation Dictionary endpoints (v1.7.7新增)
     translations:
       list:
@@ -1454,9 +2101,25 @@ api:
         authentication: false
         description: "公开端点 — 获取前端 UI 翻译字典列表。支持按 domain 和 locale 筛选，支持增量更新。无需登录，前端在应用启动时作为 APP_INITIALIZER 加载"
         query_parameters:
-          domain: { type: "string", required: false, description: "筛选特定域（如 admin, booking, auth）" }
-          locale: { type: "string", required: false, description: "语言代码（如 zh-CN, en-US）" }
-          since: { type: "string", format: "date-time", required: false, description: "增量更新: 仅返回该时间后变更的条目" }
+          domain:
+            {
+              type: "string",
+              required: false,
+              description: "筛选特定域（如 admin, booking, auth）",
+            }
+          locale:
+            {
+              type: "string",
+              required: false,
+              description: "语言代码（如 zh-CN, en-US）",
+            }
+          since:
+            {
+              type: "string",
+              format: "date-time",
+              required: false,
+              description: "增量更新: 仅返回该时间后变更的条目",
+            }
         response:
           success:
             status: 200
@@ -1464,7 +2127,12 @@ api:
               type: "object"
               properties:
                 locale: { type: "string", description: "当前语言代码" }
-                updatedAt: { type: "string", format: "date-time", description: "字典最后更新时间" }
+                updatedAt:
+                  {
+                    type: "string",
+                    format: "date-time",
+                    description: "字典最后更新时间",
+                  }
                 translations:
                   type: "object"
                   description: "嵌套翻译对象，key 为 domain，value 为 { key: value } 映射"
@@ -1482,7 +2150,12 @@ api:
             limit: { type: "integer", default: 20 }
             domain: { type: "string", required: false }
             locale: { type: "string", required: false }
-            search: { type: "string", required: false, description: "搜索 key 或 value" }
+            search:
+              {
+                type: "string",
+                required: false,
+                description: "搜索 key 或 value",
+              }
           response:
             success:
               status: 200
@@ -1519,7 +2192,11 @@ api:
               items:
                 type: "object"
                 properties:
-                  id: { type: "string", description: "更新已有条目时传入（新条目不传）" }
+                  id:
+                    {
+                      type: "string",
+                      description: "更新已有条目时传入（新条目不传）",
+                    }
                   domain: { type: "string", required: true }
                   key: { type: "string", required: true }
                   value: { type: "string", required: true }
@@ -1569,7 +2246,7 @@ api:
         error: { type: "string" }
         timestamp: { type: "string", format: "date-time" }
         path: { type: "string" }
-    
+
     status_codes:
       400: "Bad Request - Validation error"
       401: "Unauthorized - Authentication required"
@@ -1584,7 +2261,6 @@ api:
 # ============================================
 
 data_models:
-  
   # User model (PII 三字段模型 - 方案 C v4)
   user:
     description: "System user with authentication and PII-encrypted profile"
@@ -1597,7 +2273,7 @@ data_models:
         type: "string"
         required: true
         description: "用户姓名"
-      
+
       # Phone 三字段（PII 加密）
       phone:
         type: "string (nullable)"
@@ -1612,7 +2288,7 @@ data_models:
         type: "string (nullable)"
         description: "AES-256-GCM 密文"
         sensitive: true
-      
+
       # Email 三字段（PII 加密）
       email:
         type: "string (nullable)"
@@ -1627,13 +2303,13 @@ data_models:
         type: "string (nullable)"
         description: "AES-256-GCM 密文"
         sensitive: true
-      
+
       passwordHash:
         type: "string"
         nullable: true
         sensitive: true
         description: "bcrypt 哈希（rounds=12）。验证码登录用户可能为 null（仅密码登录用户有值）"
-      
+
       role:
         type: "string"
         enum: ["CUSTOMER", "ADMIN", "SUPER_ADMIN"]
@@ -1662,7 +2338,7 @@ data_models:
         type: "datetime"
         default: "now()"
         auto_update: true
-    
+
     indexes:
       - fields: ["emailHash"]
         unique: true
@@ -1671,13 +2347,13 @@ data_models:
       - fields: ["role", "status"]
       - fields: ["createdAt"]
       - fields: ["lastLoginAt"]
-    
+
     relationships:
       sessions: { type: "has_many", target: "user_session" }
       appointments: { type: "has_many", target: "appointment" }
       notifications: { type: "has_many", target: "notification" }
       activityLogs: { type: "has_many", target: "activity_log" }
-  
+
   # Service model
   service:
     description: "Service offered by the business"
@@ -1739,7 +2415,7 @@ data_models:
         type: "datetime"
         default: "now()"
         auto_update: true
-    
+
     indexes:
       - fields: ["name"]
       - fields: ["categoryId"]
@@ -1747,12 +2423,12 @@ data_models:
       - fields: ["displayOrder"]
       - fields: ["categoryId", "isActive"]
       - fields: ["price"]
-    
+
     relationships:
       category: { type: "belongs_to", target: "service_category" }
       time_slots: { type: "has_many", target: "time_slot" }
       appointments: { type: "has_many", target: "appointment" }
-  
+
   # Time slot model
   time_slot:
     description: "Available time slot for appointments"
@@ -1790,13 +2466,13 @@ data_models:
         type: "boolean"
         default: true
         description: "时段是否启用（软删除标记）"
-    
+
     indexes:
       - fields: ["service_id", "start_time", "end_time"]
       - fields: ["start_time"]
       - fields: ["capacity", "current_sequence"]
       - fields: ["isActive"]
-    
+
     # Note: isActive field exists in Prisma but was undocumented
     # Note: max_overtime_minutes (visible in time-slots/available response) is
     # a computed field calculated by the application layer based on adjacent
@@ -1804,7 +2480,7 @@ data_models:
     relationships:
       service: { type: "belongs_to", target: "service" }
       appointments: { type: "has_many", target: "appointment" }
-  
+
   # Appointment model (formerly Booking)
   appointment:
     description: "Appointment booking with high-concurrency handling"
@@ -1876,7 +2552,7 @@ data_models:
         type: "datetime"
         default: "now()"
         auto_update: true
-    
+
     indexes:
       # Core partial unique index for high-concurrency handling
       - fields: ["timeSlotId", "appointmentDate", "slotSequence"]
@@ -1887,7 +2563,7 @@ data_models:
       - fields: ["timeSlotId", "appointmentDate", "status"]
       - fields: ["appointmentNumber"]
       - fields: ["status", "appointmentDate"]
-    
+
     relationships:
       user: { type: "belongs_to", target: "user" }
       timeSlot: { type: "belongs_to", target: "time_slot" }
@@ -1974,31 +2650,31 @@ appointment_state_machine:
 high_concurrency:
   mechanism: "PostgreSQL Partial Unique Index + slot_sequence"
   description: "Atomic slot allocation using database-level constraints"
-  
+
   components:
     database_constraint:
       type: "partial_unique_index"
       fields: ["time_slot_id", "appointment_date", "slot_sequence"]
       condition: "status IN ('PENDING', 'CONFIRMED', 'COMPLETED')"
       purpose: "Prevent double-booking at database level"
-    
+
     slot_sequence_management:
       source: "time_slot.current_sequence"
       increment_strategy: "Atomic increment on successful booking"
       reset_policy: "Manual or scheduled reset"
-    
+
     rate_limiting:
       layer_1: "Redis-based per-user rate limiting"
       limit: "1 request per second per user per time slot"
       window: "1 second"
       layer_2: "Redis soft limit pre-check"
       purpose: "Reduce database load"
-    
+
     conflict_resolution:
       detection: "Database unique constraint violation"
       response: "HTTP 409 Conflict with specific error message"
       retry_suggestion: "Client should fetch updated available slots"
-  
+
   performance_targets:
     p95_response_time: "< 500ms"
     concurrent_users: "100+"
@@ -2017,25 +2693,44 @@ security:
     refresh_token_storage: "Request body (refresh_token field) + UserSession database table"
     refresh_token_rotation: true
     refresh_token_endpoint: "POST /v1/auth/refresh"
-    
+
   authorization:
     method: "RBAC (Role-Based Access Control)"
     roles:
       CUSTOMER:
-        permissions: ["view_own_profile", "create_appointment", "view_own_appointments", "cancel_own_appointment"]
+        permissions:
+          [
+            "view_own_profile",
+            "create_appointment",
+            "view_own_appointments",
+            "cancel_own_appointment",
+          ]
       ADMIN:
-        permissions: ["manage_users", "manage_services", "manage_time_slots", "view_all_appointments", "manage_appointments"]
+        permissions:
+          [
+            "manage_users",
+            "manage_services",
+            "manage_time_slots",
+            "view_all_appointments",
+            "manage_appointments",
+          ]
         note: "ADMIN 通过 /admin/appointments 管理预约，不继承 CUSTOMER 的 customer 端点权限。ADMIN/SUPER_ADMIN 可修改个人资料（update_profile）。"
       SUPER_ADMIN:
-        permissions: ["all_admin_permissions", "system_settings", "view_audit_logs", "manage_admins"]
-    
+        permissions:
+          [
+            "all_admin_permissions",
+            "system_settings",
+            "view_audit_logs",
+            "manage_admins",
+          ]
+
     implementation: "NestJS Guards + Custom Decorators (@Public(), @Roles())"
-  
+
   data_protection:
     password_hashing: "bcrypt with salt rounds 12"
     sensitive_fields: ["password_hash", "refresh_token"]
     encryption_at_rest: "Database field-level encryption for sensitive data"
-    
+
   http_security:
     headers:
       helmet: true
@@ -2047,13 +2742,20 @@ security:
       x_frame_options: "DENY"
       x_content_type_options: "nosniff"
       x_xss_protection: "1; mode=block"
-    
+
     csrf_protection: true
     rate_limiting: true
-  
+
   audit_logging:
     enabled: true
-    events: ["login", "logout", "booking_creation", "booking_cancellation", "admin_actions"]
+    events:
+      [
+        "login",
+        "logout",
+        "booking_creation",
+        "booking_cancellation",
+        "admin_actions",
+      ]
     storage: "Database + Winston structured logs"
     retention: "90 days"
 
@@ -2065,18 +2767,18 @@ testing:
   deprecated: true
   replaced_by: x-coverage-matrix
   strategy: "TDD (Test-Driven Development) with RED/GREEN/REFACTOR cycles"
-  
+
   layers:
     unit_tests:
       frontend: "Jest + Angular Testing Library"
       backend: "Jest + NestJS testing utilities"
       coverage_target: "≥70%"
-    
+
     integration_tests:
       frontend: "Angular TestBed with mocked services"
       backend: "Supertest + Testcontainers (PostgreSQL, Redis)"
       coverage_target: "≥80%"
-    
+
     e2e_tests:
       tool: "Playwright"
       scenarios:
@@ -2085,18 +2787,18 @@ testing:
         - "Booking management"
         - "Admin user management"
       coverage_target: "≥90% business process coverage"
-    
+
     performance_tests:
       tool: "k6"
       targets:
         - "API response time P95 < 500ms"
         - "Concurrent user simulation"
         - "High-concurrency booking scenario"
-    
+
     security_tests:
       tools: ["npm audit", "OWASP ZAP", "dependency vulnerability scanning"]
       frequency: "Pre-commit and CI pipeline"
-  
+
   tdd_enforcement:
     rule: "No business code without failing test first"
     process: "RED (write failing test) → GREEN (minimal code) → REFACTOR (improve)"
@@ -2110,7 +2812,7 @@ x-test-mock-policy:
   description: "Three-tier mock governance enforced by ESLint mock-audit plugin"
   version: "2.1.0"
   enforcement: "compliance_gate_complete + ESLint MCP tool"
-  
+
   rules:
     no-tier1-mock:
       cat: "1.1"
@@ -2136,7 +2838,7 @@ x-test-mock-policy:
       cat: "3.2"
       level: "warn"
       description: "Switch statements should have a default branch"
-  
+
   tier_definition:
     tier1_real_only:
       services:
@@ -2181,7 +2883,7 @@ x-test-mock-policy:
   waive_policy:
     requires_arbiter: true
     requires_tech_debt_registry: true
-    max_validity_hours: 720  # 30 days
+    max_validity_hours: 720 # 30 days
     bypass_detection_rule: "booking/no-skipped-audit"
 
 # ============================================
@@ -2292,14 +2994,14 @@ deployment:
       cache: "Redis container"
       auto_migration: true
       hot_reload: true
-    
+
     production:
       docker_compose: "docker-compose.prod.yml"
       database: "PostgreSQL with persistence volume"
       cache: "Redis with persistence"
       migration_strategy: "separate migration container"
       health_checks: true
-  
+
   container_specifications:
     backend:
       base_image: "node:22-alpine"
@@ -2308,30 +3010,30 @@ deployment:
       environment_variables:
         required: ["DATABASE_URL", "REDIS_URL", "JWT_SECRET"]
         optional: ["LOG_LEVEL", "PORT", "CORS_ORIGIN"]
-    
+
     frontend:
       base_image: "nginx:alpine"
       port: 80
       build_context: "booking-frontend/"
       environment_variables:
         required: ["API_BASE_URL"]
-    
+
     migration:
       base_image: "node:22-alpine"
       command: "npx prisma migrate deploy"
       depends_on: ["postgres"]
-  
+
   ci_cd_pipeline:
     platform: "GitHub Actions"
     workflows:
       - name: "Test and Build"
         triggers: ["push", "pull_request"]
         steps: ["install", "lint", "test", "build", "docker_build"]
-      
+
       - name: "Deploy to Production"
         triggers: ["push to main"]
         steps: ["build", "test", "migration", "deploy", "smoke_test"]
-    
+
     quality_gates:
       - "All tests pass"
       - "Code coverage meets targets"
@@ -2348,32 +3050,32 @@ monitoring:
     endpoint: "/v1/health"
     components: ["database", "redis", "memory", "disk"]
     frequency: "30 seconds"
-  
+
   metrics:
     business_metrics:
       - "bookings.created.count"
       - "bookings.cancelled.count"
       - "users.active.count"
       - "services.available.count"
-    
+
     performance_metrics:
       - "api.response.time.p95"
       - "database.query.duration"
       - "redis.command.duration"
       - "memory.usage.percent"
-    
+
     error_metrics:
       - "errors.http.4xx.count"
       - "errors.http.5xx.count"
       - "errors.database.count"
       - "errors.redis.count"
-  
+
   logging:
     format: "structured JSON"
     levels: ["error", "warn", "info", "debug"]
     transports: ["console", "file", "remote (optional)"]
     fields: ["timestamp", "level", "message", "context", "userId", "requestId"]
-  
+
   alerting:
     conditions:
       - "api.p95_response_time > 1000ms for 5 minutes"
@@ -2386,26 +3088,25 @@ monitoring:
 # ============================================
 
 compliance:
-  
   # TDD enforcement
   tdd_required: true
   test_first_principle: "No business code without failing test"
-  
+
   # Architecture constraints
   stateless_services: true
   distributed_lock_required: true
   no_local_state_storage: true
-  
+
   # Security constraints
   https_required: true
   sensitive_data_encryption: true
   audit_logging_required: true
-  
+
   # Deployment constraints
   immutable_tags: true
   health_checks_required: true
   rollback_capability: true
-  
+
   # Code quality constraints
   type_safety_required: true
   linting_required: true
@@ -2431,7 +3132,7 @@ api_field_mapping:
       - segment: "default"
         format: "snake_case"
         reason: "与数据库 Prisma schema 对齐，前端通过 api-transform.interceptor 自动转换"
-  
+
   # 核心字段映射表
   field_mappings:
     - wire_field: "user_id"
@@ -2509,15 +3210,15 @@ api_field_mapping:
       frontend_field: "role"
       db_field: "role"
       note: "字段名已统一为role"
-   
-   # PII 字段（禁止暴露给前端）
+
+    # PII 字段（禁止暴露给前端）
   pii_fields_excluded:
     - "emailHash"
     - "phoneHash"
     - "emailEncrypted"
     - "phoneEncrypted"
     - "passwordHash"
-  
+
   # 前端拦截器自动转换
   transformation_strategy: >
     前端 HttpInterceptor 负责在请求时自动将 camelCase 转换为 snake_case，
@@ -2529,22 +3230,21 @@ api_field_mapping:
 # ============================================
 
 change_management:
-  
   contract_versioning:
     strategy: "Semantic versioning (MAJOR.MINOR.PATCH)"
     breaking_changes: "Require MAJOR version increment"
     backward_compatibility: "At least one previous version supported"
-  
+
   api_deprecation:
     notice_period: "6 months"
     migration_guide_required: true
-  
+
   database_migrations:
     tool: "Prisma Migrate"
     reversible: true
     backup_required: true
     testing_required: true
-  
+
   deployment_process:
     approval_required: true
     staging_environment: true
@@ -2743,47 +3443,47 @@ websocket_events:
             type: "string"
             format: "date-time"
 
-     slot_update:
-       event: "slot-update"
-       direction: "Server → Client"
-       description: "时间段可用性变更时推送（前端 time-slot-picker 监听此事件实时更新 UI）"
-       payload:
-         type: "object"
-         properties:
-           slotId:
-             type: "string"
-             description: "时间段 ID"
-           isActive:
-             type: "boolean"
-             description: "时间段是否仍可用"
-           bookedBy:
-             type: "string"
-             description: "预订者（如果有）"
-           timestamp:
-             type: "string"
-             format: "date-time"
-             description: "变更时间 (ISO 8601)"
+    slot_update:
+      event: "slot-update"
+      direction: "Server → Client"
+      description: "时间段可用性变更时推送（前端 time-slot-picker 监听此事件实时更新 UI）"
+      payload:
+        type: "object"
+        properties:
+          slotId:
+            type: "string"
+            description: "时间段 ID"
+          isActive:
+            type: "boolean"
+            description: "时间段是否仍可用"
+          bookedBy:
+            type: "string"
+            description: "预订者（如果有）"
+          timestamp:
+            type: "string"
+            format: "date-time"
+            description: "变更时间 (ISO 8601)"
 
-     service_disabled:
-       event: "service.disabled"
-       direction: "Server → Client"
-       description: "管理员禁用服务时推送（v1.8.0 新增）。触发前端刷新服务列表和预约列表，并更新关联预约的 '⚠️ Inactive' 标记。"
-       payload:
-         type: "object"
-         properties:
-           serviceId:
-             type: "string"
-             description: "被禁用的服务 ID"
-           serviceName:
-             type: "string"
-             description: "被禁用的服务名称"
-           cancelledCount:
-             type: "integer"
-             description: "级联取消的 PENDING 预约数量"
-           timestamp:
-             type: "string"
-             format: "date-time"
-             description: "变更时间 (ISO 8601)"
+    service_disabled:
+      event: "service.disabled"
+      direction: "Server → Client"
+      description: "管理员禁用服务时推送（v1.8.0 新增）。触发前端刷新服务列表和预约列表，并更新关联预约的 '⚠️ Inactive' 标记。"
+      payload:
+        type: "object"
+        properties:
+          serviceId:
+            type: "string"
+            description: "被禁用的服务 ID"
+          serviceName:
+            type: "string"
+            description: "被禁用的服务名称"
+          cancelledCount:
+            type: "integer"
+            description: "级联取消的 PENDING 预约数量"
+          timestamp:
+            type: "string"
+            format: "date-time"
+            description: "变更时间 (ISO 8601)"
 
 # ============================================
 # End of Contract
@@ -3208,13 +3908,12 @@ metadata:
         - "Updated JWT refresh token storage: HttpOnly cookie → Request body + UserSession table"
         - "Updated Appointment model with new fields (serviceId, appointmentNumber, customerInfo)"
         - "Added new models: UserSession, ServiceCategory, AppointmentHistory, ActivityLog, SystemSetting, SystemLog"
-  
+
   signature:
     architect: "@Architect"
     date: "2026-04-15"
     last_update: "2026-05-13 (v1.7.7: translation endpoints + 5 indentation fixes + password optional + DOC-UPDATE: synced x-keystone-state-hash, added v1.7.6 changelog for admin.settings/contract fixes, TECH_DEBT_REGISTRY populated, cross-doc-consistency plan status updated)"
     approval: "PENDING"
-
 
 # ============================================
 # v1.10.0 (2026-05-20): MSG-001 Messages List
