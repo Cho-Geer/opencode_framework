@@ -96,5 +96,6 @@ booking_system_refactor/
 screenshots/
 # Untracked project directories
 .codex/
+.workbuddy/
 0
 docs/handover/
