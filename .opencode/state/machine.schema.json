@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opencode.dev/state/machine.schema.json",
   "title": "OpenCode State Machine",
-  "description": "JSON Schema for .opencode/state/machine.json — validates all 9 sub-state sections enforcing required fields and types. See state-machine-standard.md §三 for the role of this schema in the state machine architecture.",
+  "description": "JSON Schema for .opencode/state/machine.json — validates all 9 sub-state sections enforcing required fields and types, while allowing unknown additional properties for forward compatibility. See state-machine-standard.md §3.1 for the role of this schema in the state machine architecture.",
   "type": "object",
   "required": [
     "meta",
@@ -14,8 +14,7 @@
     "compliance_records",
     "tdd_enforcement_state",
     "contracts",
-    "keystone_hashes",
-    "transaction_state"
+    "keystone_hashes"
   ],
   "properties": {
     "meta": {
@@ -57,44 +56,13 @@
           "description": "Monotonic revision counter incremented per state mutation (RVW-REVIEW-01)."
         }
       },
-      "additionalProperties": false
-    },
-
-    "transaction_state": {
-      "type": "object",
-      "description": "Unified State Transaction Envelope metadata (RVW-REVIEW-01).",
-      "required": [
-        "last_operation_id",
-        "last_transaction_at",
-        "transaction_log_path"
-      ],
-      "properties": {
-        "last_operation_id": {
-          "type": ["string", "null"],
-          "description": "UUID v4 of the last committed transaction operation."
-        },
-        "last_transaction_at": {
-          "type": ["string", "null"],
-          "format": "date-time",
-          "description": "ISO 8601 timestamp of the last committed transaction."
-        },
-        "pending_operations": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Operation IDs currently in prepared (uncommitted) state."
-        },
-        "transaction_log_path": {
-          "type": "string",
-          "description": "Relative path from project root to the transaction WAL log file (e.g., '.opencode/state/.transaction-log')."
-        }
-      },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "eslint_state": {
       "type": "object",
       "description": "ESLint mock-audit state tracking per-module and aggregate.",
-      "required": ["last_full_scan", "modules", "aggregate"],
+      "required": ["modules", "aggregate"],
       "properties": {
         "last_full_scan": {
           "oneOf": [
@@ -105,7 +73,7 @@
         },
         "modules": {
           "type": "object",
-          "description": "Per-module audit state keyed by module name.",
+          "description": "Per-module audit state keyed by module name (e.g. all_modules, admin, unknown).",
           "additionalProperties": {
             "type": "object",
             "required": [
@@ -136,7 +104,7 @@
                 "description": "Waiver IDs applied to this module."
               }
             },
-            "additionalProperties": false
+            "additionalProperties": true
           }
         },
         "aggregate": {
@@ -160,10 +128,10 @@
               "description": "List of module names with active waivers."
             }
           },
-          "additionalProperties": false
+          "additionalProperties": true
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "type_check_state": {
@@ -206,7 +174,7 @@
           "description": "ISO 8601 timestamp of last incremental type check, or null."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "dependency_state": {
@@ -242,7 +210,7 @@
           "description": "Current dependency audit status."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "format_state": {
@@ -280,7 +248,7 @@
           "description": "Number of files auto-fixed by prettier --write."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "write_audit_state": {
@@ -320,7 +288,7 @@
                 "files_written": {
                   "type": "array",
                   "items": { "type": "string" },
-                  "description": "Absolute paths of files written in this session."
+                  "description": "Paths of files written in this session."
                 },
                 "checks_run": {
                   "type": "integer",
@@ -353,7 +321,7 @@
                   "description": "Scope violations attempted this session."
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": true
             },
             { "type": "null" }
           ],
@@ -390,7 +358,7 @@
           "description": "History of write-audit sessions."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "compliance_records": {
@@ -410,7 +378,11 @@
               "severity"
             ],
             "properties": {
-              "timestamp": { "type": "string", "format": "date-time" },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp of the violation."
+              },
               "agent": {
                 "type": "string",
                 "description": "Agent that caused the violation."
@@ -433,8 +405,15 @@
                 "type": "string",
                 "description": "Deny pattern that matched."
               },
-              "resolved_at": { "type": "string", "format": "date-time" },
-              "resolved_by": { "type": "string" }
+              "resolved_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp when resolved."
+              },
+              "resolved_by": {
+                "type": "string",
+                "description": "Agent that resolved the violation."
+              }
             },
             "additionalProperties": true
           }
@@ -450,7 +429,7 @@
           "description": "TDD enforcement violation records."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "tdd_enforcement_state": {
@@ -507,7 +486,7 @@
                   "description": "Whether the TDD session has been initialized."
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": true
             },
             { "type": "null" }
           ],
@@ -534,7 +513,7 @@
           "description": "TDD enforcement history."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
 
     "contracts": {
@@ -554,7 +533,40 @@
         "pattern": "^sha256-[a-f0-9]{64}$",
         "description": "SHA-256 hash with sha256- prefix."
       }
+    },
+
+    "transaction_state": {
+      "type": "object",
+      "description": "Unified State Transaction Envelope metadata (RVW-REVIEW-01).",
+      "required": [
+        "last_operation_id",
+        "last_transaction_at",
+        "transaction_log_path"
+      ],
+      "properties": {
+        "last_operation_id": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "UUID v4 of the last committed transaction operation."
+        },
+        "last_transaction_at": {
+          "oneOf": [
+            { "type": "string", "format": "date-time" },
+            { "type": "null" }
+          ],
+          "description": "ISO 8601 timestamp of the last committed transaction."
+        },
+        "pending_operations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Operation IDs currently in prepared (uncommitted) state."
+        },
+        "transaction_log_path": {
+          "type": "string",
+          "description": "Relative path from project root to the transaction WAL log file (e.g., '.opencode/state/.transaction-log')."
+        }
+      },
+      "additionalProperties": true
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

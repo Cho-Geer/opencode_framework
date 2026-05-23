@@ -402,6 +402,22 @@ function loadStore() {
       return true; // still active (checked or armed)
     });
 
+    // Phase 1.5: Remove stale armed sessions (>24h since confirmation, no completion)
+    const STALE_MS = 24 * 60 * 60 * 1000;
+    const nowTs = Date.now();
+    s.active_sessions = s.active_sessions.filter((sid) => {
+      const ses = s.sessions[sid];
+      if (!ses) return false;
+      if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
+        const age = nowTs - new Date(ses.confirmed_at).getTime();
+        if (age > STALE_MS) {
+          reconciled = true;
+          return false;
+        }
+      }
+      return true;
+    });
+
     // Phase 2: Add armed sessions missing from active_sessions
     // Only "armed" (post-confirm, pre-complete) — matches runGateConfirm add behavior.
     // "checked" sessions are pre-confirmation and should not count as active.
@@ -529,13 +545,14 @@ function runGateCheck(taskDescription) {
     created_at: new Date().toISOString(),
     task_description: taskDescription || "",
     enforcement_mode: enforcementMode,
-    gate_status: passed ? "checked" : "failed",
+    gate_status: "checked",
     last_check_failed_items: failed,
     plan_summary: null,
     confirmed_at: null,
     consumed_at: null,
     audit: null,
   };
+  store.last_updated = new Date().toISOString();
   saveStore(store);
   return {
     passed,
@@ -559,6 +576,12 @@ function runGateConfirm(sessionId, planSummary) {
     return {
       status: "rejected",
       reason: `session ${sessionId} is already armed. Cannot re-arm.`,
+    };
+  }
+  if (session.gate_status !== "checked") {
+    return {
+      status: "rejected",
+      reason: `session ${sessionId} is not in "checked" state (current: ${session.gate_status}). Must call compliance_gate_check to create a valid session first.`,
     };
   }
   if (!planSummary || planSummary.trim().length < 10) {

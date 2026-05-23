@@ -43,6 +43,13 @@ DAG_FILE="${PROJECT_ROOT}/Task.DAG.json"
 GATE_FILE="${PROJECT_ROOT}/.opencode/state/gate-state.json"
 MACHINE_FILE="${PROJECT_ROOT}/.opencode/state/machine.json"
 
+
+# ─── JS Delegation (preferred) ──────────────────────────
+RECON_JS="${SCRIPT_DIR}/mcp-tools/reconciliation-validate.js"
+if [[ -f "$RECON_JS" ]] && command -v node &> /dev/null; then
+  exec node "$RECON_JS" "$@"
+fi
+# Fallback: embedded bash implementation below
 # ─── State Tracking ────────────────────────────────────────────
 INCONSISTENCIES=0
 WARNINGS=0
