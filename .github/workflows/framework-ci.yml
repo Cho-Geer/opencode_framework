@@ -1,0 +1,267 @@
+# ═══════════════════════════════════════════════════════════════
+# Framework CI Checks — OpenCode Multi-Agent System
+# ═══════════════════════════════════════════════════════════════
+# Purpose: Enforce framework operational integrity on every push
+# and PR to main/develop branches. Four independent checks validate
+# Git hooks, line endings, rule digest consistency, and WAL
+# transaction integrity. Any failure blocks PR merge.
+#
+# TOOLCHAIN JUSTIFICATION:
+# - GitHub Actions: Primary CI orchestrator (native to GitHub,
+#   single-tool CI/CD with branch protection integration).
+#   No additional orchestration tools required for this scope.
+#
+# PRE-COMMIT VALIDATION CHECKLIST:
+# [x] Rule 1: CI-only workflow, no CD/deploy steps
+# [x] Rule 2: 4 quality gates, zero continue-on-error flags
+# [x] Rule 3: Single-tool (GitHub Actions), justification above
+# [x] Rule 4: IaC committed (Dockerfile, compose in repo)
+# [x] Rule 5: No hardcoded secrets
+# [x] Rule 6: Structured output on every job
+# [x] Rule 7: timeout-minutes ≤ 5 on every job
+# ═══════════════════════════════════════════════════════════════
+
+name: Framework CI Checks
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Prevent concurrent runs on the same ref (cancel in-progress for
+# push; queue for PR to avoid stale status checks)
+concurrency:
+  group: framework-ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  # ────────────────────────────────────────────────────────────
+  # JOB 1: hook-path-check
+  # Verifies that the repository's git hooksPath is configured
+  # to .opencode/hooks, ensuring framework hook enforcement
+  # (commit-msg, pre-commit) is active for all contributors.
+  # ────────────────────────────────────────────────────────────
+  hook-path-check:
+    name: Hook Path Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure and verify git hooks path
+        run: |
+          git config core.hooksPath .opencode/hooks
+          HOOKS_PATH=$(git config core.hooksPath)
+          echo "Resolved core.hooksPath: ${HOOKS_PATH}"
+          if [ "${HOOKS_PATH}" != ".opencode/hooks" ]; then
+            echo "::error::Failed to set core.hooksPath to .opencode/hooks"
+            echo "::error::Framework hook enforcement (commit-msg, pre-commit) may not be active."
+            exit 1
+          fi
+          echo "::notice::core.hooksPath correctly set to .opencode/hooks"
+
+      - name: Verify hook files are executable
+        run: |
+          MISSING=""
+          for hook in .opencode/hooks/commit-msg .opencode/hooks/pre-commit; do
+            if [ ! -x "$hook" ]; then
+              echo "::error::$hook is not executable"
+              MISSING="${MISSING} $hook"
+            fi
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::Non-executable hooks:${MISSING}"
+            exit 1
+          fi
+          echo "::notice::All hook files are executable"
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"hook-path-check\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/hook-path-result.json
+          cat /tmp/hook-path-result.json
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 2: lf-check
+  # Scans all .sh files in the repository for CRLF (Windows-style)
+  # line endings using the `file` command. Shell scripts with
+  # CRLF endings can cause obscure failures on Unix runners
+  # and in Docker containers.
+  # ────────────────────────────────────────────────────────────
+  lf-check:
+    name: Line Ending Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan .sh files for CRLF line endings
+        run: |
+          echo "Scanning all .sh files for CRLF line endings..."
+
+          # Find .sh files (excluding node_modules and .git),
+          # run `file` on each, grep for CRLF terminators
+          CRLF_FILES=$(find . -name "*.sh" -type f \
+            ! -path "*/node_modules/*" \
+            ! -path "*/.git/*" \
+            -exec file {} \; 2>/dev/null | grep -i "CRLF" || true)
+
+          if [ -n "$CRLF_FILES" ]; then
+            echo "::error::The following .sh files contain CRLF line endings:"
+            echo "$CRLF_FILES"
+            echo ""
+            echo "::error::Fix: Run 'dos2unix' on these files or configure"
+            echo "::error::your editor/IDE to use LF line endings for shell scripts."
+            exit 1
+          fi
+
+          # Also report file count for observability
+          FILE_COUNT=$(find . -name "*.sh" -type f \
+            ! -path "*/node_modules/*" \
+            ! -path "*/.git/*" | wc -l)
+          echo "::notice::Scanned ${FILE_COUNT} .sh files — all LF clean"
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"lf-check\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/lf-check-result.json
+          cat /tmp/lf-check-result.json
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 3: digest-check
+  # Validates that every file registered in rule_registry.json
+  # has a SHA-256 digest matching its current on-disk content.
+  # A mismatch indicates a rule/skill/requirement document was
+  # modified without updating the registry — a framework
+  # integrity violation that must be resolved before merge.
+  # ────────────────────────────────────────────────────────────
+  digest-check:
+    name: Rule Digest Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate rule_registry.json SHA-256 digests
+        run: |
+          node -e '
+          const fs = require("fs");
+          const crypto = require("crypto");
+
+          const REGISTRY_PATH = ".opencode/state/rule_registry.json";
+
+          if (!fs.existsSync(REGISTRY_PATH)) {
+            console.error("ERROR: " + REGISTRY_PATH + " not found");
+            process.exit(1);
+          }
+
+          const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
+          const entries = registry.entries || {};
+          const algo = (registry.meta && registry.meta.digest_algorithm) || "sha256";
+          const entryCount = Object.keys(entries).length;
+
+          if (entryCount === 0) {
+            console.error("ERROR: rule_registry.json has zero entries");
+            process.exit(1);
+          }
+
+          console.log("Digest algorithm: " + algo);
+          console.log("Total entries in registry: " + entryCount);
+          console.log("");
+
+          let failed = 0;
+          let missing = 0;
+
+          for (const [key, entry] of Object.entries(entries)) {
+            const filePath = entry.path;
+
+            if (!fs.existsSync(filePath)) {
+              console.log("MISSING: " + key + " → " + filePath);
+              missing++;
+              failed++;
+              continue;
+            }
+
+            const content = fs.readFileSync(filePath, "utf8");
+            const actualHash = crypto.createHash(algo).update(content).digest("hex");
+            const expectedHash = entry.sha256;
+
+            if (actualHash !== expectedHash) {
+              console.log(
+                "MISMATCH: " + filePath + "\n" +
+                "  expected: " + expectedHash + "\n" +
+                "  actual:   " + actualHash
+              );
+              failed++;
+            }
+          }
+
+          const passed = entryCount - failed;
+          console.log("");
+          console.log("──────────────────────────────────────────────");
+          console.log("Result: " + passed + "/" + entryCount + " digests verified OK");
+
+          if (missing > 0) {
+            console.log("  Missing files: " + missing);
+          }
+
+          if (failed > 0) {
+            console.log("");
+            console.log("FAIL: " + failed + " digest issues detected");
+            console.log("");
+            console.log("Action required:");
+            console.log("  1. If files were intentionally modified, update their");
+            console.log("     sha256 digests in .opencode/state/rule_registry.json");
+            console.log("  2. If files were added/deleted, add/remove corresponding");
+            console.log("     entries in the registry");
+            console.log("  3. Run: node .opencode/scripts/framework-self-test.js");
+            console.log("     for a full framework integrity scan");
+            process.exit(1);
+          }
+
+          console.log("PASS: All " + entryCount + " digests match ✓");
+          '
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"digest-check\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/digest-check-result.json
+          cat /tmp/digest-check-result.json
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 4: wal-check
+  # Runs state-transaction.js verify to validate the Write-Ahead
+  # Log (WAL) transaction integrity. Detects incomplete or
+  # corrupted state machine transactions that could cause
+  # framework state drift between environments.
+  # ────────────────────────────────────────────────────────────
+  wal-check:
+    name: WAL Transaction Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify WAL transaction integrity
+        run: |
+          echo "Running state-transaction.js verify..."
+          node .opencode/scripts/state-transaction.js verify
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"wal-check\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/wal-check-result.json
+          cat /tmp/wal-check-result.json

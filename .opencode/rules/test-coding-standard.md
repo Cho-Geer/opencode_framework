@@ -2,6 +2,7 @@
 trigger: always_on
 alwaysApply: true
 ---
+
 # 测试代码规范引用
 
 本文档引用 `.opencode/context/code_standards/testing-coding-standard.md` 中的全部规范。
@@ -12,12 +13,12 @@ alwaysApply: true
 
 ## 强制触发 Agent
 
-| Agent | 触发场景 |
-|-------|---------|
-| **@Coder-BE** | 后端单元/集成测试编写、覆盖率验证 |
-| **@Coder-FE** | 前端单元/集成测试编写、覆盖率验证 |
-| **@Guardian** | 测试代码审查（假性检测、覆盖率合规、测试质量） |
-| **@Architect** | 测试架构设计、E2E 关键用例审查 |
+| Agent          | 触发场景                                       |
+| -------------- | ---------------------------------------------- |
+| **@Coder-BE**  | 后端单元/集成测试编写、覆盖率验证              |
+| **@Coder-FE**  | 前端单元/集成测试编写、覆盖率验证              |
+| **@Guardian**  | 测试代码审查（假性检测、覆盖率合规、测试质量） |
+| **@Architect** | 测试架构设计、E2E 关键用例审查                 |
 
 ## 核心规范速查
 

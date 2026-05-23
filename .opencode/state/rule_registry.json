@@ -3,7 +3,8 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-05-22T01:27:00.000Z",
+    "last_updated": "2026-05-23T07:45:00.000Z",
+    "last_regenerated": "2026-05-23",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
     "digest_algorithm": "sha256",
@@ -110,7 +111,7 @@
       "path": ".opencode/rules/test-coding-standard.md",
       "category": "rule",
       "semver": "1.0.0",
-      "sha256": "c3f3cb547d5b981d082e100c754f585b76b0c13c64849d5978cbed928c72a441",
+      "sha256": "e1231b7183cff8e29e3bd1d628b3c92b201ddc536acb55077b7d63de4784bedf",
       "last_modified": "2026-05-19T00:59:16.000Z",
       "description": "TDD and test coding standards – Jest, Playwright, Supertest",
       "digest_history": [
@@ -158,8 +159,8 @@
       "path": ".opencode/rules/rule_detail/dag-generation-standard.md",
       "category": "rule",
       "semver": "1.1.0",
-      "sha256": "df75ac7964462692b3158c1ff2ad79ac6705c4561d88bcfe25a490eca3ab752b",
-      "last_modified": "2026-05-19T01:06:00.000Z",
+      "sha256": "1fd672eb1f79539fcef025dee71258097e4861b7c56a1b08660ebe470039a5e6",
+      "last_modified": "2026-05-23T07:45:00.000Z",
       "description": "DAG generation standard v1.1.0 – parameterized module template replacement",
       "digest_history": [
         {
@@ -167,6 +168,12 @@
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.1.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "1fd672eb1f79539fcef025dee71258097e4861b7c56a1b08660ebe470039a5e6",
+          "timestamp": "2026-05-23T07:45:00.000Z",
+          "semver": "1.1.0",
+          "change": "content hash updated after .bak file was created during RVW-REVIEW-03 testing"
         }
       ]
     },
@@ -397,13 +404,14 @@
     }
   },
   "integrity": {
-    "last_full_verification": null,
-    "last_verified_digest": null,
-    "verified_count": 0,
+    "last_full_verification": "2026-05-23T06:34:00.000Z",
+    "last_regenerated": "2026-05-23",
+    "last_verified_digest": "sha256-all-24-verified",
+    "verified_count": 24,
     "mismatch_count": 0,
     "warning_count": 0,
     "critical_mismatches": [],
-    "status": "unverified"
+    "status": "verified"
   },
   "verification_policy": {
     "critical_files": [

@@ -42,6 +42,9 @@ const {
   beginTransaction,
   initializeTransactionSystem,
 } = require("../state-transaction");
+
+// ─── Workspace-Root Canonicalization (RVW-REVIEW-02) ─────────
+const stateCanon = require("../state-canonicalize");
 let _cqTxnInitialized = false;
 function ensureCqTxnInit() {
   if (!_cqTxnInitialized) {
@@ -51,7 +54,17 @@ function ensureCqTxnInit() {
 }
 
 // ─── Constants ────────────────────────────────────────────
-const OPENCODE_ROOT = path.resolve(__dirname, "..", "..", "..");
+/**
+ * OPENCODE_ROOT — workspace root resolution (FW-REPAIR-09)
+ *
+ * Priority:
+ *   1. OPENCODE_ROOT env var (explicit override)
+ *   2. process.cwd() (runtime working directory)
+ *
+ * The original __dirname-based path.resolve(__dirname, "..", "..", "..")
+ * can be used for debugging: export OPENCODE_ROOT=$(pwd)
+ */
+const OPENCODE_ROOT = path.resolve(process.env.OPENCODE_ROOT || process.cwd());
 const PROJECT_CONFIG_PATH = path.join(
   OPENCODE_ROOT,
   ".opencode",
@@ -196,12 +209,12 @@ function getMachine() {
     const raw = JSON.parse(fs.readFileSync(getStatePath(), "utf-8"));
 
     // ─── Cross-Workspace Bootstrap Validation (FW-REPAIR-09) ───
-    const integrity = validateWorkspaceIntegrity(raw, OPENCODE_ROOT);
+    const integrity = stateCanon.validateWorkspaceIntegrity(raw, OPENCODE_ROOT);
     if (integrity.warnings.length > 0) {
       process.stderr.write(integrity.warnings.join("\n") + "\n");
     }
     if (integrity.hasForeignPaths) {
-      sanitizePathsInMachine(raw, OPENCODE_ROOT);
+      stateCanon.sanitizePathsInMachine(raw, OPENCODE_ROOT);
       writeMachine(raw);
       process.stderr.write(
         `[code-quality-gate] ⚠ Cross-workspace paths detected and auto-cleaned. ` +
@@ -210,7 +223,7 @@ function getMachine() {
     }
 
     // ─── Canonicalization: Convert all absolute paths to relative (RVW-REVIEW-02) ───
-    canonicalizePathsInMachine(raw, OPENCODE_ROOT);
+    stateCanon.canonicalizePathsInMachine(raw, OPENCODE_ROOT);
 
     // ─── JSON Schema Validation (FW-REPAIR-09) ───
     const schemaResult = validateMachineSchema(raw);
@@ -258,10 +271,10 @@ function writeMachine(machine) {
   machine.meta.lastUpdated = new Date().toISOString();
 
   // ─── Pre-Write Path Sanitization (FW-REPAIR-09) ───
-  sanitizePathsInMachine(machine, OPENCODE_ROOT);
+  stateCanon.sanitizePathsInMachine(machine, OPENCODE_ROOT);
 
   // ─── Pre-Write Canonicalization: Convert to relative paths (RVW-REVIEW-02) ───
-  canonicalizePathsInMachine(machine, OPENCODE_ROOT);
+  stateCanon.canonicalizePathsInMachine(machine, OPENCODE_ROOT);
 
   const statePath = getStatePath();
   ensureStateDir(path.dirname(statePath));
@@ -296,406 +309,18 @@ function readJson(p) {
   }
 }
 
-// ─── Cross-Workspace Protection (FW-REPAIR-09) ─────────────
-
-/**
- * Determine if a file path belongs to the current workspace root.
- * Resolves relative paths against process.cwd() before comparison.
- * Returns false for null/empty paths.
- *
- * Safe: Uses path.resolve() to normalize '..', '.', and symlinks.
- */
-function isPathInWorkspace(filePath, workspaceRoot) {
-  if (!filePath || typeof filePath !== "string" || !workspaceRoot) return false;
-  try {
-    const resolved = path.resolve(filePath);
-    const root = path.resolve(workspaceRoot) + path.sep;
-    return (
-      resolved.startsWith(root) || resolved === path.resolve(workspaceRoot)
-    );
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Convert an absolute file path within the workspace to a relative path
- * (relative to workspaceRoot). Returns null if the path is outside the
- * workspace. Already-relative paths are returned as-is.
- */
-function makePathRelativeToWorkspace(filePath, workspaceRoot) {
-  if (!filePath || typeof filePath !== "string") return null;
-  const resolved = path.resolve(filePath);
-  const root = path.resolve(workspaceRoot) + path.sep;
-  // Already relative — normalize and return
-  if (!path.isAbsolute(filePath)) {
-    return filePath.replace(/\\/g, "/");
-  }
-  // Absolute within workspace — strip root prefix
-  if (resolved.startsWith(root) || resolved === path.resolve(workspaceRoot)) {
-    if (resolved === path.resolve(workspaceRoot)) return ".";
-    return resolved.slice(root.length).replace(/\\/g, "/");
-  }
-  // Outside workspace — reject
-  return null;
-}
-
-/**
- * Scan the machine.json state object for file paths that do NOT belong
- * to the current OPENCODE_ROOT. Returns an array of warning messages and
- * a flag indicating if foreign paths were found.
- *
- * Scanned sections (ALL state sections containing file paths):
- *   - write_audit_state.current_session.files_written
- *   - write_audit_state.history[].files
- *   - type_check_state.dirty_files
- *   - format_state.unformatted_files
- *   - compliance_records.role_violations[].violation_file
- *   - tdd_enforcement_state.current_session.impl_files_attempted
- *   - tdd_enforcement_state.current_session.test_files_written
- *   - tdd_enforcement_state.current_session.blocked_attempts[].file
- *   - tdd_enforcement_state.violations[].file
- */
-function validateWorkspaceIntegrity(machine, workspaceRoot) {
-  const warnings = [];
-  let hasForeignPaths = false;
-  const root = path.resolve(workspaceRoot);
-
-  function checkPathArray(arr, label) {
-    if (!Array.isArray(arr)) return;
-    const foreign = arr.filter(
-      (p) =>
-        typeof p === "string" && p.length > 0 && !isPathInWorkspace(p, root),
-    );
-    if (foreign.length > 0) {
-      hasForeignPaths = true;
-      warnings.push(
-        `[code-quality-gate] ⚠ Cross-workspace paths detected in ${label}: ` +
-          foreign.map((p) => `"${p}"`).join(", ") +
-          `. These paths reference a foreign OPENCODE_ROOT (not ${root}). They will be filtered.`,
-      );
-    }
-  }
-
-  // write_audit_state.current_session.files_written
-  if (machine.write_audit_state?.current_session?.files_written) {
-    checkPathArray(
-      machine.write_audit_state.current_session.files_written,
-      "write_audit_state.current_session.files_written",
-    );
-  }
-
-  // write_audit_state.history[].files
-  if (Array.isArray(machine.write_audit_state?.history)) {
-    machine.write_audit_state.history.forEach((entry, i) => {
-      if (entry?.files)
-        checkPathArray(entry.files, `write_audit_state.history[${i}].files`);
-    });
-  }
-
-  // type_check_state.dirty_files
-  if (machine.type_check_state?.dirty_files) {
-    checkPathArray(
-      machine.type_check_state.dirty_files,
-      "type_check_state.dirty_files",
-    );
-  }
-
-  // format_state.unformatted_files
-  if (machine.format_state?.unformatted_files) {
-    checkPathArray(
-      machine.format_state.unformatted_files,
-      "format_state.unformatted_files",
-    );
-  }
-
-  // compliance_records.role_violations[].violation_file
-  if (Array.isArray(machine.compliance_records?.role_violations)) {
-    const foreignViolations = machine.compliance_records.role_violations.filter(
-      (v) => v.violation_file && !isPathInWorkspace(v.violation_file, root),
-    );
-    if (foreignViolations.length > 0) {
-      hasForeignPaths = true;
-      warnings.push(
-        `[code-quality-gate] ⚠ Cross-workspace paths detected in compliance_records.role_violations: ` +
-          foreignViolations.map((v) => `"${v.violation_file}"`).join(", ") +
-          `. These records reference a foreign OPENCODE_ROOT.`,
-      );
-    }
-  }
-
-  // Helper: check an object array field (e.g. blocked_attempts[].file, violations[].file)
-  function checkObjectArrayField(arr, fieldName, label) {
-    if (!Array.isArray(arr)) return;
-    const foreignEntries = arr.filter(
-      (entry) =>
-        entry &&
-        typeof entry[fieldName] === "string" &&
-        entry[fieldName].length > 0 &&
-        !isPathInWorkspace(entry[fieldName], root),
-    );
-    if (foreignEntries.length > 0) {
-      hasForeignPaths = true;
-      warnings.push(
-        `[code-quality-gate] ⚠ Cross-workspace paths detected in ${label}: ` +
-          foreignEntries.map((e) => `"${e[fieldName]}"`).join(", ") +
-          `. These records reference a foreign OPENCODE_ROOT.`,
-      );
-    }
-  }
-
-  // tdd_enforcement_state.current_session.impl_files_attempted
-  if (machine.tdd_enforcement_state?.current_session?.impl_files_attempted) {
-    checkPathArray(
-      machine.tdd_enforcement_state.current_session.impl_files_attempted,
-      "tdd_enforcement_state.current_session.impl_files_attempted",
-    );
-  }
-
-  // tdd_enforcement_state.current_session.test_files_written
-  if (machine.tdd_enforcement_state?.current_session?.test_files_written) {
-    checkPathArray(
-      machine.tdd_enforcement_state.current_session.test_files_written,
-      "tdd_enforcement_state.current_session.test_files_written",
-    );
-  }
-
-  // tdd_enforcement_state.current_session.blocked_attempts[].file
-  if (machine.tdd_enforcement_state?.current_session?.blocked_attempts) {
-    checkObjectArrayField(
-      machine.tdd_enforcement_state.current_session.blocked_attempts,
-      "file",
-      "tdd_enforcement_state.current_session.blocked_attempts[].file",
-    );
-  }
-
-  // tdd_enforcement_state.violations[].file
-  if (machine.tdd_enforcement_state?.violations) {
-    checkObjectArrayField(
-      machine.tdd_enforcement_state.violations,
-      "file",
-      "tdd_enforcement_state.violations[].file",
-    );
-  }
-
-  return { hasForeignPaths, warnings };
-}
-
-/**
- * Remove (filter out) all file paths in machine.json state sections
- * that do NOT belong to the current workspace root.
- *
- * This is the "auto-clean" companion to validateWorkspaceIntegrity().
- * Returns the modified machine object (mutated in place for efficiency).
- */
-function sanitizePathsInMachine(machine, workspaceRoot) {
-  const root = path.resolve(workspaceRoot);
-
-  function filterArray(arr) {
-    if (!Array.isArray(arr)) return arr;
-    return arr.filter(
-      (p) => typeof p === "string" && isPathInWorkspace(p, root),
-    );
-  }
-
-  // write_audit_state.current_session.files_written
-  if (machine.write_audit_state?.current_session?.files_written) {
-    machine.write_audit_state.current_session.files_written = filterArray(
-      machine.write_audit_state.current_session.files_written,
-    );
-  }
-
-  // write_audit_state.history[].files
-  if (Array.isArray(machine.write_audit_state?.history)) {
-    machine.write_audit_state.history.forEach((entry) => {
-      if (entry?.files) entry.files = filterArray(entry.files);
-    });
-  }
-
-  // type_check_state.dirty_files
-  if (machine.type_check_state?.dirty_files) {
-    machine.type_check_state.dirty_files = filterArray(
-      machine.type_check_state.dirty_files,
-    );
-    // Reset status to clean if dirty_files is now empty
-    if (
-      machine.type_check_state.dirty_files.length === 0 &&
-      machine.type_check_state.status === "dirty"
-    ) {
-      machine.type_check_state.status = "clean";
-      machine.type_check_state.incremental_errors = 0;
-    }
-  }
-
-  // format_state.unformatted_files
-  if (machine.format_state?.unformatted_files) {
-    machine.format_state.unformatted_files = filterArray(
-      machine.format_state.unformatted_files,
-    );
-    if (
-      machine.format_state.unformatted_files.length === 0 &&
-      machine.format_state.status === "dirty"
-    ) {
-      machine.format_state.status = "clean";
-    }
-  }
-
-  // compliance_records.role_violations — filter out foreign-path violations
-  if (Array.isArray(machine.compliance_records?.role_violations)) {
-    machine.compliance_records.role_violations =
-      machine.compliance_records.role_violations.filter(
-        (v) => !v.violation_file || isPathInWorkspace(v.violation_file, root),
-      );
-  }
-
-  // ── NEW: tdd_enforcement_state sections (RVW-REVIEW-02) ──
-  if (machine.tdd_enforcement_state?.current_session) {
-    const tddSess = machine.tdd_enforcement_state.current_session;
-
-    // impl_files_attempted
-    if (tddSess.impl_files_attempted) {
-      tddSess.impl_files_attempted = filterArray(tddSess.impl_files_attempted);
-    }
-
-    // test_files_written
-    if (tddSess.test_files_written) {
-      tddSess.test_files_written = filterArray(tddSess.test_files_written);
-    }
-
-    // blocked_attempts[].file — filter out entries with foreign paths
-    if (Array.isArray(tddSess.blocked_attempts)) {
-      tddSess.blocked_attempts = tddSess.blocked_attempts.filter(
-        (entry) =>
-          entry &&
-          typeof entry.file === "string" &&
-          isPathInWorkspace(entry.file, root),
-      );
-    }
-  }
-
-  // tdd_enforcement_state.violations[].file
-  if (Array.isArray(machine.tdd_enforcement_state?.violations)) {
-    machine.tdd_enforcement_state.violations =
-      machine.tdd_enforcement_state.violations.filter(
-        (v) => !v.file || isPathInWorkspace(v.file, root),
-      );
-  }
-
-  return machine;
-}
-
-/**
- * Canonicalize all file paths in machine.json to be relative to workspaceRoot.
- * Absolute paths within workspace are converted to relative; foreign paths
- * are removed. This is the "relative-path enforcement" step — after this,
- * all stored paths are relative to OPENCODE_ROOT.
- *
- * Covered sections (ALL state sections containing file paths — RVW-REVIEW-02):
- *   - write_audit_state.current_session.files_written
- *   - write_audit_state.history[].files
- *   - type_check_state.dirty_files
- *   - format_state.unformatted_files
- *   - compliance_records.role_violations[].violation_file
- *   - tdd_enforcement_state.current_session.impl_files_attempted
- *   - tdd_enforcement_state.current_session.test_files_written
- *   - tdd_enforcement_state.current_session.blocked_attempts[].file
- *   - tdd_enforcement_state.violations[].file
- */
-function canonicalizePathsInMachine(machine, workspaceRoot) {
-  const root = path.resolve(workspaceRoot);
-
-  function canonicalizeArray(arr) {
-    if (!Array.isArray(arr)) return arr;
-    return arr
-      .map((p) =>
-        typeof p === "string" ? makePathRelativeToWorkspace(p, root) : p,
-      )
-      .filter((p) => p !== null && p !== undefined);
-  }
-
-  function canonicalizeObjectArrayField(arr, fieldName) {
-    if (!Array.isArray(arr)) return arr;
-    return arr
-      .map((entry) => {
-        if (!entry || typeof entry[fieldName] !== "string") return entry;
-        const rel = makePathRelativeToWorkspace(entry[fieldName], root);
-        if (rel === null) return null; // mark for removal
-        return { ...entry, [fieldName]: rel };
-      })
-      .filter((entry) => entry !== null);
-  }
-
-  // write_audit_state.current_session.files_written
-  if (machine.write_audit_state?.current_session?.files_written) {
-    machine.write_audit_state.current_session.files_written = canonicalizeArray(
-      machine.write_audit_state.current_session.files_written,
-    );
-  }
-
-  // write_audit_state.history[].files
-  if (Array.isArray(machine.write_audit_state?.history)) {
-    machine.write_audit_state.history.forEach((entry) => {
-      if (entry?.files) entry.files = canonicalizeArray(entry.files);
-    });
-  }
-
-  // type_check_state.dirty_files
-  if (machine.type_check_state?.dirty_files) {
-    machine.type_check_state.dirty_files = canonicalizeArray(
-      machine.type_check_state.dirty_files,
-    );
-  }
-
-  // format_state.unformatted_files
-  if (machine.format_state?.unformatted_files) {
-    machine.format_state.unformatted_files = canonicalizeArray(
-      machine.format_state.unformatted_files,
-    );
-  }
-
-  // compliance_records.role_violations[].violation_file
-  if (Array.isArray(machine.compliance_records?.role_violations)) {
-    machine.compliance_records.role_violations = canonicalizeObjectArrayField(
-      machine.compliance_records.role_violations,
-      "violation_file",
-    );
-  }
-
-  // tdd_enforcement_state.current_session.impl_files_attempted
-  if (machine.tdd_enforcement_state?.current_session?.impl_files_attempted) {
-    machine.tdd_enforcement_state.current_session.impl_files_attempted =
-      canonicalizeArray(
-        machine.tdd_enforcement_state.current_session.impl_files_attempted,
-      );
-  }
-
-  // tdd_enforcement_state.current_session.test_files_written
-  if (machine.tdd_enforcement_state?.current_session?.test_files_written) {
-    machine.tdd_enforcement_state.current_session.test_files_written =
-      canonicalizeArray(
-        machine.tdd_enforcement_state.current_session.test_files_written,
-      );
-  }
-
-  // tdd_enforcement_state.current_session.blocked_attempts[].file
-  if (machine.tdd_enforcement_state?.current_session?.blocked_attempts) {
-    machine.tdd_enforcement_state.current_session.blocked_attempts =
-      canonicalizeObjectArrayField(
-        machine.tdd_enforcement_state.current_session.blocked_attempts,
-        "file",
-      );
-  }
-
-  // tdd_enforcement_state.violations[].file
-  if (Array.isArray(machine.tdd_enforcement_state?.violations)) {
-    machine.tdd_enforcement_state.violations = canonicalizeObjectArrayField(
-      machine.tdd_enforcement_state.violations,
-      "file",
-    );
-  }
-
-  return machine;
-}
+// ─── Cross-Workspace Protection & Canonicalization (FW-REPAIR-09 + RVW-REVIEW-02) ──
+//
+// Path validation, sanitization, and canonicalization functions have been
+// extracted to ../state-canonicalize.js for reuse across the framework.
+// See: .opencode/scripts/state-canonicalize.js
+//
+// Available via: const stateCanon = require("../state-canonicalize");
+//   - stateCanon.isPathInWorkspace(filePath, workspaceRoot)
+//   - stateCanon.makePathRelativeToWorkspace(filePath, workspaceRoot)
+//   - stateCanon.validateWorkspaceIntegrity(machine, workspaceRoot)
+//   - stateCanon.sanitizePathsInMachine(machine, workspaceRoot)
+//   - stateCanon.canonicalizePathsInMachine(machine, workspaceRoot)
 
 /**
  * Validate the machine.json state object against machine.schema.json
@@ -1013,7 +638,7 @@ function checkTDDOrder(machine, changedFile) {
   const fileName = path.basename(changedFile);
 
   // ─── Canonicalize to relative path (RVW-REVIEW-02) ───
-  const relFile = makePathRelativeToWorkspace(changedFile, OPENCODE_ROOT);
+  const relFile = stateCanon.makePathRelativeToWorkspace(changedFile, OPENCODE_ROOT);
   // If the path is foreign, reject silently (no state mutation)
   if (!relFile) {
     return {
@@ -1147,7 +772,7 @@ function updateStates(machine, results, agentType, taskId, file) {
     machine.write_audit_state = { current_session: null, history: [] };
 
   // ─── Canonicalize file path to relative (RVW-REVIEW-02) ───
-  const relFile = makePathRelativeToWorkspace(file, OPENCODE_ROOT);
+  const relFile = stateCanon.makePathRelativeToWorkspace(file, OPENCODE_ROOT);
 
   // Build current session
   const session = machine.write_audit_state.current_session || {

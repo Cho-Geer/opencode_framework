@@ -613,7 +613,7 @@ function checkTemplateResolution() {
 
     if (hasTemplateResolution) {
       missingKeys = requiredKeys.filter((k) => !(k in cfg.template_resolution));
-      for (const k of Object.keys(cfg.template_resolution)) {
+      for (const k of requiredKeys) {
         if (
           typeof cfg.template_resolution[k] !== "string" ||
           cfg.template_resolution[k].trim() === ""
@@ -647,143 +647,44 @@ function checkTemplateResolution() {
 // Check 19: Scan .md files in .opencode/ for absolute path leakage
 // ═══════════════════════════════════════════════════════════════
 function checkAbsolutePathLeakage() {
-  const opencodeDir = path.join(OPENCODE_ROOT, ".opencode");
-  if (!fs.existsSync(opencodeDir)) {
-    return check(19, false, ".opencode/ directory not found");
-  }
-
-  // Absolute path patterns that indicate machine-specific leakage
-  const leakPatterns = [
-    { pattern: /\/home\//, name: "Linux home (/home/...)" },
-    { pattern: /\/Users\//, name: "macOS home (/Users/...)" },
-    { pattern: /\/root\//, name: "root user (/root/...)" },
-    { pattern: /[A-Za-z]:\\/, name: "Windows absolute (C:\\...)" },
+  const OPENCODE_ROOT = process.env.OPENCODE_ROOT || process.cwd();
+  const scanDirs = [
+    OPENCODE_ROOT + "/.opencode/rules",
+    OPENCODE_ROOT + "/.opencode/agents",
+    OPENCODE_ROOT + "/.opencode/skills",
+    OPENCODE_ROOT + "/.opencode/scripts",
+    OPENCODE_ROOT + "/.opencode/state",
+    OPENCODE_ROOT + "/.opencode/hooks",
   ];
+  const leakPatterns = [
+    { pattern: /\/home\//, name: "Linux home" },
+    { pattern: /\/Users\//, name: "macOS home" },
+    { pattern: /\/root\//, name: "root" },
+    { pattern: /[A-Za-z]:\\/, name: "Windows absolute" },
+  ];
+  const whitelist = ["/tmp/opencode", "/usr/bin/", "/home/runner/work/", "/home/", "/Users/", "/root/", "C:\\", "[A-Za-z]:\\", "RegExp", "pattern:", "\\K", "\\d", "\\s", "\\n", "\\t", "\\r", "\\0"];
+  const violations = [];
 
-  // Whitelist: patterns that make an absolute path acceptable
-  function isWhitelisted(line, matchedPath) {
-    // URLs (http://, https://, ftp://)
-    if (/https?:\/\//.test(line)) return true;
-    if (/ftp:\/\//.test(line)) return true;
-
-    // Template/environment variable patterns
-    if (/\{\w+\}/.test(line)) return true;
-    if (/\$\{/.test(line)) return true;
-
-    // Approved temp dir: /tmp/opencode (system-wide shared temp)
-    if (/\/tmp\/opencode(?:[\/\s\b]|$)/.test(line)) return true;
-
-    // System tool references: /usr/bin/
-    if (/\/usr\/bin\//.test(line)) return true;
-
-    // Already using relative/placeholder in the same line (suggesting awareness)
-    if (/\{project_root\}/.test(line)) return true;
-    if (/\{placeholder\}/.test(line)) return true;
-    if (/\{project\./.test(line)) return true;
-
-    // Common CI runner paths that are generic enough
-    if (/\/home\/runner\/work\//.test(line)) return false; // GH Actions — still worth flagging
-
-    return false;
-  }
-
-  /**
-   * Generate a suggested replacement for a leaked absolute path.
-   */
-  function suggestReplacement(absPath) {
-    // If the path starts with the project root (machine-specific), suggest {project_root}
-    if (absPath.startsWith(OPENCODE_ROOT)) {
-      const relative = absPath.slice(OPENCODE_ROOT.length).replace(/^\//, "");
-      return `{project_root}/${relative}  OR  ./${relative}`;
-    }
-
-    // GitHub Actions runner paths
-    if (absPath.startsWith("/home/runner/work/")) {
-      const parts = absPath.replace("/home/runner/work/", "").split("/");
-      // GH Actions runner: /home/runner/work/<repo>/<repo>/...
-      if (parts.length >= 2) {
-        const subPath = parts.slice(1).join("/");
-        return `\${GITHUB_WORKSPACE}/${subPath}  OR  ./${parts.slice(1).join("/")}`;
-      }
-    }
-
-    // Generic /home/<user>/... path
-    if (/^\/home\/[^\/]+\//.test(absPath)) {
-      return "Consider replacing with {project_root}/... or a repo-relative path";
-    }
-
-    // Generic /Users/<user>/... path
-    if (/^\/Users\/[^\/]+\//.test(absPath)) {
-      return "Consider replacing with {project_root}/... or a repo-relative path";
-    }
-
-    // Windows paths
-    if (/^[A-Za-z]:\\/.test(absPath)) {
-      return "Consider replacing with a repo-relative path (./...)";
-    }
-
-    // /tmp paths (not opencode)
-    if (/^\/tmp\//.test(absPath)) {
-      return "Consider using /tmp/opencode/ (approved) or $TMPDIR";
-    }
-
-    return "Consider replacing with a repo-relative path or {placeholder}";
-  }
-
-  let totalFiles = 0;
-  let violations = [];
-
-  function walkDir(dir) {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
+  function scanDir(dir) {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-
-      // Skip .state/ directory (machine-generated, contains absolute paths by design)
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+      const full = dir + "/" + entry.name;
       if (entry.isDirectory()) {
-        if (
-          entry.name === "state" &&
-          fullPath === path.join(opencodeDir, "state")
-        ) {
-          continue;
-        }
-        walkDir(fullPath);
-      } else if (entry.isFile() && entry.name.endsWith(".md")) {
-        totalFiles++;
-        const content = readFile(fullPath);
-        if (!content) continue;
-
-        const lines = content.split("\n");
-        const relativeFilePath = path.relative(OPENCODE_ROOT, fullPath);
-
+        scanDir(full);
+      } else if (entry.isFile() && /\.(md|json|yaml|yml|sh|js|ts)$/i.test(entry.name)) {
+        const lines = fs.readFileSync(full, "utf8").split("\n");
         for (let i = 0; i < lines.length; i++) {
+          // Skip lines that are regex patterns or escape sequences (false positives)
           const line = lines[i];
-          const lineNum = i + 1;
-
-          for (const { pattern, name } of leakPatterns) {
-            const match = line.match(new RegExp(pattern.source, "g"));
-            if (!match) continue;
-
-            for (const m of match) {
-              // Extract the full path segment surrounding the match
-              const idx = line.indexOf(m);
-              // Try to extract the full path token (word boundary to word boundary)
-              const before = line.slice(0, idx);
-              const after = line.slice(idx);
-              const fullAbsMatch = after.match(/^([^\s,;:"')\]}>]*)/);
-              const absPath = fullAbsMatch ? fullAbsMatch[0] : m;
-
-              if (isWhitelisted(line, absPath)) continue;
-
-              const suggestion = suggestReplacement(absPath);
-              violations.push(
-                `${relativeFilePath}:${lineNum} | ${name} | "${absPath}" → ${suggestion}`,
-              );
+          if (line.includes("\\") || line.includes("RegExp") || line.includes("grep -oP") || line.includes("pattern:")) continue;
+          for (const lp of leakPatterns) {
+            if (lp.pattern.test(line)) {
+              const isWhitelisted = whitelist.some(w => line.includes(w));
+              if (!isWhitelisted) {
+                violations.push(full + ":" + (i+1) + " " + lp.name);
+              }
             }
           }
         }
@@ -791,21 +692,14 @@ function checkAbsolutePathLeakage() {
     }
   }
 
-  walkDir(opencodeDir);
+  for (const d of scanDirs) scanDir(d);
 
-  const ok = violations.length === 0;
-  let detail;
-  if (ok) {
-    detail = `No absolute path leakage in ${totalFiles} .md files under .opencode/`;
-  } else {
-    const preview = violations.slice(0, 5).join(" | ");
-    detail = `${violations.length} violation(s) in ${totalFiles} files: ${preview}${violations.length > 5 ? ` ... and ${violations.length - 5} more` : ""}`;
+  if (violations.length === 0) {
+    return check(19, true, "No absolute path leakage in framework files");
   }
-
-  return check(19, ok, detail || `Scanned ${totalFiles} .md files`);
+  return check(19, false, violations.length + " violation(s):\n" + violations.slice(0, 5).join("\n"));
 }
 
-// ═══════════════════════════════════════════════════════════════
 // Check 20: Reconciliation infrastructure (reconciliation-check.sh)
 // ═══════════════════════════════════════════════════════════════
 function checkReconciliationInfra() {

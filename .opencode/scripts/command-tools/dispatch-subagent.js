@@ -283,6 +283,13 @@ console.error(
   `[dispatch] Template resolution map: ${Object.keys(templateMap).length} keys`,
 );
 
+// Resolve placeholders in CLI task description
+const resolvedTaskDescription = resolveTemplateVariables(
+  taskDescription,
+  templateMap,
+  "CLI task_description",
+);
+
 // Resolve placeholders in agent content
 const resolvedAgentContent = resolveTemplateVariables(
   agentContent,
@@ -410,7 +417,7 @@ Do NOT skip this section. It is required for audit trail compliance.
 ### Task
 
 **Agent**: ${agentName}
-**Description**: ${taskDescription}
+**Description**: ${resolvedTaskDescription}
 
 ### Execution Order
 1. Read your agent configuration above
@@ -419,6 +426,19 @@ Do NOT skip this section. It is required for audit trail compliance.
 4. Include \`## 📊 Invocation Summary\` section in your output
 
 Remember: All runtime artifacts (test_report.json, HANDOVER.md, TASK_LOG.md, *_report.json) go to \`.task_temp/{taskId}/\`.`;
+
+// ──────────────────────────────────────────────
+// 5.5 Final template resolution pass on the wrapped prompt
+// ──────────────────────────────────────────────
+// The wrappedPrompt may contain unreoslved {project.*}, {backend.*},
+// {frontend.*}, {cache.*} placeholders from taskDescription or
+// embedded content. This final pass ensures all template variables
+// are resolved before the prompt is consumed by the sub-agent.
+const resolvedPrompt = resolveTemplateVariables(
+  wrappedPrompt,
+  templateMap,
+  "wrappedPrompt",
+);
 
 // ──────────────────────────────────────────────
 // 6. Save to output file
@@ -432,7 +452,7 @@ const outputFile = path.join(
   OUTPUT_DIR,
   `dispatch-${agentType}-${timestamp}.md`,
 );
-fs.writeFileSync(outputFile, wrappedPrompt, "utf8");
+fs.writeFileSync(outputFile, resolvedPrompt, "utf8");
 
 console.error(`[dispatch] Output: ${outputFile}`);
 
