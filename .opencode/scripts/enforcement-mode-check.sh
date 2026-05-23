@@ -171,7 +171,7 @@ case "${1:-}" in
     ;;
 
   --block)
-    local check_key="${2:-}"
+    check_key="${2:-}"
     if [ -z "$check_key" ]; then
       echo "ERROR: --block requires <check_key> argument" >&2
       exit 2
@@ -186,7 +186,7 @@ case "${1:-}" in
     ;;
 
   --validate)
-    local current_mode
+    current_mode
     current_mode=$(resolve_mode)
     echo "ENFORCEMENT_MODE=$current_mode"
     echo "Config file: $CONFIG_FILE"

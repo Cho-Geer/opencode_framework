@@ -135,3 +135,50 @@
 **维护者**: @Arbiter  
 **签名**: `@Architect — 2026-05-23T06:26:00Z`  
 **位置**: 项目根目录
+
+### 2026-05-23 — @Arbiter WV-2026-006 (MCP SDK Upstream Packaging Defect)
+
+| Item | Decision | Rationale |
+|------|----------|-----------|
+| WV-2026-006 | **Approved** ✅ | Upstream `@modelcontextprotocol/sdk@1.29.0` missing `dist/cjs/index.js` barrel file — unresolvable external packaging defect. Sub-path imports work correctly (verified across 4 MCP tool scripts, 12 import statements). Zero functional impact. Waiver ID: WV-2026-006. |
+| TD-2026-012 | **Registered** | MCP SDK root-level `require()` non-functional due to upstream packaging defect. Sub-path imports used as workaround. Requires monitoring: re-test root require when SDK v1.30+ ships, or create local barrel shim by 2026-08-23. |
+
+| Waiver ID | Approval Date | Responsible | Reason for Waiver | Planned Repayment Date | Status |
+|-----------|---------------|-------------|-------------------|------------------------|--------|
+| WV-2026-006 | 2026-05-23 | @CI-CD-Agent / @Coder-BE | Upstream `@modelcontextprotocol/sdk@1.29.0` missing barrel `index.js` — sub-path imports work as alternative | 2026-08-23 | OPEN |
+
+**最后更新**: 2026-05-23
+**维护者**: @Arbiter
+**签名**: `@Arbiter — 2026-05-23T06:40:00Z`
+**位置**: 项目根目录
+
+---
+
+### 2026-05-23 — @Arbiter RVW-REVIEW-01-TXNFIX Layer A Waiver (WV-2026-007/008/009)
+
+| Item | Decision | Rationale |
+|------|----------|-----------|
+| WV-2026-007 (type_check_state) | **Waived** ✅ | 7 Angular frontend `.ts` files in `booking_system_refactor/booking-frontend/` have pre-existing TypeScript errors. Written by @Architect during FW-REPAIR-01, not caused by or related to the eslint-audit.js transaction envelope fix. Registered as TD-2026-013. |
+| WV-2026-008 (format_state) | **Waived** ✅ | `contract.yaml` formatting issue is pre-existing and cosmetic. auto_fix resolved 24 other files but could not auto-fix this one. Not related to eslint-audit.js. Registered as TD-2026-014. |
+| WV-2026-009 (tdd_enforcement_state) | **Waived** ✅ | 7 historical CAT5.2 violations (2026-05-21/22) from earlier FW-REPAIR-01 sessions on framework tool files. The eslint-audit.js fix ITSELF followed proper TDD (RED 5/5 FAIL → GREEN 5/5 PASS). Close relationship with current fix warrants aggressive repayment deadline. Registered as TD-2026-015. |
+
+## 豁免登记表 (Waiver Registry)
+
+| Waiver ID | Approval Date | Responsible | Reason for Waiver | Planned Repayment Date | Status |
+|-----------|---------------|-------------|-------------------|------------------------|--------|
+| WV-2026-007 | 2026-05-23 | @Coder-FE | 7 Angular frontend `.ts` files have pre-existing TypeScript errors in `booking_system_refactor/booking-frontend/` — separate codebase, unrelated to eslint-audit.js fix (TD-2026-013) | 2026-06-15 | OPEN |
+| WV-2026-008 | 2026-05-23 | @Architect | `contract.yaml` formatting issue — pre-existing cosmetic issue, unrelated to eslint-audit.js fix (TD-2026-014) | 2026-06-15 | OPEN |
+| WV-2026-009 | 2026-05-23 | @Coder-BE / @Architect | 7 historical CAT5.2 TDD violations from FW-REPAIR-01 sessions (2026-05-21/22) — predate current fix; the eslint-audit.js fix itself followed proper TDD (RED→GREEN) (TD-2026-015) | 2026-06-01 | OPEN |
+
+## 技术债登记
+
+| ID | 描述 | 影响 | 批准人 | 批准日期 | 截止日期 | 状态 | 关联任务 |
+|----|------|------|--------|----------|----------|------|---------|
+| TD-2026-013 | 7 Angular前端 `.ts` 文件存在预存TypeScript错误（booking_system_refactor/booking-frontend/）— @Coder-FE 需修复这些编译错误 | 中 | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-007 |
+| TD-2026-014 | `contract.yaml` 格式化问题 — pre-existing；auto_fix无法自动修复此文件 | 低 | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-008 |
+| TD-2026-015 | 7条历史CAT5.2 TDD违规（code-quality-gate.js、state-transaction.js、compliance-gate.js、framework-self-test.js）— 来自FW-REPAIR-01（2026-05-21/22）；需补充测试或由@Meta-Planner正式接受为框架修复债务 | 中 | @Arbiter | 2026-05-23 | 2026-06-01 | **OPEN** | WV-2026-009 |
+
+**最后更新**: 2026-05-23
+**维护者**: @Arbiter
+**签名**: `@Arbiter — 2026-05-23T11:40:00Z`
+**位置**: 项目根目录
