@@ -1,0 +1,8 @@
+{
+  "name": "playground2",
+  "version": "1.0.0",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}
