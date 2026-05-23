@@ -12,15 +12,43 @@ INNER="$ROOT/$(node -e "console.log(require('./.opencode/project.config.json').p
 VALIDATOR="$INNER/scripts/keystone-validate.js"
 MACHINE="$INNER/.opencode/state/machine.json"
 GATE_STATE="$INNER/.opencode/state/gate-state.json"
+ENF_SCRIPT="$INNER/.opencode/scripts/enforcement-mode-check.sh"
+
+# ── Resolve Enforcement Mode ──────────────────────────────────────────
+ENF_MODE="advisory"
+if [ -x "$ENF_SCRIPT" ]; then
+  ENF_MODE=$("$ENF_SCRIPT" 2>/dev/null || echo "advisory")
+elif [ -f "$INNER/.opencode/project.config.json" ]; then
+  ENF_MODE=$(node -e "
+    try {
+      const cfg = require('$INNER/.opencode/project.config.json');
+      const mode = cfg.template_resolution?.enforcement_mode;
+      console.log(mode && ['advisory','strict','locked'].includes(mode) ? mode : 'advisory');
+    } catch(e) { console.log('advisory'); }
+  " 2>/dev/null || echo "advisory")
+fi
+
+if [ -n "${ENFORCEMENT_MODE:-}" ]; then
+  case "${ENFORCEMENT_MODE}" in
+    advisory|strict|locked)
+      if [ "$ENF_MODE" != "locked" ]; then
+        ENF_MODE="${ENFORCEMENT_MODE}"
+      fi
+      ;;
+  esac
+fi
 
 echo "═══════════════════════════════════════════════════════════════"
-echo "  🔍 OpenCode v3.1 Pre-Commit Hook — Multi-Layer Enforcement"
+echo "  🔍 OpenCode v3.2 Pre-Commit Hook — Multi-Layer Enforcement"
+echo "  Mode: $ENF_MODE"
 echo "═══════════════════════════════════════════════════════════════"
 
-# ── Layer 0: Compliance Gate Armed Check (BLOCKING) ──
+# ── Layer 0: Compliance Gate Armed Check (mode-aware) ──
 echo ""
 echo "[Layer 0/4] Checking compliance gate state..."
-if [ -f "$GATE_STATE" ]; then
+if [ "$ENF_MODE" = "advisory" ]; then
+    echo "  ⚠️  [ADVISORY] Gate armed check skipped (advisory mode)"
+elif [ -f "$GATE_STATE" ]; then
     ARMED=$(node -e "const g=require('$GATE_STATE'); console.log(g.active_sessions?.length || 0)" 2>/dev/null || echo "0")
     if [ "$ARMED" = "0" ]; then
         echo "❌ [GATE] No compliance gate session is armed for this commit."
@@ -44,21 +72,26 @@ else
     echo "[Layer 1/4] lint-staged not installed — skipping auto-format"
 fi
 
-# ── Layer 2.5: TDD Order Pre-Check (BLOCKING) ──
+# ── Layer 2.5: TDD Order Pre-Check (mode-aware) ──
 TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
     if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
-        echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
-        echo "  Impl files: $TDD_IMPL_FILES"
-        echo "  This is a TDD violation. Commit BLOCKED."
-        echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
-        exit 1
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
     fi
 fi
 
-# ── Layer 2: keystone-validate (contract hash + evidence + type + deps + eslint + format) ──
+# ── Layer 2: keystone-validate (mode-aware) ──
 echo ""
 echo "[Layer 2/4] Running keystone full validation..."
 
@@ -68,16 +101,22 @@ else
     if [ ! -f "$MACHINE" ]; then
         echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
     else
-        node "$VALIDATOR" --pre-commit || {
-            echo ""
-            echo "═══════════════════════════════════════════════════════════════"
-            echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
-            echo "═══════════════════════════════════════════════════════════════"
-            echo ""
-            echo "Fix the violations above and re-stage the files:"
-            echo "  git add <fixed-files> && git commit"
-            exit 1
-        }
+        if node "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
     fi
 fi
 

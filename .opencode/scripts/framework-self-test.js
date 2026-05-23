@@ -4,10 +4,10 @@
 /**
  * framework-self-test.js — OpenCode Framework Binding Force Self-Test
  * ===================================================================
- * Validates 18 critical framework integrity checks.
+ * Validates 20 critical framework integrity checks.
  * Usage: node .opencode/scripts/framework-self-test.js
  *
- * Exit code: 0 if ALL 18 checks pass, 1 if any fail.
+ * Exit code: 0 if ALL 20 checks pass, 1 if any fail.
  */
 
 const fs = require("fs");
@@ -556,17 +556,26 @@ function checkUnresolvedPlaceholders() {
         const fullPath = path.join(d, entry.name);
         if (entry.isDirectory()) {
           walkDir(fullPath);
-        } else if (entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".js") || entry.name.endsWith(".sh") || entry.name.endsWith(".json"))) {
+        } else if (
+          entry.isFile() &&
+          (entry.name.endsWith(".md") ||
+            entry.name.endsWith(".js") ||
+            entry.name.endsWith(".sh") ||
+            entry.name.endsWith(".json"))
+        ) {
           totalFiles++;
           const content = readFile(fullPath);
           if (!content) continue;
 
           // Match literal {placeholder} or {xxx} patterns that are NOT valid template variables
           // Valid template: {project.xxx} or {backend.xxx} etc.
-          const literalPlaceholderPattern = /\{(placeholder|xxx|todo|fixme)\}/gi;
+          const literalPlaceholderPattern =
+            /\{(placeholder|xxx|todo|fixme)\}/gi;
           const matches = content.match(literalPlaceholderPattern);
           if (matches) {
-            violations.push(`${path.relative(OPENCODE_ROOT, fullPath)}: ${matches.join(", ")}`);
+            violations.push(
+              `${path.relative(OPENCODE_ROOT, fullPath)}: ${matches.join(", ")}`,
+            );
           }
         }
       }
@@ -590,12 +599,12 @@ function checkUnresolvedPlaceholders() {
 function checkTemplateResolution() {
   const cfgPath = path.join(OPENCODE_ROOT, ".opencode", "project.config.json");
   const raw = readFile(cfgPath);
-  if (!raw)
-    return check(18, false, "project.config.json not found");
+  if (!raw) return check(18, false, "project.config.json not found");
 
   try {
     const cfg = JSON.parse(raw);
-    const hasTemplateResolution = !!cfg.template_resolution && typeof cfg.template_resolution === "object";
+    const hasTemplateResolution =
+      !!cfg.template_resolution && typeof cfg.template_resolution === "object";
 
     // Required keys for template_resolution
     const requiredKeys = ["contract_hash_command"];
@@ -603,25 +612,312 @@ function checkTemplateResolution() {
     let invalidKeys = [];
 
     if (hasTemplateResolution) {
-      missingKeys = requiredKeys.filter(k => !(k in cfg.template_resolution));
+      missingKeys = requiredKeys.filter((k) => !(k in cfg.template_resolution));
       for (const k of Object.keys(cfg.template_resolution)) {
-        if (typeof cfg.template_resolution[k] !== "string" || cfg.template_resolution[k].trim() === "") {
+        if (
+          typeof cfg.template_resolution[k] !== "string" ||
+          cfg.template_resolution[k].trim() === ""
+        ) {
           invalidKeys.push(k);
         }
       }
     }
 
-    const ok = hasTemplateResolution && missingKeys.length === 0 && invalidKeys.length === 0;
+    const ok =
+      hasTemplateResolution &&
+      missingKeys.length === 0 &&
+      invalidKeys.length === 0;
     let detail = "";
-    if (!hasTemplateResolution) detail = "template_resolution section missing from project.config.json";
-    else if (missingKeys.length > 0) detail = `Missing required keys in template_resolution: ${missingKeys.join(", ")}`;
-    else if (invalidKeys.length > 0) detail = `Invalid/empty values in template_resolution: ${invalidKeys.join(", ")}`;
-    else detail = `All ${requiredKeys.length} required keys present with valid values`;
+    if (!hasTemplateResolution)
+      detail = "template_resolution section missing from project.config.json";
+    else if (missingKeys.length > 0)
+      detail = `Missing required keys in template_resolution: ${missingKeys.join(", ")}`;
+    else if (invalidKeys.length > 0)
+      detail = `Invalid/empty values in template_resolution: ${invalidKeys.join(", ")}`;
+    else
+      detail = `All ${requiredKeys.length} required keys present with valid values`;
 
     return check(18, ok, detail);
   } catch (e) {
     return check(18, false, `JSON parse error: ${e.message}`);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 19: Scan .md files in .opencode/ for absolute path leakage
+// ═══════════════════════════════════════════════════════════════
+function checkAbsolutePathLeakage() {
+  const opencodeDir = path.join(OPENCODE_ROOT, ".opencode");
+  if (!fs.existsSync(opencodeDir)) {
+    return check(19, false, ".opencode/ directory not found");
+  }
+
+  // Absolute path patterns that indicate machine-specific leakage
+  const leakPatterns = [
+    { pattern: /\/home\//, name: "Linux home (/home/...)" },
+    { pattern: /\/Users\//, name: "macOS home (/Users/...)" },
+    { pattern: /\/root\//, name: "root user (/root/...)" },
+    { pattern: /[A-Za-z]:\\/, name: "Windows absolute (C:\\...)" },
+  ];
+
+  // Whitelist: patterns that make an absolute path acceptable
+  function isWhitelisted(line, matchedPath) {
+    // URLs (http://, https://, ftp://)
+    if (/https?:\/\//.test(line)) return true;
+    if (/ftp:\/\//.test(line)) return true;
+
+    // Template/environment variable patterns
+    if (/\{\w+\}/.test(line)) return true;
+    if (/\$\{/.test(line)) return true;
+
+    // Approved temp dir: /tmp/opencode (system-wide shared temp)
+    if (/\/tmp\/opencode(?:[\/\s\b]|$)/.test(line)) return true;
+
+    // System tool references: /usr/bin/
+    if (/\/usr\/bin\//.test(line)) return true;
+
+    // Already using relative/placeholder in the same line (suggesting awareness)
+    if (/\{project_root\}/.test(line)) return true;
+    if (/\{placeholder\}/.test(line)) return true;
+    if (/\{project\./.test(line)) return true;
+
+    // Common CI runner paths that are generic enough
+    if (/\/home\/runner\/work\//.test(line)) return false; // GH Actions — still worth flagging
+
+    return false;
+  }
+
+  /**
+   * Generate a suggested replacement for a leaked absolute path.
+   */
+  function suggestReplacement(absPath) {
+    // If the path starts with the project root (machine-specific), suggest {project_root}
+    if (absPath.startsWith(OPENCODE_ROOT)) {
+      const relative = absPath.slice(OPENCODE_ROOT.length).replace(/^\//, "");
+      return `{project_root}/${relative}  OR  ./${relative}`;
+    }
+
+    // GitHub Actions runner paths
+    if (absPath.startsWith("/home/runner/work/")) {
+      const parts = absPath.replace("/home/runner/work/", "").split("/");
+      // GH Actions runner: /home/runner/work/<repo>/<repo>/...
+      if (parts.length >= 2) {
+        const subPath = parts.slice(1).join("/");
+        return `\${GITHUB_WORKSPACE}/${subPath}  OR  ./${parts.slice(1).join("/")}`;
+      }
+    }
+
+    // Generic /home/<user>/... path
+    if (/^\/home\/[^\/]+\//.test(absPath)) {
+      return "Consider replacing with {project_root}/... or a repo-relative path";
+    }
+
+    // Generic /Users/<user>/... path
+    if (/^\/Users\/[^\/]+\//.test(absPath)) {
+      return "Consider replacing with {project_root}/... or a repo-relative path";
+    }
+
+    // Windows paths
+    if (/^[A-Za-z]:\\/.test(absPath)) {
+      return "Consider replacing with a repo-relative path (./...)";
+    }
+
+    // /tmp paths (not opencode)
+    if (/^\/tmp\//.test(absPath)) {
+      return "Consider using /tmp/opencode/ (approved) or $TMPDIR";
+    }
+
+    return "Consider replacing with a repo-relative path or {placeholder}";
+  }
+
+  let totalFiles = 0;
+  let violations = [];
+
+  function walkDir(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+
+      // Skip .state/ directory (machine-generated, contains absolute paths by design)
+      if (entry.isDirectory()) {
+        if (
+          entry.name === "state" &&
+          fullPath === path.join(opencodeDir, "state")
+        ) {
+          continue;
+        }
+        walkDir(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        totalFiles++;
+        const content = readFile(fullPath);
+        if (!content) continue;
+
+        const lines = content.split("\n");
+        const relativeFilePath = path.relative(OPENCODE_ROOT, fullPath);
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const lineNum = i + 1;
+
+          for (const { pattern, name } of leakPatterns) {
+            const match = line.match(new RegExp(pattern.source, "g"));
+            if (!match) continue;
+
+            for (const m of match) {
+              // Extract the full path segment surrounding the match
+              const idx = line.indexOf(m);
+              // Try to extract the full path token (word boundary to word boundary)
+              const before = line.slice(0, idx);
+              const after = line.slice(idx);
+              const fullAbsMatch = after.match(/^([^\s,;:"')\]}>]*)/);
+              const absPath = fullAbsMatch ? fullAbsMatch[0] : m;
+
+              if (isWhitelisted(line, absPath)) continue;
+
+              const suggestion = suggestReplacement(absPath);
+              violations.push(
+                `${relativeFilePath}:${lineNum} | ${name} | "${absPath}" → ${suggestion}`,
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+
+  walkDir(opencodeDir);
+
+  const ok = violations.length === 0;
+  let detail;
+  if (ok) {
+    detail = `No absolute path leakage in ${totalFiles} .md files under .opencode/`;
+  } else {
+    const preview = violations.slice(0, 5).join(" | ");
+    detail = `${violations.length} violation(s) in ${totalFiles} files: ${preview}${violations.length > 5 ? ` ... and ${violations.length - 5} more` : ""}`;
+  }
+
+  return check(19, ok, detail || `Scanned ${totalFiles} .md files`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 20: Reconciliation infrastructure (reconciliation-check.sh)
+// ═══════════════════════════════════════════════════════════════
+function checkReconciliationInfra() {
+  const reconcilePath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "reconciliation-check.sh",
+  );
+
+  // 20a: reconciliation-check.sh exists
+  if (!fileExists(reconcilePath)) {
+    return check(20, false, "reconciliation-check.sh not found");
+  }
+
+  // 20b: reconciliation-check.sh is executable
+  try {
+    fs.accessSync(reconcilePath, fs.constants.X_OK);
+  } catch {
+    return check(
+      20,
+      false,
+      "reconciliation-check.sh exists but is not executable",
+    );
+  }
+
+  const content = readFile(reconcilePath);
+  if (!content) {
+    return check(20, false, "reconciliation-check.sh cannot be read");
+  }
+
+  // 20c: Script contains all 3 cross-reference checks
+  const hasCheck1 =
+    content.includes("Check 1: DAG ↔ Gate") || content.includes("DAG ↔ Gate");
+  const hasCheck2 =
+    content.includes("Check 2: Gate ↔ Machine") ||
+    content.includes("Gate ↔ Machine");
+  const hasCheck3 =
+    content.includes("Check 3: DAG ↔ Machine") ||
+    content.includes("DAG ↔ Machine");
+  const hasSummaryFormat = content.includes("[Reconciliation]");
+  const hasJqFallback =
+    content.includes("jq") &&
+    (content.includes("python3") || content.includes("node"));
+
+  if (!hasCheck1 || !hasCheck2 || !hasCheck3) {
+    const missing = [];
+    if (!hasCheck1) missing.push("Check 1 (DAG↔Gate)");
+    if (!hasCheck2) missing.push("Check 2 (Gate↔Machine)");
+    if (!hasCheck3) missing.push("Check 3 (DAG↔Machine)");
+    return check(
+      20,
+      false,
+      `Missing cross-reference checks: ${missing.join(", ")}`,
+    );
+  }
+
+  if (!hasSummaryFormat) {
+    return check(20, false, "Missing [Reconciliation] output format marker");
+  }
+
+  // 20d: pre-execution-hook.sh references reconciliation-check.sh
+  const preExecPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "pre-execution-hook.sh",
+  );
+  const preExecContent = readFile(preExecPath);
+  if (!preExecContent) {
+    return check(
+      20,
+      false,
+      "pre-execution-hook.sh not found (cannot verify integration)",
+    );
+  }
+
+  const preExecHasReconcile =
+    preExecContent.includes("reconciliation-check.sh") ||
+    preExecContent.includes("Stage 2: State Reconciliation");
+  if (!preExecHasReconcile) {
+    return check(
+      20,
+      false,
+      "pre-execution-hook.sh does not invoke reconciliation-check.sh",
+    );
+  }
+
+  // 20e: Dry-run execution (verify script doesn't crash on syntax errors)
+  try {
+    const { execSync } = require("child_process");
+    // Use --quiet mode for framework test to avoid verbose output
+    execSync(`bash -n "${reconcilePath}"`, { stdio: "pipe", timeout: 5000 });
+  } catch (e) {
+    return check(
+      20,
+      false,
+      `reconciliation-check.sh has bash syntax errors: ${e.stderr || e.message}`,
+    );
+  }
+
+  const ok =
+    hasCheck1 &&
+    hasCheck2 &&
+    hasCheck3 &&
+    hasSummaryFormat &&
+    preExecHasReconcile;
+  const detail = ok
+    ? `reconciliation-check.sh: 3 cross-ref checks (DAG↔Gate↔Machine), integrated into pre-execution-hook.sh, bash syntax valid, executable`
+    : "See failure details above";
+
+  return check(20, ok, detail);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -650,6 +946,8 @@ checkCQGBootstrap();
 checkReferencedFiles();
 checkUnresolvedPlaceholders();
 checkTemplateResolution();
+checkAbsolutePathLeakage();
+checkReconciliationInfra();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
