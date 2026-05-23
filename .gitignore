@@ -76,8 +76,8 @@ prisma/migrations/*/migration.sql.bak
 .git
 
 # Qoder artifacts (directory names, not commands)
-.qoder/
-.qoder.backup/
+!.qoder/
+!.qoder.backup/
 
 # Opencode
 .handover/
