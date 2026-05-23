@@ -52,12 +52,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify git config core.hooksPath
+      - name: Configure and verify git hooks path
         run: |
+          git config core.hooksPath .opencode/hooks
           HOOKS_PATH=$(git config core.hooksPath)
           echo "Resolved core.hooksPath: ${HOOKS_PATH}"
           if [ "${HOOKS_PATH}" != ".opencode/hooks" ]; then
-            echo "::error::core.hooksPath is '${HOOKS_PATH}', expected '.opencode/hooks'"
+            echo "::error::Failed to set core.hooksPath to .opencode/hooks"
             echo "::error::Framework hook enforcement (commit-msg, pre-commit) may not be active."
             exit 1
           fi
