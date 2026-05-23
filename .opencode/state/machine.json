@@ -2,10 +2,10 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-23T11:29:32.194Z",
+    "lastUpdated": "2026-05-23T12:00:00.000Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 209
+    "revision": 253
   },
   "eslint_state": {
     "last_full_scan": "2026-05-23T11:29:32.194Z",
@@ -36,17 +36,9 @@
     }
   },
   "type_check_state": {
-    "status": "dirty",
-    "dirty_files": [
-      "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.spec.ts",
-      "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.ts",
-      "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.spec.ts",
-      "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-layout/app-layout.component.ts",
-      "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts",
-      "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.spec.ts",
-      "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.ts"
-    ],
-    "incremental_errors": 7,
+    "status": "clean",
+    "dirty_files": [],
+    "incremental_errors": 0,
     "last_incremental_check": "2026-05-23T11:14:27.139Z"
   },
   "dependency_state": {
@@ -56,13 +48,11 @@
     "status": "clean"
   },
   "format_state": {
-    "status": "dirty",
-    "unformatted_files": [
-      "contract.yaml"
-    ],
-    "last_run": null,
-    "last_check": "2026-05-23T11:14:27.139Z",
-    "auto_fix_count": 24
+    "status": "clean",
+    "unformatted_files": [],
+    "last_run": "2026-05-23T12:00:00.000Z",
+    "last_check": "2026-05-23T12:00:00.000Z",
+    "auto_fix_count": 25
   },
   "write_audit_state": {
     "enabled": true,
@@ -155,108 +145,24 @@
     "enabled": true,
     "current_session": {
       "test_written": true,
-      "impl_files_attempted": [
-        ".opencode/scripts/mcp-tools/code-quality-gate.js",
-        ".opencode/scripts/state-transaction.js",
-        ".opencode/scripts/mcp-tools/compliance-gate.js",
-        ".opencode/scripts/framework-self-test.js",
-        ".opencode/scripts/framework-self-test.js",
-        ".opencode/scripts/mcp-tools/code-quality-gate.js",
-        ".opencode/scripts/state-transaction.js"
-      ],
-      "blocked_attempts": [
-        {
-          "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
-          "timestamp": "2026-05-21T23:37:12.915Z"
-        },
-        {
-          "file": ".opencode/scripts/state-transaction.js",
-          "timestamp": "2026-05-22T01:31:28.926Z"
-        },
-        {
-          "file": ".opencode/scripts/mcp-tools/compliance-gate.js",
-          "timestamp": "2026-05-22T01:36:42.416Z"
-        },
-        {
-          "file": ".opencode/scripts/framework-self-test.js",
-          "timestamp": "2026-05-22T01:37:00.387Z"
-        },
-        {
-          "file": ".opencode/scripts/framework-self-test.js",
-          "timestamp": "2026-05-22T01:37:22.044Z"
-        },
-        {
-          "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
-          "timestamp": "2026-05-22T01:37:32.320Z"
-        },
-        {
-          "file": ".opencode/scripts/state-transaction.js",
-          "timestamp": "2026-05-22T01:39:17.790Z"
-        }
-      ],
+      "impl_files_attempted": [],
+      "blocked_attempts": [],
       "test_files_written": [
-        ".opencode/scripts/__tests__/state-transaction.test.js",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/molecules/messages-dropdown/messages-dropdown.component.spec.ts",
-        "booking_system_refactor/booking-frontend/src/app/shared/components/layouts/app-header/app-header.component.spec.ts",
-        "booking_system_refactor/booking-frontend/src/app/features/admin/stores/admin.store.spec.ts",
-        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
-        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
-        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
-        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js"
+        ".opencode/scripts/__tests__/code-quality-gate.test.js",
+        ".opencode/scripts/__tests__/compliance-gate.test.js",
+        ".opencode/scripts/__tests__/framework-self-test.test.js",
+        ".opencode/scripts/__tests__/state-transaction.test.js"
       ],
       "initialized": true
     },
-    "violations": [
-      {
-        "timestamp": "2026-05-21T23:37:12.915Z",
-        "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
-        "code": "CAT5.2",
-        "message": "Implementation written without preceding test: code-quality-gate.js"
-      },
-      {
-        "timestamp": "2026-05-22T01:31:28.926Z",
-        "file": ".opencode/scripts/state-transaction.js",
-        "code": "CAT5.2",
-        "message": "Implementation written without preceding test: state-transaction.js"
-      },
-      {
-        "timestamp": "2026-05-22T01:36:42.416Z",
-        "file": ".opencode/scripts/mcp-tools/compliance-gate.js",
-        "code": "CAT5.2",
-        "message": "Implementation written without preceding test: compliance-gate.js"
-      },
-      {
-        "timestamp": "2026-05-22T01:37:00.387Z",
-        "file": ".opencode/scripts/framework-self-test.js",
-        "code": "CAT5.2",
-        "message": "Implementation written without preceding test: framework-self-test.js"
-      },
-      {
-        "timestamp": "2026-05-22T01:37:22.044Z",
-        "file": ".opencode/scripts/framework-self-test.js",
-        "code": "CAT5.2",
-        "message": "Implementation written without preceding test: framework-self-test.js"
-      },
-      {
-        "timestamp": "2026-05-22T01:37:32.320Z",
-        "file": ".opencode/scripts/mcp-tools/code-quality-gate.js",
-        "code": "CAT5.2",
-        "message": "Implementation written without preceding test: code-quality-gate.js"
-      },
-      {
-        "timestamp": "2026-05-22T01:39:17.790Z",
-        "file": ".opencode/scripts/state-transaction.js",
-        "code": "CAT5.2",
-        "message": "Implementation written without preceding test: state-transaction.js"
-      }
-    ],
+    "violations": [],
     "history": []
   },
   "contracts": [
     "contract.yaml"
   ],
   "keystone_hashes": {
-    "contract.yaml": "sha256-03714e9299df9d66b05ca4a062ceb4c633545a88441a2664be3dc7580f35fedd",
+    "contract.yaml": "sha256-e0db0abd0acbff3ff566719af17387581c582b30c9ed4892879f278cc582d13b",
     ".opencode/context/requirements/系统架构设计文档（SAD）.md": "sha256-8ea014ffde9b54080dcabebee3f4afb70a842e1d5f8d5911734ef3a18d30c0e3",
     ".opencode/context/requirements/接口设计规范文档.md": "sha256-0097fae4cff4357e329cae89982484b062bf0d0a125ff7e606650ecaf1bb8b05",
     ".opencode/context/requirements/数据架构设计文档.md": "sha256-19e7342426d025cc2ec710fa09ae719b2d9943e01a2f145524985d77abfc6f64",
@@ -282,8 +188,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "33aa2a62-f67a-4e88-b8c2-eccf017d485a",
-    "last_transaction_at": "2026-05-23T11:29:36.990Z",
+    "last_operation_id": "6f59dc99-51af-41da-9f47-ae530ab17362",
+    "last_transaction_at": "2026-05-23T12:23:41.854Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }
