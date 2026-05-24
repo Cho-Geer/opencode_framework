@@ -2956,12 +2956,15 @@
       "created_at": "2026-05-24T00:08:33.700Z",
       "task_description": "FW-HARDEN-F6-TEST: Write regression tests for fail-closed writes in strict/locked enforcement mode for compliance-gate.js. Add 6 test cases to .opencode/scripts/__tests__/compliance-gate.test.js covering writeJson() and writeJsonWithContext() behavior in advisory/strict/locked modes including transaction failure scenarios, normal commits, and error message format verification.",
       "enforcement_mode": "strict",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_failed_items": [],
       "plan_summary": "FW-HARDEN-F6-TEST: Add 6 regression tests for fail-closed write behavior in compliance-gate.js -- writeJson()/writeJsonWithContext() in advisory/strict/locked modes. Use temp wrapper for internal function access, mock SDK/state-transaction, TDD RED→GREEN cycle.",
       "confirmed_at": "2026-05-24T00:08:40.072Z",
-      "consumed_at": null,
-      "audit": null
+      "consumed_at": "2026-05-24T00:46:53.532Z",
+      "audit": {
+        "execution_summary": "FW-HARDEN-F6-TEST completed. Added 6 regression tests for fail-closed writes in strict/locked mode to .opencode/scripts/__tests__/compliance-gate.test.js. All 29 tests pass (23 existing + 6 new). Tests cover: advisory fallback, strict fail-closed, locked fail-closed, writeJsonWithContext enforcement, normal commits, error details. Created HANDOVER.md and test_report.json in .task_temp/FW-HARDEN-F6-TEST/.",
+        "completed_at": "2026-05-24T00:46:53.532Z"
+      }
     },
     "cg_ses_1779581503396": {
       "session_id": "cg_ses_1779581503396",
@@ -2972,6 +2975,33 @@
       "last_check_failed_items": [],
       "plan_summary": "Commit FW-HARDEN-F1-TEST: 6 new regression tests for F1 gate bypass fix. 23/23 all tests pass.",
       "confirmed_at": "2026-05-24T00:11:47.896Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779583437042": {
+      "session_id": "cg_ses_1779583437042",
+      "created_at": "2026-05-24T00:43:57.063Z",
+      "task_description": "CI-CD-Agent: FW-HARDEN-CROSS - Cross-platform framework-self-test validation after FW-FIX-F3 (pre-execution-hook.sh Windows/WSL hardening) and FW-FIX-F7 (Check 20 bash path fix). Verify all 21 checks pass, bash syntax validation, reconciliation check, and update DAG status.",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "FW-HARDEN-CROSS: Run framework-self-test.js (21 checks), bash syntax validation for pre-execution-hook.sh and pre-commit, reconciliation-validate.js --json, document Linux-only platform limitations, note DAG update needs @Orchestrator scope.",
+      "confirmed_at": "2026-05-24T00:44:18.917Z",
+      "consumed_at": "2026-05-24T00:46:13.150Z",
+      "audit": {
+        "execution_summary": "FW-HARDEN-CROSS completed: (1) framework-self-test.js: ALL 21/21 PASS; (2) bash -n pre-execution-hook.sh: PASS (no syntax errors); (3) bash -n hooks/pre-commit: PASS; (4) reconciliation-validate.js --json: 50 inconsistencies found (36 stale test sessions, 14 pre-audit missing write audits — non-critical); (5) FW-FIX-F3 node.exe discovery and FW-FIX-F7 ENOENT handling confirmed present; (6) Platform: Linux-only validation, Windows/WSL paths documented as untested; (7) DAG update to 'completed' requires @Orchestrator scope. Artifacts: .task_temp/_global/deployment_status.json, .task_temp/_global/incident_report.md.",
+        "completed_at": "2026-05-24T00:46:13.150Z"
+      }
+    },
+    "cg_ses_1779583628990": {
+      "session_id": "cg_ses_1779583628990",
+      "created_at": "2026-05-24T00:47:08.992Z",
+      "task_description": "Commit FW-HARDEN-F6-TEST: 6 new regression tests for F6 fail-closed writes",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Commit FW-HARDEN-F6-TEST: 6 new regression tests for F6 fail-closed writes. 29/29 all tests pass. Agent role violation noted but DAG explicitly assigns @Coder-BE to this FW test writing task.",
+      "confirmed_at": "2026-05-24T00:47:14.151Z",
       "consumed_at": null,
       "audit": null
     }
@@ -2999,10 +3029,10 @@
     "cg_ses_1779538791269",
     "cg_ses_1779547819073",
     "cg_ses_1779548073175",
-    "cg_ses_1779581313698",
-    "cg_ses_1779581503396"
+    "cg_ses_1779581503396",
+    "cg_ses_1779583628990"
   ],
-  "last_updated": "2026-05-24T00:11:47.896Z",
+  "last_updated": "2026-05-24T00:47:14.151Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
