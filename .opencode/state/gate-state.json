@@ -2998,10 +2998,71 @@
       "created_at": "2026-05-24T00:47:08.992Z",
       "task_description": "Commit FW-HARDEN-F6-TEST: 6 new regression tests for F6 fail-closed writes",
       "enforcement_mode": "strict",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_failed_items": [],
       "plan_summary": "Commit FW-HARDEN-F6-TEST: 6 new regression tests for F6 fail-closed writes. 29/29 all tests pass. Agent role violation noted but DAG explicitly assigns @Coder-BE to this FW test writing task.",
       "confirmed_at": "2026-05-24T00:47:14.151Z",
+      "consumed_at": "2026-05-24T00:54:00.172Z",
+      "audit": {
+        "execution_summary": "FW-HARDEN-F6-TEST: Committed 6 new regression tests for F6 fail-closed writes. 29/29 tests pass. ESLint audit: 0 violations, clean state.",
+        "completed_at": "2026-05-24T00:54:00.172Z"
+      }
+    },
+    "cg_ses_1779583647932": {
+      "session_id": "cg_ses_1779583647932",
+      "created_at": "2026-05-24T00:47:27.934Z",
+      "task_description": "FW-GOVERN-AUDIT: Audit all 7 P0 framework fix tasks (FW-FIX-F1 through F7) and both P1 hardening tasks from Task.DAG.json v2.9.0. Verify each fix implementation, run framework-self-test.js, check bash syntax, and report PASS/FAIL per task.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/scripts/__tests__/compliance-gate.test.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779584066050": {
+      "session_id": "cg_ses_1779584066050",
+      "created_at": "2026-05-24T00:54:26.052Z",
+      "task_description": "Arbiter CAT4.1 role violation adjudication: @Guardian flagged @Coder-BE for writing to .opencode/scripts/__tests__/compliance-gate.test.js outside agent_write_scopes. Need to review project.config.json, Task.DAG.json, AGENTS.md, and the test file to decide between granting WAIVE.md or recommending permanent project.config.json update.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/scripts/__tests__/compliance-gate.test.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779585352596": {
+      "session_id": "cg_ses_1779585352596",
+      "created_at": "2026-05-24T01:15:52.614Z",
+      "task_description": "Update project.config.json: add .opencode/scripts/__tests__/** to @Coder-BE allowed write scope per Arbiter WV-2026-010",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Update project.config.json: add .opencode/scripts/__tests__/** to @Coder-BE allowed write scope. Permanent fix per Arbiter WV-2026-010 for CAT4.1 role violation. Gate check shows pre-existing CAT4.1 but Arbiter has granted waiver.",
+      "confirmed_at": "2026-05-24T01:15:57.788Z",
       "consumed_at": null,
       "audit": null
     }
@@ -3030,9 +3091,9 @@
     "cg_ses_1779547819073",
     "cg_ses_1779548073175",
     "cg_ses_1779581503396",
-    "cg_ses_1779583628990"
+    "cg_ses_1779585352596"
   ],
-  "last_updated": "2026-05-24T00:47:14.151Z",
+  "last_updated": "2026-05-24T01:15:57.788Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",

@@ -251,6 +251,7 @@
         "booking_system_refactor/booking-backend/test/**",
         "booking_system_refactor/booking-backend/prisma/**",
         "booking_system_refactor/booking-backend/*.{json,js,ts}",
+        ".opencode/scripts/__tests__/**",
         ".task_temp/**",
         "contract.yaml"
       ],
