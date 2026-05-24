@@ -151,7 +151,11 @@
         "queue",
         "rate limit"
       ],
-      "stacks": ["backend", "database", "cache"],
+      "stacks": [
+        "backend",
+        "database",
+        "cache"
+      ],
       "priority": 1
     },
     {
@@ -170,7 +174,9 @@
         "routing",
         "guard"
       ],
-      "stacks": ["frontend"],
+      "stacks": [
+        "frontend"
+      ],
       "priority": 1
     },
     {
@@ -185,7 +191,11 @@
         "module",
         "interface"
       ],
-      "stacks": ["backend", "frontend", "database"],
+      "stacks": [
+        "backend",
+        "frontend",
+        "database"
+      ],
       "priority": 1
     },
     {
@@ -199,7 +209,10 @@
         "eslint",
         "tdd"
       ],
-      "stacks": ["backend", "frontend"],
+      "stacks": [
+        "backend",
+        "frontend"
+      ],
       "priority": 2
     },
     {
@@ -215,25 +228,62 @@
         "release",
         "migrate"
       ],
-      "stacks": ["backend", "frontend"],
+      "stacks": [
+        "backend",
+        "frontend"
+      ],
       "priority": 2
     }
   ],
   "path_lint": {
     "$description": "Absolute path leakage detection configuration. Used by Check 19 in framework-self-test.js and path-canonical-lint.sh.",
-    "scan_roots": [".opencode/", "."],
-    "file_extensions": [".md", ".json", ".yaml", ".yml", ".sh", ".js", ".ts"],
+    "scan_roots": [
+      ".opencode/",
+      "."
+    ],
+    "file_extensions": [
+      ".md",
+      ".json",
+      ".yaml",
+      ".yml",
+      ".sh",
+      ".js",
+      ".ts"
+    ],
     "leak_patterns": [
-      { "name": "Linux home", "pattern": "/home/" },
-      { "name": "macOS home", "pattern": "/Users/" },
-      { "name": "root user", "pattern": "/root/" },
-      { "name": "Windows absolute", "pattern": "[A-Za-z]:\\\\" }
+      {
+        "name": "Linux home",
+        "pattern": "/home/"
+      },
+      {
+        "name": "macOS home",
+        "pattern": "/Users/"
+      },
+      {
+        "name": "root user",
+        "pattern": "/root/"
+      },
+      {
+        "name": "Windows absolute",
+        "pattern": "[A-Za-z]:\\\\"
+      }
     ],
     "whitelist": {
-      "approved_absolute_paths": ["/tmp/opencode", "/usr/bin/"],
-      "template_patterns": ["{\\w+}", "\\$\\{"],
-      "url_patterns": ["https?://", "ftp://"],
-      "skip_directories": [".opencode/state/"]
+      "approved_absolute_paths": [
+        "/tmp/opencode",
+        "/usr/bin/"
+      ],
+      "template_patterns": [
+        "{\\w+}",
+        "\\$\\{"
+      ],
+      "url_patterns": [
+        "https?://",
+        "ftp://"
+      ],
+      "skip_directories": [
+        ".opencode/state/"
+      ]
     },
     "suggestion_templates": {
       "project_root_match": "{project_root}/<relative> OR ./<relative>",
@@ -253,7 +303,10 @@
         "booking_system_refactor/booking-backend/*.{json,js,ts}",
         ".opencode/scripts/__tests__/**",
         ".task_temp/**",
-        "contract.yaml"
+        "contract.yaml",
+        ".opencode/scripts/**",
+        ".opencode/plugins/**",
+        ".opencode/tools/**"
       ],
       "denied": [
         "booking_system_refactor/booking-frontend/**",
@@ -306,7 +359,11 @@
       ]
     },
     "@Meta-Planner": {
-      "allowed": [".task_temp/**", "Task.DAG.json", "Project.graph"],
+      "allowed": [
+        ".task_temp/**",
+        "Task.DAG.json",
+        "Project.graph"
+      ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
@@ -317,7 +374,10 @@
       ]
     },
     "@Orchestrator": {
-      "allowed": [".task_temp/**", "Task.DAG.json"],
+      "allowed": [
+        ".task_temp/**",
+        "Task.DAG.json"
+      ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
@@ -327,7 +387,9 @@
       ]
     },
     "@Guardian": {
-      "allowed": [".task_temp/**"],
+      "allowed": [
+        ".task_temp/**"
+      ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
@@ -338,7 +400,11 @@
       ]
     },
     "@Arbiter": {
-      "allowed": [".task_temp/**", "WAIVE.md", "TECH_DEBT_REGISTRY.md"],
+      "allowed": [
+        ".task_temp/**",
+        "WAIVE.md",
+        "TECH_DEBT_REGISTRY.md"
+      ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# pre-execution-hook.sh — DAG Gate Pre-Execution Hook
+# pre-execution-hook.sh — Multi-Stage Pre-Execution Validation Hook
 # ==============================================================================
-# Purpose: Validates that a task exists in Task.DAG.json with status "pending"
-#          before allowing its execution. Enforces the P0 rule that all work
-#          items must first be planned by @Meta-Planner.
+# Stage 1 — Node-first DAG/Gate/Registry Validation (pre-execution-gate.js)
+# Stage 2 — Rule Registry Integrity Verification (rule-registry-verify.js)
+# Stage 3 — Git Hooks Installation & Verification (install-hooks.js)
 #
 # Usage:   pre-execution-hook.sh <task_id>
 #
-# Exit:    0 — task found with status "pending" (proceed)
-#          1 — task not found or status not "pending" (block)
+# Exit:    0 — all checks passed (proceed)
+#          1 — validation failure (block)
 # ==============================================================================
 
 set -euo pipefail
@@ -25,6 +25,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DAG_FILE="${PROJECT_ROOT}/Task.DAG.json"
+PRE_EXEC_GATE="${SCRIPT_DIR}/pre-execution-gate.js"
 
 # ── Resolve Enforcement Mode ─────────────────────────────────────────
 # Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
@@ -62,13 +63,45 @@ enf_exit() {
   fi
 }
 
-if [ ! -f "$DAG_FILE" ]; then
-  enf_exit "Task.DAG.json 在项目根目录不存在。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+# ══════════════════════════════════════════════════════════════════════
+# Stage 1: Node-First Pre-Execution Gate (pre-execution-gate.js)
+# ══════════════════════════════════════════════════════════════════════
+# Validates DAG coverage, gate lifecycle, role violations, rule registry,
+# and config validity — all via Node path APIs (no shell path manipulation).
+echo ""
+echo "── Stage 1: Pre-Execution Gate ────────────────────────────────────"
+
+if [ -f "$PRE_EXEC_GATE" ] && command -v node &>/dev/null; then
+  if node "$PRE_EXEC_GATE" "$TASK_ID" 2>&1; then
+    echo ""
+  else
+    GATE_EXIT=$?
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] Stage 1 pre-execution gate had warnings (non-blocking)."
+    else
+      echo "  ❌ [${ENF_MODE}] Stage 1 pre-execution gate FAILED — dispatch blocked."
+      exit $GATE_EXIT
+    fi
+  fi
+else
+  echo "  ℹ️  pre-execution-gate.js not found or node unavailable — skipping Stage 1."
+  echo "  ⚠️  Full DAG/gate/registry validation not performed."
 fi
 
-# Check if task exists with status "pending"
-# Use jq for robust JSON querying
-if command -v jq &> /dev/null; then
+# ── Legacy DAG Fallback Check ────────────────────────────────────────
+# If pre-execution-gate.js ran, DAG coverage is already validated.
+# This fallback only runs when pre-execution-gate.js is not available.
+if [ ! -f "$PRE_EXEC_GATE" ] || ! command -v node &>/dev/null; then
+  echo ""
+  echo "── Stage 1b: Legacy DAG Fallback Check ────────────────────────────"
+
+  if [ ! -f "$DAG_FILE" ]; then
+    enf_exit "Task.DAG.json 在项目根目录不存在。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+  fi
+
+  # Check if task exists with status "pending"
+  # Use jq for robust JSON querying
+  if command -v jq &> /dev/null; then
   TASK_EXISTS=$(jq --arg id "$TASK_ID" '.tasks[] | select(.id == $id)' "$DAG_FILE" 2>/dev/null || echo "")
   if [ -z "$TASK_EXISTS" ]; then
     enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
@@ -135,196 +168,55 @@ else
 fi
 
 echo "✅ [${ENF_MODE}] 工作项 '${TASK_ID}' 验证通过（状态: pending）。"
+fi  # End of legacy DAG fallback block
 
-# ─── Stage 2: Reconciliation Check ─────────────────────────────
-# After DAG validation passes, run cross-reference consistency check
-# among Task.DAG.json, gate-state.json, and machine.json.
-# Warnings are logged but do not block dispatch (--strict not used here).
-RECONCILE_SCRIPT="${SCRIPT_DIR}/reconciliation-check.sh"
-if [ -x "$RECONCILE_SCRIPT" ]; then
-  echo ""
-  echo "── Stage 2: State Reconciliation ─────────────────────────────"
-  # Run reconciliation in quiet mode for dispatch — only report if
-  # critical inconsistencies found. Use --quiet for dispatch context.
-  if "$RECONCILE_SCRIPT" --quiet 2>/dev/null; then
-    echo "  ✅ State reconciliation passed."
+# ─── Stage 2: Rule Registry Integrity Verification ─────────────
+# Runs rule-registry-verify.js to validate all registered rule/skill/
+# requirement/agent file digests against rule_registry.json.
+# Mismatches without semver bump (HIGH) block execution in strict/locked mode.
+echo ""
+echo "── Stage 2: Rule Registry Verification ─────────────────────────"
+
+RULE_VERIFY_SCRIPT="${SCRIPT_DIR}/rule-registry-verify.js"
+if [ -f "$RULE_VERIFY_SCRIPT" ] && command -v node &>/dev/null; then
+  if node "$RULE_VERIFY_SCRIPT" --strict 2>&1; then
+    echo "  ✅ All rule registry digests verified."
   else
-    RECONCILE_EXIT=$?
-    if [ "$RECONCILE_EXIT" -eq 1 ]; then
-      echo "  ⚠️  State reconciliation found inconsistencies (non-blocking for dispatch)."
-      echo "  ⚠️  Run '.opencode/scripts/reconciliation-check.sh' for details."
+    VERIFY_EXIT=$?
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] Rule registry verification found issues (non-blocking)."
     else
-      echo "  ⚠️  State reconciliation skipped (precondition error — may be fresh project)."
+      echo "  ❌ [${ENF_MODE}] Rule registry verification FAILED — dispatch blocked."
+      exit $VERIFY_EXIT
     fi
   fi
 else
-  echo "  ℹ️  State reconciliation script not found (optional)."
+  echo "  ℹ️  rule-registry-verify.js not found or node unavailable — skipping Stage 2."
 fi
 
-# ─── Stage 3: Semantic Version & Digest Validation ──────────────────
-# Validates that all registered rule/skill/requirement/agent files have
-# matching SHA-256 digests against rule_registry.json.
-#
-# Mismatch severity per verification_policy.mismatch_severity_rules:
-#   - digest_mismatch_version_bumped  → WARNING (intentional update)
-#   - digest_mismatch_version_same    → HIGH    (possible unauthorized mod)
-#   - file_missing_registered         → HIGH    (critical file gone)
-#
-# HIGH severities block execution in strict/locked enforcement mode.
+# ─── Stage 3: Git Hooks Installation & Verification ────────────
+# Ensures git config core.hooksPath is set to .opencode/hooks and
+# validates all required hook scripts exist and are executable.
+echo ""
+echo "── Stage 3: Git Hooks Verification ─────────────────────────────"
 
-REGISTRY_FILE="${PROJECT_ROOT}/.opencode/state/rule_registry.json"
-
-# ── Digest Check Helper Functions ────────────────────────────────
-
-# Compute SHA-256 digest of a file (raw hex, no prefix).
-# Falls back: sha256sum → openssl → python3
-compute_sha256() {
-  local file="$1"
-  if command -v sha256sum &>/dev/null; then
-    sha256sum "$file" 2>/dev/null | cut -d' ' -f1
-  elif command -v openssl &>/dev/null; then
-    openssl dgst -sha256 "$file" 2>/dev/null | awk '{print $NF}'
-  elif command -v python3 &>/dev/null; then
-    python3 -c "import hashlib; print(hashlib.sha256(open('$file','rb').read()).hexdigest())" 2>/dev/null
+INSTALL_HOOKS_SCRIPT="${SCRIPT_DIR}/install-hooks.js"
+if [ -f "$INSTALL_HOOKS_SCRIPT" ] && command -v node &>/dev/null; then
+  if node "$INSTALL_HOOKS_SCRIPT" --verify 2>&1; then
+    echo "  ✅ Git hooks verified."
   else
-    echo ""
-  fi
-}
-
-# Extract embedded semantic version from a file (mirrors compliance-gate.js extractSemver).
-# Patterns: 1) YAML frontmatter: `version: "1.2.3"`  2) Markdown header `# v1.2.3`
-#           3) Inline `v1.2.3`
-extract_semver() {
-  local file="$1"
-  [ ! -f "$file" ] && return 1
-  local ver=""
-  # Pattern 1: YAML frontmatter: `version: "1.2.3"` or `version: 1.2.3`
-  ver=$(head -30 "$file" 2>/dev/null | grep -oP '^version:\s*"?\K\d+\.\d+\.\d+' | head -1)
-  # Pattern 2: Markdown header: `## Version 1.2.3` or `# v1.2.3`
-  [ -z "$ver" ] && ver=$(head -30 "$file" 2>/dev/null | grep -oiP '#{1,3}\s*(?:Version|v)\s*\K\d+\.\d+\.\d+' | head -1)
-  # Pattern 3: Inline `v1.2.3`
-  [ -z "$ver" ] && ver=$(head -30 "$file" 2>/dev/null | grep -oP 'v\K\d+\.\d+\.\d+' | head -1)
-  echo "$ver"
-}
-
-# ── Main Digest Validation ───────────────────────────────────────
-
-run_digest_validation() {
-  if [ ! -f "$REGISTRY_FILE" ]; then
-    echo "  ℹ️  rule_registry.json not found — skipping digest validation."
-    return 0
-  fi
-
-  if ! command -v jq &>/dev/null; then
-    echo "  ⚠️  jq not available — skipping digest validation."
-    return 0
-  fi
-
-  # Check if we have any hash tool
-  local hash_test
-  hash_test=$(compute_sha256 "$REGISTRY_FILE" 2>/dev/null || echo "")
-  if [ -z "$hash_test" ]; then
-    echo "  ⚠️  No hash tool (sha256sum/openssl/python3) — skipping digest validation."
-    return 0
-  fi
-
-  echo ""
-  echo "── Stage 3: Semantic Version & Digest Validation ──────────────"
-
-  local entry_count=$(jq '.entries | length' "$REGISTRY_FILE" 2>/dev/null || echo "0")
-  local pass_count=0
-  local warn_count=0
-  local high_count=0
-  local missing_count=0
-  local error_entries=""
-
-  while IFS= read -r key; do
-    [ -z "$key" ] && continue
-
-    local filepath stored_hash stored_semver
-    filepath=$(jq -r --arg k "$key" '.entries[$k].path // ""' "$REGISTRY_FILE" 2>/dev/null || echo "")
-    stored_hash=$(jq -r --arg k "$key" '.entries[$k].sha256 // ""' "$REGISTRY_FILE" 2>/dev/null || echo "")
-    stored_semver=$(jq -r --arg k "$key" '.entries[$k].semver // ""' "$REGISTRY_FILE" 2>/dev/null || echo "")
-
-    [ -z "$filepath" ] || [ -z "$stored_hash" ] && continue
-
-    local full_path="${PROJECT_ROOT}/${filepath}"
-
-    # Check: file exists?
-    if [ ! -f "$full_path" ]; then
-      missing_count=$((missing_count + 1))
-      error_entries="${error_entries}\n  ❌ MISSING: ${filepath} (registered but file not found)"
-      continue
-    fi
-
-    # Compute actual digest
-    local actual_hash
-    actual_hash=$(compute_sha256 "$full_path")
-
-    if [ -z "$actual_hash" ]; then
-      high_count=$((high_count + 1))
-      error_entries="${error_entries}\n  ❌ READ_ERROR: ${filepath} (cannot compute digest)"
-      continue
-    fi
-
-    # Digest comparison
-    if [ "$actual_hash" = "$stored_hash" ]; then
-      # Match → PASS
-      pass_count=$((pass_count + 1))
-      continue
-    fi
-
-    # ═══ Digest Mismatch → determine severity ═══
-    local current_semver severity label
-    current_semver=$(extract_semver "$full_path")
-    severity="HIGH"
-    label="❌"
-
-    if [ -n "$current_semver" ] && [ "$current_semver" != "$stored_semver" ]; then
-      # Version bump detected → intentional update → WARNING
-      severity="WARNING"
-      label="⚠️ "
-      warn_count=$((warn_count + 1))
-    else
-      # No version change → possible unauthorized modification → HIGH
-      high_count=$((high_count + 1))
-    fi
-
-    local stored_short="${stored_hash:0:12}"
-    local actual_short="${actual_hash:0:12}"
-    local ver_info=""
-    [ "$severity" = "WARNING" ] && ver_info=" (version: ${stored_semver} → ${current_semver})"
-
-    error_entries="${error_entries}\n  ${label}${severity}: ${filepath} | stored: ${stored_short}... | actual: ${actual_short}...${ver_info}"
-  done < <(jq -r '.entries | keys[]' "$REGISTRY_FILE" 2>/dev/null)
-
-  # ── Summary ──────────────────────────────────────────────────
-  local total=$((pass_count + warn_count + high_count + missing_count))
-  echo "  Total: ${entry_count} | Checked: ${total} | PASS: ${pass_count} | WARN: ${warn_count} | HIGH: ${high_count} | MISSING: ${missing_count}"
-
-  if [ "$high_count" -gt 0 ] || [ "$missing_count" -gt 0 ]; then
-    echo -e "$error_entries"
-    echo ""
-    enf_exit "Digest validation FAILED: ${high_count} HIGH mismatch(es), ${missing_count} missing file(s). Run 'regenerate rule_registry.json' or investigate unauthorized modifications."
-  elif [ "$warn_count" -gt 0 ]; then
-    echo -e "$error_entries"
-    echo ""
+    HOOKS_EXIT=$?
     if [ "$ENF_MODE" = "advisory" ]; then
-      echo "  ⚠️  [ADVISORY] ${warn_count} version bump(s) detected (non-blocking)."
+      echo "  ⚠️  [ADVISORY] Git hooks verification failed (non-blocking)."
+      echo "  ⚠️  Run 'node .opencode/scripts/install-hooks.js' to repair."
     else
-      echo "  ⚠️  [${ENF_MODE}] ${warn_count} version bump(s) detected — verify compatibility."
+      echo "  ❌ [${ENF_MODE}] Git hooks verification FAILED — dispatch blocked."
+      echo "  ❌ Run 'node .opencode/scripts/install-hooks.js' to repair hooks."
+      exit $HOOKS_EXIT
     fi
-  else
-    local sample_hash=""
-    [ "$pass_count" -gt 0 ] && sample_hash=" | sample: ${actual_hash:0:12}..."
-    echo "  ✅ All ${pass_count} registered file digests verified${sample_hash}"
   fi
-
-  return 0
-}
-
-# Only run digest validation if enforcement is not advisory
-# (advisory mode still prints results, but non-blocking via enf_exit)
-run_digest_validation
+else
+  echo "  ℹ️  install-hooks.js not found or node unavailable — skipping Stage 3."
+fi
 
 exit 0

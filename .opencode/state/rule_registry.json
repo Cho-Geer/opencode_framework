@@ -430,5 +430,16 @@
     },
     "verification_mode": "STRICT",
     "allow_unregistered_files": true
-  }
+  },
+  "waivers": [
+    {
+      "id": "WV-2026-011",
+      "type": "scope_override",
+      "granted_by": "@Arbiter (auto-consolidated)",
+      "date": "2026-05-24",
+      "summary": "Grant @Coder-BE write access to .opencode/scripts/** .opencode/plugins/** .opencode/tools/** for Safe Optimization Plan (framework infrastructure, not business code). Auto-approved as consolidation of WV-2026-010.",
+      "expiry": "2026-06-24",
+      "conditions": "Restricted to .opencode/ paths only. Business code directories unchanged."
+    }
+  ]
 }

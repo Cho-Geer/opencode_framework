@@ -553,10 +553,21 @@ function wasRuleConsulted() {
 
 function runGateCheck(taskDescription) {
   // ── F5 Auto-purge stale sessions before creating new one ──
+  // ── P5-001: Also auto-drain stale sessions on every check ──
   const enforcementMode = getEnforcementMode();
   const purgeResult = purgeStaleSessions();
   if (purgeResult.purged > 0) {
     const msg = `Purged ${purgeResult.purged} stale session(s) (${purgeResult.remaining_total} remaining, ${purgeResult.remaining_active} active)`;
+    if (enforcementMode === "advisory") {
+      process.stderr.write(`[ADVISORY] ${msg}\n`);
+    } else {
+      process.stderr.write(`[compliance-gate] ${msg}\n`);
+    }
+  }
+  // Also drain any remaining stale sessions
+  const drainResult = drainStaleSessions(24, 48);
+  if (drainResult.purged > 0) {
+    const msg = `Drained ${drainResult.purged} stale session(s) (armed=${drainResult.drained_armed}, checked=${drainResult.drained_checked})`;
     if (enforcementMode === "advisory") {
       process.stderr.write(`[ADVISORY] ${msg}\n`);
     } else {
@@ -670,7 +681,7 @@ function runGateCheck(taskDescription) {
   };
 }
 
-function runGateConfirm(sessionId, planSummary) {
+function runGateConfirm(sessionId, planSummary, agent, taskId) {
   const store = loadStore();
   const session = sessionId ? store.sessions[sessionId] : null;
   if (!session) {
@@ -711,9 +722,27 @@ function runGateConfirm(sessionId, planSummary) {
   session.plan_summary = planSummary.trim();
   session.confirmed_at = new Date().toISOString();
   session.last_check_failed_items = [];
+  // ── P5-001: Lifecycle fields ──
+  session.task_id = taskId || session.task_id || null;
+  session.agent = agent || session.agent || "unknown";
+  session.worktree = process.cwd();
+  // expires_at: 24 hours from confirmation
+  session.expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  // Remove from active_sessions any checked sessions that were previously added
+  // Only armed sessions count as active
+  store.active_sessions = store.active_sessions.filter((sid) => {
+    const s = store.sessions[sid];
+    return s && s.gate_status === "armed" && !s.consumed_at;
+  });
   // Add to active_sessions (dedup)
   if (!store.active_sessions.includes(sessionId)) {
     store.active_sessions.push(sessionId);
+  }
+  // Ensure no checked sessions are in active_sessions
+  for (const [sid, s] of Object.entries(store.sessions)) {
+    if (s.gate_status === "checked" && store.active_sessions.includes(sid)) {
+      store.active_sessions = store.active_sessions.filter((a) => a !== sid);
+    }
   }
   store.last_updated = new Date().toISOString();
   saveStore(store);
@@ -721,6 +750,7 @@ function runGateConfirm(sessionId, planSummary) {
     status: "armed",
     session_id: sessionId,
     confirmed_at: session.confirmed_at,
+    expires_at: session.expires_at,
     plan_summary: planSummary.trim().substring(0, 200),
   };
 }
@@ -810,6 +840,25 @@ function runGateComplete(sessionId, executionSummary) {
     execution_summary: (executionSummary || "").substring(0, 1000),
     completed_at: now,
   };
+  // ── P5-001: Append to audit history ──
+  if (!Array.isArray(store.audit_history)) {
+    store.audit_history = [];
+  }
+  store.audit_history.push({
+    session_id: sessionId,
+    task_description: session.task_description,
+    plan_summary: session.plan_summary,
+    agent: session.agent,
+    task_id: session.task_id,
+    confirmed_at: session.confirmed_at,
+    consumed_at: now,
+    execution_summary: (executionSummary || "").substring(0, 200),
+    gate_status: "completed",
+  });
+  // Keep only last 500 audit entries
+  if (store.audit_history.length > 500) {
+    store.audit_history = store.audit_history.slice(-500);
+  }
   // Remove from active_sessions
   store.active_sessions = store.active_sessions.filter(
     (sid) => sid !== sessionId,
@@ -825,6 +874,7 @@ function runGateComplete(sessionId, executionSummary) {
     confirmed_at: session.confirmed_at,
     consumed_at: session.consumed_at,
     execution_summary: session.audit.execution_summary,
+    audit_history_count: store.audit_history.length,
   };
   return { status: "completed", audit };
 }
@@ -910,8 +960,113 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {},
       },
     },
+    {
+      name: "compliance_gate_drain_stale",
+      description:
+        "Drain all stale compliance gate sessions. Stale thresholds: armed > 24h since confirmed_at, checked > 48h since created_at (never confirmed). Drained sessions are moved to gate-state.json.drained_sessions to preserve audit trail. Returns drain report with purged count, drained session IDs, and remaining state.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          threshold_hours_armed: {
+            type: "number",
+            description: "Override stale threshold for armed sessions (default: 24h)",
+          },
+          threshold_hours_checked: {
+            type: "number",
+            description: "Override stale threshold for checked sessions (default: 48h)",
+          },
+        },
+      },
+    },
   ],
 }));
+
+/**
+ * Drain stale sessions with configurable thresholds.
+ * Extends purgeStaleSessions() with override thresholds and detailed reporting.
+ * @param {number} armedHours - Hours after which armed sessions are stale (default 24)
+ * @param {number} checkedHours - Hours after which checked sessions are stale (default 48)
+ * @returns {{ purged: number, drained_sessions: string[], remaining_active: number, drained_armed: number, drained_checked: number }}
+ */
+function drainStaleSessions(armedHours, checkedHours) {
+  const ARMED_STALE_MS = (armedHours || 24) * 60 * 60 * 1000;
+  const CHECKED_STALE_MS = (checkedHours || 48) * 60 * 60 * 1000;
+
+  const store = loadStore();
+  const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(/\.json$/, ".drained_sessions.json");
+  const drainedStore = readJson(DRAINED_STORE_FILE) || { formatVersion: "2.0", drained_sessions: {}, last_drained: null };
+
+  const nowTs = Date.now();
+  let purged = 0;
+  let drainedArmed = 0;
+  let drainedChecked = 0;
+  const drainedIds = [];
+  const sessionIds = Object.keys(store.sessions);
+
+  for (const sid of sessionIds) {
+    const ses = store.sessions[sid];
+    if (!ses) continue;
+
+    let shouldDrain = false;
+    let reason = "";
+    let drainType = "";
+
+    // Armed but never consumed > threshold
+    if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
+      const age = nowTs - new Date(ses.confirmed_at).getTime();
+      if (age > ARMED_STALE_MS) {
+        shouldDrain = true;
+        drainType = "STALE_ARMED";
+        reason = `armed for ${Math.floor(age / 3600000)}h without completion (threshold: ${armedHours}h)`;
+      }
+    }
+
+    // Checked but never confirmed > threshold
+    if (ses.gate_status === "checked" && !ses.confirmed_at) {
+      const age = nowTs - new Date(ses.created_at).getTime();
+      if (age > CHECKED_STALE_MS) {
+        shouldDrain = true;
+        drainType = "STALE_CHECKED";
+        reason = `checked for ${Math.floor(age / 3600000)}h without confirmation (threshold: ${checkedHours}h)`;
+      }
+    }
+
+    if (shouldDrain) {
+      drainedStore.drained_sessions[sid] = {
+        ...ses,
+        drained_at: new Date().toISOString(),
+        drain_reason: reason,
+        drain_type: drainType,
+        drained_by: "compliance_gate_drain_stale",
+      };
+      delete store.sessions[sid];
+      store.active_sessions = store.active_sessions.filter((a) => a !== sid);
+      purged++;
+      drainedIds.push(sid);
+      if (drainType === "STALE_ARMED") drainedArmed++;
+      if (drainType === "STALE_CHECKED") drainedChecked++;
+    }
+  }
+
+  if (purged > 0) {
+    drainedStore.last_drained = new Date().toISOString();
+    const totalDrained = Object.keys(drainedStore.drained_sessions).length;
+    drainedStore.total_drained = totalDrained;
+    fs.mkdirSync(path.dirname(DRAINED_STORE_FILE), { recursive: true });
+    writeJson(DRAINED_STORE_FILE, drainedStore);
+    store.last_updated = new Date().toISOString();
+    saveStore(store);
+  }
+
+  return {
+    purged,
+    drained_sessions: drainedIds,
+    drained_armed: drainedArmed,
+    drained_checked: drainedChecked,
+    remaining_active: store.active_sessions.length,
+    remaining_total: Object.keys(store.sessions).length,
+  };
+}
 
 // 处理工具调用
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -931,7 +1086,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         "Missing required parameters: session_id and plan_summary",
       );
     }
-    const result = runGateConfirm(args.session_id, args.plan_summary);
+    const result = runGateConfirm(
+      args.session_id,
+      args.plan_summary,
+      args.agent,
+      args.task_id,
+    );
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       isError: result.status !== "armed",
@@ -953,6 +1113,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === "compliance_gate_purge") {
     const result = purgeStaleSessions();
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      isError: false,
+    };
+  }
+
+  if (name === "compliance_gate_drain_stale") {
+    const armedHours = args?.threshold_hours_armed || 24;
+    const checkedHours = args?.threshold_hours_checked || 48;
+    const result = drainStaleSessions(armedHours, checkedHours);
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       isError: false,

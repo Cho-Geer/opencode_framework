@@ -40,6 +40,15 @@ const OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
 // ──────────────────────────────────────────────
 // 1. Parse CLI arguments
 // ──────────────────────────────────────────────
+// Support: node dispatch-subagent.js <agent_type> "<task_description>" [--task-id <id>]
+let taskId = null;
+const taskIdFlagIdx = process.argv.indexOf("--task-id");
+if (taskIdFlagIdx !== -1 && taskIdFlagIdx + 1 < process.argv.length) {
+  taskId = process.argv[taskIdFlagIdx + 1];
+  // Remove --task-id and its value from argv for clean processing
+  process.argv.splice(taskIdFlagIdx, 2);
+}
+
 const agentType = process.argv[2];
 const taskDescription = process.argv[3] || "";
 
@@ -56,6 +65,37 @@ if (!agentType) {
 if (!taskDescription) {
   console.error("ERROR: task_description is required");
   process.exit(1);
+}
+
+// ──────────────────────────────────────────────
+// 1.5 Pre-Execution Gate Check (if --task-id provided)
+// ──────────────────────────────────────────────
+if (taskId) {
+  const gateScript = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "pre-execution-gate.js",
+  );
+  if (fs.existsSync(gateScript)) {
+    console.error(`[dispatch] Running pre-execution-gate.js for task '${taskId}'...`);
+    try {
+      const { execSync } = require("child_process");
+      execSync(`"${process.execPath}" "${gateScript}" "${taskId}"`, {
+        stdio: "inherit",
+        timeout: 15000,
+        env: { ...process.env, OPENCODE_ROOT },
+      });
+      console.error(`[dispatch] Pre-execution gate PASSED for task '${taskId}'.`);
+    } catch (e) {
+      console.error(`[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`);
+      console.error(`[dispatch] Exit code: ${e.status}, Signal: ${e.signal || "none"}`);
+      process.exit(e.status || 1);
+    }
+  } else {
+    console.error(`[dispatch] ⚠️  pre-execution-gate.js not found — skipping gate check.`);
+    console.error(`[dispatch] ⚠️  Install with: node .opencode/scripts/install-hooks.js`);
+  }
 }
 
 // ──────────────────────────────────────────────

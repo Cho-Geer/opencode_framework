@@ -4,10 +4,10 @@
 /**
  * framework-self-test.js — OpenCode Framework Binding Force Self-Test
  * ===================================================================
- * Validates 22 critical framework integrity checks.
+ * Validates 26 critical framework integrity checks.
  * Usage: node .opencode/scripts/framework-self-test.js
  *
- * Exit code: 0 if ALL 22 checks pass, 1 if any fail.
+ * Exit code: 0 if ALL 26 checks pass, 1 if any fail.
  */
 
 const fs = require("fs");
@@ -662,7 +662,25 @@ function checkAbsolutePathLeakage() {
     { pattern: /\/root\//, name: "root" },
     { pattern: /[A-Za-z]:\\/, name: "Windows absolute" },
   ];
-  const whitelist = ["/tmp/opencode", "/usr/bin/", "/home/runner/work/", "/home/", "/Users/", "/root/", "C:\\", "[A-Za-z]:\\", "RegExp", "pattern:", "\\K", "\\d", "\\s", "\\n", "\\t", "\\r", "\\0"];
+  const whitelist = [
+    "/tmp/opencode",
+    "/usr/bin/",
+    "/home/runner/work/",
+    "/home/",
+    "/Users/",
+    "/root/",
+    "C:\\",
+    "[A-Za-z]:\\",
+    "RegExp",
+    "pattern:",
+    "\\K",
+    "\\d",
+    "\\s",
+    "\\n",
+    "\\t",
+    "\\r",
+    "\\0",
+  ];
   const violations = [];
 
   function scanDir(dir) {
@@ -673,17 +691,26 @@ function checkAbsolutePathLeakage() {
       const full = dir + "/" + entry.name;
       if (entry.isDirectory()) {
         scanDir(full);
-      } else if (entry.isFile() && /\.(md|json|yaml|yml|sh|js|ts)$/i.test(entry.name)) {
+      } else if (
+        entry.isFile() &&
+        /\.(md|json|yaml|yml|sh|js|ts)$/i.test(entry.name)
+      ) {
         const lines = fs.readFileSync(full, "utf8").split("\n");
         for (let i = 0; i < lines.length; i++) {
           // Skip lines that are regex patterns or escape sequences (false positives)
           const line = lines[i];
-          if (line.includes("\\") || line.includes("RegExp") || line.includes("grep -oP") || line.includes("pattern:")) continue;
+          if (
+            line.includes("\\") ||
+            line.includes("RegExp") ||
+            line.includes("grep -oP") ||
+            line.includes("pattern:")
+          )
+            continue;
           for (const lp of leakPatterns) {
             if (lp.pattern.test(line)) {
-              const isWhitelisted = whitelist.some(w => line.includes(w));
+              const isWhitelisted = whitelist.some((w) => line.includes(w));
               if (!isWhitelisted) {
-                violations.push(full + ":" + (i+1) + " " + lp.name);
+                violations.push(full + ":" + (i + 1) + " " + lp.name);
               }
             }
           }
@@ -697,7 +724,11 @@ function checkAbsolutePathLeakage() {
   if (violations.length === 0) {
     return check(19, true, "No absolute path leakage in framework files");
   }
-  return check(19, false, violations.length + " violation(s):\n" + violations.slice(0, 5).join("\n"));
+  return check(
+    19,
+    false,
+    violations.length + " violation(s):\n" + violations.slice(0, 5).join("\n"),
+  );
 }
 
 // Check 20: Reconciliation infrastructure (reconciliation-check.sh)
@@ -807,7 +838,7 @@ function checkReconciliationInfra() {
         stderr.includes("No such file or directory") ||
         stderr.includes("cannot open") ||
         stderr.includes("ENOENT") ||
-        (innerErr.status === 127);
+        innerErr.status === 127;
 
       if (isENOENT) {
         // Attempt 2: absolute path as fallback (e.g., WSL paths)
@@ -821,7 +852,7 @@ function checkReconciliationInfra() {
           const absIsENOENT =
             absStderr.includes("No such file or directory") ||
             absStderr.includes("cannot open") ||
-            (absErr.status === 127);
+            absErr.status === 127;
 
           if (absIsENOENT) {
             return check(
@@ -1035,12 +1066,12 @@ function checkOpenCodeJsonAdapter() {
   const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
   const expectedMap = {
     "Meta-Planner": "meta-planner.md",
-    "Orchestrator": "orchestrator.md",
-    "Architect": "architect.md",
+    Orchestrator: "orchestrator.md",
+    Architect: "architect.md",
     "Coder-BE": "coder-be.md",
     "Coder-FE": "coder-fe.md",
-    "Guardian": "guardian.md",
-    "Arbiter": "arbiter.md",
+    Guardian: "guardian.md",
+    Arbiter: "arbiter.md",
     "CI-CD-Agent": "ci-cd-agent.md",
   };
 
@@ -1106,6 +1137,301 @@ function checkOpenCodeJsonAdapter() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 23: pre-execution-gate.js exists, valid JS, wired into hook
+// ═══════════════════════════════════════════════════════════════
+function checkPreExecGate() {
+  const gatePath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "pre-execution-gate.js",
+  );
+
+  // 23a: File exists
+  if (!fileExists(gatePath)) {
+    return check(23, false, "pre-execution-gate.js not found");
+  }
+
+  // 23b: Is valid JavaScript (syntax check)
+  try {
+    const { execSync } = require("child_process");
+    execSync(`"${process.execPath}" -c "${gatePath}"`, {
+      stdio: "pipe",
+      timeout: 5000,
+    });
+  } catch (e) {
+    return check(
+      23,
+      false,
+      `pre-execution-gate.js has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
+    );
+  }
+
+  // 23c: Is executable
+  try {
+    fs.accessSync(gatePath, fs.constants.X_OK);
+  } catch {
+    return check(
+      23,
+      false,
+      "pre-execution-gate.js is not executable (chmod +x)",
+    );
+  }
+
+  // 23d: Wired into pre-execution-hook.sh
+  const preExecHookPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "pre-execution-hook.sh",
+  );
+  const hookContent = readFile(preExecHookPath);
+  if (!hookContent) {
+    return check(
+      23,
+      false,
+      "pre-execution-hook.sh not found (cannot verify wiring)",
+    );
+  }
+
+  const wiredIntoHook =
+    hookContent.includes("pre-execution-gate.js") &&
+    hookContent.includes("Stage 1");
+  if (!wiredIntoHook) {
+    return check(
+      23,
+      false,
+      "pre-execution-gate.js not wired into pre-execution-hook.sh (missing Stage 1 reference)",
+    );
+  }
+
+  // 23e: Key functions exist in script (structural validation)
+  const gateContent = readFile(gatePath);
+  if (!gateContent) {
+    return check(23, false, "pre-execution-gate.js cannot be read");
+  }
+
+  const requiredFunctions = [
+    "checkDagCoverage",
+    "checkGateLifecycle",
+    "checkRoleViolations",
+    "checkRuleRegistry",
+    "checkConfigValidity",
+    "getEnforcementMode",
+  ];
+  const missingFuncs = requiredFunctions.filter(
+    (f) => !gateContent.includes(`function ${f}`),
+  );
+  if (missingFuncs.length > 0) {
+    return check(
+      23,
+      false,
+      `pre-execution-gate.js missing required functions: ${missingFuncs.join(", ")}`,
+    );
+  }
+
+  return check(
+    23,
+    true,
+    "pre-execution-gate.js exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 5 checks implemented",
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 24: framework-doctor.js exists, is valid JS
+// ═══════════════════════════════════════════════════════════════
+function checkFrameworkDoctorExists() {
+  const doctorPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "framework-doctor.js",
+  );
+
+  // 24a: File exists
+  if (!fileExists(doctorPath)) {
+    return check(24, false, "framework-doctor.js not found");
+  }
+
+  // 24b: Is valid JavaScript (syntax check)
+  try {
+    const { execSync } = require("child_process");
+    execSync(`"${process.execPath}" -c "${doctorPath}"`, {
+      stdio: "pipe",
+      timeout: 5000,
+    });
+  } catch (e) {
+    return check(
+      24,
+      false,
+      `framework-doctor.js has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
+    );
+  }
+
+  // 24c: Is executable
+  try {
+    fs.accessSync(doctorPath, fs.constants.X_OK);
+  } catch {
+    return check(24, false, "framework-doctor.js is not executable (chmod +x)");
+  }
+
+  return check(24, true, "framework-doctor.js exists, valid JS, executable");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 25: doctor --json produces valid JSON with 10 checks
+// ═══════════════════════════════════════════════════════════════
+function checkDoctorJsonOutput() {
+  const doctorPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "framework-doctor.js",
+  );
+
+  if (!fileExists(doctorPath)) {
+    return check(
+      25,
+      false,
+      "framework-doctor.js not found (cannot test --json output)",
+    );
+  }
+
+  try {
+    const { execSync } = require("child_process");
+    let output;
+    try {
+      output = execSync(`node "${doctorPath}" --json`, {
+        cwd: OPENCODE_ROOT,
+        stdio: "pipe",
+        timeout: 30000,
+        encoding: "utf-8",
+      });
+    } catch (e) {
+      // Doctor may exit non-zero but still produce valid JSON
+      output = e.stdout || "";
+    }
+
+    if (!output || output.trim().length === 0) {
+      return check(25, false, "--json flag produced empty output");
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(output);
+    } catch (e) {
+      return check(
+        25,
+        false,
+        `--json output is not valid JSON: ${e.message}. Output starts: ${output.substring(0, 100)}`,
+      );
+    }
+
+    // Validate structure
+    if (!parsed.version) {
+      return check(25, false, "JSON missing 'version' field");
+    }
+
+    if (!parsed.checks || !Array.isArray(parsed.checks)) {
+      return check(25, false, "JSON missing 'checks' array");
+    }
+
+    if (parsed.checks.length !== 10) {
+      return check(
+        25,
+        false,
+        `Expected 10 checks but found ${parsed.checks.length}`,
+      );
+    }
+
+    // Each check must have id, name, status
+    const missingFields = parsed.checks.filter(
+      (c) => !c.id || !c.name || !c.status,
+    );
+    if (missingFields.length > 0) {
+      return check(
+        25,
+        false,
+        `${missingFields.length} checks missing required fields (id, name, status)`,
+      );
+    }
+
+    if (!parsed.summary) {
+      return check(25, false, "JSON missing 'summary' field");
+    }
+
+    const passedCount = parsed.checks.filter((c) => c.status === "PASS").length;
+    const failedCount = parsed.checks.filter((c) => c.status === "FAIL").length;
+
+    return check(
+      25,
+      true,
+      `Valid JSON: ${parsed.checks.length} checks (${passedCount} PASS, ${failedCount} FAIL), version=${parsed.version}`,
+    );
+  } catch (e) {
+    return check(25, false, `Unexpected error: ${e.message}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 26: doctor --strict exits 0 on clean project
+// ═══════════════════════════════════════════════════════════════
+function checkDoctorStrict() {
+  const doctorPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "framework-doctor.js",
+  );
+
+  if (!fileExists(doctorPath)) {
+    return check(
+      26,
+      false,
+      "framework-doctor.js not found (cannot test --strict)",
+    );
+  }
+
+  try {
+    const { execSync } = require("child_process");
+    let output;
+    let exitCode = 0;
+    try {
+      output = execSync(`node "${doctorPath}" --strict`, {
+        cwd: OPENCODE_ROOT,
+        stdio: "pipe",
+        timeout: 30000,
+        encoding: "utf-8",
+      });
+      exitCode = 0;
+    } catch (e) {
+      exitCode = e.status || 1;
+      output = e.stdout || "";
+    }
+
+    if (exitCode !== 0) {
+      // Extract which checks failed
+      const failLines = (output || "")
+        .split("\n")
+        .filter((l) => l.includes("[FAIL]"));
+      return check(
+        26,
+        false,
+        `--strict exited ${exitCode}. ${failLines.length} check(s) failing: ${failLines.join("; ").substring(0, 200)}`,
+      );
+    }
+
+    return check(
+      26,
+      true,
+      "--strict exits 0 (all checks pass on current project)",
+    );
+  } catch (e) {
+    return check(26, false, `Unexpected error: ${e.message}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main execution
 // ═══════════════════════════════════════════════════════════════
 console.log("═══════════════════════════════════════════════════════════════");
@@ -1135,6 +1461,10 @@ checkAbsolutePathLeakage();
 checkReconciliationInfra();
 checkGitHooksPath();
 checkOpenCodeJsonAdapter();
+checkPreExecGate();
+checkFrameworkDoctorExists();
+checkDoctorJsonOutput();
+checkDoctorStrict();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
