@@ -1,0 +1,110 @@
+# api-only.yaml — Template for API-only projects (no frontend)
+# Copy to .workbuddy/project.yaml and fill in the values for your project.
+
+project:
+  name: ""
+  type: "api-only"
+  description: ""
+
+layers:
+  frontend:
+    enabled: false
+    source_paths: []
+    test_paths: []
+
+  backend:
+    enabled: true
+    source_paths: []
+    test_paths: []
+    framework: ""
+    language: ""
+    orm: ""
+    auth_mechanism: ""
+    build_command: ""
+    test_command: ""
+    lint_command: ""
+    typecheck_command: ""
+    api_docs_format: ""
+
+  database:
+    enabled: true
+    engine: ""
+    schema_path: ""
+    migration_tool: ""
+    migration_command: ""
+    seed_command: ""
+    schema_validate_command: ""
+
+quality:
+  test_coverage:
+    overall_min: 80
+    core_module_min: 95
+  lint:
+    severity_threshold: "error"
+  typecheck:
+    strict: true
+  performance:
+    backend_p95_ms: 300
+    backend_memory_stable: true
+    database_query_ms: 50
+    database_index_coverage_min: 95
+
+verification:
+  classes:
+    - name: structure
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "api_route_structure_validation", tool: "", threshold: "" }
+      database: { method: "schema_structure_validation", tool: "", threshold: "" }
+
+    - name: design
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "api_design_compliance", tool: "", threshold: "" }
+      database: { method: "db_design_compliance", tool: "", threshold: "" }
+
+    - name: io
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "request_response_contract", tool: "", threshold: "" }
+      database: { method: "crud_operations_validation", tool: "", threshold: "" }
+
+    - name: error
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "error_code_propagation", tool: "", threshold: "" }
+      database: { method: "constraint_violation_testing", tool: "", threshold: "" }
+
+    - name: threshold
+      frontend: { method: "", tool: "", thresholds: {} }
+      backend: { method: "api_performance_testing", tool: "", thresholds: { p95_ms: 300, memory_stable: true } }
+      database: { method: "query_performance_testing", tool: "", thresholds: { query_ms: 50, index_coverage: 95 } }
+
+agents:
+  # NOTE: Tool scoping is handled natively via tools/disallowedTools frontmatter
+  # in each agent .md file. workbuddy_type and write_scopes are no longer used here.
+  architect:
+    skills: ["contract-driven-dev", "context7-first"]
+  coder:
+    skills: ["tdd-enforcer", "code-quality-gate", "context7-first", "verification-suite"]
+  guardian:
+    skills: ["verification-suite", "compliance-gate", "code-quality-gate"]
+  arbiter:
+    skills: ["compliance-gate"]
+  devops:
+    skills: ["ci-cd-guardrails", "context7-first"]
+
+enforcement:
+  mode: "strict"
+  compliance_gate_required: true
+  tdd_enforcement: true
+  write_audit: true
+
+contracts:
+  files: []
+  hash_algorithm: "sha256"
+
+ci_cd:
+  platform: ""
+  container_runtime: ""
+  orchestration: ""
+
+context7:
+  libraries: []
+  queries: {}

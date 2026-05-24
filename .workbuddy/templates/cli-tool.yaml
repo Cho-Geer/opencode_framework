@@ -1,0 +1,108 @@
+# cli-tool.yaml — Template for CLI tool projects (no frontend, no backend server, no database)
+# Copy to .workbuddy/project.yaml and fill in the values for your project.
+
+project:
+  name: ""
+  type: "cli"
+  description: ""
+
+layers:
+  frontend:
+    enabled: false
+    source_paths: []
+    test_paths: []
+
+  backend:
+    enabled: false
+    source_paths: []
+    test_paths: []
+
+  database:
+    enabled: false
+    engine: ""
+    schema_path: ""
+    migration_tool: ""
+    migration_command: ""
+    seed_command: ""
+
+# CLI tools have their own "backend" equivalent in the source code
+# Override the backend section if your CLI has a library core:
+# layers:
+#   backend:
+#     enabled: true
+#     source_paths: ["src/"]
+#     test_paths: ["tests/"]
+#     language: "TypeScript"
+#     ...
+
+quality:
+  test_coverage:
+    overall_min: 80
+    core_module_min: 95
+  lint:
+    severity_threshold: "error"
+  typecheck:
+    strict: true
+  performance:
+    backend_p95_ms: 1000
+    backend_memory_stable: true
+
+verification:
+  classes:
+    - name: structure
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "cli_command_structure_validation", tool: "", threshold: "" }
+      database: { method: "", tool: "", threshold: "" }
+
+    - name: design
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "cli_design_compliance", tool: "", threshold: "" }
+      database: { method: "", tool: "", threshold: "" }
+
+    - name: io
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "cli_input_output_validation", tool: "", threshold: "" }
+      database: { method: "", tool: "", threshold: "" }
+
+    - name: error
+      frontend: { method: "", tool: "", threshold: "" }
+      backend: { method: "cli_error_handling_validation", tool: "", threshold: "" }
+      database: { method: "", tool: "", threshold: "" }
+
+    - name: threshold
+      frontend: { method: "", tool: "", thresholds: {} }
+      backend: { method: "cli_performance_testing", tool: "", thresholds: { startup_ms: 500, memory_stable: true } }
+      database: { method: "", tool: "", thresholds: {} }
+
+agents:
+  # NOTE: Tool scoping is handled natively via tools/disallowedTools frontmatter
+  # in each agent .md file. workbuddy_type and write_scopes are no longer used here.
+  architect:
+    skills: ["contract-driven-dev", "context7-first"]
+  coder:
+    skills: ["tdd-enforcer", "code-quality-gate", "context7-first", "verification-suite"]
+  guardian:
+    skills: ["verification-suite", "compliance-gate", "code-quality-gate"]
+  arbiter:
+    skills: ["compliance-gate"]
+  devops:
+    skills: ["ci-cd-guardrails", "context7-first"]
+
+enforcement:
+  mode: "strict"
+  compliance_gate_required: true
+  tdd_enforcement: true
+  write_audit: true
+
+contracts:
+  files: []
+  hash_algorithm: "sha256"
+
+ci_cd:
+  platform: ""
+  container_runtime: ""
+  orchestration: ""
+
+context7:
+  libraries: []
+  queries: {}

@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are a TDD enforcement hook for the WorkBuddy Development Framework. Evaluate whether this file write complies with framework rules.\n\n## Context\nTool: $ARGUMENTS.tool_name\nFile: $ARGUMENTS.tool_input.file_path\n\n## Rules to Enforce\n\n### 1. TDD Iron Law (P0 - BLOCKING)\nIf the file being written is a SOURCE file (not a test file), verify that either:\n- A corresponding test file already exists, OR\n- A test file is being created in the same operation, OR\n- The file is NOT in any source_paths defined in .workbuddy/project.yaml\n\nDetermine if the file is a test file by checking if the path matches common test patterns (*.spec.*, *.test.*, *_test.*, __tests__/*, tests/*).\nIf the file IS a source file and enforcement.tdd_enforcement is true in project.yaml, and no corresponding test exists, this is a TDD violation.\n\n### 2. Guardian Write Scope (P0 - BLOCKING)\nIf the current agent is the 'guardian' agent, it MUST NOT write to source code files.\nGuardian can only write to:\n- .workbuddy/memory/ files\n- Test-related verification artifacts\n\n### 3. Compliance Gate (P0 - BLOCKING)\nIf enforcement.compliance_gate_required is true in project.yaml and the enforcement mode is 'strict' or 'locked', verify that a compliance gate session exists and is not in 'failed' state.\n\n## Response Format\nRespond with JSON:\n- {\"ok\": true} if all rules pass or if the file is exempt (not in source_paths, or project.yaml has enforcement disabled)\n- {\"ok\": false, \"reason\": \"TDD violation: no test exists for source file <path>. Write a failing test first (RED phase).\"}\n- {\"ok\": false, \"reason\": \"Guardian agent cannot write to source code files. Write scope restricted to .workbuddy/memory/\"}\n- {\"ok\": false, \"reason\": \"Compliance gate has not been checked. Run /compliance-gate check before proceeding.\"}\n\nIf you cannot determine the answer (e.g., project.yaml is not readable), respond {\"ok\": true} to avoid false blocks.",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, sys, os, datetime\n\ntry:\n    data = json.loads(sys.stdin.read())\n    tool_name = data.get('tool_name', 'unknown')\n    file_path = data.get('tool_input', {}).get('file_path', 'unknown')\n    session_id = data.get('session_id', 'unknown')[:8]\n    ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')\n\n    log_dir = os.path.join(os.environ.get('CODEBUDDY_PROJECT_DIR', '.'), '.workbuddy', 'memory')\n    log_file = os.path.join(log_dir, 'invocation-log.md')\n    os.makedirs(log_dir, exist_ok=True)\n\n    entry = f'| {ts} | hook:auto | write-audit | log | {file_path} | logged |\\n'\n\n    if os.path.exists(log_file):\n        with open(log_file, 'a', encoding='utf-8') as f:\n            f.write(entry)\n    else:\n        with open(log_file, 'w', encoding='utf-8') as f:\n            f.write('# Invocation Log\\n\\n_Audit trail of skill and agent invocations. Replaces write_audit_state in machine.json._\\n\\n---\\n\\n| Timestamp | Agent | Skill | Action | Target | Result |\\n|-----------|-------|-------|--------|--------|--------|\\n')\n            f.write(entry)\nexcept Exception as e:\n    pass\n\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are a compliance gate enforcement hook for the WorkBuddy Development Framework. Before stopping, verify that all compliance gates have been properly completed.\n\n## Context\n$ARGUMENTS\n\n## Rules to Enforce\n\n### Compliance Gate Completion (P0 - BLOCKING)\n1. Check if .workbuddy/memory/gate-sessions.md exists and has any active sessions (phase is 'check' or 'confirm' but not 'complete')\n2. If there are active sessions with phase 'check' or 'confirm': this means compliance gate was started but never completed\n3. In enforcement mode 'strict' or 'locked', this is a BLOCKING violation\n4. In enforcement mode 'advisory', this is a warning only\n\n### TDD Cycle Completion (P1 - WARNING)\n1. Check if any TDD task (test-*, impl-*, refactor-*) is in 'in_progress' state\n2. If so, warn that the TDD cycle is incomplete\n\n## Response Format\nRespond with JSON:\n- {\"ok\": true} if all compliance gates are completed or no active sessions exist\n- {\"ok\": false, \"reason\": \"Compliance gate incomplete. Active session(s) found in gate-sessions.md that have not been completed. Run /compliance-gate complete before stopping.\"}\n- {\"ok\": true} if enforcement mode is 'advisory' (warnings only, non-blocking)\n\nIf .workbuddy/memory/gate-sessions.md does not exist or contains only empty/completed sessions, respond {\"ok\": true}.",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

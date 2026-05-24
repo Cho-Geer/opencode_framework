@@ -1,0 +1,119 @@
+# mobile-app.yaml — Template for mobile application projects
+# Copy to .workbuddy/project.yaml and fill in the values for your project.
+
+project:
+  name: ""
+  type: "mobile"
+  description: ""
+
+layers:
+  frontend:
+    enabled: true
+    source_paths: []
+    test_paths: []
+    framework: ""             # e.g., "React Native", "Flutter", "SwiftUI", "Jetpack Compose"
+    ui_library: ""
+    state_management: ""
+    e2e_tool: ""              # e.g., "Detox", "Patrol", "XCUITest"
+    build_command: ""
+    test_command: ""
+    lint_command: ""
+    typecheck_command: ""
+
+  backend:
+    enabled: true
+    source_paths: []
+    test_paths: []
+    framework: ""
+    language: ""
+    orm: ""
+    auth_mechanism: ""
+    build_command: ""
+    test_command: ""
+    lint_command: ""
+    typecheck_command: ""
+    api_docs_format: ""
+
+  database:
+    enabled: true
+    engine: ""                # e.g., "SQLite", "Realm", "Core Data"
+    schema_path: ""
+    migration_tool: ""
+    migration_command: ""
+    seed_command: ""
+    schema_validate_command: ""
+
+quality:
+  test_coverage:
+    overall_min: 70
+    core_module_min: 90
+  lint:
+    severity_threshold: "error"
+  typecheck:
+    strict: true
+  performance:
+    frontend_fcp_ms: 2000     # Mobile is typically slower
+    backend_p95_ms: 500
+    backend_memory_stable: true
+    database_query_ms: 100
+    database_index_coverage_min: 90
+
+verification:
+  classes:
+    - name: structure
+      frontend: { method: "mobile_screenshot_diff", tool: "", threshold: "< 1% pixel diff" }
+      backend: { method: "api_route_structure_validation", tool: "", threshold: "" }
+      database: { method: "schema_structure_validation", tool: "", threshold: "" }
+
+    - name: design
+      frontend: { method: "mobile_design_compliance", tool: "", threshold: "" }
+      backend: { method: "api_design_compliance", tool: "", threshold: "" }
+      database: { method: "db_design_compliance", tool: "", threshold: "" }
+
+    - name: io
+      frontend: { method: "mobile_interaction_testing", tool: "", threshold: "" }
+      backend: { method: "request_response_contract", tool: "", threshold: "" }
+      database: { method: "crud_operations_validation", tool: "", threshold: "" }
+
+    - name: error
+      frontend: { method: "mobile_error_state_testing", tool: "", threshold: "" }
+      backend: { method: "error_code_propagation", tool: "", threshold: "" }
+      database: { method: "constraint_violation_testing", tool: "", threshold: "" }
+
+    - name: threshold
+      frontend: { method: "mobile_performance_profiling", tool: "", thresholds: { startup_ms: 2000, frame_drop_threshold: 16 } }
+      backend: { method: "api_performance_testing", tool: "", thresholds: { p95_ms: 500, memory_stable: true } }
+      database: { method: "query_performance_testing", tool: "", thresholds: { query_ms: 100, index_coverage: 90 } }
+
+agents:
+  # NOTE: Tool scoping is handled natively via tools/disallowedTools frontmatter
+  # in each agent .md file. workbuddy_type and write_scopes are no longer used here.
+  architect:
+    skills: ["contract-driven-dev", "context7-first"]
+  coder:
+    skills: ["tdd-enforcer", "code-quality-gate", "context7-first", "verification-suite"]
+  guardian:
+    skills: ["verification-suite", "compliance-gate", "code-quality-gate"]
+  arbiter:
+    skills: ["compliance-gate"]
+  devops:
+    skills: ["ci-cd-guardrails", "context7-first"]
+
+enforcement:
+  mode: "strict"
+  compliance_gate_required: true
+  tdd_enforcement: true
+  write_audit: true
+
+contracts:
+  files: []
+  hash_algorithm: "sha256"
+
+ci_cd:
+  platform: ""
+  container_runtime: ""
+  orchestration: ""
+
+context7:
+  libraries: []
+  queries: {}

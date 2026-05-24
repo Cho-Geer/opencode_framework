@@ -1,0 +1,233 @@
+# project.yaml — Universal Project Configuration
+# This file is the SINGLE SOURCE OF TRUTH for all project-specific parameters.
+# The framework reads this at runtime. Framework files contain ZERO hardcoded tech references.
+# Copy a template from .workbuddy/templates/ as a starting point.
+
+project:
+  name: ""                    # REQUIRED: Project name
+  type: ""                    # REQUIRED: web-fullstack | api-only | cli | mobile | desktop | library
+  description: ""             # Brief project description
+
+# ──────────────────────────────────────────────
+# Layer definitions — what counts as each layer in THIS project
+# ──────────────────────────────────────────────
+layers:
+  frontend:
+    enabled: false            # Set true if this project has a frontend
+    source_paths: []          # e.g., ["src/frontend/", "src/app/"]
+    test_paths: []            # e.g., ["src/frontend/**/*.spec.ts"]
+    framework: ""             # e.g., "Angular", "React", "Vue", "Svelte", "Next.js"
+    ui_library: ""            # e.g., "PrimeNG", "Material UI", "Ant Design", "Chakra UI"
+    state_management: ""      # e.g., "NgRx Signals", "Redux", "Zustand", "Pinia"
+    css_strategy: ""          # e.g., "Tailwind CSS v4", "CSS Modules", "Styled Components"
+    e2e_tool: ""              # e.g., "Playwright", "Cypress"
+    component_hierarchy: ""   # e.g., "Atomic Design", "Feature-based"
+    build_command: ""         # e.g., "npm run build"
+    test_command: ""          # e.g., "npm run test"
+    lint_command: ""           # e.g., "npm run lint"
+    typecheck_command: ""     # e.g., "npx tsc --noEmit"
+
+  backend:
+    enabled: false            # Set true if this project has a backend
+    source_paths: []          # e.g., ["src/backend/", "src/api/"]
+    test_paths: []            # e.g., ["src/backend/**/*.spec.ts"]
+    framework: ""             # e.g., "NestJS", "Express", "Fastify", "Django", "Spring Boot"
+    language: ""               # e.g., "TypeScript", "Python", "Go", "Java", "Rust"
+    orm: ""                   # e.g., "Prisma", "TypeORM", "Sequelize", "SQLAlchemy"
+    auth_mechanism: ""        # e.g., "JWT + Passport", "OAuth2", "Session"
+    build_command: ""          # e.g., "npm run build"
+    test_command: ""           # e.g., "npm run test"
+    lint_command: ""           # e.g., "npm run lint"
+    typecheck_command: ""     # e.g., "npx tsc --noEmit"
+    api_docs_format: ""       # e.g., "OpenAPI/Swagger", "GraphQL Schema"
+
+  database:
+    enabled: false            # Set true if this project has a database
+    engine: ""                # e.g., "PostgreSQL 16", "MySQL 8", "MongoDB 7", "SQLite"
+    schema_path: ""           # e.g., "prisma/schema.prisma", "migrations/"
+    migration_tool: ""        # e.g., "Prisma Migrate", "Alembic", "Flyway"
+    migration_command: ""     # e.g., "npx prisma migrate deploy"
+    seed_command: ""           # e.g., "npx prisma db seed"
+    schema_validate_command: ""  # e.g., "npx prisma validate"
+
+# ──────────────────────────────────────────────
+# Quality thresholds — all configurable
+# ──────────────────────────────────────────────
+quality:
+  test_coverage:
+    overall_min: 70           # percent
+    core_module_min: 90       # percent
+  lint:
+    severity_threshold: "error"  # "off" | "warn" | "error"
+  typecheck:
+    strict: true
+  performance:
+    frontend_fcp_ms: 1500     # First Contentful Paint
+    frontend_lighthouse_min: 90
+    backend_p95_ms: 500       # API response time
+    backend_memory_stable: true
+    database_query_ms: 100    # Max query time
+    database_index_coverage_min: 90  # percent
+
+# ──────────────────────────────────────────────
+# Verification matrix — 5-class verification per layer
+# ──────────────────────────────────────────────
+verification:
+  classes:
+    - name: structure          # Layout (FE) / Route structure (BE) / Schema structure (DB)
+      frontend:
+        method: ""
+        tool: ""
+        threshold: ""
+      backend:
+        method: ""
+        tool: ""
+        threshold: ""
+      database:
+        method: ""
+        tool: ""
+        threshold: ""
+
+    - name: design             # UI Design (FE) / API Design (BE) / DB Design (DB)
+      frontend:
+        method: ""
+        tool: ""
+        threshold: ""
+      backend:
+        method: ""
+        tool: ""
+        threshold: ""
+      database:
+        method: ""
+        tool: ""
+        threshold: ""
+
+    - name: io                 # User I/O (FE) / Request/Response (BE) / CRUD (DB)
+      frontend:
+        method: ""
+        tool: ""
+        threshold: ""
+      backend:
+        method: ""
+        tool: ""
+        threshold: ""
+      database:
+        method: ""
+        tool: ""
+        threshold: ""
+
+    - name: error              # UI Errors (FE) / API Errors (BE) / Constraint Violations (DB)
+      frontend:
+        method: ""
+        tool: ""
+        threshold: ""
+      backend:
+        method: ""
+        tool: ""
+        threshold: ""
+      database:
+        method: ""
+        tool: ""
+        threshold: ""
+
+    - name: threshold          # Performance thresholds in all layers
+      frontend:
+        method: ""
+        tool: ""
+        thresholds: {}
+      backend:
+        method: ""
+        tool: ""
+        thresholds: {}
+      database:
+        method: ""
+        tool: ""
+        thresholds: {}
+
+# ──────────────────────────────────────────────
+# Agent role mapping — maps framework roles to WorkBuddy agent types
+# NOTE: Tool scoping is now handled natively via `tools`/`disallowedTools`
+#       frontmatter in each agent .md file, NOT in this YAML.
+# ──────────────────────────────────────────────
+agents:
+  architect:
+    skills: ["contract-driven-dev", "context7-first"]
+  coder:
+    skills: ["tdd-enforcer", "code-quality-gate", "context7-first", "verification-suite"]
+  guardian:
+    skills: ["verification-suite", "compliance-gate", "code-quality-gate"]
+    # Write scope restriction: enforced by `disallowedTools: Write, Edit` in guardian.md
+  arbiter:
+    skills: ["compliance-gate"]
+    # Write scope restriction: enforced by `disallowedTools: Write, Edit` in arbiter.md
+  devops:
+    skills: ["ci-cd-guardrails", "context7-first"]
+
+# ──────────────────────────────────────────────
+# Enforcement configuration
+# ──────────────────────────────────────────────
+enforcement:
+  mode: "strict"              # advisory | strict | locked
+  compliance_gate_required: true
+  tdd_enforcement: true
+  write_audit: true
+
+# ──────────────────────────────────────────────
+# Hooks configuration reference
+# ──────────────────────────────────────────────
+# Hooks are configured in .codebuddy/settings.json (not here).
+# This section documents which hooks exist and what they enforce:
+#
+# PreToolUse (Write/Edit):
+#   - TDD check: blocks source file write without corresponding test
+#   - Scope check: blocks guardian/arbiter from writing source code
+#   - Gate check: blocks write if compliance gate not checked
+#
+# PostToolUse (Write/Edit):
+#   - Write audit: auto-logs all file writes to invocation-log.md
+#
+# Stop:
+#   - Gate completion: blocks session end if compliance gate incomplete
+
+# ──────────────────────────────────────────────
+# Conditional rules reference
+# ──────────────────────────────────────────────
+# Rules are configured in .codebuddy/rules/ (not here).
+# This section documents which rules exist and what they enforce:
+#
+# framework-core.md (alwaysApply: true):
+#   - P0/P1/P2 rule definitions, enforcement mode, quick commands
+#
+# frontend-enforcement.md (paths: src/frontend/**/*.{ts,tsx,...}):
+#   - 5-class verification requirements for frontend layer
+#   - Auto-injected when editing frontend files
+#
+# backend-enforcement.md (paths: src/backend/**/*.{ts,js,...}):
+#   - 5-class verification requirements for backend layer
+#   - Auto-injected when editing backend files
+#
+# database-enforcement.md (paths: prisma/**/*, migrations/**/*, ...):
+#   - 5-class verification requirements for database layer
+#   - Auto-injected when editing database files
+
+# ──────────────────────────────────────────────
+# Contract specification
+# ──────────────────────────────────────────────
+contracts:
+  files: []                   # e.g., ["contract.yaml", "openapi.yaml"]
+  hash_algorithm: "sha256"
+
+# ──────────────────────────────────────────────
+# CI/CD configuration
+# ──────────────────────────────────────────────
+ci_cd:
+  platform: ""                # e.g., "GitHub Actions", "GitLab CI", "Jenkins"
+  container_runtime: ""       # e.g., "Docker", "Podman"
+  orchestration: ""           # e.g., "Docker Compose", "Kubernetes"
+
+# ──────────────────────────────────────────────
+# Context7 tech stack mapping (for AI-assisted documentation lookup)
+# ──────────────────────────────────────────────
+context7:
+  libraries: []               # e.g., ["/nestjs/nest", "/angular/angular"]
+  queries: {}                 # e.g., {"backend": "NestJS best practices"}
