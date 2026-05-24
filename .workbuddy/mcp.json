@@ -53,23 +53,33 @@
       },
       "disabled": false
     },
+    "Salesforce DX": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@salesforce/mcp",
+        "--orgs", "DEFAULT_TARGET_ORG",
+        "--toolsets", "testing,core,orgs,metadata,data,users,aura-experts,code-analysis,enrichment,experts-validation,lwc-experts,mobile,mobile-core,scale-products",
+        "--tools", "run_apex_test",
+        "--allow-non-ga-tools"
+      ],
+      "timeout": 60000,
+      "disabled": false
+    },
     "postgres": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres"],
-      "env": {
-        "POSTGRES_CONNECTION_STRING": "${POSTGRES_URL}"
-      },
-      "disabled": true
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${POSTGRES_URL}"],
+      "disabled": false
     },
     "docker": {
       "command": "uvx",
       "args": ["mcp-server-docker"],
-      "disabled": true
+      "disabled": false
     },
     "pandoc": {
       "command": "uvx",
       "args": ["mcp-pandoc"],
-      "disabled": true
+      "disabled": false
     },
     "excel": {
       "command": "npx",
@@ -77,7 +87,7 @@
       "env": {
         "EXCEL_MCP_PAGING_CELLS_LIMIT": "1000000"
       },
-      "disabled": true
+      "disabled": false
     }
   }
 }
