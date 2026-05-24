@@ -194,6 +194,31 @@ else
   echo "  ℹ️  rule-registry-verify.js not found or node unavailable — skipping Stage 2."
 fi
 
+# ─── Stage 2.5: State Reconciliation (DAG ↔ Gate ↔ Machine consistency) ──
+# Runs state-reconciliation.js in --quick mode (skips deep write-audit scan).
+# In strict/locked mode, inconsistencies block execution.
+echo ""
+echo "── Stage 2.5: State Reconciliation ────────────────────────────"
+
+STATE_RECONCILE_SCRIPT="${SCRIPT_DIR}/state-reconciliation.js"
+if [ -f "$STATE_RECONCILE_SCRIPT" ] && command -v node &>/dev/null; then
+  if node "$STATE_RECONCILE_SCRIPT" --quick 2>&1; then
+    echo "  ✅ State reconciliation passed."
+  else
+    RECONCILE_EXIT=$?
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] State reconciliation found inconsistencies (non-blocking)."
+      echo "  🔧 Fix: node .opencode/scripts/state-reconciliation.js --fix"
+    else
+      echo "  ❌ [${ENF_MODE}] State reconciliation FAILED — dispatch blocked."
+      echo "  🔧 Fix: node .opencode/scripts/state-reconciliation.js --fix"
+      exit $RECONCILE_EXIT
+    fi
+  fi
+else
+  echo "  ℹ️  state-reconciliation.js not found or node unavailable — skipping Stage 2.5."
+fi
+
 # ─── Stage 3: Git Hooks Installation & Verification ────────────
 # Ensures git config core.hooksPath is set to .opencode/hooks and
 # validates all required hook scripts exist and are executable.

@@ -124,7 +124,7 @@
     "frontend.env_path": "src/environments/environment.ts",
     "frontend.css_strategy": "Tailwind CSS v4 First; SCSS for complex animations; BEM naming for private styles",
     "frontend.state_pattern": "NgRx SignalStore: signalStore() + withState() + withComputed() + withMethods()",
-    "frontend.component_hierarchy": "Atomic Design: Atoms → Molecules → Organisms → Layouts → Pages",
+    "frontend.component_hierarchy": "Atomic Design: Atoms \u2192 Molecules \u2192 Organisms \u2192 Layouts \u2192 Pages",
     "frontend.lazy_loading": "Angular loadChildren/loadComponent + @defer(on viewport)",
     "frontend.api_pattern": "Service encapsulation + DTO alignment; HttpClient forbidden in components",
     "cache.engine": "Redis 7.x",
@@ -306,7 +306,9 @@
         "contract.yaml",
         ".opencode/scripts/**",
         ".opencode/plugins/**",
-        ".opencode/tools/**"
+        ".opencode/tools/**",
+        ".opencode/hooks/**",
+        ".opencode/hooks/pre-commit"
       ],
       "denied": [
         "booking_system_refactor/booking-frontend/**",

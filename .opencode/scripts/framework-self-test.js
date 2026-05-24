@@ -47,6 +47,50 @@ function readFile(p) {
   }
 }
 
+/**
+ * Strip the "path_lint" JSON block from project.config.json content.
+ * This block contains detection patterns (e.g., "/home/", "/Users/") that are
+ * legitimate configuration values for lint detection, not actual absolute path leaks.
+ * Returns the content unchanged for any other file.
+ */
+function stripPathLintBlock(content, filePath) {
+  const basename = path.basename(filePath);
+  if (basename !== "project.config.json") return content;
+
+  const lines = content.split("\n");
+  const result = [];
+  let inBlock = false;
+  let depth = 0;
+  let entryDepth = 0;
+
+  for (const line of lines) {
+    let foundKey = false;
+    if (!inBlock && line.includes('"path_lint"')) {
+      foundKey = true;
+      entryDepth = depth;
+    }
+
+    // Count braces
+    for (const ch of line) {
+      if (ch === "{") depth++;
+      if (ch === "}") depth--;
+    }
+
+    if (foundKey || inBlock) {
+      if (foundKey) inBlock = true;
+      // Exited the path_lint block when depth returns to entry level
+      if (inBlock && depth <= entryDepth) {
+        inBlock = false;
+      }
+      continue; // Skip line inside path_lint block
+    }
+
+    result.push(line);
+  }
+
+  return result.join("\n");
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Check 1: config.json loads
 // ═══════════════════════════════════════════════════════════════
@@ -695,7 +739,9 @@ function checkAbsolutePathLeakage() {
         entry.isFile() &&
         /\.(md|json|yaml|yml|sh|js|ts)$/i.test(entry.name)
       ) {
-        const lines = fs.readFileSync(full, "utf8").split("\n");
+        let rawContent = fs.readFileSync(full, "utf8");
+        rawContent = stripPathLintBlock(rawContent, full);
+        const lines = rawContent.split("\n");
         for (let i = 0; i < lines.length; i++) {
           // Skip lines that are regex patterns or escape sequences (false positives)
           const line = lines[i];
@@ -731,50 +777,100 @@ function checkAbsolutePathLeakage() {
   );
 }
 
-// Check 20: Reconciliation infrastructure (reconciliation-check.sh)
+// Check 20: Reconciliation script is wired into pre-execution-hook.sh
 // ═══════════════════════════════════════════════════════════════
 function checkReconciliationInfra() {
-  const reconcilePath = path.join(
+  // 20a: At least one reconciliation script exists (reconciliation-check.sh OR state-reconciliation.js)
+  const reconcileShellPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
     "reconciliation-check.sh",
   );
+  const reconcileJSPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "state-reconciliation.js",
+  );
 
-  // 20a: reconciliation-check.sh exists
-  if (!fileExists(reconcilePath)) {
-    return check(20, false, "reconciliation-check.sh not found");
-  }
+  const hasShellScript = fileExists(reconcileShellPath);
+  const hasJSScript = fileExists(reconcileJSPath);
 
-  // 20b: reconciliation-check.sh is executable
-  try {
-    fs.accessSync(reconcilePath, fs.constants.X_OK);
-  } catch {
+  if (!hasShellScript && !hasJSScript) {
     return check(
       20,
       false,
-      "reconciliation-check.sh exists but is not executable",
+      "No reconciliation script found — expected reconciliation-check.sh or state-reconciliation.js",
     );
   }
 
-  const content = readFile(reconcilePath);
-  if (!content) {
-    return check(20, false, "reconciliation-check.sh cannot be read");
+  // 20b: At least one reconciliation script has all 3 cross-reference check types
+  // Check state-reconciliation.js first (primary), then reconciliation-check.sh (fallback)
+  let primaryPath = null;
+  let scriptType = "";
+
+  if (hasJSScript) {
+    primaryPath = reconcileJSPath;
+    scriptType = "state-reconciliation.js";
+  } else {
+    primaryPath = reconcileShellPath;
+    scriptType = "reconciliation-check.sh";
   }
 
-  // 20c: Script contains all 3 cross-reference checks
-  const hasCheck1 =
-    content.includes("Check 1: DAG ↔ Gate") || content.includes("DAG ↔ Gate");
-  const hasCheck2 =
-    content.includes("Check 2: Gate ↔ Machine") ||
-    content.includes("Gate ↔ Machine");
-  const hasCheck3 =
-    content.includes("Check 3: DAG ↔ Machine") ||
-    content.includes("DAG ↔ Machine");
-  const hasSummaryFormat = content.includes("[Reconciliation]");
-  const hasJqFallback =
-    content.includes("jq") &&
-    (content.includes("python3") || content.includes("node"));
+  // 20b-i: For state-reconciliation.js, verify it has the 4 check functions
+  // For reconciliation-check.sh, verify it has the 3 cross-ref markers
+  let hasCheck1 = false;
+  let hasCheck2 = false;
+  let hasCheck3 = false;
+  let hasSummaryFormat = false;
+
+  if (hasJSScript) {
+    const jsContent = readFile(reconcileJSPath);
+    if (!jsContent) {
+      return check(20, false, "state-reconciliation.js cannot be read");
+    }
+
+    // Check for the 4 check functions in state-reconciliation.js
+    hasCheck1 = jsContent.includes("checkCompletedDagHasGateSession");
+    hasCheck2 = jsContent.includes("checkArmedSessionDagReference");
+    hasCheck3 = jsContent.includes("checkOrphanedSessions");
+    const hasCheck4 = jsContent.includes("checkDagMetaCounts");
+    hasSummaryFormat = jsContent.includes("[State Reconciliation]");
+
+    if (!hasCheck1 || !hasCheck2 || !hasCheck3 || !hasCheck4) {
+      const missing = [];
+      if (!hasCheck1) missing.push("checkCompletedDagHasGateSession");
+      if (!hasCheck2) missing.push("checkArmedSessionDagReference");
+      if (!hasCheck3) missing.push("checkOrphanedSessions");
+      if (!hasCheck4) missing.push("checkDagMetaCounts");
+      return check(
+        20,
+        false,
+        `state-reconciliation.js missing functions: ${missing.join(", ")}`,
+      );
+    }
+  }
+
+  if (hasShellScript) {
+    const shContent = readFile(reconcileShellPath);
+    if (shContent) {
+      hasCheck1 =
+        hasCheck1 ||
+        shContent.includes("Check 1: DAG ↔ Gate") ||
+        shContent.includes("DAG ↔ Gate");
+      hasCheck2 =
+        hasCheck2 ||
+        shContent.includes("Check 2: Gate ↔ Machine") ||
+        shContent.includes("Gate ↔ Machine");
+      hasCheck3 =
+        hasCheck3 ||
+        shContent.includes("Check 3: DAG ↔ Machine") ||
+        shContent.includes("DAG ↔ Machine");
+      hasSummaryFormat =
+        hasSummaryFormat || shContent.includes("[Reconciliation]");
+    }
+  }
 
   if (!hasCheck1 || !hasCheck2 || !hasCheck3) {
     const missing = [];
@@ -784,15 +880,19 @@ function checkReconciliationInfra() {
     return check(
       20,
       false,
-      `Missing cross-reference checks: ${missing.join(", ")}`,
+      `Missing cross-reference checks in reconciliation scripts: ${missing.join(", ")}`,
     );
   }
 
   if (!hasSummaryFormat) {
-    return check(20, false, "Missing [Reconciliation] output format marker");
+    return check(
+      20,
+      false,
+      "Missing [Reconciliation] or [State Reconciliation] output format marker",
+    );
   }
 
-  // 20d: pre-execution-hook.sh references reconciliation-check.sh
+  // 20c: pre-execution-hook.sh references state-reconciliation.js or reconciliation-check.sh
   const preExecPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
@@ -809,82 +909,90 @@ function checkReconciliationInfra() {
   }
 
   const preExecHasReconcile =
+    preExecContent.includes("state-reconciliation.js") ||
     preExecContent.includes("reconciliation-check.sh") ||
+    preExecContent.includes("Stage 2.5: State Reconciliation") ||
     preExecContent.includes("Stage 2: State Reconciliation");
   if (!preExecHasReconcile) {
     return check(
       20,
       false,
-      "pre-execution-hook.sh does not invoke reconciliation-check.sh",
+      "pre-execution-hook.sh does not invoke state-reconciliation.js or reconciliation-check.sh",
     );
   }
 
-  // 20e: Dry-run execution (verify script doesn't crash on syntax errors)
-  // Cross-platform: resolve relative path first, fall back to absolute on ENOENT
-  try {
-    const { execSync } = require("child_process");
-    const relativePath = path.relative(OPENCODE_ROOT, reconcilePath);
-
+  // 20d: For reconciliation-check.sh also verify bash syntax and executable
+  if (hasShellScript) {
+    // Check executable
     try {
-      // Attempt 1: relative path from OPENCODE_ROOT (cross-platform compatible)
-      execSync(`bash -n "${relativePath}"`, {
-        stdio: "pipe",
-        timeout: 5000,
-        cwd: OPENCODE_ROOT,
-      });
-    } catch (innerErr) {
-      const stderr = (innerErr.stderr || "").toString();
-      const isENOENT =
-        stderr.includes("No such file or directory") ||
-        stderr.includes("cannot open") ||
-        stderr.includes("ENOENT") ||
-        innerErr.status === 127;
+      fs.accessSync(reconcileShellPath, fs.constants.X_OK);
+    } catch {
+      return check(
+        20,
+        false,
+        "reconciliation-check.sh exists but is not executable",
+      );
+    }
 
-      if (isENOENT) {
-        // Attempt 2: absolute path as fallback (e.g., WSL paths)
-        try {
-          execSync(`bash -n "${reconcilePath}"`, {
-            stdio: "pipe",
-            timeout: 5000,
-          });
-        } catch (absErr) {
-          const absStderr = (absErr.stderr || "").toString();
-          const absIsENOENT =
-            absStderr.includes("No such file or directory") ||
-            absStderr.includes("cannot open") ||
-            absErr.status === 127;
+    // Dry-run execution (verify script doesn't crash on syntax errors)
+    try {
+      const { execSync } = require("child_process");
+      const relativePath = path.relative(OPENCODE_ROOT, reconcileShellPath);
 
-          if (absIsENOENT) {
+      try {
+        execSync(`bash -n "${relativePath}"`, {
+          stdio: "pipe",
+          timeout: 5000,
+          cwd: OPENCODE_ROOT,
+        });
+      } catch (innerErr) {
+        const stderr = (innerErr.stderr || "").toString();
+        const isENOENT =
+          stderr.includes("No such file or directory") ||
+          stderr.includes("cannot open") ||
+          stderr.includes("ENOENT") ||
+          innerErr.status === 127;
+
+        if (isENOENT) {
+          try {
+            execSync(`bash -n "${reconcileShellPath}"`, {
+              stdio: "pipe",
+              timeout: 5000,
+            });
+          } catch (absErr) {
+            const absStderr = (absErr.stderr || "").toString();
+            if (
+              absStderr.includes("No such file or directory") ||
+              absStderr.includes("cannot open") ||
+              absErr.status === 127
+            ) {
+              return check(
+                20,
+                false,
+                `reconciliation-check.sh not found at either path`,
+              );
+            }
             return check(
               20,
               false,
-              `reconciliation-check.sh not found at either path — relative: "${relativePath}", absolute: "${reconcilePath}"`,
+              `reconciliation-check.sh has bash syntax errors: ${absStderr || absErr.message}`,
             );
           }
-          // Absolute path found but has syntax errors
+        } else {
           return check(
             20,
             false,
-            `reconciliation-check.sh has bash syntax errors (absolute path): ${absStderr || absErr.message}`,
+            `reconciliation-check.sh has bash syntax errors: ${stderr || innerErr.message}`,
           );
         }
-        // Absolute path works — script syntax is valid
-        // (no return: falls through to ok below)
-      } else {
-        // Relative path found but has syntax errors
-        return check(
-          20,
-          false,
-          `reconciliation-check.sh has bash syntax errors (relative path "${relativePath}"): ${stderr || innerErr.message}`,
-        );
       }
+    } catch (e) {
+      return check(
+        20,
+        false,
+        `reconciliation-check.sh bash check failed: ${e.stderr || e.message}`,
+      );
     }
-  } catch (e) {
-    return check(
-      20,
-      false,
-      `reconciliation-check.sh bash check failed: ${e.stderr || e.message}`,
-    );
   }
 
   const ok =
@@ -894,7 +1002,8 @@ function checkReconciliationInfra() {
     hasSummaryFormat &&
     preExecHasReconcile;
   const detail = ok
-    ? `reconciliation-check.sh: 3 cross-ref checks (DAG↔Gate↔Machine), integrated into pre-execution-hook.sh, bash syntax valid, executable`
+    ? `${scriptType}: 3+ cross-ref checks (DAG↔Gate↔Machine), integrated into pre-execution-hook.sh` +
+      (hasShellScript ? ", bash syntax valid, executable" : "")
     : "See failure details above";
 
   return check(20, ok, detail);
