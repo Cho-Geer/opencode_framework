@@ -5,7 +5,7 @@
     "lastUpdated": "2026-05-24T11:11:09.403Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 149
+    "revision": 152
   },
   "eslint_state": {
     "last_full_scan": "2026-05-24T09:34:56.070Z",
@@ -3114,8 +3114,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "412d1699-d1c5-41ed-b6fb-7220ae6d1b36",
-    "last_transaction_at": "2026-05-24T11:12:40.763Z",
+    "last_operation_id": "e1e6fc55-5d7c-406f-8014-10fde8954ffb",
+    "last_transaction_at": "2026-05-24T11:36:29.915Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }
