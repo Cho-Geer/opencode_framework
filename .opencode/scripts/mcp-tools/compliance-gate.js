@@ -468,7 +468,10 @@ function saveStore(store) {
 }
 
 // ── Session Purge (F5) ──────────────────────────────────────────────
-const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(/\.json$/, ".drained_sessions.json");
+const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(
+  /\.json$/,
+  ".drained_sessions.json",
+);
 
 /**
  * Purge stale gate sessions based on age thresholds.
@@ -479,7 +482,11 @@ const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(/\.json$/, ".drained_sessions
  */
 function purgeStaleSessions() {
   const store = loadStore();
-  const drainedSessions = readJson(DRAINED_STORE_FILE) || { formatVersion: "2.0", drained_sessions: {}, last_drained: null };
+  const drainedSessions = readJson(DRAINED_STORE_FILE) || {
+    formatVersion: "2.0",
+    drained_sessions: {},
+    last_drained: null,
+  };
   const nowTs = Date.now();
   const ARMED_STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
   const CHECKED_STALE_MS = 48 * 60 * 60 * 1000; // 48 hours
@@ -525,7 +532,9 @@ function purgeStaleSessions() {
 
   if (purged > 0) {
     drainedSessions.last_drained = new Date().toISOString();
-    drainedSessions.total_drained = Object.keys(drainedSessions.drained_sessions).length;
+    drainedSessions.total_drained = Object.keys(
+      drainedSessions.drained_sessions,
+    ).length;
     writeJson(DRAINED_STORE_FILE, drainedSessions);
     store.last_updated = new Date().toISOString();
     saveStore(store);
@@ -533,7 +542,10 @@ function purgeStaleSessions() {
 
   return {
     purged,
-    drained_sessions: purged > 0 ? Object.keys(drainedSessions.drained_sessions).slice(-purged) : [],
+    drained_sessions:
+      purged > 0
+        ? Object.keys(drainedSessions.drained_sessions).slice(-purged)
+        : [],
     remaining_active: store.active_sessions.length,
     remaining_total: Object.keys(store.sessions).length,
   };
@@ -552,6 +564,28 @@ function wasRuleConsulted() {
 }
 
 function runGateCheck(taskDescription) {
+  // ── Bootstrap: check hooksPath is configured (one-time hint on fresh clone) ──
+  try {
+    const { execSync } = require("child_process");
+    const hooksPath = execSync("git config --local core.hooksPath", {
+      stdio: "pipe",
+      encoding: "utf-8",
+      timeout: 5000,
+    }).trim();
+    if (hooksPath !== ".opencode/hooks") {
+      process.stderr.write(
+        `[compliance-gate] ⚠ Bootstrap: core.hooksPath is "${hooksPath}", expected ".opencode/hooks".\n` +
+          `  Run: git config core.hooksPath .opencode/hooks\n` +
+          `  Or: bash .opencode/scripts/setup.sh\n`,
+      );
+    }
+  } catch {
+    process.stderr.write(
+      `[compliance-gate] ⚠ Bootstrap: could not read core.hooksPath.\n` +
+        `  Run: bash .opencode/scripts/setup.sh\n`,
+    );
+  }
+
   // ── F5 Auto-purge stale sessions before creating new one ──
   // ── P5-001: Also auto-drain stale sessions on every check ──
   const enforcementMode = getEnforcementMode();
@@ -969,11 +1003,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           threshold_hours_armed: {
             type: "number",
-            description: "Override stale threshold for armed sessions (default: 24h)",
+            description:
+              "Override stale threshold for armed sessions (default: 24h)",
           },
           threshold_hours_checked: {
             type: "number",
-            description: "Override stale threshold for checked sessions (default: 48h)",
+            description:
+              "Override stale threshold for checked sessions (default: 48h)",
           },
         },
       },
@@ -993,8 +1029,15 @@ function drainStaleSessions(armedHours, checkedHours) {
   const CHECKED_STALE_MS = (checkedHours || 48) * 60 * 60 * 1000;
 
   const store = loadStore();
-  const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(/\.json$/, ".drained_sessions.json");
-  const drainedStore = readJson(DRAINED_STORE_FILE) || { formatVersion: "2.0", drained_sessions: {}, last_drained: null };
+  const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(
+    /\.json$/,
+    ".drained_sessions.json",
+  );
+  const drainedStore = readJson(DRAINED_STORE_FILE) || {
+    formatVersion: "2.0",
+    drained_sessions: {},
+    last_drained: null,
+  };
 
   const nowTs = Date.now();
   let purged = 0;

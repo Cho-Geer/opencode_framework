@@ -40,8 +40,11 @@ const REGISTRY_PATH = findRegistryPath();
 
 function computeSHA256(filepath) {
   try {
-    const content = fs.readFileSync(filepath);
-    return crypto.createHash("sha256").update(content).digest("hex");
+    // Read as UTF-8 text for cross-platform LF normalization
+    let content = fs.readFileSync(filepath, "utf8");
+    // Normalize line endings: CRLF → LF for cross-platform hash consistency
+    content = content.replace(/\r\n/g, "\n");
+    return crypto.createHash("sha256").update(content, "utf8").digest("hex");
   } catch (e) {
     return null;
   }

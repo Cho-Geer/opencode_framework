@@ -856,22 +856,15 @@ function runCLI() {
     }
   }
 
-  // Determine exit code: if backfill/force-drain were the only operations, still pass
-  const hasOnlyNonFatal = options.backfillAudit || options.forceDrain;
-
-  if (options.strict && !result.valid && !hasOnlyNonFatal) {
+  // Standardized exit code convention (Fix 4 — PORTABILITY-FIX):
+  //   0 = all checks passed
+  //   1 = violations found (blocking)
+  //   2 = system error (config missing, can't run)
+  if (options.strict && !result.valid) {
     process.exit(1);
   }
 
-  process.exit(
-    result.valid
-      ? 0
-      : result.auto_fixable && !options.fix
-        ? 0
-        : result.valid
-          ? 0
-          : 1,
-  );
+  process.exit(result.valid ? 0 : 1);
 }
 
 if (require.main === module) {

@@ -1,6 +1,15 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+# Force LF for all tracked rule/agent/docs files — ensures consistent hashes cross-platform
+*.md eol=lf
+*.json eol=lf
+*.js eol=lf
+*.ts eol=lf
+*.yaml eol=lf
+*.yml eol=lf
+*.sh eol=lf
+
 # Ensure shell scripts always use LF line endings
 *.sh text eol=lf
 
