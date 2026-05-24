@@ -2926,12 +2926,15 @@
       "created_at": "2026-05-23T23:29:29.949Z",
       "task_description": "Commit all 7 P0 framework fix tasks (FW-FIX-F1 through F7): compliance gate bypass fix, registry digests, pre-execution hook hardening, hooksPath verification, stale session purge, fail-closed writes, Check 20 fix",
       "enforcement_mode": "strict",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_failed_items": [],
       "plan_summary": "Commit all 7 P0 framework fix tasks implementing F1-F7 fixes for compliance gate bypass, registry digests, pre-execution hook, hooksPath, session purge, fail-closed writes, and Check 20 paths",
       "confirmed_at": "2026-05-23T23:29:35.242Z",
-      "consumed_at": null,
-      "audit": null
+      "consumed_at": "2026-05-24T00:04:16.521Z",
+      "audit": {
+        "execution_summary": "Committed all 7 P0 framework fix tasks (FW-FIX-F1 through F7). Files changed: compliance-gate.js (F1/F5/F6), rule_registry.json (F2), pre-execution-hook.sh (F3), pre-commit + framework-self-test.js (F4/F7), gate-state.json (F5). All 21 framework self-tests pass.",
+        "completed_at": "2026-05-24T00:04:16.521Z"
+      }
     }
   },
   "active_sessions": [
@@ -2956,10 +2959,9 @@
     "cg_ses_1779538791249",
     "cg_ses_1779538791269",
     "cg_ses_1779547819073",
-    "cg_ses_1779548073175",
-    "cg_ses_1779578969919"
+    "cg_ses_1779548073175"
   ],
-  "last_updated": "2026-05-23T23:29:35.242Z",
+  "last_updated": "2026-05-24T00:04:16.522Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
