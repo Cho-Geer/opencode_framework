@@ -2935,6 +2935,45 @@
         "execution_summary": "Committed all 7 P0 framework fix tasks (FW-FIX-F1 through F7). Files changed: compliance-gate.js (F1/F5/F6), rule_registry.json (F2), pre-execution-hook.sh (F3), pre-commit + framework-self-test.js (F4/F7), gate-state.json (F5). All 21 framework self-tests pass.",
         "completed_at": "2026-05-24T00:04:16.521Z"
       }
+    },
+    "cg_ses_1779581292662": {
+      "session_id": "cg_ses_1779581292662",
+      "created_at": "2026-05-24T00:08:12.698Z",
+      "task_description": "FW-HARDEN-F1-TEST: Write regression tests for F1 compliance gate bypass fix. Add TDD tests (RED→GREEN) to compliance-gate.test.js covering: last_check_passed tracking, runGateConfirm strict/advisory mode behavior, error messages, and normal flow regression.",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "FW-HARDEN-F1-TEST: RED→GREEN TDD. Add 6 regression tests to compliance-gate.test.js: (1) last_check_passed=true when check passes, (2) last_check_passed=false with HIGH failures, (3) runGateConfirm blocks in strict mode, (4) runGateConfirm allows in advisory mode, (5) normal flow unaffected, (6) clear error message on block.",
+      "confirmed_at": "2026-05-24T00:08:15.717Z",
+      "consumed_at": "2026-05-24T00:10:38.950Z",
+      "audit": {
+        "execution_summary": "FW-HARDEN-F1-TEST: Added 6 TDD regression tests to compliance-gate.test.js covering F1 fix behavior (last_check_passed tracking, confirm enforcement in strict/advisory modes, error message clarity, normal flow). All 23 tests pass. ESLint audit: 0 violations.",
+        "completed_at": "2026-05-24T00:10:38.950Z"
+      }
+    },
+    "cg_ses_1779581313698": {
+      "session_id": "cg_ses_1779581313698",
+      "created_at": "2026-05-24T00:08:33.700Z",
+      "task_description": "FW-HARDEN-F6-TEST: Write regression tests for fail-closed writes in strict/locked enforcement mode for compliance-gate.js. Add 6 test cases to .opencode/scripts/__tests__/compliance-gate.test.js covering writeJson() and writeJsonWithContext() behavior in advisory/strict/locked modes including transaction failure scenarios, normal commits, and error message format verification.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "FW-HARDEN-F6-TEST: Add 6 regression tests for fail-closed write behavior in compliance-gate.js -- writeJson()/writeJsonWithContext() in advisory/strict/locked modes. Use temp wrapper for internal function access, mock SDK/state-transaction, TDD RED→GREEN cycle.",
+      "confirmed_at": "2026-05-24T00:08:40.072Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779581503396": {
+      "session_id": "cg_ses_1779581503396",
+      "created_at": "2026-05-24T00:11:43.400Z",
+      "task_description": "Commit FW-HARDEN-F1-TEST: 6 new regression tests for F1 compliance gate bypass fix",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Commit FW-HARDEN-F1-TEST: 6 new regression tests for F1 gate bypass fix. 23/23 all tests pass.",
+      "confirmed_at": "2026-05-24T00:11:47.896Z",
+      "consumed_at": null,
+      "audit": null
     }
   },
   "active_sessions": [
@@ -2959,9 +2998,11 @@
     "cg_ses_1779538791249",
     "cg_ses_1779538791269",
     "cg_ses_1779547819073",
-    "cg_ses_1779548073175"
+    "cg_ses_1779548073175",
+    "cg_ses_1779581313698",
+    "cg_ses_1779581503396"
   ],
-  "last_updated": "2026-05-24T00:04:16.522Z",
+  "last_updated": "2026-05-24T00:11:47.896Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
