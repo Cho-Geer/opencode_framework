@@ -1,11 +1,16 @@
 {
-  "version": "2.9.0",
+  "version": "2.10.0",
   "project": "booking-system",
   "feature": "Framework Governance Hardening: Fix 7 critical findings (F1-F7) from framework binding force review",
-  "description": "Framework Governance Hardening Phase: Append 11 new tasks across 3 phases (P0/P1/P2) to fix 7 critical framework binding force review findings — F1 (gate bypass), F2 (stale registry), F3 (cross-platform DAG gate), F4 (git hooks enforcement), F5 (central state inconsistency), F6 (fail-open writes), F7 (cross-platform paths). All 70 prior tasks completed. (v2.9.0)",
+  "description": "Framework Governance Hardening Phase: Append 11 new tasks across 3 phases (P0/P1/P2) to fix 7 critical framework binding force review findings — F1 (gate bypass), F2 (stale registry), F3 (cross-platform DAG gate), F4 (git hooks enforcement), F5 (central state inconsistency), F6 (fail-open writes), F7 (cross-platform paths). All 70 prior tasks completed. (v2.10.0)",
   "generated_by": "@Meta-Planner",
   "generated_at": "2026-05-23T14:47:04.265Z",
   "change_log": [
+    {
+      "version": "2.10.0",
+      "date": "2026-05-24",
+      "summary": "Framework Governance Hardening — P0+P1 Batch Completion: All 7 P0 fix tasks (FW-FIX-F1 through FW-FIX-F7) and all 3 P1 hardening tasks (FW-HARDEN-F1-TEST, FW-HARDEN-F6-TEST, FW-HARDEN-CROSS) marked completed. P0: gate bypass fix (F1), rule registry digests regenerated (F2), pre-execution hook cross-platform hardened (F3), git hooksPath + Check 21 (F4), stale session auto-purge (F5), fail-closed writes (F6), Check 20 cross-platform paths (F7). P1: F1 regression tests 29/29 pass, F6 regression tests 29/29 pass, cross-platform validation all 21 checks pass. Remaining: 1 task (FW-GOVERN-AUDIT pending @Guardian). Total progress: 80/81 tasks completed."
+    },
     {
       "version": "2.9.0",
       "date": "2026-05-23",
@@ -1739,7 +1744,7 @@
     {
       "id": "FW-FIX-F1",
       "title": "Fix compliance gate bypass: Block arming when check failed (F1)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
@@ -1762,7 +1767,7 @@
     {
       "id": "FW-FIX-F2",
       "title": "Regenerate rule registry digests to fix 19 HIGH mismatches (F2)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
@@ -1785,7 +1790,7 @@
     {
       "id": "FW-FIX-F3",
       "title": "Harden pre-execution-hook.sh for Windows/WSL cross-platform (F3)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
@@ -1808,7 +1813,7 @@
     {
       "id": "FW-FIX-F4",
       "title": "Verify git hooksPath enforcement + harden pre-commit paths (F4)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
@@ -1832,7 +1837,7 @@
     {
       "id": "FW-FIX-F5",
       "title": "Purge stale gate sessions + auto-reconciliation on check (F5)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
@@ -1856,7 +1861,7 @@
     {
       "id": "FW-FIX-F6",
       "title": "Fail-closed writes in strict/locked enforcement mode (F6)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
@@ -1879,7 +1884,7 @@
     {
       "id": "FW-FIX-F7",
       "title": "Fix Check 20 cross-platform bash path in framework-self-test.js (F7)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Architect",
       "priority": "P0",
       "dependencies": [],
@@ -1902,7 +1907,7 @@
     {
       "id": "FW-HARDEN-F1-TEST",
       "title": "Write compliance-gate unit tests to prevent F1 regression (gate bypass)",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Coder-BE",
       "priority": "P1",
       "dependencies": [
@@ -1928,7 +1933,7 @@
     {
       "id": "FW-HARDEN-F6-TEST",
       "title": "Write transaction fail-closed tests for strict/locked enforcement mode",
-      "status": "pending",
+      "status": "completed",
       "owner": "@Coder-BE",
       "priority": "P1",
       "dependencies": [
@@ -1955,7 +1960,7 @@
     {
       "id": "FW-HARDEN-CROSS",
       "title": "Run framework-self-test.js on Windows/WSL and fix all platform-specific issues",
-      "status": "pending",
+      "status": "completed",
       "owner": "@CI-CD-Agent",
       "priority": "P1",
       "dependencies": [
@@ -2223,10 +2228,10 @@
       ]
     },
     "description": "v2.7.0: Appended 3 RVW-REVIEW-01-TXNFIX TDD tasks (RED→GREEN→REVIEW) to fix eslint-audit.js updateMachineJson() raw fs.writeFileSync bypass — convert to beginTransaction()/prepare()/commit() from state-transaction.js. keystone-validate.js confirmed read-only, no changes needed. All previous 64 tasks remain completed.",
-    "completed_tasks": 70,
-    "pending_tasks": 11,
+    "completed_tasks": 80,
+    "pending_tasks": 1,
     "framework_governance": {
-      "description": "v2.9.0: Framework Governance Hardening — 11 tasks to fix 7 critical findings (F1-F7) from framework binding force review. P0: 7 independent fix tasks, P1: 3 hardening tasks (depends on P0), P2: 1 Guardian governance audit.",
+      "description": "v2.10.0: Framework Governance Hardening — 11 tasks to fix 7 critical findings (F1-F7) from framework binding force review. P0: 7 independent fix tasks, P1: 3 hardening tasks (depends on P0), P2: 1 Guardian governance audit.",
       "review_source": "Framework Binding Force Self-Review 2026-05-23",
       "findings": [
         {

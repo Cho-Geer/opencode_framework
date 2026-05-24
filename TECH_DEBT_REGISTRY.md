@@ -182,3 +182,29 @@
 **维护者**: @Arbiter
 **签名**: `@Arbiter — 2026-05-23T11:40:00Z`
 **位置**: 项目根目录
+
+---
+
+### 2026-05-24 — @Arbiter CAT4.1 Role Violation Adjudication (WV-2026-010)
+
+| Item | Decision | Rationale |
+|------|----------|-----------|
+| WV-2026-010 | **Approved** ✅ | CAT4.1 role scope violation: @Coder-BE wrote `.opencode/scripts/__tests__/compliance-gate.test.js` — denied by `.opencode/scripts/**` in agent_write_scopes. However, Task.DAG.json v2.10.0 explicitly assigned FW-HARDEN-F1-TEST and FW-HARDEN-F6-TEST to @Coder-BE with that exact target file. Framework-level TDD regression tests (F1 gate bypass + F6 fail-closed writes). Violation caused by overly broad denial rule, not willful circumvention. Recommendation: permanent fix via project.config.json update. |
+| TD-2026-016 | **Registered** | @Coder-BE `agent_write_scopes.denied` contains `.opencode/scripts/**` which blocks legitimate DAG-assigned framework test writing to `.opencode/scripts/__tests__/`. Permanent fix: add `.opencode/scripts/__tests__/**` to @Coder-BE `agent_write_scopes.allowed`. |
+
+## 豁免登记表 (Waiver Registry)
+
+| Waiver ID | Approval Date | Responsible | Reason for Waiver | Planned Repayment Date | Status |
+|-----------|---------------|-------------|-------------------|------------------------|--------|
+| WV-2026-010 | 2026-05-24 | @Coder-BE / @Meta-Planner | CAT4.1 agent_write_scopes violation: @Coder-BE wrote to `.opencode/scripts/__tests__/compliance-gate.test.js` — DAG explicitly assigned FW-HARDEN-F1-TEST and FW-HARDEN-F6-TEST with this target; framework-level regression tests; denial rule overly broad | 2026-05-31 | OPEN |
+
+## 技术债登记
+
+| ID | 描述 | 影响 | 批准人 | 批准日期 | 截止日期 | 状态 | 关联任务 |
+|----|------|------|--------|----------|----------|------|---------|
+| TD-2026-016 | @Coder-BE agent_write_scopes.denied 中 `.opencode/scripts/**` 阻止了合法的 DAG 级框架测试任务（FW-HARDEN-F1-TEST, FW-HARDEN-F6-TEST）写入 `.opencode/scripts/__tests__/`。永久修复：在 @Coder-BE 的 allowed 列表中添加 `.opencode/scripts/__tests__/**` | 中 | @Arbiter | 2026-05-24 | 2026-05-31 | **OPEN** | WV-2026-010 |
+
+**最后更新**: 2026-05-24
+**维护者**: @Arbiter
+**签名**: `@Arbiter — 2026-05-24T00:00:00Z`
+**位置**: 项目根目录
