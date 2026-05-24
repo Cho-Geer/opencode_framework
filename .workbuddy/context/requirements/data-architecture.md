@@ -1,0 +1,1049 @@
+# 预约系统 - 数据架构设计文档 (Angular + NestJS 重构版)
+
+## 文档信息
+- **文档版本**: 2.6.2
+- **创建日期**: 2026-04-14
+- **最后更新**: 2026-05-15
+- **契约版本**: contract.yaml v1.7.8
+- **重构技术栈**: Angular v21+ + NestJS v11+ + Prisma 7.x + PostgreSQL 16
+- **数据库引擎**: PostgreSQL 16
+- **ORM工具**: Prisma 7.6.0+ (支持部分索引和高级索引特性)
+- **缓存系统**: Redis 7.x + BullMQ 消息队列
+- **文档状态**: 已基线化
+- **作者**: 系统架构分析工具
+
+## 1. 数据架构概述
+
+### 1.1 设计原则
+- **一致性优先**: 确保数据在系统中的一致性，高并发场景下通过数据库级约束保证
+- **性能优化**: 合理的索引策略，查询优化，针对高并发预约场景特别优化
+- **可扩展性**: 支持业务增长的数据模型，读写分离架构，水平扩展能力
+- **安全性**: 敏感数据加密，访问控制，数据库级安全约束
+- **可维护性**: 清晰的模型关系，完善的文档，自动化迁移工具
+- **高并发处理**: 原子化抢占机制，乐观冲突检测，多层缓存策略
+
+### 1.2 数据分层架构 (Angular + NestJS 重构版)
+```
+┌─────────────────────────────────────────────────────────┐
+│              应用层 (Application Layer)                   │
+│  Angular前端 (v21+) ↔ DTO对象 ↔ 业务实体 ↔ 数据验证         │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│              API网关层 (API Gateway Layer)               │
+│             NestJS REST API (v11+) + WebSocket          │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│              业务逻辑层 (Business Logic Layer)            │
+│          业务模块 (认证、预约、服务、通知、用户管理)         │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│             数据访问层 (Data Access Layer)                │
+│     Prisma Client 7.x ↔ Prisma Schema (部分索引支持)       │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│              存储层 (Storage Layer)                      │
+│ PostgreSQL 16 (主从复制) ↔ Redis 7.x ↔ 文件存储 ↔ BullMQ   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 1.3 数据存储策略
+| 数据类型 | 存储方案 | 技术选型 | 数据生命周期 | 高并发优化 |
+|---------|---------|---------|-------------|-----------|
+| **结构化业务数据** | 关系型数据库 | PostgreSQL 16 (主从复制) | 长期存储，定期归档 | 读写分离，部分唯一索引，连接池优化 |
+| **会话和缓存数据** | 内存数据库 | Redis 7.x Cluster | 短期存储，TTL控制 | 分布式锁，原子计数器，缓存预热 |
+| **异步消息队列** | 消息队列 | BullMQ (基于Redis) | 任务处理完成后删除 | 优先级队列，延迟任务，死信队列 |
+| **文件资源** | 对象存储/文件系统 | 本地存储/S3兼容存储 | 长期存储，CDN分发 | 分片上传，缓存头优化 |
+| **日志数据** | 结构化日志 | Winston + ELK Stack | 短期存储，定期清理 | 异步写入，批量处理 |
+
+## 2. 核心数据模型设计
+
+### 2.1 实体关系图（ERD） - 高并发优化版
+```mermaid
+erDiagram
+    User ||--o{ UserSession : "has"
+    User ||--o{ Appointment : "creates"
+    User ||--o{ Notification : "receives"
+    User ||--o{ ActivityLog : "generates"
+    
+    Appointment }|--|| TimeSlot : "uses"
+    Appointment ||--o{ Service : "references"
+    Appointment ||--o{ AppointmentHistory : "tracks"
+    
+    Service ||--o| ServiceCategory : "belongs to"
+    
+    SystemSetting ||--|| SystemLog : "records"
+    
+    User {
+        string id PK "UUID"
+        string name "用户姓名"
+        string phone "手机号脱敏展示（如 138****5678）"
+        string phoneHash "SHA-256(phone+pepper)，唯一索引"
+        string phoneEncrypted "AES-256-GCM 密文"
+        string email "邮箱脱敏展示（如 us***@example.com）"
+        string emailHash "SHA-256(email+pepper)，唯一索引"
+        string emailEncrypted "AES-256-GCM 密文"
+        string passwordHash "bcrypt 哈希（rounds=12）"
+        enum userType "用户类型"
+        enum status "用户状态"
+        timestamp lastLoginAt "最后登录时间"
+        string preferredTimezone "偏好时区（IANA，如 Asia/Shanghai，可空）"
+        json deviceInfo "设备信息"
+        text remarks "备注"
+        timestamp createdAt "创建时间"
+        timestamp updatedAt "更新时间"
+    }
+    
+    Appointment {
+        string id PK "UUID"
+        string userId FK "用户ID"
+        string timeSlotId FK "时间段ID"
+        string serviceId FK "服务ID"
+        string appointmentNumber "预约编号"
+        date appointmentDate "预约日期"
+        int slotSequence "槽位序号 (原子化抢占)"
+        int durationMinutes "预约时长(分钟)"
+        decimal price "价格快照"
+        decimal taxRate "税率快照"
+        decimal taxIncludedAmount "含税总额"
+        enum status "预约状态"
+        json customerInfo "客户信息"
+        text remarks "备注"
+        timestamp createdAt "创建时间"
+        timestamp updatedAt "更新时间"
+        @@unique([timeSlotId, appointmentDate, slotSequence], where: raw("status IN ('PENDING', 'CONFIRMED', 'COMPLETED')"))
+    }
+    
+    
+    TimeSlot {
+        string id PK "UUID"
+        string serviceId FK "服务ID"
+        datetime startTime "开始时间"
+        datetime endTime "结束时间"
+        int capacity "槽位容量"
+        int currentSequence "当前已分配的序号"
+        datetime createdAt "创建时间"
+        datetime updatedAt "更新时间"
+    }
+```
+
+### 2.2 完整数据模型定义 (Prisma Schema 7.x)
+
+#### 2.2.1 用户领域模型 (更新支持高并发)
+```prisma
+// 启用部分索引预览功能
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["partialIndexes", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = ["pg_trgm", "uuid-ossp"]
+}
+
+// 用户类型枚举
+enum UserType {
+  CUSTOMER    // 客户
+  ADMIN       // 管理员
+  SUPER_ADMIN // 超级管理员
+}
+
+// 用户状态枚举
+enum UserStatus {
+  ACTIVE      // 活跃
+  INACTIVE    // 非活跃
+  BLOCKED     // 已禁用
+}
+
+// 用户实体 - 三字段 PII 加密模型（方案 C v4，TASK-D3 M-4）
+model User {
+  id           String        @id @default(uuid())
+  name         String        // 用户姓名
+
+  // Phone 三字段（PII 加密，方案 C v4）
+  // phone: 脱敏展示（如 138****5678），前端展示用，非明文
+  phone            String?       // 脱敏展示列
+  // phoneHash: SHA-256(phone_plaintext + PII_HASH_PEPPER)，用于唯一索引和精确查找，禁止暴露给前端
+  phoneHash        String?       @unique
+  // phoneEncrypted: AES-256-GCM 密文（格式：iv:authTag:ciphertext，Base64），禁止暴露给前端
+  phoneEncrypted   String?
+
+  // Email 三字段（PII 加密，方案 C v4）
+  // email: 脱敏展示（如 us***@example.com），前端展示用，非明文
+  email            String?       // 脱敏展示列
+  // emailHash: SHA-256(email_plaintext + PII_HASH_PEPPER)，用于唯一索引和精确查找，禁止暴露给前端
+  emailHash        String?       @unique
+  // emailEncrypted: AES-256-GCM 密文（格式：iv:authTag:ciphertext，Base64），禁止暴露给前端
+  emailEncrypted   String?
+
+  // 密码哈希（bcrypt，rounds=12，OWASP 2023）
+  passwordHash     String?
+
+  userType     UserType      @default(CUSTOMER) // 用户类型
+  status       UserStatus    @default(ACTIVE) // 用户状态
+  lastLoginAt  DateTime?     // 最后登录时间
+  // 偏好时区（iana timezone，如 Asia/Shanghai；新增于 v2.7.0 时区架构）
+  preferredTimezone String?  @map("preferred_timezone")
+  deviceInfo   Json?         // 设备信息（JSON格式）
+  remarks      String?       // 备注信息
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  // 关系字段
+  sessions     UserSession[] // 用户会话
+  appointments Appointment[] // 用户预约
+  notifications Notification[] // 用户通知
+  activityLogs ActivityLog[] // 用户活动日志
+  
+  // 索引：使用 hash 列作为精确查找索引（代替明文 @unique）
+  @@index([phoneHash])
+  @@index([emailHash])
+  @@index([userType, status])
+  @@index([createdAt])
+  @@index([lastLoginAt], where: raw("\"status\" = 'ACTIVE'"))
+}
+
+// 用户会话模型 - 支持双令牌认证、设备追踪与主动吊销
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  sessionToken     String   @unique @map("session_token")      // 会话标识符，用于快速查询
+  refreshToken     String   @unique @map("refresh_token")     // 存储 Refresh Token，支持旋转与吊销
+  expiresAt        DateTime @map("expires_at")
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+  ipAddress        String?  @map("ip_address")                 // 审计与风控
+  userAgent        String?  @map("user_agent")                 // 设备指纹
+  deviceInfo       Json?    @map("device_info")                // 设备详情（JSON格式）
+  isActive         Boolean  @default(true) @map("is_active")  // 软删除标志，支持强制登出
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+```
+
+**UserSession 字段职责说明**：
+| 字段 | 职责 |
+| :--- | :--- |
+| `sessionToken` | 会话唯一标识，用于快速定位会话记录。 |
+| `refreshToken` | 存储 Refresh Token，支持轮换和主动吊销。 |
+| `ipAddress` / `userAgent` / `deviceInfo` | 审计与风控，支持多设备管理和异常登录检测。 |
+| `isActive` | 软删除标志，支持强制登出而不丢失审计记录。 |
+| `expiresAt` / `refreshExpiresAt` | 配合定时任务自动清理过期会话。 |
+
+#### 2.2.2 高并发预约业务模型 (核心优化)
+```prisma
+// 预约状态枚举
+enum AppointmentStatus {
+  PENDING     // 待确认
+  CONFIRMED   // 已确认
+  CANCELLED   // 已取消
+  COMPLETED   // 已完成
+  EXPIRED     // 已过期
+}
+
+// 时间段实体 - 支持容量管理
+model TimeSlot {
+  id               String   @id @default(uuid())
+  serviceId        String   @map("service_id")   // 关联服务ID
+  startTime        DateTime @map("start_time")    // 时间段开始时间
+  endTime          DateTime @map("end_time")      // 时间段结束时间
+  capacity         Int      @default(1)           // 槽位容量（支持多人预约）
+  currentSequence  Int      @default(0) @map("current_sequence") // 当前已分配的序号（原子化抢占，必须使用数据库原子操作递增）
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  isActive         Boolean  @default(true) @map("is_active") // 时段是否启用（软删除标记）
+
+  // 关系字段
+  service          Service        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  appointments     Appointment[]
+
+  // 索引优化
+  @@index([serviceId, startTime, endTime])
+  @@index([startTime])
+  @@index([capacity, currentSequence])
+  @@index([isActive])
+}
+
+// **关键实现约束**：
+// 1. `currentSequence` 字段的递增必须使用数据库的原子操作
+//    （如 PostgreSQL 的 `UPDATE ... SET current_sequence = current_sequence + 1 WHERE ... RETURNING current_sequence`），
+//    禁止使用应用层的 `findUnique` + `update` 模式。这是保证 `slotSequence` 分配无竞争的关键点之一。
+// 2. TimeSlot 必须与 Service 关联（serviceId FK），时间段按服务划分。
+// 3. 时间段使用 start_time + end_time (datetime) 定义精确的开始/结束时间，
+//    不再使用 slotTime (String HH:MM) 格式。
+
+// 预约实体 - 高并发优化核心
+model Appointment {
+  id                 String            @id @default(uuid())
+  userId             String            // 用户ID
+  timeSlotId         String            // 时间段ID
+  serviceId          String            // 服务ID
+  appointmentNumber  String            @unique // 预约编号（唯一）
+  appointmentDate    DateTime          // 预约日期
+  slotSequence       Int               @default(0) // 槽位序号，用于原子化抢占
+  durationMinutes    Int               @default(30) // 预约时长(分钟)
+  price              Decimal?          // 价格快照（预约时的服务价格）
+  taxRate            Decimal?          // 税率快照（预约时的服务税率，DB小数格式; API返回百分比格式）
+  taxIncludedAmount  Decimal?          // 含税总额 (price * (1 + taxRate))
+  status             AppointmentStatus @default(PENDING) // 预约状态
+  customerInfo       Json              // 客户信息（JSON格式）
+  remarks            String?           // 备注
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+   
+  // 关系字段
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeSlot           TimeSlot          @relation(fields: [timeSlotId], references: [id], onDelete: Restrict)
+  service            Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  histories          AppointmentHistory[] // 预约历史记录
+  notifications      Notification[]    // 关联的通知
+  
+  // 核心：部分唯一索引约束 - 确保每个时间槽+日期+序号的唯一性（仅对有效预约）
+  // 这是高并发预约冲突处理的关键
+  @@unique([timeSlotId, appointmentDate, slotSequence], 
+           map: "appointment_slot_occupied",
+           where: raw("\"status\" IN ('PENDING', 'CONFIRMED', 'COMPLETED')"))
+  
+  // 业务索引优化
+  @@index([userId, appointmentDate])
+  @@index([timeSlotId, appointmentDate, status])
+  @@index([appointmentNumber])
+  @@index([createdAt])
+  @@index([status, appointmentDate])
+  
+  // 包含索引优化高频查询
+  @@index([appointmentDate, timeSlotId, status], 
+          include: [userId, customerInfo],
+          where: raw("\"status\" IN ('PENDING', 'CONFIRMED')"))
+}
+
+// 预约历史记录实体
+model AppointmentHistory {
+  id              String            @id @default(uuid())
+  appointmentId   String            // 预约ID
+  action          String            // 操作类型
+  previousStatus  AppointmentStatus? // 先前状态
+  newStatus       AppointmentStatus? // 新状态
+  changeReason    String?           // 变更原因
+  performedBy     String            // 操作人
+  performedAt     DateTime          @default(now()) // 操作时间
+  metadata        Json?             // 元数据
+  
+  // 关系字段
+  appointment     Appointment       @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  
+  // 索引优化
+  @@index([appointmentId])
+  @@index([performedAt])
+  @@index([action])
+  @@index([appointmentId, performedAt DESC])
+}
+```
+
+#### 2.2.3 服务管理模型
+```prisma
+// 服务分类实体
+model ServiceCategory {
+  id          String    @id @default(uuid())
+  name        String    // 分类名称
+  description String?   // 分类描述
+  iconUrl     String?   // 图标URL
+  isActive    Boolean   @default(true) // 是否启用
+  displayOrder Int      @default(0) // 显示顺序
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关系字段
+  services    Service[] // 关联的服务
+  
+  // 索引
+  @@index([name])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([isActive, displayOrder])
+}
+
+// 服务实体
+model Service {
+  id               String    @id @default(uuid())
+  categoryId       String?   // 分类ID（对齐 contract.yaml v1.7.5 — nullable:true）
+  name             String    // 服务名称
+  description      String?   // 服务描述
+  durationMinutes  Int       @default(60) // 服务时长（分钟）
+  price            Decimal?  // 服务价格
+  pricePerMinute   Decimal?  // 每分钟单价
+  taxRate          Decimal?  // 默认税率（DB存储为小数格式，e.g. 0.08 = 8%; API传输为百分比格式 8）
+  imageUrl         String?   // 图片URL
+  isActive         Boolean   @default(true) // 是否启用
+  displayOrder     Int       @default(0) // 显示顺序
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+   
+  // 关系字段
+   category         ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  appointments     Appointment[] // 关联的预约
+   
+  // 索引优化
+  @@index([categoryId])
+  @@index([name])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([categoryId, isActive])
+  @@index([price])
+}
+```
+
+#### 2.2.4 通知系统模型 (集成BullMQ)
+```prisma
+// 通知类型枚举
+enum NotificationType {
+  SMS       // 短信通知
+  EMAIL     // 邮件通知
+  WECHAT    // 微信通知
+  PUSH      // 推送通知
+  SYSTEM    // 系统通知
+}
+
+// 通知状态枚举
+enum NotificationStatus {
+  PENDING   // 待发送
+  SENT      // 已发送
+  FAILED    // 发送失败
+  READ      // 已阅读
+  QUEUED    // 已入队 (BullMQ集成)
+}
+
+// 通知实体 - 支持异步处理
+model Notification {
+  id          String             @id @default(uuid())
+  userId      String?            // 用户ID（可选，系统通知可能无特定用户）
+  appointmentId String?          // 预约ID（可选）
+  type        NotificationType   // 通知类型
+  title       String             // 通知标题
+  content     String             // 通知内容
+  isRead      Boolean            @default(false) // 是否已读
+  status      NotificationStatus @default(PENDING) // 通知状态
+  metadata    Json?              // 元数据 (包含BullMQ jobId等)
+  scheduledAt DateTime?          // 计划发送时间
+  sentAt      DateTime?          // 实际发送时间
+  retryCount  Int               @default(0) // 重试次数
+  lastError   String?           // 最后错误信息
+  createdAt   DateTime           @default(now())
+  
+  // 关系字段
+  user        User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointment Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  
+  // 索引优化
+  @@index([userId])
+  @@index([appointmentId])
+  @@index([type])
+  @@index([status])
+  @@index([isRead])
+  @@index([scheduledAt])
+  @@index([createdAt])
+  @@index([status, scheduledAt], where: raw("\"status\" = 'PENDING'"))
+}
+```
+
+#### 2.2.5 系统管理模型
+```prisma
+// 系统设置实体
+model SystemSetting {
+  id           String   @id @default(uuid())
+  settingKey   String   @unique // 设置键（唯一）
+  settingValue String   // 设置值
+  settingType  String   @default("STRING") // 设置类型
+  category     String   @default("GENERAL") // 设置分类
+  description  String?  // 设置描述
+  isProtected  Boolean  @default(false) // 是否受保护
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // 索引
+  @@index([settingKey])
+  @@index([category])
+}
+
+/**
+ * ⏰ 时区配置相关 SystemSetting Key 定义（v2.7.0 新增）:
+ *
+ * | Key | settingValue 格式 | 说明 |
+ * |-----|-------------------|------|
+ * | `default_timezone` | IANA 时区字符串（如 "Asia/Shanghai"） | 诊所默认时区（Tier 3 fallback） |
+ * | `business_hours` | JSON 对象: `{ timezone: string, schedule: { monday: [{ open, close }], ... } }` | 每周营业时间配置。时区指定 schedule 中的时间在哪个时区生效 |
+ *
+ * 营业时间 JSON 示例:
+ * {
+ *   "timezone": "Asia/Shanghai",
+ *   "schedule": {
+ *     "monday":    [{ "open": "09:00", "close": "17:00" }],
+ *     "tuesday":   [{ "open": "09:00", "close": "17:00" }],
+ *     "wednesday": [{ "open": "09:00", "close": "17:00" }],
+ *     "thursday":  [{ "open": "09:00", "close": "17:00" }],
+ *     "friday":    [{ "open": "09:00", "close": "17:00" }],
+ *     "saturday":  [{ "open": "10:00", "close": "14:00" }],
+ *     "sunday":    []
+ *   }
+ * }
+ *
+ * 更新方式: PUT /v1/admin/settings/business-hours（SUPER_ADMIN 仅限）
+ * 读取方式: GET /v1/admin/settings/business-hours（ADMIN/SUPER_ADMIN）
+ * - 见 `系统时区架构设计文档.md §6`
+ */
+
+// 活动日志实体
+model ActivityLog {
+  id           String   @id @default(uuid())
+  userId       String?  // 用户ID（可选）
+  action       String   // 操作类型
+  resourceType String   // 资源类型
+  resourceId   String?  // 资源ID
+  ipAddress    String?  // IP地址
+  userAgent    String?  // 用户代理
+  metadata     Json?    // 元数据
+  createdAt    DateTime @default(now())
+  
+  // 关系字段
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // 索引优化
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType])
+  @@index([resourceId])
+  @@index([createdAt])
+  @@index([userId, createdAt DESC])
+}
+
+// 系统日志实体
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // 日志级别
+  message   String   // 日志消息
+  context   Json?    // 上下文信息
+  ipAddress String?  // IP地址
+  createdAt DateTime @default(now())
+  
+  // 索引
+  @@index([level])
+  @@index([createdAt])
+   @@index([level, createdAt])
+}
+```
+
+#### 2.2.6 站内通知与消息模型 (In-app Notification & Message)
+
+```prisma
+// 站内通知实体 (in-app notification bell)
+model InAppNotification {
+  id        String    @id @default(uuid())
+  userId    String    // 接收用户ID
+  type      String    // 通知类型: info, warning, error, success
+  title     String    // 通知标题
+  body      String    // 通知内容
+  readAt    DateTime? // 已读时间 (null = 未读, 非 null = 已读)
+                      // API 映射: readAt != null → response.read = true
+                      //            readAt == null → response.read = false
+                      // 标记已读: POST /v1/admin/notifications/:id/read → 设置 readAt = now()
+                      // 未读计数: count({ where: { readAt: null } })
+  createdAt DateTime  @default(now())
+
+  // 关系字段
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 索引优化
+  @@index([userId, readAt])  // 支持按用户 + 已读/未读状态高效筛选
+  @@index([createdAt])
+}
+
+// 站内消息实体 (internal messaging)
+model Message {
+  id          String    @id @default(uuid())
+  senderId    String    // 发送者ID
+  recipientId String    // 接收者ID
+  subject     String    // 消息主题
+  body        String    // 消息内容
+  readAt      DateTime? // 已读时间 (null = 未读, 非 null = 已读)
+                        // API 映射: readAt != null → read = true; readAt == null → read = false
+                        // 未读计数: GET /v1/admin/messages/unread-count → count({ where: { recipientId, readAt: null } })
+  createdAt   DateTime  @default(now())
+
+  // 关系字段
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User      @relation("ReceivedMessages", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  // 索引优化
+  @@index([recipientId, readAt])
+  @@index([senderId])
+}
+```
+
+> **说明**: 本节新增的 `InAppNotification` 和 `Message` 模型为站内通知与私信功能的简化模型，区别于 §2.2.4 中集成 BullMQ 的异步通知系统模型 `Notification`（SMS/EMAIL/PUSH 等外部渠道通知）。站内模型专注于 UI 层面的提醒展示（铃铛图标、信封图标、已读/未读状态），外部渠道通知由 §2.2.4 的 BullMQ 通知系统负责。
+>
+> **readAt → read API 映射** [v2.5.1]: 数据库层使用 `readAt: DateTime?`（null = 未读，datetime = 已读）以支持精确的已读时间戳和审计。API 层 (`contract.yaml` §2 admin.notifications) 将此映射为 `read: boolean`。转换规则如下：
+> - `readAt == null` → API `read: false`
+> - `readAt != null` → API `read: true`
+> - 标记已读端点 `POST /v1/admin/notifications/:id/read` → 后端设置 `readAt = now()` 于 `InAppNotification` 记录
+> - `GET /v1/admin/messages/unread-count` → 后端执行 `count({ where: { recipientId: currentUser, readAt: null } })`
+>
+> 此映射同样适用于 §2.2.6 中定义的 `Message` 模型。
+
+### 2.3 数据模型统计 (高并发优化版)
+| 模型类别 | 实体数量 | 字段总数 | 关系数量 | 索引数量 | 部分索引数量 |
+|---------|---------|---------|---------|---------|-------------|
+| **用户管理** | 2 | 28 | 4 | 16 | 1 |
+| **预约业务** | 3 | 38 | 7 | 23 | 2 (核心优化) |
+| **服务管理** | 2 | 20 | 3 | 8 | 0 |
+| **通知系统** | 1 | 19 | 2 | 9 | 1 |
+| **站内通知与消息** | 2 | 16 | 3 | 4 | 0 |
+| **系统管理** | 3 | 24 | 1 | 10 | 0 |
+| **总计** | **14** | **150** | **21** | **71** | **4** |
+
+## 3. 数据关系设计
+
+### 3.1 一对一关系
+| 关系 | 实体A | 实体B | 外键位置 | 级联操作 | 并发考虑 |
+|------|-------|-------|---------|---------|---------|
+| 用户-默认会话 | User | UserSession | UserSession.userId | Cascade | 会话无状态，支持多设备 |
+| 预约-最新历史 | Appointment | AppointmentHistory | AppointmentHistory.appointmentId | Cascade | 历史记录异步写入 |
+
+### 3.2 一对多关系 (高并发优化)
+| 关系 | "一"方 | "多"方 | 外键位置 | 级联操作 | 并发优化 |
+|------|--------|--------|---------|---------|---------|
+| 用户-会话 | User | UserSession | UserSession.userId | Cascade | Redis缓存会话，数据库异步同步 |
+| 用户-预约 | User | Appointment | Appointment.userId | Cascade | 用户预约列表分页查询，缓存优化 |
+| 用户-通知 | User | Notification | Notification.userId | Cascade | 通知异步处理，BullMQ队列 |
+| 时间段-预约 | TimeSlot | Appointment | Appointment.timeSlotId | Restrict | 部分唯一索引保证原子性 |
+| 服务-预约 | Service | Appointment | Appointment.serviceId | Restrict | 服务信息缓存，减少连接 |
+| 预约-时间段（含超时检测） | Appointment | TimeSlot | Appointment.timeSlotId | Restrict | 与「时间段-预约」为同一关系。Overtime重叠检测：创建预约时验证超时不会与相邻时段的已有预约重叠；若重叠返回 409 Conflict |
+| 分类-服务 | ServiceCategory | Service | Service.categoryId | Cascade | 分类信息静态化缓存 |
+
+### 3.3 多对多关系
+当前架构中未使用直接的多对多关系，所有关系通过外键明确管理，避免连接查询性能瓶颈。
+
+## 4. 数据完整性约束
+
+### 4.1 实体完整性 (高并发强化)
+| 约束类型 | 实现方式 | 示例 | 并发优化 |
+|---------|---------|------|---------|
+| **主键约束** | `@id @default(uuid())` | `id String @id @default(uuid())` | UUID v7 (时间有序) 减少索引碎片 |
+| **唯一约束** | `@unique` | `phoneHash String? @unique`（PII 哈希列唯一，非明文） | 应用层缓存唯一性检查 |
+| **复合唯一约束** | `@@unique([field1, field2])` | `@@unique([timeSlotId, appointmentDate, slotSequence])` | **部分唯一索引**，高并发核心 |
+| **条件唯一约束** | `@@unique(..., where: raw("condition"))` | `@@unique(..., where: raw("\"status\" IN ('PENDING', 'CONFIRMED')"))` | 减少索引大小，提高性能 |
+
+### 4.2 参照完整性
+| 约束类型 | 实现方式 | 级联策略 | 示例 | 并发优化 |
+|---------|---------|---------|------|---------|
+| **外键约束** | `@relation` | Cascade/Restrict/SetNull | `user User @relation(fields: [userId], references: [id], onDelete: Cascade)` | 批量删除优化 |
+| **非空约束** | 类型非可选 | - | `name String` (非可选类型) | 应用层验证减少数据库压力 |
+| **默认值约束** | `@default()` | - | `status UserStatus @default(ACTIVE)` | 减少应用层逻辑 |
+
+### 4.3 域完整性
+| 约束类型 | 实现方式 | 示例 | 并发优化 |
+|---------|---------|------|---------|
+| **枚举约束** | 自定义枚举类型 | `enum UserType { CUSTOMER, ADMIN }` | 数据库枚举类型，存储优化 |
+| **范围约束** | 应用层验证 + 数据库CHECK | `durationMinutes Int @default(60)` | 业务层验证为主，数据库兜底 |
+| **格式约束** | 正则表达式验证 | 手机号格式验证 | 应用层验证，数据库触发器备用 |
+| **JSON Schema约束** | Prisma Json类型 + 应用层验证 | `customerInfo Json` | JSON Schema验证，数据库jsonb类型性能优化 |
+| **价格快照约束** | 应用层逻辑 | `Appointment.price/taxRate` 从Service快照 | 预约创建时从 Service 模型复制 price 和 taxRate，后续 Service 价格变动不影响已有预约 |
+| **含税金额约束** | 应用层计算 | `taxIncludedAmount = price * (1 + taxRate)` | 使用DB存储的小数格式 taxRate (e.g. 0.08) 计算，非API的百分比格式。预约创建时由应用层根据 price 和 taxRate 自动计算并持久化 |
+
+## 5. 索引策略 (高并发优化)
+
+### 5.1 主键索引
+所有实体自动创建基于`id`字段的主键索引（B-tree索引），使用UUID v7减少索引碎片。
+
+> **实施注意事项**：Prisma 的 `@default(uuid())` 默认生成的是 UUID v4（随机）。若需使用 UUID v7（时间有序），应在应用层生成或使用 `@default(dbgenerated("gen_random_uuid()"))` 调用数据库扩展函数。实施时请在应用初始化时验证 UUID 版本是否符合预期。
+
+### 5.2 唯一索引 (部分索引优化)
+| 索引字段 | 所属实体 | 索引类型 | 用途 | 并发优化 |
+|---------|---------|---------|------|---------|
+| `phoneHash` | User | 唯一索引（SHA-256 哈希列，非明文） | 手机号唯一性校验 | 应用层缓存检查 |
+| `emailHash` | User | 唯一索引（SHA-256 哈希列，非明文） | 邮箱唯一性校验 | 应用层缓存检查 |
+| `appointmentNumber` | Appointment | 唯一索引 | 预约编号唯一性 | 前缀索引优化查询 |
+| `[serviceId, startTime, endTime]` | TimeSlot | 复合索引 | 按服务和时段查询 | 业务层缓存 |
+| `settingKey` | SystemSetting | 唯一索引 | 系统设置键唯一性 | 全内存缓存 |
+| `[timeSlotId, appointmentDate, slotSequence]` | Appointment | **部分复合唯一索引** | 原子化抢占核心 | **WHERE status IN ('PENDING', 'CONFIRMED', 'COMPLETED')** |
+
+### 5.3 非唯一索引 (查询性能优化)
+| 索引字段 | 所属实体 | 索引类型 | 查询场景 | 并发优化 |
+|---------|---------|---------|---------|---------|
+| `userId` | UserSession | B-tree | 用户会话查询 | 会话Redis缓存，数据库兜底 |
+| `userType` | User | B-tree | 按用户类型筛选 | 复合索引 `[userType, status]` |
+| `status` | User/Appointment | B-tree | 状态过滤查询 | 部分索引减少大小 |
+| `appointmentDate` | Appointment | B-tree | 按日期查询预约 | 时间分区索引 |
+| `createdAt` | 所有实体 | B-tree | 时间范围查询 | 时间序列优化 |
+| `categoryId` | Service | B-tree | 按分类查询服务 | 包含索引优化 |
+| `isActive` | Service/TimeSlot | B-tree | 启用状态过滤 | 部分索引 `WHERE isActive = true` |
+| `bookingGroupId` | Appointment | B-tree | (已移除) 此前用于多时段预约分组查询 | 已废弃，改为 overtime-only 机制 |
+
+### 5.4 包含索引 (Covering Indexes) - 高性能查询
+| 优先级 | 建议索引 | 预估收益 | 实施复杂度 | SQL示例 |
+|-------|---------|---------|-----------|---------|
+| **P0** | `Appointment(appointmentDate, timeSlotId, status) INCLUDE (userId, customerInfo)` | 查询性能提升5-10倍 | 低 | `CREATE INDEX ... INCLUDE (user_id, customer_info)` |
+| **P1** | `Notification(userId, isRead)` | 高频查询优化 | 低 | `CREATE INDEX ... WHERE is_read = false` |
+| **P2** | `Appointment(userId, status)` | 用户预约状态查询 | 低 | `CREATE INDEX ... WHERE status IN ('PENDING', 'CONFIRMED')` |
+| **P3** | `ActivityLog(userId, createdAt DESC)` | 用户活动时间线 | 中 | `CREATE INDEX ... ORDER BY created_at DESC` |
+
+### 5.5 索引优化建议 (基于PostgreSQL 16)
+1. **部分索引优先**: 对状态字段使用部分索引，减少索引大小40-60%
+2. **包含索引优化**: 对高频查询使用INCLUDE字段，避免回表
+3. **并行索引扫描**: PostgreSQL 16支持更好的并行索引扫描
+4. **索引维护**: 定期`REINDEX CONCURRENTLY`，避免锁表
+5. **监控指标**: 跟踪索引使用率，删除未使用索引
+
+## 6. 数据分区策略
+
+### 6.1 分区方案 (时间分区为主)
+| 分区维度 | 分区表 | 分区键 | 分区策略 | 适用场景 | 实施阶段 |
+|---------|--------|--------|---------|---------|---------|
+| **时间分区** | Appointment | appointmentDate | 按月范围分区 | 历史数据归档，查询性能 | 阶段1 |
+| **业务分区** | Notification | type | 列表分区 | 通知类型分离，维护优化 | 阶段2 |
+| **状态分区** | User | status | 列表分区 | 活跃/非活跃用户分离 | 阶段3 |
+| **哈希分区** | ActivityLog | userId哈希 | 哈希分区 | 分布式查询负载均衡 | 阶段4 |
+
+### 6.2 分区实施路径
+1. **阶段1**: Appointment表按月分区（历史数据 > 6个月）
+   - 分区键: `appointmentDate`
+   - 分区策略: `RANGE (PARTITION BY RANGE (appointment_date))`
+   - 保留策略: 保留最近12个月热数据，12-24个月温数据，24+个月冷数据
+
+2. **阶段2**: Notification表按类型分区
+   - 分区键: `type`
+   - 分区策略: `LIST (PARTITION BY LIST (type))`
+   - 分区: `email_notifications`, `sms_notifications`, `system_notifications`
+
+3. **阶段3**: User表按状态分区
+   - 分区键: `status`
+   - 分区策略: `LIST (PARTITION BY LIST (status))`
+   - 分区: `active_users`, `inactive_users`, `blocked_users`
+
+### 6.3 分区性能优势
+- **查询性能**: 分区裁剪减少扫描数据量70-90%
+- **维护效率**: 分区独立维护，不影响整体可用性
+- **备份恢复**: 分区级备份恢复，时间减少60%
+- **数据生命周期**: 自动化数据归档和清理
+
+## 7. 缓存策略 (多层缓存架构)
+
+### 7.1 Redis缓存设计 (高并发优化)
+| 缓存类型 | 缓存键格式 | TTL | 更新策略 | 用途 | 并发优化 |
+|---------|-----------|-----|---------|------|---------|
+| **用户会话** | `session:{sessionToken}` | 7天 | 写时更新 + 读时刷新 | 用户认证状态 | 分布式会话，无状态服务 |
+| **验证码缓存** | `verification:phone:{phone}:{type}`<br>`verification:email:{email}:{type}` | 5分钟 | 写时设置 | 手机号/邮箱验证码 | 原子操作，防重放攻击 |
+| **服务列表** | `services:active` | 1小时 | 定时刷新 + 失效通知 | 活跃服务列表 | 发布订阅模式更新 |
+| **时间段缓存** | `timeslots:available:{date}` | 30分钟 | 定时刷新 | 可用时间段查询 | **原子计数器软限流** |
+| **用户信息** | `user:{userId}:profile` | 1天 | 写时删除 | 用户基本信息 | 缓存穿透保护 |
+| **预约容量** | `slot:{timeSlotId}:remaining` | 1小时 | 原子DECR操作 | **高并发预约软限流** | Redis单线程原子性 |
+
+### 7.2 缓存一致性保障 (多级策略)
+| 场景 | 一致性策略 | 实现方式 | 并发优化 |
+|------|-----------|---------|---------|
+| **数据更新** | 写时删除 + 延迟双删 | 更新数据库后删除缓存，异步延迟再次删除 | 减少缓存雪崩风险 |
+| **缓存失效** | TTL自动过期 + 续期机制 | 设置合理的过期时间，热点数据自动续期 | 避免缓存击穿 |
+| **缓存穿透** | 空值缓存 + 布隆过滤器 | 缓存空查询结果，布隆过滤器预判存在性 | RedisBloom模块 |
+| **缓存雪崩** | 随机TTL + 分级缓存 | TTL添加随机偏移量，多级缓存架构 | 分层过期策略 |
+| **缓存击穿** | 互斥锁 + 热点数据永不过期 | 使用Redis分布式锁，热点数据后台更新 | Redlock算法实现 |
+
+### 7.3 缓存性能优化
+1. **连接池优化**: Redis连接池配置，避免连接风暴
+2. **管道技术**: 批量操作使用pipeline，减少网络往返
+3. **Lua脚本**: 复杂操作用Lua脚本保证原子性
+4. **内存优化**: 合适的数据结构，ziplist优化小对象
+5. **集群分片**: Redis Cluster自动分片，水平扩展
+
+## 8. 数据安全设计
+
+### 8.1 敏感数据保护
+| 数据类型 | 保护措施 | 加密算法 | 存储格式 | 访问控制 |
+|---------|---------|---------|---------|---------|
+| **用户密码** | 单向哈希 + 盐值 | bcrypt (rounds=12，OWASP 2023) | passwordHash 哈希值 | 仅认证服务访问 |
+| **JWT令牌** | 签名加密 + 短期有效期 | HMAC-SHA256 | 签名令牌 | 令牌黑名单管理 |
+| **手机号** | 三字段 PII 加密 + SHA-256 哈希索引 | AES-256-GCM (phoneEncrypted) + SHA-256 (phoneHash) | phone 脱敏 / phoneHash 哈希 / phoneEncrypted 密文 | hash 列用于查找，密文列仅授权解密 |
+| **邮箱地址** | 三字段 PII 加密 + SHA-256 哈希索引 | AES-256-GCM (emailEncrypted) + SHA-256 (emailHash) | email 脱敏 / emailHash 哈希 / emailEncrypted 密文 | hash 列用于查找，密文列仅授权解密 |
+| **身份证号** | 全字段加密 | AES-256-GCM | 加密存储 | 严格权限控制 |
+| **设备信息** | JSON存储 + 字段级加密 | 字段选择性加密 | 明文JSON + 加密字段 | 设备指纹验证 |
+
+> **[M-5 修改说明 v2.1.0]** 新增邮箱地址行，敏感级别与手机号对齐（高）。
+> 新增三字段模型说明列。手机号行同步更新为三字段模型格式。
+> 设计依据：piiEncryptionStrategy.md § 2（三字段模型设计）。
+
+### 8.2 数据访问控制 (多层次)
+| 数据层级 | 访问控制机制 | 实现方式 | 审计日志 |
+|---------|-------------|---------|---------|
+| **数据库级** | PostgreSQL角色权限 | 分库分账号，最小权限原则 | PostgreSQL审计日志 |
+| **应用级** | NestJS守卫 + RBAC | JWT认证，角色/权限装饰器 | 结构化操作日志 |
+| **行级** | 业务逻辑策略 | 用户ID匹配检查，租户隔离 | 业务操作日志 |
+| **字段级** | DTO转换 + 脱敏 | 数据脱敏，字段过滤，敏感字段掩码 | 字段访问日志 |
+
+### 8.3 审计日志 (完整追溯)
+| 审计类型 | 记录内容 | 存储位置 | 保留期限 | 查询性能 |
+|---------|---------|---------|---------|---------|
+| **用户操作** | 用户ID，操作类型，资源，IP，时间 | ActivityLog表 + Elasticsearch | 1年 | 时间分区索引 |
+| **数据变更** | 变更前/后数据，操作人，时间 | AppointmentHistory表 | 永久 | 按appointmentId分片 |
+| **系统事件** | 事件级别，消息，上下文，时间 | SystemLog表 | 6个月 | 时间序列索引 |
+| **安全事件** | 登录尝试，权限变更，异常访问 | 专用安全事件表 | 2年 | 实时流式处理 |
+
+## 9. 数据迁移策略
+
+### 9.1 迁移工具栈 (现代化)
+| 工具组件 | 版本 | 用途 | 高并发支持 |
+|---------|------|------|-----------|
+| **Prisma Migrate** | 7.6.0+ | 数据库架构迁移，版本控制 | 支持零停机迁移 |
+| **Prisma Studio** | 7.6.0+ | 数据可视化和管理 | 只读副本查询 |
+| **自定义迁移脚本** | Node.js + TypeScript | 数据迁移和转换 | 分批处理，事务控制 |
+| **备份工具** | pg_dump + WAL归档 | 数据备份和恢复 | 并行备份，增量恢复 |
+| **数据验证工具** | 自定义验证脚本 | 迁移后数据完整性验证 | 抽样验证，差异对比 |
+
+### 9.2 迁移流程 (高可用保证)
+```
+高可用迁移流程：
+1. 预迁移检查 → 2. 创建备份快照 → 3. 只读副本切换 →
+4. 执行迁移 (Prisma Migrate) → 5. 数据验证 → 6. 流量切换 →
+7. 监控验证 → 8. 清理旧数据 → 9. 更新文档
+```
+
+### 9.3 回滚策略 (多层保障)
+| 回滚场景 | 回滚方法 | 数据影响 | 恢复时间目标 (RTO) |
+|---------|---------|---------|-------------------|
+| **迁移失败** | 回滚迁移事务 | 无数据影响 | < 5分钟 |
+| **数据错误** | 恢复备份快照 | 恢复到备份点 | < 15分钟 |
+| **应用兼容性** | 版本回退 + 数据库版本兼容 | 应用和数据版本匹配 | < 10分钟 |
+| **性能问题** | 只读副本回切 | 只读查询影响 | < 3分钟 |
+
+## 10. 数据治理
+
+### 10.1 数据质量管理 (实时监控)
+| 质量维度 | 监控指标 | 检查频率 | 告警阈值 | 自动修复 |
+|---------|---------|---------|---------|---------|
+| **完整性** | 非空字段合规率 | 实时 | < 99.5% | 数据补全任务 |
+| **一致性** | 外键约束违反数 | 实时 | > 0 | 自动修复脚本 |
+| **准确性** | 数据验证错误率 | 实时 | > 0.1% | 数据清洗流程 |
+| **时效性** | 数据更新延迟 | 每分钟 | > 5分钟 | 缓存刷新机制 |
+| **唯一性** | 唯一约束违反数 | 实时 | > 0 | 重复数据处理 |
+
+### 10.2 数据生命周期管理 (自动化)
+| 数据类别 | 活跃期 | 归档期 | 销毁期 | 保留策略 | 自动化工具 |
+|---------|--------|--------|--------|---------|-----------|
+| **用户数据** | 账户活跃期 | 6个月 | 2年 | 软删除+归档 | 定时任务 + 事件驱动 |
+| **预约数据** | 预约完成后 | 1年 | 3年 | 分区归档 | PostgreSQL表分区 |
+| **日志数据** | 30天 | 6个月 | 1年 | 压缩存储 | Elasticsearch索引生命周期 |
+| **缓存数据** | TTL内 | - | TTL过期 | 自动清理 | Redis过期策略 |
+| **通知数据** | 发送后30天 | 3个月 | 6个月 | 摘要归档 | BullMQ完成队列清理 |
+
+### 10.3 数据备份策略 (多重保障)
+| 备份类型 | 备份频率 | 保留期限 | 存储位置 | 恢复目标 | 加密方式 |
+|---------|---------|---------|---------|---------|---------|
+| **全量备份** | 每日 02:00 | 7天 | 对象存储 (S3兼容) | 24小时内 | AES-256 |
+| **增量备份** | 每小时 | 24小时 | 对象存储 (S3兼容) | 1小时内 | AES-256 |
+| **WAL归档** | 实时 | 7天 | 专用存储卷 | 5分钟内 | 传输加密 |
+| **配置备份** | 变更时 | 永久 | 版本控制 (Git) | 即时 | Git加密 |
+| **缓存快照** | 每日 04:00 | 3天 | 对象存储 | 30分钟内 | Redis RDB加密 |
+
+## 11. 性能优化设计 (高并发专项)
+
+### 11.1 查询优化 (预约系统核心)
+| 优化措施 | 实施方法 | 预期收益 | 实施阶段 |
+|---------|---------|---------|---------|
+| **部分唯一索引** | `WHERE status IN ('PENDING', 'CONFIRMED')` | 索引大小减少60%，写入性能提升40% | P0 (已实施) |
+| **包含索引优化** | `INCLUDE (userId, customerInfo)` | 高频查询性能提升5-10倍 | P0 (已实施) |
+| **查询重写** | 避免SELECT *，使用具体字段 | 数据传输减少30-50% | P1 |
+| **分页优化** | 游标分页 + 时间分区 | 大数据集分页性能提升 | P1 |
+| **连接优化** | 适当冗余字段，减少表连接 | 复杂查询性能提升 | P2 |
+| **物化视图** | 高频统计查询物化 | 报表查询性能提升10倍 | P3 |
+
+#### 11.1.1 Dashboard Statistics 数据来源说明
+
+> **DASH 统计接口数据来源** [v2.2.0]: Admin Dashboard 的四个统计维度（DASH-001~004）**不单独建表存储**，而是通过 Prisma 聚合查询从现有业务表实时计算得出：
+
+| 统计维度 | 源表 | 计算方式 |
+|----------|------|----------|
+| **核心统计卡片** (DASH-001) | Appointment, User | `prisma.appointment.count({ where: {...} })` + `prisma.appointment.aggregate({ _sum: { ... } })` |
+| **预约趋势** (DASH-002) | Appointment | `prisma.appointment.groupBy({ by: ['appointmentDate'], _count: true })` 按时间粒度聚合 |
+| **服务分布** (DASH-003) | Appointment, Service | `prisma.appointment.groupBy({ by: ['serviceId'], _count: true })` JOIN Service.name |
+| **时间分布** (DASH-004) | Appointment | 提取 `appointmentDate` 的小时字段，`groupBy` 按小时统计 |
+| **通知列表** (SYS-002) | InAppNotification (站内) | `prisma.inAppNotification.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } })` 分页查询 |
+| **未读消息数** (MSG-004) | Message | `prisma.message.count({ where: { recipientId, readAt: null } })` 聚合计数 |
+
+> **说明** [v2.3.0]: Dashboard 新增的 **通知列表**、**未读消息数** 两个维度分别由 §2.2.7 的 `InAppNotification`（站内）及 `Message` 模型支撑，与现有 DASH-001~004 一致，不单独建表存储统计结果。
+
+> **性能说明**: 对于高频访问场景，建议创建 PostgreSQL **物化视图 (Materialized View)** 定期刷新（如每5分钟），或使用 Redis 缓存统计结果（TTL=300秒），以避免重复聚合计算对主业务表的压力。
+
+### 11.2 写入优化 (高并发预约)
+| 优化措施 | 实施方法 | 适用场景 | 并发优化 |
+|---------|---------|---------|---------|
+| **原子化抢占** | 部分唯一索引 + slot_sequence | 预约冲突处理 | 消除竞态条件，TPS 1000+ |
+| **批量写入** | 批量插入操作，事务优化 | 数据初始化，导入 | 减少事务开销 |
+| **异步写入** | BullMQ消息队列 | 日志，非关键数据 | 削峰填谷，吞吐量提升 |
+| **延迟索引** | 先插入后创建索引 | 大批量数据导入 | 避免索引维护开销 |
+| **连接池优化** | PgBouncer事务池模式 | 高并发连接 | 连接复用，支持1000+连接 |
+
+#### 11.2.1 并发冲突场景示例
+
+**场景描述**：两个用户同时尝试预约同一时间槽的最后一个可用位置（`slot_sequence=0`）。
+
+**时序步骤**：
+1. **时间T0**: 用户A和用户B几乎同时发起预约请求
+2. **时间T1**: 系统为用户A分配 `slot_sequence=0`，成功更新 `TimeSlot.currentSequence`（原子递增）
+3. **时间T2**: 系统尝试为用户A插入预约记录，部分唯一索引检查通过，插入成功
+4. **时间T3**: 系统为用户B分配 `slot_sequence=0`（因为`currentSequence`尚未被用户B的请求看到）
+5. **时间T4**: 系统尝试为用户B插入预约记录，部分唯一索引检测到冲突（`slot_sequence=0`已被占用）
+6. **时间T5**: 数据库抛出唯一约束违反错误（Prisma错误码 `P2002`）
+7. **时间T6**: 系统捕获错误，向用户B返回"预约失败，时段已被占用"提示
+
+**关键点**：
+- 部分唯一索引在数据库层面保证原子性，即使两个请求同时到达
+- 先成功插入的记录会立即占据唯一索引位置，后续插入尝试会立即失败
+- `P2002` 错误是预期内的正常冲突处理，无需视为系统异常
+
+**错误处理建议**：
+- 应用层应捕获 `P2002` 错误并转换为用户友好的提示信息
+- 可自动重试其他可用 `slot_sequence`（如 `slot_sequence=1`，如果容量允许）
+- 记录冲突率指标，用于监控系统并发压力
+
+### 11.3 存储优化
+| 优化措施 | 实施方法 | 存储节省 | 性能影响 |
+|---------|---------|---------|---------|
+| **数据压缩** | TOAST自动压缩 + 列存储优化 | 文本字段节省50-70% | 查询性能轻微影响 |
+| **列存储优化** | 适当的数据类型，避免过度规范化 | 减少存储空间20-30% | 查询性能提升 |
+| **分区裁剪** | 查询条件优化，分区键选择 | 减少扫描数据量70-90% | 查询性能大幅提升 |
+| **索引优化** | 部分索引，覆盖索引 | 索引大小减少40-60% | 写入性能提升，查询稳定 |
+
+## 12. 扩展性设计
+
+### 12.1 读写分离架构
+| 读操作 | 写操作 | 分离策略 | 技术实现 | 性能收益 |
+|-------|-------|---------|---------|---------|
+| 查询类API | 增删改API | 应用层路由 | NestJS中间件 + Prisma扩展 | 读性能提升3-5倍 |
+| 报表查询 | 业务事务 | 数据库级复制 | PostgreSQL流式复制 | 主库压力减少70% |
+| 缓存填充 | 数据更新 | 异步同步 | Redis订阅发布 | 响应时间减少50% |
+
+**技术实现**:
+```typescript
+// Prisma Client扩展配置读写分离
+import { PrismaClient } from '@prisma/client';
+import { withReplicas } from '@prisma/extension-read-replicas';
+
+const prisma = new PrismaClient().$extends(
+  withReplicas({
+    url: process.env.DATABASE_PRIMARY_URL,
+    replicas: [
+      { url: process.env.DATABASE_REPLICA1_URL },
+      { url: process.env.DATABASE_REPLICA2_URL }
+    ]
+  })
+);
+```
+
+### 12.2 分库分表演进路径
+| 分片维度 | 分片键 | 分片策略 | 实施阶段 | 复杂度 |
+|---------|--------|---------|---------|--------|
+| **时间分片** | appointmentDate | 按月分表 | 阶段1 (当前) | 低 |
+| **用户分片** | userId哈希 | 范围分片 | 阶段2 (用户量>100万) | 中 |
+| **业务分片** | 业务类型 | 垂直分库 | 阶段3 (微服务演进) | 高 |
+| **地理分片** | 区域代码 | 地理分区 | 阶段4 (国际化) | 中 |
+
+### 12.3 微服务演进 (长期架构)
+| 服务拆分 | 拆分依据 | 技术栈 | 通信协议 | 数据边界 |
+|---------|---------|---------|---------|---------|
+| **用户服务** | 用户认证、个人信息、权限 | NestJS + Prisma | REST + gRPC | 用户核心数据 |
+| **预约服务** | 预约管理、时间槽、冲突检测 | NestJS + Prisma + Redis | REST + WebSocket | 预约业务数据 |
+| **通知服务** | 消息推送、模板管理、渠道集成 | NestJS + BullMQ | REST + 消息队列 | 通知配置与记录 |
+| **报表服务** | 统计分析、数据导出、BI集成 | NestJS + ClickHouse | gRPC + 文件流 | 分析数据仓库 |
+| **系统服务** | 配置管理、日志收集、监控告警 | NestJS + Elasticsearch | REST + 事件总线 | 系统运维数据 |
+
+### 12.4 水平扩展策略
+1. **数据库层扩展**:
+   - PostgreSQL读写分离 (1主 + N从)
+   - 连接池: PgBouncer 支持 1000+ 并发连接
+   - 数据分区: 时间分区 + 业务分区
+   - 只读副本: 读流量自动路由
+
+2. **应用层扩展**:
+   - NestJS无状态服务，支持Kubernetes水平扩展
+   - Redis集群: 自动分片，数据分布式存储
+   - BullMQ队列: 分布式工作者，负载均衡
+
+3. **缓存层扩展**:
+   - Redis Cluster: 自动故障转移，数据分片
+   - 多级缓存: 本地缓存 + Redis + 数据库
+   - 缓存预热: 热点数据预加载
+
+## 13. 实施路线图与优先级
+
+### 13.1 分阶段实施计划
+| 阶段 | 时间窗口 | 核心任务 | 关键产出 | 风险控制 |
+|------|---------|---------|---------|---------|
+| **阶段1 (MVP)** | 第1-2个月 | 基础数据模型，核心预约流程 | 可运行的最小化系统 | 技术栈验证，原型测试 |
+| **阶段2 (优化)** | 第3-4个月 | 高并发优化，缓存集成 | 支持1000+并发预约 | 压力测试，性能调优 |
+| **阶段3 (扩展)** | 第5-6个月 | 读写分离，分区策略 | 生产级可扩展架构 | 灰度发布，监控告警 |
+| **阶段4 (演进)** | 第7-12个月 | 微服务拆分，国际化 | 企业级分布式系统 | 服务治理，数据迁移 |
+
+### 13.2 优先级矩阵 (MoSCoW方法)
+| 优先级 | 数据架构需求 | 业务价值 | 实施难度 | 依赖项 |
+|-------|------------|---------|---------|--------|
+| **Must Have** | 1. 高并发预约原子化抢占<br>2. 核心数据模型完整性<br>3. 基础索引策略 | 核心业务可运行 | 中 | 技术栈确定 |
+| **Should Have** | 1. Redis缓存集成<br>2. 读写分离架构<br>3. 分区策略 | 性能可扩展性 | 高 | 阶段1完成 |
+| **Could Have** | 1. 高级索引优化<br>2. 数据压缩<br>3. 审计日志增强 | 系统优化 | 中 | 阶段2完成 |
+| **Won't Have (Now)** | 1. 微服务拆分<br>2. 地理分片<br>3. 多租户架构 | 长期演进 | 高 | 业务规模扩大 |
+
+## 14. 总结与建议
+
+### 14.1 关键设计决策
+1. **技术栈现代化**: Angular v21+ + NestJS v11+ + Prisma 7.x + PostgreSQL 16 + Redis 7.x
+2. **高并发核心**: PostgreSQL部分唯一索引 + slot_sequence原子化抢占机制
+3. **多层缓存**: Redis软限流 + 会话缓存 + 业务数据缓存
+4. **异步架构**: BullMQ消息队列解耦非关键路径
+5. **扩展性设计**: 读写分离 + 数据分区 + 无状态服务
+
+### 14.2 风险与应对
+| 风险类别 | 风险描述 | 影响程度 | 应对措施 | 监控指标 |
+|---------|---------|---------|---------|---------|
+| **技术风险** | Prisma版本兼容性，PostgreSQL性能瓶颈 | 高 | 技术栈验证，POC测试，回滚计划 | 数据库连接数，查询延迟 |
+| **性能风险** | 高并发预约场景下的超卖问题 | 极高 | 部分唯一索引保证，Redis软限流，压力测试 | 预约成功率，冲突率 |
+| **扩展风险** | 数据量增长后的查询性能下降 | 中 | 分区策略，索引优化，读写分离 | 查询响应时间，索引命中率 |
+| **安全风险** | 敏感数据泄露，SQL注入攻击 | 高 | 字段级加密，参数化查询，安全审计 | 异常访问日志，安全事件数 |
+
+### 14.3 下一步行动建议
+1. **立即行动**:
+   - 完成Prisma Schema的完整定义和迁移脚本
+   - 实现高并发预约的原子化抢占机制原型
+   - 建立基础的Redis缓存和BullMQ消息队列
+
+2. **短期计划 (1个月内)**:
+   - 完成核心预约业务流程的端到端实现
+   - 实施基础索引策略和查询优化
+   - 建立数据监控和告警机制
+
+3. **中长期规划 (3-6个月)**:
+   - 实施读写分离架构和数据分区
+   - 优化缓存策略和异步处理流程
+   - 准备微服务拆分的架构设计
+
+### 14.4 文档版本说明
+- **v2.5.0**: 移除 §2.2.6 Staff 模型（含模型定义、数据模型统计行、关系表引用），Staff 模型为孤立实体无对应 API；同步移除 contract.yaml SCH-001 端点。
+- **v2.4.0**: 标记 §2.2.6 Staff 模型为 FUTURE-PHASE（预留用于排程管理 SCH-001）；验证 §11.1.1 Dashboard Statistics 表无 STAFF-003 残留引用（已于 contract.yaml v1.6.3 中移除）。
+- **v2.3.0**: 新增 §2.2.6 Staff 员工管理模型、§2.2.7 Notification/Message 站内通知与消息模型；更新 §2.3 数据模型统计表；扩展 §11.1.1 Dashboard Statistics 新增通知列表、未读消息数两个统计维度。
+- **v2.2.0**: 新增 §11.1.1 Dashboard Statistics 数据来源说明，文档化 DASH-001~004 统计指标的 Prisma 聚合计算方式及物化视图性能优化建议。
+- **v2.1.0**: PII 加密三字段模型（方案 C v4）：User Schema 替换为三字段模型（phone/phoneHash/phoneEncrypted + email/emailHash/emailEncrypted + passwordHash）；8.1 敏感数据保护表新增邮箱行；ERD 更新。
+- **v2.0.0**: Angular+NestJS重构版，集成高并发优化策略
+- **基准对齐**: 与技术栈推荐方案、系统架构设计文档(SAD)完全对齐
+- **更新记录**: 2026-04-14 - 基于MCP获取的最新技术栈信息更新；2026-04-21 - TASK-D3 PII 加密三字段模型；2026-05-04 - DASH-001~004 Dashboard 统计
+
+---
+
+**文档状态**: ✅ 已完成  
+**评审状态**: 待架构评审  
+**实施状态**: 指导开发实施  

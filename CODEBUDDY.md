@@ -76,13 +76,17 @@ Every business code modification triggers verification across affected layers:
 ├── FRAMEWORK.md              # Governance document
 ├── mcp.json                  # MCP server configuration
 ├── agents/                   # 5 agent specifications
-├── skills/                   # 7 skill definitions
+├── skills/                   # 10 skill definitions
 ├── templates/                # 4 project-type templates
 ├── mcp/                      # 4 WorkBuddy-native MCP servers
 │   ├── compliance-gate.js    # Gate lifecycle (check/confirm/complete)
 │   ├── code-quality-gate.js  # Quality audit (lint/types/deps/format)
 │   ├── eslint-audit.js       # ESLint audit (file/full scan)
 │   └── keystone-validate.js  # Contract hash validation
+├── context/                  # Project-specific domain knowledge
+│   ├── code_standards/       # Coding conventions (3 files)
+│   ├── detailed_design/      # Page/UI specs (1 panorama + 18 pages)
+│   └── requirements/        # Architecture decisions (12 files)
 ├── memory/                   # State, sessions, audit trail
 └── plans/                    # Migration and assessment reports
 

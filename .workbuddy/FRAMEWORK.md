@@ -186,6 +186,22 @@ The following are handled by WorkBuddy natively and are NOT reimplemented:
 
 ---
 
+## Project Context Directory
+
+The `.workbuddy/context/` directory stores **project-specific domain knowledge** that the framework's governance layer references but does not define. It replaces the original `.opencode/context/` directory.
+
+| Subdirectory | Content | Examples |
+|-------------|---------|----------|
+| `code_standards/` | Coding conventions beyond generic enforcement | Backend/frontend/testing coding standards |
+| `detailed_design/` | Page/UI specifications | Page panorama, individual page designs (routes, guards, API contracts) |
+| `requirements/` | Architecture decisions, ADRs, security designs | PII encryption, timezone architecture, SAD, security architecture |
+
+**Integration with context7-first skill**: The skill searches `.workbuddy/context/` **before** external documentation, ensuring project-specific conventions take precedence over community docs.
+
+**Configuration**: `context.path` in `project.yaml` (default: `.workbuddy/context`)
+
+---
+
 ## MCP Servers
 
 The framework provides WorkBuddy-native MCP servers that replace the original `.opencode/scripts/mcp-tools/` with Markdown-state-compatible equivalents:

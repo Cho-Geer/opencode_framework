@@ -1,0 +1,1292 @@
+---
+trigger: manual
+alwaysApply: false
+---
+# 测试策略与计划
+
+## 1. 概述
+
+### 1.1 文档目的
+本文档定义Booking系统（Angular + NestJS重构版）的测试策略、测试类型、测试计划和质量标准，确保系统在功能、性能、安全和用户体验方面满足要求。本测试策略严格遵循RED/GREEN TDD（测试驱动开发）流程，确保代码质量与架构决策的一致性。
+
+### 1.2 测试范围
+- **后端API**: booking-backend (NestJS应用)
+- **前端应用**: booking-frontend (Angular应用)
+- **端到端流程**: 用户认证、预约管理、服务管理、邮件通知等完整业务流程
+- **非功能需求**: 性能、安全性、兼容性、可访问性
+- **TDD流程**: 单元测试、集成测试、端到端测试的RED/GREEN循环
+
+## 2. RED/GREEN TDD测试驱动设计
+
+### 2.1 TDD核心原则
+遵循"红-绿-重构"循环，确保所有功能均有测试覆盖：
+1. **RED**: 先编写失败的测试用例，定义预期行为
+2. **GREEN**: 编写最少代码使测试通过
+3. **REFACTOR**: 优化代码结构，保持测试通过
+
+### 2.2 TDD工作流程
+```
+开发新功能 → 编写单元测试(RED) → 实现功能(GREEN) → 重构
+         ↓
+编写集成测试(RED) → 集成实现(GREEN) → 重构
+         ↓
+编写E2E测试(RED) → 端到端验证(GREEN) → 交付
+```
+
+### 2.3 TDD质量门禁
+- **测试先行**: 任何新功能开发必须先写测试
+- **测试通过率**: 100%测试通过才能提交代码
+- **重构安全网**: 所有重构必须在测试保护下进行
+- **持续反馈**: 测试失败立即修复，保持代码库健康
+
+## 3. 测试金字塔策略
+
+### 3.1 测试层级划分
+```
+        ┌─────────────────┐
+        │   端到端测试     │ (10%)
+        │   (E2E测试)     │
+        └─────────────────┘
+               │
+        ┌─────────────────┐
+        │   集成测试       │ (20%)
+        │   (API测试)     │
+        └─────────────────┘
+               │
+        ┌─────────────────┐
+        │   单元测试       │ (70%)
+        │   (组件/服务测试)│
+        └─────────────────┘
+```
+
+### 3.2 各层级测试目标与TDD集成
+1. **单元测试**: 验证单个函数、组件、服务的正确性，采用TDD开发模式
+2. **集成测试**: 验证模块间接口和数据流正确性，在单元测试基础上进行
+3. **端到端测试**: 验证完整业务流程和用户体验，作为最终验收标准
+
+### 3.3 测试工具与技术栈对齐
+| 测试层级 | 前端工具 | 后端工具 | 技术栈依据 |
+|---------|---------|---------|----------|
+| **单元测试** | Jest + Angular Testing Library | Jest + ts-jest | [技术栈推荐方案3.4节](技术栈推荐方案.md#34-开发工具与质量) |
+| **集成测试** | 组件集成测试 | Jest + Supertest + Testcontainers | [系统架构设计文档4.3节](系统架构设计文档（SAD）.md#43-数据访问层) |
+| **端到端测试** | Playwright | - | [技术栈推荐方案3.4节](技术栈推荐方案.md#34-开发工具与质量) |
+
+## 4. 测试环境配置
+
+### 4.1 测试环境矩阵
+| 环境类型 | 后端 | 前端 | 数据库 | 缓存 | 用途 |
+|---------|------|------|--------|------|------|
+| **单元测试** | 模拟 | 模拟 | 内存数据库 | 模拟 | 快速验证逻辑，TDD开发 |
+| **集成测试** | 真实实例 | 真实实例 | Testcontainers | Testcontainers | 接口验证，模块集成 |
+| **端到端测试** | 真实实例 | 真实实例 | Testcontainers | Testcontainers | 完整流程验证，用户验收 |
+| **CI/CD测试** | 真实实例 | 真实实例 | Testcontainers | Testcontainers | 自动化验证，部署门禁 |
+
+### 4.2 测试数据管理
+1. **测试数据隔离**: 每个测试用例使用独立数据，避免相互影响
+2. **数据清理**: 测试完成后自动清理测试数据
+3. **数据工厂**: 使用工厂模式生成测试数据，支持TDD快速迭代。测试数据工厂统一存放在 `test/factories/` 目录，如 `user.factory.ts`、`appointment.factory.ts`、`service.factory.ts` 等
+4. **并发测试数据**: 针对高并发预约场景的特殊测试数据设计，符合[数据架构设计文档11.2节](数据架构设计文档.md#112-并发冲突处理场景)的并发场景
+
+## 5. 后端测试策略 (NestJS)
+
+### 5.1 单元测试 (TDD核心层)
+#### 5.1.1 测试框架
+- **框架**: Jest + ts-jest
+- **断言库**: Jest内置断言
+- **模拟库**: Jest Mock功能
+
+#### 5.1.2 覆盖率要求
+```javascript
+// jest.config.js中的覆盖率阈值
+coverageThreshold: {
+  global: {
+    branches: 70,    // 分支覆盖率 ≥70%
+    functions: 70,   // 函数覆盖率 ≥70%
+    lines: 70,       // 行覆盖率 ≥70%
+    statements: 70,  // 语句覆盖率 ≥70%
+  },
+}
+```
+
+#### 5.1.3 TDD测试范围
+1. **服务层测试**: 业务逻辑验证，包括预约冲突处理逻辑（基于[数据架构设计文档4.2节](数据架构设计文档.md#42-高并发优化策略)）
+2. **控制器测试**: 请求处理验证，符合[接口设计规范文档2.1节](接口设计规范文档.md#21-restful-api设计规范)
+3. **中间件测试**: 认证、授权、验证中间件，符合[安全架构设计文档3.1节](安全架构设计文档.md#31-认证体系)
+4. **工具函数测试**: 工具类、辅助函数
+5. **脚本测试**: 数据保留脚本等
+
+#### 5.1.4 排除项
+```javascript
+collectCoverageFrom: [
+  'src/**/*.(t|j)s',
+  '!src/main.ts',          // 入口文件
+  '!src/**/*.module.ts',   // 模块文件
+  '!src/**/*.dto.ts',      // DTO定义
+  '!src/**/*.entity.ts',   // 实体定义
+]
+```
+
+### 5.2 集成测试 (E2E测试)
+#### 5.2.1 测试框架
+- **框架**: Jest + Supertest + Testcontainers
+- **数据库**: PostgreSQL Testcontainers
+- **缓存**: Redis Testcontainers
+
+#### 5.2.2 测试配置
+```json
+// test/jest-e2e.json
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "setupFilesAfterEnv": ["./test/setup.ts"],
+  "globalTeardown": "./test/teardown.ts",
+  "testTimeout": 30000
+}
+```
+
+#### 5.2.3 测试用例覆盖
+| 测试套件 | 测试文件 | 主要测试场景 | TDD阶段 |
+|---------|---------|------------|--------|
+| **认证测试** | `auth.e2e-spec.ts` | 用户注册、登录、令牌刷新、登出 | 集成测试GREEN |
+| **邮箱验证码测试** | `email-verification.e2e-spec.ts` | 发送验证码、验证验证码、频率限制、类型隔离 | 集成测试GREEN |
+| **用户管理测试** | `users.e2e-spec.ts` | 用户信息查询、更新、删除 | 集成测试GREEN |
+| **预约管理测试** | `bookings.e2e-spec.ts` | 预约创建、查询、更新、取消 | 集成测试GREEN |
+| **并发预约测试** | `booking-concurrency.e2e-spec.ts` | 并发预约冲突处理，验证原子化抢占机制 | 集成测试GREEN |
+| **服务管理测试** | `services-admin.e2e-spec.ts` | 服务创建、更新、删除、查询 | 集成测试GREEN |
+| **邮件通知测试** | `email.e2e-spec.ts` | 预约确认、提醒邮件发送 | 集成测试GREEN |
+| **数据保留测试** | `retention.e2e-spec.ts` | 过期数据自动清理 | 集成测试GREEN |
+| **重置密码测试** | `reset-password.e2e-spec.ts` | 发送验证码、验证验证码、重置密码、限流 | 集成测试GREEN |
+
+#### 5.2.4 测试数据管理
+```typescript
+// test/setup.ts示例
+import { Test } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import { AppModule } from '../src/app.module';
+import { PrismaService } from '../src/prisma/prisma.service';
+
+let app: INestApplication;
+let prisma: PrismaService;
+
+beforeAll(async () => {
+  const moduleRef = await Test.createTestingModule({
+    imports: [AppModule],
+  }).compile();
+
+  app = moduleRef.createNestApplication();
+  await app.init();
+
+  prisma = app.get(PrismaService);
+  // 清理测试数据
+  await prisma.$executeRaw`TRUNCATE TABLE "User" CASCADE`;
+});
+
+afterAll(async () => {
+  await app.close();
+});
+```
+
+#### 5.2.5 邮箱验证码测试用例
+
+邮箱验证码功能测试遵循 TDD 开发流程，确保 Redis 存储、频率限制、类型隔离等安全机制的正确性。
+
+##### 后端单元测试 (RED/GREEN)
+```typescript
+// email-verification.service.spec.ts
+describe('EmailVerificationService', () => {
+  let service: EmailVerificationService;
+  let redisService: jest.Mocked<RedisService>;
+  let emailService: jest.Mocked<EmailService>;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        EmailVerificationService,
+        {
+          provide: RedisService,
+          useValue: {
+            setex: jest.fn(),
+            get: jest.fn(),
+            del: jest.fn(),
+          },
+        },
+        {
+          provide: EmailService,
+          useValue: {
+            sendVerificationCode: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<EmailVerificationService>(EmailVerificationService);
+    redisService = module.get(RedisService);
+    emailService = module.get(EmailService);
+  });
+
+  describe('sendCode', () => {
+    it('RED: 应生成6位数字验证码并存储到Redis', async () => {
+      // GIVEN: 有效的邮箱和验证码类型
+      const email = 'test@example.com';
+      const type = VerificationCodeType.REGISTER;
+
+      // WHEN: 发送验证码
+      await service.sendCode(email, type);
+
+      // THEN: 验证Redis存储调用
+      expect(redisService.setex).toHaveBeenCalledWith(
+        `verification:email:${email}:${type}`,
+        300, // TTL: 5分钟
+        expect.stringMatching(/^\d{6}$/), // 6位数字
+      );
+    });
+
+    it('GREEN: 应调用邮件服务发送验证码', async () => {
+      // GIVEN
+      const email = 'test@example.com';
+      const type = VerificationCodeType.REGISTER;
+
+      // WHEN
+      await service.sendCode(email, type);
+
+      // THEN
+      expect(emailService.sendVerificationCode).toHaveBeenCalledWith(
+        email,
+        expect.any(String),
+        type,
+      );
+    });
+  });
+
+  describe('verifyCode', () => {
+    it('RED: 验证码匹配时应返回true并删除Redis中的验证码', async () => {
+      // GIVEN: 存储的验证码
+      const storedCode = '123456';
+      redisService.get.mockResolvedValue(storedCode);
+
+      // WHEN: 验证正确验证码
+      const result = await service.verifyCode(
+        'test@example.com',
+        storedCode,
+        VerificationCodeType.REGISTER,
+      );
+
+      // THEN
+      expect(result).toBe(true);
+      expect(redisService.del).toHaveBeenCalledWith(
+        'verification:email:test@example.com:REGISTER',
+      );
+    });
+
+    it('RED: 验证码错误时应抛出异常', async () => {
+      // GIVEN: 存储的验证码
+      redisService.get.mockResolvedValue('123456');
+
+      // WHEN & THEN: 验证错误验证码
+      await expect(
+        service.verifyCode(
+          'test@example.com',
+          '654321', // 错误验证码
+          VerificationCodeType.REGISTER,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('GREEN: 验证码过期时应抛出异常', async () => {
+      // GIVEN: Redis中无存储的验证码
+      redisService.get.mockResolvedValue(null);
+
+      // WHEN & THEN
+      await expect(
+        service.verifyCode(
+          'test@example.com',
+          '123456',
+          VerificationCodeType.REGISTER,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+});
+```
+
+##### 后端集成测试 (RED/GREEN)
+```typescript
+// email-verification.e2e-spec.ts
+describe('Email Verification (e2e)', () => {
+  const app = new INestApplication();
+  const redisContainer = new RedisContainer().start();
+
+  beforeAll(async () => {
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await redisContainer.stop();
+    await app.close();
+  });
+
+  describe('POST /v1/auth/register/send-code', () => {
+    it('RED: 发送注册验证码应返回200', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/register/send-code')
+        .send({
+          contact: 'newuser@example.com',
+          contactType: 'email',
+        })
+        .expect(200);
+
+      expect(response.body.message).toContain('验证码已发送');
+      expect(response.body.data.expiresIn).toBe(300);
+    });
+
+    it('RED: 邮箱格式错误应返回400', async () => {
+      await request(app.getHttpServer())
+        .post('/v1/auth/register/send-code')
+        .send({
+          contact: 'invalid-email',
+          contactType: 'email',
+        })
+        .expect(400);
+    });
+
+    it('GREEN: 超过频率限制应返回429', async () => {
+      // 发送6次验证码（限制为5次/分钟）
+      for (let i = 0; i < 5; i++) {
+        await request(app.getHttpServer())
+          .post('/v1/auth/register/send-code')
+          .send({
+            contact: 'rate-limit@example.com',
+            contactType: 'email',
+          });
+      }
+
+      // 第6次应被限流
+      await request(app.getHttpServer())
+        .post('/v1/auth/register/send-code')
+        .send({
+          contact: 'rate-limit@example.com',
+          contactType: 'email',
+        })
+        .expect(429);
+    });
+  });
+
+  describe('POST /v1/auth/register/complete', () => {
+    it('RED: 正确验证码应验证成功', async () => {
+      // 1. 发送验证码
+      await request(app.getHttpServer())
+        .post('/v1/auth/register/send-code')
+        .send({
+          contact: 'verify@example.com',
+          contactType: 'email',
+        });
+
+      // 2. 从Redis获取验证码（测试环境）
+      const code = await redisContainer.getClient().get(
+        'verify:register:{contactHash}',
+      );
+
+      // 3. 验证验证码并完成注册
+      const verifyResponse = await request(app.getHttpServer())
+        .post('/v1/auth/register/complete')
+        .send({
+          contact: 'verify@example.com',
+          contactType: 'email',
+          code: code,
+          password: 'TestPass123',
+          name: 'Test User',
+        })
+        .expect(201);
+
+      expect(verifyResponse.body.data.accessToken).toBeDefined();
+    });
+
+    it('GREEN: 验证后验证码应被删除（一次性使用）', async () => {
+      // 发送验证码
+      await request(app.getHttpServer())
+        .post('/v1/auth/login/send-code')
+        .send({
+          contact: 'once@example.com',
+          contactType: 'email',
+        });
+
+      const code = await redisContainer.getClient().get(
+        'verify:login:{contactHash}',
+      );
+
+      // 完成登录验证（验证码一次性使用）
+      await request(app.getHttpServer())
+        .post('/v1/auth/login/verify-code')
+        .send({
+          contact: 'once@example.com',
+          contactType: 'email',
+          code: code,
+        });
+
+      // 验证码应已被删除
+      const deletedCode = await redisContainer.getClient().get(
+        'verify:login:{contactHash}',
+      );
+      expect(deletedCode).toBeNull();
+    });
+  });
+});
+```
+
+##### 测试覆盖矩阵
+| 测试场景 | 单元测试 | 集成测试 | E2E测试 |
+|---------|---------|---------|---------|
+| 验证码生成 | ✅ | ✅ | - |
+| Redis存储 | ✅ | ✅ | ✅ |
+| TTL过期 | ✅ | ✅ | ✅ |
+| 验证码匹配 | ✅ | ✅ | ✅ |
+| 验证码错误 | ✅ | ✅ | ✅ |
+| 频率限制 | - | ✅ | ✅ |
+| 类型隔离 | ✅ | ✅ | ✅ |
+| 一次性使用 | ✅ | ✅ | ✅ |
+| 邮箱格式验证 | - | ✅ | ✅ |
+
+#### 5.2.6 财务字段与超时测试场景 [v2.4.0]
+
+> **新增说明**：Service 模型新增 pricePerMinute/taxRate，Appointment 模型新增 durationMinutes/price/taxRate/taxIncludedAmount，需对应的集成测试覆盖。
+
+##### 测试用例清单
+
+| 用例 ID | 描述 | 测试层级 | 预期结果 |
+|---------|------|----------|----------|
+| **FIN-001** | 创建预约时验证 price/taxRate 从 Service 正确快照，含 overtimeMinutes 场景 | 集成测试 | Appointment.price == Service.price，Appointment.taxRate == Service.taxRate，overtime 字段正确持久化 |
+| **FIN-002** | 验证 taxIncludedAmount = price * (1 + taxRate) | 集成测试 | 计算值正确 |
+| **FIN-003** | Service 价格变更后不影响已有预约的快照值 | 集成测试 | 更新 Service.price 后，已有 Appointment.price 不变 |
+| **OVERTIME-001** | 超时预约：overtime_minutes 字段正确持久化至 Appointment.durationMinutes | 集成测试 | durationMinutes = 原始时长 + overtime_minutes |
+| **TAX-001** | taxRate 为 null 时 taxIncludedAmount 等于 price | 集成测试 | 空税率场景正确处理 |
+
+##### 后端集成测试示例 (FIN-001)
+
+```typescript
+// financial-fields.e2e-spec.ts
+describe('Financial Fields (e2e)', () => {
+  describe('POST /v1/appointments — price/taxRate snapshot', () => {
+    it('FIN-001: 创建预约时 price 和 taxRate 应从 Service 快照', async () => {
+      // 1. 创建带 pricePerMinute 和 taxRate 的 Service
+      const service = await createTestService({
+        price: 100.00,
+        pricePerMinute: 10.00,
+        taxRate: 0.0800,
+      });
+
+      // 2. 为该 Service 创建预约
+      const response = await request(app.getHttpServer())
+        .post('/v1/appointments')
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send({
+          timeSlotId: testSlot.id,
+          serviceId: service.id,
+          appointmentDate: '2026-05-15T10:00:00.000Z',
+          preferredSequence: 1,
+          customerInfo: {},
+        })
+        .expect(201);
+
+      // 3. 验证快照值
+      expect(response.body.data.booking.price).toBe(100.00);
+      expect(response.body.data.booking.taxRate).toBe(0.0800);
+      expect(response.body.data.booking.taxIncludedAmount).toBe(108.00);
+    });
+  });
+});
+```
+
+#### 5.2.8 Admin Dashboard 集成测试 [v2.1.0]
+
+> **新增说明**：Admin Dashboard 后台统计功能需要同时在集成测试（后端）和组件测试（前端）层级覆盖，确保统计卡片、趋势图、服务分布和时间分布四个维度的数据正确性。
+
+##### 测试用例清单
+
+| 用例 ID | 描述 | 测试层级 | 预期结果 |
+|---------|------|----------|----------|
+| **DASH-001** | 验证核心统计卡片返回正确的嵌套 `StatCardDto` 结构 | 集成测试 (Backend) | HTTP 200，响应包含 `todayBookings`/`pendingBookings`/`activeUsers`/`totalRevenue` 四个 `StatCardDto`，每个含 `value`/`changePercentage`/`isPositive`/`target`/`progressPercentage` |
+| **DASH-002** | 验证预约趋势返回 `{date, count, revenue}[]` 数组且每项字段完整 | 集成测试 (Backend) | HTTP 200，`data` 为数组且长度 > 0，每项包含 `date`/`count`/`revenue` 字段 |
+| **DASH-003** | 验证服务分布返回 `serviceName`/`count`/`percentage` 字段且 percentage 之和为 100 | 集成测试 (Backend) | HTTP 200，所有项的 `percentage` 之和 ≈ 100（允许浮点误差） |
+| **DASH-004** | 验证时间分布返回 `hour` (0-23) / `count` 字段 | 集成测试 (Backend) | HTTP 200，每个项包含 `hour` 和 `count` 属性 |
+
+##### 组件测试 (Frontend)
+
+| 用例 ID | 描述 | 测试层级 | 预期结果 |
+|---------|------|----------|----------|
+| **DASH-FE-001** | 验证 Dashboard 组件渲染统计卡片正确显示数值和进度条 | 组件测试 (Frontend) | 卡片渲染 4 个统计值，进度条宽度与 `progressPercentage` 一致 |
+| **DASH-FE-002** | 验证 Chart.js 趋势图绑定 `data: {date, count, revenue}[]` 对象数组正确 | 组件测试 (Frontend) | Chart.js 实例接收正确数据集，`data` 数组每项含 `date`/`count`/`revenue` 字段 |
+| **DASH-FE-003** | 验证服务分布环形图数据绑定正确 | 组件测试 (Frontend) | 环形图段数与服务数量一致，标签显示 `serviceName` + `percentage` |
+
+##### 覆盖率要求
+
+- **后端**: Admin Stats Service 所有方法覆盖率 ≥ 70%（lines/branches/functions/statements）
+- **前端**: Dashboard 相关组件覆盖率 ≥ 70%
+- **测试级别**: 集成测试 (Backend) + 组件测试 (Frontend)
+
+##### 后端集成测试示例 (DASH-001)
+
+```typescript
+// admin-stats.e2e-spec.ts
+describe('Admin Dashboard Stats (e2e)', () => {
+  describe('GET /v1/admin/stats', () => {
+    it('DASH-001: 应返回正确的 StatCardDto 嵌套结构', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/v1/admin/stats?timeRange=last7d')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const { data } = response.body;
+      
+      // 验证四个核心统计卡片的结构
+      const cardFields = ['todayBookings', 'pendingBookings', 'activeUsers', 'totalRevenue'];
+      for (const field of cardFields) {
+        expect(data[field]).toMatchObject({
+          value: expect.any(Number),
+          changePercentage: expect.any(Number),
+          isPositive: expect.any(Boolean),
+          target: expect.any(Number),
+          progressPercentage: expect.any(Number),
+        });
+      }
+    });
+
+    it('DASH-002: 预约趋势应返回数组且每项字段完整', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/v1/admin/stats/booking-trends?range=weekly&granularity=day')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const data = response.body.data;
+      expect(Array.isArray(data)).toBe(true);
+      expect(data.length).toBeGreaterThan(0);
+      for (const item of data) {
+        expect(item).toHaveProperty('date');
+        expect(item).toHaveProperty('count');
+        expect(item).toHaveProperty('revenue');
+        expect(typeof item.date).toBe('string');
+        expect(typeof item.count).toBe('number');
+        expect(typeof item.revenue).toBe('number');
+      }
+    });
+
+    it('DASH-003: 服务分布 percentage 之和应接近 100', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/v1/admin/stats/service-distribution?timeRange=last30d')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const totalPercentage = response.body.data.reduce(
+        (sum: number, item: any) => sum + item.percentage, 0
+      );
+      expect(totalPercentage).toBeCloseTo(100, 0); // 允许 ±0.5 浮点误差
+    });
+
+    it('DASH-004: 时间分布应包含 hour 和 count 字段', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/v1/admin/stats/time-distribution?timeRange=last7d')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      for (const item of response.body.data) {
+        expect(item).toHaveProperty('hour');
+        expect(item).toHaveProperty('count');
+        expect(item.hour).toBeGreaterThanOrEqual(0);
+        expect(item.hour).toBeLessThanOrEqual(23);
+        expect(item.count).toBeGreaterThanOrEqual(0);
+      }
+    });
+  });
+});
+```
+
+#### 5.2.7 重置密码测试场景 [v2.2.0]
+
+> **新增说明**：contract.yaml v1.6.5 新增 RESET-PW-001（POST /v1/auth/reset-password/send-code）和 RESET-PW-002（POST /v1/auth/reset-password/verify）端点，需要对应的集成测试和 E2E 测试覆盖。
+
+##### 测试用例清单
+
+| 用例 ID | 描述 | 测试层级 | 预期结果 |
+|---------|------|----------|----------|
+| **RESET-PW-001-A** | 发送重置密码验证码：有效已注册 contact 应返回 200 | 集成测试 (Backend) | HTTP 200，`data.expiresIn === 300` |
+| **RESET-PW-001-B** | 发送重置密码验证码：未注册 contact 应静默返回 200（防用户枚举） | 集成测试 (Backend) | HTTP 200，不泄露用户是否存在 |
+| **RESET-PW-001-C** | 发送重置密码验证码：超过限流（6次/分钟）应返回 429 | 集成测试 (Backend) | 前 5 次 200，第 6 次 429 |
+| **RESET-PW-001-D** | 发送重置密码验证码：无效 contact 格式应返回 400 | 集成测试 (Backend) | HTTP 400，错误码 VALIDATION_ERROR |
+| **RESET-PW-002-A** | 验证并重置密码：正确验证码 + 合规新密码应返回 200 | 集成测试 (Backend) | HTTP 200，`message === "密码重置成功"`，使用新密码可登录 |
+| **RESET-PW-002-B** | 验证并重置密码：错误验证码应返回 400 | 集成测试 (Backend) | HTTP 400，提示"验证码无效" |
+| **RESET-PW-002-C** | 验证并重置密码：过期验证码应返回 400 | 集成测试 (Backend) | 等待 Redis TTL 过期后，HTTP 400 |
+| **RESET-PW-002-D** | 验证并重置密码：新密码不符合强度规则（< 8 位）应返回 400 | 集成测试 (Backend) | HTTP 400，VALIDATION_ERROR |
+| **RESET-PW-002-E** | 验证并重置密码：重置后使用旧密码登录应返回 401 | 集成测试 (Backend) | 旧密码失效，HTTP 401 |
+
+##### 后端集成测试示例
+
+```typescript
+// reset-password.e2e-spec.ts
+describe('Reset Password (e2e)', () => {
+
+  describe('POST /v1/auth/reset-password/send-code', () => {
+    it('RESET-PW-001-A: 已注册邮箱应发送验证码并返回 200', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/reset-password/send-code')
+        .send({
+          contact: 'registered@example.com',
+          contactType: 'email',
+        })
+        .expect(200);
+
+      expect(response.body.data.expiresIn).toBe(300);
+      expect(response.body.message).toContain('验证码已发送');
+    });
+
+    it('RESET-PW-001-B: 未注册邮箱应静默返回 200（防枚举）', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/reset-password/send-code')
+        .send({
+          contact: 'nonexistent@example.com',
+          contactType: 'email',
+        })
+        .expect(200);
+
+      // 响应中不应泄露用户是否存在
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.expiresIn).toBe(300);
+    });
+
+    it('RESET-PW-001-C: 超过限流应返回 429', async () => {
+      // 5次/分钟/contact 限流
+      for (let i = 0; i < 5; i++) {
+        await request(app.getHttpServer())
+          .post('/v1/auth/reset-password/send-code')
+          .send({ contact: 'ratelimit@example.com', contactType: 'email' })
+          .expect(200);
+      }
+
+      // 第6次应被限流
+      await request(app.getHttpServer())
+        .post('/v1/auth/reset-password/send-code')
+        .send({ contact: 'ratelimit@example.com', contactType: 'email' })
+        .expect(429);
+    });
+  });
+
+  describe('POST /v1/auth/reset-password/verify', () => {
+    it('RESET-PW-002-A: 正确验证码应重置密码成功', async () => {
+      // 1. 发送验证码
+      await request(app.getHttpServer())
+        .post('/v1/auth/reset-password/send-code')
+        .send({ contact: 'reset-test@example.com', contactType: 'email' });
+
+      // 2. 从 Redis 获取验证码
+      const code = await redisClient.get('verify:reset:{contactHash}');
+
+      // 3. 验证并重置密码
+      const response = await request(app.getHttpServer())
+        .post('/v1/auth/reset-password/verify')
+        .send({
+          contact: 'reset-test@example.com',
+          contactType: 'email',
+          code: code,
+          newPassword: 'NewSecureP@ss123',
+        })
+        .expect(200);
+
+      expect(response.body.message).toBe('密码重置成功');
+    });
+
+    it('RESET-PW-002-D: 新密码不足 8 位应返回 400', async () => {
+      await request(app.getHttpServer())
+        .post('/v1/auth/reset-password/send-code')
+        .send({ contact: 'shortpwd@example.com', contactType: 'email' });
+
+      const code = await redisClient.get('verify:reset:{contactHash}');
+
+      await request(app.getHttpServer())
+        .post('/v1/auth/reset-password/verify')
+        .send({
+          contact: 'shortpwd@example.com',
+          contactType: 'email',
+          code: code,
+          newPassword: 'short', // < 8 位
+        })
+        .expect(400);
+    });
+
+    it('RESET-PW-002-E: 重置后旧密码应失效', async () => {
+      // 使用新密码登录成功
+      const loginRes = await request(app.getHttpServer())
+        .post('/v1/auth/login/password')
+        .send({
+          contact: 'reset-test@example.com',
+          contactType: 'email',
+          password: 'NewSecureP@ss123',
+        })
+        .expect(200);
+
+      expect(loginRes.body.data.accessToken).toBeDefined();
+
+      // 旧密码登录应失败
+      await request(app.getHttpServer())
+        .post('/v1/auth/login/password')
+        .send({
+          contact: 'reset-test@example.com',
+          contactType: 'email',
+          password: 'OldPassword123',
+        })
+        .expect(401);
+    });
+  });
+});
+```
+
+##### 测试覆盖矩阵（重置密码）
+
+| 测试场景 | 单元测试 | 集成测试 | E2E测试 |
+|---------|---------|---------|---------|
+| 发送验证码（已注册用户） | ✅ | ✅ | ✅ |
+| 发送验证码（未注册用户，防枚举） | ✅ | ✅ | - |
+| 发送验证码限流（5次/分钟） | - | ✅ | ✅ |
+| 验证码匹配 | ✅ | ✅ | ✅ |
+| 验证码错误提示 | ✅ | ✅ | ✅ |
+| 验证码过期处理 | ✅ | ✅ | - |
+| 新密码强度校验 | ✅ | ✅ | ✅ |
+| 新密码持久化（登录验证） | - | ✅ | ✅ |
+| 旧密码失效验证 | - | ✅ | - |
+
+##### E2E 测试场景扩展
+
+在 §6.2.4 的 E2E 测试场景覆盖中新增：
+- **忘记密码流程**：点击登录页「忘记密码」链接 → 输入 contact → 发送验证码 → 输入验证码 + 新密码 → 重置成功 → 跳转登录页使用新密码登录
+
+```typescript
+// e2e/forgot-password.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('忘记密码功能', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/auth/login');
+  });
+
+  test('点击忘记密码链接应跳转到忘记密码页面', async ({ page }) => {
+    await page.click('button:has-text("忘记密码")');
+    await expect(page).toHaveURL('/auth/forgot-password');
+  });
+
+  test('发送验证码按钮应正常工作', async ({ page }) => {
+    await page.goto('/auth/forgot-password');
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.click('button:has-text("发送验证码")');
+    await expect(page.locator('.toast-success')).toContainText('验证码已发送');
+  });
+
+  test('完整的忘记密码流程', async ({ page }) => {
+    await page.goto('/auth/forgot-password');
+    
+    // Step 1: 输入邮箱并发送验证码
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.click('button:has-text("发送验证码")');
+    await expect(page.locator('input[placeholder*="验证码"]')).toBeVisible();
+
+    // Step 2: 输入验证码和新密码
+    await page.fill('input[placeholder*="验证码"]', '123456');
+    await page.fill('input[type="password"]', 'NewSecureP@ss123');
+    await page.click('button:has-text("重置密码")');
+
+    // 验证成功提示
+    await expect(page.locator('.toast-success')).toContainText('密码重置成功');
+    
+    // 应跳转到登录页
+    await expect(page).toHaveURL('/auth/login');
+  });
+
+  test('错误验证码应显示错误提示', async ({ page }) => {
+    await page.goto('/auth/forgot-password');
+    await page.fill('input[type="email"]', 'test@example.com');
+    await page.click('button:has-text("发送验证码")');
+    await page.fill('input[placeholder*="验证码"]', '000000');
+    await page.fill('input[type="password"]', 'NewSecureP@ss123');
+    await page.click('button:has-text("重置密码")');
+    await expect(page.locator('.toast-error')).toContainText('验证码无效');
+  });
+});
+```
+
+### 5.3 性能测试
+#### 5.3.1 测试场景
+1. **API响应时间**: 关键API端点P95响应时间 < 500ms（符合[技术栈推荐方案1.2节](技术栈推荐方案.md#12-非功能需求)）
+2. **并发处理**: 支持100+并发用户同时预约，验证原子化抢占机制
+3. **数据库性能**: 复杂查询执行时间 < 100ms
+
+#### 5.3.2 测试工具
+- **负载测试**: k6, Artillery
+- **性能监控**: Node.js性能监控、数据库查询分析
+- **性能测试脚本存放位置**: 所有性能测试脚本统一存放在 `test/performance/` 目录，由CI定时触发执行
+
+#### 5.3.3 k6负载测试示例
+以下是一个简化的k6测试脚本示例，用于测试预约创建API的并发性能：
+
+```javascript
+// test/performance/booking-create-load-test.js
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+import { Trend, Rate, Counter } from 'k6/metrics';
+
+// 自定义指标
+const bookingSuccessRate = new Rate('booking_success_rate');
+const bookingDuration = new Trend('booking_duration');
+const bookingErrors = new Counter('booking_errors');
+
+// 测试配置
+export const options = {
+  stages: [
+    { duration: '30s', target: 50 },   // 30秒内逐步增加到50个虚拟用户
+    { duration: '1m', target: 100 },   // 1分钟内保持在100个虚拟用户
+    { duration: '30s', target: 0 },    // 30秒内逐步减少到0
+  ],
+  thresholds: {
+    'http_req_duration': ['p(95)<500'], // 95%的请求响应时间小于500ms
+    'booking_success_rate': ['rate>0.95'], // 成功率大于95%
+    'http_req_failed': ['rate<0.05'],   // 失败率小于5%
+  },
+};
+
+// 初始化函数（可选）
+export function setup() {
+  // 获取测试令牌或其他初始化操作
+  const loginRes = http.post('http://localhost:3000/auth/login', {
+    phone: 'test-user',
+    password: 'test-password',
+  });
+  
+  return { authToken: loginRes.json('token') };
+}
+
+// 主测试函数
+export default function (data) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${data.authToken}`,
+  };
+  
+  const payload = JSON.stringify({
+    serviceId: 'test-service-id',
+    slotId: 'test-slot-id',
+    customerName: 'Test User',
+    customerPhone: '13800138000',
+    notes: '性能测试预约',
+  });
+  
+  const startTime = Date.now();
+  const response = http.post(
+    'http://localhost:3000/api/bookings',
+    payload,
+    { headers }
+  );
+  const endTime = Date.now();
+  
+  // 验证响应
+  const success = check(response, {
+    'status is 201': (r) => r.status === 201,
+    'response has bookingId': (r) => r.json('bookingId') !== undefined,
+  });
+  
+  // 记录指标
+  bookingSuccessRate.add(success);
+  bookingDuration.add(endTime - startTime);
+  
+  if (!success) {
+    bookingErrors.add(1);
+    console.error(`请求失败: ${response.status} - ${response.body}`);
+  }
+  
+  sleep(1); // 每个虚拟用户请求间隔1秒
+}
+
+// 清理函数（可选）
+export function teardown(data) {
+  // 清理测试数据或其他清理操作
+  console.log('性能测试完成');
+}
+```
+
+**执行命令**：
+```bash
+# 本地运行性能测试
+k6 run test/performance/booking-create-load-test.js
+
+# 指定虚拟用户数和持续时间
+k6 run --vus 100 --duration 30s test/performance/booking-create-load-test.js
+
+# CI/CD中运行性能测试
+npm run test:performance
+```
+
+## 6. 前端测试策略 (Angular)
+
+### 6.1 单元测试 (TDD核心层)
+#### 6.1.1 测试框架
+- **框架**: Jest + Angular Testing Library
+- **DOM测试**: @testing-library/dom
+- **Angular测试**: @testing-library/angular
+- **用户交互**: @testing-library/user-event
+
+#### 6.1.2 测试范围
+1. **组件测试**: UI组件渲染和交互，包括PrimeNG组件集成测试
+2. **Service测试**: Angular服务测试，包括HTTP客户端测试
+3. **NgRx Signals测试**: 状态管理逻辑测试（基于[技术栈推荐方案3.1节](技术栈推荐方案.md#31-核心框架)的NgRx Signals方案）
+4. **工具函数测试**: 工具类、格式化函数
+5. **表单测试**: 响应式表单验证和提交
+
+#### 6.1.3 NgRx Signals测试模式
+```typescript
+// NgRx Signals状态管理测试示例
+describe('BookingStore', () => {
+  let store: BookingStore;
+  
+  beforeEach(() => {
+    store = new BookingStore();
+  });
+  
+  it('should initialize with empty bookings', () => {
+    expect(store.bookings()).toEqual([]);
+  });
+  
+  it('should add booking to store', () => {
+    const booking = createTestBooking();
+    store.addBooking(booking);
+    
+    expect(store.bookings()).toContain(booking);
+    expect(store.bookingsCount()).toBe(1);
+  });
+});
+```
+
+#### 6.1.4 测试配置
+```javascript
+// jest.config.js中的Angular配置
+module.exports = {
+  preset: 'jest-preset-angular',
+  setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/dist/'],
+  globals: {
+    'ts-jest': {
+      tsconfig: '<rootDir>/tsconfig.spec.json',
+      stringifyContentPathRegex: '\\.(html|svg)$',
+    },
+  },
+  moduleNameMapper: {
+    '@app/(.*)': '<rootDir>/src/app/$1',
+    '@core/(.*)': '<rootDir>/src/app/core/$1',
+    '@shared/(.*)': '<rootDir>/src/app/shared/$1',
+  },
+};
+```
+
+### 6.2 端到端测试 (E2E测试)
+#### 6.2.1 测试框架
+- **框架**: Playwright
+- **浏览器**: Chromium (默认)、Firefox、WebKit
+- **测试模式**: 无头模式、有头模式、UI模式
+
+#### 6.2.2 测试脚本
+```bash
+# 运行E2E测试
+npm run test:e2e           # 无头模式
+npm run test:e2e:headed    # 有头模式
+npm run test:e2e:ui        # UI模式
+npm run test:e2e:debug     # 调试模式
+```
+
+#### 6.2.3 测试环境要求
+1. **后端服务**: 运行中的后端API服务
+2. **数据库**: PostgreSQL数据库
+3. **缓存**: Redis缓存
+4. **邮件服务**: 测试邮件服务或模拟
+
+#### 6.2.4 测试场景覆盖
+1. **用户注册流程**: 新用户注册、验证码验证
+2. **邮箱验证码流程**: 发送验证码、输入验证码、验证成功/失败反馈
+3. **登录流程**: 用户登录、记住我功能
+4. **预约流程**: 选择服务、选择时间、填写信息、确认预约
+5. **预约管理**: 查看预约列表、取消预约、重新预约
+6. **服务管理** (管理员): 服务创建、编辑、删除
+7. **用户管理** (管理员): 用户查询、状态管理
+
+#### 6.2.5 邮箱验证码前端E2E测试用例
+
+```typescript
+// e2e/email-verification.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('邮箱验证码功能', () => {
+  test.beforeEach(async ({ page }) => {
+    // 访问注册页面
+    await page.goto('/register');
+  });
+
+  test('发送验证码按钮应正常工作', async ({ page }) => {
+    // 填写邮箱
+    await page.fill('input[type="email"]', 'test@example.com');
+
+    // 点击发送验证码按钮
+    await page.click('button:has-text("发送验证码")');
+
+    // 验证成功提示
+    await expect(page.locator('.toast-success')).toContainText('验证码已发送');
+  });
+
+  test('验证码输入框应在发送后显示', async ({ page }) => {
+    // 填写邮箱
+    await page.fill('input[type="email"]', 'test@example.com');
+
+    // 点击发送验证码
+    await page.click('button:has-text("发送验证码")');
+
+    // 验证码输入框应显示
+    await expect(page.locator('input[placeholder*="验证码"]')).toBeVisible();
+  });
+
+  test('错误验证码应显示错误提示', async ({ page }) => {
+    // 填写邮箱
+    await page.fill('input[type="email"]', 'test@example.com');
+
+    // 点击发送验证码
+    await page.click('button:has-text("发送验证码")');
+
+    // 输入错误验证码
+    await page.fill('input[placeholder*="验证码"]', '000000');
+
+    // 点击验证
+    await page.click('button:has-text("验证")');
+
+    // 应显示错误提示
+    await expect(page.locator('.toast-error')).toContainText('验证码错误');
+  });
+
+  test('60秒倒计时应正确显示', async ({ page }) => {
+    // 填写邮箱
+    await page.fill('input[type="email"]', 'test@example.com');
+
+    // 点击发送验证码
+    await page.click('button:has-text("发送验证码")');
+
+    // 按钮应显示倒计时
+    const button = page.locator('button:has-text("重新发送")');
+    await expect(button).toBeVisible();
+    await expect(button).toContainText('60');
+  });
+});
+```
+
+### 6.3 可访问性测试
+#### 6.3.1 测试标准
+- **WCAG 2.1 AA**: Web内容可访问性指南
+- **键盘导航**: 所有功能可通过键盘访问
+- **屏幕阅读器**: 兼容主流屏幕阅读器
+- **颜色对比度**: 文本与背景对比度 ≥ 4.5:1
+
+#### 6.3.2 测试工具
+- **自动化测试**: axe-core, pa11y
+- **手动测试**: 键盘导航测试、屏幕阅读器测试
+- **PrimeNG可访问性**: PrimeNG组件库内置可访问性支持测试
+
+## 7. 安全性测试
+
+### 7.1 安全测试类型
+| 测试类型 | 测试方法 | 测试工具 | 安全架构依据 |
+|---------|---------|---------|------------|
+| **身份验证测试** | 密码策略、会话管理、令牌安全 | OWASP ZAP、Burp Suite | [安全架构设计文档3.1节](安全架构设计文档.md#31-认证体系) |
+| **邮箱验证码安全测试** | 频率限制、类型隔离、一次性验证 | 自动化脚本、压测工具 | [安全架构设计文档2.3.3节](安全架构设计文档.md#233-邮箱验证码存储安全策略) |
+| **授权测试** | 角色权限、功能访问控制 | 手动测试、自动化脚本 | [安全架构设计文档3.2节](安全架构设计文档.md#32-授权体系) |
+| **输入验证测试** | SQL注入、XSS、CSRF防护 | SQLMap、XSS检测工具 | [安全架构设计文档5.2节](安全架构设计文档.md#52-输入验证与数据脱敏) |
+| **API安全测试** | 端点保护、速率限制、数据暴露 | Postman、自动化测试 | [接口设计规范文档2.3节](接口设计规范文档.md#23-安全规范) |
+| **Angular安全测试** | XSS防护、CSP策略、安全头 | Angular安全扫描 | [安全架构设计文档5.3节](安全架构设计文档.md#53-应用安全设计) |
+
+### 7.2 邮箱验证码安全测试用例
+| 测试场景 | 测试方法 | 预期结果 | 严重级别 |
+|---------|---------|---------|---------|
+| 验证码暴力枚举 | 快速提交多次错误验证码 | 应返回429限流错误 | 严重 |
+| 验证码重放攻击 | 使用过期验证码验证 | 应返回"验证码已过期"错误 | 严重 |
+| 验证码类型混淆 | 使用REGISTER验证码验证LOGIN操作 | 应返回验证失败 | 严重 |
+| 频率限制绕过 | 同一邮箱快速切换类型发送 | 应受频率限制约束 | 一般 |
+| Redis键注入 | 邮箱字段包含特殊字符 | 应正确转义或拒绝 | 严重 |
+
+### 7.3 安全测试计划
+1. **静态代码分析**: 使用ESLint安全规则，集成到CI/CD流程
+2. **依赖漏洞扫描**: npm audit定期扫描，自动修复策略
+3. **动态安全测试**: OWASP Top 10漏洞测试，每月执行
+4. **渗透测试**: 定期安全评估，每季度执行
+5. **密钥安全测试**: 验证密钥管理符合[安全架构设计文档4.1节](安全架构设计文档.md#41-密钥生命周期管理)
+
+## 8. 测试自动化与CI/CD
+
+### 8.1 CI/CD集成测试
+#### 8.1.1 GitHub Actions工作流
+| 工作流 | 触发条件 | 测试类型 | TDD阶段 |
+|-------|---------|---------|--------|
+| **后端镜像构建** | PR/push到main/develop | 单元测试、集成测试 | RED/GREEN验证 |
+| **前端镜像构建** | PR/push到main/develop | 单元测试、构建验证 | RED/GREEN验证 |
+| **部署验证** | PR/push到main/develop | 镜像验证、部署测试 | 部署前验证 |
+| **E2E测试** | 定时任务/手动触发 | 完整端到端测试 | 最终验收 |
+
+#### 8.1.2 测试执行策略
+1. **PR验证**: PR创建时运行快速测试套件，确保TDD流程完整性
+2. **主分支合并**: 合并前运行完整测试套件，包括性能和安全测试
+3. **定时测试**: 每日运行端到端测试，确保系统稳定性
+4. **发布前测试**: 版本发布前运行所有测试，包括回归测试
+
+### 8.2 测试数据管理
+#### 8.2.1 测试数据策略
+1. **独立测试数据库**: 每个测试运行使用独立数据库实例，避免数据污染
+2. **测试数据工厂**: 使用工厂模式生成测试数据，支持TDD快速迭代。测试数据工厂统一存放在 `test/factories/` 目录，如 `user.factory.ts`、`appointment.factory.ts`、`service.factory.ts` 等
+3. **数据清理**: 测试完成后自动清理测试数据，保持环境清洁
+4. **并发测试数据**: 针对高并发场景的特殊数据生成，验证原子化抢占机制
+
+#### 8.2.2 环境变量管理
+```yaml
+# GitHub Actions中的环境变量
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgresql://postgres:test@localhost:5432/booking_test
+  REDIS_URL: redis://localhost:6379
+  JWT_SECRET: test-jwt-secret
+  JWT_REFRESH_SECRET: test-refresh-secret
+  # 密钥管理测试环境变量
+  VAULT_ADDR: http://localhost:8200
+  VAULT_TOKEN: test-token
+```
+
+## 9. 测试执行计划
+
+### 9.1 测试阶段划分与TDD集成
+| 测试阶段 | 时间安排 | 测试重点 | TDD阶段 | 参与人员 |
+|---------|---------|---------|--------|---------|
+| **单元测试** | 开发过程中 | 代码逻辑正确性 | RED/GREEN循环 | 开发人员 |
+| **集成测试** | 功能开发完成后 | 接口和数据流 | 集成GREEN | 开发人员、测试人员 |
+| **系统测试** | 版本发布前 | 完整系统功能 | 系统验收 | 测试人员 |
+| **验收测试** | 发布前 | 用户需求满足度 | 用户验收 | 产品经理、用户代表 |
+| **回归测试** | 每次发布后 | 现有功能稳定性 | 回归验证 | 测试人员 |
+
+### 9.2 测试资源计划
+#### 9.2.1 人力资源
+- **测试负责人**: 1名
+- **自动化测试工程师**: 1-2名
+- **开发人员自测**: 所有开发人员（负责TDD单元测试）
+- **用户代表**: 产品经理、业务人员
+
+#### 9.2.2 环境资源
+- **测试服务器**: 2台 (开发测试、预发布测试)
+- **测试数据库**: PostgreSQL实例
+- **测试缓存**: Redis实例
+- **测试工具**: Jest、Playwright、Testcontainers许可证
+
+## 10. 缺陷管理
+
+### 10.1 缺陷分类
+| 严重级别 | 定义 | 解决时限 | TDD处理 |
+|---------|------|---------|--------|
+| **致命** | 系统崩溃、数据丢失、安全漏洞 | 24小时内 | 立即编写测试(RED)，修复(GREEN) |
+| **严重** | 核心功能无法使用 | 3个工作日内 | 编写回归测试(RED)，修复(GREEN) |
+| **一般** | 次要功能问题、界面问题 | 1-2个迭代周期 | 编写测试(RED)，计划修复 |
+| **轻微** | 界面细节、文字错误 | 后续版本修复 | 记录待修复 |
+
+### 10.2 缺陷跟踪
+- **跟踪工具**: GitHub Issues
+- **工作流**: New → Triaged → In Progress → Resolved → Closed
+- **统计指标**: 缺陷密度、解决率、重开率
+- **TDD集成**: 每个缺陷必须附带测试用例，确保不复发
+
+## 11. 测试质量指标
+
+### 11.1 测试覆盖率指标
+| 指标 | 目标值 | 测量方法 | TDD要求 |
+|------|-------|---------|--------|
+| **单元测试覆盖率** | ≥70% | Jest覆盖率报告 | TDD开发强制要求 |
+| **集成测试覆盖率** | ≥80% | 测试用例统计 | 集成测试GREEN要求 |
+| **端到端测试覆盖率** | ≥90% | 业务流程覆盖率 | 最终验收标准 |
+| **代码行覆盖率** | ≥70% | 综合覆盖率报告 | 质量门禁 |
+
+### 11.2 缺陷质量指标
+| 指标 | 目标值 | 测量周期 | TDD影响 |
+|------|-------|---------|--------|
+| **缺陷泄漏率** | <5% | 每次发布 | TDD降低泄漏率 |
+| **缺陷重开率** | <10% | 每月统计 | 测试覆盖降低重开率 |
+| **平均修复时间** | <3天 | 每月统计 | TDD加速修复 |
+| **用户满意度** | ≥90% | 每次发布后 | 质量提升满意度 |
+
+### 11.3 性能指标
+| 指标 | 目标值 | 测量方法 | 架构依据 |
+|------|-------|---------|----------|
+| **API响应时间(P95)** | <500ms | 性能测试 | [技术栈推荐方案1.2节](技术栈推荐方案.md#12-非功能需求) |
+| **页面加载时间** | <3秒 | 前端性能测试 | 用户体验要求 |
+| **并发用户数** | ≥100 | 负载测试 | 高并发要求 |
+| **系统可用性** | ≥99.5% | 监控数据 | SLA要求 |
+
+## 12. 风险与应对
+
+### 12.1 测试风险识别
+| 风险类型 | 可能性 | 影响程度 | 应对措施 | TDD缓解 |
+|---------|--------|---------|---------|--------|
+| **测试环境不稳定** | 中 | 高 | 环境监控、快速恢复机制 | 单元测试不依赖环境 |
+| **测试数据污染** | 中 | 中 | 数据隔离、定期清理 | 测试数据工厂 |
+| **自动化测试维护成本** | 高 | 中 | 模块化设计、定期重构 | TDD降低维护成本 |
+| **性能测试资源不足** | 低 | 高 | 云资源弹性扩展 | 早期性能测试 |
+| **安全测试深度不足** | 中 | 高 | 第三方安全评估 | 安全测试TDD集成 |
+
+### 12.2 应急计划
+1. **测试环境故障**: 备用环境切换流程，保持TDD开发继续
+2. **测试数据丢失**: 数据备份和恢复流程，测试数据工厂重建
+3. **测试工具故障**: 备用测试方案，本地测试优先
+4. **测试人员变动**: 知识库和文档管理，TDD流程标准化
+
+## 13. 附录
+
+### 13.1 测试工具清单
+| 工具类型 | 工具名称 | 版本 | 用途 | 技术栈依据 |
+|---------|---------|------|------|----------|
+| **单元测试框架** | Jest | 29.7.0+ | JavaScript测试 | [技术栈推荐方案3.4节](技术栈推荐方案.md#34-开发工具与质量) |
+| **Angular测试库** | Angular Testing Library | 最新 | Angular组件测试 | Angular官方推荐 |
+| **端到端测试框架** | Playwright | 最新 | 浏览器自动化 | [技术栈推荐方案3.4节](技术栈推荐方案.md#34-开发工具与质量) |
+| **API测试工具** | Supertest | 6.3.4+ | HTTP API测试 | NestJS生态标准 |
+| **测试容器** | Testcontainers | 11.6.0+ | 数据库和缓存测试 | 集成测试标准 |
+| **代码覆盖率** | Istanbul | 内置 | 覆盖率统计 | Jest集成 |
+| **性能测试** | k6 | 最新 | 负载测试 | 性能测试标准 |
+
+### 13.2 相关文档
+1. [技术栈推荐方案](技术栈推荐方案.md) - 测试工具选型依据
+2. [系统架构设计文档（SAD）](系统架构设计文档（SAD）.md) - 测试分层架构依据
+3. [接口设计规范文档](接口设计规范文档.md) - API测试规范依据
+4. [数据架构设计文档](数据架构设计文档.md) - 数据库测试策略依据
+5. [安全架构设计文档](安全架构设计文档.md) - 安全测试策略依据
+
+### 13.3 TDD检查清单
+- [ ] 新功能开发前是否编写了失败的测试(RED)?
+- [ ] 实现代码是否使所有测试通过(GREEN)?
+- [ ] 重构是否在测试保护下进行?
+- [ ] 测试覆盖率是否达到目标阈值?
+- [ ] 缺陷修复是否包含回归测试?
+
+### 13.4 测试团队联系方式
+- **测试负责人**: [姓名]
+- **自动化测试工程师**: [姓名]
+- **性能测试专家**: [姓名]
+- **安全测试专家**: [姓名]
+
+---
+*文档版本: 2.4.0 (Angular+NestJS重构版)*
+*最后更新: 2026-05-11*
+*维护团队: 质量保证团队*
+*TDD合规性: 符合RED/GREEN测试驱动设计规范*
+
+### 修改日志
+
+| 版本 | 日期 | 修改者 | 修改内容 |
+|------|------|-------|---------|
+| 2.4.0 | 2026-05-11 | @Architect | 新增 §5.2.6 多时段预约与财务字段测试场景（FIN-001~003、MULTI-001~003、OVERTIME-001、TAX-001） |
+| 2.3.0 | 2026-05-06 | @Architect | 废弃通用 `/v1/auth/verification-codes/*` 测试接口，替换为按用途分离端点（register/send-code + register/complete、login/send-code + login/verify-code） |
+| 2.2.0 | 2026-05-06 | @Architect | 新增 §5.2.7 重置密码测试场景（RESET-PW-001 send-code 限流验证 + RESET-PW-002 verify 密码重置验证），E2E 场景扩展 |
+| 2.1.0 | 2026-05-04 | @Architect (Phase 5) | 新增 §5.2.6 Admin Dashboard 集成测试用例（DASH-001~004 后端 + DASH-FE-001~003 前端），覆盖率目标 ≥ 70% |
+| 2.0.0 | 2026-04-14 | 系统架构分析工具 | 初始基线版本 |

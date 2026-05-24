@@ -226,6 +226,14 @@ ci_cd:
   orchestration: ""           # e.g., "Docker Compose", "Kubernetes"
 
 # ──────────────────────────────────────────────
+# Context path — local domain knowledge directory
+# ──────────────────────────────────────────────
+context:
+  path: ".workbuddy/context"    # Path to project-specific domain knowledge
+  # The context7-first skill searches this directory before external docs.
+  # Subdirectories: code_standards/, detailed_design/, requirements/
+
+# ──────────────────────────────────────────────
 # Context7 tech stack mapping (for AI-assisted documentation lookup)
 # ──────────────────────────────────────────────
 context7:
