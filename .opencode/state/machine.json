@@ -2,10 +2,10 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-24T09:47:33.958Z",
+    "lastUpdated": "2026-05-24T11:11:09.403Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 136
+    "revision": 149
   },
   "eslint_state": {
     "last_full_scan": "2026-05-24T09:34:56.070Z",
@@ -39,20 +39,20 @@
     "status": "clean",
     "dirty_files": [],
     "incremental_errors": 0,
-    "last_incremental_check": "2026-05-24T09:47:33.957Z"
+    "last_incremental_check": "2026-05-24T11:11:09.401Z"
   },
   "dependency_state": {
-    "last_check": "2026-05-24T09:47:33.957Z",
+    "last_check": "2026-05-24T11:11:09.401Z",
     "violations": [],
-    "forbidden_rules_applied": 104,
+    "forbidden_rules_applied": 110,
     "status": "clean"
   },
   "format_state": {
     "status": "clean",
     "unformatted_files": [],
     "last_run": "2026-05-23T12:00:00.000Z",
-    "last_check": "2026-05-24T09:47:33.957Z",
-    "auto_fix_count": 37
+    "last_check": "2026-05-24T11:11:09.401Z",
+    "auto_fix_count": 39
   },
   "write_audit_state": {
     "enabled": true,
@@ -136,14 +136,20 @@
         ".opencode/scripts/framework-doctor.js",
         ".opencode/scripts/framework-health-check.sh",
         ".opencode/hooks/pre-commit",
-        ".opencode/scripts/framework-doctor.js"
+        ".opencode/scripts/framework-doctor.js",
+        ".gitattributes",
+        ".opencode/scripts/rule-registry-verify.js",
+        ".gitattributes",
+        ".opencode/scripts/setup.sh",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/scripts/mcp-tools/compliance-gate.js"
       ],
-      "checks_run": 77,
-      "checks_passed": 57,
-      "checks_failed": 20,
-      "violations_found": 20,
+      "checks_run": 83,
+      "checks_passed": 62,
+      "checks_failed": 21,
+      "violations_found": 21,
       "violations_resolved": 0,
-      "scope_violations_attempted": 5
+      "scope_violations_attempted": 6
     },
     "history": []
   },
@@ -3108,8 +3114,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "015ee585-61ae-42f2-92fd-0f61c8c12d4f",
-    "last_transaction_at": "2026-05-24T10:39:40.613Z",
+    "last_operation_id": "412d1699-d1c5-41ed-b6fb-7220ae6d1b36",
+    "last_transaction_at": "2026-05-24T11:12:40.763Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }

@@ -3658,18 +3658,33 @@
       "created_at": "2026-05-24T10:39:36.453Z",
       "task_description": "Commit gate state fixes: doctor 10/10, self-test 26/26, 0 inconsistencies",
       "enforcement_mode": "strict",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_failed_items": [],
       "plan_summary": "Commit gate state fixes: drained stale session 131h, added agent metadata, all checks pass 10/10 26/26 0",
       "confirmed_at": "2026-05-24T10:39:40.612Z",
+      "consumed_at": "2026-05-24T10:39:51.188Z",
+      "audit": {
+        "execution_summary": "Committed gate state fixes: c7d0bf46. All 6 hook layers passed (gate, registry, audit, keystone 24/24). doctor 10/10, self-test 26/26, 0 inconsistencies confirmed.",
+        "completed_at": "2026-05-24T10:39:51.188Z"
+      }
+    },
+    "cg_ses_1779621156597": {
+      "session_id": "cg_ses_1779621156597",
+      "created_at": "2026-05-24T11:12:36.599Z",
+      "task_description": "Commit portability fixes: CRLF normalization, setup.sh, cleaned gate state, Check 27 cross-validation",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Commit 4 portability fixes: CRLF normalization, setup.sh bootstrap, clean gate state, Check 27 cross-validation",
+      "confirmed_at": "2026-05-24T11:12:40.762Z",
       "consumed_at": null,
       "audit": null
     }
   },
   "active_sessions": [
-    "cg_ses_1779619176452"
+    "cg_ses_1779621156597"
   ],
-  "last_updated": "2026-05-24T10:39:40.612Z",
+  "last_updated": "2026-05-24T11:12:40.762Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",

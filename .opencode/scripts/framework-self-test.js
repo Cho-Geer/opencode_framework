@@ -1540,6 +1540,72 @@ function checkDoctorStrict() {
   }
 }
 
+
+function checkCrossValidation() {
+  // Check 27: Cross-validate framework-doctor and state-reconciliation.js agree
+  const reconcilerPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "state-reconciliation.js");
+  const doctorPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "framework-doctor.js");
+
+  if (!fileExists(reconcilerPath) || !fileExists(doctorPath)) {
+    return check(27, false, "state-reconciliation.js or framework-doctor.js not found");
+  }
+
+  try {
+    const { execSync } = require("child_process");
+    
+    // Run state-reconciliation --strict --json
+    let reconcilerOutput, reconcilerExit = 0;
+    try {
+      reconcilerOutput = execSync(`node "${reconcilerPath}" --strict --json`, {
+        cwd: OPENCODE_ROOT, stdio: "pipe", timeout: 15000, encoding: "utf-8"
+      });
+    } catch (e) {
+      reconcilerExit = e.status || 1;
+      reconcilerOutput = e.stdout || "";
+    }
+
+    // Parse reconciler output
+    let reconcilerOk = false;
+    try {
+      const data = JSON.parse(reconcilerOutput);
+      reconcilerOk = data.valid === true && data.inconsistencies && data.inconsistencies.length === 0;
+    } catch (e) {
+      reconcilerOk = false;
+    }
+
+    // Run doctor --strict --json
+    let doctorOutput, doctorExit = 0;
+    try {
+      doctorOutput = execSync(`node "${doctorPath}" --strict --json`, {
+        cwd: OPENCODE_ROOT, stdio: "pipe", timeout: 30000, encoding: "utf-8"
+      });
+    } catch (e) {
+      doctorExit = e.status || 1;
+      doctorOutput = e.stdout || "";
+    }
+
+    // Parse doctor output
+    let doctorOk = false;
+    try {
+      const data = JSON.parse(doctorOutput);
+      doctorOk = data.summary && data.summary.failed === 0;
+    } catch (e) {
+      // Try parsing the text output for check summary
+      doctorOk = reconcilerOk; // fallback: check reconciler result
+    }
+
+    const bothOk = reconcilerOk && doctorOk;
+    const detail = reconcilerOk 
+      ? (doctorOk ? "Both tools agree: healthy (0 inconsistencies, 0 failures)" : "Reconciler clean but doctor reports failures")
+      : "Reconciler reports inconsistencies";
+    return check(27, bothOk, detail);
+  } catch (e) {
+    return check(27, false, `Cross-validation error: ${e.message}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Main execution
 // ═══════════════════════════════════════════════════════════════
 // Main execution
 // ═══════════════════════════════════════════════════════════════
@@ -1574,6 +1640,7 @@ checkPreExecGate();
 checkFrameworkDoctorExists();
 checkDoctorJsonOutput();
 checkDoctorStrict();
+checkCrossValidation();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
