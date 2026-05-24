@@ -3673,18 +3673,33 @@
       "created_at": "2026-05-24T11:12:36.599Z",
       "task_description": "Commit portability fixes: CRLF normalization, setup.sh, cleaned gate state, Check 27 cross-validation",
       "enforcement_mode": "strict",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_failed_items": [],
       "plan_summary": "Commit 4 portability fixes: CRLF normalization, setup.sh bootstrap, clean gate state, Check 27 cross-validation",
       "confirmed_at": "2026-05-24T11:12:40.762Z",
+      "consumed_at": "2026-05-24T11:12:52.309Z",
+      "audit": {
+        "execution_summary": "Committed portability fixes: 7960d582. 9 files, +271/-41. setup.sh created. All pre-commit layers passed (gate, registry, audit, keystone 24/24).",
+        "completed_at": "2026-05-24T11:12:52.309Z"
+      }
+    },
+    "cg_ses_1779622585769": {
+      "session_id": "cg_ses_1779622585769",
+      "created_at": "2026-05-24T11:36:25.802Z",
+      "task_description": "Merge develop into work-one and push to resolve PR #15 conflicts, post-merge verification",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Merge develop into work-one, commit with state files, push to update PR #15, run verification checks",
+      "confirmed_at": "2026-05-24T11:36:29.914Z",
       "consumed_at": null,
       "audit": null
     }
   },
   "active_sessions": [
-    "cg_ses_1779621156597"
+    "cg_ses_1779622585769"
   ],
-  "last_updated": "2026-05-24T11:12:40.762Z",
+  "last_updated": "2026-05-24T11:36:29.914Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
