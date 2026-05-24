@@ -50,6 +50,9 @@ The framework uses **three hooks** for automated enforcement (configured in `.co
 | `code-quality-gate` | P1 | Lint, types, deps, format |
 | `contract-driven-dev` | P1 | Contract validation and integrity |
 | `verification-suite` | P2 | 5-class × 3-layer verification matrix |
+| `framework-self-test` | P2 | Framework health diagnostic (7 checks) |
+| `circuit-breaker` | P2 | Failure tracking and escalation guidance |
+| `dag-quality` | P2 | DAG structural validation (4 constraints) |
 | `ci-cd-guardrails` | P2 | CI/CD best practices |
 | `context7-first` | P3 | Tech documentation lookup |
 

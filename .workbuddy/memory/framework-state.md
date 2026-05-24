@@ -28,6 +28,28 @@ _Quality dimensions and contract hashes. Replaces `.opencode/state/machine.json`
 
 ---
 
+## Failure Tracking
+
+_Circuit-breaker failure counts. Managed by circuit-breaker skill._
+
+| Task ID | Failures | Last Failure | Tier | Status |
+|---------|----------|-------------|------|--------|
+| *(no active failures)* | — | — | — | — |
+
+---
+
+## Transaction Integrity
+
+_Last transaction metadata. Auto-updated by PostToolUse hook._
+
+| Field | Value |
+|-------|-------|
+| last_txn_at | — |
+| last_gate_id | — |
+| last_file | — |
+
+---
+
 ## Enforcement Mode
 
 Current: **strict** (from project.yaml)

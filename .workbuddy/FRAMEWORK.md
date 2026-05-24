@@ -51,10 +51,13 @@ Skills provide step-by-step workflows and can be invoked manually or by agents. 
 |-------|----------|------------------------|
 | `compliance-gate` | P0 | Stop hook blocks completion |
 | `tdd-enforcer` | P0 | PreToolUse hook blocks non-TDD writes |
-| `code-quality-gate` | P1 | Skill invocation (advisory) |
-| `contract-driven-dev` | P1 | PreToolUse hook checks contract validity |
+| `code-quality-gate` | P1 | PreToolUse hook (blocks when prior quality failures in framework-state.md) |
+| `contract-driven-dev` | P1 | PostToolUse hook (auto-recomputes contract hashes on edit) |
 | `verification-suite` | P2 | Conditional rules inject requirements |
 | `ci-cd-guardrails` | P2 | Skill invocation (advisory) |
+| `framework-self-test` | P2 | Skill invocation (diagnostic) |
+| `circuit-breaker` | P2 | Failure tracking + escalation guidance |
+| `dag-quality` | P2 | DAG structural validation (4 constraints) |
 | `context7-first` | P3 | Skill invocation (advisory) |
 
 ---
@@ -118,15 +121,17 @@ This replaces the previous `write_scopes` custom YAML field, which was documenta
 ## Execution Flow (10 Steps)
 
 1. **Plan**: Use WorkBuddy Plan mode to analyze request, design approach, create task DAG
-2. **Gate Check**: Invoke `compliance-gate check` — validate entry conditions (PreToolUse hook also validates)
-3. **Contract**: `architect` defines/validates contract for the task scope
-4. **TDD Red**: `coder` writes failing test per `tdd-enforcer` Skill (PreToolUse hook enforces test-first)
-5. **TDD Green**: `coder` implements minimal code to pass the test
-6. **TDD Refactor**: `coder` cleans up while keeping tests green
-7. **Quality Gate**: `guardian` runs `code-quality-gate` (lint, types, deps)
-8. **Verification Suite**: `guardian` runs `verification-suite` for all affected layers (conditional rules auto-inject)
-9. **Gate Confirm**: Invoke `compliance-gate confirm` — verify all rules satisfied
-10. **Gate Complete**: Invoke `compliance-gate complete` — record result, close session (Stop hook validates completion)
+2. **DAG Quality**: Run `/dag-quality validate` to verify DAG meets completeness, granularity, traceability, and coverage constraints
+3. **Gate Check**: Invoke `compliance-gate check` — validate entry conditions (PreToolUse hook also validates)
+4. **Contract**: `architect` defines/validates contract for the task scope
+5. **TDD Red**: `coder` writes failing test per `tdd-enforcer` Skill (PreToolUse hook enforces test-first)
+6. **TDD Green**: `coder` implements minimal code to pass the test
+7. **TDD Refactor**: `coder` cleans up while keeping tests green
+8. **Quality Gate**: `guardian` runs `code-quality-gate` (lint, types, deps)
+9. **Verification Suite**: `guardian` runs `verification-suite` for all affected layers (conditional rules auto-inject)
+10. **Gate Confirm**: Invoke `compliance-gate confirm` — verify all rules satisfied
+11. **Gate Complete**: Invoke `compliance-gate complete` — record result, close session (Stop hook validates completion)
+12. **On Failure**: Run `/circuit-breaker record <task_id> <reason>` — tracks failure count and escalates per retry protocol
 
 ---
 

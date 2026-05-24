@@ -83,3 +83,25 @@ Every business code modification triggers verification across all affected layer
 /quality full              — Run all quality checks
 /contract validate         — Validate all contract files
 ```
+
+## DAG Quality Checklist
+
+When generating a task DAG via Plan mode, verify these constraints:
+
+1. **DAG Completeness**: Every task must reference a requirement source, contract path, or tech debt ID. No orphan tasks.
+2. **DAG Granularity**: No task targets more than 5 files (unless explicitly documented and justified). Break larger tasks into sub-tasks.
+3. **DAG Traceability**: Every task has a `requirement_source` or `contract_ref` field linking it to its origin in project.yaml, contract.yaml, or TECH_DEBT_REGISTRY.md.
+4. **DAG Coverage Gate**: Before execution begins, verify that all planned modules/endpoints/components have corresponding tasks. Coverage < 100% blocks execution.
+
+## Circuit-Breaker Retry Protocol
+
+When a task fails, use `/circuit-breaker record <task_id> <reason>` to track and escalate:
+
+| Failure # | Strategy | Action |
+|-----------|----------|--------|
+| 1st | **Auto-retry** | Re-attempt with same scope. Log failure reason to task context. |
+| 2nd | **Narrower scope** | Use Plan mode to break the task into smaller sub-tasks. Retry each independently. |
+| 3rd | **Architect review** | Call `architect` to re-examine contract.yaml design assumptions. Check for inconsistent assumptions between layers. |
+| 4th | **Human escalation** | Present full failure context: guardian review report, code diff, test report, handover notes, arbiter decisions. Await human guidance. |
+
+**After 4th failure**: Do not retry further without explicit user instruction. The issue requires human judgment.`
