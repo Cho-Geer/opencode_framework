@@ -1,14 +1,14 @@
 # Technical Debt Registry
 
-> 本文件由 @Arbiter 维护，记录所有已批准的技术债豁免。  
-> @Meta-Planner 在新版本规划时必须扫描此文件，将临近偿还日的技术债转化为新任务。
+> This file is maintained by @Arbiter and records all approved tech debt waivers.
+> @Meta-Planner must scan this file when planning new versions, converting tech debt approaching repayment deadlines into new tasks.
 
-## 格式
+## Format
 
 ```yaml
 - id: "TECH-001"
-  description: "技术债描述"
-  impact: "中/高/低"
+  description: "Tech debt description"
+  impact: "Medium/High/Low"
   approved_by: "@Arbiter"
   approved_date: "YYYY-MM-DD"
   repayment_deadline: "YYYY-MM-DD"
@@ -18,19 +18,19 @@
 
 ---
 
-*当前未偿还技术债如下。*
+*Current outstanding tech debt is listed below.*
 
-| ID | 描述 | 影响 | 批准人 | 批准日期 | 截止日期 | 状态 | 关联任务 |
-|----|------|------|--------|----------|----------|------|---------|
-| TECH-001 | chart-js-token-map.md 调色板已于 2026-05-18 同步 Sharp Design (#2ecc71) — ✅ @Coder-FE 修复 dashboard-chart-factories.ts（teal #1abc9c + blue #00c6ff），@Architect 更新 docs/design/chart-js-token-map.md；26/26 测试通过 | 低 | @Arbiter | 2026-05-13 | 2026-05-20 | **repaid** ✅ | T-TECHDEBT-001 |
-| TECH-002 | Backend `price` 字段返回类型为 `string` 而非 `number` (contract.yaml § Service/Appointment data_models 标注 TICKET-001)；计划 v2.0.0 修复，前端需继续做 parseFloat 兼容 | 中 | @Arbiter | 2026-05-13 | 2026-06-30 | **approved** | — |
-| TECH-003 | i18n 字典参数化架构 (Phases 2-5) 尚未实现；约 7-8 工作日工作量，当前所有 UI 文本为硬编码，fallback keys `{{domain.key}}` 可见 | 低 | @Arbiter | 2026-05-13 | — | **waived** | — |
+| ID | Description | Impact | Approved By | Approval Date | Deadline | Status | Linked Task |
+|----|-------------|--------|-------------|---------------|----------|--------|-------------|
+| TECH-001 | chart-js-token-map.md palette synced to Sharp Design (#2ecc71) on 2026-05-18 — ✅ @Coder-FE fixed dashboard-chart-factories.ts (teal #1abc9c + blue #00c6ff), @Architect updated docs/design/chart-js-token-map.md; 26/26 tests passed | Low | @Arbiter | 2026-05-13 | 2026-05-20 | **repaid** ✅ | T-TECHDEBT-001 |
+| TECH-002 | Backend `price` field return type is `string` instead of `number` (contract.yaml § Service/Appointment data_models marked TICKET-001); planned fix in v2.0.0, frontend continues using parseFloat workaround | Medium | @Arbiter | 2026-05-13 | 2026-06-30 | **approved** | — |
+| TECH-003 | i18n dictionary parameterized architecture (Phases 2-5) not yet implemented; estimated 7-8 working days of effort, all UI text currently hardcoded, fallback keys `{{domain.key}}` visible | Low | @Arbiter | 2026-05-13 | — | **waived** | — |
 
 ---
 
-## 裁决记录
+## Arbitration Records
 
-### 2026-05-13 — @Arbiter 全量审查
+### 2026-05-13 — @Arbiter Full Review
 
 | Item | Decision | Rationale |
 |------|----------|-----------|
@@ -53,19 +53,19 @@
 
 | Item | Decision | Rationale |
 |------|----------|-----------|
-| TECH-001 | **Repaid** ✅ | chart-js-token-map.md 已同步 Sharp Design 调色板。@Coder-FE 修复 dashboard-chart-factories.ts：index 2 重复绿色 (#2ecc71) → 蓝绿色 (#1abc9c)，index 5 添加蓝色 (#00c6ff)。@Architect 更新 docs/design/chart-js-token-map.md §2.3/§8/§9 添加 blue token。26/26 测试通过，调色板与原型一致。偿还于 2026-05-18。|
+| TECH-001 | **Repaid** ✅ | chart-js-token-map.md palette synced to Sharp Design. @Coder-FE fixed dashboard-chart-factories.ts: index 2 duplicate green (#2ecc71) → teal (#1abc9c), index 5 added blue (#00c6ff). @Architect updated docs/design/chart-js-token-map.md §2.3/§8/§9 adding blue token. 26/26 tests passed, palette matches prototype. Repaid on 2026-05-18. |
 
 
 ---
 
-**最后更新**: 2026-05-14  
-**维护者**: @Arbiter  
-**签名**: `@Arbiter — 2026-05-14T00:00:00Z`  
-**位置**: 项目根目录
+**Last Updated**: 2026-05-14
+**Maintainer**: @Arbiter
+**Signature**: `@Arbiter — 2026-05-14T00:00:00Z`
+**Location**: Project root directory
 
 ---
 
-## 豁免登记表 (Waiver Registry)
+## Waiver Registry
 
 | Waiver ID | Approval Date | Responsible | Reason for Waiver | Planned Repayment Date | Status |
 |-----------|---------------|-------------|-------------------|------------------------|--------|
@@ -74,13 +74,13 @@
 | WV-2026-003 | 2026-05-14 | @Coder-BE | Deprecation of existing `testing:` section in contract.yaml — must be marked `deprecated: true` (not deleted) for backward compatibility (ARB-002) | During TEST-ARCH-V2 implementation | OPEN |
 | WV-2026-004 | 2026-05-14 | @Coder-BE / @Guardian | CI mock-audit ESLint enforcement gated on fake file existence validation — fake files must exist and pass their own tests before TIER2 rules are enforced (ARB-003) | During TEST-ARCH-V2 implementation | OPEN |
 
-| TD-2026-005-DEPR | Deprecate `salesforce-dx-expert` — draft placeholder skill, never developed since 2026-04-23; SKILL.md is 19-line boilerplate ("此技能待完善"). No agent refs, not in available_skills. | 低 | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
-| TD-2026-006-DEPR | Deprecate `playwright-mcp-expert` — draft placeholder skill, never developed; native Playwright MCP tools (`playwright_browser_*`) already available in system prompt. | 低 | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
-| TD-2026-007-DEPR | Deprecate `devops-architect` — draft placeholder skill, superseded by active `devops-ci-cd-guardrails` (P1, in available_skills). | 低 | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
-| TD-2026-008 | Framework Agent Config Parameterization | 高 | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
-| TD-2026-009 | Rule File Template Resolution | 高 | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
-| TD-2026-010 | Skill Registry Stale References | 中 | @Architect | 2026-05-21 | 2026-05-30 | **repaid** ✅ | UNIV-P6-O | SKILL |
-| TD-2026-011 | Deprecated Skill Cleanup | 中 | @Architect | 2026-05-21 | 2026-06-01 | **active** | UNIV-P6-O | SKILL |
+| TD-2026-005-DEPR | Deprecate `salesforce-dx-expert` — draft placeholder skill, never developed since 2026-04-23; SKILL.md is 19-line boilerplate ("This skill is pending completion"). No agent refs, not in available_skills. | Low | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
+| TD-2026-006-DEPR | Deprecate `playwright-mcp-expert` — draft placeholder skill, never developed; native Playwright MCP tools (`playwright_browser_*`) already available in system prompt. | Low | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
+| TD-2026-007-DEPR | Deprecate `devops-architect` — draft placeholder skill, superseded by active `devops-ci-cd-guardrails` (P1, in available_skills). | Low | @Arbiter | 2026-05-18 | — | **deprecated** | UNIV-013 |
+| TD-2026-008 | Framework Agent Config Parameterization | High | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
+| TD-2026-009 | Rule File Template Resolution | High | @Architect | 2026-05-21 | 2026-06-15 | **active** | UNIV-P6-O | UNIVERSALITY |
+| TD-2026-010 | Skill Registry Stale References | Medium | @Architect | 2026-05-21 | 2026-05-30 | **repaid** ✅ | UNIV-P6-O | SKILL |
+| TD-2026-011 | Deprecated Skill Cleanup | Medium | @Architect | 2026-05-21 | 2026-06-01 | **active** | UNIV-P6-O | SKILL |
 
 ---
 
@@ -90,12 +90,12 @@
 |------|----------|-----------|
 | TD-2026-008 | **Registered** | Agent configs (coder-be.md, coder-fe.md) now use `{placeholder}` patterns. Every new project must resolve these before use. Repayment: configure `project.config.json` and verify zero unresolved placeholders via `framework-self-test.js`. |
 | TD-2026-009 | **Registered** | Backend + frontend coding standards are now tiered templates with `{placeholder}`s. New projects must configure `template_resolution` in `project.config.json` or the rules will render with visible fallback placeholders. |
-| TD-2026-010 | **Registered** | `skill-invocation-standard.md` §3.1 still lists deprecated skills (`salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect`) — though their status was already corrected to `❌ 废弃`, the remaining references in category descriptions (§2.1) and quick checklists (§5.3) need audit. |
+| TD-2026-010 | **Registered** | `skill-invocation-standard.md` §3.1 still lists deprecated skills (`salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect`) — though their status was already corrected to `❌ Deprecated`, the remaining references in category descriptions (§2.1) and quick checklists (§5.3) need audit. |
 | TD-2026-011 | **Registered** | `nextjs-router-guardrails` deprecated and `prisma-seed-cicd` renamed to `cicd-database-seeding`. Old skill files remain as reference. Full cleanup including DEPRECATED.md deployment to target directories is tracked by WV-2026-005. |
 
 ---
 
-## 裁决记录
+## Arbitration Records
 
 ### 2026-05-18 — @Arbiter UNIV-013 Dormant Skill Audit
 
@@ -106,12 +106,12 @@
 | TD-2026-007-DEPR (`devops-architect`) | **Deprecated** | Draft placeholder (19-line stub). Functionally superseded by active `devops-ci-cd-guardrails` (P1). DEPRECATED.md created in `.task_temp/UNIV-013/`. |
 | `learning-mode-executor` | **Active — No Action** | Comprehensive 134-line SKILL.md with well-structured 3-phase pipeline. Not in available_skills but content is production-quality. Stale backup (`SKILL.md.backup`) handled by UNIV-014. |
 | `auto-commit` | **Active — No Action** | Comprehensive 219-line SKILL.md with supporting `assets/commit-template.md`. Not in available_skills but content is production-quality. No update needed. |
-| Registry inconsistency | **Flagged** | `skill-invocation-standard.md` §3.1 lists `salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect` as "✅ 活跃" — they are actually `draft` placeholders. @Architect must correct status to "❌ 废弃". |
+| Registry inconsistency | **Flagged** | `skill-invocation-standard.md` §3.1 lists `salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect` as "✅ Active" — they are actually `draft` placeholders. @Architect must correct status to "❌ Deprecated". |
 | Scope limitation | **Delegated to @Architect** | @Arbiter write scope excludes `.opencode/skills/`. DEPRECATED.md files (×3) placed in `.task_temp/UNIV-013/` for @Architect to deploy to target directories. |
 
 ---
 
-## 豁免登记表 (Waiver Registry)
+## Waiver Registry
 
 | Waiver ID | Approval Date | Responsible | Reason for Waiver | Planned Repayment Date | Status |
 |-----------|---------------|-------------|-------------------|------------------------|--------|
@@ -119,7 +119,7 @@
 | WV-2026-002 | 2026-05-14 | @Coder-BE / @CI-CD-Agent | Stryker mutation testing not yet integrated in CI — mutation_kill_rate in x-coverage-matrix requires Stryker; jest.config.js alone cannot enforce this threshold (TD-2026-004) | 2026-06-14 | OPEN |
 | WV-2026-003 | 2026-05-14 | @Coder-BE | Deprecation of existing `testing:` section in contract.yaml — must be marked `deprecated: true` (not deleted) for backward compatibility (ARB-002) | During TEST-ARCH-V2 implementation | OPEN |
 | WV-2026-004 | 2026-05-14 | @Coder-BE / @Guardian | CI mock-audit ESLint enforcement gated on fake file existence validation — fake files must exist and pass their own tests before TIER2 rules are enforced (ARB-003) | During TEST-ARCH-V2 implementation | OPEN |
-| WV-2026-005 | 2026-05-18 | @Architect | Scope limitation: @Arbiter cannot write to `.opencode/skills/`. @Architect must place DEPRECATED.md files (×3) from `.task_temp/UNIV-013/` into target skill directories and update `skill-invocation-standard.md` references. | 2026-05-25 | **CLOSED（已履约）** |
+| WV-2026-005 | 2026-05-18 | @Architect | Scope limitation: @Arbiter cannot write to `.opencode/skills/`. @Architect must place DEPRECATED.md files (×3) from `.task_temp/UNIV-013/` into target skill directories and update `skill-invocation-standard.md` references. | 2026-05-25 | **CLOSED (Fulfilled)** |
 
 ---
 
@@ -127,14 +127,14 @@
 
 | Item | Decision | Rationale |
 |------|----------|-----------|
-| TD-2026-010 | **Repaid** ✅ | `skill-invocation-standard.md` §3.1 all three deprecated skills (`salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect`) already marked `❌ 废弃` with `replaced_by` fields in §4 metadata. §2.1 category descriptions and §5.3 quick checklists already audited — deprecated references struck through with alternatives. DEPRECATED.md ×3 already deployed to target directories. WV-2026-005 already closed. Only remaining action was updating TECH_DEBT_REGISTRY.md status from `active` → `repaid`. Repaid 2026-05-23. |
+| TD-2026-010 | **Repaid** ✅ | `skill-invocation-standard.md` §3.1 all three deprecated skills (`salesforce-dx-expert`, `playwright-mcp-expert`, `devops-architect`) already marked `❌ Deprecated` with `replaced_by` fields in §4 metadata. §2.1 category descriptions and §5.3 quick checklists already audited — deprecated references struck through with alternatives. DEPRECATED.md ×3 already deployed to target directories. WV-2026-005 already closed. Only remaining action was updating TECH_DEBT_REGISTRY.md status from `active` → `repaid`. Repaid 2026-05-23. |
 
 ---
 
-**最后更新**: 2026-05-23  
-**维护者**: @Arbiter  
-**签名**: `@Architect — 2026-05-23T06:26:00Z`  
-**位置**: 项目根目录
+**Last Updated**: 2026-05-23
+**Maintainer**: @Arbiter
+**Signature**: `@Architect — 2026-05-23T06:26:00Z`
+**Location**: Project root directory
 
 ### 2026-05-23 — @Arbiter WV-2026-006 (MCP SDK Upstream Packaging Defect)
 
@@ -147,10 +147,10 @@
 |-----------|---------------|-------------|-------------------|------------------------|--------|
 | WV-2026-006 | 2026-05-23 | @CI-CD-Agent / @Coder-BE | Upstream `@modelcontextprotocol/sdk@1.29.0` missing barrel `index.js` — sub-path imports work as alternative | 2026-08-23 | OPEN |
 
-**最后更新**: 2026-05-23
-**维护者**: @Arbiter
-**签名**: `@Arbiter — 2026-05-23T06:40:00Z`
-**位置**: 项目根目录
+**Last Updated**: 2026-05-23
+**Maintainer**: @Arbiter
+**Signature**: `@Arbiter — 2026-05-23T06:40:00Z`
+**Location**: Project root directory
 
 ---
 
@@ -162,7 +162,7 @@
 | WV-2026-008 (format_state) | **Waived** ✅ | `contract.yaml` formatting issue is pre-existing and cosmetic. auto_fix resolved 24 other files but could not auto-fix this one. Not related to eslint-audit.js. Registered as TD-2026-014. |
 | WV-2026-009 (tdd_enforcement_state) | **Waived** ✅ | 7 historical CAT5.2 violations (2026-05-21/22) from earlier FW-REPAIR-01 sessions on framework tool files. The eslint-audit.js fix ITSELF followed proper TDD (RED 5/5 FAIL → GREEN 5/5 PASS). Close relationship with current fix warrants aggressive repayment deadline. Registered as TD-2026-015. |
 
-## 豁免登记表 (Waiver Registry)
+## Waiver Registry
 
 | Waiver ID | Approval Date | Responsible | Reason for Waiver | Planned Repayment Date | Status |
 |-----------|---------------|-------------|-------------------|------------------------|--------|
@@ -170,15 +170,15 @@
 | WV-2026-008 | 2026-05-23 | @Architect | `contract.yaml` formatting issue — pre-existing cosmetic issue, unrelated to eslint-audit.js fix (TD-2026-014) | 2026-06-15 | OPEN |
 | WV-2026-009 | 2026-05-23 | @Coder-BE / @Architect | 7 historical CAT5.2 TDD violations from FW-REPAIR-01 sessions (2026-05-21/22) — predate current fix; the eslint-audit.js fix itself followed proper TDD (RED→GREEN) (TD-2026-015) | 2026-06-01 | OPEN |
 
-## 技术债登记
+## Tech Debt Registry
 
-| ID | 描述 | 影响 | 批准人 | 批准日期 | 截止日期 | 状态 | 关联任务 |
-|----|------|------|--------|----------|----------|------|---------|
-| TD-2026-013 | 7 Angular前端 `.ts` 文件存在预存TypeScript错误（booking_system_refactor/booking-frontend/）— @Coder-FE 需修复这些编译错误 | 中 | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-007 |
-| TD-2026-014 | `contract.yaml` 格式化问题 — pre-existing；auto_fix无法自动修复此文件 | 低 | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-008 |
-| TD-2026-015 | 7条历史CAT5.2 TDD违规（code-quality-gate.js、state-transaction.js、compliance-gate.js、framework-self-test.js）— 来自FW-REPAIR-01（2026-05-21/22）；需补充测试或由@Meta-Planner正式接受为框架修复债务 | 中 | @Arbiter | 2026-05-23 | 2026-06-01 | **OPEN** | WV-2026-009 |
+| ID | Description | Impact | Approved By | Approval Date | Deadline | Status | Linked Task |
+|----|-------------|--------|-------------|---------------|----------|--------|-------------|
+| TD-2026-013 | 7 Angular frontend `.ts` files have pre-existing TypeScript errors (booking_system_refactor/booking-frontend/) — @Coder-FE needs to fix these compilation errors | Medium | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-007 |
+| TD-2026-014 | `contract.yaml` formatting issue — pre-existing; auto_fix cannot auto-fix this file | Low | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-008 |
+| TD-2026-015 | 7 historical CAT5.2 TDD violations (code-quality-gate.js, state-transaction.js, compliance-gate.js, framework-self-test.js) — from FW-REPAIR-01 (2026-05-21/22); need supplementary tests or formal acceptance by @Meta-Planner as framework repair debt | Medium | @Arbiter | 2026-05-23 | 2026-06-01 | **OPEN** | WV-2026-009 |
 
-**最后更新**: 2026-05-23
-**维护者**: @Arbiter
-**签名**: `@Arbiter — 2026-05-23T11:40:00Z`
-**位置**: 项目根目录
+**Last Updated**: 2026-05-23
+**Maintainer**: @Arbiter
+**Signature**: `@Arbiter — 2026-05-23T11:40:00Z`
+**Location**: Project root directory

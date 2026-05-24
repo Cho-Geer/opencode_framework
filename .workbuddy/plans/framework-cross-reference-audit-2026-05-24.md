@@ -55,7 +55,7 @@
 | Agent dispatch protocol | ✅ (dispatch-subagent.js) | ✅ (Agent tool + TeamCreate) | ✅ NATIVE |
 | TDD phase scheduling by Orchestrator | ✅ (RED→GREEN→REFACTOR as separate sub-tasks) | ⚠️ (TDD enforced by PreToolUse hook + tdd-enforcer skill, but no orchestrator to enforce phase separation) | ⚠️ PARTIAL |
 | Circuit-breaker retry policy | ✅ (4-tier: auto→degraded→expert→human) | ❌ (not implemented) | ❌ MISSING |
-| Pre-flight self-check for Orchestrator | ✅ (MUST-RUN protocol: "调度 or 分析?") | ❌ (not implemented — main agent has no equivalent self-check) | ❌ MISSING |
+| Pre-flight self-check for Orchestrator | ✅ (MUST-RUN protocol: "dispatch or analyze?") | ❌ (not implemented — main agent has no equivalent self-check) | ❌ MISSING |
 
 ---
 
@@ -316,7 +316,7 @@
 | G12 | No reconciliation-check.sh | State-to-reality reconciliation | Can be implemented as a verification-suite check. |
 | G13 | Brainstorming / preflight / auto-commit / learning / orchestration skills | 6 workflow support skills | These are project-specific tools, not framework core. User can install as needed. |
 | G14 | No TDD violation history tracking | machine.json.tdd_enforcement_state.history | Can be added to framework-state.md as a log. |
-| G15 | No Orchestrator pre-flight self-check | "调度 or 分析?" protocol | The main agent does this naturally through the P0 gate rules. Not critical. |
+| G15 | No Orchestrator pre-flight self-check | "dispatch or analyze?" protocol | The main agent does this naturally through the P0 gate rules. Not critical. |
 
 ---
 
