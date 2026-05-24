@@ -1,0 +1,11 @@
+{
+  "name": "qoder-framework",
+  "private": true,
+  "scripts": {
+    "mcp": "node mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@opencode-ai/plugin": "1.14.20"
+  }
+}

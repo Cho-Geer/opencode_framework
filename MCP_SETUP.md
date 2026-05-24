@@ -117,6 +117,45 @@ node -e "
 |-----------|---------|--------|------|
 | [WV-2026-006](.task_temp/_global/WAIVE-RVW2-MCP-DEPS.md) | 2026-05-23 | @Coder-BE / @CI-CD-Agent | **OPEN** |
 
+## 7. Unified MCP Server Registration (Qoder)
+
+The project provides a **unified MCP server** at `.opencode/mcp-server.js` that exposes all framework tools through a single entry point.
+
+### Available Tools
+
+| Tool Name | Source Script | Description |
+|-----------|---------------|-------------|
+| `compliance_gate_check` | compliance-gate.js | Pre-task compliance verification |
+| `compliance_gate_confirm` | compliance-gate.js | Arm gate after plan confirmation |
+| `compliance_gate_complete` | compliance-gate.js | Complete gate and run audit |
+| `run_write_check` | code-quality-gate.js | Write-time file quality audit |
+| `eslint_audit` | eslint-audit.js | ESLint mock-audit scan |
+| `keystone_validate` | keystone-validate.js | Contract hash validation |
+
+### Registration Configuration
+
+Register the unified server in your IDE/agent MCP configuration:
+
+```json
+{
+  "name": "qoder-framework-tools",
+  "command": "node",
+  "args": ["c:/Users/USER/Documents/qoder_framework/.opencode/mcp-server.js"],
+  "env": {}
+}
+```
+
+> **Note**: Replace the path above with your actual workspace path if different.
+
+### Running Manually
+
+```bash
+cd .opencode
+npm run mcp
+```
+
+This starts the unified MCP server on stdio transport.
+
 ---
 
 **维护者**: @Arbiter / @CI-CD-Agent  

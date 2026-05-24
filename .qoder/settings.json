@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "read": {
+      "enabled": true,
+      "allowPaths": [
+        "./**"
+      ],
+      "denyPaths": [],
+      "requireConfirmation": false
+    },
+    "write": {
+      "enabled": true,
+      "allowPaths": [
+        "./**"
+      ],
+      "denyPaths": [],
+      "requireConfirmation": true
+    },
+    "bash": {
+      "enabled": true,
+      "allowPaths": [],
+      "denyPaths": [],
+      "requireConfirmation": true
+    }
+  }
+}

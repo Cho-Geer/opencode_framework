@@ -1,0 +1,71 @@
+#!/bin/bash
+# commit-msg hook — v2.0.0
+# Validates commit message format via commitlint
+# Enforces Conventional Commits + TDD [Red]/[Green]/[Refactor] tagging + phase ordering
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+INNER="$ROOT/$(node -e "console.log(require('./.qoder/project.config.json').project_root)")"
+COMMITLINT="$INNER/node_modules/.bin/commitlint"
+COMMIT_EDITMSG="$1"
+
+if [ ! -f "$COMMITLINT" ]; then
+    echo "⚠️  [commitlint] not installed — skipping. Install with:"
+    echo "   cd $INNER && npm install --save-dev @commitlint/cli @commitlint/config-conventional"
+    exit 0
+fi
+
+if [ ! -f "$COMMIT_EDITMSG" ]; then
+    echo "⚠️  [commitlint] no commit message found — skipping"
+    exit 0
+fi
+
+MSG=$(cat "$COMMIT_EDITMSG")
+
+# ── TDD Phase Ordering Validation ──
+if echo "$MSG" | grep -qiE '^\[(Red|Green|Refactor)\]\s+T([0-9]+)\s+'; then
+    TASK_ID=$(echo "$MSG" | sed -n 's/.*T\([0-9]\+\).*/\1/p')
+    PHASE=$(echo "$MSG" | sed -n 's/^\[\([A-Za-z]*\)\].*/\1/p' | tr '[:upper:]' '[:lower:]')
+
+    # Get previous commits for this task
+    PREV_COMMITS=$(git log --oneline --all --grep="T$TASK_ID" 2>/dev/null | head -10 || echo "")
+
+    case "$PHASE" in
+        green)
+            # [Green] requires a preceding [Red] for the same task
+            if ! echo "$PREV_COMMITS" | grep -qi "\[Red\].*T$TASK_ID"; then
+                echo "❌ [TDD] [Green] commit for task T$TASK_ID without preceding [Red] commit."
+                echo "   The RED phase (failing tests) must precede GREEN (implementation)."
+                exit 1
+            fi
+            ;;
+        refactor)
+            # [Refactor] requires preceding [Green] for the same task
+            if ! echo "$PREV_COMMITS" | grep -qi "\[Green\].*T$TASK_ID"; then
+                echo "❌ [TDD] [Refactor] commit for task T$TASK_ID without preceding [Green] commit."
+                echo "   The GREEN phase (passing tests) must precede REFACTOR."
+                exit 1
+            fi
+            ;;
+    esac
+
+    # Valid TDD commit — skip commitlint
+    echo "✅ [TDD] Valid $PHASE commit for task T$TASK_ID — skipping commitlint"
+    exit 0
+fi
+
+# ── Conventional Commit Validation ──
+echo "🔍 [commitlint] Validating commit message format..."
+cd "$INNER" && npx commitlint --edit "$COMMIT_EDITMSG" || {
+    echo ""
+    echo "❌ Commit message rejected by commitlint."
+    echo ""
+    echo "Valid formats:"
+    echo "  TDD:   [Red] T{task_id} description"
+    echo "         [Green] T{task_id} description"
+    echo "         [Refactor] T{task_id} description"
+    echo "  Standard:  feat(scope): description"
+    echo "             fix(scope): description"
+    echo "             test(scope): description"
+    exit 1
+}

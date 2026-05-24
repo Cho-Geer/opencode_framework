@@ -1,0 +1,51 @@
+{
+  "source_paths": {
+    "frontend": "booking-frontend/src/**",
+    "backend": "booking-backend/src/**",
+    "database": "prisma/**"
+  },
+  "contract_file": "contract.yaml",
+  "design_system": {
+    "name": "Sharp Design v3.0.0",
+    "tokens": {
+      "bg_primary": "#0c1220",
+      "bg_card": "#162032",
+      "bg_card_light": "#1e293b",
+      "border": "#2a3a50",
+      "accent": "#2ecc71",
+      "text_primary": "#e2e8f0",
+      "text_secondary": "#94a3b8"
+    },
+    "components": {
+      "card": { "selector": ".sharp-card", "border_radius": "8px", "border_width": "1px" },
+      "button": { "selector": ".sharp-button", "border_radius": "6px" },
+      "input": { "selector": ".sharp-input", "border_radius": "6px" }
+    },
+    "shadows": ["shadow-card", "shadow-card-hover", "shadow-glow-green"]
+  },
+  "breakpoints": [320, 768, 1024, 1440],
+  "thresholds": {
+    "initial_load_ms": 3000,
+    "navigation_ms": 1000,
+    "contrast_ratio": 4.5,
+    "animation_micro_ms": [100, 150],
+    "animation_state_ms": [200, 300],
+    "animation_page_ms": [300, 500]
+  },
+  "error_codes": [401, 403, 429, 500],
+  "endpoint_page_map": {
+    "/v1/admin/users": ["/admin/users"],
+    "/v1/admin/stats": ["/admin/dashboard"],
+    "/v1/services": ["/booking/services"],
+    "/v1/appointments": ["/admin/appointments", "/my-bookings"],
+    "/v1/auth/*": ["/auth/login", "/auth/register"],
+    "/v1/time-slots": ["/booking/time-slots"]
+  },
+  "dev_server": {
+    "frontend_cmd": "ng serve",
+    "backend_cmd": "npm run start:dev",
+    "frontend_url": "http://localhost:4200",
+    "backend_url": "http://localhost:3000"
+  },
+  "exempt_paths": [".env*", ".github/**", "*.md", "docker-compose*.yml"]
+}
