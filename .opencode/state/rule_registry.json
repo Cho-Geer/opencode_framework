@@ -411,7 +411,7 @@
     "mismatch_count": 0,
     "warning_count": 0,
     "critical_mismatches": [],
-    "status": "verified"
+    "status": "clean"
   },
   "verification_policy": {
     "critical_files": [

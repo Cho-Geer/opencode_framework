@@ -29,7 +29,7 @@ DAG_FILE="${PROJECT_ROOT}/Task.DAG.json"
 # ── Resolve Enforcement Mode ─────────────────────────────────────────
 # Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
 ENF_MODE="advisory"
-if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && command -v node &>/dev/null; then
+if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && { command -v node &>/dev/null || command -v node.exe &>/dev/null; }; then
   ENF_MODE=$(node -e "
     try {
       const cfg = require('${PROJECT_ROOT}/.opencode/project.config.json');
@@ -100,9 +100,19 @@ except Exception as e:
     enf_exit "工作项 '${TASK_ID}' 的状态为 '${PYTHON_CHECK}'，非 'pending'。请检查 DAG 状态。"
   fi
 else
-  # Fallback: use node for JSON parsing if neither jq nor python3 is available
+  # Fallback: use node for JSON parsing if neither jq nor python3 is available.
+  # Cross-platform node discovery: Unix (node) → Windows (node.exe) → legacy (which/type)
+  NODE_CMD=""
   if command -v node &> /dev/null; then
-    NODE_CHECK=$(node -e "
+    NODE_CMD="node"
+  elif command -v node.exe &> /dev/null; then
+    NODE_CMD="node.exe"
+  elif which node &> /dev/null 2>&1 || type node &> /dev/null 2>&1; then
+    NODE_CMD="node"
+  fi
+
+  if [ -n "$NODE_CMD" ]; then
+    NODE_CHECK=$("$NODE_CMD" -e "
       const fs = require('fs');
       const dag = JSON.parse(fs.readFileSync('$DAG_FILE', 'utf8'));
       const task = dag.tasks.find(t => t.id === '$TASK_ID');
@@ -119,10 +129,8 @@ else
       enf_exit "工作项 '${TASK_ID}' 的状态为 '${NODE_CHECK}'，非 'pending'。请检查 DAG 状态。"
     fi
   else
-    echo "⚠️  [Orchestrator Gate] 缺少 jq 和 node，无法验证 DAG。请安装 jq 或 node。"
-    if [ "$ENF_MODE" != "advisory" ]; then
-      exit 1
-    fi
+    # No JSON parser available — fail-closed in strict/locked, warning in advisory
+    enf_exit "缺少 JSON 解析器 (jq/python3/node/node.exe)。在 strict/locked 模式下无法验证 DAG。请安装 jq/python3 或 node。"
   fi
 fi
 

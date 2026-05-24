@@ -2,24 +2,24 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-23T13:19:16.337Z",
+    "lastUpdated": "2026-05-24T00:53:57.472Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 0
+    "revision": 35
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-23T12:35:00.414Z",
+    "last_full_scan": "2026-05-24T00:53:57.472Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-23T12:35:00.414Z",
+        "last_check": "2026-05-24T00:53:57.472Z",
         "waivers_applied": []
       },
       "unknown": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-23T11:17:34.991Z",
+        "last_check": "2026-05-24T00:10:36.126Z",
         "waivers_applied": []
       },
       "admin": {
@@ -39,20 +39,20 @@
     "status": "clean",
     "dirty_files": [],
     "incremental_errors": 0,
-    "last_incremental_check": "2026-05-23T11:14:27.139Z"
+    "last_incremental_check": "2026-05-24T00:46:25.182Z"
   },
   "dependency_state": {
-    "last_check": "2026-05-23T11:14:27.139Z",
+    "last_check": "2026-05-24T00:46:25.182Z",
     "violations": [],
-    "forbidden_rules_applied": 82,
+    "forbidden_rules_applied": 85,
     "status": "clean"
   },
   "format_state": {
     "status": "clean",
     "unformatted_files": [],
     "last_run": "2026-05-23T12:00:00.000Z",
-    "last_check": "2026-05-23T12:00:00.000Z",
-    "auto_fix_count": 25
+    "last_check": "2026-05-24T00:46:25.182Z",
+    "auto_fix_count": 26
   },
   "write_audit_state": {
     "enabled": true,
@@ -114,14 +114,17 @@
         ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
         ".task_temp/_dispatch/INVOCATION_SUMMARY.md",
         ".opencode/scripts/mcp-tools/eslint-audit.js",
-        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js"
+        ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
+        ".opencode/state/rule_registry.json",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/scripts/__tests__/compliance-gate.test.js"
       ],
-      "checks_run": 55,
-      "checks_passed": 40,
-      "checks_failed": 15,
-      "violations_found": 15,
+      "checks_run": 58,
+      "checks_passed": 42,
+      "checks_failed": 16,
+      "violations_found": 16,
       "violations_resolved": 0,
-      "scope_violations_attempted": 0
+      "scope_violations_attempted": 1
     },
     "history": []
   },
@@ -136,6 +139,14 @@
         "denied_by": ".opencode/scripts/**",
         "resolved_at": "2026-05-19T01:32:00.000Z",
         "resolved_by": "@Orchestrator"
+      },
+      {
+        "timestamp": "2026-05-24T00:46:19.015Z",
+        "agent": "@Coder-BE",
+        "violation_file": ".opencode/scripts/__tests__/compliance-gate.test.js",
+        "status": "unresolved",
+        "severity": "BLOCKER",
+        "denied_by": ".opencode/scripts/**"
       }
     ],
     "gate_violations": [],
@@ -151,7 +162,8 @@
         ".opencode/scripts/__tests__/code-quality-gate.test.js",
         ".opencode/scripts/__tests__/compliance-gate.test.js",
         ".opencode/scripts/__tests__/framework-self-test.test.js",
-        ".opencode/scripts/__tests__/state-transaction.test.js"
+        ".opencode/scripts/__tests__/state-transaction.test.js",
+        ".opencode/scripts/__tests__/compliance-gate.test.js"
       ],
       "initialized": true
     },
@@ -188,8 +200,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": null,
-    "last_transaction_at": null,
+    "last_operation_id": "82c01135-3f4b-4213-9927-cc78f54823a5",
+    "last_transaction_at": "2026-05-24T01:15:57.789Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }
