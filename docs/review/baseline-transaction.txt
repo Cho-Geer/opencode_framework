@@ -1,0 +1,14 @@
+{
+  "valid": false,
+  "issues": [
+    "Non-monotonic revision: operation_id=420f917e-be5b-4ec7-a37d-1b1e550653b5 has revision 25 but previous was 25"
+  ],
+  "stats": {
+    "total_entries": 138,
+    "begins": 46,
+    "prepares": 46,
+    "commits": 46,
+    "rollbacks": 0,
+    "recovery_rollbacks": 0
+  }
+}

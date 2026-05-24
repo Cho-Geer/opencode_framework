@@ -172,3 +172,4 @@ describe("checkAgentsNoBackslashes", () => {
     });
   });
 });
+// Check 22: opencode.json adapter validation

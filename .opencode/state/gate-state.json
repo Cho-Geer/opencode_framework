@@ -3089,18 +3089,57 @@
       "created_at": "2026-05-24T03:14:47.012Z",
       "task_description": "Update Task.DAG.json v2.11.0: mark FW-GOVERN-AUDIT completed, 81/81 tasks done, final framework governance hardening completion",
       "enforcement_mode": "strict",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_failed_items": [],
       "plan_summary": "Finalize DAG v2.11.0: FW-GOVERN-AUDIT completed, 81/81 tasks. Framework governance hardening fully complete. CAT4.1 resolved via WV-2026-010 + project.config.json scope fix.",
       "confirmed_at": "2026-05-24T03:14:50.496Z",
+      "consumed_at": "2026-05-24T03:15:03.169Z",
+      "audit": {
+        "execution_summary": "Task.DAG.json v2.11.0: FW-GOVERN-AUDIT marked completed, 81/81 tasks. Framework Governance Hardening fully done. ESLint audit: 0 violations, clean state.",
+        "completed_at": "2026-05-24T03:15:03.169Z"
+      }
+    },
+    "cg_ses_1779604517383": {
+      "session_id": "cg_ses_1779604517383",
+      "created_at": "2026-05-24T06:35:17.428Z",
+      "task_description": "Safe Optimization Plan: Generate Task.DAG.json v3.0.0 for 7-phase OpenCode framework enforcement upgrade — includes opencode.json adapter, pre-execution-gate.js, framework-enforcer plugin, custom tools, central state repair, registry enforcement, and framework-doctor.js with universality. All 81 prior tasks completed.",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_failed_items": [],
+      "plan_summary": "Safe Optimization Plan v3.0.0: 7-phase OpenCode adapter-based enforcement upgrade. 23+ tasks across opencode.json, pre-execution-gate.js, framework-enforcer plugin, custom tools, state repair, registry enforcement, framework-doctor.js. CAT4.1 pre-existing waived violation (WV-2026-010). Auto-confirmed by user delegation.",
+      "confirmed_at": "2026-05-24T06:36:28.143Z",
+      "consumed_at": "2026-05-24T06:48:00.969Z",
+      "audit": {
+        "execution_summary": "@Meta-Planner generated Task.DAG.json v3.0.0 for OpenCode Framework Safe Optimization Plan. 23 new tasks across 7 phases + tech-debt repayment. Phase 1: opencode.json adapter (3 tasks). Phase 2: pre-execution-gate.js (2 tasks). Phase 3: framework-enforcer plugin (3 tasks). Phase 4: 3 custom tools (3 tasks). Phase 5: central state repair (4 tasks). Phase 6: registry + hook enforcement (3 tasks). Phase 7: framework-doctor.js + universality (3 tasks). Tech-Debt: T-TECHDEBT-016 (1 task, deadline 2026-05-31). Guardian Audit: FW-SAFE-AUDIT (1 task). Retained all 81 prior completed tasks. Total: 104 tasks. Also created Project.graph with architecture overview.",
+        "completed_at": "2026-05-24T06:48:00.969Z"
+      }
+    },
+    "cg_ses_1779605409465": {
+      "session_id": "cg_ses_1779605409465",
+      "created_at": "2026-05-24T06:50:09.467Z",
+      "task_description": "Dispatch Phase 1 Safe Optimization: opencode.json adapter + T-TECHDEBT-016 completion. Create opencode.json with instructions, 8 agents, permissions, plugin ref. Mirrors .opencode/agents/*.md as adapter, not competing authority.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Phase 1 Safe Optimization: Create opencode.json adapter with 8 agents, permissions, instructions. Complete T-TECHDEBT-016 narrow denied scope + update TECH_DEBT_REGISTRY.md + update self-test. CAT4.1 pre-existing waived via WV-2026-010.",
+      "confirmed_at": "2026-05-24T06:50:13.436Z",
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779605438930": {
+      "session_id": "cg_ses_1779605438930",
+      "created_at": "2026-05-24T06:50:38.931Z",
+      "task_description": "Phase 1 Safe Optimization: Create opencode.json adapter at project root, complete T-TECHDEBT-016 (narrow @Coder-BE denied scope, update TECH_DEBT_REGISTRY.md), add Check 22 to framework-self-test.js. Non-competing validation — must NOT duplicate DAG/gate/machine/contract authorities.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_failed_items": [],
+      "plan_summary": "Create opencode.json adapter at project root (non-competing with DAG/gate/machine/contract), narrow @Coder-BE denied scope in project.config.json, update TECH_DEBT_REGISTRY.md (close WV-2026-010, repay TD-2026-016), add Check 22 to framework-self-test.js, run self-test to verify all 22 checks pass, commit and push.",
+      "confirmed_at": "2026-05-24T06:50:49.722Z",
       "consumed_at": null,
       "audit": null
     }
   },
   "active_sessions": [
-    "cg_ses_1779517025364",
-    "cg_ses_1779518075661",
-    "cg_ses_1779518286659",
     "cg_ses_1779520239683",
     "cg_ses_1779520434028",
     "cg_ses_1779532234035",
@@ -3121,9 +3160,13 @@
     "cg_ses_1779547819073",
     "cg_ses_1779548073175",
     "cg_ses_1779581503396",
-    "cg_ses_1779592486991"
+    "cg_ses_1779605409465",
+    "cg_ses_1779517025364",
+    "cg_ses_1779518075661",
+    "cg_ses_1779518286659",
+    "cg_ses_1779605438930"
   ],
-  "last_updated": "2026-05-24T03:14:50.496Z",
+  "last_updated": "2026-05-24T06:50:49.722Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
