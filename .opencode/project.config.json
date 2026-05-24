@@ -261,7 +261,8 @@
         ".opencode/rules/**",
         ".opencode/tools/**",
         ".opencode/state/**",
-        ".opencode/scripts/**",
+        ".opencode/scripts/mcp-tools/**",
+        ".opencode/scripts/command-tools/**",
         "AGENTS.md",
         "PROJECT_REFERENCE.md",
         "TECH_DEBT_REGISTRY.md"

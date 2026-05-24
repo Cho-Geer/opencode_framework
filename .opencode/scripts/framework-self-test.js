@@ -4,10 +4,10 @@
 /**
  * framework-self-test.js — OpenCode Framework Binding Force Self-Test
  * ===================================================================
- * Validates 20 critical framework integrity checks.
+ * Validates 22 critical framework integrity checks.
  * Usage: node .opencode/scripts/framework-self-test.js
  *
- * Exit code: 0 if ALL 20 checks pass, 1 if any fail.
+ * Exit code: 0 if ALL 22 checks pass, 1 if any fail.
  */
 
 const fs = require("fs");
@@ -963,6 +963,149 @@ function checkGitHooksPath() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 22: opencode.json adapter non-competing validation
+// ═══════════════════════════════════════════════════════════════
+function checkOpenCodeJsonAdapter() {
+  const ocPath = path.join(OPENCODE_ROOT, "opencode.json");
+  const raw = readFile(ocPath);
+  if (!raw) return check(22, false, "opencode.json not found at project root");
+
+  // 22a: valid JSON
+  let oc;
+  try {
+    oc = JSON.parse(raw);
+  } catch (e) {
+    return check(22, false, `opencode.json is not valid JSON: ${e.message}`);
+  }
+
+  // 22b: no competing authorities — must NOT contain fields that duplicate DAG/gate/machine/contract
+  const competingFields = [
+    "dag",
+    "tasks",
+    "Task.DAG",
+    "machine",
+    "gate_state",
+    "gate-state",
+    "contract",
+    "keystone_hashes",
+    "eslint_state",
+    "compliance_records",
+    "tdd_enforcement",
+    "write_audit",
+  ];
+  let dupes = [];
+  function checkKeys(obj, prefix) {
+    if (!obj || typeof obj !== "object") return;
+    for (const k of Object.keys(obj)) {
+      const fullKey = prefix ? `${prefix}.${k}` : k;
+      for (const cf of competingFields) {
+        if (k.toLowerCase() === cf.toLowerCase()) {
+          dupes.push(fullKey);
+        }
+      }
+      if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
+        checkKeys(obj[k], fullKey);
+      }
+    }
+  }
+  checkKeys(oc, "");
+
+  if (dupes.length > 0) {
+    return check(
+      22,
+      false,
+      `opencode.json contains competing authority fields: ${dupes.join(", ")}`,
+    );
+  }
+
+  // 22c: agent definitions must match .opencode/agents/*.md counterparts
+  if (!oc.agents || typeof oc.agents !== "object") {
+    return check(22, false, "opencode.json missing 'agents' section");
+  }
+
+  const agentNames = Object.keys(oc.agents);
+  if (agentNames.length < 8) {
+    return check(
+      22,
+      false,
+      `opencode.json has ${agentNames.length} agents, expected 8`,
+    );
+  }
+
+  const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
+  const expectedMap = {
+    "Meta-Planner": "meta-planner.md",
+    "Orchestrator": "orchestrator.md",
+    "Architect": "architect.md",
+    "Coder-BE": "coder-be.md",
+    "Coder-FE": "coder-fe.md",
+    "Guardian": "guardian.md",
+    "Arbiter": "arbiter.md",
+    "CI-CD-Agent": "ci-cd-agent.md",
+  };
+
+  let agentMismatches = [];
+  for (const [name, mdFile] of Object.entries(expectedMap)) {
+    if (!oc.agents[name]) {
+      agentMismatches.push(`Missing agent: ${name}`);
+      continue;
+    }
+    const agentCfg = oc.agents[name];
+    const agentMdPath = path.join(agentsDir, mdFile);
+    const agentMd = readFile(agentMdPath);
+    if (!agentMd) {
+      agentMismatches.push(`Agent markdown file not found: ${mdFile}`);
+      continue;
+    }
+    // Extract mode from frontmatter (allow opencode.json to elevate to primary)
+    const modeMatch = agentMd.match(/^mode:\s*(\S+)/m);
+    if (modeMatch && agentCfg.mode) {
+      const mdMode = modeMatch[1];
+      // Acceptable: opencode.json elevates subagent → primary (e.g. Architect, Meta-Planner, Orchestrator)
+      // Not acceptable: opencode.json downgrades primary → subagent
+      const isElevation = mdMode === "subagent" && agentCfg.mode === "primary";
+      if (!isElevation && agentCfg.mode !== mdMode) {
+        agentMismatches.push(
+          `${name}: mode mismatch (opencode.json=${agentCfg.mode}, .md=${mdMode})`,
+        );
+      }
+    }
+    // Verify prompt path matches
+    if (agentCfg.prompt && agentCfg.prompt !== `.opencode/agents/${mdFile}`) {
+      agentMismatches.push(
+        `${name}: prompt mismatch (opencode.json=${agentCfg.prompt}, expected=.opencode/agents/${mdFile})`,
+      );
+    }
+  }
+
+  if (agentMismatches.length > 0) {
+    return check(
+      22,
+      false,
+      `Agent definition mismatches: ${agentMismatches.join("; ")}`,
+    );
+  }
+
+  // 22d: verify _framework_authorities section exists (adapter declaration)
+  if (
+    !oc._framework_authorities ||
+    typeof oc._framework_authorities !== "object"
+  ) {
+    return check(
+      22,
+      false,
+      "opencode.json missing _framework_authorities adapter declaration",
+    );
+  }
+
+  return check(
+    22,
+    true,
+    `opencode.json adapter valid: ${agentNames.length} agents, no competing authorities, all agent defs match .md counterparts`,
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main execution
 // ═══════════════════════════════════════════════════════════════
 console.log("═══════════════════════════════════════════════════════════════");
@@ -991,6 +1134,7 @@ checkTemplateResolution();
 checkAbsolutePathLeakage();
 checkReconciliationInfra();
 checkGitHooksPath();
+checkOpenCodeJsonAdapter();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");

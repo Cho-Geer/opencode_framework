@@ -7,6 +7,16 @@
   "generated_at": "2026-05-23T14:47:04.265Z",
   "change_log": [
     {
+      "version": "3.0.1",
+      "date": "2026-05-24",
+      "summary": "Phase 1 completed: opencode.json adapter (8 agents, instructions, permissions), T-TECHDEBT-016 repaid (agent_write_scopes narrowed), Check 22 added to self-test. 85 completed, 21 pending."
+    },
+    {
+      "version": "3.0.0",
+      "date": "2026-05-24",
+      "summary": "Safe Optimization Plan v3.0.0 — 25 new tasks across 7 phases + tech-debt repayment. Phase 1 (3 tasks): opencode.json adapter with 8 agents, permissions, plugin reference. Phase 2 (2 tasks): pre-execution-gate.js Node-first validation with fail-closed semantics. Phase 3 (3 tasks): framework-enforcer.ts plugin with tool.execute.before + shell.env hooks. Phase 4 (3 tasks): 3 custom tools (framework_compliance_check, state_integrity_scan, gate_lifecycle_audit). Phase 5 (4 tasks): gate lifecycle auto-drain, transaction monotonicity fix, state reconciliation auto-repair, current state drain. Phase 6 (3 tasks): rule-registry-verify.js, install-hooks.js, CI integration. Phase 7 (3 tasks): framework-doctor.js with --strict mode, comprehensive test suite TDD, universality audit. Tech-Debt: T-TECHDEBT-016 (TD-2026-016, deadline 2026-05-31). Guardian Audit: FW-SAFE-AUDIT (depends on all phases). Retains all 81 prior completed tasks."
+    },
+    {
       "version": "2.11.0",
       "date": "2026-05-24",
       "summary": "Framework Governance Hardening — Final completion: FW-GOVERN-AUDIT (@Guardian) passed with conditional approval (CAT4.1 resolved via WV-2026-010 + project.config.json scope fix). All 11 framework hardening tasks completed. PR #14 merged into develop. Total: 81/81 tasks completed."
@@ -2026,6 +2036,817 @@
       ],
       "estimated_effort": "L",
       "finding_ref": "F1-F7"
+    },
+    {
+      "id": "FW-SAFE-P1-001",
+      "title": "P1.1: Create opencode.json with instructions, 8 agents, and plugin reference",
+      "status": "completed",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [],
+      "requirement_source": "Safe Optimization Plan — Phase 1: opencode.json adapter. Task.DAG.json, machine.json, gate-state.json, contract.yaml remain authorities; opencode.json must be adapter not competing source.",
+      "target_files": [
+        "opencode.json"
+      ],
+      "acceptance_criteria": [
+        "opencode.json created at project root with valid $schema: https://opencode.ai/config.json",
+        "instructions array includes: AGENTS.md, .opencode/rules/**/*.md, .opencode/rules/rule_detail/*.md",
+        "8 agents defined matching .opencode/agents/*.md: Meta-Planner (primary), Orchestrator (primary, scheduler-only), Architect (primary, contract), Coder-BE (subagent), Coder-FE (subagent), Guardian (subagent, review-only), Arbiter (subagent), CI-CD-Agent (subagent)",
+        "Each agent replicates mode (primary/subagent), permission (allow/deny per tool), and model from existing agent configs",
+        "Permission mapping: @Orchestrator denies grep/read/glob; @Guardian denies write; @Coder-BE allowed .opencode/scripts/__tests__/**",
+        "Plugins section references .opencode/plugins/framework-enforcer (not yet created; placeholder)",
+        "JSON valid per opencode.json schema validation"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "opencode.json"
+        ],
+        "logic_complete": "All 8 agent configs mirrored from .opencode/agents/*.md into opencode.json with correct mode/permission/model",
+        "tests_pass": "node -e \"JSON.parse(require('fs').readFileSync('opencode.json','utf-8'))\" exits 0; framework-self-test.js passes",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 1"
+    },
+    {
+      "id": "FW-SAFE-P1-002",
+      "title": "P1.2: Configure permission allow/deny rules in opencode.json per agent scope",
+      "status": "completed",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-SAFE-P1-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 1: Permission mapping. Must align with project.config.json agent_write_scopes. Must deny @Orchestrator grep/read/glob at MCP level. Must add .opencode/scripts/__tests__/** to @Coder-BE allow scope (TD-2026-016).",
+      "target_files": [
+        "opencode.json"
+      ],
+      "acceptance_criteria": [
+        "Each agent's permission.allow matches their agent_write_scopes.allowed from project.config.json",
+        "Each agent's permission.deny matches their agent_write_scopes.denied from project.config.json",
+        "Tool-level permissions: bash with 'git push'→ask, 'grep *'→ask for @Orchestrator; bash:allow for @Coder-BE/@Coder-FE",
+        "@Meta-Planner permission.edit: deny (planning documents only via allowed paths)",
+        "@Guardian permission.write: deny (review-only, artifacts go to .task_temp/)",
+        "Permission gaps validated: every agent_write_scopes entry has a corresponding opencode.json permission rule",
+        "framework-self-test.js updated to verify opencode.json permission mapping consistency (new check)"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "opencode.json"
+        ],
+        "logic_complete": "All 8 agents have complete permission mappings; no scope violations possible at OpenCode MCP gateway level",
+        "tests_pass": "framework-self-test.js all checks pass including new permission mapping check",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 1"
+    },
+    {
+      "id": "FW-SAFE-P1-003",
+      "title": "P1.3: Validate opencode.json adapter does not conflict with existing authorities",
+      "status": "completed",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-SAFE-P1-002"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 1: Non-negotiable invariants. opencode.json must NOT override Task.DAG.json, machine.json, gate-state.json, or contract.yaml as authorities. Must pass adapter non-compete validation.",
+      "target_files": [
+        "opencode.json",
+        ".opencode/scripts/framework-self-test.js"
+      ],
+      "acceptance_criteria": [
+        "Adapter Non-Compete validation: opencode.json contains NO definitions that override existing DAG authority (Task.DAG.json)",
+        "Adapter Non-Compete validation: opencode.json contains NO definitions that override existing state authorities (machine.json, gate-state.json)",
+        "Adapter Non-Compete validation: opencode.json contains NO definitions that override existing contract authority (contract.yaml)",
+        "All 8 agent definitions in opencode.json are mirrors of .opencode/agents/*.md (not replacements or overrides)",
+        "No 'hidden' agent properties that disable existing agent discovery",
+        "framework-self-test.js new check: opencode.json adapter non-compete validation passes"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "opencode.json"
+        ],
+        "logic_complete": "opencode.json is a pure adapter — reflects existing config without introducing competing authority",
+        "tests_pass": "framework-self-test.js adapter non-compete check passes; all existing 21+ checks pass",
+        "guardian_approved": false
+      },
+      "estimated_effort": "S",
+      "phase": "Phase 1"
+    },
+    {
+      "id": "FW-SAFE-P2-001",
+      "title": "P2.1: Create pre-execution-gate.js — Node-first DAG/gate validation with fail-closed semantics",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-SAFE-P1-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 2: pre-execution-gate.js. Must validate DAG coverage, gate-lifecycle, and enforce fail-closed writes in strict/locked mode before any subagent dispatch.",
+      "target_files": [
+        ".opencode/scripts/pre-execution-gate.js"
+      ],
+      "acceptance_criteria": [
+        "pre-execution-gate.js created as Node.js script (not shell) for cross-platform reliability",
+        "Check 1 — DAG Coverage: reads Task.DAG.json, verifies task_id exists and status=pending; blocks if missing",
+        "Check 2 — Gate Lifecycle: reads gate-state.json, verifies no stale sessions (>24h armed), auto-purges stale",
+        "Check 3 — Enforcement Mode: reads project.config.json enforcement_mode; fail-closed on strict/locked",
+        "Check 4 — Compliance Gate: verifies compliance_gate_check was called and passed (reads gate-state.json)",
+        "Check 5 — Reconciliation: runs reconciliation-validate.js --json, blocks if inconsistencies > 5",
+        "All checks fail-closed: any failure → exit 1 with structured JSON error to stderr",
+        "Integration: replaces pre-execution-hook.sh Stage 2 logic (preserves Stage 1 hook trigger)",
+        "Output format: '✅ [Pre-Exec Gate] 5/5 checks passed' or '❌ [Pre-Exec Gate] Check 3 FAILED: enforcement mode strict, gate not armed'"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/pre-execution-gate.js"
+        ],
+        "logic_complete": "All 5 checks implemented with fail-closed semantics; structured JSON error output on failure",
+        "tests_pass": "Jest tests for pre-execution-gate.js: test each check passes/fails correctly; test fail-closed on strict mode",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 2"
+    },
+    {
+      "id": "FW-SAFE-P2-002",
+      "title": "P2.2: Wire pre-execution-gate.js into pre-execution-hook.sh and orchestrator dispatch flow",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-SAFE-P2-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 2: Integration. pre-execution-gate.js must be called before every subagent dispatch, replacing shell-based Stage 2 checks with Node-first validation.",
+      "target_files": [
+        ".opencode/scripts/pre-execution-hook.sh",
+        ".opencode/scripts/command-tools/dispatch-subagent.js"
+      ],
+      "acceptance_criteria": [
+        "pre-execution-hook.sh Stage 2 calls 'node .opencode/scripts/pre-execution-gate.js --task-id <id> --json'",
+        "dispatch-subagent.js calls pre-execution-gate.js before generating subagent prompt",
+        "If pre-execution-gate.js exits non-zero, dispatch-subagent.js blocks dispatch and returns error",
+        "pre-execution-hook.sh preserves Stage 1 (hook trigger validation) and Stage 3 (post-execution audit)",
+        "Backward compatibility: existing --json flag on pre-execution-hook.sh still works for CI pipelines",
+        "framework-self-test.js Check 20 (reconciliation) still passes with new gate wired in"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/pre-execution-hook.sh",
+          ".opencode/scripts/command-tools/dispatch-subagent.js"
+        ],
+        "logic_complete": "pre-execution-gate.js is the single entry point for all subagent dispatch validation",
+        "tests_pass": "Integration test: mock subagent dispatch → gate blocks unarmed task; gate passes armed task",
+        "guardian_approved": false
+      },
+      "estimated_effort": "S",
+      "phase": "Phase 2"
+    },
+    {
+      "id": "FW-SAFE-P3-001",
+      "title": "P3.1: Create .opencode/plugins/ directory and framework-enforcer.ts plugin skeleton",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-SAFE-P2-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 3: framework-enforcer plugin. Must hook tool.execute.before and shell.env to enforce DAG/gate/machine compliance at the OpenCode runtime level.",
+      "target_files": [
+        ".opencode/plugins/framework-enforcer.ts",
+        ".opencode/plugins/package.json"
+      ],
+      "acceptance_criteria": [
+        ".opencode/plugins/ directory created",
+        "framework-enforcer.ts created with Plugin interface from @opencode-ai/plugin SDK",
+        "Plugin registers tool.execute.before hook (blocks non-compliant tool calls)",
+        "Plugin registers shell.env hook (injects enforcement mode + DAG context into runtime)",
+        "Plugin reads project.config.json on initialization to determine enforcement_mode",
+        "Plugin skeleton exports a valid Plugin object with name, version, and hooks",
+        "TypeScript compiles: npx tsc --noEmit .opencode/plugins/framework-enforcer.ts passes"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/plugins/framework-enforcer.ts",
+          ".opencode/plugins/package.json"
+        ],
+        "logic_complete": "Plugin skeleton with tool.execute.before + shell.env hooks registered; compiles cleanly",
+        "tests_pass": "TypeScript compilation passes; plugin loads without errors (mock OpenCode runtime)",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 3"
+    },
+    {
+      "id": "FW-SAFE-P3-002",
+      "title": "P3.2: Implement tool.execute.before hook — DAG + gate + enforcement pre-validation",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-SAFE-P3-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 3: tool.execute.before hook. Must validate DAG coverage, gate state, and enforcement mode BEFORE any tool execution. Fail-closed in strict/locked mode.",
+      "target_files": [
+        ".opencode/plugins/framework-enforcer.ts"
+      ],
+      "acceptance_criteria": [
+        "tool.execute.before hook intercepts ALL tool calls (bash, write, read, etc.)",
+        "Pre-validation: checks Task.DAG.json for current task — blocks if task_id not in DAG or status != pending",
+        "Pre-validation: checks gate-state.json for armed session — blocks if no matching armed session in strict/locked mode",
+        "Pre-validation: checks enforcement mode — in advisory mode, warns but allows; in strict/locked, blocks",
+        "Pre-validation: checks agent write scope against project.config.json agent_write_scopes — blocks out-of-scope writes",
+        "Hook throws PluginError with structured context (task_id, agent, tool, reason) when blocking",
+        "Hook returns void (allows) when all validations pass",
+        "Performance: hook adds < 50ms overhead per tool call"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/plugins/framework-enforcer.ts"
+        ],
+        "logic_complete": "tool.execute.before hook enforces DAG/gate/scope/enforcement before every tool call",
+        "tests_pass": "Unit tests: verify blocks on unarmed task, out-of-scope write, strict mode violation; allows on valid call",
+        "guardian_approved": false
+      },
+      "estimated_effort": "L",
+      "phase": "Phase 3"
+    },
+    {
+      "id": "FW-SAFE-P3-003",
+      "title": "P3.3: Implement shell.env hook — inject enforcement profile + DAG context into runtime",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [
+        "FW-SAFE-P3-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 3: shell.env hook. Inject ENFORCEMENT_MODE, TASK_ID, AGENT_TYPE, OPENCODE_ROOT into every shell command environment. Ensures child processes inherit enforcement context.",
+      "target_files": [
+        ".opencode/plugins/framework-enforcer.ts"
+      ],
+      "acceptance_criteria": [
+        "shell.env hook injects ENFORCEMENT_MODE env var (advisory/strict/locked) into every shell command",
+        "shell.env hook injects TASK_ID env var (current DAG task ID) into every shell command",
+        "shell.env hook injects AGENT_TYPE env var (@Coder-BE, @Coder-FE, etc.) into every shell command",
+        "shell.env hook injects OPENCODE_ROOT env var (canonicalized) into every shell command",
+        "shell.env hook injects GATE_SESSION_ID env var (if armed) into every shell command",
+        "Existing env vars preserved (PATH, HOME, etc.) — hook is additive, not destructive",
+        "Hook runs once per shell session initialization (not per command)"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/plugins/framework-enforcer.ts"
+        ],
+        "logic_complete": "shell.env hook injects enforcement context into every child process",
+        "tests_pass": "Unit tests: verify env vars present in child process; existing env preserved",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 3"
+    },
+    {
+      "id": "FW-SAFE-P4-001",
+      "title": "P4.1: Create framework_compliance_check custom tool",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-SAFE-P1-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 4: Custom tools in .opencode/tools/. framework_compliance_check must validate all 7 framework governance rules and return structured compliance report.",
+      "target_files": [
+        ".opencode/tools/framework_compliance_check.ts"
+      ],
+      "acceptance_criteria": [
+        ".opencode/tools/framework_compliance_check.ts created using import { tool } from '@opencode-ai/plugin'",
+        "Tool validates: (1) DAG coverage ≥ 100%, (2) gate-state.json no stale sessions, (3) machine.json all sub-states clean, (4) rule_registry.json 0 HIGH mismatches, (5) enforcement mode matches environment, (6) agent write scopes consistent with opencode.json, (7) framework-self-test.js all checks pass",
+        "Tool returns structured JSON: { passed: boolean, checks: [{ id, name, status, detail }], summary: string }",
+        "Tool reads project.config.json for template_resolution and enforcement_config",
+        "Tool executable via OpenCode MCP: responds to tool call with compliance report",
+        "Performance: completes in < 2 seconds for standard project"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/tools/framework_compliance_check.ts"
+        ],
+        "logic_complete": "All 7 compliance checks implemented with structured JSON output",
+        "tests_pass": "Jest tests: mock clean state → all pass; mock violations → appropriate failures; mock timeout → graceful degradation",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 4"
+    },
+    {
+      "id": "FW-SAFE-P4-002",
+      "title": "P4.2: Create state_integrity_scan custom tool",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-SAFE-P1-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 4: state_integrity_scan. Scan all state files for corruption, stale sessions, transaction log anomalies, and cross-workspace contamination. Output repair recommendations.",
+      "target_files": [
+        ".opencode/tools/state_integrity_scan.ts"
+      ],
+      "acceptance_criteria": [
+        ".opencode/tools/state_integrity_scan.ts created using import { tool } from '@opencode-ai/plugin'",
+        "Scan: gate-state.json — orphaned armed sessions, stale completed sessions, session lifecycle anomalies",
+        "Scan: machine.json — cross-workspace paths, dirty sub-states, keystone_hash mismatches, schema violations",
+        "Scan: .transaction-log — WAL integrity, monotonic revision, orphaned PREPARE entries",
+        "Scan: rule_registry.json — digest mismatches, missing entries, stale version tags",
+        "Output: { integrity_score: 0-100, findings: [{ severity, file, issue, recommendation }], repairable: boolean }",
+        "Auto-repair flag: --repair flag triggers state-machine-reset.sh for machine.json, gate-state.json purge for stale sessions",
+        "Dry-run mode: --dry-run flag scans without modifying any state files"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/tools/state_integrity_scan.ts"
+        ],
+        "logic_complete": "Comprehensive state integrity scanner with structured output and auto-repair capability",
+        "tests_pass": "Jest tests: scan clean state → 100 score; scan with stale sessions → appropriate findings; --repair → fixes applied",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 4"
+    },
+    {
+      "id": "FW-SAFE-P4-003",
+      "title": "P4.3: Create gate_lifecycle_audit custom tool",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-SAFE-P1-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 4: gate_lifecycle_audit. Audit all gate sessions for complete lifecycle (check→confirm→complete), detect anomalies, generate timeline report.",
+      "target_files": [
+        ".opencode/tools/gate_lifecycle_audit.ts"
+      ],
+      "acceptance_criteria": [
+        ".opencode/tools/gate_lifecycle_audit.ts created",
+        "Audit: reads gate-state.json sessions, validating each session's lifecycle completeness",
+        "Anomaly detection: sessions with check but no confirm → 'abandoned'; confirm but no complete → 'orphaned'; complete without check → 'corrupted'",
+        "Timeline report: session_id, agent, task_description, duration (check→complete), anomaly flags",
+        "Statistics: total sessions, completed %, orphaned %, abandoned %, average duration, sessions per agent",
+        "Filter options: --agent <type>, --anomaly-only, --since <ISO-date>, --task-id <id>",
+        "Output: both JSON (structured) and table (human-readable) formats"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/tools/gate_lifecycle_audit.ts"
+        ],
+        "logic_complete": "Full gate lifecycle auditor with anomaly detection, timeline, and statistics",
+        "tests_pass": "Jest tests: complete sessions → clean report; orphaned sessions → flagged; corrupted sessions → ERROR",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 4"
+    },
+    {
+      "id": "FW-SAFE-P5-001",
+      "title": "P5.1: Implement gate lifecycle invariant enforcement — auto-drain stale sessions on check",
+      "status": "pending",
+      "owner": "@Coder-BE",
+      "priority": "P1",
+      "dependencies": [],
+      "requirement_source": "Safe Optimization Plan — Phase 5: Gate lifecycle invariants. compliance_gate_check must auto-drain sessions armed > 24h AND sessions checked > 48h. Must move drained sessions to drained_sessions (not delete) for audit trail.",
+      "target_files": [
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/state/gate-state.json"
+      ],
+      "acceptance_criteria": [
+        "compliance_gate_check() extended: before creating new session, scan active_sessions for stale entries",
+        "Stale threshold: armed > 24h since confirmed_at → auto-drain; checked > 48h since created_at (never confirmed) → auto-drain",
+        "Drained sessions moved to gate-state.json.drained_sessions array preserving full session object",
+        "Drained sessions removed from gate-state.json.active_sessions array",
+        "Drain operation is transactional: uses state-transaction.js beginTransaction/prepare/commit",
+        "Drain logging: each drained session logged with reason (STALE_ARMED/STALE_CHECKED) and timestamp",
+        "Enforcement mode: advisory → drain+warn; strict → drain+log; locked → drain+log",
+        "No regression: existing check→confirm→complete flow unchanged"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/mcp-tools/compliance-gate.js",
+          ".opencode/state/gate-state.json"
+        ],
+        "logic_complete": "Auto-drain of stale sessions on every compliance_gate_check call with full audit trail",
+        "tests_pass": "Jest tests: simulate stale sessions → auto-drained; verify drained sessions in drained_sessions array; verify no data loss",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 5"
+    },
+    {
+      "id": "FW-SAFE-P5-002",
+      "title": "P5.2: Fix transaction monotonicity — prevent non-monotonic revision in state-transaction.js",
+      "status": "pending",
+      "owner": "@Coder-BE",
+      "priority": "P1",
+      "dependencies": [],
+      "requirement_source": "Safe Optimization Plan — Phase 5: Transaction monotonicity. Baseline shows 'non-monotonic revision (rev 25 appears twice)'. state-transaction.js must enforce strict monotonic revision increment.",
+      "target_files": [
+        ".opencode/scripts/state-transaction.js"
+      ],
+      "acceptance_criteria": [
+        "commit() verifies new_revision > current_revision before writing — rejects on duplicate/same revision",
+        "commit() uses atomic compare-and-set: reads current revision, computes new = current + 1, writes only if current unchanged",
+        "If concurrent modification detected (current revision changed since read): retry up to 3 times with exponential backoff (10ms, 100ms, 500ms)",
+        "After 3 retries: throw TransactionConflictError with operation_id, expected_revision, actual_revision",
+        "WAL entry: records only final successful revision (not intermediate retry revisions)",
+        "Transaction log: 'node .opencode/scripts/state-transaction.js verify' checks for non-monotonic revisions → reports as ERROR",
+        "Existing WAL entries with non-monotonic revisions (like current rev 25 duplicate) are flagged as HISTORICAL_ANOMALY (not blocking)"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/state-transaction.js"
+        ],
+        "logic_complete": "Monotonic revision enforcement with atomic compare-and-set and retry logic",
+        "tests_pass": "Jest tests: concurrent transactions → no duplicate revisions; retry succeeds; TransactionConflictError after 3 retries; verify CLI detects non-monotonic as ERROR",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 5"
+    },
+    {
+      "id": "FW-SAFE-P5-003",
+      "title": "P5.3: Implement gate-state ↔ machine.json consistency auto-repair on reconciliation failure",
+      "status": "pending",
+      "owner": "@Coder-BE",
+      "priority": "P1",
+      "dependencies": [
+        "FW-SAFE-P5-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 5: Central state consistency. Baseline reconciliation shows 42 inconsistencies (23 orphaned sessions, 19 write audit gaps). Auto-repair must resolve these without manual intervention.",
+      "target_files": [
+        ".opencode/scripts/mcp-tools/reconciliation-validate.js"
+      ],
+      "acceptance_criteria": [
+        "reconciliation-validate.js extended with --repair flag: auto-fixes resolvable inconsistencies",
+        "Repair #1 — Orphaned sessions: sessions that reference no valid DAG task → drain to drained_sessions",
+        "Repair #2 — Write audit gaps: DAG tasks marked completed with no write_audit_state entry → mark write_audit_state.history entry with note='auto-reconciled (no original audit)'",
+        "Repair #3 — Stale DAG status: tasks with status='in_progress' but no active gate session → revert to 'pending'",
+        "Repair #4 — Gate/DAG mismatch: armed sessions with completed DAG tasks → auto-complete the gate session",
+        "Repair operations are transactional (use state-transaction.js)",
+        "--dry-run flag: shows what would be repaired without modifying state",
+        "Post-repair: reconciliation-validate.js --json reports inconsistencies < 5"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/mcp-tools/reconciliation-validate.js"
+        ],
+        "logic_complete": "Auto-repair resolves 4 categories of inconsistencies with transactional safety",
+        "tests_pass": "Jest tests: simulate each inconsistency type → auto-repaired; verify state consistency post-repair; --dry-run does not modify",
+        "guardian_approved": false
+      },
+      "estimated_effort": "L",
+      "phase": "Phase 5"
+    },
+    {
+      "id": "FW-SAFE-P5-004",
+      "title": "P5.4: Drain all currently stale gate sessions and verify state consistency",
+      "status": "pending",
+      "owner": "@Coder-BE",
+      "priority": "P1",
+      "dependencies": [
+        "FW-SAFE-P5-003"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 5: Apply repairs to current state. Run auto-drain + auto-repair on current gate-state.json and machine.json to achieve clean baseline.",
+      "target_files": [
+        ".opencode/state/gate-state.json",
+        ".opencode/state/machine.json"
+      ],
+      "acceptance_criteria": [
+        "Run compliance_gate_purge → all stale sessions (>24h armed, >48h checked) drained to drained_sessions",
+        "Run reconciliation-validate.js --repair → all resolvable inconsistencies auto-fixed",
+        "Post-repair: reconciliation-validate.js --json reports inconsistencies = 0",
+        "Post-repair: gate-state.json.active_sessions contains only legitimate in-flight sessions",
+        "Post-repair: machine.json all sub-states report 'clean' status",
+        "framework-self-test.js all 21+ checks pass",
+        "No data loss: drained sessions and repaired entries preserved in audit trail"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/state/gate-state.json",
+          ".opencode/state/machine.json"
+        ],
+        "logic_complete": "Current state cleaned to zero inconsistencies with full audit trail",
+        "tests_pass": "framework-self-test.js all checks pass; reconciliation-validate.js --json exits 0",
+        "guardian_approved": false
+      },
+      "estimated_effort": "S",
+      "phase": "Phase 5"
+    },
+    {
+      "id": "FW-SAFE-P6-001",
+      "title": "P6.1: Create rule-registry-verify.js — full registry integrity validation with auto-regen",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-SAFE-P5-004"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 6: rule-registry-verify.js. Must validate all rule/skill/agent file digests against rule_registry.json, auto-regenerate on --regen, and enforce in pre-commit hook.",
+      "target_files": [
+        ".opencode/scripts/rule-registry-verify.js"
+      ],
+      "acceptance_criteria": [
+        "rule-registry-verify.js created: computes SHA-256 for all files referenced in rule_registry.json",
+        "Comparison: each file's computed digest vs expected digest in rule_registry.json",
+        "Output: { passed: boolean, verified: number, mismatched: [{ file, expected_sha256, actual_sha256 }], missing: [file], extra: [file] }",
+        "--regen flag: recomputes all digests, updates rule_registry.json, sets last_regenerated timestamp",
+        "--strict flag: exits 1 on any mismatch (for CI); without --strict: exits 0 with warning output",
+        "Performance: processes 24+ file digests in < 1 second",
+        "Integration into pre-commit hook Layer 2: blocks commit on mismatch in strict/locked mode"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/rule-registry-verify.js"
+        ],
+        "logic_complete": "Full registry integrity validator with auto-regen and CI enforcement",
+        "tests_pass": "Jest tests: mock all files match → passes; mock mismatch → detects and reports; --regen → updates registry",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 6"
+    },
+    {
+      "id": "FW-SAFE-P6-002",
+      "title": "P6.2: Harden install-hooks.js — ensure hooksPath enforcement survives clone/init",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [],
+      "requirement_source": "Safe Optimization Plan — Phase 6: install-hooks.js. Must ensure git config core.hooksPath=.opencode/hooks survives repo clone, init, and manual git config changes. Must be idempotent.",
+      "target_files": [
+        ".opencode/scripts/install-hooks.js"
+      ],
+      "acceptance_criteria": [
+        "install-hooks.js created: sets git config core.hooksPath to .opencode/hooks (relative path)",
+        "Idempotent: running multiple times produces same result (no error on already-set)",
+        "Verification: after setting, runs 'git config --local core.hooksPath' to confirm .opencode/hooks",
+        "Hook existence check: verifies .opencode/hooks/pre-commit and .opencode/hooks/commit-msg exist and are executable (chmod +x if needed)",
+        "Clone survival: hooksPath is tracked in .git/config (local), survives git clone when run as post-clone setup",
+        "Bootstrap integration: added to project setup instructions and CI bootstrap script",
+        "framework-self-test.js Check 21 extended: calls install-hooks.js --verify instead of raw git config check",
+        "Cross-platform: uses Node.js child_process.spawn for git commands (works on Windows/WSL/Linux)"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/install-hooks.js"
+        ],
+        "logic_complete": "Idempotent hook installer with verification; cross-platform; survives clone",
+        "tests_pass": "Jest tests: install on fresh repo → hooksPath set; run again → idempotent; missing hooks → error; hooks not executable → auto-fix",
+        "guardian_approved": false
+      },
+      "estimated_effort": "S",
+      "phase": "Phase 6"
+    },
+    {
+      "id": "FW-SAFE-P6-003",
+      "title": "P6.3: Integrate rule-registry-verify.js and install-hooks.js into CI pipeline",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P1",
+      "dependencies": [
+        "FW-SAFE-P6-001",
+        "FW-SAFE-P6-002"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 6: CI integration. rule-registry-verify.js and install-hooks.js must run in GitHub Actions framework-ci.yml as blocking checks.",
+      "target_files": [
+        ".github/workflows/framework-ci.yml"
+      ],
+      "acceptance_criteria": [
+        ".github/workflows/framework-ci.yml updated with 2 new check jobs:",
+        "Job: registry-verify — runs 'node .opencode/scripts/rule-registry-verify.js --strict', blocks PR merge on failure",
+        "Job: hooks-verify — runs 'node .opencode/scripts/install-hooks.js --verify', blocks PR merge on hooksPath not set",
+        "All 6 CI checks pass in sequence: hook-path-check → lf-check → digest-check → wal-check → registry-verify → hooks-verify",
+        "CI badge in PROJECT_REFERENCE.md updated to reflect all 6 checks",
+        "CI workflow documented with inline comments explaining each check"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".github/workflows/framework-ci.yml"
+        ],
+        "logic_complete": "CI pipeline extended with registry and hook verification as blocking checks",
+        "tests_pass": "CI workflow passes on current clean state; fails appropriately on violations",
+        "guardian_approved": false
+      },
+      "estimated_effort": "S",
+      "phase": "Phase 6"
+    },
+    {
+      "id": "FW-SAFE-P7-001",
+      "title": "P7.1: Create framework-doctor.js — comprehensive project health check with --strict mode",
+      "status": "pending",
+      "owner": "@Coder-BE",
+      "priority": "P2",
+      "dependencies": [
+        "FW-SAFE-P5-004",
+        "FW-SAFE-P6-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 7: framework-doctor.js. Comprehensive health check aggregating self-test, reconciliation, registry verify, gate audit, and state integrity into single diagnostic tool.",
+      "target_files": [
+        ".opencode/scripts/framework-doctor.js"
+      ],
+      "acceptance_criteria": [
+        "framework-doctor.js created: orchestrates all framework health checks into unified report",
+        "Health categories: (1) DAG Health — coverage %, pending tasks, stale statuses; (2) Gate Health — active sessions, stale sessions, lifecycle anomalies; (3) State Health — machine.json sub-states, transaction log integrity, schema compliance; (4) Registry Health — digest mismatches, missing entries; (5) Hook Health — hooksPath, hook executability; (6) Enforcement Health — enforcement mode consistency, write scope gaps",
+        "Each category scored 0-100 with color output: 🟢 90-100, 🟡 70-89, 🔴 0-69",
+        "Overall health score: weighted average of categories (configurable weights)",
+        "--strict mode: exits 1 if any category < 90; --json flag: outputs machine-parseable JSON",
+        "--fix flag: attempts to auto-repair resolvable issues (delegates to reconciliation-validate --repair, compliance_gate_purge, state-machine-reset.sh)",
+        "Runs in < 3 seconds for standard project (parallel checks where possible)",
+        "Output format: table with category, score, status icon, detail; followed by actionable recommendations"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/framework-doctor.js"
+        ],
+        "logic_complete": "Comprehensive 6-category health check with scoring, strict mode, and auto-fix",
+        "tests_pass": "Jest tests: mock healthy state → all 90+ scores; mock violations → appropriate low scores; --fix → issues resolved; --strict → exits 1",
+        "guardian_approved": false
+      },
+      "estimated_effort": "L",
+      "phase": "Phase 7"
+    },
+    {
+      "id": "FW-SAFE-P7-002",
+      "title": "P7.2: Write comprehensive test suite for framework-doctor.js (TDD RED→GREEN)",
+      "status": "pending",
+      "owner": "@Coder-BE",
+      "priority": "P2",
+      "dependencies": [
+        "FW-SAFE-P7-001"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 7: TDD for framework-doctor.js. Must follow TDD RED→GREEN→REFACTOR. Test all 6 health categories, edge cases, and --fix mode.",
+      "target_files": [
+        ".opencode/scripts/__tests__/framework-doctor.test.js"
+      ],
+      "acceptance_criteria": [
+        "RED: Write comprehensive Jest test suite for framework-doctor.js FIRST (before implementation changes)",
+        "Test: all 6 health categories return correct scores for mock states",
+        "Test: --strict mode exits 1 when any category < 90",
+        "Test: --json flag outputs valid JSON with all health data",
+        "Test: --fix flag delegates to correct repair tools",
+        "Test: edge cases — empty DAG, corrupted gate-state.json, missing machine.json, 0 active sessions",
+        "Test: performance — completes in < 3 seconds for standard mock project",
+        "GREEN: All tests pass against implementation",
+        "TDD evidence: [Red] commit before [Green] commit with markers",
+        "test_report.json includes execution_evidence"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/__tests__/framework-doctor.test.js"
+        ],
+        "logic_complete": "Full TDD test suite covering all 6 categories, edge cases, and CLI flags",
+        "tests_pass": "All RED tests pass after GREEN implementation; TDD cycle documented",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 7",
+      "tdd_phase": "RED_GREEN"
+    },
+    {
+      "id": "FW-SAFE-P7-003",
+      "title": "P7.3: Universality audit — verify all 7 phases work with compatibility profiles",
+      "status": "pending",
+      "owner": "@Architect",
+      "priority": "P2",
+      "dependencies": [
+        "FW-SAFE-P7-001",
+        "FW-SAFE-P4-001",
+        "FW-SAFE-P4-002",
+        "FW-SAFE-P4-003"
+      ],
+      "requirement_source": "Safe Optimization Plan — Phase 7: Universality. Verify opencode.json adapter, plugin, and custom tools work across native/compatible/partial/minimal conformance levels defined in universal-compatibility-profile.md.",
+      "target_files": [
+        ".opencode/rules/rule_detail/universal-compatibility-profile.md",
+        "opencode.json"
+      ],
+      "acceptance_criteria": [
+        "Universality Audit Report: test opencode.json against all 4 conformance levels (Native/Compatible/Partial/Minimal)",
+        "Native (Angular/NestJS): all 7 phases fully functional — verify adapter, plugin, tools all work",
+        "Compatible (React+Express): Phase 1-2, 5-7 work; Phase 3-4 need adapter config — document adapter requirements",
+        "Partial (Vue+Django): Phase 1-2, 5-6 work; Phase 3-4, 7 need significant adaptation — document gaps",
+        "Minimal (any stack): Phase 1 (agent configs only), Phase 5 (state repair) work — document minimum viable profile",
+        "Update universal-compatibility-profile.md §Adapter Interface with framework-enforcer plugin requirements per conformance level",
+        "Cross-reference table: which FW-SAFE tasks are stack-agnostic vs. stack-specific"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/rules/rule_detail/universal-compatibility-profile.md",
+          "opencode.json"
+        ],
+        "logic_complete": "All 4 conformance levels documented with verified adapter requirements",
+        "tests_pass": "Universality audit checklist: 4/4 conformance levels have documented compatibility status",
+        "guardian_approved": false
+      },
+      "estimated_effort": "M",
+      "phase": "Phase 7"
+    },
+    {
+      "id": "T-TECHDEBT-016",
+      "title": "Repay TD-2026-016: Fix @Coder-BE agent_write_scopes to allow .opencode/scripts/__tests__/** framework test writes",
+      "status": "completed",
+      "owner": "@Architect",
+      "priority": "P0",
+      "dependencies": [],
+      "requirement_source": "TECH_DEBT_REGISTRY.md — TD-2026-016: @Coder-BE agent_write_scopes.denied contains .opencode/scripts/** which blocks legitimate DAG-assigned framework test writing. WV-2026-010 approved by @Arbiter. Deadline 2026-05-31 (7 days).",
+      "target_files": [
+        ".opencode/project.config.json"
+      ],
+      "acceptance_criteria": [
+        "@Coder-BE agent_write_scopes.allowed extended: add '.opencode/scripts/__tests__/**' entry",
+        "@Coder-BE agent_write_scopes.denied: '.opencode/scripts/**' narrowed to '.opencode/scripts/mcp-tools/**' + '.opencode/scripts/command-tools/**' (exclude __tests__/)",
+        "machine.json compliance_records: CAT4.1 violation for @Coder-BE writing compliance-gate.test.js resolved",
+        "framework-self-test.js agent scope check updated: verifies @Coder-BE can write to __tests__/",
+        "WV-2026-010 closed in TECH_DEBT_REGISTRY.md",
+        "TD-2026-016 status updated to 'repaid' in TECH_DEBT_REGISTRY.md",
+        "No regression: existing @Coder-BE denied scope (.opencode/agents/**, .opencode/rules/**, etc.) still enforced"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/project.config.json"
+        ],
+        "logic_complete": "@Coder-BE write scope correctly allows framework test files while denying config/rule/agent files",
+        "tests_pass": "framework-self-test.js agent write scope check passes; @Coder-BE can write to __tests__/ but not .opencode/agents/",
+        "guardian_approved": false
+      },
+      "estimated_effort": "XS",
+      "tech_debt_id": "TD-2026-016",
+      "deadline": "2026-05-31"
+    },
+    {
+      "id": "FW-SAFE-AUDIT",
+      "title": "Guardian governance audit: validate all 7 framework optimization phases + tech-debt repayment",
+      "status": "pending",
+      "owner": "@Guardian",
+      "priority": "P2",
+      "dependencies": [
+        "FW-SAFE-P1-003",
+        "FW-SAFE-P2-002",
+        "FW-SAFE-P3-003",
+        "FW-SAFE-P4-001",
+        "FW-SAFE-P4-002",
+        "FW-SAFE-P4-003",
+        "FW-SAFE-P5-004",
+        "FW-SAFE-P6-003",
+        "FW-SAFE-P7-002",
+        "FW-SAFE-P7-003",
+        "T-TECHDEBT-016"
+      ],
+      "requirement_source": "Safe Optimization Plan — Final governance audit. Verify all 7 phases complete, non-negotiable invariants preserved, adapter non-compete validated, and all TDD cycles documented.",
+      "target_files": [
+        "opencode.json",
+        ".opencode/scripts/pre-execution-gate.js",
+        ".opencode/plugins/framework-enforcer.ts",
+        ".opencode/tools/framework_compliance_check.ts",
+        ".opencode/tools/state_integrity_scan.ts",
+        ".opencode/tools/gate_lifecycle_audit.ts",
+        ".opencode/scripts/mcp-tools/compliance-gate.js",
+        ".opencode/scripts/state-transaction.js",
+        ".opencode/scripts/mcp-tools/reconciliation-validate.js",
+        ".opencode/scripts/rule-registry-verify.js",
+        ".opencode/scripts/install-hooks.js",
+        ".opencode/scripts/framework-doctor.js"
+      ],
+      "acceptance_criteria": [
+        "Non-negotiable invariants preserved: Task.DAG.json, machine.json, gate-state.json, contract.yaml remain authorities",
+        "opencode.json is adapter (not competing source): verified by adapter non-compete check",
+        "Phase 1: opencode.json with 8 agents, permissions, plugin reference — all agents verified",
+        "Phase 2: pre-execution-gate.js blocks unarmed dispatch; fail-closed in strict mode",
+        "Phase 3: framework-enforcer.ts tool.execute.before hook blocks non-compliant calls",
+        "Phase 4: 3 custom tools (compliance_check, state_scan, gate_audit) all functional",
+        "Phase 5: gate lifecycle auto-drain + transaction monotonicity + state reconciliation all working; 0 inconsistencies",
+        "Phase 6: rule-registry-verify.js --strict passes; install-hooks.js idempotent; CI integration active",
+        "Phase 7: framework-doctor.js --strict exits 0 (all categories ≥ 90); --json outputs valid health report",
+        "Tech-Debt: TD-2026-016 repaid; @Coder-BE scope fixed; WV-2026-010 closed",
+        "framework-self-test.js: all checks pass (existing 21 + new checks for adapter, plugin, tools, doctor)",
+        "ESLint audit: 0 violations in all new/modified framework files",
+        "TDD evidence: all RED→GREEN cycles documented with [Red]/[Green] commit markers",
+        "HANDOVER.md for each phase with core changes, key assumptions, potential pitfalls",
+        "@Guardian final report in .task_temp/FW-SAFE-AUDIT/guardian_report.json"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "opencode.json",
+          ".opencode/scripts/pre-execution-gate.js",
+          ".opencode/plugins/framework-enforcer.ts",
+          ".opencode/tools/framework_compliance_check.ts",
+          ".opencode/tools/state_integrity_scan.ts",
+          ".opencode/tools/gate_lifecycle_audit.ts",
+          ".opencode/scripts/framework-doctor.js",
+          ".opencode/scripts/rule-registry-verify.js",
+          ".opencode/scripts/install-hooks.js"
+        ],
+        "logic_complete": "All 7 phases functional; all non-negotiable invariants preserved; all debts repaid",
+        "tests_pass": "framework-doctor.js --strict exits 0; framework-self-test.js all checks pass; ESLint 0 violations",
+        "guardian_approved": true
+      },
+      "estimated_effort": "L",
+      "phase": "Audit"
     }
   ],
   "execution_order": {
@@ -2183,100 +3004,60 @@
     ],
     "fw_governance_p2_audit": [
       "FW-GOVERN-AUDIT"
+    ],
+    "fw_safe_phase1_independent": [
+      "FW-SAFE-P1-001",
+      "T-TECHDEBT-016"
+    ],
+    "fw_safe_phase1_sequential": [
+      "FW-SAFE-P1-002",
+      "FW-SAFE-P1-003"
+    ],
+    "fw_safe_phase2": [
+      "FW-SAFE-P2-001",
+      "FW-SAFE-P2-002"
+    ],
+    "fw_safe_phase3_independent": [
+      "FW-SAFE-P3-001",
+      "FW-SAFE-P5-001",
+      "FW-SAFE-P5-002"
+    ],
+    "fw_safe_phase3_sequential": [
+      "FW-SAFE-P3-002",
+      "FW-SAFE-P3-003"
+    ],
+    "fw_safe_phase4_parallel": [
+      "FW-SAFE-P4-001",
+      "FW-SAFE-P4-002",
+      "FW-SAFE-P4-003"
+    ],
+    "fw_safe_phase5_sequential": [
+      "FW-SAFE-P5-003",
+      "FW-SAFE-P5-004"
+    ],
+    "fw_safe_phase6": [
+      "FW-SAFE-P6-001",
+      "FW-SAFE-P6-002",
+      "FW-SAFE-P6-003"
+    ],
+    "fw_safe_phase7": [
+      "FW-SAFE-P7-001",
+      "FW-SAFE-P7-002",
+      "FW-SAFE-P7-003"
+    ],
+    "fw_safe_audit": [
+      "FW-SAFE-AUDIT"
     ]
   },
   "meta": {
-    "total_tasks": 81,
-    "backlog_estimate": "4-5 days",
-    "coverage_target": "≥ 70% for backend, ≥ 70% for frontend",
-    "spec_documents": [
-      ".opencode/context/requirements/接口设计规范文档.md §2.12-2.13",
-      ".opencode/context/requirements/数据架构设计文档.md §2.2.6",
-      ".opencode/context/requirements/系统架构设计文档（SAD）.md",
-      "booking_system_refactor/contract.yaml"
-    ],
-    "bug_fix": {
-      "bug_id": "BUG-SENDCODE-001",
-      "symptom": "'Contact type must be email or phone' validation error on admin New User dialog Send Code button",
-      "root_cause_hypothesis": "Contract-Code Mismatch: contract.yaml declares enum ['EMAIL','PHONE'] (UPPERCASE) but backend ContactType enum uses lowercase ['email','phone']. HTML template comparison bug: 'EMAIL'/'PHONE' hardcoded string literals vs lowercase enum values.",
-      "analysis_doc": ".task_temp/BUG-SENDCODE-PLAN/TASK_LOG.md"
-    },
-    "tech_debt_conversion": {
-      "description": "v2.8.0: Converted 3 OPEN tech debts (TD-2026-013/014/015) to repayment tasks. All 3 are P0 priority. Existing 67 tasks remain completed.",
-      "items": [
-        {
-          "id": "TD-2026-013",
-          "converted_to": "T-TECHDEBT-013",
-          "owner": "@Coder-FE",
-          "deadline": "2026-06-15",
-          "days_remaining": 23
-        },
-        {
-          "id": "TD-2026-014",
-          "converted_to": "T-TECHDEBT-014",
-          "owner": "@Architect",
-          "deadline": "2026-06-15",
-          "days_remaining": 23
-        },
-        {
-          "id": "TD-2026-015",
-          "converted_to": "T-TECHDEBT-015",
-          "owner": "@Coder-BE",
-          "deadline": "2026-06-01",
-          "days_remaining": 9
-        }
-      ]
-    },
-    "description": "v2.7.0: Appended 3 RVW-REVIEW-01-TXNFIX TDD tasks (RED→GREEN→REVIEW) to fix eslint-audit.js updateMachineJson() raw fs.writeFileSync bypass — convert to beginTransaction()/prepare()/commit() from state-transaction.js. keystone-validate.js confirmed read-only, no changes needed. All previous 64 tasks remain completed.",
-    "completed_tasks": 81,
-    "pending_tasks": 0,
-    "framework_governance": {
-      "description": "v2.11.0: Framework Governance Hardening — 11 tasks to fix 7 critical findings (F1-F7) from framework binding force review. P0: 7 independent fix tasks, P1: 3 hardening tasks (depends on P0), P2: 1 Guardian governance audit.",
-      "review_source": "Framework Binding Force Self-Review 2026-05-23",
-      "findings": [
-        {
-          "id": "F1",
-          "severity": "CRITICAL",
-          "title": "Compliance gate bypass after failed strict check",
-          "fixed_by": "FW-FIX-F1"
-        },
-        {
-          "id": "F2",
-          "severity": "CRITICAL",
-          "title": "Rule registry integrity is stale (19 HIGH mismatches)",
-          "fixed_by": "FW-FIX-F2"
-        },
-        {
-          "id": "F3",
-          "severity": "HIGH",
-          "title": "Pre-execution DAG gate fails open on Windows/WSL",
-          "fixed_by": "FW-FIX-F3"
-        },
-        {
-          "id": "F4",
-          "severity": "HIGH",
-          "title": "Git hook enforcement not physically attached",
-          "fixed_by": "FW-FIX-F4"
-        },
-        {
-          "id": "F5",
-          "severity": "HIGH",
-          "title": "Central state inconsistent (57 discrepancies)",
-          "fixed_by": "FW-FIX-F5"
-        },
-        {
-          "id": "F6",
-          "severity": "HIGH",
-          "title": "Fail-open writes remain in strict/locked mode",
-          "fixed_by": "FW-FIX-F6"
-        },
-        {
-          "id": "F7",
-          "severity": "MEDIUM",
-          "title": "Cross-platform path handling in Check 20",
-          "fixed_by": "FW-FIX-F7"
-        }
-      ]
-    }
+    "version": "3.0.0",
+    "project": "booking-system",
+    "generated_by": "@Meta-Planner",
+    "generated_at": "2026-05-24T06:46:52.876Z",
+    "description": "OpenCode Framework Safe Optimization Plan — 7-phase adapter-based enforcement upgrade. Phase 1: opencode.json adapter. Phase 2: pre-execution-gate.js. Phase 3: framework-enforcer plugin. Phase 4: custom tools. Phase 5: central state repair. Phase 6: registry + hook enforcement. Phase 7: framework-doctor.js + universality. Retains all 81 prior completed tasks. Total: 106 tasks (81 completed + 25 new).",
+    "total_tasks": 106,
+    "completed_tasks": 85,
+    "pending_tasks": 21,
+    "coverage_target": "100% framework governance coverage"
   }
 }

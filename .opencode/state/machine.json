@@ -2,18 +2,18 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-24T03:10:31.217Z",
+    "lastUpdated": "2026-05-24T06:48:53.469Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 43
+    "revision": 54
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-24T03:10:31.214Z",
+    "last_full_scan": "2026-05-24T06:48:53.467Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-24T03:10:31.214Z",
+        "last_check": "2026-05-24T06:48:53.466Z",
         "waivers_applied": []
       },
       "unknown": {
@@ -39,20 +39,20 @@
     "status": "clean",
     "dirty_files": [],
     "incremental_errors": 0,
-    "last_incremental_check": "2026-05-24T00:46:25.182Z"
+    "last_incremental_check": "2026-05-24T06:47:53.447Z"
   },
   "dependency_state": {
-    "last_check": "2026-05-24T00:46:25.182Z",
+    "last_check": "2026-05-24T06:47:53.447Z",
     "violations": [],
-    "forbidden_rules_applied": 85,
+    "forbidden_rules_applied": 86,
     "status": "clean"
   },
   "format_state": {
     "status": "clean",
     "unformatted_files": [],
     "last_run": "2026-05-23T12:00:00.000Z",
-    "last_check": "2026-05-24T00:46:25.182Z",
-    "auto_fix_count": 26
+    "last_check": "2026-05-24T06:47:53.447Z",
+    "auto_fix_count": 27
   },
   "write_audit_state": {
     "enabled": true,
@@ -117,10 +117,11 @@
         ".task_temp/RVW-REVIEW-01-TXNFIX-RED/eslint-audit.test.js",
         ".opencode/state/rule_registry.json",
         ".opencode/scripts/mcp-tools/compliance-gate.js",
-        ".opencode/scripts/__tests__/compliance-gate.test.js"
+        ".opencode/scripts/__tests__/compliance-gate.test.js",
+        "Task.DAG.json"
       ],
-      "checks_run": 58,
-      "checks_passed": 42,
+      "checks_run": 59,
+      "checks_passed": 43,
       "checks_failed": 16,
       "violations_found": 16,
       "violations_resolved": 0,
@@ -144,9 +145,12 @@
         "timestamp": "2026-05-24T00:46:19.015Z",
         "agent": "@Coder-BE",
         "violation_file": ".opencode/scripts/__tests__/compliance-gate.test.js",
-        "status": "unresolved",
+        "status": "resolved",
         "severity": "BLOCKER",
-        "denied_by": ".opencode/scripts/**"
+        "denied_by": ".opencode/scripts/**",
+        "resolved_at": "2026-05-24T06:50:00.000Z",
+        "resolved_by": "@Architect",
+        "resolution": "T-TECHDEBT-016: Narrowed @Coder-BE denied scope from .opencode/scripts/** to .opencode/scripts/mcp-tools/** + .opencode/scripts/command-tools/**. .opencode/scripts/__tests__/** already in allowed list. WV-2026-010 closed."
       }
     ],
     "gate_violations": [],
@@ -200,8 +204,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "82a04062-4d46-4cd0-b229-3ac764c672bc",
-    "last_transaction_at": "2026-05-24T03:14:50.496Z",
+    "last_operation_id": "38a37c31-83f3-45e6-9507-55cef266c938",
+    "last_transaction_at": "2026-05-24T06:50:49.723Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }
