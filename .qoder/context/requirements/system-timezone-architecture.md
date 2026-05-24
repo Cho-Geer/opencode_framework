@@ -1,26 +1,26 @@
-# 预约系统 - 时区自适应架构设计文档 (Timezone Architecture Document)
+# Booking System - Timezone-Adaptive Architecture Design Document (Timezone Architecture Document)
 
-## 文档信息
-- **文档版本**: 1.0.0
-- **创建日期**: 2026-05-12
-- **文档状态**: 已基线化
-- **作者**: @Architect
-- **关联文档**: 系统架构设计文档（SAD）.md, 数据架构设计文档.md, 接口设计规范文档.md, contract.yaml
+## Document Information
+- **Document Version**: 1.0.0
+- **Creation Date**: 2026-05-12
+- **Document Status**: Baselined
+- **Author**: @Architect
+- **Related Documents**: system-architecture-design.md, data-architecture.md, api-design-specification.md, contract.yaml
 
-## 1. 设计原则 (Design Principles)
+## 1. Design Principles
 
-| # | 原则 | 说明 |
+| # | Principle | Description |
 |---|------|------|
-| **P1** | **Store in UTC, convert at edges** | 数据库所有时间戳始终以 UTC 存储（PostgreSQL `timestamptz`）。时区转换仅在 API 边界（后端响应序列化）和 UI 边界（前端展示）执行。 |
-| **P2** | **Never trust client timestamps** | 前端发送的时间戳视为"带有偏移的本地时间"，后端必须根据已知的时区上下文（`X-Timezone` header、用户偏好、环境默认）重新解释并转换为 UTC。 |
-| **P3** | **Always annotate with timezone** | 任何包含日期/时间的 API 响应，必须附带足够的时区上下文（响应中的 IANA 时区字段、ISO 8601 偏移量、或全局 `X-Timezone` header），使客户端无需猜测。 |
-| **P4** | **Business logic operates in clinic timezone** | 营业时间计算、日期边界判断（"今天"、"本月"）、统计聚合等业务逻辑，统一在"诊所时区"（Clinic Timezone）下执行，而非 UTC 或服务器本地时间。 |
-| **P5** | **IANA timezone strings only** | 所有时区表示必须使用 IANA 时区数据库标识符（如 `Asia/Shanghai`、`America/New_York`），禁止使用 UTC 偏移量（如 `+08:00`）作为业务逻辑输入。 |
-| **P6** | **date-fns-tz for all conversions** | 后端使用 `date-fns-tz`（基于 `Intl`），前端复用已有 `date-fns@^3.6.0` + 新增 `date-fns-tz`，统一时区转换实现，消除隐式 `new Date()` 行为差异。 |
+| **P1** | **Store in UTC, convert at edges** | All database timestamps are always stored in UTC (PostgreSQL `timestamptz`). Timezone conversion is performed only at API boundaries (backend response serialization) and UI boundaries (frontend display). |
+| **P2** | **Never trust client timestamps** | Timestamps sent by the frontend are treated as "local time with offset"; the backend must reinterpret and convert to UTC based on known timezone context (`X-Timezone` header, user preference, environment default). |
+| **P3** | **Always annotate with timezone** | Any API response containing date/time must include sufficient timezone context (IANA timezone field in response, ISO 8601 offset, or global `X-Timezone` header) so clients need not guess. |
+| **P4** | **Business logic operates in clinic timezone** | Business hours calculation, date boundary judgment ("today", "this month"), statistical aggregation, etc. are uniformly executed in the "Clinic Timezone", not UTC or server local time. |
+| **P5** | **IANA timezone strings only** | All timezone representations must use IANA timezone database identifiers (e.g. `Asia/Shanghai`, `America/New_York`); using UTC offsets (e.g. `+08:00`) as business logic input is prohibited. |
+| **P6** | **date-fns-tz for all conversions** | Backend uses `date-fns-tz` (based on `Intl`); frontend reuses existing `date-fns@^3.6.0` + adds `date-fns-tz`, unifying timezone conversion implementation and eliminating implicit `new Date()` behavioral differences. |
 
-## 2. 时区检测策略 (Timezone Detection Strategy)
+## 2. Timezone Detection Strategy
 
-采用三层级联检测机制，按优先级从高到低依次尝试：
+A three-tier cascading detection mechanism is used, attempted in order from highest to lowest priority:
 
 ```
 Client Request
@@ -30,7 +30,7 @@ Client Request
 │ Tier 1: X-Timezone  │ ← Browser Intl → Header
 │       Header        │
 └─────────┬───────────┘
-          │ 有效?
+          │ Valid?
           ├── Yes ──► Resolved = X-Timezone value
           │
           ▼ No
@@ -38,7 +38,7 @@ Client Request
 │ Tier 2: User        │ ← Database preferredTimezone
 │   Profile           │
 └─────────┬───────────┘
-          │ 有效?
+          │ Valid?
           ├── Yes ──► Resolved = preferredTimezone
           │
           ▼ No
@@ -53,43 +53,43 @@ Client Request
 
 ### 2.1 Tier 1 — X-Timezone Header (Primary)
 
-- 前端 `TimezoneService` 通过 `Intl.DateTimeFormat().resolvedOptions().timeZone` 获取浏览器时区
-- HTTP 拦截器自动注入 `X-Timezone` 请求头到每个 API 请求
-- 后端 `TimezoneInterceptor` 读取该 header 并挂载到 `req.timezone`
-- **格式**: IANA 时区字符串（如 `Asia/Shanghai`）
+- Frontend `TimezoneService` obtains the browser timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone`
+- HTTP interceptor automatically injects the `X-Timezone` request header into every API request
+- Backend `TimezoneInterceptor` reads the header and attaches it to `req.timezone`
+- **Format**: IANA timezone string (e.g. `Asia/Shanghai`)
 
 ### 2.2 Tier 2 — User preferredTimezone (Stored Preference)
 
-- 用户在首次登录时，前端自动检测浏览器时区并提交到后端存储
-- 用户可在个人设置页面手动修改 `preferredTimezone`
-- 存储在 User 模型 `preferredTimezone` 字段（varchar(50)）
-- 登录流程中更新该字段（若前端提交了 `X-Timezone` 且与数据库不同）
+- On first login, the frontend auto-detects the browser timezone and submits it to the backend for storage
+- Users can manually modify `preferredTimezone` in the personal settings page
+- Stored in the User model `preferredTimezone` field (varchar(50))
+- Updated during login flow (if frontend submits `X-Timezone` and it differs from the database)
 
 ### 2.3 Tier 3 — Environment Default (Fallback)
 
-- 通过环境变量 `DEFAULT_TIMEZONE` 配置
-- `.env` 默认值: `DEFAULT_TIMEZONE=Asia/Shanghai`
-- 该值也存储在 `SystemSetting` 表中，key = `default_timezone`
-- 允许运维人员在运行时修改，无需重启服务
+- Configured via environment variable `DEFAULT_TIMEZONE`
+- `.env` default value: `DEFAULT_TIMEZONE=Asia/Shanghai`
+- This value is also stored in the `SystemSetting` table, key = `default_timezone`
+- Allows operations staff to modify at runtime without restarting the service
 
 ```
 ┌──────────────────────────────────────────────────┐
 │              ClinicTimezoneProvider               │
 │                                                  │
 │  resolve(user?, headerTimezone?): string         │
-│    1. user?.preferredTimezone (非空) → return    │
-│    2. headerTimezone (有效 IANA) → return        │
+│    1. user?.preferredTimezone (non-null) → return│
+│    2. headerTimezone (valid IANA) → return       │
 │    3. SystemSetting('default_timezone') → return │
 │    4. process.env.DEFAULT_TIMEZONE → return      │
 │    5. 'UTC' → return (hardcoded ultimate fallback)│
 └──────────────────────────────────────────────────┘
 ```
 
-## 3. 前端架构 (Frontend Architecture)
+## 3. Frontend Architecture
 
 ### 3.1 TimezoneService
 
-新文件: `booking-frontend/src/app/core/services/timezone.service.ts`
+New file: `booking-frontend/src/app/core/services/timezone.service.ts`
 
 ```typescript
 @Injectable({ providedIn: 'root' })
@@ -120,7 +120,7 @@ export class TimezoneService {
 
 ### 3.2 HTTP Interceptor (X-Timezone)
 
-新文件: `booking-frontend/src/app/core/interceptors/timezone.interceptor.ts`
+New file: `booking-frontend/src/app/core/interceptors/timezone.interceptor.ts`
 
 ```typescript
 @Injectable()
@@ -137,18 +137,18 @@ export class TimezoneInterceptor implements HttpInterceptor {
 }
 ```
 
-在 `app.config.ts` 中注册:
+Register in `app.config.ts`:
 ```typescript
 provideHttpClient(
-  withInterceptors([timezoneInterceptor])  // 或使用类式 provider
+  withInterceptors([timezoneInterceptor])  // or use class-style provider
 )
 ```
 
 ### 3.3 DateFormatService
 
-新文件: `booking-frontend/src/app/core/services/date-format.service.ts`
+New file: `booking-frontend/src/app/core/services/date-format.service.ts`
 
-利用已安装的 `date-fns@^3.6.0` + 新增 `date-fns-tz` 依赖，提供统一的日期格式化服务：
+Leverages the already installed `date-fns@^3.6.0` + newly added `date-fns-tz` dependency to provide a unified date formatting service:
 
 ```typescript
 @Injectable({ providedIn: 'root' })
@@ -184,7 +184,7 @@ export class DateFormatService {
 }
 ```
 
-**依赖**: 添加 `date-fns-tz` 到 `package.json`:
+**Dependency**: Add `date-fns-tz` to `package.json`:
 ```json
 {
   "dependencies": {
@@ -195,37 +195,37 @@ export class DateFormatService {
 
 ### 3.4 HTML Date Pipe Migration
 
-**现状**: 约 15+ 个 `.html` 文件使用 Angular 原生 `date` pipe，缺少 timezone 参数，导致行为依赖浏览器实现。
+**Current state**: Approximately 15+ `.html` files use Angular's native `date` pipe without timezone parameters, causing behavior dependent on browser implementation.
 
-**迁移规则**:
+**Migration rules**:
 
-| 原始用法 | 替换为 |
+| Original Usage | Replace With |
 |---------|--------|
 | `{{ value \| date:'short' }}` | `{{ dateFormatService.display(value) }}` |
 | `{{ value \| date:'HH:mm' }}` | `{{ dateFormatService.displayTime(value) }}` |
 | `{{ value \| date:'yyyy-MM-dd' }}` | `{{ dateFormatService.displayDate(value) }}` |
 
-在 Component 中注入:
+Inject in Component:
 ```typescript
 readonly dateFormatService = inject(DateFormatService);
 ```
 
-### 3.5 Appointment Date 发送格式变更
+### 3.5 Appointment Date Submission Format Change
 
-前端创建预约时:
+When the frontend creates an appointment:
 
 ```
 Before:  appointmentDate: "2026-05-12T06:00:00.000Z"     (client-converted to UTC)
 After:   appointmentDate: "2026-05-12T14:00:00.000+08:00" (ISO 8601 with zone offset)
 ```
 
-后端据此 + `X-Timezone` header 做最终 UTC 转换，双重校验。
+The backend uses this + `X-Timezone` header for final UTC conversion with double validation.
 
-## 4. 后端架构 (Backend Architecture)
+## 4. Backend Architecture
 
-### 4.1 Prisma Schema — User Model 扩展
+### 4.1 Prisma Schema — User Model Extension
 
-在 `User` 模型上新增 `preferredTimezone` 字段:
+Add `preferredTimezone` field to the `User` model:
 
 ```prisma
 model User {
@@ -235,18 +235,18 @@ model User {
 
   // ... existing relations ...
 
-  @@index([preferredTimezone]) // 可选：用于按时区统计
+  @@index([preferredTimezone]) // Optional: for timezone-based statistics
 }
 ```
 
-**约束**:
-- 长度限制: `varchar(50)`（最长 IANA 标识符如 `America/Argentina/ComodRivadavia` 约 35 字符）
-- 可空: `null` = 使用环境默认时区
-- 验证: 应用层使用 `Intl.supportedValuesOf('timeZone')` 校验合法性
+**Constraints**:
+- Length limit: `varchar(50)` (longest IANA identifier such as `America/Argentina/ComodRivadavia` is approximately 35 characters)
+- Nullable: `null` = use environment default timezone
+- Validation: Application layer validates using `Intl.supportedValuesOf('timeZone')`
 
 ### 4.2 TimezoneInterceptor (NestJS)
 
-新文件: `booking-backend/src/common/interceptors/timezone.interceptor.ts`
+New file: `booking-backend/src/common/interceptors/timezone.interceptor.ts`
 
 ```typescript
 @Injectable()
@@ -260,7 +260,7 @@ export class TimezoneInterceptor implements NestInterceptor {
     if (headerTimezone && this.VALID_TZS.has(headerTimezone)) {
       req.timezone = headerTimezone;
     } else {
-      req.timezone = null; // 触发 Tier 2/3 fallback
+      req.timezone = null; // Triggers Tier 2/3 fallback
     }
 
     return next.handle();
@@ -268,17 +268,17 @@ export class TimezoneInterceptor implements NestInterceptor {
 }
 ```
 
-注册到全局:
+Register globally:
 ```typescript
 // main.ts or AppModule
 app.useGlobalInterceptors(new TimezoneInterceptor());
 ```
 
-或通过 provider 方式注入 `APP_INTERCEPTOR`。
+Or via provider-style injection with `APP_INTERCEPTOR`.
 
 ### 4.3 ClinicTimezoneProvider
 
-新文件: `booking-backend/src/common/providers/clinic-timezone.provider.ts`
+New file: `booking-backend/src/common/providers/clinic-timezone.provider.ts`
 
 ```typescript
 @Injectable()
@@ -336,7 +336,7 @@ export class ClinicTimezoneProvider {
 
 ### 4.4 Business Hours via SystemSetting
 
-使用已有的 `SystemSetting` 模型，新增 key:
+Uses the existing `SystemSetting` model with new keys:
 
 #### Setting Record: `business_hours`
 
@@ -371,7 +371,7 @@ export class ClinicTimezoneProvider {
 
 #### BusinessHoursService
 
-新文件: `booking-backend/src/common/services/business-hours.service.ts`
+New file: `booking-backend/src/common/services/business-hours.service.ts`
 
 ```typescript
 interface BusinessHourEntry {
@@ -435,13 +435,13 @@ export class BusinessHoursService {
 }
 ```
 
-### 4.5 服务层重构
+### 4.5 Service Layer Refactoring
 
 #### 4.5.1 time-slots.service.ts
 
-**问题 (L212, L214)**: 硬编码 `09:00-17:00 UTC`
+**Issue (L212, L214)**: Hardcoded `09:00-17:00 UTC`
 
-**重构方案**:
+**Refactoring approach**:
 ```typescript
 @Injectable()
 export class TimeSlotsService {
@@ -486,9 +486,9 @@ export class TimeSlotsService {
 
 #### 4.5.2 admin-stats.service.ts
 
-**问题 (L59-62)**: `toISOString().slice(0,10)` 使用 UTC 日期边界
+**Issue (L59-62)**: `toISOString().slice(0,10)` uses UTC date boundaries
 
-**重构方案**:
+**Refactoring approach**:
 ```typescript
 @Injectable()
 export class AdminStatsService {
@@ -524,15 +524,15 @@ export class AdminStatsService {
 
 #### 4.5.3 admin-appointments.service.ts
 
-**问题 (L154)**: `setHours()` 与 `setUTCHours()` 混用
+**Issue (L154)**: Mixed use of `setHours()` and `setUTCHours()`
 
-**重构方案**: 统一使用 `date-fns-tz` 的 `toZonedTime` 和 `formatInTimeZone`，消除对 `setHours`/`setUTCHours` 的直接依赖。
+**Refactoring approach**: Unify using `date-fns-tz`'s `toZonedTime` and `formatInTimeZone`, eliminating direct dependency on `setHours`/`setUTCHours`.
 
 #### 4.5.4 appointments.service.ts
 
-**问题 (L198)**: `new Date(string)` 解析依赖字符串格式
+**Issue (L198)**: `new Date(string)` parsing depends on string format
 
-**重构方案**:
+**Refactoring approach**:
 ```typescript
 async createAppointment(dto: CreateAppointmentDto, timezone?: string): Promise<Appointment> {
   const tz = timezone ?? await this.clinicTimezoneProvider.resolve(dto.userId);
@@ -556,7 +556,7 @@ async createAppointment(dto: CreateAppointmentDto, timezone?: string): Promise<A
 }
 ```
 
-DTO 添加时区验证:
+DTO with timezone validation:
 ```typescript
 export class CreateAppointmentDto {
   @IsDateString()
@@ -566,9 +566,9 @@ export class CreateAppointmentDto {
 }
 ```
 
-### 4.6 DTO 时区格式化校验
+### 4.6 DTO Timezone Format Validation
 
-所有涉及 `DateTime` 的 DTO，添加装饰器校验确保时间戳包含时区信息：
+For all DTOs involving `DateTime`, add decorator validation to ensure timestamps include timezone information:
 
 ```typescript
 import { registerDecorator, ValidationOptions } from 'class-validator';
@@ -594,7 +594,7 @@ export function IsDateTimeWithTimezone(validationOptions?: ValidationOptions) {
 }
 ```
 
-使用:
+Usage:
 ```typescript
 export class CreateAppointmentDto {
   @IsDateTimeWithTimezone()
@@ -602,11 +602,11 @@ export class CreateAppointmentDto {
 }
 ```
 
-## 5. API 契约变更 (Contract Changes)
+## 5. API Contract Changes
 
-### 5.1 新增全局 Header
+### 5.1 New Global Header
 
-在 `contract.yaml` 的 `api.endpoints` 文档中增加:
+Add to the `api.endpoints` documentation in `contract.yaml`:
 
 ```yaml
 # Global Headers
@@ -621,7 +621,7 @@ headers:
 
 ### 5.2 GET /v1/time-slots/available
 
-新增 query parameter:
+New query parameter:
 
 ```yaml
 /v1/time-slots/available:
@@ -637,9 +637,9 @@ headers:
       # existing parameters: serviceId, startDate, endDate
 ```
 
-### 5.3 User Profile 响应
+### 5.3 User Profile Response
 
-新增字段:
+New field:
 
 ```yaml
 components:
@@ -655,7 +655,7 @@ components:
           example: "Asia/Shanghai"
 ```
 
-新增端点:
+New endpoint:
 
 ```yaml
 /v1/users/me/timezone:
@@ -676,7 +676,7 @@ components:
         description: "Timezone updated"
 ```
 
-### 5.4 管理端统计
+### 5.4 Admin Statistics
 
 ```yaml
 /v1/admin/stats:
@@ -690,16 +690,16 @@ components:
         description: "IANA timezone for date boundary calculations"
 ```
 
-### 5.5 响应中时间戳格式规范
+### 5.5 Response Timestamp Format Specification
 
-所有包含 `appointmentDate`、`startTime`、`endTime` 等 `DateTime` 字段的响应，使用带偏移的 ISO 8601:
+All responses containing `DateTime` fields such as `appointmentDate`, `startTime`, `endTime` use ISO 8601 with offset:
 
-| 当前 (UTC only) | 改后 (with offset) |
+| Current (UTC only) | After (with offset) |
 |----------------|-------------------|
 | `"2026-05-12T06:00:00.000Z"` | `"2026-05-12T14:00:00.000+08:00"` |
 | `"2026-05-12T00:00:00.000Z"` | `"2026-05-12T08:00:00.000+08:00"` |
 
-后端序列化时，根据 `ClinicTimezoneProvider.resolve()` 结果转换:
+Backend serialization converts based on `ClinicTimezoneProvider.resolve()` result:
 ```typescript
 // Serialization interceptor
 @Injectable()
@@ -717,31 +717,31 @@ export class TimezoneSerializationInterceptor implements NestInterceptor {
 }
 ```
 
-## 6. 营业时间配置 (Business Hours Configuration)
+## 6. Business Hours Configuration
 
-### 6.1 数据模型
+### 6.1 Data Model
 
-使用现有 `SystemSetting` 表存储营业时间配置：
+Uses the existing `SystemSetting` table to store business hours configuration:
 
-| 字段 | 值 |
+| Field | Value |
 |------|-----|
 | `settingKey` | `business_hours` |
 | `settingType` | `JSON` |
 | `category` | `BUSINESS` |
-| `description` | `营业时间配置，按星期定义多个时段` |
+| `description` | `Business hours configuration, defined per weekday with multiple time slots` |
 
-### 6.2 配置结构
+### 6.2 Configuration Structure
 
 ```typescript
 interface BusinessHoursConfig {
-  timezone: string;           // 营业时间的时区
-  monday: TimeRange[];        // 周一营业时段
+  timezone: string;           // Timezone for business hours
+  monday: TimeRange[];        // Monday business hours
   tuesday: TimeRange[];
   wednesday: TimeRange[];
   thursday: TimeRange[];
   friday: TimeRange[];
   saturday: TimeRange[];
-  sunday: TimeRange[];        // 空数组 = 休息
+  sunday: TimeRange[];        // Empty array = closed
 }
 
 interface TimeRange {
@@ -750,7 +750,7 @@ interface TimeRange {
 }
 ```
 
-### 6.3 管理端 API
+### 6.3 Admin API
 
 ```yaml
 /v1/admin/settings/business-hours:
@@ -766,9 +766,9 @@ interface TimeRange {
           schema: BusinessHoursConfig
 ```
 
-### 6.4 时区感知验证
+### 6.4 Timezone-Aware Validation
 
-当 `BusinessHoursConfig.timezone` 被修改时，后端需验证新的营业时间在目标时区下是否有效：
+When `BusinessHoursConfig.timezone` is modified, the backend must validate that the new business hours are valid in the target timezone:
 
 ```typescript
 async validateBusinessHours(config: BusinessHoursConfig): Promise<void> {
@@ -798,7 +798,7 @@ async validateBusinessHours(config: BusinessHoursConfig): Promise<void> {
 }
 ```
 
-## 7. 数据迁移 (Data Migration)
+## 7. Data Migration
 
 ### 7.1 Prisma Migration
 
@@ -806,7 +806,7 @@ async validateBusinessHours(config: BusinessHoursConfig): Promise<void> {
 npx prisma migrate dev --name add_preferred_timezone
 ```
 
-生成的迁移 SQL 概要:
+Generated migration SQL overview:
 ```sql
 -- Add preferredTimezone to User
 ALTER TABLE "users" ADD COLUMN "preferred_timezone" VARCHAR(50);
@@ -814,181 +814,181 @@ ALTER TABLE "users" ADD COLUMN "preferred_timezone" VARCHAR(50);
 -- Add SystemSetting seed records
 INSERT INTO "system_settings" ("id", "setting_key", "setting_value", "setting_type", "category", "description")
 VALUES
-  (gen_random_uuid(), 'business_hours', '{"timezone":"Asia/Shanghai","monday":[{"open":"09:00","close":"17:00"}],...}', 'JSON', 'BUSINESS', '营业时间配置'),
-  (gen_random_uuid(), 'default_timezone', 'Asia/Shanghai', 'STRING', 'SYSTEM', '系统默认时区');
+  (gen_random_uuid(), 'business_hours', '{"timezone":"Asia/Shanghai","monday":[{"open":"09:00","close":"17:00"}],...}', 'JSON', 'BUSINESS', 'Business hours configuration'),
+  (gen_random_uuid(), 'default_timezone', 'Asia/Shanghai', 'STRING', 'SYSTEM', 'System default timezone');
 ```
 
-### 7.2 无需迁移的数据
+### 7.2 Data Requiring No Migration
 
-| 数据表 | 字段 | 说明 |
+| Table | Field | Notes |
 |--------|------|------|
-| `User` | `createdAt` / `updatedAt` | 已为 `timestamptz`，UTC 存储不变 |
-| `Appointment` | `appointmentDate` | 已为 `timestamptz`，UTC 存储不变。前端展示时按 clinic tz 转换。 |
-| `TimeSlot` | `startTime` / `endTime` | 已为 `timestamptz`。生成逻辑改为从 biz hours 推算。 |
-| `Notification` | `createdAt` / `sentAt` / `scheduledAt` | UTC 存储，展示转换。 |
+| `User` | `createdAt` / `updatedAt` | Already `timestamptz`, UTC storage unchanged |
+| `Appointment` | `appointmentDate` | Already `timestamptz`, UTC storage unchanged. Frontend displays converted to clinic tz. |
+| `TimeSlot` | `startTime` / `endTime` | Already `timestamptz`. Generation logic changes to derive from business hours. |
+| `Notification` | `createdAt` / `sentAt` / `scheduledAt` | UTC storage, display conversion only. |
 
-### 7.3 现有数据兼容
+### 7.3 Existing Data Compatibility
 
-- 所有数据库中现存时间戳数据无需转换（已为 UTC）
-- 旧版客户端不发送 `X-Timezone` header → 自动使用 Tier 3 环境默认值
-- 旧版 `new Date('YYYY-MM-DD')` 调用在迁移为 `date-fns-tz` 后自然消除
+- All existing timestamp data in the database requires no conversion (already UTC)
+- Legacy clients not sending `X-Timezone` header → automatically use Tier 3 environment default
+- Legacy `new Date('YYYY-MM-DD')` calls are naturally eliminated after migration to `date-fns-tz`
 
-## 8. 受影响文件清单 (Affected Files)
+## 8. Affected Files List
 
-### 8.1 后端
+### 8.1 Backend
 
-| 文件路径 | 变更类型 | 说明 |
+| File Path | Change Type | Notes |
 |---------|---------|------|
-| `booking-backend/prisma/schema.prisma` | **修改** | User 模型新增 `preferredTimezone String?` |
-| `booking-backend/prisma/seed.ts` | **修改** | 添加 `business_hours` 和 `default_timezone` SystemSetting 种子数据 |
-| `booking-backend/src/common/interceptors/timezone.interceptor.ts` | **新建** | 读取 `X-Timezone` header 挂载到 req |
-| `booking-backend/src/common/interceptors/timezone-serialization.interceptor.ts` | **新建** | 响应中 DateTime 字段按 clinic tz 转换 |
-| `booking-backend/src/common/providers/clinic-timezone.provider.ts` | **新建** | 三层时区解析 (header > user > env) |
-| `booking-backend/src/common/services/business-hours.service.ts` | **新建** | 营业时间配置读取、校验、查询 |
-| `booking-backend/src/modules/time-slots/time-slots.service.ts` | **重构** | L212/L214 硬编码 UTC → BusinessHoursService |
-| `booking-backend/src/modules/stats/admin-stats.service.ts` | **重构** | L59-62 UTC date boundary → clinic tz |
-| `booking-backend/src/modules/appointments/appointments.service.ts` | **重构** | L198 `new Date(string)` → `toZonedTime` |
-| `booking-backend/src/modules/admin/appointments/admin-appointments.service.ts` | **重构** | L154 `setHours`/`setUTCHours` 统一 |
-| `booking-backend/src/modules/users/users.service.ts` | **修改** | 登录时更新 `preferredTimezone` |
-| `booking-backend/src/modules/users/users.controller.ts` | **修改** | 新增 `PATCH /users/me/timezone` |
-| `booking-backend/src/app.module.ts` | **修改** | 注册新 interceptors/providers |
-| `booking-backend/src/common/dto/` | **修改** | 各类 DTO 添加时区格式校验 |
-| `booking-backend/test/factories/time-slot.factory.ts` | **修改** | 生成业务时间根据配置，而非硬编码 09-17 |
-| `booking-backend/test/**/*.spec.ts` | **修改** | 适配新时区参数（约 20+ 文件） |
+| `booking-backend/prisma/schema.prisma` | **Modify** | User model adds `preferredTimezone String?` |
+| `booking-backend/prisma/seed.ts` | **Modify** | Add `business_hours` and `default_timezone` SystemSetting seed data |
+| `booking-backend/src/common/interceptors/timezone.interceptor.ts` | **New** | Read `X-Timezone` header and attach to req |
+| `booking-backend/src/common/interceptors/timezone-serialization.interceptor.ts` | **New** | Convert DateTime fields in responses to clinic tz |
+| `booking-backend/src/common/providers/clinic-timezone.provider.ts` | **New** | Three-tier timezone resolution (header > user > env) |
+| `booking-backend/src/common/services/business-hours.service.ts` | **New** | Business hours config loading, validation, querying |
+| `booking-backend/src/modules/time-slots/time-slots.service.ts` | **Refactor** | L212/L214 hardcoded UTC → BusinessHoursService |
+| `booking-backend/src/modules/stats/admin-stats.service.ts` | **Refactor** | L59-62 UTC date boundary → clinic tz |
+| `booking-backend/src/modules/appointments/appointments.service.ts` | **Refactor** | L198 `new Date(string)` → `toZonedTime` |
+| `booking-backend/src/modules/admin/appointments/admin-appointments.service.ts` | **Refactor** | L154 unify `setHours`/`setUTCHours` |
+| `booking-backend/src/modules/users/users.service.ts` | **Modify** | Update `preferredTimezone` on login |
+| `booking-backend/src/modules/users/users.controller.ts` | **Modify** | Add `PATCH /users/me/timezone` |
+| `booking-backend/src/app.module.ts` | **Modify** | Register new interceptors/providers |
+| `booking-backend/src/common/dto/` | **Modify** | Various DTOs add timezone format validation |
+| `booking-backend/test/factories/time-slot.factory.ts` | **Modify** | Generate business hours from config instead of hardcoded 09-17 |
+| `booking-backend/test/**/*.spec.ts` | **Modify** | Adapt to new timezone parameters (approx 20+ files) |
 
-### 8.2 前端
+### 8.2 Frontend
 
-| 文件路径 | 变更类型 | 说明 |
+| File Path | Change Type | Notes |
 |---------|---------|------|
-| `booking-frontend/src/app/core/services/timezone.service.ts` | **新建** | 浏览器时区检测 + localStorage 存储 |
-| `booking-frontend/src/app/core/interceptors/timezone.interceptor.ts` | **新建** | 注入 `X-Timezone` header |
-| `booking-frontend/src/app/core/services/date-format.service.ts` | **新建** | 封装 `date-fns-tz` 格式化 API |
-| `booking-frontend/src/app/app.config.ts` | **修改** | 注册 TimezoneInterceptor |
-| `booking-frontend/src/app/features/booking/**/*.ts` | **修改** | Component 注入 DateFormatService |
-| `booking-frontend/src/app/features/admin/**/*.ts` | **修改** | Component 注入 DateFormatService |
-| `booking-frontend/src/app/features/**/*.html` (约 15+ 文件) | **修改** | `date` pipe → `dateFormatService` 方法 |
-| `booking-frontend/src/app/stores/booking/booking.store.ts` | **修改** | 发送 ISO with offset |
-| `booking-frontend/src/app/core/services/api.service.ts` | **修改** | 请求体日期格式适配 |
-| `booking-frontend/package.json` | **修改** | 添加 `date-fns-tz` 依赖 |
-| `booking-frontend/src/test/factories/time-slot.factory.ts` | **修改** | 工厂方法适配时区 |
+| `booking-frontend/src/app/core/services/timezone.service.ts` | **New** | Browser timezone detection + localStorage storage |
+| `booking-frontend/src/app/core/interceptors/timezone.interceptor.ts` | **New** | Inject `X-Timezone` header |
+| `booking-frontend/src/app/core/services/date-format.service.ts` | **New** | Wraps `date-fns-tz` formatting API |
+| `booking-frontend/src/app/app.config.ts` | **Modify** | Register TimezoneInterceptor |
+| `booking-frontend/src/app/features/booking/**/*.ts` | **Modify** | Components inject DateFormatService |
+| `booking-frontend/src/app/features/admin/**/*.ts` | **Modify** | Components inject DateFormatService |
+| `booking-frontend/src/app/features/**/*.html` (approx 15+ files) | **Modify** | `date` pipe → `dateFormatService` methods |
+| `booking-frontend/src/app/stores/booking/booking.store.ts` | **Modify** | Send ISO with offset |
+| `booking-frontend/src/app/core/services/api.service.ts` | **Modify** | Request body date format adaptation |
+| `booking-frontend/package.json` | **Modify** | Add `date-fns-tz` dependency |
+| `booking-frontend/src/test/factories/time-slot.factory.ts` | **Modify** | Factory methods adapt to timezone |
 
-### 8.3 配置与文档
+### 8.3 Configuration and Documentation
 
-| 文件路径 | 变更类型 | 说明 |
+| File Path | Change Type | Notes |
 |---------|---------|------|
-| `booking-backend/.env.example` | **修改** | 添加 `DEFAULT_TIMEZONE=Asia/Shanghai` |
-| `booking-backend/.env` | **修改** | 添加 `DEFAULT_TIMEZONE` |
-| `booking-deploy/env/backend.env` | **修改** | 部署环境添加 `DEFAULT_TIMEZONE` |
-| `.qoder/context/requirements/system-timezone-architecture.md` | **新建** | 本文档 |
-| `contract.yaml` | **修改** | 添加 X-Timezone header、timezone query param、User.preferredTimezone |
-| `.qoder/context/requirements/数据架构设计文档.md` | **修改** | L104 修正 `appointmentDate` 类型说明 |
-| `.qoder/context/requirements/系统架构设计文档（SAD）.md` | **修改** | 添加时区架构概述 |
+| `booking-backend/.env.example` | **Modify** | Add `DEFAULT_TIMEZONE=Asia/Shanghai` |
+| `booking-backend/.env` | **Modify** | Add `DEFAULT_TIMEZONE` |
+| `booking-deploy/env/backend.env` | **Modify** | Deployment environment adds `DEFAULT_TIMEZONE` |
+| `.qoder/context/requirements/system-timezone-architecture.md` | **New** | This document |
+| `contract.yaml` | **Modify** | Add X-Timezone header, timezone query param, User.preferredTimezone |
+| `.qoder/context/requirements/data-architecture.md` | **Modify** | L104 correct `appointmentDate` type description |
+| `.qoder/context/requirements/system-architecture-design.md` | **Modify** | Add timezone architecture overview |
 
-## 9. 风险与缓解 (Risks and Mitigations)
+## 9. Risks and Mitigations
 
-| # | 风险 | 影响 | 概率 | 缓解措施 |
+| # | Risk | Impact | Probability | Mitigation |
 |---|------|------|------|---------|
-| **R1** | **Legacy clients without X-Timezone** | 新后端接收不到时区信息，使用默认时区 | 高 (迁移期) | Tier 3 env default + Tier 2 user preference 兜底。旧客户端行为不变（按 UTC 显示）。 |
-| **R2** | **Daylight Saving Time transitions** | 预约时间在 DST 转换前后出现 1 小时偏差 | 中 | IANA 时区标识符自动处理 DST；`date-fns-tz` 底层使用 `Intl` 尊重 DST；非临界时间（凌晨）不受影响。 |
-| **R3** | **Client spoofs X-Timezone header** | 恶意用户使用错误的时区 | 低 | 后端始终以 UTC 存储；时区仅影响展示和业务规则（营业时间检查），不影响数据完整性。Tier 2 用户偏好覆盖 header。 |
-| **R4** | **Concurrent timezone config change** | 营业时间修改影响正在进行的操作 | 低 | 业务时间仅影响未来 slot 生成；已存在的预约保留其 UTC 时间戳不变。配置变更使用数据库事务 + 版本号乐观锁。 |
-| **R5** | **date-fns-tz bundle size** | 前端增加约 5-8KB gzipped | 中 | 已在 bundle 分析中确认，增量可控。可通过 tree-shaking 优化。 |
-| **R6** | **Performance overhead** | 每次 API 调用需解析时区 | 低 | `ClinicTimezoneProvider.resolveSync()` 是 O(1) 集合查找；`formatInTimeZone` 性能与 `Intl.DateTimeFormat` 相当。无需额外缓存。 |
-| **R7** | **Mutation testing with timezone dependency** | 测试中时区依赖导致非确定性结果 | 中 | 测试时固定 `DEFAULT_TIMEZONE=UTC`；使用测试替身（spy/stub）控制 `ClinicTimezoneProvider` 返回值。 |
+| **R1** | **Legacy clients without X-Timezone** | New backend receives no timezone info, uses default timezone | High (during migration) | Tier 3 env default + Tier 2 user preference fallback. Legacy client behavior unchanged (displays in UTC). |
+| **R2** | **Daylight Saving Time transitions** | Appointment time shows 1-hour deviation before/after DST transitions | Medium | IANA timezone identifiers handle DST automatically; `date-fns-tz` underlying `Intl` respects DST; non-critical times (early morning) unaffected. |
+| **R3** | **Client spoofs X-Timezone header** | Malicious user uses incorrect timezone | Low | Backend always stores in UTC; timezone only affects display and business rules (business hours check), not data integrity. Tier 2 user preference overrides header. |
+| **R4** | **Concurrent timezone config change** | Business hours modification affects in-progress operations | Low | Business hours only affect future slot generation; existing appointments retain their UTC timestamps. Config changes use database transactions + optimistic locking with version numbers. |
+| **R5** | **date-fns-tz bundle size** | Frontend increases by approximately 5-8KB gzipped | Medium | Confirmed in bundle analysis, incremental impact is manageable. Can be optimized via tree-shaking. |
+| **R6** | **Performance overhead** | Each API call needs timezone resolution | Low | `ClinicTimezoneProvider.resolveSync()` is O(1) set lookup; `formatInTimeZone` performance is comparable to `Intl.DateTimeFormat`. No additional caching needed. |
+| **R7** | **Mutation testing with timezone dependency** | Timezone dependency in tests causes non-deterministic results | Medium | Fix `DEFAULT_TIMEZONE=UTC` during testing; use test doubles (spy/stub) to control `ClinicTimezoneProvider` return values. |
 
-## 10. 实施顺序 (Implementation Order)
+## 10. Implementation Order
 
 ### Phase 1 — Foundation (Day 1-2)
 
 ```
-优先级: P0
-目标: 建立时区基础设施，不改变现有业务行为
+Priority: P0
+Goal: Establish timezone infrastructure without changing existing business behavior
 ```
 
-| Step | 任务 | 产出 |
+| Step | Task | Output |
 |------|------|------|
-| 1.1 | 后端 `.env` 添加 `DEFAULT_TIMEZONE=Asia/Shanghai` | 环境变量生效 |
-| 1.2 | Prisma migration: User 表新增 `preferredTimezone` | 迁移文件 |
-| 1.3 | 创建 `ClinicTimezoneProvider` | 三层时区解析 |
-| 1.4 | 创建 `TimezoneInterceptor` (读取 X-Timezone header) | 全局请求拦截器 |
-| 1.5 | 在 `app.module.ts` 注册新 provider 和 interceptor | 基础设施就绪 |
+| 1.1 | Backend `.env` add `DEFAULT_TIMEZONE=Asia/Shanghai` | Environment variable active |
+| 1.2 | Prisma migration: User table add `preferredTimezone` | Migration file |
+| 1.3 | Create `ClinicTimezoneProvider` | Three-tier timezone resolution |
+| 1.4 | Create `TimezoneInterceptor` (read X-Timezone header) | Global request interceptor |
+| 1.5 | Register new provider and interceptor in `app.module.ts` | Infrastructure ready |
 
 ### Phase 2 — Core Business Logic (Day 3-5)
 
 ```
-优先级: P0
-目标: 消除硬编码 UTC 业务逻辑，替换为可配置的时区感知实现
+Priority: P0
+Goal: Eliminate hardcoded UTC business logic, replace with configurable timezone-aware implementation
 ```
 
-| Step | 任务 | 产出 |
+| Step | Task | Output |
 |------|------|------|
-| 2.1 | 创建 `BusinessHoursService` | 营业时间配置加载 + 验证 |
-| 2.2 | 种子数据: 添加 `business_hours` 和 `default_timezone` SystemSetting | DB seed |
-| 2.3 | 重构 `time-slots.service.ts` | 营业时间从配置读取 |
-| 2.4 | 重构 `admin-stats.service.ts` | 日期边界在 clinic tz 计算 |
-| 2.5 | 重构 `admin-appointments.service.ts` | 统一 setHours/setUTCHours |
-| 2.6 | 重构 `appointments.service.ts` | `new Date(string)` → `toZonedTime` |
-| 2.7 | 创建 `TimezoneSerializationInterceptor` | 响应 JSON 日期按 clinic tz 输出 |
+| 2.1 | Create `BusinessHoursService` | Business hours config loading + validation |
+| 2.2 | Seed data: Add `business_hours` and `default_timezone` SystemSetting | DB seed |
+| 2.3 | Refactor `time-slots.service.ts` | Business hours read from config |
+| 2.4 | Refactor `admin-stats.service.ts` | Date boundaries computed in clinic tz |
+| 2.5 | Refactor `admin-appointments.service.ts` | Unify setHours/setUTCHours |
+| 2.6 | Refactor `appointments.service.ts` | `new Date(string)` → `toZonedTime` |
+| 2.7 | Create `TimezoneSerializationInterceptor` | Response JSON dates output in clinic tz |
 
 ### Phase 3 — Frontend (Day 6-8)
 
 ```
-优先级: P1
-目标: 前端时区检测 + 统一格式化 + HTML migration
+Priority: P1
+Goal: Frontend timezone detection + unified formatting + HTML migration
 ```
 
-| Step | 任务 | 产出 |
+| Step | Task | Output |
 |------|------|------|
-| 3.1 | `npm install date-fns-tz` | 依赖就绪 |
-| 3.2 | 创建 `TimezoneService` | 浏览器时区检测 + signal |
-| 3.3 | 创建 `TimezoneInterceptor` (HTTP header) | X-Timezone header |
-| 3.4 | 创建 `DateFormatService` | 封装 date-fns-tz |
-| 3.5 | 注册 interceptor 到 `app.config.ts` | 全局 header 注入 |
-| 3.6 | 逐一替换 15+ HTML 中的 `date` pipe (按模块分批) | 无 `date` pipe 遗留 |
-| 3.7 | 修改 booking store: 发送 ISO with offset | 预约创建 |
+| 3.1 | `npm install date-fns-tz` | Dependency ready |
+| 3.2 | Create `TimezoneService` | Browser timezone detection + signal |
+| 3.3 | Create `TimezoneInterceptor` (HTTP header) | X-Timezone header |
+| 3.4 | Create `DateFormatService` | Wraps date-fns-tz |
+| 3.5 | Register interceptor in `app.config.ts` | Global header injection |
+| 3.6 | Progressively replace 15+ HTML `date` pipes (by module) | No `date` pipe remaining |
+| 3.7 | Modify booking store: send ISO with offset | Appointment creation |
 
 ### Phase 4 — Contract & Test (Day 9-10)
 
 ```
-优先级: P1
-目标: 更新 contract.yaml + 完善测试
+Priority: P1
+Goal: Update contract.yaml + complete test coverage
 ```
 
-| Step | 任务 | 产出 |
+| Step | Task | Output |
 |------|------|------|
-| 4.1 | 更新 `contract.yaml`: X-Timezone header, timezone query param, User.preferredTimezone | YAML 契约 |
-| 4.2 | 更新后端 DTO: 添加 `@IsDateTimeWithTimezone()` | 验证装饰器 |
-| 4.3 | 编写 `ClinicTimezoneProvider` 单元测试 | 三层 fallback 测试 |
-| 4.4 | 编写 `BusinessHoursService` 单元测试 | 营业时间查询测试 |
-| 4.5 | 更新 `time-slots.service.spec.ts` | 时区感知测试 |
-| 4.6 | 更新 `admin-stats.service.spec.ts` | 日期边界测试 |
-| 4.7 | 更新后端 fixtures/factories 中的硬编码 `09:00` | 测试数据 |
-| 4.8 | 编写 `DateFormatService` Angular 测试 | 前端格式化测试 |
-| 4.9 | 更新前端 component spec 中的 date 期望值 | 无硬编码 UTC 断言 |
+| 4.1 | Update `contract.yaml`: X-Timezone header, timezone query param, User.preferredTimezone | YAML contract |
+| 4.2 | Update backend DTOs: add `@IsDateTimeWithTimezone()` | Validation decorator |
+| 4.3 | Write `ClinicTimezoneProvider` unit tests | Three-tier fallback tests |
+| 4.4 | Write `BusinessHoursService` unit tests | Business hours query tests |
+| 4.5 | Update `time-slots.service.spec.ts` | Timezone-aware tests |
+| 4.6 | Update `admin-stats.service.spec.ts` | Date boundary tests |
+| 4.7 | Update hardcoded `09:00` in backend fixtures/factories | Test data |
+| 4.8 | Write `DateFormatService` Angular tests | Frontend formatting tests |
+| 4.9 | Update frontend component spec date expectations | No hardcoded UTC assertions |
 
 ### Phase 5 — Cleanup (Day 11)
 
 ```
-优先级: P2
-目标: 消除所有硬编码 UTC 假设，全量回归测试
+Priority: P2
+Goal: Eliminate all hardcoded UTC assumptions, full regression testing
 ```
 
-| Step | 任务 | 产出 |
+| Step | Task | Output |
 |------|------|------|
-| 5.1 | grep 搜索 `09:00`、`17:00`、`setHours`、`setUTCHours`、`toISOString().slice(0,10)` | 确认无残留 |
-| 5.2 | `npm run test` + `npm run test:cov` 全量运行 | 测试通过 + 覆盖率 ≥70% |
-| 5.3 | 更新 `.qoder/context/requirements/数据架构设计文档.md` L104 | 修正 `appointmentDate` 类型说明 |
-| 5.4 | 更新 `.qoder/context/requirements/系统架构设计文档（SAD）.md` | 添加时区架构概述章节引用 |
+| 5.1 | grep search for `09:00`, `17:00`, `setHours`, `setUTCHours`, `toISOString().slice(0,10)` | Confirm no remnants |
+| 5.2 | `npm run test` + `npm run test:cov` full run | Tests pass + coverage ≥70% |
+| 5.3 | Update `.qoder/context/requirements/data-architecture.md` L104 | Correct `appointmentDate` type description |
+| 5.4 | Update `.qoder/context/requirements/system-architecture-design.md` | Add timezone architecture overview section reference |
 
-## 附录 A: 依赖新增/变更
+## Appendix A: Dependency Additions/Changes
 
 ### Backend (package.json)
 
 ```json
 {
   "dependencies": {
-    "date-fns": "^4.1.0",      // 升级 (当前可能为 v3)
-    "date-fns-tz": "^3.2.0"    // 新增
+    "date-fns": "^4.1.0",      // Upgrade (currently may be v3)
+    "date-fns-tz": "^3.2.0"    // New
   }
 }
 ```
@@ -998,13 +998,13 @@ VALUES
 ```json
 {
   "dependencies": {
-    "date-fns": "^3.6.0",      // 已存在, 保持不变
-    "date-fns-tz": "^3.2.0"    // 新增
+    "date-fns": "^3.6.0",      // Already exists, keep unchanged
+    "date-fns-tz": "^3.2.0"    // New
   }
 }
 ```
 
-## 附录 B: 关键类型定义
+## Appendix B: Key Type Definitions
 
 ```typescript
 // Shared types across frontend and backend

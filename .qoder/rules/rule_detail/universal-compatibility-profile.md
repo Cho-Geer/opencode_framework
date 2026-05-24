@@ -553,7 +553,7 @@ These tasks modified framework infrastructure in a way that benefits any stack:
 | Task ID   | Title                                                         | Why Agnostic                                                | Benefit to Other Levels                        |
 | :-------- | :------------------------------------------------------------ | :---------------------------------------------------------- | :--------------------------------------------- |
 | UNIV-P0-E | Make coding-standard-common.md framework-agnostic             | Replaced NestJS/Angular-specific text with generic patterns | Compatible, Partial, Minimal all use this file |
-| UNIV-P2-J | Remove "(含Salesforce)" from AGENTS.md                        | Vendor-agnostic text cleanup                                | All levels use AGENTS.md                       |
+| UNIV-P2-J | Remove "(incl. Salesforce)" from AGENTS.md                    | Vendor-agnostic text cleanup                                | All levels use AGENTS.md                       |
 | UNIV-P5-K | Add placeholder compliance checks to framework-self-test.js   | Validates any project's template_resolution                 | All levels use framework-self-test.js          |
 | UNIV-P5-L | Improve compliance-audit.sh pattern matching                  | Audits any agent, not stack-specific                        | All levels use compliance-audit.sh             |
 | UNIV-P5-M | Add python3 fallback to pre-execution-hook.sh                 | OS-level improvement for minimal systems                    | All levels use pre-execution-hook.sh           |

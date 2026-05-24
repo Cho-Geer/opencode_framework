@@ -1,47 +1,47 @@
-# 404 页面（NotFoundPage）
+# 404 Page (NotFoundPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 404 未找到 |
-| **路由路径** | `**`（通配符，最后一条路由规则） |
-| **布局** | 无布局外壳（Standalone 页面） |
-| **组件** | `NotFoundPageComponent` (`src/app/shared/pages/not-found-page/not-found-page.component.ts`) |
-| **设计依据** | Angular 路由惯例（通配符路由） |
+| **Page Name** | 404 Not Found |
+| **Route Path** | `**` (wildcard, last route rule) |
+| **Layout** | No layout shell (Standalone page) |
+| **Component** | `NotFoundPageComponent` (`src/app/shared/pages/not-found-page/not-found-page.component.ts`) |
+| **Design Basis** | Angular routing convention (wildcard route) |
 
-## 用户角色
+## User Roles
 
-- 公开访问
+- Public access
 
-## 路由参数
+## Route Parameters
 
-- 无（通配符路由不传递参数）
+- None (wildcard route does not pass parameters)
 
-## 路由守卫
+## Route Guards
 
-- 无
+- None
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务
+## Injected Services
 
-| 服务 | 用途 |
+| Service | Purpose |
 |---|---|
-| `Router` | `goHome()` → 导航至 `/booking` |
+| `Router` | `goHome()` → navigate to `/booking` |
 
-## API 契约对照
+## API Contract Reference
 
-- 无 API 调用
+- No API calls
 
-## 交互流程
+## Interaction Flow
 
-1. 用户访问不存在的路径 → 匹配 `**` 通配符
-2. 显示 404 提示页面
-3. 点击「返回首页」→ `goHome()` → `router.navigate(['/booking'])`
+1. User visits a non-existent path → matches `**` wildcard
+2. Displays 404 prompt page
+3. Click "Back to Home" → `goHome()` → `router.navigate(['/booking'])`
 
-## 数据来源
+## Data Sources
 
-- Angular 路由惯例
+- Angular routing convention

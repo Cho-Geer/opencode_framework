@@ -3,144 +3,144 @@ type: model_decision
 description: When generating or updating DAGs
 ---
 
-# DAG 制定标准 v1.1
+# DAG Generation Standard v1.1
 
-**制定时间**: 2026-04-16
-**最后更新**: 2026-05-18
-**版本**: v1.1.0（参数化重构 — 硬编码模块清单替换为动态占位符）
-**适用范围**: 所有涉及 Task.DAG.json 生成、更新、审查的任务
+**Created**: 2026-04-16
+**Last Updated**: 2026-05-18
+**Version**: v1.1.0 (Parameterization refactor — hardcoded module lists replaced with dynamic placeholders)
+**Applicable Scope**: All tasks involving Task.DAG.json generation, updates, and review
 
 ---
 
-## 一、适用范围
+## 1. Applicable Scope
 
-所有涉及 `Task.DAG.json` 生成、更新、审查的任务必须遵循本规范。
+All tasks involving `Task.DAG.json` generation, updates, and review must comply with this standard.
 
-## 二、强制触发 Agent
+## 2. Mandatory Triggering Agents
 
-| Agent | 触发场景 |
+| Agent | Trigger Scenario |
 |-------|---------|
-| **@Meta-Planner** | DAG 生成、版本升级、任务追加 |
-| **@Guardian** | DAG 覆盖率和完整性审查 |
-| **@Orchestrator** | DAG 执行监控、状态同步验证 |
+| **@Meta-Planner** | DAG generation, version upgrades, task additions |
+| **@Guardian** | DAG coverage and completeness review |
+| **@Orchestrator** | DAG execution monitoring, status sync verification |
 
 ---
 
-## 三、全面性约束 (Completeness Rules)
+## 3. Completeness Rules
 
-### C1 - 要件全覆盖
+### C1 - Full Requirements Coverage
 
-DAG 任务必须覆盖以下全部 6 份要件文档的每一个可验证条款：
+DAG tasks must cover every verifiable clause from all 6 requirement documents:
 
-| 序号 | 要件文档 | 文件路径 |
+| # | Requirement Document | File Path |
 |------|---------|---------|
-| 1 | 系统架构设计文档（SAD） | `.qoder/context/requirements/系统架构设计文档（SAD）.md` |
-| 2 | 接口设计规范文档 | `.qoder/context/requirements/接口设计规范文档.md` |
-| 3 | 数据架构设计文档 | `.qoder/context/requirements/数据架构设计文档.md` |
-| 4 | 安全架构设计文档 | `.qoder/context/requirements/安全架构设计文档.md` |
-| 5 | 测试策略与计划 | `.qoder/context/requirements/测试策略与计划.md` |
-| 6 | 运维与部署设计文档 | `.qoder/context/requirements/运维与部署设计文档.md` |
+| 1 | system-architecture-design (SAD) | `.qoder/context/requirements/system-architecture-design.md` |
+| 2 | api-design-specification | `.qoder/context/requirements/api-design-specification.md` |
+| 3 | data-architecture | `.qoder/context/requirements/data-architecture.md` |
+| 4 | security-architecture | `.qoder/context/requirements/security-architecture.md` |
+| 5 | testing-strategy | `.qoder/context/requirements/testing-strategy.md` |
+| 6 | operations-deployment | `.qoder/context/requirements/operations-deployment.md` |
 
-**违反后果**: 需求遗漏，项目无法 100% 完成。  
-**验证方式**: Guardian 审查时逐项核对要件条款与 DAG 任务映射关系。
+**Violation Consequence**: Requirements omission; project cannot reach 100% completion.  
+**Verification Method**: Guardian reviews by cross-checking requirement clauses against DAG task mappings.
 
-### C2 - 契约条款映射
+### C2 - Contract Clause Mapping
 
-`contract.yaml` 中的每个 endpoint、data model、security rule 必须有对应的 DAG 任务。
+Every endpoint, data model, and security rule in `contract.yaml` must have a corresponding DAG task.
 
-映射要求：
-- 每个 API endpoint 至少对应 1 个实现任务 + 1 个测试任务
-- 每个 data model 变更至少对应 1 个迁移任务
-- 每个 security rule 至少对应 1 个安全实现任务
+Mapping requirements:
+- Each API endpoint maps to at least 1 implementation task + 1 test task
+- Each data model change maps to at least 1 migration task
+- Each security rule maps to at least 1 security implementation task
 
-### C3 - 模块级拆解
+### C3 - Module-Level Decomposition
 
-每个后端模块至少生成 **3 个任务**：
+Each backend module must generate at least **3 tasks**:
 
-| 任务类型 | 内容 | 示例 |
+| Task Type | Content | Example |
 |---------|------|------|
-| 实现任务 | controller + service + dto + module | `time-slots.controller.ts`, `time-slots.service.ts` |
-| 测试任务 | spec 文件（单元 + 集成） | `time-slots.service.spec.ts` |
-| 集成任务 | 与其他模块的连接/wiring | 在 `app.module.ts` 中注册 |
+| Implementation task | controller + service + dto + module | `time-slots.controller.ts`, `time-slots.service.ts` |
+| Test task | spec files (unit + integration) | `time-slots.service.spec.ts` |
+| Integration task | wiring/connection with other modules | Register in `app.module.ts` |
 
-**适用模块**: 项目中的全部后端模块，数量记为 `{BACKEND_MODULES_COUNT}`（由 `{PROJECT_ROOT}/backend_src/modules/` 目录扫描得出）。
-> 示例（本项目当前值）: auth, users, services, time-slots, appointments, notifications, cache, rate-limiter, stats, health, email — 共 11 个模块
+**Applicable Modules**: All backend modules in the project, counted as `{BACKEND_MODULES_COUNT}` (derived by scanning `{PROJECT_ROOT}/backend_src/modules/` directory).
+> Example (current project values): auth, users, services, time-slots, appointments, notifications, cache, rate-limiter, stats, health, email — 11 modules total
 
-### C4 - 前端原子拆解
+### C4 - Frontend Atomic Decomposition
 
-每个前端组件族至少生成 **2 个任务**：
+Each frontend component family must generate at least **2 tasks**:
 
-| 任务类型 | 内容 | 示例 |
+| Task Type | Content | Example |
 |---------|------|------|
-| 组件实现 | ts + html + scss + spec | `login.component.ts`, `login.component.html` |
-| Store wiring | NgRx Signals 连接 | `auth.store.ts` 连接到组件 |
+| Component implementation | ts + html + scss + spec | `login.component.ts`, `login.component.html` |
+| Store wiring | NgRx Signals connection | `auth.store.ts` connected to component |
 
-**适用组件族**: 项目中的全部前端组件族，数量记为 `{FRONTEND_COMPONENT_FAMILIES_COUNT}`（由前端 `features/` 或页面目录结构分析得出）。
-> 示例（本项目当前值）: auth, booking, admin, shared — 共 4 个组件族
+**Applicable Component Families**: All frontend component families in the project, counted as `{FRONTEND_COMPONENT_FAMILIES_COUNT}` (derived by analyzing frontend `features/` or page directory structure).
+> Example (current project values): auth, booking, admin, shared — 4 component families total
 
-### C5 - 安全增强独立
+### C5 - Independent Security Enhancements
 
-每个安全增强项必须是**独立任务**，不能合并在其他任务中。
+Each security enhancement item must be an **independent task** and cannot be merged into other tasks.
 
-安全项清单由 `{SECURITY_ITEMS_COUNT}` 项组成，从安全架构设计文档（`.qoder/context/requirements/安全架构设计文档.md`）中提取。每项对应一个独立任务，其优先级遵循安全架构文档中的定义。
+The security items list consists of `{SECURITY_ITEMS_COUNT}` items, extracted from security-architecture (`.qoder/context/requirements/security-architecture.md`). Each item corresponds to an independent task, with priority following the definitions in security-architecture.
 
-> 示例（本项目当前值，共 4 项）: CSRF protection (P1), Rate limiting with Redis (P1), Token blacklisting (P1), Vault integration placeholder (P2)
+> Example (current project values, 4 items total): CSRF protection (P1), Rate limiting with Redis (P1), Token blacklisting (P1), Vault integration placeholder (P2)
 
-### C6 - DevOps 独立
+### C6 - Independent DevOps
 
-以下各项必须是**独立任务**。
+The following items must each be **independent tasks**.
 
-DevOps 项清单由 `{DEVOPS_ITEMS_COUNT}` 项组成，从运维与部署设计文档（`.qoder/context/requirements/运维与部署设计文档.md`）中提取。每项对应一个独立任务，其优先级遵循运维与部署文档中的定义。
+The DevOps items list consists of `{DEVOPS_ITEMS_COUNT}` items, extracted from operations-deployment (`.qoder/context/requirements/operations-deployment.md`). Each item corresponds to an independent task, with priority following the definitions in operations-deployment.
 
-> 示例（本项目当前值，共 4 项）: Docker Compose 配置 (P1), CI/CD Pipeline (GitHub Actions) (P1), 部署配置与环境变量 (P2), 监控与健康检查 (P2)
+> Example (current project values, 4 items total): Docker Compose configuration (P1), CI/CD Pipeline (GitHub Actions) (P1), Deployment configuration and environment variables (P2), Monitoring and health checks (P2)
 
 ---
 
-## 四、细粒度约束 (Granularity Rules)
+## 4. Granularity Rules
 
-### G1 - 单任务工作量上限
+### G1 - Single Task Workload Cap
 
-单个任务的 `target_files` 数量 **不超过 5 个**。
+A single task's `target_files` count must **not exceed 5**.
 
-判定公式：`task.target_files.length <= 5`
+Determination formula: `task.target_files.length <= 5`
 
-### G2 - 最小任务数公式
+### G2 - Minimum Task Count Formula
 
-总任务数必须满足：
+Total task count must satisfy:
 
 ```
-总任务数 >= 后端模块数 x 3 + 前端组件族数 x 2 + 安全项数 + DevOps项数
+Total tasks >= Backend modules x 3 + Frontend component families x 2 + Security items + DevOps items
 ```
 
-占位符定义（DAG 生成时从项目实际结构解析）:
-- `{BACKEND_MODULES_COUNT}`: 后端模块总数（扫描 `{PROJECT_ROOT}/backend_src/modules/` 得出）
-- `{FRONTEND_COMPONENT_FAMILIES_COUNT}`: 前端组件族总数（分析前端功能模块目录得出）
-- `{SECURITY_ITEMS_COUNT}`: 安全增强项总数（提取自安全架构设计文档）
-- `{DEVOPS_ITEMS_COUNT}`: DevOps 独立项总数（提取自运维与部署设计文档）
+Placeholder definitions (resolved from the actual project structure during DAG generation):
+- `{BACKEND_MODULES_COUNT}`: Total backend module count (scan `{PROJECT_ROOT}/backend_src/modules/`)
+- `{FRONTEND_COMPONENT_FAMILIES_COUNT}`: Total frontend component family count (analyze frontend feature module directories)
+- `{SECURITY_ITEMS_COUNT}`: Total security enhancement items (extracted from security-architecture)
+- `{DEVOPS_ITEMS_COUNT}`: Total independent DevOps items (extracted from operations-deployment)
 
-**最小任务数 >= {BACKEND_MODULES_COUNT}x3 + {FRONTEND_COMPONENT_FAMILIES_COUNT}x2 + {SECURITY_ITEMS_COUNT} + {DEVOPS_ITEMS_COUNT}**
+**Minimum tasks >= {BACKEND_MODULES_COUNT}x3 + {FRONTEND_COMPONENT_FAMILIES_COUNT}x2 + {SECURITY_ITEMS_COUNT} + {DEVOPS_ITEMS_COUNT}**
 
-> 示例（本项目当前值）: 11x3 + 4x2 + 4 + 4 = 49
+> Example (current project values): 11x3 + 4x2 + 4 + 4 = 49
 
-### G3 - 测试独立
+### G3 - Independent Tests
 
-每个业务模块必须有**独立的测试任务**，不能合并在实现任务中。
+Each business module must have an **independent test task** that cannot be merged into implementation tasks.
 
-TDD 铁律要求：
-- 测试任务必须先于实现任务（依赖关系）
-- 测试任务必须明确标记为 `TDD-RED` 阶段
-- 实现任务必须标记为 `TDD-GREEN` 阶段
+TDD iron rule requirements:
+- Test tasks must precede implementation tasks (dependency relationship)
+- Test tasks must be explicitly marked as the `TDD-RED` phase
+- Implementation tasks must be marked as the `TDD-GREEN` phase
 
 ### G4 - Definition of Done
 
-每个任务必须包含明确的完成标准，格式如下：
+Each task must include clear completion criteria in the following format:
 
 ```json
 {
   "definition_of_done": {
-    "files_exist": ["预期文件路径1", "预期文件路径2"],
-    "logic_complete": "业务逻辑描述",
-    "tests_pass": "测试用例数量及覆盖率要求",
+    "files_exist": ["expected file path 1", "expected file path 2"],
+    "logic_complete": "business logic description",
+    "tests_pass": "test case count and coverage requirements",
     "guardian_approved": true
   }
 }
@@ -148,38 +148,38 @@ TDD 铁律要求：
 
 ---
 
-## 五、可追溯性约束 (Traceability Rules)
+## 5. Traceability Rules
 
-### T1 - 需求来源字段
+### T1 - Requirement Source Field
 
-每个任务必须有 `requirement_source` 字段，格式为：
+Each task must have a `requirement_source` field in the format:
 
 ```json
 {
   "requirement_source": {
-    "document": "要件文档名称",
-    "section": "具体章节",
-    "clause": "条款编号或描述"
+    "document": "requirement document name",
+    "section": "specific section",
+    "clause": "clause number or description"
   }
 }
 ```
 
-### T2 - 契约引用字段
+### T2 - Contract Reference Field
 
-每个 API/数据任务必须引用 `contract.yaml` 的具体路径：
+Each API/data task must reference the specific path in `contract.yaml`:
 
 ```json
 {
   "contract_reference": {
-    "path": "contract.yaml 中的 YAML 路径",
+    "path": "YAML path in contract.yaml",
     "type": "endpoint | data_model | security_rule | high_concurrency"
   }
 }
 ```
 
-### T3 - 文件映射字段
+### T3 - File Mapping Field
 
-每个任务必须有 `target_files` 字段，列出预期产出文件路径：
+Each task must have a `target_files` field listing expected output file paths:
 
 ```json
 {
@@ -190,61 +190,61 @@ TDD 铁律要求：
 }
 ```
 
-### T4 - 依赖真实性
+### T4 - Dependency Authenticity
 
-任务依赖必须基于**代码实际 import 关系**，不基于设计假设。
+Task dependencies must be based on **actual code import relationships**, not design assumptions.
 
-验证方式：Guardian 审查时检查依赖任务的文件是否被目标任务 import。
-
----
-
-## 六、动态更新约束 (Dynamic Update Rules)
-
-### D1 - 状态同步
-
-任务状态变更必须与实际文件状态一致。
-
-同步规则：
-- 文件创建且逻辑完整 → 任务状态可从 `pending` 改为 `in_progress`
-- 文件逻辑完整且测试通过 → 任务状态可从 `in_progress` 改为 `completed`
-- Guardian 审查通过 → 任务状态确认为 `completed`
-
-### D2 - 差距追加
-
-Guardian 审查发现未覆盖的需求时，自动生成新任务追加到 DAG。
-
-追加流程：
-1. Guardian 识别未覆盖的要件条款
-2. 生成新任务，包含 `requirement_source`、`target_files`、`definition_of_done`
-3. 更新 DAG 版本号
-4. 通知 @Orchestrator 调度新任务
-
-### D3 - 版本管理
-
-每次 DAG 更新必须：
-- 递增 `meta.version` 字段（语义化版本）
-- 在 `meta.description` 中记录变更原因
-- 在 `meta.changelog` 中添加变更日志条目
-- 保留历史版本文件（`Task.DAG.v{version}.json`）
-
-### D4 - 覆盖率门禁
-
-DAG 覆盖率 < 100% 时**禁止进入执行阶段**。
-
-覆盖率计算公式：
-
-```
-覆盖率 = (任务覆盖的要件条款数 / 要件条款总数) x 100%
-```
-
-要件条款总数 = 从 6 份要件文档中提取的独立可验证条款数  
-任务覆盖的要件条款数 = 至少有一个任务引用该条款的数量
+Verification method: Guardian reviews by checking whether files from dependency tasks are imported by target tasks.
 
 ---
 
-## 七、DAG JSON Schema 要求
+## 6. Dynamic Update Rules
 
-`Task.DAG.json` 必须包含以下必填字段：
+### D1 - Status Synchronization
+
+Task status changes must be consistent with actual file states.
+
+Sync rules:
+- File created and logic complete → Task status may change from `pending` to `in_progress`
+- File logic complete and tests pass → Task status may change from `in_progress` to `completed`
+- Guardian review passes → Task status confirmed as `completed`
+
+### D2 - Gap Appendix
+
+When Guardian review identifies uncovered requirements, new tasks are automatically generated and appended to the DAG.
+
+Appendix process:
+1. Guardian identifies uncovered requirement clauses
+2. Generates new tasks including `requirement_source`, `target_files`, `definition_of_done`
+3. Updates DAG version number
+4. Notifies @Orchestrator to schedule new tasks
+
+### D3 - Version Management
+
+Each DAG update must:
+- Increment the `meta.version` field (semantic versioning)
+- Record the change reason in `meta.description`
+- Add a changelog entry in `meta.changelog`
+- Retain historical version files (`Task.DAG.v{version}.json`)
+
+### D4 - Coverage Gate
+
+When DAG coverage is < 100%, **entry into the execution phase is prohibited**.
+
+Coverage calculation formula:
+
+```
+Coverage = (Number of requirement clauses covered by tasks / Total requirement clauses) x 100%
+```
+
+Total requirement clauses = Number of independently verifiable clauses extracted from 6 requirement documents  
+Requirement clauses covered by tasks = Number of clauses referenced by at least one task
+
+---
+
+## 7. DAG JSON Schema Requirements
+
+`Task.DAG.json` must include the following required fields:
 
 ```json
 {
@@ -291,33 +291,33 @@ DAG 覆盖率 < 100% 时**禁止进入执行阶段**。
 
 ---
 
-## 八、违规处理
+## 8. Violation Handling
 
-| 违规类型 | 违反规则 | 处理方式 |
+| Violation Type | Rule Violated | Resolution |
 |---------|---------|---------|
-| 需求遗漏 | C1, C2 | DAG 生成失败，必须重新生成 |
-| 粒度不足 | C3, C4, G1, G2, G3 | @Guardian 审查不通过，退回重新拆解 |
-| 定义模糊 | G4 | 任务标记为"不可执行"，限期补充 DoD |
-| 不可追溯 | T1, T2, T3, T4 | 任务标记为"不可追溯"，限期修正 |
-| 状态不同步 | D1 | @Orchestrator 暂停执行，直至修复 |
-| 差距未追加 | D2 | Guardian 自动生成补充任务 |
-| 版本混乱 | D3 | 回退到上一有效版本 |
-| 覆盖率不足 | D4 | 禁止进入执行阶段 |
+| Requirements omission | C1, C2 | DAG generation fails; must regenerate |
+| Insufficient granularity | C3, C4, G1, G2, G3 | @Guardian review fails; returned for re-decomposition |
+| Vague definition | G4 | Task marked as "non-executable"; deadline to supplement DoD |
+| Untraceable | T1, T2, T3, T4 | Task marked as "untraceable"; deadline to correct |
+| Status out of sync | D1 | @Orchestrator suspends execution until fixed |
+| Gap not appended | D2 | Guardian auto-generates supplementary tasks |
+| Version chaos | D3 | Rollback to previous valid version |
+| Insufficient coverage | D4 | Entry into execution phase prohibited |
 
 ---
 
-## 九、与其他规范的引用关系
+## 9. Reference Relationships with Other Standards
 
-| 规范文档 | 引用关系 |
+| Standard Document | Reference Relationship |
 |---------|---------|
-| `common-project.md` | 本规范被其引用，具有同等强制力 |
-| `meta-planner.md` | @Meta-Planner 必须遵循本规范生成 DAG |
-| `AGENTS.md` | 在多智能体体系中引用本规范 |
-| `测试代码规范.md` | G3 测试独立与其 TDD 铁律协同 |
-| `backend-coding-standard.md` | C3 模块级拆解与其模块化规范协同 |
-| `frontend-coding-standard.md` | C4 前端原子拆解与其原子设计规范协同 |
+| `common-project.md` | This standard is referenced by it with equal enforcement authority |
+| `meta-planner.md` | @Meta-Planner must follow this standard to generate DAGs |
+| `AGENTS.md` | References this standard in the multi-agent system |
+| `test-coding-standard.md` | G3 independent tests synergize with its TDD iron rule |
+| `backend-coding-standard.md` | C3 module-level decomposition synergizes with its modularization standard |
+| `frontend-coding-standard.md` | C4 frontend atomic decomposition synergizes with its atomic design standard |
 
 ---
 
-*本文档将根据项目演进持续更新。*
+*This document will be continuously updated as the project evolves.*
 # tamper-for-test

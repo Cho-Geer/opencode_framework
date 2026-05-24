@@ -713,7 +713,7 @@ function runGateComplete(sessionId, executionSummary) {
   return { status: "completed", audit };
 }
 
-// 创建 MCP Server
+// Create MCP Server
 const server = new Server(
   {
     name: "compliance-gate",
@@ -726,7 +726,7 @@ const server = new Server(
   },
 );
 
-// 注册工具列表
+// Register tool list
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -788,7 +788,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// 处理工具调用
+// Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
@@ -829,7 +829,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   throw new Error(`Unknown tool: ${name}`);
 });
 
-// 启动 stdio 传输
+// Start stdio transport
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

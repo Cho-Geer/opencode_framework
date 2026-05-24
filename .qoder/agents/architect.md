@@ -5,6 +5,11 @@ tools: Read, Write, Edit, Grep, Glob, MCP
 skills:
   - execution-preflight-check
   - brainstorming
+mcp_tools:
+  - compliance_gate_check (qoder-framework-tools)
+  - compliance_gate_confirm (qoder-framework-tools)
+  - compliance_gate_complete (qoder-framework-tools)
+  - code-quality-gate (qoder-framework-tools)
 mcpServers:
   - qoder-framework-tools
 ---

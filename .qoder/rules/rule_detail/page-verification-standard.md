@@ -6,13 +6,13 @@ glob: src/**
 
 # Page Verification Standard (QPV) v1.0
 
-**制定时间**: 2026-05-24  
-**版本**: v1.0.0  
-**适用范围**: All tasks producing code changes that match `source_paths` patterns in `qpv-config.json`
+**Created**: 2026-05-24  
+**Version**: v1.0.0  
+**Applicable Scope**: All tasks producing code changes that match `source_paths` patterns in `qpv-config.json`
 
 ---
 
-## 一、适用范围 (Applicability)
+## 1. Applicability
 
 ### 1.1 Triggering Condition
 
@@ -32,7 +32,7 @@ Tasks where **ALL** modified files match patterns defined in `qpv-config.json �
 
 ---
 
-## 二、Affected Page Resolution (APR) Requirement
+## 2. Affected Page Resolution (APR) Requirement
 
 ### 2.1 Mandatory Fields for Backend/Database Changes
 
@@ -56,7 +56,7 @@ For `change_origin: "frontend"`, APR is implicit — the `verified_pages` field 
 
 ---
 
-## 三、Pass Criteria per Category
+## 3. Pass Criteria per Category
 
 ### 3.1 Category 1 — Layout & Design Verification (LDV)
 
@@ -106,7 +106,7 @@ For `change_origin: "frontend"`, APR is implicit — the `verified_pages` field 
 
 ---
 
-## 四、Overall Pass Determination
+## 4. Overall Pass Determination
 
 ### 4.1 Rule
 
@@ -124,7 +124,7 @@ If any applicable category is `"FAIL"`, `overall` MUST be `"FAIL"` regardless of
 
 ---
 
-## 五、Failure Protocol
+## 5. Failure Protocol
 
 ### 5.1 Blocking Behavior
 
@@ -148,7 +148,7 @@ QPV failure (`overall: "FAIL"`) **blocks** `compliance_gate_complete`. The task 
 
 ---
 
-## 六、Evidence Requirements
+## 6. Evidence Requirements
 
 ### 6.1 Mandatory Report File
 
@@ -183,7 +183,7 @@ QPV failure (`overall: "FAIL"`) **blocks** `compliance_gate_complete`. The task 
 
 ---
 
-## 七、Exemptions
+## 7. Exemptions
 
 ### 7.1 Path-Based Exemption
 
@@ -209,9 +209,9 @@ Backend changes that **provably cannot affect any page** may be exempted with:
 
 ---
 
-## 八、与其他规范的引用关系
+## 8. Reference Relationships with Other Standards
 
-| 规范文档 | 引用关系 |
+| Standard Document | Reference Relationship |
 |---------|---------|
 | `AGENTS.md` | QPV integrates into the TDD/compliance flow at step 7 (post-GREEN) |
 | `.qoder/skills/page-verification/skill.md` | This standard defines pass/fail criteria for that skill's execution |
@@ -222,18 +222,18 @@ Backend changes that **provably cannot affect any page** may be exempted with:
 
 ---
 
-## 九、违规处理
+## 9. Violation Handling
 
-| 违规类型 | 违反规则 | 处理方式 |
+| Violation Type | Rule Violated | Resolution |
 |---------|---------|---------|
-| Report missing | 六.1 | Task cannot complete; `compliance_gate_complete` rejects |
-| Required field missing | 六.2 | @Guardian returns FAIL; Coding subagent must regenerate report |
-| Applicable category SKIPPED without WAIVE | 四.2, 六.3 | @Guardian returns FAIL; all applicable categories must execute |
-| APR incomplete for backend/DB | 二.1 | @Guardian returns FAIL; resolution must be documented |
-| 3 consecutive failures | 五.3 | @Arbiter circuit-breaker; task suspended pending review |
-| Threshold hardcoded instead of config-driven | 三.4 | @Guardian returns FAIL; values must reference qpv-config.json |
-| Exempt task produces QPV report | 七.1 | Warning only; report is ignored |
+| Report missing | 6.1 | Task cannot complete; `compliance_gate_complete` rejects |
+| Required field missing | 6.2 | @Guardian returns FAIL; Coding subagent must regenerate report |
+| Applicable category SKIPPED without WAIVE | 4.2, 6.3 | @Guardian returns FAIL; all applicable categories must execute |
+| APR incomplete for backend/DB | 2.1 | @Guardian returns FAIL; resolution must be documented |
+| 3 consecutive failures | 5.3 | @Arbiter circuit-breaker; task suspended pending review |
+| Threshold hardcoded instead of config-driven | 3.4 | @Guardian returns FAIL; values must reference qpv-config.json |
+| Exempt task produces QPV report | 7.1 | Warning only; report is ignored |
 
 ---
 
-_本文档将根据 QPV 协议演进持续更新。_
+_This document will be continuously updated as the QPV protocol evolves._

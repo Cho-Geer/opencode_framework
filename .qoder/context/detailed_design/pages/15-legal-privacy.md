@@ -1,53 +1,53 @@
-# 隐私政策页（PrivacyPage）
+# Privacy Policy Page (PrivacyPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 隐私政策 |
-| **路由路径** | `/legal/privacy` |
-| **布局** | 无布局外壳（Standalone 页面） |
-| **惰性加载** | `features/legal/legal.routes.ts` → `LEGAL_ROUTES` |
-| **组件** | `PrivacyComponent` (`src/app/features/legal/privacy.component.ts`) |
-| **设计依据** | SAD 2.3.1, 安全架构设计文档 9（GDPR/PIPL 合规） |
+| **Page Name** | Privacy Policy |
+| **Route Path** | `/legal/privacy` |
+| **Layout** | No layout shell (Standalone page) |
+| **Lazy Loading** | `features/legal/legal.routes.ts` → `LEGAL_ROUTES` |
+| **Component** | `PrivacyComponent` (`src/app/features/legal/privacy.component.ts`) |
+| **Design Basis** | SAD 2.3.1, security-architecture 9 (GDPR/PIPL compliance) |
 
-## 用户角色
+## User Roles
 
-- 公开访问（无需认证）
+- Public access (no authentication required)
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-- 无
+- None
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
-- 无服务注入
+- No `@Input()` / `@Output()`
+- No service injection
 
-## API 契约对照
+## API Contract Reference
 
-- 无 API 调用（纯静态页面）
+- No API calls (purely static page)
 
-## 交互流程
+## Interaction Flow
 
-1. 用户直接访问 `/legal/privacy` 或在注册页点击「隐私政策」链接跳转
-2. 页面展示隐私政策内容
+1. User directly visits `/legal/privacy` or clicks "Privacy Policy" link on registration page
+2. Page displays privacy policy content
 
-## 合规关联
+## Compliance References
 
-| 合规要求 | 说明 |
+| Compliance Requirement | Description |
 |---|---|
-| GDPR | 数据最小化（JWT 不含 PII），数据可访问/更正/删除权 |
-| PIPL | PII 分类加密（三字段存储模型） |
-| 安全架构 9 | 隐私政策合规说明 |
+| GDPR | Data minimization (JWT does not contain PII), right to access/rectify/delete data |
+| PIPL | PII classified encryption (three-field storage model) |
+| Security Architecture 9 | Privacy policy compliance statement |
 
-## 数据来源
+## Data Sources
 
 - SAD 2.3.1
-- 安全架构设计文档 9（GDPR/PIPL 合规策略）
-- piiEncryptionStrategy（PII 加密策略概述）
+- security-architecture 9 (GDPR/PIPL compliance strategy)
+- piiEncryptionStrategy (PII encryption strategy overview)

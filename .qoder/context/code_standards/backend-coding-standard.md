@@ -1,120 +1,122 @@
-# NestJS 后端代码规范文档
+# NestJS Backend Coding Standard
 
-## 文档信息
+## Document Information
 
-| 属性 | 值 |
+| Property | Value |
 | :--- | :--- |
-| **文档版本** | 1.1.0 |
-| **创建日期** | 2026-04-15 |
-| **适用项目** | CRM 预约系统重构版 (NestJS v11+) |
-| **文档状态** | 已基线化 |
-| **关联文档** | 系统架构设计文档（SAD）v2.0、接口设计规范文档 v2.0、数据架构设计文档 v2.0、安全架构设计文档 v2.1、测试策略与计划 v2.0、运维与部署设计文档 v2.0 |
-| **存放位置** | `.qoder/context/code_standards/backend-coding-standard.md` |
+| **Document Version** | 1.1.0 |
+| **Created Date** | 2026-04-15 |
+| **Applicable Project** | CRM Booking System Refactored (NestJS v11+) |
+| **Document Status** | Baselined |
+| **Related Documents** | system-architecture-design (SAD) v2.0, api-design-specification v2.0, data-architecture v2.0, security-architecture v2.1, testing-strategy v2.0, operations-deployment v2.0 |
+| **Location** | `.qoder/context/code_standards/backend-coding-standard.md` |
 
 ---
 
-## 1. 核心原则
+## 1. Core Principles
 
-### 1.1 模块化与关注点分离
+### 1.1 Modularity and Separation of Concerns
 
-每个模块只负责一个业务领域，内部按层次清晰划分。
+Each module is responsible for a single business domain, with clear internal layered separation.
 
-| 文件类型 | 职责 | 命名规范 | 示例 |
+| File Type | Responsibility | Naming Convention | Example |
 | :--- | :--- | :--- | :--- |
-| `*.module.ts` | 模块定义，依赖注入配置 | `kebab-case.module.ts` | `appointments.module.ts` |
-| `*.controller.ts` | HTTP 请求处理，路由定义 | `kebab-case.controller.ts` | `slot-preemption.controller.ts` |
-| `*.service.ts` | 业务逻辑实现 | `kebab-case.service.ts` | `appointment.service.ts` |
-| `*.dto.ts` | 数据传输对象，入参验证 | `kebab-case.dto.ts` | `create-appointment.dto.ts` |
-| `*.guard.ts` | 认证/授权守卫 | `kebab-case.guard.ts` | `jwt-auth.guard.ts` |
-| `*.interceptor.ts` | 响应拦截器 | `kebab-case.interceptor.ts` | `logging.interceptor.ts` |
-| `*.filter.ts` | 异常过滤器 | `kebab-case.filter.ts` | `global-exception.filter.ts` |
-| `*.pipe.ts` | 自定义管道 | `kebab-case.pipe.ts` | `validation.pipe.ts` |
-| `*.decorator.ts` | 自定义装饰器 | `kebab-case.decorator.ts` | `current-user.decorator.ts` |
-| `*.strategy.ts` | Passport 认证策略 | `kebab-case.strategy.ts` | `jwt.strategy.ts` |
+| `*.module.ts` | Module definition, dependency injection configuration | `kebab-case.module.ts` | `appointments.module.ts` |
+| `*.controller.ts` | HTTP request handling, route definitions | `kebab-case.controller.ts` | `slot-preemption.controller.ts` |
+| `*.service.ts` | Business logic implementation | `kebab-case.service.ts` | `appointment.service.ts` |
+| `*.dto.ts` | Data transfer objects, input validation | `kebab-case.dto.ts` | `create-appointment.dto.ts` |
+| `*.guard.ts` | Authentication/authorization guards | `kebab-case.guard.ts` | `jwt-auth.guard.ts` |
+| `*.interceptor.ts` | Response interceptors | `kebab-case.interceptor.ts` | `logging.interceptor.ts` |
+| `*.filter.ts` | Exception filters | `kebab-case.filter.ts` | `global-exception.filter.ts` |
+| `*.pipe.ts` | Custom pipes | `kebab-case.pipe.ts` | `validation.pipe.ts` |
+| `*.decorator.ts` | Custom decorators | `kebab-case.decorator.ts` | `current-user.decorator.ts` |
+| `*.strategy.ts` | Passport authentication strategies | `kebab-case.strategy.ts` | `jwt.strategy.ts` |
 
-### 1.2 分层架构
+### 1.2 Layered Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  装饰器层 (@Public, @Roles, @RateLimit)       │
+│              Decorator Layer (@Public, @Roles, @RateLimit)    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  守卫层 (JwtAuthGuard, RolesGuard)            │
+│              Guard Layer (JwtAuthGuard, RolesGuard)           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  拦截器层 (Logging, Transform)                │
+│              Interceptor Layer (Logging, Transform)           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  管道层 (ValidationPipe)                      │
+│              Pipe Layer (ValidationPipe)                      │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  控制器层 (Controller)                        │
-│           处理 HTTP 请求，参数验证，响应格式化                │
+│              Controller Layer (Controller)                    │
+│       Handles HTTP requests, parameter validation,           │
+│       response formatting                                    │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  服务层 (Service)                             │
-│              核心业务逻辑，事务管理，领域规则                  │
+│              Service Layer (Service)                          │
+│       Core business logic, transaction management,           │
+│       domain rules                                           │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                  数据访问层 (PrismaService)                   │
-│                  Prisma Client，数据库操作                    │
+│              Data Access Layer (PrismaService)                │
+│              Prisma Client, database operations               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**层级依赖规则**：
-- **Controller** 只能调用 **Service**，不得直接访问数据库。
-- **Service** 可以调用 **PrismaService** 和其他 **Service**，负责事务边界。
-- **PrismaService** 是唯一与数据库交互的入口。
+**Layer Dependency Rules**:
+- **Controller** may only call **Service**; direct database access is forbidden.
+- **Service** may call **PrismaService** and other **Services**; responsible for transaction boundaries.
+- **PrismaService** is the sole entry point for database interaction.
 
 ---
 
-## 2. 项目目录结构
+## 2. Project Directory Structure
 
 ```
 booking-backend/
 ├── src/
-│   ├── main.ts                         # 应用入口（Express, Helmet, CORS, Swagger）
-│   ├── app.module.ts                   # 根模块（全局守卫/拦截器/过滤器配置）
+│   ├── main.ts                         # Application entry (Express, Helmet, CORS, Swagger)
+│   ├── app.module.ts                   # Root module (global guards/interceptors/filters config)
 │   │
-│   ├── common/                          # 公共基础设施（全局复用）
-│   │   ├── database/                    # 数据库模块（@Global）
+│   ├── common/                          # Common infrastructure (globally reusable)
+│   │   ├── database/                    # Database module (@Global)
 │   │   │   ├── database.module.ts
 │   │   │   └── prisma.service.ts
 │   │   ├── guards/
-│   │   │   ├── jwt-auth.guard.ts        # JWT 认证守卫（含 @Public 豁免）
-│   │   │   ├── roles.guard.ts           # 角色守卫
-│   │   │   └── permissions.guard.ts     # 权限守卫
+│   │   │   ├── jwt-auth.guard.ts        # JWT authentication guard (with @Public exemption)
+│   │   │   ├── roles.guard.ts           # Role guard
+│   │   │   └── permissions.guard.ts     # Permission guard
 │   │   ├── filters/
-│   │   │   └── global-exception.filter.ts  # 全局异常过滤器（Prisma 错误映射）
+│   │   │   └── global-exception.filter.ts  # Global exception filter (Prisma error mapping)
 │   │   ├── interceptors/
-│   │   │   └── logging.interceptor.ts   # 请求/响应日志
+│   │   │   └── logging.interceptor.ts   # Request/response logging
 │   │   ├── decorators/
-│   │   │   ├── public.decorator.ts      # 跳过 JWT 认证
-│   │   │   └── roles.decorator.ts       # 角色标记
+│   │   │   ├── public.decorator.ts      # Skip JWT authentication
+│   │   │   └── roles.decorator.ts       # Role annotation
 │   │   ├── constants/
-│   │   │   └── permissions.constants.ts # RBAC 权限常量
+│   │   │   └── permissions.constants.ts # RBAC permission constants
 │   │   ├── dto/
-│   │   │   └── base.dto.ts              # 共享 DTO 基类
+│   │   │   └── base.dto.ts              # Shared DTO base class
 │   │   └── utils/
-│   │       └── password.util.ts         # bcrypt 密码哈希工具
+│   │       └── password.util.ts         # bcrypt password hashing utility
 │   │
-│   ├── config/                          # 配置模块
-│   │   └── redis.config.ts              # Redis 配置工厂
+│   ├── config/                          # Configuration module
+│   │   └── redis.config.ts              # Redis configuration factory
 │   │
-│   ├── modules/                         # 业务模块（按领域划分）
-│   │   ├── auth/                        # 认证模块
+│   ├── modules/                         # Business modules (organized by domain)
+│   │   ├── auth/                        # Authentication module
 │   │   │   ├── auth.module.ts
 │   │   │   ├── auth.controller.ts
 │   │   │   ├── auth.service.ts
@@ -124,122 +126,122 @@ booking-backend/
 │   │   │   └── strategies/
 │   │   │       └── jwt.strategy.ts
 │   │   │
-│   │   ├── appointments/                # 预约模块（核心）
+│   │   ├── appointments/                # Appointments module (core)
 │   │   │   ├── appointments.module.ts
 │   │   │   ├── appointments.controller.ts
 │   │   │   └── appointments.service.ts
 │   │   │
-│   │   ├── time-slots/                  # 时间槽模块（高并发）
+│   │   ├── time-slots/                  # Time slots module (high concurrency)
 │   │   │   ├── time-slots.module.ts
 │   │   │   ├── time-slots.controller.ts
 │   │   │   ├── slot-preemption.controller.ts
 │   │   │   ├── time-slots.service.ts
 │   │   │   └── slot-preemption.service.ts
 │   │   │
-│   │   ├── users/                       # 用户模块
-│   │   ├── services/                    # 服务目录模块
-│   │   ├── email/                       # 邮件模块（BullMQ + Nodemailer）
-│   │   ├── notifications/               # 通知模块（Socket.io WebSocket）
-│   │   ├── cache/                       # 缓存模块（@Global Redis）
-│   │   ├── rate-limiter/                # 限流模块（@nestjs/throttler）
-│   │   ├── health/                      # 健康检查模块
-│   │   ├── stats/                       # 统计分析模块
-│   │   └── audit/                       # 审计日志模块
+│   │   ├── users/                       # Users module
+│   │   ├── services/                    # Services catalog module
+│   │   ├── email/                       # Email module (BullMQ + Nodemailer)
+│   │   ├── notifications/               # Notifications module (Socket.io WebSocket)
+│   │   ├── cache/                       # Cache module (@Global Redis)
+│   │   ├── rate-limiter/                # Rate limiter module (@nestjs/throttler)
+│   │   ├── health/                      # Health check module
+│   │   ├── stats/                       # Statistics/analytics module
+│   │   └── audit/                       # Audit log module
 │   │
-│   └── types/                           # 全局类型定义
+│   └── types/                           # Global type definitions
 │       ├── express.d.ts
 │       └── enums.ts
 │
 ├── prisma/
-│   ├── schema.prisma                    # 数据模型定义（11 核心实体）
-│   ├── migrations/                      # 版本化迁移文件
-│   └── seed.ts                          # 种子数据
+│   ├── schema.prisma                    # Data model definition (11 core entities)
+│   ├── migrations/                      # Versioned migration files
+│   └── seed.ts                          # Seed data
 │
 ├── test/
-│   ├── e2e/                             # 端到端测试
-│   ├── integration/                     # 集成测试（Testcontainers）
-│   ├── factories/                       # 测试数据工厂
-│   ├── fixtures/                        # 测试固件数据
-│   └── setup/                           # 测试环境配置
+│   ├── e2e/                             # End-to-end tests
+│   ├── integration/                     # Integration tests (Testcontainers)
+│   ├── factories/                       # Test data factories
+│   ├── fixtures/                        # Test fixture data
+│   └── setup/                           # Test environment configuration
 │
 └── docs/
-    ├── auth-design.md                   # 认证架构设计
-    ├── high-concurrency-design.md       # 高并发设计文档
-    └── permission-matrix.json           # RBAC 权限矩阵
+    ├── auth-design.md                   # Authentication architecture design
+    ├── high-concurrency-design.md       # High concurrency design document
+    └── permission-matrix.json           # RBAC permission matrix
 ```
 
 ---
 
-## 3. TypeScript 与命名规范
+## 3. TypeScript and Naming Conventions
 
-### 3.1 命名约定
+### 3.1 Naming Rules
 
-| 类型 | 命名规则 | 示例 |
+| Type | Naming Rule | Example |
 | :--- | :--- | :--- |
-| **文件** | `kebab-case` | `appointment.service.ts` |
-| **类** | `PascalCase` | `AppointmentService`, `AuthController` |
-| **接口** | **无 `I` 前缀**，`PascalCase` | `Appointment`, `UserSession` |
-| **类型别名** | `PascalCase` | `AppointmentStatus`, `UserRole` |
-| **枚举** | `PascalCase`，成员 `UPPER_SNAKE_CASE` | `enum AppointmentStatus { PENDING }` |
-| **常量** | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT`, `JWT_EXPIRES_IN` |
-| **变量/函数** | `camelCase` | `currentUser`, `findAvailableSlots()` |
-| **私有成员** | `private readonly` 修饰符 | `private readonly prisma: PrismaService` |
+| **File** | `kebab-case` | `appointment.service.ts` |
+| **Class** | `PascalCase` | `AppointmentService`, `AuthController` |
+| **Interface** | **No `I` prefix**, `PascalCase` | `Appointment`, `UserSession` |
+| **Type Alias** | `PascalCase` | `AppointmentStatus`, `UserRole` |
+| **Enum** | `PascalCase`, members `UPPER_SNAKE_CASE` | `enum AppointmentStatus { PENDING }` |
+| **Constant** | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT`, `JWT_EXPIRES_IN` |
+| **Variable/Function** | `camelCase` | `currentUser`, `findAvailableSlots()` |
+| **Private Member** | `private readonly` modifier | `private readonly prisma: PrismaService` |
 
-> **注意**：接口命名与前端规范保持一致，**禁止使用 `I` 前缀**。
+> **Note**: Interface naming is consistent with the frontend standard — the `I` prefix is **forbidden**.
 
-### 3.2 类型安全
+### 3.2 Type Safety
 
-**强制规则**：禁止使用 `any`。所有函数参数、返回值必须有明确类型。
+**Mandatory Rule**: `any` is forbidden. All function parameters and return values must have explicit types.
 
 ```typescript
-// ❌ 禁止
+// ❌ Forbidden
 async create(data: any): Promise<any> { ... }
 
-// ✅ 正确
+// ✅ Correct
 async create(data: CreateAppointmentDto): Promise<Appointment> { ... }
 ```
 
-### 3.3 类成员顺序
+### 3.3 Class Member Order
 
-类成员必须按以下顺序排列：
+Class members must be arranged in the following order:
 
 ```typescript
 @Injectable()
 export class AppointmentService implements OnModuleInit {
-  // 1. static readonly 常量
+  // 1. static readonly constants
   private static readonly ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED'];
 
-  // 2. 依赖注入（constructor）
+  // 2. Dependency injection (constructor)
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly notificationService: NotificationService,
   ) {}
 
-  // 3. 公共属性
+  // 3. Public properties
   public readonly maxCapacity = 10;
 
-  // 4. 私有属性
+  // 4. Private properties
   private readonly logger = new Logger(AppointmentService.name);
 
-  // 5. 生命周期钩子
+  // 5. Lifecycle hooks
   async onModuleInit(): Promise<void> { ... }
 
-  // 6. 公共方法
+  // 6. Public methods
   async createAppointment(dto: CreateAppointmentDto): Promise<Appointment> { ... }
 
-  // 7. 私有方法
+  // 7. Private methods
   private generateAppointmentNumber(): string { ... }
 }
 ```
 
 ---
 
-## 4. 模块规范
+## 4. Module Standard
 
-### 4.1 模块定义
+### 4.1 Module Definition
 
-每个业务模块必须清晰声明 `imports`、`controllers`、`providers`、`exports`。
+Each business module must clearly declare `imports`, `controllers`, `providers`, and `exports`.
 
 ```typescript
 // appointments.module.ts
@@ -263,14 +265,14 @@ import { AppointmentService } from './appointment.service';
 export class AppointmentsModule {}
 ```
 
-### 4.2 全局模块（@Global）
+### 4.2 Global Modules (@Global)
 
-以下模块必须标记为 `@Global()`，供全项目注入：
+The following modules must be marked as `@Global()` for project-wide injection:
 
-| 全局模块 | 导出内容 | 用途 |
+| Global Module | Exported Content | Purpose |
 | :--- | :--- | :--- |
-| `DatabaseModule` | `PrismaService` | 数据库访问入口 |
-| `CacheModule` | `CacheService`, `REDIS_CLIENT_TOKEN` | Redis 缓存入口 |
+| `DatabaseModule` | `PrismaService` | Database access entry point |
+| `CacheModule` | `CacheService`, `REDIS_CLIENT_TOKEN` | Redis cache entry point |
 
 ```typescript
 @Global()
@@ -281,23 +283,23 @@ export class AppointmentsModule {}
 export class DatabaseModule {}
 ```
 
-### 4.3 模块间依赖
+### 4.3 Inter-Module Dependencies
 
-- **禁止**循环依赖。若出现，提取共享逻辑到 `common/`。
-- 跨模块调用必须通过 `exports` 导出的 Service。
+- Circular dependencies are **forbidden**. If detected, extract shared logic to `common/`.
+- Cross-module calls must go through Services exposed via `exports`.
 
 ---
 
-## 5. 控制器规范（Controller）
+## 5. Controller Standard
 
-### 5.1 控制器职责
+### 5.1 Controller Responsibilities
 
-- 处理 HTTP 请求与响应。
-- 参数验证（通过 DTO + ValidationPipe）。
-- 调用对应的 Service 方法。
-- **不得**包含业务逻辑。
+- Handle HTTP requests and responses.
+- Parameter validation (via DTO + ValidationPipe).
+- Call the corresponding Service methods.
+- **Must not** contain business logic.
 
-### 5.2 控制器模板
+### 5.2 Controller Template
 
 ```typescript
 import {
@@ -316,7 +318,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RateLimit } from '../../modules/rate-limiter/decorators/rate-limit.decorator';
 
-@ApiTags('预约管理')
+@ApiTags('Appointment Management')
 @ApiBearerAuth('JWT-auth')
 @Controller('v1/appointments')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -327,9 +329,9 @@ export class AppointmentsController {
   @HttpCode(HttpStatus.CREATED)
   @RateLimit({ tier: 'strict', key: 'user' })
   @Roles('CUSTOMER')
-  @ApiOperation({ summary: '创建预约' })
-  @ApiResponse({ status: 201, description: '预约创建成功' })
-  @ApiResponse({ status: 409, description: '预约冲突' })
+  @ApiOperation({ summary: 'Create appointment' })
+  @ApiResponse({ status: 201, description: 'Appointment created successfully' })
+  @ApiResponse({ status: 409, description: 'Appointment conflict' })
   async create(
     @Body() createAppointmentDto: CreateAppointmentDto,
   ): Promise<Appointment> {
@@ -338,7 +340,7 @@ export class AppointmentsController {
 
   @Get('available')
   @Public()
-  @ApiOperation({ summary: '查询可用时间槽' })
+  @ApiOperation({ summary: 'Query available time slots' })
   async getAvailableSlots(
     @Query() query: ListSlotsDto,
   ): Promise<TimeSlot[]> {
@@ -347,28 +349,28 @@ export class AppointmentsController {
 }
 ```
 
-### 5.3 路由规范
+### 5.3 Routing Standard
 
-| 规则 | 说明 |
+| Rule | Description |
 | :--- | :--- |
-| **全局前缀** | `/v1`（main.ts 配置） |
-| **资源路径** | 复数名词：`/v1/appointments`, `/v1/users` |
-| **认证要求** | 默认需要 JWT，使用 `@Public()` 标记公开路由 |
-| **限流策略** | 认证接口 `tier: 'auth'`，预约接口 `tier: 'strict'`，其余 `tier: 'api'` |
-| **Swagger** | 所有端点必须有 `@ApiOperation` 和 `@ApiResponse` |
+| **Global Prefix** | `/v1` (configured in main.ts) |
+| **Resource Path** | Plural nouns: `/v1/appointments`, `/v1/users` |
+| **Authentication** | JWT required by default; use `@Public()` to mark public routes |
+| **Rate Limiting** | Auth endpoints `tier: 'auth'`, booking endpoints `tier: 'strict'`, others `tier: 'api'` |
+| **Swagger** | All endpoints must have `@ApiOperation` and `@ApiResponse` |
 
 ---
 
-## 6. 服务层规范（Service）
+## 6. Service Layer Standard
 
-### 6.1 服务职责
+### 6.1 Service Responsibilities
 
-- 封装核心业务逻辑。
-- 管理事务边界。
-- 调用 PrismaService 和其他 Service。
-- 处理业务异常。
+- Encapsulate core business logic.
+- Manage transaction boundaries.
+- Call PrismaService and other Services.
+- Handle business exceptions.
 
-### 6.2 高并发预约创建（原子化事务）
+### 6.2 High-Concurrency Appointment Creation (Atomic Transaction)
 
 ```typescript
 import { Injectable, Logger, ConflictException } from '@nestjs/common';
@@ -390,24 +392,24 @@ export class AppointmentService {
   ) {}
 
   /**
-   * 创建预约 - 高并发原子化抢占
-   * 依赖 PostgreSQL 部分唯一索引 + slot_sequence 原子递增
-   * 隔离级别：READ COMMITTED
+   * Create appointment - high-concurrency atomic preemption
+   * Relies on PostgreSQL partial unique index + slot_sequence atomic increment
+   * Isolation level: READ COMMITTED
    */
   async create(dto: CreateAppointmentDto): Promise<Appointment> {
     return this.prisma.$transaction(
       async (tx) => {
-        // 1. 原子递增 timeSlot.currentSequence
+        // 1. Atomically increment timeSlot.currentSequence
         const timeSlot = await tx.timeSlot.update({
           where: { id: dto.timeSlotId },
           data: { currentSequence: { increment: 1 } },
         });
 
         if (timeSlot.currentSequence > timeSlot.capacity) {
-          throw new ConflictException('该时段预约名额已满');
+          throw new ConflictException('This time slot is fully booked');
         }
 
-        // 2. 创建预约记录（依赖部分唯一约束防止并发冲突）
+        // 2. Create appointment record (relies on partial unique constraint to prevent concurrent conflicts)
         const appointment = await tx.appointment.create({
           data: {
             userId: dto.userId,
@@ -430,31 +432,31 @@ export class AppointmentService {
 }
 ```
 
-### 6.3 异常处理
+### 6.3 Exception Handling
 
-| 异常类型 | 使用场景 | HTTP 状态码 |
+| Exception Type | Use Case | HTTP Status Code |
 | :--- | :--- | :--- |
-| `NotFoundException` | 资源不存在 | 404 |
-| `ConflictException` | 预约冲突、重复操作 | 409 |
-| `BadRequestException` | 参数校验失败（管道未处理的情况） | 400 |
-| `UnauthorizedException` | 认证失败 | 401 |
-| `ForbiddenException` | 权限不足 | 403 |
+| `NotFoundException` | Resource not found | 404 |
+| `ConflictException` | Appointment conflict, duplicate operation | 409 |
+| `BadRequestException` | Parameter validation failure (cases not handled by pipe) | 400 |
+| `UnauthorizedException` | Authentication failure | 401 |
+| `ForbiddenException` | Insufficient permissions | 403 |
 
-### 6.4 事务管理
+### 6.4 Transaction Management
 
 ```typescript
-// 标准事务模板
+// Standard transaction template
 async performTransaction(dto: SomeDto): Promise<SomeEntity> {
   return this.prisma.$transaction(
     async (tx) => {
-      // 所有数据库操作在 tx 上执行
+      // All database operations execute on tx
       const result1 = await tx.model1.create({ ... });
       const result2 = await tx.model2.update({ ... });
       return result2;
     },
     {
-      maxWait: 5000,   // 等待事务开始的最大时间
-      timeout: 10000,  // 事务超时时间
+      maxWait: 5000,   // Maximum wait time before transaction starts
+      timeout: 10000,  // Transaction timeout
     },
   );
 }
@@ -462,9 +464,9 @@ async performTransaction(dto: SomeDto): Promise<SomeEntity> {
 
 ---
 
-## 7. DTO 规范
+## 7. DTO Standard
 
-### 7.1 DTO 定义
+### 7.1 DTO Definition
 
 ```typescript
 import { IsString, IsEnum, IsOptional, IsUUID } from 'class-validator';
@@ -472,112 +474,112 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AppointmentStatus } from '@prisma/client';
 
 export class CreateAppointmentDto {
-  @ApiProperty({ description: '用户 ID' })
+  @ApiProperty({ description: 'User ID' })
   @IsUUID()
   userId: string;
 
-  @ApiProperty({ description: '时间槽 ID' })
+  @ApiProperty({ description: 'Time slot ID' })
   @IsUUID()
   timeSlotId: string;
 
-  @ApiPropertyOptional({ description: '备注' })
+  @ApiPropertyOptional({ description: 'Notes' })
   @IsOptional()
   @IsString()
   notes?: string;
 }
 
 export class ListAppointmentsDto {
-  @ApiPropertyOptional({ description: '页码', default: 1 })
+  @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
   page?: number = 1;
 
-  @ApiPropertyOptional({ description: '每页数量', default: 20 })
+  @ApiPropertyOptional({ description: 'Items per page', default: 20 })
   @IsOptional()
   limit?: number = 20;
 
-  @ApiPropertyOptional({ description: '状态过滤' })
+  @ApiPropertyOptional({ description: 'Status filter' })
   @IsOptional()
   @IsEnum(AppointmentStatus)
   status?: AppointmentStatus;
 }
 ```
 
-### 7.2 DTO 规则
+### 7.2 DTO Rules
 
-- 使用 **class** 而非 interface（运行时保留类型信息供 ValidationPipe 使用）。
-- 所有字段必须有 `class-validator` 装饰器。
-- 所有字段必须有 `@nestjs/swagger` 装饰器。
-- 查询参数使用 `XxxDto` 命名，请求体使用 `CreateXxxDto`/`UpdateXxxDto` 命名。
+- Use **class** instead of interface (preserves runtime type information for ValidationPipe).
+- All fields must have `class-validator` decorators.
+- All fields must have `@nestjs/swagger` decorators.
+- Query parameters use `XxxDto` naming; request bodies use `CreateXxxDto`/`UpdateXxxDto` naming.
 
 ---
 
-## 8. 认证与授权
+## 8. Authentication and Authorization
 
-### 8.1 JWT 认证流程
+### 8.1 JWT Authentication Flow
 
-1. 用户调用 `POST /v1/auth/login` 或 `POST /v1/auth/register`。
-2. AuthService 验证凭证并生成 JWT（Access Token 15 分钟 + Refresh Token 7 天）。
-3. JwtStrategy 提取并验证 JWT Payload。
-4. JwtAuthGuard 检查 `@Public()` 装饰器并强制执行认证。
+1. User calls `POST /v1/auth/login` or `POST /v1/auth/register`.
+2. AuthService validates credentials and generates JWT (Access Token 15 min + Refresh Token 7 days).
+3. JwtStrategy extracts and validates the JWT Payload.
+4. JwtAuthGuard checks the `@Public()` decorator and enforces authentication.
 
-### 8.2 RBAC 权限模型
+### 8.2 RBAC Permission Model
 
-| 角色 | 权限范围 |
+| Role | Permission Scope |
 | :--- | :--- |
-| `SUPER_ADMIN` | 所有操作（管理用户、服务、预约、系统设置、审计日志、管理员账户） |
-| `ADMIN` | 管理用户 CRUD、服务 CRUD、预约管理、Dashboard 统计与趋势 |
-| `CUSTOMER` | 查看个人资料、创建/取消个人预约、查看个人预约历史 |
+| `SUPER_ADMIN` | All operations (manage users, services, appointments, system settings, audit logs, admin accounts) |
+| `ADMIN` | User CRUD, Service CRUD, appointment management, Dashboard statistics and trends |
+| `CUSTOMER` | View personal profile, create/cancel personal appointments, view personal appointment history |
 
-### 8.3 权限装饰器
+### 8.3 Permission Decorators
 
 ```typescript
-// 角色装饰器使用
+// Role decorator usage
 @Roles('ADMIN', 'SUPER_ADMIN')
 @UseGuards(JwtAuthGuard, RolesGuard)
 async deleteUser(@Param('id') id: string): Promise<void> { ... }
 
-// 公开路由装饰器
+// Public route decorator
 @Public()
 async getAvailableSlots(@Query() query: ListSlotsDto): Promise<TimeSlot[]> { ... }
 ```
 
 ---
 
-## 9. 限流规范
+## 9. Rate Limiting Standard
 
-### 9.1 多层限流策略
+### 9.1 Multi-Layer Rate Limiting Strategy
 
-| 层级 | 策略 | 限制 |
+| Layer | Strategy | Limit |
 | :--- | :--- | :--- |
-| 用户+时间槽 | 防止并发抢占 | 1 请求/秒 |
-| 用户每日 | 防止恶意刷单 | 20 预约/天 |
-| IP 全局 | 防止爬虫/暴力 | 10 请求/分钟 |
-| 全局用户 | 系统级保护 | 100 请求/分钟 |
+| User + Time Slot | Prevent concurrent preemption | 1 request/second |
+| User Daily | Prevent malicious spam | 20 appointments/day |
+| IP Global | Prevent crawlers/brute force | 10 requests/minute |
+| Global User | System-level protection | 100 requests/minute |
 
-### 9.2 装饰器使用
+### 9.2 Decorator Usage
 
 ```typescript
-@RateLimit({ tier: 'auth', key: 'ip' })      // 认证接口
-@RateLimit({ tier: 'strict', key: 'user' })   // 预约接口
-@RateLimit({ tier: 'api', key: 'ip' })        // 普通接口
+@RateLimit({ tier: 'auth', key: 'ip' })      // Auth endpoints
+@RateLimit({ tier: 'strict', key: 'user' })   // Booking endpoints
+@RateLimit({ tier: 'api', key: 'ip' })        // General endpoints
 ```
 
 ---
 
-## 10. 缓存规范
+## 10. Cache Standard
 
-### 10.1 Redis 缓存策略
+### 10.1 Redis Cache Strategy
 
-| 缓存项 | TTL | 用途 |
+| Cache Item | TTL | Purpose |
 | :--- | :--- | :--- |
-| `session:{userId}` | 7 天 | JWT 会话缓存（write-through） |
-| `slot:availability:{slotId}` | 30 分钟 | 时间槽可用性 |
-| `slot:{slotId}:remaining` | 动态 | 预约名额计数器（原子递减） |
+| `session:{userId}` | 7 days | JWT session cache (write-through) |
+| `slot:availability:{slotId}` | 30 minutes | Time slot availability |
+| `slot:{slotId}:remaining` | Dynamic | Appointment quota counter (atomic decrement) |
 
-### 10.2 缓存使用模式
+### 10.2 Cache Usage Pattern
 
 ```typescript
-// Cache-Aside 模式
+// Cache-Aside pattern
 async getCachedSlotAvailability(slotId: string): Promise<boolean> {
   const cacheKey = `slot:availability:${slotId}`;
   const cached = await this.cacheService.get(cacheKey);
@@ -591,25 +593,25 @@ async getCachedSlotAvailability(slotId: string): Promise<boolean> {
 
 ---
 
-## 11. 错误处理
+## 11. Error Handling
 
-### 11.1 全局异常过滤器
+### 11.1 Global Exception Filter
 
-项目使用 `GlobalExceptionFilter` 统一处理异常，映射 Prisma 错误到标准 HTTP 响应。
+The project uses `GlobalExceptionFilter` to handle exceptions uniformly, mapping Prisma errors to standard HTTP responses.
 
 ```typescript
-// GlobalExceptionFilter 自动处理以下 Prisma 错误：
-// P2002 → 409 Conflict（唯一约束冲突）
-// P2025 → 404 Not Found（记录不存在）
-// P2003 → 400 Bad Request（外键约束）
+// GlobalExceptionFilter automatically handles the following Prisma errors:
+// P2002 → 409 Conflict (unique constraint violation)
+// P2025 → 404 Not Found (record does not exist)
+// P2003 → 400 Bad Request (foreign key constraint)
 ```
 
-### 11.2 错误响应格式
+### 11.2 Error Response Format
 
 ```json
 {
   "statusCode": 409,
-  "message": "该时段预约名额已满",
+  "message": "This time slot is fully booked",
   "error": "Conflict",
   "timestamp": "2026-04-15T10:30:00.000Z"
 }
@@ -617,96 +619,96 @@ async getCachedSlotAvailability(slotId: string): Promise<boolean> {
 
 ---
 
-## 12. 日志规范
+## 12. Logging Standard
 
-### 12.1 结构化日志
+### 12.1 Structured Logging
 
 ```typescript
-// 使用 NestJS Logger 类
+// Using the NestJS Logger class
 private readonly logger = new Logger(AppointmentService.name);
 
-// 日志级别使用
+// Log level usage
 this.logger.log('Appointment created successfully');     // INFO
 this.logger.warn('Slot capacity approaching limit');     // WARNING
 this.logger.error('Failed to create appointment', err);  // ERROR
 this.logger.debug(`Processing slot: ${slotId}`);         // DEBUG
 ```
 
-### 12.2 日志拦截器
+### 12.2 Logging Interceptor
 
-`LoggingInterceptor` 自动记录：
-- 请求方法、路径、用户 ID
-- 响应状态码、耗时
-- 请求/响应体（开发环境）
+`LoggingInterceptor` automatically records:
+- Request method, path, user ID
+- Response status code, elapsed time
+- Request/response body (development environment)
 
 ---
 
-## 13. Swagger/OpenAPI 文档
+## 13. Swagger/OpenAPI Documentation
 
-### 13.1 必备装饰器
+### 13.1 Required Decorators
 
-| 装饰器 | 用途 |
+| Decorator | Purpose |
 | :--- | :--- |
-| `@ApiTags()` | API 分组 |
-| `@ApiBearerAuth()` | JWT 认证标记 |
-| `@ApiOperation()` | 端点描述 |
-| `@ApiResponse()` | 响应描述（至少 200 + 错误码） |
-| `@ApiProperty()` | DTO 字段描述 |
+| `@ApiTags()` | API grouping |
+| `@ApiBearerAuth()` | JWT authentication marker |
+| `@ApiOperation()` | Endpoint description |
+| `@ApiResponse()` | Response description (at least 200 + error codes) |
+| `@ApiProperty()` | DTO field description |
 
-### 13.2 文档访问
+### 13.2 Documentation Access
 
 - Swagger UI: `/api/docs`
 - OpenAPI JSON: `/api-json`
 
 ---
 
-## 14. 测试规范
+## 14. Testing Standard
 
-### 14.1 TDD 流程
+### 14.1 TDD Process
 
-严格遵循 **RED → GREEN → REFACTOR** 循环：
-1. **RED**：先写测试，执行失败
-2. **GREEN**：编写最简代码通过测试
-3. **REFACTOR**：重构代码，保持测试通过
+Strictly follow the **RED → GREEN → REFACTOR** cycle:
+1. **RED**: Write the test first, execution fails
+2. **GREEN**: Write the minimum code to pass the test
+3. **REFACTOR**: Refactor code while keeping tests passing
 
-### 14.2 覆盖率要求
+### 14.2 Coverage Requirements
 
-| 类型 | 最低覆盖率 |
+| Type | Minimum Coverage |
 | :--- | :--- |
-| 行覆盖率 | 70% |
-| 分支覆盖率 | 70% |
-| 函数覆盖率 | 70% |
-| 业务关键路径 | 90%+ |
+| Line Coverage | 70% |
+| Branch Coverage | 70% |
+| Function Coverage | 70% |
+| Business Critical Paths | 90%+ |
 
-### 14.3 迁移注意事项（金融字段）
+### 14.3 Migration Notes (Financial Fields)
 
-新增 Appointment 金融字段后，需执行 `npx prisma migrate dev` 生成迁移文件。迁移包含：
+After adding financial fields to the Appointment model, run `npx prisma migrate dev` to generate migration files. The migration includes:
 
-1. **Service 表**: 新增 `price_per_minute` (Decimal(10,2))、`tax_rate` (Decimal(5,4)) 列
-2. **Appointment 表**: 新增 `duration_minutes` (Int default 30)、`price` (Decimal(10,2))、`tax_rate` (Decimal(5,4))、`tax_included_amount` (Decimal(10,2)) 列
+1. **Service table**: New columns `price_per_minute` (Decimal(10,2)), `tax_rate` (Decimal(5,4))
+2. **Appointment table**: New columns `duration_minutes` (Int default 30), `price` (Decimal(10,2)), `tax_rate` (Decimal(5,4)), `tax_included_amount` (Decimal(10,2))
 
-> **注意**: `price`、`taxRate`、`taxIncludedAmount` 为价格快照字段，在预约创建时从 Service 复制，避免后续 Service 价格变动影响已有预约账单。超时场景下 `price = service.price + (overtimeMinutes × service.pricePerMinute)`，由应用层在创建时计算。
+> **Note**: `price`, `taxRate`, and `taxIncludedAmount` are price snapshot fields, copied from Service at appointment creation time to prevent subsequent Service price changes from affecting existing appointment bills. In overtime scenarios, `price = service.price + (overtimeMinutes × service.pricePerMinute)`, calculated at the application layer during creation.
 
-### 14.4 测试工具
+### 14.4 Testing Tools
 
-- **单元测试**：Jest + ts-jest
-- **集成测试**：Testcontainers（PostgreSQL + Redis）
-- **E2E 测试**：Supertest
-- **契约测试**：Contract-based testing
+- **Unit Tests**: Jest + ts-jest
+- **Integration Tests**: Testcontainers (PostgreSQL + Redis)
+- **E2E Tests**: Supertest
+- **Contract Tests**: Contract-based testing
 
-### 14.4 测试文件组织
+### 14.4 Test File Organization
 
 ```
 test/
-├── unit/           # 与服务同目录的单元测试
-├── integration/    # 集成测试（真实数据库）
-├── e2e/           # 端到端测试（完整请求流）
-├── factories/     # 测试数据工厂
-├── fixtures/      # 测试固件数据
-└── setup/         # 测试环境配置
+├── unit/           # Unit tests co-located with services
+├── integration/    # Integration tests (real database)
+├── e2e/           # End-to-end tests (full request flow)
+├── factories/     # Test data factories
+├── fixtures/      # Test fixture data
+└── setup/         # Test environment configuration
 ```
 
-### 14.5 单元测试模板
+### 14.5 Unit Test Template
 
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
@@ -751,9 +753,9 @@ describe('AppointmentService', () => {
 
 ---
 
-## 15. 安全规范
+## 15. Security Standard
 
-### 15.1 密码处理
+### 15.1 Password Handling
 
 ```typescript
 import * as bcrypt from 'bcrypt';
@@ -772,15 +774,15 @@ export async function verifyPassword(
 }
 ```
 
-### 15.2 安全头部（Helmet）
+### 15.2 Security Headers (Helmet)
 
-main.ts 已配置 Helmet，自动添加：
+main.ts is configured with Helmet, which automatically adds:
 - `Content-Security-Policy`
 - `Strict-Transport-Security`
 - `X-Frame-Options`
 - `X-Content-Type-Options`
 
-### 15.3 CORS 配置
+### 15.3 CORS Configuration
 
 ```typescript
 app.enableCors({
@@ -792,40 +794,40 @@ app.enableCors({
 
 ---
 
-## 16. 核心规范速查
+## 16. Core Standard Quick Reference
 
-1. **文件分离**：每个 NestJS  artifact 独立文件（controller/service/dto/guard 分离）
-2. **模块化**：按业务领域划分模块，禁止循环依赖
-3. **命名约定**：接口无 `I` 前缀，文件使用 `kebab-case`
-4. **事务管理**：使用 `prisma.$transaction()` 管理事务边界
-5. **类型安全**：禁止 `any`，DTO 使用 class + class-validator
-6. **认证授权**：JWT + Passport，`@Public()` 跳过认证，`@Roles()` 角色控制
-7. **限流策略**：多层限流（用户/时间槽/IP/全局）
-8. **错误处理**：统一使用 `GlobalExceptionFilter`，映射 Prisma 错误
-9. **日志规范**：使用 NestJS Logger 类，LoggingInterceptor 自动记录请求
-10. **Swagger**：所有端点必须有完整 OpenAPI 文档
-11. **TDD**：RED → GREEN → REFACTOR，覆盖率 ≥70%
-12. **缓存**：Redis Cache-Aside 模式，write-through 会话缓存
+1. **File Separation**: Each NestJS artifact in its own file (controller/service/dto/guard separated)
+2. **Modularity**: Organize modules by business domain; circular dependencies forbidden
+3. **Naming Convention**: Interfaces without `I` prefix; files use `kebab-case`
+4. **Transaction Management**: Use `prisma.$transaction()` to manage transaction boundaries
+5. **Type Safety**: `any` forbidden; DTOs use class + class-validator
+6. **Authentication/Authorization**: JWT + Passport; `@Public()` skips auth; `@Roles()` for role control
+7. **Rate Limiting**: Multi-layer rate limiting (user/time-slot/IP/global)
+8. **Error Handling**: Unified `GlobalExceptionFilter`; maps Prisma errors
+9. **Logging**: Use NestJS Logger class; LoggingInterceptor auto-records requests
+10. **Swagger**: All endpoints must have complete OpenAPI documentation
+11. **TDD**: RED → GREEN → REFACTOR; coverage ≥70%
+12. **Cache**: Redis Cache-Aside pattern; write-through session cache
 
 ---
 
-## 17. 关联文档引用
+## 17. Related Document References
 
-| 文档 | 用途 |
+| Document | Purpose |
 | :--- | :--- |
-| [系统架构设计文档（SAD）v2.5.0](.qoder/context/requirements/系统架构设计文档（SAD）.md) | 整体架构、高并发设计、模块划分 |
-| [接口设计规范文档 v2.9.0](.qoder/context/requirements/接口设计规范文档.md) | RESTful API 标准、限流策略、错误码 |
-| [数据架构设计文档 v2.6.0](.qoder/context/requirements/数据架构设计文档.md) | 数据模型、索引策略、缓存架构 |
-| [安全架构设计文档 v2.4.0](.qoder/context/requirements/安全架构设计文档.md) | 5 层安全模型、JWT 认证、RBAC |
-| [测试策略与计划 v2.4.0](.qoder/context/requirements/测试策略与计划.md) | TDD 流程、覆盖率要求、测试工具 |
-| [运维与部署设计文档 v2.0](.qoder/context/requirements/运维与部署设计文档.md) | Docker 部署、CI/CD、健康检查 |
+| [system-architecture-design (SAD) v2.5.0](.qoder/context/requirements/system-architecture-design.md) | Overall architecture, high-concurrency design, module partitioning |
+| [api-design-specification v2.9.0](.qoder/context/requirements/api-design-specification.md) | RESTful API standard, rate limiting strategy, error codes |
+| [data-architecture v2.6.0](.qoder/context/requirements/data-architecture.md) | Data model, indexing strategy, cache architecture |
+| [security-architecture v2.4.0](.qoder/context/requirements/security-architecture.md) | 5-layer security model, JWT authentication, RBAC |
+| [testing-strategy v2.4.0](.qoder/context/requirements/testing-strategy.md) | TDD process, coverage requirements, testing tools |
+| [operations-deployment v2.0](.qoder/context/requirements/operations-deployment.md) | Docker deployment, CI/CD, health checks |
 
 ---
 
-## 18. 变更记录
+## 18. Change Log
 
-| 日期 | 版本 | 变更内容 | 批准人 |
+| Date | Version | Changes | Approved By |
 |------|------|---------|--------|
-| 2026-05-11 | 1.1.0 | 新增 §14.3 迁移注意事项（金融字段），Service 新增 pricePerMinute/taxRate，Appointment 新增 durationMinutes/price/taxRate/taxIncludedAmount | @Architect |
-| 2026-05-11 | 1.2.0 | 移除 BookingGroup 模型和 bookingGroupId 字段；改为 overtime-only 扩展；新增 overtime-overlap 应用层验证 | @Architect |
-| 2026-04-15 | 1.0.0 | 初始版本 | 架构评审 |
+| 2026-05-11 | 1.1.0 | Added §14.3 Migration Notes (financial fields): Service adds pricePerMinute/taxRate, Appointment adds durationMinutes/price/taxRate/taxIncludedAmount | @Architect |
+| 2026-05-11 | 1.2.0 | Removed BookingGroup model and bookingGroupId field; changed to overtime-only extension; added overtime-overlap application-layer validation | @Architect |
+| 2026-04-15 | 1.0.0 | Initial version | Architecture Review |

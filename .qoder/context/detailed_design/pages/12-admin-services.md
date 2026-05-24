@@ -1,158 +1,158 @@
-# 管理员-服务管理页（AdminServiceManagementPage）
+# Admin - Service Management Page (AdminServiceManagementPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 服务管理 |
-| **路由路径** | `/admin/services` |
-| **布局** | `AppLayoutComponent`（Admin 侧边栏） |
-| **惰性加载** | `features/admin/admin.routes.ts` → `ADMIN_ROUTES` (loadComponent) |
-| **组件** | `ServiceManagementComponent` (`src/app/features/admin/pages/service-management/service-management.component.ts`) |
-| **设计依据** | contract.yaml `admin.services` CRUD |
+| **Page Name** | Service Management |
+| **Route Path** | `/admin/services` |
+| **Layout** | `AppLayoutComponent` (Admin sidebar) |
+| **Lazy Loading** | `features/admin/admin.routes.ts` → `ADMIN_ROUTES` (loadComponent) |
+| **Component** | `ServiceManagementComponent` (`src/app/features/admin/pages/service-management/service-management.component.ts`) |
+| **Design Basis** | contract.yaml `admin.services` CRUD |
 
-## 用户角色
+## User Roles
 
 - ADMIN, SUPER_ADMIN
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 策略 |
+| Guard | Strategy |
 |---|---|
-| `authGuard`（父级） | 未认证 → 重定向 |
-| `roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })`（父级） | CUSTOMER 禁止访问 |
+| `authGuard` (parent) | Unauthenticated → redirect |
+| `roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })` (parent) | CUSTOMER denied access |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
 | `AdminStore` | `vm`, `setLoading()`, `setServices()`, `updateServiceInList()`, `removeServiceFromList()`, `setError()`, `services()`, `servicesTotal()`, `servicesPage()` |
 | `AdminService` | `getAdminServices()`, `createAdminService()`, `updateAdminService()`, `deleteAdminService()` |
 
-## 本地信号
+## Local Signals
 
-| 信号 | 类型 | 说明 |
+| Signal | Type | Description |
 |---|---|---|
-| `viewMode` | `'grid' \| 'list'` | 视图切换（网格/列表） |
-| `serviceDialogVisible` | `boolean` | 服务编辑对话框 |
-| `deleteDialogVisible` | `boolean` | 删除确认对话框 |
-| `selectedService` | `AdminServiceItem \| null` | 选中服务 |
-| `serviceToDelete` | `AdminServiceItem \| null` | 待删除服务 |
-| `isEdit` | `boolean` | 编辑模式 |
-| `submitted` | `boolean` | 表单已提交 |
-| `searchQuery` | `string` | 搜索关键词 |
-| `categoryFilter` | `string` | 分类筛选（绑定 `?category=` 查询参数） |
-| `statusFilter` | `string` | 状态筛选 |
-| `formErrors` | `{ name?; duration?; price? }` | 表单验证错误 |
-| `formName`, `formDescription`, `formDuration`, `formPrice`, `formActive`, `formImageUrl`, `formTaxRate` | 各类型 | 表单字段绑定 |
-| `computedPricePerMinute` | `number \| null` (computed) | 自动计算值：`formPrice / formDuration`；当 duration > 0 时实时计算，仅用于展示（非手动输入字段） |
-| `totalServices` | `number` (computed) | 服务总数（来源：`GET /v1/admin/services` 响应 `total` 字段，跨分页系统级总数） |
-| `activeServicesCount` | `number` (computed) | 激活服务数（从全量服务列表 `limit=999` 按 `active=true` 过滤计算） |
-| `averagePrice` | `number` (computed) | 平均价格（从全量服务列表 `limit=999` 计算均值） |
+| `viewMode` | `'grid' \| 'list'` | View toggle (grid/list) |
+| `serviceDialogVisible` | `boolean` | Service edit dialog |
+| `deleteDialogVisible` | `boolean` | Delete confirmation dialog |
+| `selectedService` | `AdminServiceItem \| null` | Selected service |
+| `serviceToDelete` | `AdminServiceItem \| null` | Service to be deleted |
+| `isEdit` | `boolean` | Edit mode |
+| `submitted` | `boolean` | Form submitted |
+| `searchQuery` | `string` | Search keyword |
+| `categoryFilter` | `string` | Category filter (binds to `?category=` query param) |
+| `statusFilter` | `string` | Status filter |
+| `formErrors` | `{ name?; duration?; price? }` | Form validation errors |
+| `formName`, `formDescription`, `formDuration`, `formPrice`, `formActive`, `formImageUrl`, `formTaxRate` | various types | Form field bindings |
+| `computedPricePerMinute` | `number \| null` (computed) | Auto-calculated value: `formPrice / formDuration`; computed in real-time when duration > 0, display only (not a manual input field) |
+| `totalServices` | `number` (computed) | Total service count (source: `GET /v1/admin/services` response `total` field, cross-pagination system-level total) |
+| `activeServicesCount` | `number` (computed) | Active service count (from full service list `limit=999` filtered by `active=true`) |
+| `averagePrice` | `number` (computed) | Average price (computed from full service list `limit=999`) |
 
-> **注意**：`averagePrice` 当前通过 `limit=999` 全量查询后计算。`contract.yaml` v1.7.3 已为 `admin/services/summary` 端点定义 `averagePrice` 字段，后续可切换为专用 summary 端点。
+> **Note**: `averagePrice` is currently computed via `limit=999` full query. `contract.yaml` v1.7.3 has defined an `averagePrice` field for `admin/services/summary` endpoint; can switch to dedicated summary endpoint in the future.
 
-## API 契约对照
+## API Contract Reference
 
-> **响应信封**：所有成功的 API 响应由 ResponseInterceptor 包装为统一信封格式 `{ statusCode, message, data, timestamp, requestId }`。下表中"响应"列仅描述 `data` 字段内部结构，信封外层隐式适用。
+> **Response envelope**: All successful API responses are wrapped by ResponseInterceptor in a unified envelope format `{ statusCode, message, data, timestamp, requestId }`. The "Response" column below describes only the `data` field internal structure; the outer envelope implicitly applies.
 
-| 方法 | 端点 | 请求参数/正文 | 响应 | 鉴权 | 调用时机 |
+| Method | Endpoint | Request Params/Body | Response | Auth | Trigger |
 |---|---|---|---|---|---|
-| `GET` | `/v1/admin/services` | `?page&limit&search&active&category` | `PaginatedResponse<AdminServiceDto>`（`{id, name, description, duration, price, active, category, imageUrl?, createdAt, pricePerMinute?, taxRate?}`） | Bearer ADMIN/SUPER_ADMIN | 页面初始化、筛选、分页 |
-> ⚠️ **已知契约偏差**
-> ⚠️ **字段类型注意**：后端返回的 `price` 字段为 **string** 类型（如 `"800"`），而非 `number`。前端在 `loadAllServicesForStats()` 数据入口处通过 `Number(s.price)` 将其转为数值，确保 `averagePrice` 计算使用数值加法而非字符串拼接。分页表格展示已委托 `currency` Pipe 自动格式化，不受影响。
-> **修复计划**：此为已知技术债（对应 ADR 待创建）。后端需修正 `AdminServiceDto.price` 返回类型为 `number`，与 contract.yaml 定义的 `{ type: "number", format: "decimal" }` 对齐。当前变通方案不应长期保留。
-> **注意**：统计卡片使用独立的全量数据请求（limit=999，与分页表格分开），不依赖专用 summary 端点。Active Services Count 和 Average Price 从全量数据计算。
-| `POST` | `/v1/admin/services` | `{name*, description?, duration*, price?, active?, imageUrl?, pricePerMinute?, taxRate?}` | `AdminServiceDto` (201) | Bearer ADMIN/SUPER_ADMIN | 新建保存 |
-| `PUT` | `/v1/admin/services/:id` | `{name?, description?, duration?, price?, active?, imageUrl?, pricePerMinute?, taxRate?}` | `AdminServiceDto` | Bearer ADMIN/SUPER_ADMIN | 编辑保存 |
-> **auto-calc**：`pricePerMinute` 在后端自动计算为 `price / duration`（当两者均提供时）。前端不再提供 `pricePerMinute` 手动输入字段，改为显示由 `computedPricePerMinute` 信号实时计算的值。若前端显式传递 `pricePerMinute`，后端优先使用传递值；否则自动计算。
-| `DELETE` | `/v1/admin/services/:id` | path: `id` | `void` (204) | Bearer ADMIN/SUPER_ADMIN | 删除确认 |
+| `GET` | `/v1/admin/services` | `?page&limit&search&active&category` | `PaginatedResponse<AdminServiceDto>` (`{id, name, description, duration, price, active, category, imageUrl?, createdAt, pricePerMinute?, taxRate?}`) | Bearer ADMIN/SUPER_ADMIN | Page initialization, filter, pagination |
+> ⚠️ **Known contract deviation**
+> ⚠️ **Field type note**: Backend returns `price` field as **string** type (e.g., `"800"`), not `number`. Frontend converts via `Number(s.price)` at the `loadAllServicesForStats()` data entry point, ensuring `averagePrice` calculation uses numeric addition rather than string concatenation. Paginated table display delegates to `currency` Pipe for auto-formatting, unaffected.
+> **Fix plan**: This is a known tech debt (corresponding ADR pending creation). Backend needs to correct `AdminServiceDto.price` return type to `number`, aligning with contract.yaml definition `{ type: "number", format: "decimal" }`. Current workaround should not be retained long-term.
+> **Note**: Stat cards use a separate full data request (limit=999, independent from paginated table), not depending on a dedicated summary endpoint. Active Services Count and Average Price are computed from full data.
+| `POST` | `/v1/admin/services` | `{name*, description?, duration*, price?, active?, imageUrl?, pricePerMinute?, taxRate?}` | `AdminServiceDto` (201) | Bearer ADMIN/SUPER_ADMIN | Create save |
+| `PUT` | `/v1/admin/services/:id` | `{name?, description?, duration?, price?, active?, imageUrl?, pricePerMinute?, taxRate?}` | `AdminServiceDto` | Bearer ADMIN/SUPER_ADMIN | Edit save |
+> **auto-calc**: `pricePerMinute` is auto-calculated on backend as `price / duration` (when both are provided). Frontend no longer provides a `pricePerMinute` manual input field, instead displays the value computed in real-time by `computedPricePerMinute` signal. If frontend explicitly passes `pricePerMinute`, backend prioritizes the passed value; otherwise auto-calculates.
+| `DELETE` | `/v1/admin/services/:id` | path: `id` | `void` (204) | Bearer ADMIN/SUPER_ADMIN | Delete confirmation |
 
-## 后端映射
+## Backend Mapping
 
-| 控制器 | 文件 |
+| Controller | File |
 |---|---|
-| `AdminServicesController` | `src/modules/admin/controllers/admin-services.controller.ts` — 路由前缀 `"admin/services"` |
-| `AdminServicesService` | `src/modules/admin/services/admin-services.service.ts` — 委托 `ServicesService` |
+| `AdminServicesController` | `src/modules/admin/controllers/admin-services.controller.ts` — route prefix `"admin/services"` |
+| `AdminServicesService` | `src/modules/admin/services/admin-services.service.ts` — delegates to `ServicesService` |
 
-权限控制：
-| 端点 | 最低角色 |
+Permission control:
+| Endpoint | Minimum Role |
 |---|---|
 | `GET /admin/services` | ADMIN |
 | `POST /admin/services` | ADMIN |
 | `PUT /admin/services/:id` | ADMIN |
 | `DELETE /admin/services/:id` | ADMIN |
 
-## 交互流程
+## Interaction Flow
 
-1. 访问 `/admin/services`，父级守卫验证
+1. Visit `/admin/services`, parent guard verifies
 2. `loadServices()` → `AdminService.getAdminServices({ page, search, active })` → `AdminStore.setServices()`
-3. 视图切换：网格视图（卡片式） / 列表视图（表格式）
-4. 搜索框 + 分类筛选 + 状态筛选
-5. 点击「新建」→ `serviceDialogVisible = true`，`isEdit = false`
-6. 点击服务「编辑」→ 对话框回填，`isEdit = true`
-7. 表单：名称（必填 *）、描述、时长（分钟）、价格（必填 *）、图片 URL、激活开关
-7a. **价格验证**：Price 字段为必填项，必须输入正数（> 0）。若提交时 price 为 `null`、空值或 ≤ 0，前端显示验证错误信息，表单拒绝提交。
-8. **`pricePerMinute` 自动计算**：当用户输入 `duration` 和 `price` 后，前端通过 `computedPricePerMinute` 信号自动计算并展示 `price / duration` 结果（仅显示，非输入字段）。模板中使用 `@if (isViewMode())` 守卫控制显示，确保编辑模式下始终重新计算并展示最新单价，避免模板条件判断错误导致显示 `$0.00`。保存时前端不发送 `pricePerMinute`，由后端在 `AdminServicesService` 中计算：`pricePerMinute = dto.price / dto.duration`。此设计避免手动计算错误并保证数据一致性。
-> **架构决策**：`pricePerMinute = price / duration` 计算逻辑采用**前后端双计算策略**。前端 `computed()` 信号提供即时 UI 反馈（用户输入时零延迟显示单价）；后端在写入数据库时重新计算确保数据完整性（不论 API 调用来源）。此方案无需网络往返即可提供实时预览，同时杜绝不一致数据（如 price:100, duration:60, pricePerMinute:999）被持久化。属于 Angular Signals 最惯用模式。
-9. 激活状态 Toggle Switch：可在列表中直接切换
-9. 删除操作：确认 → `AdminService.deleteAdminService(id)` → `AdminStore.removeServiceFromList()`
+3. View toggle: grid view (card style) / list view (table style)
+4. Search box + category filter + status filter
+5. Click "Create" → `serviceDialogVisible = true`, `isEdit = false`
+6. Click service "Edit" → dialog pre-filled, `isEdit = true`
+7. Form: name (required *), description, duration (minutes), price (required *), image URL, active toggle
+7a. **Price validation**: Price field is required, must be a positive number (> 0). If price is `null`, empty, or ≤ 0 on submit, frontend displays validation error and form rejects submission.
+8. **`pricePerMinute` auto-calculation**: After user enters `duration` and `price`, frontend auto-computes and displays `price / duration` result via `computedPricePerMinute` signal (display only, not an input field). Template uses `@if (isViewMode())` guard to control display, ensuring edit mode always recalculates and shows latest unit price, avoiding template condition errors causing `$0.00` display. On save, frontend does not send `pricePerMinute`; backend computes in `AdminServicesService`: `pricePerMinute = dto.price / dto.duration`. This design avoids manual calculation errors and ensures data consistency.
+> **Architecture decision**: `pricePerMinute = price / duration` calculation uses a **dual frontend-backend computation strategy**. Frontend `computed()` signal provides instant UI feedback (zero-delay unit price display during user input); backend recalculates on database write ensuring data integrity (regardless of API call source). This approach provides real-time preview without network round-trips, while preventing inconsistent data (e.g., price:100, duration:60, pricePerMinute:999) from being persisted. This is the most idiomatic Angular Signals pattern.
+9. Active status Toggle Switch: can be toggled directly in list
+9. Delete operation: confirm → `AdminService.deleteAdminService(id)` → `AdminStore.removeServiceFromList()`
 
-## 表格列
+## Table Columns
 
-| 列 | 组件 | 说明 |
+| Column | Component | Description |
 |---|---|---|
-| **Name** | `Avatar/Icon + text` | 服务图标 + 名称 + 描述 |
-| **Duration** | `text` | 时长（分钟） |
-| **Price** | `currency:'USD'` | 价格 |
-| **Status** | `<app-badge>` | 激活状态：`active=true→confirmed(绿色)`，显示 `ACTIVE`；`active=false→expired(灰色)`，显示 `INACTIVE`。标签通过 `customLabel` 使用全大写值。 |
-| **Actions** | `<app-button>` | 编辑（ghost+pencil）+ 删除（danger+trash） |
+| **Name** | `Avatar/Icon + text` | Service icon + name + description |
+| **Duration** | `text` | Duration (minutes) |
+| **Price** | `currency:'USD'` | Price |
+| **Status** | `<app-badge>` | Active status: `active=true→confirmed(green)`, displays `ACTIVE`; `active=false→expired(gray)`, displays `INACTIVE`. Label uses uppercase value via `customLabel`. |
+| **Actions** | `<app-button>` | Edit (ghost+pencil) + Delete (danger+trash) |
 
-## Dashboard 消耗
+## Dashboard Consumption
 
-| 仪表盘面板 | 消耗端点 | 参数 |
+| Dashboard Panel | Consumed Endpoint | Parameters |
 |-----------|---------|------|
 | Recent Services | `GET /v1/admin/services` | `limit=5`, `page=1`, `orderBy=createdAt:desc` |
 
-Dashboard 面板复用此端点获取最近服务列表用于概览展示，与服务管理页的完整分页列表共享同一端点。
+Dashboard panel reuses this endpoint to fetch recent services list for overview display, sharing the same endpoint as the service management page's full paginated list.
 
-## 数据来源
+## Data Sources
 
-- contract.yaml 1.7.1（admin.services CRUD — 含 pricePerMinute、taxRate）
-- SAD 2.2.1（ServicesModule）
-- 数据架构设计文档 2.2（Service 实体, ServiceCategory 实体）
+- contract.yaml 1.7.1 (admin.services CRUD — includes pricePerMinute, taxRate)
+- SAD 2.2.1 (ServicesModule)
+- data-architecture 2.2 (Service entity, ServiceCategory entity)
 
-## 统计卡片数据来源
+## Stat Card Data Sources
 
-| 卡片 | 数据来源 | 系统级真实值? | 刷新机制 |
+| Card | Data Source | System-Level True Value? | Refresh Mechanism |
 |---|---|---|---|
-| **Total Services** | `GET /v1/admin/services` 响应中的 `total` 字段 | ✅ 系统级真实总数（跨分页） | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
-| **Active Services** | 从 `GET /v1/admin/services` 加载全量服务列表（limit=999）后按 `active=true` 过滤计算 | ✅ 系统级真实值 | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
-| **Average Price** | 从全量服务列表（limit=999）计算价格均值 | ✅ 系统级真实值 | `ngOnInit` + 筛选/CRUD 操作后重新加载 + **60s 轮询** |
+| **Total Services** | `GET /v1/admin/services` response `total` field | ✅ System-level true total (cross-pagination) | `ngOnInit` + filter/CRUD operation then reload |
+| **Active Services** | From `GET /v1/admin/services` full service list load (limit=999) filtered by `active=true` | ✅ System-level true value | `ngOnInit` + filter/CRUD operation then reload |
+| **Average Price** | From full service list (limit=999) computed price average | ✅ System-level true value | `ngOnInit` + filter/CRUD operation then reload + **60s polling** |
 
-> **注意**：统计卡片使用独立的全量数据请求（与分页表格分开），确保 Active Services 和 Average Price 反映系统总览而非当前分页数据。Total Services 直接使用 API 响应的 `total` 字段。Average Price 额外增加 60 秒轮询自动刷新（`RxJS interval(60000)`），与 Dashboard 系统状态轮询模式一致。`averagePrice` 计算中通过 `Number(s.price)` 将后端返回的 string 类型 price 转为数值，避免 `reduce` 中 `+` 运算符发生字符串拼接。
+> **Note**: Stat cards use a separate full data request (independent from paginated table), ensuring Active Services and Average Price reflect system overview rather than current page data. Total Services directly uses the API response's `total` field. Average Price adds 60-second polling auto-refresh (`RxJS interval(60000)`), consistent with Dashboard system status polling pattern. `averagePrice` calculation converts backend's string-type price to number via `Number(s.price)`, avoiding `reduce` `+` operator performing string concatenation.
 
-## 数据刷新
+## Data Refresh
 
-| 事件 | 刷新行为 |
+| Event | Refresh Behavior |
 |---|---|
-| 页面初始化 (`ngOnInit`) | 同时发起两个请求：1️⃣ `getAdminServices({limit:10})` 填充表格；2️⃣ `getAdminServices({limit:999})` 填充统计卡片 |
-| 筛选变化 (`applyFilter`) | 重新加载分页表格 + 统计卡片 |
-| 搜索/清空 (`clearFilters`) | 同上 |
-| 创建/编辑/删除服务 | 本地更新 store + 重新加载统计卡片 |
-| WebSocket 自动刷新 | ❌ 未实现（无服务变更 WebSocket 事件） |
-| **轮询自动刷新** | ✅ **60s interval → loadAllServicesForStats()**（仅更新统计卡片，不影响分页表格） |
+| Page initialization (`ngOnInit`) | Fires two requests simultaneously: 1️⃣ `getAdminServices({limit:10})` for table; 2️⃣ `getAdminServices({limit:999})` for stat cards |
+| Filter change (`applyFilter`) | Reload paginated table + stat cards |
+| Search/clear (`clearFilters`) | Same as above |
+| Create/edit/delete service | Local store update + reload stat cards |
+| WebSocket auto-refresh | ❌ Not implemented (no service change WebSocket event) |
+| **Polling auto-refresh** | ✅ **60s interval → loadAllServicesForStats()** (only updates stat cards, does not affect paginated table) |
 
-## 分类派生说明
+## Category Derivation Note
 
-- `category` 字段由后端 `ServiceCategory` 关联派生。若服务关联了 `ServiceCategory`，则该分类名称通过 JOIN 查询填充至 `AdminServiceDto.category`；若未关联分类，则返回 `null`。
-- `GET /v1/admin/services/summary` 中的 `categories` 数组对 `category=null` 的服务归入「未分类」统计。
+- `category` field is derived from backend `ServiceCategory` association. If a service is associated with a `ServiceCategory`, the category name is populated into `AdminServiceDto.category` via JOIN query; if no category is associated, returns `null`.
+- `GET /v1/admin/services/summary` `categories` array categorizes services with `category=null` under "Uncategorized" statistics.

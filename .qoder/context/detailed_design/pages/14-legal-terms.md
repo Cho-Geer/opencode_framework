@@ -1,43 +1,43 @@
-# 服务条款页（TermsPage）
+# Terms of Service Page (TermsPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 服务条款 |
-| **路由路径** | `/legal/terms` |
-| **布局** | 无布局外壳（Standalone 页面） |
-| **惰性加载** | `features/legal/legal.routes.ts` → `LEGAL_ROUTES` |
-| **组件** | `TermsComponent` (`src/app/features/legal/terms.component.ts`) |
-| **设计依据** | SAD 2.3.1（法律页面），注册页"接受服务条款"的引用目标 |
+| **Page Name** | Terms of Service |
+| **Route Path** | `/legal/terms` |
+| **Layout** | No layout shell (Standalone page) |
+| **Lazy Loading** | `features/legal/legal.routes.ts` → `LEGAL_ROUTES` |
+| **Component** | `TermsComponent` (`src/app/features/legal/terms.component.ts`) |
+| **Design Basis** | SAD 2.3.1 (legal pages), referenced by registration page "Accept Terms of Service" |
 
-## 用户角色
+## User Roles
 
-- 公开访问（无需认证）
+- Public access (no authentication required)
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-- 无
+- None
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
-- 无服务注入（仅导入 `RouterModule` 用于模板内链接）
+- No `@Input()` / `@Output()`
+- No service injection (only imports `RouterModule` for template links)
 
-## API 契约对照
+## API Contract Reference
 
-- 无 API 调用（纯静态页面）
+- No API calls (purely static page)
 
-## 交互流程
+## Interaction Flow
 
-1. 用户直接访问 `/legal/terms` 或在注册页点击「服务条款」链接跳转
-2. 页面展示服务条款内容
+1. User directly visits `/legal/terms` or clicks "Terms of Service" link on registration page
+2. Page displays terms of service content
 
-## 数据来源
+## Data Sources
 
-- SAD 2.3.1（Pages 列表 — 推断的法律页面）
+- SAD 2.3.1 (Pages list — inferred legal pages)

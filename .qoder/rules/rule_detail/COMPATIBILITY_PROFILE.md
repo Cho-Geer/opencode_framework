@@ -123,14 +123,14 @@ The following framework-specific references are **not yet parameterized** and wo
 
 | #   | File                          | Line(s) | Finding                                                                                                           | Severity | Remediation                                                                      |
 | --- | ----------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- | :------: | -------------------------------------------------------------------------------- |
-| R1  | `backend-coding-standard.md`  | 32      | `"DTO 使用 class + class-validator"` listed under **Tier 1 Universal** — but `class-validator` is NestJS-specific |    🔴    | Move to Tier 2; replace with `{backend.validation}` placeholder                  |
-| R2  | `frontend-coding-standard.md` | 20      | `@Component` decorator mention — Angular-specific (has "或等效装饰器" qualifier)                                  |    🟡    | Acceptable; the qualifier covers non-Angular frameworks                          |
+| R1  | `backend-coding-standard.md`  | 32      | `"DTO uses class + class-validator"` listed under **Tier 1 Universal** — but `class-validator` is NestJS-specific |    🔴    | Move to Tier 2; replace with `{backend.validation}` placeholder                  |
+| R2  | `frontend-coding-standard.md` | 20      | `@Component` decorator mention — Angular-specific (has "or equivalent decorator" qualifier)                                  |    🟡    | Acceptable; the qualifier covers non-Angular frameworks                          |
 | R3  | `frontend-coding-standard.md` | 50-51   | `@Input / @Output` references — Angular-specific (has `Props` alternative)                                        |    🟡    | Acceptable; dual-naming covers React/Vue                                         |
 | R4  | `frontend-coding-standard.md` | 77      | `Sass @import` ban — Sass/SCSS is not universal                                                                   |    🟡    | Acceptable; SCSS ban applies only if SCSS is in use                              |
-| R5  | `frontend-coding-standard.md` | 141     | `"前端代码规范文档（Angular）"` — framework name hardcoded in doc title                                           |    🟢    | Cosmetic; replace `（Angular）` with `（{frontend.framework}）` or remove suffix |
-| R6  | `coding-standard-common.md`   | 15-16   | `"Angular 前端框架特定规范"` and `"NestJS 后端框架特定规范"` — framework names in descriptions                    |    🟢    | Cosmetic; update to generic descriptions                                         |
+| R5  | `frontend-coding-standard.md` | 141     | `"Frontend Coding Standard (Angular)"` — framework name hardcoded in doc title                                           |    🟢    | Cosmetic; replace `(Angular)` with `({frontend.framework})` or remove suffix |
+| R6  | `coding-standard-common.md`   | 15-16   | `"Angular frontend framework-specific standards"` and `"NestJS backend framework-specific standards"` — framework names in descriptions                    |    🟢    | Cosmetic; update to generic descriptions                                         |
 | R7  | `dag-generation-standard.md`  | 70      | `"ts + html + scss + spec"` — Angular file pattern for component implementation                                   |    🟡    | Acceptable as example; actual patterns derived from project structure            |
-| R8  | `dag-generation-standard.md`  | 71      | `"NgRx Signals 连接"` — Angular-specific state management wiring example                                          |    🟡    | Acceptable as example; actual wiring derived from `{frontend.state_pattern}`     |
+| R8  | `dag-generation-standard.md`  | 71      | `"NgRx Signals connection"` — Angular-specific state management wiring example                                          |    🟡    | Acceptable as example; actual wiring derived from `{frontend.state_pattern}`     |
 
 #### 3.2.2 Agent Configs (beyond what template variables cover)
 
@@ -143,7 +143,7 @@ The following framework-specific references are **not yet parameterized** and wo
 
 | #   | File                                  | Line(s) | Finding                                                                          | Severity | Remediation                                                                                    |
 | --- | ------------------------------------- | ------- | -------------------------------------------------------------------------------- | :------: | ---------------------------------------------------------------------------------------------- |
-| S1  | `fullstack-ci-cd-guardrails/SKILL.md` | 212     | Section 6 title: `"后端特定规范（NestJS + Prisma）"` — hardcoded framework names |    🟢    | Section content is generic (Prisma seed, migration images); rename section to `"后端特定规范"` ⚠️ Not migrated to .qoder/ — exists in .opencode/ reference only |
+| S1  | `fullstack-ci-cd-guardrails/SKILL.md` | 212     | Section 6 title: `"Backend-Specific Standards (NestJS + Prisma)"` — hardcoded framework names |    🟢    | Section content is generic (Prisma seed, migration images); rename section to `"Backend-Specific Standards"` ⚠️ Not migrated to .qoder/ — exists in .opencode/ reference only |
 | S2  | `devops-ci-cd-guardrails/SKILL.md`    | 18      | Example table uses `NestJS` as example value for `tech_stack.backend`            |    🟢    | Cosmetic; it's an example table cell ⚠️ Not migrated to .qoder/ — exists in .opencode/ reference only |
 
 #### 3.2.4 Subagent Preamble
@@ -157,15 +157,15 @@ The following framework-specific references are **not yet parameterized** and wo
 
 | #   | File                      | Line(s) | Finding                                       | Severity | Remediation                                        |
 | --- | ------------------------- | ------- | --------------------------------------------- | :------: | -------------------------------------------------- |
-| E1  | `通用项目执行规则框架.md` | 166     | Section header: `"Node.js/NestJS项目扩展"`    |    🔴    | Rename to `"后端项目扩展"` or parameterize         |
-| E2  | `通用项目执行规则框架.md` | 179-181 | `"NestJS专项MCP检查"` subsection              |    🔴    | Remove or replace with generic `"后端框架MCP检查"` |
-| E3  | `通用项目执行规则框架.md` | 220     | Stack listing includes `NestJS` as an example |    🟢    | Cosmetic; it's one example in a list               |
+| E1  | `universal-project-execution-rules.md` | 166     | Section header: `"Backend Project Extensions"`    |    🔴    | Rename to `"Backend Project Extensions"` or parameterize         |
+| E2  | `universal-project-execution-rules.md` | 179-181 | `"NestJS-Specific MCP Checks"` subsection              |    🔴    | Remove or replace with generic `"Backend Framework MCP Checks"` |
+| E3  | `universal-project-execution-rules.md` | 220     | Stack listing includes `NestJS` as an example |    🟢    | Cosmetic; it's one example in a list               |
 
 ### §3.3 Summary Statistics
 
 | Severity      | Count | Files Affected                                                                      |
 | ------------- | :---: | ----------------------------------------------------------------------------------- |
-| 🔴 BLOCKER    |   3   | `backend-coding-standard.md`, `通用项目执行规则框架.md`                             |
+| 🔴 BLOCKER    |   3   | `backend-coding-standard.md`, `universal-project-execution-rules.md`                             |
 | 🟡 WARNING    |   6   | `frontend-coding-standard.md`, `dag-generation-standard.md`, `subagent-preamble.md` |
 | 🟢 COSMETIC   |   8   | Various                                                                             |
 | ✅ Already OK |  N/A  | `guardian.md`, `architect.md`, `coder-be.md`, `coder-fe.md`, most skills            |

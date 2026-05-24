@@ -38,15 +38,15 @@ Before doing anything else, read and acknowledge:
 
 - [ ] `.qoder/rules/common-project.md` - Core project rules
 - [ ] `.qoder/rules/mcp-compliance-guide.md` - MCP execution guide
-- [ ] `.qoder/rules/rule_detail/通用项目执行规则框架.md` - Full execution framework
+- [ ] `.qoder/rules/rule_detail/universal-project-execution-rules.md` - Full execution framework
 - [ ] `.qoder/rules/rule_detail/skill-invocation-standard.md` - Skill invocation standard
 
 **Key Rules to Acknowledge:**
 
-- "MCP绝对强制" - MCP is absolutely mandatory
-- "无MCP不分析" - No analysis without MCP
-- "MCP未全员成功严禁进入下一阶段" - No progression without MCP completion
-- "结构化流程: MCP→分析→设计→测试→实现→验证" - Structured flow
+- "MCP Absolutely Mandatory" - MCP is absolutely mandatory
+- "No Analysis Without MCP" - No analysis without MCP
+- "No Progression Until All MCP Succeed" - No progression without MCP completion
+- "Structured Flow: MCP→Analysis→Design→Testing→Implementation→Verification" - Structured flow
 
 ### ✅ Step 2: Task Classification & Skill Identification
 

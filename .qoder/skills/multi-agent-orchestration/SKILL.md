@@ -1,6 +1,6 @@
 ---
 name: multi-agent-orchestration
-description: Trigger and orchestrate the three-layer eight-role multi-agent system for complex development tasks. Use when user mentions "多智能体模式", "multi-agent", or when tasks require full-lifecycle development (requirements analysis, architecture design, coding, testing, review, deployment). Automatically validates AGENTS.md alignment, verifies all 8 agent configurations, and initiates the standard multi-agent workflow.
+description: Trigger and orchestrate the three-layer eight-role multi-agent system for complex development tasks. Use when user mentions "multi-agent mode", "multi-agent", or when tasks require full-lifecycle development (requirements analysis, architecture design, coding, testing, review, deployment). Automatically validates AGENTS.md alignment, verifies all 8 agent configurations, and initiates the standard multi-agent workflow.
 ---
 
 # Multi-Agent Orchestration
@@ -8,23 +8,23 @@ description: Trigger and orchestrate the three-layer eight-role multi-agent syst
 ## Trigger Conditions
 
 Activate when user conversation contains any of:
-- "多智能体模式" (multi-agent mode)
+- "multi-agent mode"
 - "multi-agent"
 - Complex full-lifecycle development tasks requiring multiple roles
-- **Any new issue / bug / style inconsistency / error fix** (详见下方自动触发规则)
+- **Any new issue / bug / style inconsistency / error fix** (see automatic trigger rules below)
 
 ### 🚨 Automatic Trigger Rule
 
-以下场景**自动触发** multi-agent 流程，无论用户是否明确提及"multi-agent"：
+The following scenarios **automatically trigger** the multi-agent workflow, regardless of whether the user explicitly mentions "multi-agent":
 
-| 场景 | 示例 | 是否触发 |
-|------|------|---------|
-| 描述了一个可验证的**代码问题或需求** | "样式不一致"、"报错了"、"按钮不工作" | ✅ 触发 |
-| 问题**涉及代码变更**（非纯信息查询） | "修复这个 bug"、"调整布局" | ✅ 触发 |
-| 问题**跨越多个组件/模块** | "前后端联调问题"、"暗亮模式主题色" | ✅ 触发 |
-| **纯信息查询** | "这个 API 参数含义是什么"、"文档哪里写了" | ❌ 不触发 |
+| Scenario | Example | Triggered? |
+|----------|---------|:-----------:|
+| A verifiable **code problem or requirement** is described | "style inconsistency", "error occurred", "button not working" | ✅ Yes |
+| The issue **involves code changes** (not a pure information query) | "fix this bug", "adjust layout" | ✅ Yes |
+| The issue **spans multiple components/modules** | "frontend-backend integration issue", "dark/light mode theme color" | ✅ Yes |
+| **Pure information query** | "what does this API parameter mean", "where is this documented" | ❌ No |
 
-**满⾜以上任意一条代码变更场景** → 必须走完整 multi-agent 流程，**以 dispatch @Meta-Planner 为第一动作**。
+**If any of the above code-change scenarios is met** → the full multi-agent workflow is mandatory, **starting with dispatch of @Meta-Planner as the first action**.
 
 ## Pre-flight Validation
 
@@ -33,7 +33,7 @@ Activate when user conversation contains any of:
 1. Read `AGENTS.md` at project root
 2. Confirm it exists and contains the 8-agent registry:
    - @Meta-Planner, @Orchestrator, @Architect, @Coder-FE, @Coder-BE, @Guardian, @Arbiter, @CI-CD-Agent
-3. Verify the standard execution flow (Section 六) is present
+3. Verify the standard execution flow (Section 6) is present
 
 ### Step 2: Validate Agent Configurations
 
@@ -54,11 +54,11 @@ For each agent file verify:
 - YAML frontmatter `name` field matches AGENTS.md declaration
 - `skills` list is present and non-empty
 - `model` field is set
-- Core职责, 强制约束, 输入契约, 输出产物 sections exist
+- Core Responsibilities, Mandatory Constraints, Input Contract, Output Artifacts sections exist
 
 ### Step 3: Alignment Check
 
-Compare AGENTS.md agent list (Section 一 & 三) against actual `.qoder/agents/*.md` files:
+Compare AGENTS.md agent list (Sections 1 & 3) against actual `.qoder/agents/*.md` files:
 - Count must match: 8 agents
 - Names must match exactly (case-sensitive)
 - Layer assignments must match (Meta/Execution/Validation)
@@ -67,7 +67,7 @@ If any misalignment found, report specific discrepancies and halt until resolved
 
 ## Multi-Agent Execution Flow
 
-Once validation passes, follow the standard flow from AGENTS.md Section 六:
+Once validation passes, follow the standard flow from AGENTS.md Section 6:
 
 ### 8-Role → Qoder Subagent Type Map
 
@@ -85,16 +85,16 @@ Once validation passes, follow the standard flow from AGENTS.md Section 六:
 ### Standard Execution Flow
 
 ```
-0. 【Entry Gate】收到新工作项 → 检查 Task.DAG.json
-   - 无 DAG → dispatch @Meta-Planner via Agent(subagent_type: Research, ...)
-   - 有 DAG 有对应条目且 pending → 按 DAG 执行
-1. @Meta-Planner 读取要件 → 生成 Project.graph + Task.DAG.json
-2. @Orchestrator 调度 → @Architect 输出 contract.yaml（TDD唯一依据）
-3. 【TDD-RED】@Coder-FE/@Coder-BE 基于契约+要件 → 编写失败测试用例 → 执行（强制失败）
-4. 【TDD-GREEN】@Coder-FE/@Coder-BE 基于测试 → 编写最简代码 → 测试全通过
-5. 【TDD-REFACTOR】@Coder-FE/@Coder-BE 重构 → 回归测试（保持全通过）
-6. @Guardian 审查（规范/安全/架构）→ 冲突由 @Arbiter 裁决
-7. 代码合并 → @CI-CD-Agent 部署/自愈 → 结果回传@Orchestrator
+0. [Entry Gate] Receive new work item → Check Task.DAG.json
+   - No DAG → dispatch @Meta-Planner via Agent(subagent_type: Research, ...)
+   - DAG exists with matching pending entry → Execute per DAG
+1. @Meta-Planner reads requirements → Generates Project.graph + Task.DAG.json
+2. @Orchestrator schedules → @Architect outputs contract.yaml (sole TDD basis)
+3. [TDD-RED] @Coder-FE/@Coder-BE based on contract + requirements → Write failing test cases → Execute (must fail)
+4. [TDD-GREEN] @Coder-FE/@Coder-BE based on tests → Write minimal code → All tests pass
+5. [TDD-REFACTOR] @Coder-FE/@Coder-BE refactor → Regression tests (keep all passing)
+6. @Guardian reviews (standards/security/architecture) → Conflicts resolved by @Arbiter
+7. Code merge → @CI-CD-Agent deploys/self-heals → Results reported back to @Orchestrator
 ```
 
 ### TDD Enforcement (Absolute)
@@ -113,7 +113,7 @@ Once validation passes, follow the standard flow from AGENTS.md Section 六:
 4. **Quality Gate**: All code must pass @Coder-FE/@Coder-BE tests + @Guardian review, no merge without pass
 5. **Closed Loop**: @CI-CD-Agent reports back to @Orchestrator via `SendMessage`, @Arbiter reports to @Meta-Planner
 6. **Context Governance**: Compress context after each phase, no pollution
-7. **Dead-Loop Circuit Breaker**: 3 consecutive failures → @Arbiter介入
+7. **Dead-Loop Circuit Breaker**: 3 consecutive failures → @Arbiter intervenes
 8. **Task Board Integration**: All agents update `TaskUpdate(taskId, status)` on state transitions
 9. **Memory Persistence**: Agents call `update_memory` when discovering reusable patterns
 
@@ -128,16 +128,16 @@ All agents must strictly follow:
 ## Quick Reference: Agent Layer Map
 
 ```
-Meta Layer (元认知层)
+Meta Layer
   ├── @Meta-Planner   → Project.graph, Task.DAG.json
   └── @Orchestrator   → Task scheduling ONLY (NO requirement analysis)
 
-Execution Layer (编排与执行层)
+Execution Layer
   ├── @Architect      → contract.yaml, architecture docs
   ├── @Coder-FE       → Frontend code (pages, components)
   └── @Coder-BE       → Backend code (API, business logic, DB)
 
-Validation Layer (验证与运维层)
+Validation Layer
   ├── @Guardian       → Code review, security scan, architecture check, test evidence validation
   ├── @Arbiter        → Conflict resolution, tech debt waiver
   └── @CI-CD-Agent    → CI/CD, deployment, incident response

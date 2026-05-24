@@ -147,7 +147,7 @@ If you ARE the Leader or a non-Coding agent responsible for gate closure:
 After completing implementation AND running tests, call `compliance_gate_complete(session_id, execution_summary)`.
 This records the task as complete AND runs ESLint mock-audit validation against machine.json.eslint_state.
 If `compliance_gate_complete` returns `failed`, you MUST fix violations (or get @Arbiter waiver) and retry.
-**未调用 compliance_gate_complete 的任务视为未完成。**
+**Tasks that do not call compliance_gate_complete are considered incomplete.**
 
 ### Step 10: Qoder completion steps (MANDATORY)
 

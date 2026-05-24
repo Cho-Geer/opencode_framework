@@ -63,7 +63,7 @@ enf_exit() {
 }
 
 if [ ! -f "$DAG_FILE" ]; then
-  enf_exit "Task.DAG.json 在项目根目录不存在。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+  enf_exit "Task.DAG.json does not exist in the project root. You must first generate a DAG with /dispatch @Meta-Planner."
 fi
 
 # Check if task exists with status "pending"
@@ -71,12 +71,12 @@ fi
 if command -v jq &> /dev/null; then
   TASK_EXISTS=$(jq --arg id "$TASK_ID" '.tasks[] | select(.id == $id)' "$DAG_FILE" 2>/dev/null || echo "")
   if [ -z "$TASK_EXISTS" ]; then
-    enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+    enf_exit "Work item '${TASK_ID}' not found in Task.DAG.json. You must first generate a DAG with /dispatch @Meta-Planner."
   fi
 
   TASK_STATUS=$(echo "$TASK_EXISTS" | jq -r '.status' 2>/dev/null || echo "")
   if [ "$TASK_STATUS" != "pending" ]; then
-    enf_exit "工作项 '${TASK_ID}' 的状态为 '${TASK_STATUS}'，非 'pending'。请检查 DAG 状态。"
+    enf_exit "Work item '${TASK_ID}' has status '${TASK_STATUS}', not 'pending'. Please check the DAG status."
   fi
 elif command -v python3 &> /dev/null; then
   # Fallback: use python3 for JSON parsing if jq is not available
@@ -94,10 +94,10 @@ except Exception as e:
     print('ERROR')
 " 2>/dev/null)
   if [ "$PYTHON_CHECK" = "NOT_FOUND" ]; then
-    enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+    enf_exit "Work item '${TASK_ID}' not found in Task.DAG.json. You must first generate a DAG with /dispatch @Meta-Planner."
   fi
   if [ "$PYTHON_CHECK" != "pending" ]; then
-    enf_exit "工作项 '${TASK_ID}' 的状态为 '${PYTHON_CHECK}'，非 'pending'。请检查 DAG 状态。"
+    enf_exit "Work item '${TASK_ID}' has status '${PYTHON_CHECK}', not 'pending'. Please check the DAG status."
   fi
 else
   # Fallback: use node for JSON parsing if neither jq nor python3 is available
@@ -113,20 +113,20 @@ else
       console.log(task.status);
     " 2>/dev/null)
     if [ "$NODE_CHECK" = "NOT_FOUND" ]; then
-      enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+      enf_exit "Work item '${TASK_ID}' not found in Task.DAG.json. You must first generate a DAG with /dispatch @Meta-Planner."
     fi
     if [ "$NODE_CHECK" != "pending" ]; then
-      enf_exit "工作项 '${TASK_ID}' 的状态为 '${NODE_CHECK}'，非 'pending'。请检查 DAG 状态。"
+      enf_exit "Work item '${TASK_ID}' has status '${NODE_CHECK}', not 'pending'. Please check the DAG status."
     fi
   else
-    echo "⚠️  [Orchestrator Gate] 缺少 jq 和 node，无法验证 DAG。请安装 jq 或 node。"
+    echo "⚠️  [Orchestrator Gate] Missing jq and node, cannot verify DAG. Please install jq or node."
     if [ "$ENF_MODE" != "advisory" ]; then
       exit 1
     fi
   fi
 fi
 
-echo "✅ [${ENF_MODE}] 工作项 '${TASK_ID}' 验证通过（状态: pending）。"
+echo "✅ [${ENF_MODE}] Work item '${TASK_ID}' validated successfully (status: pending)."
 
 # ─── Stage 2: Reconciliation Check ─────────────────────────────
 # After DAG validation passes, run cross-reference consistency check

@@ -3,22 +3,22 @@ type: model_decision
 description: Only relevant during skill invocation
 ---
 
-# Skill调用合规指南
+# Skill Call Compliance Guide
 
-## Skill调用自检清单
-- [ ] 已查阅`.qoder/rules/rule_detail/skill-invocation-standard.md`中的"已注册Skill清单"
-- [ ] 已识别任务类型和关键词，匹配触发关键词
-- [ ] 已创建"计划调用的Skill清单"并向用户展示确认
-- [ ] 按优先级顺序调用Skill（P0→P1→P2）
+## Skill Call Self-Check Checklist
+- [ ] Reviewed the "Registered Skill Inventory" in `.qoder/rules/rule_detail/skill-invocation-standard.md`
+- [ ] Identified task type and keywords, matched trigger keywords
+- [ ] Created "Planned Skill Call List" and presented to user for confirmation
+- [ ] Called Skills in priority order (P0→P1→P2)
 
-## Skill调用运行时检查
-- 开始任何任务：先规划并展示Skill调用计划
-- 调用Skill：验证符合`.qoder/rules/rule_detail/skill-invocation-standard.md`中的流程要求
-- 添加新Skill：必须使用skill-creator Skill并更新`.qoder/rules/rule_detail/skill-invocation-standard.md`
+## Skill Call Runtime Checks
+- Before starting any task: First plan and present the Skill call plan
+- When calling Skills: Verify compliance with the process requirements in `.qoder/rules/rule_detail/skill-invocation-standard.md`
+- When adding new Skills: Must use the skill-creator Skill and update `.qoder/rules/rule_detail/skill-invocation-standard.md`
 
-## Skill调用违规预防模式
-1. 先规划后执行：任何任务开始前必须先展示Skill调用计划
-2. 查阅`.qoder/rules/rule_detail/skill-invocation-standard.md`优先：这是所有任务的第一步
-3. Skill必须注册：所有Skill必须在`.qoder/rules/rule_detail/skill-invocation-standard.md`中注册
-4. 透明化监督：任务前展示计划，让用户监督
+## Skill Call Violation Prevention Patterns
+1. Plan before execute: Before starting any task, you must first present the Skill call plan
+2. Consult `.qoder/rules/rule_detail/skill-invocation-standard.md` first: This is the first step for all tasks
+3. Skills must be registered: All Skills must be registered in `.qoder/rules/rule_detail/skill-invocation-standard.md`
+4. Transparent supervision: Present the plan before the task, allowing the user to supervise
 

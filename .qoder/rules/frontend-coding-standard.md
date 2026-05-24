@@ -3,53 +3,53 @@ type: model_decision
 description: When working on frontend code
 ---
 
-# 前端代码规范 — 分层模板
+# Frontend Coding Standard — Layered Template
 
-> **参见**：[coding-standard-common.md](.qoder/rules/coding-standard-common.md) — 框架无关的通用编码规范（命名约定、类型安全、TDD、文件分离、导入顺序、文件长度限制、JSDoc、Git 提交格式等）。Tier 1 规则全文定义于该文件。
+> **See also**: [coding-standard-common.md](.qoder/rules/coding-standard-common.md) — Framework-agnostic common coding standards (naming conventions, type safety, TDD, file separation, import ordering, file length limits, JSDoc, Git commit format, etc.). Tier 1 rules are fully defined in that file.
 
-本文档为前端代码规范的分层模板：**Tier 1** 为所有前端项目不可变更的通用规则，**Tier 2** 为通过 `{frontend.*}` 占位符引用项目配置的框架参数化规则。各项目通过 `project.config.json` 和 `context/code_standards/frontend-coding-standard.md` 注入具体实现。
+This document is the layered template for the frontend coding standard: **Tier 1** contains immutable universal rules for all frontend projects, **Tier 2** contains framework-parameterized rules referenced via `{frontend.*}` placeholders from project configuration. Each project injects specific implementations through `project.config.json` and `context/code_standards/frontend-coding-standard.md`.
 
 ---
 
-## Tier 1 — 通用规范 (Universal Rules)
+## Tier 1 — Universal Rules
 
-以下规则适用于所有前端框架（Angular / React / Vue / Svelte 等），不可变更。完整定义及代码示例参见 [coding-standard-common.md](.qoder/rules/coding-standard-common.md)。
+The following rules apply to all frontend frameworks (Angular / React / Vue / Svelte, etc.) and are immutable. Full definitions and code examples are in [coding-standard-common.md](.qoder/rules/coding-standard-common.md).
 
-### 1. 文件分离 (File Separation)
+### 1. File Separation
 
-**禁止**在 `@Component`（或等效装饰器）中使用内联 `template` 或 `styles` 字符串。组件逻辑、模板、样式必须物理分离为三个独立文件。
+It is **prohibited** to use inline `template` or `styles` strings in `@Component` (or equivalent decorators). Component logic, template, and styles must be physically separated into three independent files.
 
-### 2. 禁止 `any` 类型 (No `any` Type)
+### 2. No `any` Type
 
-所有函数参数、返回值、变量必须有明确的 TypeScript 类型注解。禁止使用 `any` 类型。确需动态类型时使用 `unknown` + 类型守卫。
+All function parameters, return values, and variables must have explicit TypeScript type annotations. The `any` type is prohibited. When dynamic types are truly needed, use `unknown` + type guards.
 
-### 3. Import 排序 (Import Ordering)
+### 3. Import Ordering
 
-导入语句必须按以下顺序分组，组间空行分隔，组内按字母序排列：
+Import statements must be grouped in the following order, separated by blank lines between groups, sorted alphabetically within each group:
 
-1. 外部依赖（第三方包）
-2. 内部模块（项目 `src/` 下的绝对路径导入）
-3. 相对导入（同级或子目录相对路径）
+1. External dependencies (third-party packages)
+2. Internal modules (absolute path imports from the project's `src/`)
+3. Relative imports (relative paths from the same level or subdirectories)
 
-### 4. TDD 强制 (RED → GREEN → REFACTOR)
+### 4. TDD Mandate (RED → GREEN → REFACTOR)
 
-- **RED**：先编写测试用例，执行必须失败
-- **GREEN**：编写**最简**代码使测试通过
-- **REFACTOR**：测试全量通过后重构
-- **禁止**编写无对应测试用例的业务代码
-- 最低覆盖率：行 / 分支 / 函数均 ≥ 70%，核心业务路径 ≥ 90%
+- **RED**: Write test cases first; execution must fail
+- **GREEN**: Write the **minimal** code to make tests pass
+- **REFACTOR**: Refactor only after all tests pass
+- It is **prohibited** to write business code without corresponding test cases
+- Minimum coverage: Lines / Branches / Functions all ≥ 70%, core business paths ≥ 90%
 
-### 5. 文件长度限制 (File Length Limits)
+### 5. File Length Limits
 
-- 组件逻辑文件（`.component.ts`）不超过 400 行
-- 模板文件（`.component.html`）不超过 200 行
-- 超过时必须拆分为更小的子组件或辅助模块
+- Component logic files (`.component.ts`) must not exceed 400 lines
+- Template files (`.component.html`) must not exceed 200 lines
+- When exceeded, must split into smaller sub-components or helper modules
 
-### 6. JSDoc 文档注释 (JSDoc Documentation)
+### 6. JSDoc Documentation
 
-所有公共 API（组件 `@Input` / `@Output`、Service 公共方法、Store 方法）必须包含 JSDoc 注释，说明用途、参数和返回值。复杂逻辑必须用行内注释解释 **为什么** 而非 **做了什么**。
+All public APIs (component `@Input` / `@Output`, Service public methods, Store methods) must include JSDoc comments explaining purpose, parameters, and return values. Complex logic must have inline comments explaining **why** rather than **what**.
 
-### 7. Git 提交格式 (Git Commit Format)
+### 7. Git Commit Format
 
 ```text
 <type>[scope]: <description>
@@ -57,85 +57,85 @@ description: When working on frontend code
 [optional body]
 ```
 
-TDD 阶段标签（强制）：
-| 阶段 | 标签 | 示例 |
+TDD phase tags (mandatory):
+| Phase | Tag | Example |
 |:---|:---|:---|
-| RED（测试先行） | `[Red] {task_id}` | `test(booking): add unit tests [Red] T-014` |
-| GREEN（实现通过） | `[Green] {task_id}` | `feat(booking): implement creation [Green] T-014` |
-| REFACTOR（重构） | `[Refactor] {task_id}` | `refactor(booking): extract logic [Refactor] T-014` |
+| RED (test-first) | `[Red] {task_id}` | `test(booking): add unit tests [Red] T-014` |
+| GREEN (implementation passes) | `[Green] {task_id}` | `feat(booking): implement creation [Green] T-014` |
+| REFACTOR (refactoring) | `[Refactor] {task_id}` | `refactor(booking): extract logic [Refactor] T-014` |
 
 ---
 
-## Tier 2 — 框架参数化规范 (Framework‑Parameterized Rules)
+## Tier 2 — Framework-Parameterized Rules
 
-以下规范通过 `{frontend.*}` 占位符引用项目配置。各项目通过 `project.config.json` 和 `context/code_standards/frontend-coding-standard.md` 注入具体实现。
+The following standards are referenced via `{frontend.*}` placeholders from project configuration. Each project injects specific implementations through `project.config.json` and `context/code_standards/frontend-coding-standard.md`.
 
-### 8. CSS 策略
+### 8. CSS Strategy
 
-**占位符**: `{frontend.css_strategy}`
+**Placeholder**: `{frontend.css_strategy}`
 
-优先使用项目配置的 CSS 方案完成样式编写。组件私有样式仅作补充。全局样式文件仅用于 CSS 重置、字体引入、全局变量定义。禁止使用已弃用的 CSS 特性（如 Sass `@import`）。
+Prefer the project-configured CSS solution for styling. Component-private styles serve only as supplements. Global style files are used only for CSS resets, font imports, and global variable definitions. The use of deprecated CSS features (e.g., Sass `@import`) is prohibited.
 
-> **当前解析值及配置来源见下方 [解析映射表](#解析映射表-resolution-block)。**
+> **Current resolved value and config source: see [Resolution Block](#resolution-block) below.**
 
-### 9. 状态管理
+### 9. State Management
 
-**占位符**: `{frontend.state_pattern}`
+**Placeholder**: `{frontend.state_pattern}`
 
-遵循项目配置的状态管理模式：
+Follow the project-configured state management pattern:
 
-- 页面组件可注入全局状态 Store
-- 展示型子组件（原子 / 分子）**禁止**直接访问全局状态，必须通过 `@Input()` / Props 接收数据
-- 每个功能领域拥有独立的 Store，Store 内分离 State、Computed、Methods
+- Page components may inject the global state Store
+- Presentational child components (atoms / molecules) are **prohibited** from directly accessing global state; they must receive data via `@Input()` / Props
+- Each feature domain has its own independent Store, with State, Computed, and Methods separated within the Store
 
-> **当前解析值及配置来源见下方 [解析映射表](#解析映射表-resolution-block)。**
+> **Current resolved value and config source: see [Resolution Block](#resolution-block) below.**
 
-### 10. 组件层级
+### 10. Component Hierarchy
 
-**占位符**: `{frontend.component_hierarchy}`
+**Placeholder**: `{frontend.component_hierarchy}`
 
-组件必须按项目定义的层级架构组织，严格遵循层级依赖约束：上层可依赖下层，下层禁止依赖上层。跨领域复用的组件提升至共享目录。
+Components must be organized according to the project-defined hierarchy architecture, strictly following hierarchy dependency constraints: upper layers may depend on lower layers; lower layers are prohibited from depending on upper layers. Components reused across domains are promoted to the shared directory.
 
-> **当前解析值及配置来源见下方 [解析映射表](#解析映射表-resolution-block)。**
+> **Current resolved value and config source: see [Resolution Block](#resolution-block) below.**
 
-### 11. 懒加载
+### 11. Lazy Loading
 
-**占位符**: `{frontend.lazy_loading}`
+**Placeholder**: `{frontend.lazy_loading}`
 
-非首屏路由和内容必须使用项目框架提供的懒加载机制实现按需加载，减少初始包体积。首屏关键路径不受限制。
+Non-initial-screen routes and content must use the project framework's lazy loading mechanism for on-demand loading, reducing initial bundle size. Critical first-screen paths are unrestricted.
 
-> **当前解析值及配置来源见下方 [解析映射表](#解析映射表-resolution-block)。**
+> **Current resolved value and config source: see [Resolution Block](#resolution-block) below.**
 
-### 12. API 封装
+### 12. API Encapsulation
 
-**占位符**: `{frontend.api_pattern}`
+**Placeholder**: `{frontend.api_pattern}`
 
-所有 HTTP 请求必须通过 Service 层封装，组件**禁止**直接调用 HTTP 客户端。DTO（数据传输对象）定义在独立文件中，与后端 API 响应格式严格对齐（字段名、类型、嵌套结构完全一致）。Service 方法返回 Promise（或框架等效异步原语）。
+All HTTP requests must be encapsulated through the Service layer; components are **prohibited** from directly calling HTTP clients. DTOs (Data Transfer Objects) are defined in independent files and must strictly align with the backend API response format (field names, types, and nested structures must be completely identical). Service methods return Promises (or the framework's equivalent async primitive).
 
-> **当前解析值及配置来源见下方 [解析映射表](#解析映射表-resolution-block)。**
+> **Current resolved value and config source: see [Resolution Block](#resolution-block) below.**
 
 ---
 
-## 解析映射表 (Resolution Block)
+## Resolution Block
 
-下表将 Tier 2 各占位符解析为当前项目的具体实现值。当项目技术栈变更时，仅需更新此映射表及对应的 `context/code_standards/frontend-coding-standard.md` 实现文档，Tier 1 通用规则无需修改。
+The table below resolves each Tier 2 placeholder to the current project's specific implementation values. When the project's tech stack changes, only this mapping table and the corresponding `context/code_standards/frontend-coding-standard.md` implementation document need updating; Tier 1 universal rules require no modification.
 
-| 规则号 | 占位符                           | 当前项目解析值                                                                                                                                                                                                          | 配置来源                                                         |
+| Rule # | Placeholder                           | Current Project Resolved Value                                                                                                                                                                                          | Config Source                                                         |
 | :----: | :------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
-|   8    | `{frontend.css_strategy}`        | **Tailwind CSS v4 First** — 优先使用 Tailwind 工具类完成布局/间距/颜色/字体；SCSS 仅用于 Tailwind 无法覆盖的场景（复杂动画、伪元素）；组件私有样式使用 BEM 命名                                                         | `project.config.json` → `frontend.css`；实现文档 §5              |
-|   9    | `{frontend.state_pattern}`       | **NgRx SignalStore** — 页面组件注入 Store 并订阅 `vm` Signal；分子/原子组件通过 `@Input()` 接收数据；每个功能领域拥有独立 Store（`signalStore()` + `withState()` + `withComputed()` + `withMethods()`）                 | `project.config.json` → `frontend.state_management`；实现文档 §6 |
-|   10   | `{frontend.component_hierarchy}` | **原子设计 (Atomic Design)** — `Atoms → Molecules → Organisms → Layouts → Pages`（原 "Templates" 层重命名为 "Layouts"）；Pages 禁止直接依赖 Molecules/Atoms                                                             | `context/code_standards/frontend-coding-standard.md` §1.2        |
-|   11   | `{frontend.lazy_loading}`        | **Angular 路由懒加载 + `@defer` 延迟视图** — 根路由通过 `loadChildren` 懒加载 feature 模块；feature 内通过 `loadComponent` 懒加载页面组件；非首屏内容使用 `@defer (on viewport)`                                        | `context/code_standards/frontend-coding-standard.md` §8          |
-|   12   | `{frontend.api_pattern}`         | **Service 层封装 + DTO 严格对齐** — 组件禁止直接使用 `HttpClient`；所有 HTTP 请求封装在 `*Service` 类中（`@Injectable({ providedIn: 'root' })`）；DTO 文件独立于 `features/*/dto/`；接口名与后端 API 响应字段名完全一致 | `context/code_standards/frontend-coding-standard.md` §7          |
+|   8    | `{frontend.css_strategy}`        | **Tailwind CSS v4 First** — Prefer Tailwind utility classes for layout/spacing/color/font; SCSS only for scenarios Tailwind cannot cover (complex animations, pseudo-elements); component-private styles use BEM naming                                                         | `project.config.json` → `frontend.css`; Implementation doc §5              |
+|   9    | `{frontend.state_pattern}`       | **NgRx SignalStore** — Page components inject Store and subscribe to `vm` Signal; molecule/atom components receive data via `@Input()`; each feature domain has its own Store (`signalStore()` + `withState()` + `withComputed()` + `withMethods()`)                 | `project.config.json` → `frontend.state_management`; Implementation doc §6 |
+|   10   | `{frontend.component_hierarchy}` | **Atomic Design** — `Atoms → Molecules → Organisms → Layouts → Pages` (original "Templates" layer renamed to "Layouts"); Pages are prohibited from directly depending on Molecules/Atoms                                                             | `context/code_standards/frontend-coding-standard.md` §1.2        |
+|   11   | `{frontend.lazy_loading}`        | **Angular Route Lazy Loading + `@defer` Deferred Views** — Root routes lazy-load feature modules via `loadChildren`; features lazy-load page components via `loadComponent`; non-initial-screen content uses `@defer (on viewport)`                                        | `context/code_standards/frontend-coding-standard.md` §8          |
+|   12   | `{frontend.api_pattern}`         | **Service Layer Encapsulation + Strict DTO Alignment** — Components are prohibited from using `HttpClient` directly; all HTTP requests are encapsulated in `*Service` classes (`@Injectable({ providedIn: 'root' })`); DTO files are independent at `features/*/dto/`; interface names must exactly match backend API response field names | `context/code_standards/frontend-coding-standard.md` §7          |
 
-### 变更管理规则
+### Change Management Rules
 
-1. **Tier 1 规则修改**（规则 1–7）：必须同步更新 `coding-standard-common.md` 作为权威来源，并在此处更新引用。
-2. **Tier 2 解析值变更**：当项目技术栈变更时，更新上方解析映射表的 "当前项目解析值" 列，并同步更新 `context/code_standards/frontend-coding-standard.md` 中对应的实现章节。
-3. **新增 Tier 2 规则**：在 Tier 2 区域新增带 `{frontend.*}` 占位符的规则条目，并在解析映射表中追加对应行。
+1. **Tier 1 Rule Modifications** (Rules 1–7): Must synchronously update `coding-standard-common.md` as the authoritative source and update the reference here.
+2. **Tier 2 Resolved Value Changes**: When the project tech stack changes, update the "Current Project Resolved Value" column in the Resolution Block above, and synchronously update the corresponding implementation section in `context/code_standards/frontend-coding-standard.md`.
+3. **New Tier 2 Rules**: Add new rule entries with `{frontend.*}` placeholders in the Tier 2 section, and add a corresponding row in the Resolution Block.
 
 ---
 
-## 完整实现文档
+## Full Implementation Document
 
-完整规范及框架特定的代码示例请参阅：[前端代码规范文档（Angular）](.qoder/context/code_standards/frontend-coding-standard.md)
+For the complete specification and framework-specific code examples, see: [Frontend Coding Standard Document (Angular)](.qoder/context/code_standards/frontend-coding-standard.md)

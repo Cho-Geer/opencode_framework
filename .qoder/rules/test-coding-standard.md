@@ -3,36 +3,36 @@ type: model_decision
 description: When writing or reviewing tests
 ---
 
-# 测试代码规范引用
+# Test Coding Standard Reference
 
-本文档引用 `.qoder/context/code_standards/testing-coding-standard.md` 中的全部规范。
+This document references all standards defined in `.qoder/context/code_standards/testing-coding-standard.md`.
 
-## 适用范围
+## Applicable Scope
 
-所有涉及前后端项目的测试编写、测试审查、测试策略制定任务必须遵循该规范。各项目应根据自身技术栈替换 `context/code_standards/testing-coding-standard.md` 中的内容。
+All tasks involving frontend and backend test writing, test review, and test strategy formulation must comply with this standard. Each project should replace the content in `context/code_standards/testing-coding-standard.md` according to its own tech stack.
 
-## 强制触发 Agent
+## Mandatory Triggering Agents
 
-| Agent          | 触发场景                                       |
+| Agent          | Trigger Scenario                                       |
 | -------------- | ---------------------------------------------- |
-| **@Coder-BE**  | 后端单元/集成测试编写、覆盖率验证              |
-| **@Coder-FE**  | 前端单元/集成测试编写、覆盖率验证              |
-| **@Guardian**  | 测试代码审查（假性检测、覆盖率合规、测试质量） |
-| **@Architect** | 测试架构设计、E2E 关键用例审查                 |
+| **@Coder-BE**  | Backend unit/integration test writing, coverage verification              |
+| **@Coder-FE**  | Frontend unit/integration test writing, coverage verification              |
+| **@Guardian**  | Test code review (false-positive detection, coverage compliance, test quality) |
+| **@Architect** | Test architecture design, E2E critical use case review                 |
 
-## 核心规范速查
+## Core Standards Quick Reference
 
-1. **测试唯一价值**：测试的唯一价值在于发现 Bug，严禁编写假性测试
-2. **TDD 铁律**：RED → GREEN → REFACTOR，无测试不开发
-3. **测试奖杯模型**：40% 单元 + 40% 集成 + 20% E2E
-4. **覆盖率要求**：整体 ≥70%，核心模块 ≥90%
-5. **变异测试**：杀除率 ≥80%（核心模块），每日定时执行
-6. **假性测试禁令**：空断言、仅测 Getter/Setter、过度 Mock、Mock 不验证、耦合实现细节
-7. **数据隔离**：每个测试使用独立数据，Testcontainers 优先
-8. **关键 E2E**：并发预约抢占测试为系统最关键 E2E 用例，修改需架构师审查
-9. **缺陷不复发**：每个缺陷修复必须附带至少 1 个新测试用例
-10. **CI 门禁**：单元/集成测试 100% 通过，覆盖率达标，变异测试不阻塞常规 PR
+1. **Sole Value of Tests**: The only value of tests is to find bugs; writing false-positive tests is strictly prohibited
+2. **TDD Iron Rule**: RED → GREEN → REFACTOR; no development without tests
+3. **Testing Trophy Model**: 40% Unit + 40% Integration + 20% E2E
+4. **Coverage Requirements**: Overall ≥70%, core modules ≥90%
+5. **Mutation Testing**: Kill rate ≥80% (core modules), executed on a daily schedule
+6. **False-Positive Test Prohibition**: Empty assertions, testing only Getters/Setters, excessive mocking, mocks without verification, coupling to implementation details
+7. **Data Isolation**: Each test uses independent data; Testcontainers preferred
+8. **Critical E2E**: Concurrent appointment preemption test is the system's most critical E2E use case; modifications require architect review
+9. **No Defect Recurrence**: Every defect fix must include at least 1 new test case
+10. **CI Gate**: Unit/integration tests 100% passing, coverage targets met, mutation testing does not block regular PRs
 
-## 完整文档
+## Full Documentation
 
-完整规范请参阅：[测试代码规范文档](.qoder/context/code_standards/testing-coding-standard.md)
+For the complete specification, see: [Test Coding Standard Document](.qoder/context/code_standards/testing-coding-standard.md)

@@ -3,133 +3,137 @@ type: model_decision
 description: When orchestrating agents
 ---
 
-# Skill调用标准化规范
+# Skill Invocation Standardization Specification
 
-## 概述
+## Overview
 
-本文档定义了在Trae IDE中执行任务时的Skill调用标准流程，确保每次任务都能正确、完整地调用相关Skill，提高任务执行质量和一致性。
+This document defines the standardized Skill invocation process for executing tasks in Trae IDE, ensuring that each task correctly and completely invokes relevant Skills, improving task execution quality and consistency.
 
-**制定时间**: 2026-04-09  
-**最后更新**: 2026-05-21  
-**适用范围**: 所有在Trae IDE中执行的任务  
-**版本**: v2.1.5（废弃nextjs-router-guardrails → fullstack-ci-cd-guardrails；prisma-seed-cicd重命名为cicd-database-seeding；注册新Skill cicd-database-seeding）
-
----
-
-## 一、Skill调用的核心原则
-
-### 1.1 强制性原则（不可违反）
-- **Skill前置优先**：任何任务开始前必须先规划和调用相关Skill
-- **不跳过、不遗漏**：确保所有适用的Skill都被调用
-- **先规划、后执行**：先列出计划调用的Skill清单，获得确认后再执行
-- **注册新Skill**：添加新Skill时必须更新本文档
-
-### 1.2 质量保障原则
-- **按优先级顺序调用**：先调用基础Skill，再调用专业Skill
-- **每个Skill都有明确目的**：调用Skill时清楚知道它能提供什么帮助
-- **有疑问时多调用**：不确定是否需要某个Skill时，优先调用而非跳过
-
-### 1.3 扩展性原则
-- **分类注册**：所有Skill必须按类别注册到本文档
-- **元数据完整**：每个Skill必须提供完整的元数据（见下文）
-- **向后兼容**：添加新Skill时不影响现有Skill的使用
-- **易于扩展**：提供清晰的添加指南和模板
+**Created**: 2026-04-09  
+**Last Updated**: 2026-05-21  
+**Applicable Scope**: All tasks executed in Trae IDE  
+**Version**: v2.1.5 (Deprecated nextjs-router-guardrails → fullstack-ci-cd-guardrails; prisma-seed-cicd renamed to cicd-database-seeding; registered new Skill cicd-database-seeding)
 
 ---
 
-## 二、Skill分类体系
+> **Governance Foundation**: This skill invocation standard operates within the three-layer eight-role (三层八角色) multi-agent governance architecture. All skill permissions and invocation constraints are derived from role-based access control defined by this architecture.
 
-### 2.1 Skill分类定义
+---
 
-Skill按功能分为以下类别，添加新Skill时必须归类：
+## 1. Core Principles of Skill Invocation
 
-| 类别 | 类别描述 | 优先级范围 | 示例Skill |
+### 1.1 Mandatory Principles (Non-Negotiable)
+- **Skill-First Priority**: Before starting any task, you must first plan and invoke relevant Skills
+- **No Skipping, No Omission**: Ensure all applicable Skills are invoked
+- **Plan First, Execute Second**: First list the planned Skill call list, obtain confirmation, then execute
+- **Register New Skills**: When adding new Skills, this document must be updated
+
+### 1.2 Quality Assurance Principles
+- **Invoke in Priority Order**: Invoke foundational Skills first, then specialized Skills
+- **Each Skill Has a Clear Purpose**: Know clearly what each Skill provides when invoking it
+- **When in Doubt, Invoke More**: When uncertain whether a Skill is needed, prefer invoking over skipping
+
+### 1.3 Extensibility Principles
+- **Categorized Registration**: All Skills must be registered by category in this document
+- **Complete Metadata**: Each Skill must provide complete metadata (see below)
+- **Backward Compatible**: Adding new Skills must not affect existing Skill usage
+- **Easy to Extend**: Provide clear addition guidelines and templates
+
+---
+
+## 2. Skill Classification System
+
+### 2.1 Skill Category Definitions
+
+Skills are classified by function into the following categories; new Skills must be categorized when added:
+
+| Category | Category Description | Priority Range | Example Skills |
 |------|---------|-----------|----------|
-| **P0 - 基础检查类** | 所有任务的前置检查，必须调用 | P0 | execution-preflight-check |
-| **P1 - 领域专业类** | 特定技术领域的专业指导 | P1 | devops-ci-cd-guardrails, cross-directory-ci, context7-first |
-| **P1 - 分析设计类** | 需求分析、方案设计、根因分析 | P1 | brainstorming |
-| **P2 - 技术栈类** | 特定技术栈的专项支持 | P2 | ~~salesforce-dx-expert（❌废弃）~~, ~~playwright-mcp-expert（❌废弃）~~, ~~devops-architect（❌废弃）~~, learning-mode-executor |
-| **P2 - 工具创建类** | 创建新工具、新Skill的支持 | P2 | skill-creator |
+| **P0 - Foundation Check** | Pre-checks for all tasks, must invoke | P0 | execution-preflight-check |
+| **P1 - Domain Professional** | Professional guidance for specific technical domains | P1 | devops-ci-cd-guardrails, cross-directory-ci, context7-first |
+| **P1 - Analysis & Design** | Requirement analysis, solution design, root cause analysis | P1 | brainstorming |
+| **P2 - Tech Stack** | Specialized support for specific tech stacks | P2 | ~~salesforce-dx-expert (❌deprecated)~~, ~~playwright-mcp-expert (❌deprecated)~~, ~~devops-architect (❌deprecated)~~, learning-mode-executor |
+| **P2 - Tool Creation** | Support for creating new tools and Skills | P2 | skill-creator |
 
-### 2.2 Skill元数据规范
+### 2.2 Skill Metadata Specification
 
-每个Skill必须提供以下元数据，注册到本文档：
+Each Skill must provide the following metadata, registered in this document:
 
 ```yaml
-skill_name: skill-id  # Skill的唯一标识符，对应文件名为 {skill-id}.md 或 {skill-id}/SKILL.md
-display_name: 显示名称  # 用户友好的显示名称
-category: 类别  # 从2.1中选择：P0-基础检查类 / P1-领域专业类 / P1-分析设计类 / P2-技术栈类 / P2-工具创建类
-description: 简短描述  # 1-2句话描述Skill的用途
-trigger_keywords:  # 触发关键词列表
-  - 关键词1
-  - 关键词2
-use_cases:  # 适用场景列表
-  - 场景1
-  - 场景2
-priority: P0/P1/P2  # 调用优先级
-core_features:  # 核心功能列表
-  - 功能1
-  - 功能2
-always_first: false  # 是否总是第一个调用（仅execution-preflight-check为true）
-status: active/deprecated  # Skill状态
-added_date: YYYY-MM-DD  # 添加日期
-added_by: 添加者  # 添加者标识
+skill_name: skill-id  # Skill's unique identifier, corresponding filename is {skill-id}.md or {skill-id}/SKILL.md
+display_name: Display Name  # User-friendly display name
+category: Category  # Choose from 2.1: P0-Foundation Check / P1-Domain Professional / P1-Analysis & Design / P2-Tech Stack / P2-Tool Creation
+description: Brief description  # 1-2 sentences describing the Skill's purpose
+trigger_keywords:  # Trigger keyword list
+  - keyword1
+  - keyword2
+use_cases:  # Applicable scenario list
+  - scenario1
+  - scenario2
+priority: P0/P1/P2  # Invocation priority
+core_features:  # Core feature list
+  - feature1
+  - feature2
+always_first: false  # Whether always invoked first (only execution-preflight-check is true)
+status: active/deprecated  # Skill status
+added_date: YYYY-MM-DD  # Date added
+added_by: identifier  # Added by
 ```
 
 ---
 
-## 三、已注册Skill清单
+## 3. Registered Skill Inventory
 
-### 3.1 Skill注册表格
+### 3.1 Skill Registration Table
 
-| 显示名称 | Skill ID | 类别 | 触发关键词 | 优先级 | 状态 | 添加日期 |
+| Display Name | Skill ID | Category | Trigger Keywords | Priority | Status | Date Added |
 |---------|----------|------|-----------|--------|------|---------|
-| 执行前置检查 | execution-preflight-check | P0-基础检查类 | 所有任务, 前置检查, 规则合规 | P0 | ✅ 活跃 | 2026-04-09 |
-| DevOps CI/CD保护 | devops-ci-cd-guardrails | P1-领域专业类 | CI, CD, workflow, GitHub Actions, Docker, compose, deploy, E2E, 镜像, 部署 | P1 | ✅ 活跃 | 2026-04-09 |
-| 跨目录CI指导 | cross-directory-ci | P1-领域专业类 | working-directory, path, CWD, subdirectory, monorepo, checkout多个仓库, 路径解析 | P1 | ✅ 活跃 | 2026-04-09 |
-| 全局CI/CD实践强制执行 | global-cicd-practices-enforcement | P1-领域专业类 | CI/CD, pipeline, best practices, enforcement, DORA, quality gate, secret management | P1 | ✅ 活跃 | 2026-04-09 |
-| Prisma Seed CI/CD执行 | prisma-seed-cicd | P1-领域专业类 | Prisma, seed, ts-node, Cannot find module, database seeding, CI/CD | P1 | ❌ 废弃 | 2026-04-09 |
-| CI/CD数据库播种 | cicd-database-seeding | P1-领域专业类 | database, seeding, Prisma, SQL, seed, CI/CD, db seed, 数据库播种 | P1 | ✅ 活跃 | 2026-05-21 |
-| Next.js路由守卫 | nextjs-router-guardrails | P1-领域专业类 | ~~Next.js, router, middleware, authentication, guard, withAuth, withAdmin, routing~~ | P1 | ❌ 废弃 | 2026-04-09 |
-| 全栈CI/CD规范 | fullstack-ci-cd-guardrails | P1-领域专业类 | Docker, GitHub Actions, 镜像构建, 部署验证, 全栈项目 | P1 | ✅ 活跃 | 2026-04-10 |
-| 电子表格处理器 | spreadsheet-processor | P1-领域专业类 | wps, 表格, excel, wps表格, 电子表格, spreadsheet | P1 | ✅ 活跃 | 2026-04-10 |
-| 新资产集成器 | new-asset-integrator | P1-领域专业类 | 新的MCP工具, 新的skill追加, 新MCP工具, 新skill追加 | P1 | ✅ 活跃 | 2026-04-10 |
-| 头脑风暴分析 | brainstorming | P1-分析设计类 | 分析, 调查, 为什么, 如何, 方案, 设计, 根因, 模糊需求 | P1 | ✅ 活跃 | 2026-04-09 |
-| 多智能体编排 | multi-agent-orchestration | P1-分析设计类 | 多智能体模式, multi-agent, 全生命周期开发 | P1 | ✅ 活跃 | 2026-04-15 |
-| Context7优先 | context7-first | P1-领域专业类 | 开发, 代码, 实现, 技术栈, library, framework, 调试 | P1 | ✅ 活跃 | 2026-04-09 |
-| DevOps架构师 | devops-architect | P2-技术栈类 | pipeline, GitOps, Kubernetes, cloud, architecture, 容器化, 云基础设施 | P2 | ❌ 废弃 | 2026-04-09 |
-| Salesforce DX专家 | salesforce-dx-expert | P2-技术栈类 | Salesforce, Apex, LWC, Flow, SOQL | P2 | ❌ 废弃 | 2026-04-09 |
-| Playwright MCP专家 | playwright-mcp-expert | P2-技术栈类 | Playwright, browser, automation, UI test | P2 | ❌ 废弃 | 2026-04-09 |
-| Skill创建器 | skill-creator | P2-工具创建类 | 创建skill, 新skill | P2 | ✅ 活跃 | 2026-04-09 |
-| 学习模式执行器 | learning-mode-executor | P2-技术栈类 | /learn, 学习模式 | P2 | ✅ 活跃 | 2026-04-23 |
-| 自动提交助手 | auto-commit | P1-领域专业类 | Write, Edit, 文件修改，提交，commit, git commit, TDD提交，状态转换 | P1 | ✅ 活跃 | 2026-04-21 |
+| Execution Preflight Check | execution-preflight-check | P0-Foundation Check | all tasks, preflight check, rule compliance | P0 | ✅ Active | 2026-04-09 |
+| DevOps CI/CD Protection | devops-ci-cd-guardrails | P1-Domain Professional | CI, CD, workflow, GitHub Actions, Docker, compose, deploy, E2E, image, deployment | P1 | ✅ Active | 2026-04-09 |
+| Cross-Directory CI Guidance | cross-directory-ci | P1-Domain Professional | working-directory, path, CWD, subdirectory, monorepo, checkout multiple repos, path resolution | P1 | ✅ Active | 2026-04-09 |
+| Global CI/CD Practices Enforcement | global-cicd-practices-enforcement | P1-Domain Professional | CI/CD, pipeline, best practices, enforcement, DORA, quality gate, secret management | P1 | ✅ Active | 2026-04-09 |
+| Prisma Seed CI/CD Execution | prisma-seed-cicd | P1-Domain Professional | Prisma, seed, ts-node, Cannot find module, database seeding, CI/CD | P1 | ❌ Deprecated | 2026-04-09 |
+| CI/CD Database Seeding | cicd-database-seeding | P1-Domain Professional | database, seeding, Prisma, SQL, seed, CI/CD, db seed, database seeding | P1 | ✅ Active | 2026-05-21 |
+| Next.js Router Guards | nextjs-router-guardrails | P1-Domain Professional | ~~Next.js, router, middleware, authentication, guard, withAuth, withAdmin, routing~~ | P1 | ❌ Deprecated | 2026-04-09 |
+| Fullstack CI/CD Standard | fullstack-ci-cd-guardrails | P1-Domain Professional | Docker, GitHub Actions, image build, deployment verification, fullstack project | P1 | ✅ Active | 2026-04-10 |
+| Spreadsheet Processor | spreadsheet-processor | P1-Domain Professional | wps, table, excel, wps table, spreadsheet, spreadsheet | P1 | ✅ Active | 2026-04-10 |
+| New Asset Integrator | new-asset-integrator | P1-Domain Professional | new MCP tool, new skill addition, new MCP tool, new skill addition | P1 | ✅ Active | 2026-04-10 |
+| Brainstorming Analysis | brainstorming | P1-Analysis & Design | analysis, investigation, why, how, solution, design, root cause, ambiguous requirements | P1 | ✅ Active | 2026-04-09 |
+| Multi-Agent Orchestration | multi-agent-orchestration | P1-Analysis & Design | multi-agent pattern, multi-agent, full lifecycle development | P1 | ✅ Active | 2026-04-15 |
+| Context7 First | context7-first | P1-Domain Professional | development, code, implementation, tech stack, library, framework, debugging | P1 | ✅ Active | 2026-04-09 |
+| DevOps Architect | devops-architect | P2-Tech Stack | pipeline, GitOps, Kubernetes, cloud, architecture, containerization, cloud infrastructure | P2 | ❌ Deprecated | 2026-04-09 |
+| Salesforce DX Expert | salesforce-dx-expert | P2-Tech Stack | Salesforce, Apex, LWC, Flow, SOQL | P2 | ❌ Deprecated | 2026-04-09 |
+| Playwright MCP Expert | playwright-mcp-expert | P2-Tech Stack | Playwright, browser, automation, UI test | P2 | ❌ Deprecated | 2026-04-09 |
+| Skill Creator | skill-creator | P2-Tool Creation | create skill, new skill | P2 | ✅ Active | 2026-04-09 |
+| Learning Mode Executor | learning-mode-executor | P2-Tech Stack | /learn, learning mode | P2 | ✅ Active | 2026-04-23 |
+| Auto-Commit Assistant | auto-commit | P1-Domain Professional | Write, Edit, file modification, commit, commit, git commit, TDD commit, state transition | P1 | ✅ Active | 2026-04-21 |
 
 ---
 
-## 四、各Skill详细元数据
+## 4. Detailed Metadata for Each Skill
 
 ### 4.1 execution-preflight-check
 
 ```yaml
 skill_name: execution-preflight-check
-display_name: 执行前置检查
-category: P0-基础检查类
-description: 所有任务的强制性前置检查，验证规则合规、MCP准备状态和Skill调用要求
+display_name: Execution Preflight Check
+category: P0-Foundation Check
+description: Mandatory preflight check for all tasks; validates rule compliance, MCP readiness, and Skill invocation requirements
 trigger_keywords:
-  - 所有任务
-  - 前置检查
-  - 规则合规
-  - MCP准备
+  - all tasks
+  - preflight check
+  - rule compliance
+  - MCP readiness
 use_cases:
-  - 任何任务开始前的前置检查
-  - 规则合规验证
-  - MCP调用计划制定
+  - Preflight check before any task starts
+  - Rule compliance verification
+  - MCP call plan formulation
 priority: P0
 core_features:
-  - 规则合规性验证
-  - MCP调用策略规划
-  - 相关Skill识别
-  - TodoWrite跟踪初始化
+  - Rule compliance verification
+  - MCP call strategy planning
+  - Related Skill identification
+  - TodoWrite tracking initialization
 always_first: true
 status: active
 added_date: 2026-04-09
@@ -142,9 +146,9 @@ added_by: system
 
 ```yaml
 skill_name: devops-ci-cd-guardrails
-display_name: DevOps CI/CD保护
-category: P1-领域专业类
-description: DevOps/CI/CD任务的专用Guardrails，确保部署可靠性、可追溯性与合同一致性
+display_name: DevOps CI/CD Protection
+category: P1-Domain Professional
+description: Dedicated guardrails for DevOps/CI/CD tasks, ensuring deployment reliability, traceability, and contract consistency
 trigger_keywords:
   - CI
   - CD
@@ -154,23 +158,23 @@ trigger_keywords:
   - compose
   - deploy
   - E2E
-  - 镜像
-  - 部署
-  - 迁移
-  - 回滚
-  - 发布
+  - image
+  - deployment
+  - migration
+  - rollback
+  - release
 use_cases:
-  - CI/CD流水线配置和优化
-  - 容器镜像构建和管理
-  - 部署流程设计和执行
-  - 跨仓库依赖管理
-  - 环境变量管理和安全
+  - CI/CD pipeline configuration and optimization
+  - Container image build and management
+  - Deployment process design and execution
+  - Cross-repository dependency management
+  - Environment variable management and security
 priority: P1
 core_features:
-  - 验证部署契约
-  - 确保migration使用正确的镜像
-  - 检查跨仓库E2E的版本感知
-  - 审查deploy作为生产代码
+  - Verify deployment contracts
+  - Ensure migrations use correct images
+  - Check cross-repo E2E version awareness
+  - Review deploy as production code
 always_first: false
 status: active
 added_date: 2026-04-09
@@ -183,31 +187,31 @@ added_by: system
 
 ```yaml
 skill_name: cross-directory-ci
-display_name: 跨目录CI指导
-category: P1-领域专业类
-description: 跨目录CI脚本执行指导，避免和调试由错误CWD引起的CI/CD失败
+display_name: Cross-Directory CI Guidance
+category: P1-Domain Professional
+description: Cross-directory CI script execution guidance; avoids and debugs CI/CD failures caused by incorrect CWD
 trigger_keywords:
   - working-directory
   - path
   - CWD
   - subdirectory
   - monorepo
-  - checkout多个仓库
-  - 路径解析
+  - checkout multiple repos
+  - path resolution
   - Cannot find module
   - No such file or directory
 use_cases:
-  - 多仓库CI/CD配置
-  - Monorepo项目CI
-  - 路径相关错误调试
-  - CI步骤CWD配置
+  - Multi-repository CI/CD configuration
+  - Monorepo project CI
+  - Path-related error debugging
+  - CI step CWD configuration
 priority: P1
 core_features:
-  - 显式工作目录检查
-  - Shell上下文隔离
-  - 工具自身工作目录逻辑
-  - 环境文件加载
-  - 二进制/可执行文件解析
+  - Explicit working directory check
+  - Shell context isolation
+  - Tool's own working directory logic
+  - Environment file loading
+  - Binary/executable resolution
 always_first: false
 status: active
 added_date: 2026-04-09
@@ -220,9 +224,9 @@ added_by: system
 
 ```yaml
 skill_name: global-cicd-practices-enforcement
-display_name: 全局CI/CD实践强制执行
-category: P1-领域专业类
-description: 强制执行CI/CD流水线设计中的全局性最佳实践，定义严格的、不可协商的规则
+display_name: Global CI/CD Practices Enforcement
+category: P1-Domain Professional
+description: Enforces global best practices in CI/CD pipeline design, defining strict, non-negotiable rules
 
 trigger_keywords:
   - CI/CD
@@ -237,21 +241,21 @@ trigger_keywords:
   - toolchain consolidation
 
 use_cases:
-  - CI/CD流水线设计和审核
-  - CI/CD配置生成和验证
-  - 流水线质量评估和优化
-  - 安全合规检查
+  - CI/CD pipeline design and review
+  - CI/CD configuration generation and validation
+  - Pipeline quality assessment and optimization
+  - Security compliance checks
 
 priority: P1
 
 core_features:
-  - 明确CI/CD边界定义
-  - 强制预合并质量门
-  - 工具链整合要求
-  - 环境漂移预防
-  - 密钥管理零容忍
-  - 可观测性指标导出
-  - 流水线膨胀预防
+  - Clear CI/CD boundary definitions
+  - Mandatory pre-merge quality gates
+  - Toolchain consolidation requirements
+  - Environment drift prevention
+  - Secret management zero-tolerance
+  - Observability metric export
+  - Pipeline bloat prevention
 
 always_first: false
 status: active
@@ -265,9 +269,9 @@ added_by: system
 
 ```yaml
 skill_name: prisma-seed-cicd
-display_name: Prisma Seed CI/CD执行
-category: P1-领域专业类
-description: 在CI/CD环境中正确执行Prisma种子脚本，防止'Cannot find module'错误
+display_name: Prisma Seed CI/CD Execution
+category: P1-Domain Professional
+description: Correctly execute Prisma seed scripts in CI/CD environments, preventing 'Cannot find module' errors
 
 trigger_keywords:
   - Prisma
@@ -280,24 +284,24 @@ trigger_keywords:
   - prisma:seed
 
 use_cases:
-  - CI/CD管道中的数据库初始化
-  - 前后端分离项目的种子脚本执行
-  - TypeScript种子文件的执行
-  - 解决ts-node路径解析问题
+  - Database initialization in CI/CD pipelines
+  - Seed script execution for frontend-backend separated projects
+  - TypeScript seed file execution
+  - Resolving ts-node path resolution issues
 
 priority: P1
 
 core_features:
-  - 使用Prisma内置seed命令
-  - 显式指定tsconfig.json路径
-  - 避免错误的工作目录配置
-  - 调试检查清单
-  - 最佳实践执行
+  - Use Prisma built-in seed command
+  - Explicitly specify tsconfig.json path
+  - Avoid incorrect working directory configuration
+  - Debugging checklist
+  - Best practice execution
 
 always_first: false
 status: deprecated
 deprecated_date: 2026-05-21
-deprecated_reason: 重命名为cicd-database-seeding以提升通用性；原Skill已扩展为通用CI/CD数据库播种框架，Prisma仅为第二节特化内容（@Architect UNIV-P4-H）
+deprecated_reason: Renamed to cicd-database-seeding for improved generality; original Skill expanded into a generic CI/CD database seeding framework, Prisma is only Section 2 specialized content (@Architect UNIV-P4-H)
 replaced_by: cicd-database-seeding
 added_date: 2026-04-09
 added_by: system
@@ -309,9 +313,9 @@ added_by: system
 
 ```yaml
 skill_name: cicd-database-seeding
-display_name: CI/CD数据库播种
-category: P1-领域专业类
-description: 通用CI/CD数据库播种框架，支持多种ORM和数据库连接的种子脚本执行与问题排查
+display_name: CI/CD Database Seeding
+category: P1-Domain Professional
+description: Generic CI/CD database seeding framework supporting multiple ORMs and database connection seed script execution and troubleshooting
 trigger_keywords:
   - database
   - seeding
@@ -320,20 +324,20 @@ trigger_keywords:
   - seed
   - CI/CD
   - db seed
-  - 数据库播种
+  - database seeding
   - migration seed
 use_cases:
-  - CI/CD管道中的数据库初始化和播种
-  - 多种ORM（Prisma、TypeORM、Sequelize）的种子脚本执行
-  - 数据库连接和路径解析问题排查
-  - 前后端分离项目的种子脚本执行
+  - Database initialization and seeding in CI/CD pipelines
+  - Seed script execution for multiple ORMs (Prisma, TypeORM, Sequelize)
+  - Database connection and path resolution troubleshooting
+  - Seed script execution for frontend-backend separated projects
 priority: P1
 core_features:
-  - 通用CI/CD播种架构（第二节）
-  - Prisma特化播种执行（第一节）
-  - 多ORM支持框架
-  - 数据库连接验证
-  - 调试检查清单
+  - Generic CI/CD seeding architecture (Section 2)
+  - Prisma specialized seeding execution (Section 1)
+  - Multi-ORM support framework
+  - Database connection verification
+  - Debugging checklist
 always_first: false
 status: active
 added_date: 2026-05-21
@@ -346,9 +350,9 @@ added_by: system
 
 ```yaml
 skill_name: nextjs-router-guardrails
-display_name: Next.js路由守卫
-category: P1-领域专业类
-description: 强制执行Next.js路由守卫和身份验证最佳实践，确保安全的路由保护（⚠️ 已废弃，通用路由安全原则已提取到fullstack-ci-cd-guardrails）
+display_name: Next.js Router Guards
+category: P1-Domain Professional
+description: Enforces Next.js router guards and authentication best practices, ensuring secure route protection (⚠️ Deprecated; generic route security principles extracted to fullstack-ci-cd-guardrails)
 trigger_keywords:
   - Next.js
   - nextjs
@@ -361,33 +365,33 @@ trigger_keywords:
   - withAuth
   - withAdmin
   - routing
-  - 评估
-  - 分析
-  - 调查
-  - 设计
-  - 疏通
-  - 问题调查
+  - evaluation
+  - analysis
+  - investigation
+  - design
+  - troubleshooting
+  - issue investigation
 use_cases:
-  - Next.js路由保护实现
-  - 身份验证守卫配置
-  - 中间件安全头部设置
-  - 路由权限管理
-  - Next.js代码评估
-  - Next.js项目分析
-  - Next.js路由问题调查
-  - Next.js路由设计
-  - Next.js路由疏通
+  - Next.js route protection implementation
+  - Authentication guard configuration
+  - Middleware security header setup
+  - Route permission management
+  - Next.js code evaluation
+  - Next.js project analysis
+  - Next.js routing issue investigation
+  - Next.js routing design
+  - Next.js routing troubleshooting
 priority: P1
 core_features:
-  - 三层防护策略（边缘层、页面层、API层）
-  - Middleware实施标准
-  - 高阶组件（HOC）标准
-  - 安全头部配置
-  - 特殊场景处理（CSRF、角色变更、账户禁用）
+  - Three-layer protection strategy (Edge layer, Page layer, API layer)
+  - Middleware implementation standards
+  - Higher-Order Component (HOC) standards
+  - Security header configuration
+  - Special scenario handling (CSRF, role changes, account disabling)
 always_first: false
 status: deprecated
 deprecated_date: 2026-05-21
-deprecated_reason: Next.js特定路由守卫已废弃；通用路由安全原则已提取到fullstack-ci-cd-guardrails，Next.js框架特定代码保留为参考附录（@Architect UNIV-P4-I）
+deprecated_reason: Next.js-specific router guards deprecated; generic route security principles extracted to fullstack-ci-cd-guardrails, Next.js framework-specific code retained as reference appendix (@Architect UNIV-P4-I)
 replaced_by: fullstack-ci-cd-guardrails
 added_date: 2026-04-09
 added_by: system
@@ -399,9 +403,9 @@ added_by: system
 
 ```yaml
 skill_name: fullstack-ci-cd-guardrails
-display_name: 全栈CI/CD规范
-category: P1-领域专业类
-description: 强制执行全栈项目CI/CD规范与问题防御指南，针对Docker和GitHub Actions工作流
+display_name: Fullstack CI/CD Standard
+category: P1-Domain Professional
+description: Enforces fullstack project CI/CD standards and issue defense guidelines, targeting Docker and GitHub Actions workflows
 trigger_keywords:
   - Docker
   - docker
@@ -409,13 +413,13 @@ trigger_keywords:
   - github actions
   - workflow
   - workflows
-  - 镜像构建
   - image build
-  - 部署验证
+  - image build
+  - deployment verification
   - deployment verify
-  - 全栈项目
+  - fullstack project
   - fullstack
-  - 全栈
+  - fullstack
   - next.js
   - Next.js
   - nestjs
@@ -423,22 +427,22 @@ trigger_keywords:
   - prisma
   - Prisma
 use_cases:
-  - 全栈项目CI/CD流水线设计
-  - Docker镜像构建和推送
-  - GitHub Actions工作流配置
-  - 部署验证工作流实现
-  - Next.js + NestJS + Docker项目
+  - Fullstack project CI/CD pipeline design
+  - Docker image build and push
+  - GitHub Actions workflow configuration
+  - Deployment verification workflow implementation
+  - Next.js + NestJS + Docker projects
 priority: P1
 core_features:
-  - 变量统一管理规范
-  - 标签不可变优先策略
-  - 环境隔离最佳实践
-  - 测试真实性要求
-  - 工作流健壮性保障
-  - 镜像构建工作流规范
-  - 部署验证工作流规范
-  - 前端特定规范（Next.js）
-  - 后端特定规范（NestJS + Prisma）
+  - Unified variable management standards
+  - Tag immutability-first strategy
+  - Environment isolation best practices
+  - Test authenticity requirements
+  - Workflow robustness assurance
+  - Image build workflow standards
+  - Deployment verification workflow standards
+  - Frontend-specific standards (Next.js)
+  - Backend-specific standards (NestJS + Prisma)
 always_first: false
 status: active
 added_date: 2026-04-10
@@ -451,15 +455,15 @@ added_by: system
 
 ```yaml
 skill_name: spreadsheet-processor
-display_name: 电子表格处理器
-category: P1-领域专业类
-description: 解析和处理各种电子表格文件格式，包括Excel、WPS、CSV、OpenDocument等
+display_name: Spreadsheet Processor
+category: P1-Domain Professional
+description: Parse and process various spreadsheet file formats including Excel, WPS, CSV, OpenDocument, etc.
 trigger_keywords:
   - wps
-  - 表格
+  - table
   - excel
-  - wps表格
-  - 电子表格
+  - wps table
+  - spreadsheet
   - spreadsheet
   - xls
   - xlsx
@@ -475,18 +479,18 @@ trigger_keywords:
   - tsv
   - numbers
 use_cases:
-  - 电子表格文件读取和解析
-  - Excel/WPS文件处理
-  - CSV数据导入导出
-  - 表格数据转换
-  - 电子表格格式转换
+  - Spreadsheet file reading and parsing
+  - Excel/WPS file processing
+  - CSV data import/export
+  - Table data transformation
+  - Spreadsheet format conversion
 priority: P1
 core_features:
-  - 文件格式识别
-  - 数据读取与解析
-  - 数据操作（筛选、排序、转换、聚合）
-  - 文件写入与导出
-  - Excel MCP工具集成
+  - File format identification
+  - Data reading and parsing
+  - Data operations (filter, sort, transform, aggregate)
+  - File writing and export
+  - Excel MCP tool integration
 always_first: false
 status: active
 added_date: 2026-04-10
@@ -499,30 +503,30 @@ added_by: system
 
 ```yaml
 skill_name: new-asset-integrator
-display_name: 新资产集成器
-category: P1-领域专业类
-description: 标准化地处理新MCP工具和新Skill的追加流程，确保所有操作符合项目规范和技术标准
+display_name: New Asset Integrator
+category: P1-Domain Professional
+description: Standardized processing of new MCP tool and Skill addition workflows, ensuring all operations comply with project standards and technical specifications
 trigger_keywords:
-  - 新的MCP工具
-  - 新的skill追加
-  - 新MCP工具
-  - 新skill追加
-  - 添加MCP工具
-  - 添加新skill
+  - new MCP tool
+  - new skill addition
+  - new MCP tool
+  - new skill addition
+  - add MCP tool
+  - add new skill
   - new MCP tool
   - new skill
 use_cases:
-  - 新MCP工具集成
-  - 新Skill追加
-  - 资产集成流程管理
-  - 文档更新管理
+  - New MCP tool integration
+  - New Skill addition
+  - Asset integration process management
+  - Documentation update management
 priority: P1
 core_features:
-  - 功能分析阶段管理
-  - MCP工具更新流程
-  - Skill更新流程
-  - 验证要求管理
-  - 文档完整性检查
+  - Functional analysis phase management
+  - MCP tool update process
+  - Skill update process
+  - Verification requirements management
+  - Documentation completeness check
 always_first: false
 status: active
 added_date: 2026-04-10
@@ -535,36 +539,36 @@ added_by: system
 
 ```yaml
 skill_name: brainstorming
-display_name: 头脑风暴分析
-category: P1-分析设计类
-description: 将模糊想法转化为清晰的、可实施的设计
+display_name: Brainstorming Analysis
+category: P1-Analysis & Design
+description: Transform ambiguous ideas into clear, actionable designs
 trigger_keywords:
-  - 分析
-  - 调查
-  - 为什么
-  - 如何
-  - 方案
-  - 设计
-  - 根因
-  - 模糊需求
-  - 架构讨论
+  - analysis
+  - investigation
+  - why
+  - how
+  - solution
+  - design
+  - root cause
+  - ambiguous requirements
+  - architecture discussion
 use_cases:
-  - 需求分析和澄清
-  - 方案设计和评估
-  - 问题根因分析
-  - 架构讨论和决策
+  - Requirement analysis and clarification
+  - Solution design and evaluation
+  - Problem root cause analysis
+  - Architecture discussion and decision-making
 priority: P1
 core_features:
-  - 理解输入模式
-  - 收集上下文
-  - 提出澄清问题
-  - 提议方法
-  - 推荐方法
-  - 创建设计文档
-  - 提问内容要点理解与归纳
-  - 归纳要点结构化输出
-  - 确认反馈处理机制
-  - 任务流转控制
+  - Input pattern understanding
+  - Context gathering
+  - Asking clarification questions
+  - Proposing approaches
+  - Recommending methods
+  - Creating design documents
+  - Question content comprehension and summarization
+  - Structured output summarization
+  - Confirmation feedback processing mechanism
+  - Task flow control
 always_first: false
 status: active
 added_date: 2026-04-09
@@ -577,29 +581,29 @@ added_by: system
 
 ```yaml
 skill_name: multi-agent-orchestration
-display_name: 多智能体编排
-category: P1-分析设计类
-description: 触发并编排三层八角色多智能体系统，用于复杂全生命周期开发任务。自动验证AGENTS.md对齐、检查8个Agent配置、启动标准多智能体工作流。
+display_name: Multi-Agent Orchestration
+category: P1-Analysis & Design
+description: Triggers and orchestrates the three-layer eight-role multi-agent system for complex full-lifecycle development tasks. Auto-verifies AGENTS.md alignment, checks 8 Agent configurations, and starts the standard multi-agent workflow.
 trigger_keywords:
-  - 多智能体模式
+  - multi-agent pattern
   - multi-agent
-  - 全生命周期开发
-  - 多角色协作
-  - TDD流程
-  - 契约驱动开发
+  - full lifecycle development
+  - multi-role collaboration
+  - TDD flow
+  - contract-driven development
 use_cases:
-  - 用户触发"多智能体模式"
-  - 复杂全生命周期开发任务
-  - 需要多角色协作的大型功能
-  - 遵循TDD+契约驱动的标准开发流程
+  - User triggers "multi-agent pattern"
+  - Complex full-lifecycle development tasks
+  - Large features requiring multi-role collaboration
+  - Standard development flow following TDD + contract-driven development
 priority: P1
 core_features:
-  - AGENTS.md存在性与内容验证
-  - 9个Agent配置文件完整性检查
-  - AGENTS.md与实际Agent文件对齐验证
-  - 标准多智能体工作流启动
-  - TDD强制纪律执行
-  - 质量门禁与闭环反馈
+  - AGENTS.md existence and content verification
+  - 9 Agent configuration file completeness check
+  - AGENTS.md alignment with actual Agent files verification
+  - Standard multi-agent workflow launch
+  - TDD mandatory discipline enforcement
+  - Quality gates and closed-loop feedback
 always_first: false
 status: active
 added_date: 2026-04-15
@@ -612,28 +616,28 @@ added_by: system
 
 ```yaml
 skill_name: context7-first
-display_name: Context7优先
-category: P1-领域专业类
-description: 在任何调查、设计、编码、调试或架构任务之前，先调用Context7 MCP工具获取最新技术栈文档和上下文
+display_name: Context7 First
+category: P1-Domain Professional
+description: Before any investigation, design, coding, debugging, or architecture task, first invoke Context7 MCP tools to get the latest tech stack documentation and context
 trigger_keywords:
-  - 开发
-  - 代码
-  - 实现
-  - 技术栈
+  - development
+  - code
+  - implementation
+  - tech stack
   - library
   - framework
-  - 调试
-  - 依赖管理
+  - debugging
+  - dependency management
 use_cases:
-  - 代码开发任务
-  - 技术栈使用咨询
-  - 调试问题分析
-  - 依赖管理
+  - Code development tasks
+  - Tech stack usage consultation
+  - Debug issue analysis
+  - Dependency management
 priority: P1
 core_features:
-  - 获取最新技术栈文档
-  - 提供代码库上下文
-  - 分析技术栈使用情况
+  - Get latest tech stack documentation
+  - Provide codebase context
+  - Analyze tech stack usage
 always_first: false
 status: active
 added_date: 2026-04-09
@@ -646,32 +650,32 @@ added_by: system
 
 ```yaml
 skill_name: devops-architect
-display_name: DevOps架构师
-category: P2-技术栈类
-description: CI/CD管道设计、GitOps工作流、容器化应用、云原生基础设施架构设计
+display_name: DevOps Architect
+category: P2-Tech Stack
+description: CI/CD pipeline design, GitOps workflows, containerized applications, cloud-native infrastructure architecture design
 trigger_keywords:
   - pipeline
   - GitOps
   - Kubernetes
   - cloud
   - architecture
-  - 容器化
-  - 云基础设施
+  - containerization
+  - cloud infrastructure
 use_cases:
-  - CI/CD管道设计
-  - GitOps工作流实现
-  - Kubernetes部署架构
-  - 云原生基础设施设计
+  - CI/CD pipeline design
+  - GitOps workflow implementation
+  - Kubernetes deployment architecture
+  - Cloud-native infrastructure design
 priority: P2
 core_features:
-  - CI/CD管道架构设计
-  - GitOps工作流配置
-  - 容器化最佳实践
-  - 云基础设施架构
+  - CI/CD pipeline architecture design
+  - GitOps workflow configuration
+  - Containerization best practices
+  - Cloud infrastructure architecture
 always_first: false
 status: deprecated
 deprecated_date: 2026-05-18
-deprecated_reason: draft占位桩（19行样板代码），从未实际开发；功能已被active的devops-ci-cd-guardrails（P1）完全替代（@Arbiter UNIV-013审计 TD-2026-007-DEPR）
+deprecated_reason: Draft stub (19 lines of boilerplate), never actually developed; functionality fully replaced by active devops-ci-cd-guardrails (P1) (@Arbiter UNIV-013 audit TD-2026-007-DEPR)
 replaced_by: devops-ci-cd-guardrails
 added_date: 2026-04-09
 added_by: system
@@ -683,9 +687,9 @@ added_by: system
 
 ```yaml
 skill_name: salesforce-dx-expert
-display_name: Salesforce DX专家
-category: P2-技术栈类
-description: Salesforce DX项目的架构设计、Apex/LWC开发、CI/CD管道设置、部署故障排除
+display_name: Salesforce DX Expert
+category: P2-Tech Stack
+description: Salesforce DX project architecture design, Apex/LWC development, CI/CD pipeline setup, deployment troubleshooting
 trigger_keywords:
   - Salesforce
   - Apex
@@ -693,21 +697,21 @@ trigger_keywords:
   - Flow
   - SOQL
 use_cases:
-  - Salesforce项目开发
-  - Apex/LWC组件开发
-  - Salesforce部署
-  - Salesforce CI/CD配置
+  - Salesforce project development
+  - Apex/LWC component development
+  - Salesforce deployment
+  - Salesforce CI/CD configuration
 priority: P2
 core_features:
-  - Salesforce DX项目指导
-  - Apex/LWC开发最佳实践
-  - 部署故障排除
-  - CI/CD管道设置
+  - Salesforce DX project guidance
+  - Apex/LWC development best practices
+  - Deployment troubleshooting
+  - CI/CD pipeline setup
 always_first: false
 status: deprecated
 deprecated_date: 2026-05-18
-deprecated_reason: draft占位桩（19行样板代码），自2026-04-23创建以来从未实际开发；无agent引用，不在available_skills中（@Arbiter UNIV-013审计 TD-2026-005-DEPR）
-replaced_by: 无可直接替代的Skill；如需Salesforce功能请创建新专用Skill
+deprecated_reason: Draft stub (19 lines of boilerplate), never actually developed since creation on 2026-04-23; no agent references, not in available_skills (@Arbiter UNIV-013 audit TD-2026-005-DEPR)
+replaced_by: No direct replacement Skill available; create a new dedicated Skill if Salesforce functionality is needed
 added_date: 2026-04-09
 added_by: system
 ```
@@ -718,29 +722,29 @@ added_by: system
 
 ```yaml
 skill_name: playwright-mcp-expert
-display_name: Playwright MCP专家
-category: P2-技术栈类
-description: Playwright MCP Server配置、LLM浏览器自动化、连接问题排除、元素定位策略优化
+display_name: Playwright MCP Expert
+category: P2-Tech Stack
+description: Playwright MCP Server configuration, LLM browser automation, connection troubleshooting, element locator strategy optimization
 trigger_keywords:
   - Playwright
   - browser
   - automation
   - UI test
 use_cases:
-  - Playwright浏览器自动化
-  - UI测试配置
-  - 浏览器自动化调试
+  - Playwright browser automation
+  - UI test configuration
+  - Browser automation debugging
 priority: P2
 core_features:
-  - Playwright MCP Server配置
-  - LLM浏览器自动化指导
-  - 连接问题排除
-  - 元素定位策略优化
+  - Playwright MCP Server configuration
+  - LLM browser automation guidance
+  - Connection troubleshooting
+  - Element locator strategy optimization
 always_first: false
 status: deprecated
 deprecated_date: 2026-05-18
-deprecated_reason: draft占位桩（19行样板代码），从未实际开发；系统已内置原生Playwright MCP工具（playwright_browser_*系列），此Skill完全冗余（@Arbiter UNIV-013审计 TD-2026-006-DEPR）
-replaced_by: 原生Playwright MCP工具（playwright_browser_navigate等）
+deprecated_reason: Draft stub (19 lines of boilerplate), never actually developed; system has built-in native Playwright MCP tools (playwright_browser_* series), this Skill is completely redundant (@Arbiter UNIV-013 audit TD-2026-006-DEPR)
+replaced_by: Native Playwright MCP tools (playwright_browser_navigate, etc.)
 added_date: 2026-04-09
 added_by: system
 ```
@@ -751,21 +755,21 @@ added_by: system
 
 ```yaml
 skill_name: skill-creator
-display_name: Skill创建器
-category: P2-工具创建类
-description: 创建新Skill的强制性工具，用于添加新的Skill到系统
+display_name: Skill Creator
+category: P2-Tool Creation
+description: Mandatory tool for creating new Skills; used to add new Skills to the system
 trigger_keywords:
-  - 创建skill
-  - 新skill
-  - 添加skill
+  - create skill
+  - new skill
+  - add skill
 use_cases:
-  - 创建新的Skill
-  - 扩展Skill库
+  - Create new Skills
+  - Extend Skill library
 priority: P2
 core_features:
-  - Skill创建指导
-  - Skill模板生成
-  - Skill文档标准化
+  - Skill creation guidance
+  - Skill template generation
+  - Skill documentation standardization
 always_first: false
 status: active
 added_date: 2026-04-09
@@ -778,20 +782,20 @@ added_by: system
 
 ```yaml
 skill_name: learning-mode-executor
-display_name: 学习模式执行器
-category: P2-技术栈类
+display_name: Learning Mode Executor
+category: P2-Tech Stack
 description: Transforms single Q&A into structured learning cases with planning, logging, and knowledge base integration. Invoke when user enters /learn command.
 trigger_keywords:
   - /learn
-  - 学习模式
+  - learning mode
 use_cases:
-  - 将单次问答转变为结构化学习案例
-  - 系统性研究Agent Harness Engineering
+  - Transform single Q&A into structured learning cases
+  - Systematic research on Agent Harness Engineering
 priority: P2
 core_features:
-  - 规划与物化
-  - 执行与日志注入
-  - 归纳与闭环
+  - Planning and materialization
+  - Execution and log injection
+  - Summarization and closure
 always_first: false
 status: active
 added_date: 2026-04-23
@@ -803,30 +807,30 @@ added_by: system
 
 ```yaml
 skill_name: auto-commit
-display_name: 自动提交助手
-category: P1-领域专业类
-description: 在每次 Write/Edit 操作后，主动询问用户是否需要立即提交，并根据 machine.json 状态和 pre-commit hook 约束自动生成符合 TDD 规范的 commit message
+display_name: Auto-Commit Assistant
+category: P1-Domain Professional
+description: After each Write/Edit operation, proactively asks the user whether to immediately commit, and auto-generates TDD-compliant commit messages based on machine.json state and pre-commit hook constraints
 trigger_keywords:
   - Write
   - Edit
-  - 文件修改
-  - 提交
+  - file modification
+  - commit
   - commit
   - git commit
-  - TDD提交
-  - 状态转换
+  - TDD commit
+  - state transition
 use_cases:
-  - 文件修改后交互式提交
-  - TDD 状态感知的 commit message 生成
-  - 证据链前置校验（模拟 pre-commit hook）
-  - 非法提交拦截（Red 阶段非测试文件、证据文件缺失等）
+  - Interactive commit after file modification
+  - TDD state-aware commit message generation
+  - Evidence chain pre-validation (simulates pre-commit hook)
+  - Illegal commit interception (non-test files in Red phase, missing evidence files, etc.)
 priority: P1
 core_features:
-  - 文件修改检测与提示
-  - TDD 状态感知的 commit message 生成
-  - 证据链前置校验（machine.json + pre-commit hook 规则）
-  - 交互式提交确认
-  - 负向测试拦截（非法状态转换、证据文件缺失等）
+  - File modification detection and prompting
+  - TDD state-aware commit message generation
+  - Evidence chain pre-validation (machine.json + pre-commit hook rules)
+  - Interactive commit confirmation
+  - Negative test interception (illegal state transitions, missing evidence files, etc.)
 always_first: false
 status: active
 added_date: 2026-04-21
@@ -835,342 +839,342 @@ added_by: system
 
 ---
 
-## 五、标准化执行流程
+## 5. Standardized Execution Process
 
-### 5.1 任务前规划阶段（必须执行）
+### 5.1 Pre-Task Planning Phase (Mandatory)
 
 ```
-步骤1：理解用户请求
+Step 1: Understand user request
    ↓
-步骤2：查阅本文档的"已注册Skill清单"
+Step 2: Consult this document's "Registered Skill Inventory"
    ↓
-步骤3：识别任务类型和关键词，匹配触发关键词
+Step 3: Identify task type and keywords, match trigger keywords
    ↓
-步骤4：创建"计划调用的Skill清单"（使用5.2模板）
+Step 4: Create "Planned Skill Call List" (use 5.2 template)
    ↓
-步骤5：向用户展示清单并获得确认
+Step 5: Present list to user and obtain confirmation
    ↓
-步骤6：按优先级顺序调用Skill（P0 → P1 → P2）
+Step 6: Invoke Skills in priority order (P0 → P1 → P2)
 ```
 
-### 5.2 计划调用的Skill清单模板
+### 5.2 Planned Skill Call List Template
 
-当用户提出任务后，先输出以下内容：
+After the user submits a task, first output the following:
 
 ```markdown
-## 📋 计划调用的Skill清单
+## 📋 Planned Skill Call List
 
-根据任务分析和Skill注册清单，我计划调用以下Skill：
+Based on task analysis and the Skill registration inventory, I plan to invoke the following Skills:
 
-| 序号 | Skill名称 | Skill ID | 调用目的 |
+| # | Skill Name | Skill ID | Invocation Purpose |
 |------|----------|----------|---------|
-| 1 | Skill1 | skill-id-1 | 调用目的1 |
-| 2 | Skill2 | skill-id-2 | 调用目的2 |
+| 1 | Skill1 | skill-id-1 | Purpose 1 |
+| 2 | Skill2 | skill-id-2 | Purpose 2 |
 
-**确认后开始执行。**
+**Proceeding after confirmation.**
 ```
 
-### 5.3 快速检查清单
+### 5.3 Quick Check List
 
-在规划Skill时，快速对照以下检查项：
+When planning Skills, quickly cross-reference the following checklist:
 
 ```
-📋 任务前快速检查：
-[ ] 已查阅"已注册Skill清单"吗？
-[ ] 这是DevOps/CI/CD任务吗？ → devops-ci-cd-guardrails
-[ ] 涉及多目录/多仓库吗？ → cross-directory-ci
-[ ] 需要分析根因吗？ → brainstorming
-[ ] 需要写代码吗？ → context7-first
-[ ] ~~是Salesforce项目吗？ → salesforce-dx-expert（❌ 已废弃）~~
-[ ] ~~涉及Playwright吗？ → playwright-mcp-expert（❌ 已废弃，请使用原生 playwright_browser_* 工具）~~
-[ ] 涉及DevOps架构吗？ → 使用 devops-ci-cd-guardrails（❌ devops-architect 已废弃）
-[ ] 涉及Next.js路由吗？ → 使用 fullstack-ci-cd-guardrails（❌ nextjs-router-guardrails 已废弃）
-[ ] 需要数据库播种吗？ → cicd-database-seeding（❌ prisma-seed-cicd 已废弃）
-[ ] 还有其他匹配的Skill吗？（查阅3.1表格）
+📋 Pre-Task Quick Check:
+[ ] Have you consulted the "Registered Skill Inventory"?
+[ ] Is this a DevOps/CI/CD task? → devops-ci-cd-guardrails
+[ ] Involves multiple directories/repos? → cross-directory-ci
+[ ] Need to analyze root cause? → brainstorming
+[ ] Need to write code? → context7-first
+[ ] ~~Is it a Salesforce project? → salesforce-dx-expert (❌ Deprecated)~~
+[ ] ~~Involves Playwright? → playwright-mcp-expert (❌ Deprecated, use native playwright_browser_* tools)~~
+[ ] Involves DevOps architecture? → Use devops-ci-cd-guardrails (❌ devops-architect deprecated)
+[ ] Involves Next.js routing? → Use fullstack-ci-cd-guardrails (❌ nextjs-router-guardrails deprecated)
+[ ] Need database seeding? → cicd-database-seeding (❌ prisma-seed-cicd deprecated)
+[ ] Any other matching Skills? (consult table 3.1)
 ```
 
 ---
 
-## 六、常见任务的Skill组合推荐
+## 6. Common Task Skill Combination Recommendations
 
-### 6.1 CI/CD问题分析
+### 6.1 CI/CD Issue Analysis
 
 ```
-1. 查阅 .qoder/rules/rule_detail/skill-invocation-standard.md（必选）
-2. fullstack-ci-cd-guardrails (P1) - 强制执行全栈CI/CD规范
-3. global-cicd-practices-enforcement (P1) - 强制执行全局最佳实践
+1. Consult .qoder/rules/rule_detail/skill-invocation-standard.md (mandatory)
+2. fullstack-ci-cd-guardrails (P1) - Enforce fullstack CI/CD standards
+3. global-cicd-practices-enforcement (P1) - Enforce global best practices
 4. devops-ci-cd-guardrails (P1)
-5. cross-directory-ci (P1) - 如果涉及多目录/多仓库
+5. cross-directory-ci (P1) - If involving multiple directories/repos
 6. brainstorming (P1)
 ```
 
-### 6.2 代码开发任务
+### 6.2 Code Development Task
 
 ```
-1. 查阅 .qoder/rules/rule_detail/skill-invocation-standard.md（必选）
+1. Consult .qoder/rules/rule_detail/skill-invocation-standard.md (mandatory)
 2. context7-first (P1)
-3. brainstorming (P1) - 如果需要设计
+3. brainstorming (P1) - If design is needed
 ```
 
-### 6.5 代码评估任务
+### 6.5 Code Evaluation Task
 
 ```
-1. 查阅 .qoder/rules/rule_detail/skill-invocation-standard.md（必选）
+1. Consult .qoder/rules/rule_detail/skill-invocation-standard.md (mandatory)
 2. context7-first (P1)
-3. brainstorming (P1) - 分析代码结构和问题
-4. nextjs-router-guardrails (P1) - 如果是Next.js项目，分析路由和认证实现
+3. brainstorming (P1) - Analyze code structure and issues
+4. nextjs-router-guardrails (P1) - If it's a Next.js project, analyze routing and auth implementation
 ```
 
-### 6.3 需求分析与方案设计
+### 6.3 Requirement Analysis & Solution Design
 
 ```
-1. 查阅 .qoder/rules/rule_detail/skill-invocation-standard.md（必选）
+1. Consult .qoder/rules/rule_detail/skill-invocation-standard.md (mandatory)
 2. brainstorming (P1)
-3. 其他相关Skill（根据具体领域查阅3.1表格）
+3. Other related Skills (consult table 3.1 by specific domain)
 ```
 
-### 6.4 跨仓库E2E问题
+### 6.4 Cross-Repository E2E Issues
 
 ```
-1. 查阅 .qoder/rules/rule_detail/skill-invocation-standard.md（必选）
+1. Consult .qoder/rules/rule_detail/skill-invocation-standard.md (mandatory)
 2. devops-ci-cd-guardrails (P1)
 3. cross-directory-ci (P1)
 4. brainstorming (P1)
 ```
 
-### 6.6 文件修改后提交
+### 6.6 Post-File-Modification Commit
 
 ```
-1. 查阅 .qoder/rules/rule_detail/skill-invocation-standard.md（必选）
-2. auto-commit (P1) - 交互式提交与证据链校验
-3. execution-preflight-check (P0) - 前置规则检查（如适用）
+1. Consult .qoder/rules/rule_detail/skill-invocation-standard.md (mandatory)
+2. auto-commit (P1) - Interactive commit and evidence chain validation
+3. execution-preflight-check (P0) - Preflight rule check (if applicable)
 ```
 
 ---
 
-## 七、技能执行完整性规范
+## 7. Skill Execution Completeness Specification
 
-### 7.1 核心原则
-- **完整性原则**：调用任何Skill后，必须完整执行其文档定义的核心工作流
-- **用户交互尊重**：对于包含用户确认、反馈循环的Skill，必须等待用户响应后再继续
-- **核心功能检查**：必须验证Skill的核心功能是否被执行
+### 7.1 Core Principles
+- **Completeness Principle**: After invoking any Skill, its documented core workflow must be fully executed
+- **User Interaction Respect**: For Skills containing user confirmation or feedback loops, you must wait for user response before continuing
+- **Core Feature Check**: Must verify whether the Skill's core features have been executed
 
-### 7.2 技能执行检查清单
-在每个Skill调用后，必须验证以下内容：
+### 7.2 Skill Execution Checklist
+After each Skill invocation, the following must be verified:
 
-| 检查项 | 描述 | 示例 |
+| Check Item | Description | Example |
 |--------|------|------|
-| [ ] 核心工作流执行 | 是否执行了Skill文档中定义的核心工作流步骤 | brainstorming的"提问内容分析→结构化输出→等待确认" |
-| [ ] 用户交互完成 | 是否需要用户确认/反馈，是否已获取 | brainstorming的要点确认 |
-| [ ] 核心功能验证 | Skill的主要目的是否达到 | brainstorming的"模糊需求澄清" |
-| [ ] 输出质量检查 | Skill输出是否符合预期格式和质量 | brainstorming的结构化摘要 |
+| [ ] Core workflow execution | Were the core workflow steps defined in the Skill document executed? | brainstorming's "content analysis → structured output → wait for confirmation" |
+| [ ] User interaction complete | Is user confirmation/feedback needed? Has it been obtained? | brainstorming's key point confirmation |
+| [ ] Core feature verification | Was the Skill's primary purpose achieved? | brainstorming's "ambiguous requirement clarification" |
+| [ ] Output quality check | Does the Skill output meet expected format and quality? | brainstorming's structured summary |
 
-### 7.3 TodoWrite跟踪要求
-在TodoWrite中必须为每个Skill调用创建专门的任务项，包含：
-- 技能执行状态跟踪（开始→核心步骤→用户交互→完成）
-- 核心工作流步骤检查清单
-- 用户确认等待状态（如适用）
+### 7.3 TodoWrite Tracking Requirements
+TodoWrite must create dedicated task items for each Skill invocation, including:
+- Skill execution status tracking (start → core steps → user interaction → complete)
+- Core workflow step checklist
+- User confirmation wait status (if applicable)
 
-### 7.4 违规处理
-- **部分执行**：视为违规，必须回滚到Skill调用前的状态重新执行
-- **跳过用户交互**：强制暂停，补全用户确认流程后再继续
-- **核心功能缺失**：标记任务为"技能执行不完整"，重新规划执行
+### 7.4 Violation Handling
+- **Partial execution**: Considered a violation; must rollback to pre-Skill state and re-execute
+- **Skipped user interaction**: Forced pause; complete user confirmation flow before continuing
+- **Missing core features**: Mark task as "Skill execution incomplete"; re-plan execution
 
-### 7.5 更新执行流程（修改现有5.1节）
+### 7.5 Updated Execution Process (Modifying existing 5.1)
 ```
-步骤6：按优先级顺序调用Skill（P0 → P1 → P2）
+Step 6: Invoke Skills in priority order (P0 → P1 → P2)
    ↓
-步骤7：执行Skill核心工作流，等待必要用户交互
+Step 7: Execute Skill core workflow, wait for necessary user interaction
    ↓
-步骤8：验证Skill执行完整性（使用7.2检查清单）
+Step 8: Verify Skill execution completeness (use 7.2 checklist)
    ↓
-步骤9：标记Skill执行状态为"完整"或"不完整"
+Step 9: Mark Skill execution status as "complete" or "incomplete"
    ↓
-步骤10：只有所有Skill标记为"完整"才能继续后续任务
+Step 10: Only proceed with subsequent tasks when all Skills are marked "complete"
 ```
 
-### 7.6 适用所有Skill的通用要求
-此规范适用于所有已注册的Skill，特别是：
-- **brainstorming**：必须执行要点归纳→结构化输出→等待确认
-- **context7-first**：必须完成Context7查询并应用结果
-- **devops-ci-cd-guardrails**：必须执行完整的CI/CD规则检查
-- **其他所有Skill**：必须执行其文档定义的核心功能
+### 7.6 Universal Requirements for All Skills
+This specification applies to all registered Skills, especially:
+- **brainstorming**: Must execute key point summarization → structured output → wait for confirmation
+- **context7-first**: Must complete Context7 query and apply results
+- **devops-ci-cd-guardrails**: Must execute complete CI/CD rule check
+- **All other Skills**: Must execute their documented core features
 
-### 7.7 实施建议
-1. 立即将此规范添加到 `skill-invocation-standard.md`
-2. 更新 `execution-preflight-check/SKILL.md` 中的任务分类表格
-3. 在下次任务前展示更新的Skill调用计划，明确包含"执行完整性检查"
+### 7.7 Implementation Suggestions
+1. Immediately add this specification to `skill-invocation-standard.md`
+2. Update the task classification table in `execution-preflight-check/SKILL.md`
+3. Before the next task, present the updated Skill invocation plan explicitly including "execution completeness check"
 
 ---
 
-## 八、添加新Skill指南
+## 8. Adding New Skills Guide
 
-### 8.1 前置要求
+### 8.1 Prerequisites
 
-添加新Skill前，必须满足：
+Before adding a new Skill, the following must be met:
 
-- [ ] 新Skill已在 `.qoder/skills/` 目录下创建
-- [ ] Skill文件命名规范：`{skill-id}.md` 或 `{skill-id}/SKILL.md`
-- [ ] Skill有清晰的描述和触发条件
-- [ ] Skill已测试可用
+- [ ] New Skill created in the `.qoder/skills/` directory
+- [ ] Skill file naming convention: `{skill-id}.md` or `{skill-id}/SKILL.md`
+- [ ] Skill has a clear description and trigger conditions
+- [ ] Skill has been tested and is functional
 
-### 8.2 添加步骤
+### 8.2 Addition Steps
 
-#### 步骤1：准备Skill元数据
+#### Step 1: Prepare Skill Metadata
 
-使用以下模板准备新Skill的元数据：
+Use the following template to prepare the new Skill's metadata:
 
 ```yaml
 skill_name: your-new-skill-id
-display_name: 新Skill显示名称
-category: 选择类别  # P0-基础检查类 / P1-领域专业类 / P1-分析设计类 / P2-技术栈类 / P2-工具创建类
-description: 简短描述，1-2句话
+display_name: New Skill Display Name
+category: Choose category  # P0-Foundation Check / P1-Domain Professional / P1-Analysis & Design / P2-Tech Stack / P2-Tool Creation
+description: Brief description, 1-2 sentences
 trigger_keywords:
-  - 关键词1
-  - 关键词2
-  - 关键词3
+  - keyword1
+  - keyword2
+  - keyword3
 use_cases:
-  - 适用场景1
-  - 适用场景2
+  - Applicable scenario 1
+  - Applicable scenario 2
 priority: P0/P1/P2
 core_features:
-  - 核心功能1
-  - 核心功能2
-always_first: false  # 只有execution-preflight-check为true
+  - Core feature 1
+  - Core feature 2
+always_first: false  # Only execution-preflight-check is true
 status: active
 added_date: YYYY-MM-DD
-added_by: 添加者标识
+added_by: identifier
 ```
 
-#### 步骤2：更新相关文档
+#### Step 2: Update Related Documents
 
-按以下顺序更新文档：
+Update documents in the following order:
 
-1. **在3.1节"Skill注册表格"中添加一行**
-2. **在第四节"各Skill详细元数据"中添加完整的元数据YAML块**
-3. **更新 execution-preflight-check/SKILL.md 中的任务分类表格**
-4. **更新 execution-preflight-check/SKILL.md 中的添加新技能步骤**
-5. **在第六节"常见任务的Skill组合推荐"中酌情添加相关组合（如适用）**
-6. **在第九节"实际案例分析"中酌情添加案例（如适用）**
+1. **Add a row in Section 3.1 "Skill Registration Table"**
+2. **Add complete metadata YAML block in Section 4 "Detailed Metadata for Each Skill"**
+3. **Update the task classification table in execution-preflight-check/SKILL.md**
+4. **Update the new skill addition steps in execution-preflight-check/SKILL.md**
+5. **Optionally add relevant combinations in Section 6 "Common Task Skill Combination Recommendations" (if applicable)**
+6. **Optionally add cases in Section 9 "Case Studies" (if applicable)**
 
-#### 步骤3：验证更新
+#### Step 3: Verify Updates
 
-- [ ] 元数据格式正确
-- [ ] 分类选择合理
-- [ ] 触发关键词清晰
-- [ ] 显示名称友好
-- [ ] 日期格式正确（YYYY-MM-DD）
+- [ ] Metadata format correct
+- [ ] Category selection reasonable
+- [ ] Trigger keywords clear
+- [ ] Display name user-friendly
+- [ ] Date format correct (YYYY-MM-DD)
 
-### 8.3 Skill弃用指南
+### 8.3 Skill Deprecation Guide
 
-如需弃用某个Skill：
+To deprecate a Skill:
 
-1. 将3.1节表格中的"状态"改为 `❌ 已弃用`
-2. 在第四节元数据中设置 `status: deprecated`
-3. 添加 `deprecated_date: YYYY-MM-DD` 和 `deprecated_reason: 弃用原因`
-4. 在元数据中添加替代Skill建议（如有）
-5. **不要删除**Skill的元数据记录，保留历史记录
+1. Change "Status" in the Section 3.1 table to `❌ Deprecated`
+2. Set `status: deprecated` in Section 4 metadata
+3. Add `deprecated_date: YYYY-MM-DD` and `deprecated_reason: deprecation reason`
+4. Add replacement Skill suggestion in metadata (if available)
+5. **Do not delete** the Skill's metadata record; preserve historical records
 
 ---
 
-## 九、实际案例分析
+## 9. Case Studies
 
-### 案例：前端CI Prisma seed失败分析
+### Case: Frontend CI Prisma Seed Failure Analysis
 
-**用户请求**：
-&gt; 分析booking-frontend在Github Action CI执行时报的错...调查原因，不动代码。
+**User Request**:
+&gt; Analyze the error reported by booking-frontend during Github Action CI execution... investigate the cause, don't modify code.
 
-**正确的Skill调用顺序**：
+**Correct Skill Invocation Order**:
 
-1. 查阅 skill-invocation-standard.md（必选）
+1. Consult skill-invocation-standard.md (mandatory)
 2. devops-ci-cd-guardrails (P1)
 3. cross-directory-ci (P1)
 4. brainstorming (P1)
 
-| 序号 | Skill名称 | Skill ID | 调用理由 |
+| # | Skill Name | Skill ID | Invocation Reason |
 |------|----------|----------|---------|
-| 1 | DevOps CI/CD保护 | devops-ci-cd-guardrails | 涉及GitHub Actions、CI/CD、跨仓库E2E |
-| 2 | 跨目录CI指导 | cross-directory-ci | 涉及checkout多个仓库、路径解析 |
-| 3 | 头脑风暴分析 | brainstorming | 需要分析问题根因 |
+| 1 | DevOps CI/CD Protection | devops-ci-cd-guardrails | Involves GitHub Actions, CI/CD, cross-repo E2E |
+| 2 | Cross-Directory CI Guidance | cross-directory-ci | Involves checkout of multiple repos, path resolution |
+| 3 | Brainstorming Analysis | brainstorming | Need to analyze problem root cause |
 
-**遗漏分析**：
-- 实际遗漏了 `cross-directory-ci`
-- 虽然最终分析了分支合并问题，但cross-directory-ci可以提供更系统的诊断流程
+**Omission Analysis**:
+- Actually omitted `cross-directory-ci`
+- Although the branch merge issue was ultimately analyzed, cross-directory-ci could have provided a more systematic diagnostic process
 
 ---
 
-## 十、质量保障与持续改进
+## 10. Quality Assurance & Continuous Improvement
 
-### 10.1 执行后回顾
+### 10.1 Post-Execution Review
 
-每次任务完成后，进行以下回顾：
+After each task completion, conduct the following review:
 
 ```
-📋 执行后回顾：
-[ ] 是否调用了所有应该调用的Skill？
-[ ] Skill调用顺序是否合理（按P0→P1→P2）？
-[ ] 本文档是否需要更新（新Skill、新触发关键词等）？
-[ ] 是否可以改进下次的Skill规划？
-[ ] 记录经验教训到本文档
+📋 Post-Execution Review:
+[ ] Were all Skills that should have been invoked actually invoked?
+[ ] Was the Skill invocation order reasonable (P0→P1→P2)?
+[ ] Does this document need updating (new Skills, new trigger keywords, etc.)?
+[ ] Can Skill planning be improved for next time?
+[ ] Record lessons learned in this document
 ```
 
-### 10.2 文档更新触发点
+### 10.2 Documentation Update Triggers
 
-在以下情况下必须更新相关文档：
+Related documents must be updated in the following situations:
 
-- [ ] 添加新Skill时（必须使用skill-creator Skill）
-  - 必须更新 `skill-invocation-standard.md`（注册表格、元数据）
-  - 必须更新 `execution-preflight-check/SKILL.md`（任务分类表格、添加新技能步骤）
-- [ ] Skill触发关键词需要更新时
-  - 必须更新 `skill-invocation-standard.md`
-  - 必须更新 `execution-preflight-check/SKILL.md` 中的任务分类表格
-- [ ] 发现新的Skill组合模式时
-- [ ] Skill状态变更时（活跃→弃用）
-- [ ] 实际案例分析需要补充时
+- [ ] When adding new Skills (must use skill-creator Skill)
+  - Must update `skill-invocation-standard.md` (registration table, metadata)
+  - Must update `execution-preflight-check/SKILL.md` (task classification table, new skill addition steps)
+- [ ] When Skill trigger keywords need updating
+  - Must update `skill-invocation-standard.md`
+  - Must update the task classification table in `execution-preflight-check/SKILL.md`
+- [ ] When new Skill combination patterns are discovered
+- [ ] When Skill status changes (active → deprecated)
+- [ ] When case studies need additions
 
-### 10.3 文档版本管理
+### 10.3 Document Version Management
 
-- 本文档使用语义化版本号（vMAJOR.MINOR.PATCH）
-- MAJOR：框架重大变更
-- MINOR：新增Skill类别、重大流程变更
-- PATCH：添加新Skill、更新元数据、小修复
-- 每次更新在"概述"部分记录版本号和更新日期
-
----
-
-## 十一、总结
-
-本文档的核心目标是：
-
-1. **标准化**：建立统一的Skill调用流程
-2. **透明化**：任务前展示计划，让用户监督
-3. **质量化**：确保所有相关Skill都被调用
-4. **高扩展性**：通过分类体系和注册机制，轻松添加新Skill
-5. **高通用性**：不依赖特定Skill，适用于未来新增的所有Skill
-6. **高约束性**：强制要求注册、元数据完整、流程规范
-
-**记住**：
-- 先查阅 `.qoder/rules/rule_detail/skill-invocation-standard.md`，这是所有任务的第一步
-- 先规划，后执行
-- 有疑问时，多调用Skill而非少调用
-- 添加新Skill时，必须使用skill-creator Skill并更新本文档
-- 所有Skill必须在本文档注册
-
-### Skill调用违规预防模式
-1. **先规划后执行**：任何任务开始前必须先展示Skill调用计划
-2. **查阅 .qoder/rules/rule_detail/skill-invocation-standard.md 优先**：这是所有任务的第一步，没有例外
-3. **Skill必须注册**：所有Skill必须在`.qoder/rules/rule_detail/skill-invocation-standard.md`中注册
-4. **透明化监督**：任务前展示计划，让用户监督
+- This document uses semantic versioning (vMAJOR.MINOR.PATCH)
+- MAJOR: Major framework changes
+- MINOR: New Skill categories, major process changes
+- PATCH: Adding new Skills, updating metadata, minor fixes
+- Each update is recorded with version number and update date in the "Overview" section
 
 ---
 
-## 附录A：Skill文件位置
+## 11. Summary
 
-所有Skill文件位于：
-- `.qoder/skills/{skill-id}.md` - 单文件Skill
-- `.qoder/skills/{skill-id}/SKILL.md` - 目录型Skill
+The core objectives of this document are:
+
+1. **Standardization**: Establish a unified Skill invocation process
+2. **Transparency**: Present plans before tasks, allowing user supervision
+3. **Quality**: Ensure all relevant Skills are invoked
+4. **High Extensibility**: Easily add new Skills through the classification system and registration mechanism
+5. **High Universality**: Not dependent on specific Skills; applies to all future Skills
+6. **High Constraint**: Mandatory registration, complete metadata, standardized process
+
+**Remember**:
+- First consult `.qoder/rules/rule_detail/skill-invocation-standard.md` — this is the first step for all tasks
+- Plan first, execute second
+- When in doubt, invoke more Skills rather than fewer
+- When adding new Skills, must use skill-creator Skill and update this document
+- All Skills must be registered in this document
+
+### Skill Call Violation Prevention Patterns
+1. **Plan before execute**: Before starting any task, you must first present the Skill call plan
+2. **Consult .qoder/rules/rule_detail/skill-invocation-standard.md first**: This is the first step for all tasks, no exceptions
+3. **Skills must be registered**: All Skills must be registered in `.qoder/rules/rule_detail/skill-invocation-standard.md`
+4. **Transparent supervision**: Present plans before tasks, allowing user supervision
 
 ---
 
-*本文档将根据实际使用经验持续更新和完善。*
+## Appendix A: Skill File Locations
+
+All Skill files are located at:
+- `.qoder/skills/{skill-id}.md` - Single-file Skills
+- `.qoder/skills/{skill-id}/SKILL.md` - Directory-based Skills
+
+---
+
+*This document will be continuously updated and refined based on actual usage experience.*
 

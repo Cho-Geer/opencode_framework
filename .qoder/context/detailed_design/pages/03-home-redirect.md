@@ -1,46 +1,46 @@
-# 首页/重定向页（HomeRedirectPage）
+# Home/Redirect Page (HomeRedirectPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 首页（根路径重定向） |
-| **路由路径** | `/` |
-| **布局** | `AppLayoutComponent` |
-| **惰性加载** | `app.routes.ts` 顶层路由 |
-| **组件** | 无（`redirectTo: 'booking'`） |
-| **设计依据** | 架构惯例推断（SAD 未单独定义首页） |
+| **Page Name** | Home (Root Path Redirect) |
+| **Route Path** | `/` |
+| **Layout** | `AppLayoutComponent` |
+| **Lazy Loading** | `app.routes.ts` top-level route |
+| **Component** | None (`redirectTo: 'booking'`) |
+| **Design Basis** | Architectural convention inference (SAD does not separately define a home page) |
 
-## 用户角色
+## User Roles
 
-- CUSTOMER（ADMIN/SUPER_ADMIN 不会访问到此路径）
+- CUSTOMER (ADMIN/SUPER_ADMIN will not reach this path)
 
-## 路由参数
+## Route Parameters
 
-- 无
+- None
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 路径 | 策略 |
+| Guard | Path | Strategy |
 |---|---|---|
-| `authGuard` | 父级 AppLayout 路径 | 未认证 → 重定向 `/auth/login?returnUrl=/` |
-| `roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })` | 子路由 | ADMIN/SUPER_ADMIN → 重定向 `/admin/dashboard` |
+| `authGuard` | Parent AppLayout path | Unauthenticated → redirect `/auth/login?returnUrl=/` |
+| `roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })` | Child route | ADMIN/SUPER_ADMIN → redirect `/admin/dashboard` |
 
-## 行为说明
+## Behavior Description
 
-- `app.routes.ts` 中定义为 `{ path: '', redirectTo: 'booking', pathMatch: 'full' }`
-- 访问 `/` 自动 302 重定向到 `/booking`
-- 等价于进入预约创建流程的「选择服务」步骤
-- 在 `AppLayout` 外壳中渲染
+- Defined in `app.routes.ts` as `{ path: '', redirectTo: 'booking', pathMatch: 'full' }`
+- Visiting `/` automatically redirects to `/booking`
+- Equivalent to entering the "Select Service" step of the booking creation flow
+- Rendered within the `AppLayout` shell
 
-## 功能要点
+## Key Features
 
-| 项目 | 说明 |
+| Item | Description |
 |---|---|
-| 核心职能 | 作为根路径入口，重定向到 CUSTOMER 的核心功能页（预约列表 → 新建预约） |
-| 导航方式 | `redirectTo` Angular 路由重定向，非 HTTP 302 |
+| Core Function | Serves as root path entry point, redirects to CUSTOMER's core feature page (booking list → create booking) |
+| Navigation Method | `redirectTo` Angular route redirect, not HTTP 302 |
 
-## 数据来源
+## Data Sources
 
-- SAD 2.3.1（页面列表隐含根路由行为）
-- Angular 路由惯例（`path: ''` → `redirectTo`）
+- SAD 2.3.1 (Pages list implies root route behavior)
+- Angular routing convention (`path: ''` → `redirectTo`)

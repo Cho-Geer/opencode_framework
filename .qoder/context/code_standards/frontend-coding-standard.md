@@ -1,189 +1,189 @@
-# 预约系统 - Angular 前端代码规范文档
+# Booking System - Angular Frontend Coding Standard
 
-## 文档信息
+## Document Information
 
-| 属性 | 值 |
+| Property | Value |
 | :--- | :--- |
-| **文档版本** | 1.2.0（§1.2 新增 multi-slot-picker 分子组件说明） |
-| **创建日期** | 2026-04-15 |
-| **更新日期** | 2026-05-11 |
-| **适用项目** | booking-frontend (Angular v21+) |
-| **文档状态** | 已基线化 |
-| **关联文档** | 系统架构设计文档(SAD)、接口设计规范文档、数据架构设计文档、安全架构设计文档、global-ui-spec.md v3.0.0 |
-| **存放位置** | `.qoder/context/code_standards/frontend-coding-standard.md` |
+| **Document Version** | 1.2.0 (§1.2 adds multi-slot-picker molecule component description) |
+| **Created Date** | 2026-04-15 |
+| **Updated Date** | 2026-05-11 |
+| **Applicable Project** | booking-frontend (Angular v21+) |
+| **Document Status** | Baselined |
+| **Related Documents** | system-architecture-design (SAD), api-design-specification, data-architecture, security-architecture, global-ui-spec.md v3.0.0 |
+| **Location** | `.qoder/context/code_standards/frontend-coding-standard.md` |
 
 ---
 
-## 1. 核心原则
+## 1. Core Principles
 
-### 1.1 关注点分离 (Separation of Concerns)
+### 1.1 Separation of Concerns
 
-每个文件只负责一件事。组件逻辑、模板、样式必须物理分离。
+Each file is responsible for one thing only. Component logic, template, and styles must be physically separated.
 
-| 文件类型 | 职责 | 命名规范 |
+| File Type | Responsibility | Naming Convention |
 | :--- | :--- | :--- |
-| `*.component.ts` | 组件逻辑、依赖注入、状态订阅 | `kebab-case.component.ts` |
-| `*.component.html` | 组件模板、DOM 结构 | `kebab-case.component.html` |
-| `*.component.scss` | 组件私有样式 | `kebab-case.component.scss` |
-| `*.service.ts` | 业务逻辑、API 通信、状态管理 | `kebab-case.service.ts` |
-| `*.store.ts` | NgRx SignalStore 状态定义 | `kebab-case.store.ts` |
-| `*.dto.ts` | 数据传输对象、类型定义 | `kebab-case.dto.ts` |
+| `*.component.ts` | Component logic, dependency injection, state subscriptions | `kebab-case.component.ts` |
+| `*.component.html` | Component template, DOM structure | `kebab-case.component.html` |
+| `*.component.scss` | Component private styles | `kebab-case.component.scss` |
+| `*.service.ts` | Business logic, API communication, state management | `kebab-case.service.ts` |
+| `*.store.ts` | NgRx SignalStore state definition | `kebab-case.store.ts` |
+| `*.dto.ts` | Data transfer objects, type definitions | `kebab-case.dto.ts` |
 
-**强制规则**：**禁止**在 `@Component` 装饰器中使用 `template` 或 `styles` 内联字符串。
+**Mandatory Rule**: Using `template` or `styles` inline strings in the `@Component` decorator is **forbidden**.
 
 ```typescript
-// 正确
+// Correct
 @Component({
   templateUrl: './my-feature.component.html',
   styleUrls: ['./my-feature.component.scss']
 })
 ```
 
-### 1.2 原子设计分层 (Atomic Design)
+### 1.2 Atomic Design Layering
 
-组件必须按原子设计方法论组织，严格遵循层级依赖：
+Components must be organized according to the Atomic Design methodology, with strict layer dependency enforcement:
 
-- **Atoms（原子）**：不可再分的基础组件（Button, Input, Modal），不依赖任何其他组件
-- **Molecules（分子）**：可复用的功能组件（LoginForm, TimeSlotGrid, ~~MultiSlotPicker~~ [DEPRECATED]），只能依赖原子
-- **Organisms（有机体）**：完整功能区块（BookingLeftPanel），可依赖分子和原子
-- **Layouts（布局）**：页面布局骨架（AppLayout），可依赖有机体、分子、原子
-- **Pages（页面）**：路由入口和数据获取，可依赖布局和有机体，**禁止**直接依赖分子和原子
+- **Atoms**: Indivisible base components (Button, Input, Modal), no dependency on other components
+- **Molecules**: Reusable functional components (LoginForm, TimeSlotGrid, ~~MultiSlotPicker~~ [DEPRECATED]), may only depend on atoms
+- **Organisms**: Complete functional blocks (BookingLeftPanel), may depend on molecules and atoms
+- **Layouts**: Page layout skeletons (AppLayout), may depend on organisms, molecules, and atoms
+- **Pages**: Route entry points and data fetching, may depend on layouts and organisms; **forbidden** to directly depend on molecules and atoms
 
-> **注意**：原 Atomic Design 中的 "Templates" 在本项目中重命名为 "Layouts"，以避免与 Angular 模板概念混淆。
+> **Note**: The "Templates" level in standard Atomic Design is renamed to "Layouts" in this project to avoid confusion with the Angular template concept.
 
-**新增共享组件（v1.2.0）**：
-| 组件 | 层级 | 描述 |
+**New Shared Components (v1.2.0)**:
+| Component | Layer | Description |
 |:---|:---|:---|
-| `app-search-input` | 原子 | 带防抖（300ms）的搜索输入框，支持自动完成建议下拉 |
-| `app-filter-bar` | 分子 | 筛选栏容器，含 ng-content 插槽，支持溢出可见（overflow:visible） |
-| `app-table-wrapper` | 分子 | 表格容器，统一表格布局、加载态和空态 |
-| `app-dropdown`（增强） | 原子 | 增强版下拉选择器，支持 `[ngModel]` 绑定和 `appendTo="body"` |
-| `app-modal`（增强） | 原子 | 封装 PrimeNG `p-dialog` 的模态框组件，用于统一弹窗样式 |
+| `app-search-input` | Atom | Debounced (300ms) search input with autocomplete suggestion dropdown |
+| `app-filter-bar` | Molecule | Filter bar container with ng-content slot, supports overflow:visible |
+| `app-table-wrapper` | Molecule | Table container with unified table layout, loading state, and empty state |
+| `app-dropdown` (enhanced) | Atom | Enhanced dropdown selector with `[ngModel]` binding and `appendTo="body"` support |
+| `app-modal` (enhanced) | Atom | Modal component wrapping PrimeNG `p-dialog` for unified popup styling |
 
-**有机体归属规则**：
-- 领域专属的 Organisms 保留在 `features/*/organisms/`
-- 跨领域复用的 Organisms 放置在 `shared/organisms/`
+**Organism Ownership Rules**:
+- Domain-specific Organisms remain in `features/*/organisms/`
+- Cross-domain reusable Organisms are placed in `shared/organisms/`
 
 ---
 
-## 2. 项目目录结构
+## 2. Project Directory Structure
 
 ```
 src/
 ├── app/
-│   ├── core/                           # 核心单例服务与全局配置
-│   │   ├── guards/                      # 路由守卫 (auth.guard.ts)
-│   │   ├── interceptors/                # HTTP 拦截器 (auth.interceptor.ts)
-│   │   ├── services/                    # 全局服务 (api.service.ts)
-│   │   └── config/                      # 环境配置 (app.config.ts)
-│   ├── features/                        # 业务功能模块 (按领域划分)
-│   │   ├── auth/                        # 认证领域
-│   │   │   ├── pages/                   # 页面组件
-│   │   │   ├── organisms/               # 有机体组件 (领域专属)
-│   │   │   ├── molecules/               # 分子组件 (领域专属)
+│   ├── core/                           # Core singleton services and global configuration
+│   │   ├── guards/                      # Route guards (auth.guard.ts)
+│   │   ├── interceptors/                # HTTP interceptors (auth.interceptor.ts)
+│   │   ├── services/                    # Global services (api.service.ts)
+│   │   └── config/                      # Environment configuration (app.config.ts)
+│   ├── features/                        # Business feature modules (organized by domain)
+│   │   ├── auth/                        # Authentication domain
+│   │   │   ├── pages/                   # Page components
+│   │   │   ├── organisms/               # Organism components (domain-specific)
+│   │   │   ├── molecules/               # Molecule components (domain-specific)
 │   │   │   ├── stores/                  # NgRx SignalStores
-│   │   │   ├── services/                # 领域内服务
-│   │   │   ├── dto/                     # 数据传输对象
-│   │   │   └── auth.routes.ts           # 懒加载路由配置
-│   │   ├── booking/                     # 预约领域
-│   │   ├── admin/                       # 管理后台领域
-│   │   └── profile/                     # 个人资料领域
-│   ├── shared/                          # 共享组件 (原子 + 跨领域分子/有机体)
-│   │   ├── atoms/                       # 原子组件 (跨领域复用)
-│   │   ├── molecules/                   # 跨领域复用的分子组件
-│   │   ├── organisms/                   # 跨领域复用的有机体组件
-│   │   ├── pipes/                       # 自定义管道
-│   │   └── directives/                  # 自定义指令
-│   ├── layouts/                         # 布局层
+│   │   │   ├── services/                # Domain services
+│   │   │   ├── dto/                     # Data transfer objects
+│   │   │   └── auth.routes.ts           # Lazy-loaded route configuration
+│   │   ├── booking/                     # Booking domain
+│   │   ├── admin/                       # Admin panel domain
+│   │   └── profile/                     # User profile domain
+│   ├── shared/                          # Shared components (atoms + cross-domain molecules/organisms)
+│   │   ├── atoms/                       # Atom components (cross-domain reusable)
+│   │   ├── molecules/                   # Cross-domain reusable molecule components
+│   │   ├── organisms/                   # Cross-domain reusable organism components
+│   │   ├── pipes/                       # Custom pipes
+│   │   └── directives/                  # Custom directives
+│   ├── layouts/                         # Layout layer
 │   ├── app.component.ts
-│   ├── app.config.ts                    # 应用配置 (providers、拦截器注册)
+│   ├── app.config.ts                    # Application configuration (providers, interceptor registration)
 │   └── app.routes.ts
 ├── assets/
 ├── environments/
 ├── styles/
-│   ├── _variables.scss                  # SCSS 变量 (@use 导入)
-│   ├── _mixins.scss                     # SCSS Mixin (@use 导入)
-│   ├── _reset.scss                      # 样式重置
-│   ├── _animations.scss                 # 全局动画定义
-│   └── styles.scss                      # 全局样式入口
+│   ├── _variables.scss                  # SCSS variables (@use import)
+│   ├── _mixins.scss                     # SCSS Mixins (@use import)
+│   ├── _reset.scss                      # Style reset
+│   ├── _animations.scss                 # Global animation definitions
+│   └── styles.scss                      # Global styles entry point
 ├── index.html
 └── main.ts
 ```
 
 ---
 
-## 3. TypeScript 与命名规范
+## 3. TypeScript and Naming Conventions
 
-### 3.1 命名约定
+### 3.1 Naming Rules
 
-| 类型 | 命名规则 | 示例 |
+| Type | Naming Rule | Example |
 | :--- | :--- | :--- |
-| **文件** | `kebab-case` | `booking-form.component.ts` |
-| **类** | `PascalCase` | `BookingFormComponent` |
-| **接口** | `PascalCase` (**无前缀**) | `Appointment`, `UserProfile` |
-| **类型别名** | `PascalCase` | `AppointmentStatus`, `UserRole` |
-| **枚举** | `PascalCase`，成员 `UPPER_SNAKE_CASE` | `enum AppointmentStatus { PENDING }` |
-| **常量** | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT` |
-| **变量/函数** | `camelCase` | `currentUser`, `getAvailableSlots()` |
-| **私有成员** | `_` 前缀 + `camelCase` | `_http`, `_destroy$` |
-| **Observable** | `$` 后缀 | `appointments$`, `loading$` |
-| **Signal** | 无特殊后缀 | `isLoading`, `currentUser` |
+| **File** | `kebab-case` | `booking-form.component.ts` |
+| **Class** | `PascalCase` | `BookingFormComponent` |
+| **Interface** | `PascalCase` (**no prefix**) | `Appointment`, `UserProfile` |
+| **Type Alias** | `PascalCase` | `AppointmentStatus`, `UserRole` |
+| **Enum** | `PascalCase`, members `UPPER_SNAKE_CASE` | `enum AppointmentStatus { PENDING }` |
+| **Constant** | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT` |
+| **Variable/Function** | `camelCase` | `currentUser`, `getAvailableSlots()` |
+| **Private Member** | `_` prefix + `camelCase` | `_http`, `_destroy$` |
+| **Observable** | `$` suffix | `appointments$`, `loading$` |
+| **Signal** | No special suffix | `isLoading`, `currentUser` |
 
-> **接口命名不使用 `I` 前缀**，遵循现代 TypeScript 社区最佳实践。
+> **Interfaces do not use the `I` prefix**, following modern TypeScript community best practices.
 
-### 3.2 类型安全
+### 3.2 Type Safety
 
-**强制规则**：禁止使用 `any`。所有函数参数、返回值、变量必须有明确类型。
+**Mandatory Rule**: `any` is forbidden. All function parameters, return values, and variables must have explicit types.
 
-### 3.3 组件类结构
+### 3.3 Component Class Structure
 
-成员必须按以下顺序排列：
-1. 依赖注入 (`inject`)
-2. 输入/输出属性 (`@Input`, `@Output`)
-3. 响应式状态 (`signal`, `computed`)
-4. 私有属性
-5. 计算属性 (`getter`)
-6. 生命周期钩子
-7. 公共方法
-8. 私有方法
+Members must be arranged in the following order:
+1. Dependency injection (`inject`)
+2. Input/Output properties (`@Input`, `@Output`)
+3. Reactive state (`signal`, `computed`)
+4. Private properties
+5. Computed properties (`getter`)
+6. Lifecycle hooks
+7. Public methods
+8. Private methods
 
-### 3.4 Angular 版本兼容性
+### 3.4 Angular Version Compatibility
 
-| 特性 | 最低版本 | 本规范要求 |
+| Feature | Minimum Version | This Standard Requires |
 |------|---------|-----------|
-| `signal()` / `computed()` | Angular 16 | 必须使用 |
-| `inject()` 替代构造函数 DI | Angular 14 | 必须使用 |
-| `@use` 替代 `@import` (Sass) | Sass 1.23.0 / Angular 17 | **必须使用 `@use`** |
-| 控制流语法 `@if` / `@for` | Angular 17 | 推荐使用 |
-| `@defer` 延迟视图 | Angular 17 | 推荐使用 |
+| `signal()` / `computed()` | Angular 16 | Must use |
+| `inject()` replacing constructor DI | Angular 14 | Must use |
+| `@use` replacing `@import` (Sass) | Sass 1.23.0 / Angular 17 | **Must use `@use`** |
+| Control flow syntax `@if` / `@for` | Angular 17 | Recommended |
+| `@defer` deferred views | Angular 17 | Recommended |
 
 ---
 
-## 4. 模板规范 (HTML)
+## 4. Template Standard (HTML)
 
-### 4.1 属性顺序
+### 4.1 Attribute Order
 
-1. 控制流 (`@if` / `@for` / `*ngIf` / `*ngFor`)
+1. Control flow (`@if` / `@for` / `*ngIf` / `*ngFor`)
 2. `class` / `ngClass`
 3. `style` / `ngStyle`
-4. 普通属性 (`id`, `type`, `placeholder`)
-5. 输入绑定 `[property]`
-6. 事件绑定 `(event)`
-7. 双向绑定 `[(ngModel)]`
+4. Plain attributes (`id`, `type`, `placeholder`)
+5. Input bindings `[property]`
+6. Event bindings `(event)`
+7. Two-way bindings `[(ngModel)]`
 
-### 4.2 模板表达式
+### 4.2 Template Expressions
 
-- **禁止**在模板中编写复杂逻辑表达式
-- 复杂计算必须放在组件的 `getter` 或 `computed` Signal 中
+- Complex logic expressions in templates are **forbidden**
+- Complex computations must be placed in component `getter` or `computed` Signals
 
-### 4.3 模板尺寸
+### 4.3 Template Size
 
-- 单个模板文件**不超过 200 行**
-- 超过时必须拆分为更小的分子/有机体组件
+- A single template file must **not exceed 200 lines**
+- When exceeded, it must be split into smaller molecule/organism components
 
-### 4.4 延迟视图优化
+### 4.4 Deferred View Optimization
 
-非首屏内容必须使用 `@defer` 实现按需加载：
+Non-above-the-fold content must use `@defer` for on-demand loading:
 
 ```html
 @defer (on viewport) {
@@ -195,14 +195,14 @@ src/
 
 ---
 
-## 5. SCSS 样式规范
+## 5. SCSS Style Standard
 
-### 5.1 Sass `@use` 强制规范
+### 5.1 Sass `@use` Mandatory Standard
 
-**Angular 17+ 已弃用 `@import`，必须使用 `@use`。**
+**Angular 17+ has deprecated `@import`; `@use` is mandatory.**
 
 ```scss
-// 正确
+// Correct
 @use 'src/styles/variables' as *;
 @use 'src/styles/mixins' as m;
 
@@ -212,73 +212,73 @@ src/
 }
 ```
 
-### 5.2 Tailwind CSS 优先级
+### 5.2 Tailwind CSS Priority
 
-样式策略为 **Tailwind First**：
-- **优先使用** Tailwind 工具类完成布局、间距、颜色、字体
-- **仅当** Tailwind 无法满足时（复杂动画、伪元素），才编写 SCSS
-- 全局 SCSS 文件仅用于 CSS 重置、字体引入、全局 CSS 变量定义
+The styling strategy is **Tailwind First**:
+- **Prefer** Tailwind utility classes for layout, spacing, color, and typography
+- **Only** write SCSS when Tailwind cannot satisfy requirements (complex animations, pseudo-elements)
+- Global SCSS files are only used for CSS resets, font imports, and global CSS variable definitions
 
-### 5.3 BEM 命名法
+### 5.3 BEM Naming Convention
 
-仅当必须写 SCSS 时使用 BEM：
+Use BEM only when SCSS must be written:
 
 ```scss
 .booking-card {
-  &__header { }      // 元素
-  &--highlighted { } // 修饰符
+  &__header { }      // Element
+  &--highlighted { } // Modifier
 }
 ```
 
-### 5.4 主题变量 (CSS 自定义属性)
+### 5.4 Theme Variables (CSS Custom Properties)
 
-> ⚠️ **v3.0.0 设计系统变更**：自 2026-05-04 起，项目已从「玻璃态双系统」统一迁移至「暗色优先 Sharp Design」。以下变量反映了当前 `booking-frontend/src/styles.scss` 中 `@theme` 块的实际设计令牌。
+> ⚠️ **v3.0.0 Design System Change**: Since 2026-05-04, the project has migrated from the "Glassmorphism Dual System" to "Dark-First Sharp Design". The following variables reflect the current design tokens in the `@theme` block of `booking-frontend/src/styles.scss`.
 
 ```scss
 /* ========================================
-   权威来源：booking-frontend/src/styles.scss (Tailwind @theme)
-   设计规范：docs/design/global-ui-spec.md v3.0.0
+   Authoritative Source: booking-frontend/src/styles.scss (Tailwind @theme)
+   Design Spec: docs/design/global-ui-spec.md v3.0.0
    ======================================== */
 
-// 暗色优先（Default Dark Theme）
+// Dark-First (Default Dark Theme)
 :root {
-  /* 背景层级 */
-  --color-bg-primary: #0c1220;      // 页面主背景（深空蓝黑）
-  --color-bg-secondary: #162032;     // 卡片、导航栏、侧边栏背景
-  --color-bg-tertiary: #1e293b;     // 卡片悬停/次要背景
+  /* Background Layers */
+  --color-bg-primary: #0c1220;      // Page main background (deep space blue-black)
+  --color-bg-secondary: #162032;     // Card, navbar, sidebar background
+  --color-bg-tertiary: #1e293b;     // Card hover/secondary background
 
-  /* 边框 */
-  --color-border: #2a3a50;          // 边框、分割线
-  --color-border-light: rgba(42, 58, 80, 0.3); // 浅边框
+  /* Borders */
+  --color-border: #2a3a50;          // Borders, dividers
+  --color-border-light: rgba(42, 58, 80, 0.3); // Light border
 
-  /* 强调色主色 */
-  --color-primary: #2ecc71;         // 主强调色（按钮、链接、选中态）
-  --color-primary-start: #2ecc71;   // 渐变起点
-  --color-primary-end: #27ae60;     // 渐变终点
-  --color-primary-solid: #2ecc71;   // 纯色
+  /* Primary Accent Color */
+  --color-primary: #2ecc71;         // Primary accent (buttons, links, selected state)
+  --color-primary-start: #2ecc71;   // Gradient start
+  --color-primary-end: #27ae60;     // Gradient end
+  --color-primary-solid: #2ecc71;   // Solid color
 
-  /* 功能色 */
-  --color-accent-green: #2ecc71;    // 主强调色 / 成功正向指标
+  /* Functional Colors */
+  --color-accent-green: #2ecc71;    // Primary accent / success positive indicator
   --color-accent-green-dark: #27ae60;
-  --color-accent-blue: #00c6ff;     // (旧强调色，已弃用) 辅助色
-  --color-accent-red: #e74c3c;      // 危险/负向指标
-  --color-accent-yellow: #f39c12;   // 警告/待处理
-  --color-accent-purple: #9b59b6;   // 辅助色/收入
-  --color-accent-teal: #1abc9c;     // 辅助色
-  --color-accent-orange: #e67e22;   // 辅助色
+  --color-accent-blue: #00c6ff;     // (Old accent, deprecated) Secondary color
+  --color-accent-red: #e74c3c;      // Danger/negative indicator
+  --color-accent-yellow: #f39c12;   // Warning/pending
+  --color-accent-purple: #9b59b6;   // Secondary/revenue
+  --color-accent-teal: #1abc9c;     // Secondary
+  --color-accent-orange: #e67e22;   // Secondary
 
-  /* 语义色别名 */
+  /* Semantic Color Aliases */
   --color-success: #2ecc71;
   --color-warning: #f39c12;
   --color-danger: #e74c3c;
   --color-info: #2ecc71;
 
-  /* 文字 */
-  --color-text-primary: #e2e8f0;    // 主文字色（高对比度白）
-  --color-text-secondary: #94a3b8;  // 次要文字色
-  --color-text-disabled: #475569;   // 禁用文字
+  /* Text */
+  --color-text-primary: #e2e8f0;    // Primary text color (high contrast white)
+  --color-text-secondary: #94a3b8;  // Secondary text color
+  --color-text-disabled: #475569;   // Disabled text
 
-  /* 阴影 */
+  /* Shadows */
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.25), 0 0 15px rgba(46, 204, 113, 0.2);
   --shadow-glow-green: 0 0 15px rgba(46, 204, 113, 0.3);
@@ -288,7 +288,7 @@ src/
   --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* 亮色主题覆盖（切换至亮色模式时通过 [data-theme="light"] 应用） */
+/* Light Theme Override (applied via [data-theme="light"] when switching to light mode) */
 [data-theme="light"] {
   --color-bg-primary: #f8fafc;
   --color-bg-secondary: #ffffff;
@@ -304,21 +304,21 @@ src/
 }
 ```
 
-> **权威来源**：设计令牌的完整定义和最新值以 `booking-frontend/src/styles.scss` 和 `docs/design/global-ui-spec.md` v3.0.0 为准。本节提供编码规范上下文中的快速参考。
+> **Authoritative Source**: The complete definition and latest values of design tokens are authoritative in `booking-frontend/src/styles.scss` and `docs/design/global-ui-spec.md` v3.0.0. This section provides a quick reference within the coding standard context.
 
-### 5.5 样式封装策略
+### 5.5 Style Encapsulation Strategy
 
-- 默认使用 `ViewEncapsulation.Emulated`
-- 仅在需要全局覆盖第三方组件样式时使用 `ViewEncapsulation.None`
-- 组件专属动画放组件 SCSS，通用动画放全局 `styles/_animations.scss`
+- Default to `ViewEncapsulation.Emulated`
+- Use `ViewEncapsulation.None` only when global override of third-party component styles is needed
+- Component-specific animations go in component SCSS; shared animations go in global `styles/_animations.scss`
 
 ---
 
-## 6. 状态管理规范 (NgRx SignalStore)
+## 6. State Management Standard (NgRx SignalStore)
 
-### 6.1 Store 结构
+### 6.1 Store Structure
 
-每个功能领域拥有独立的 Store：
+Each feature domain has its own independent Store:
 
 ```typescript
 import { signalStore, withState, withMethods, withComputed } from '@ngrx/signals';
@@ -374,20 +374,20 @@ export const BookingStore = signalStore(
 );
 ```
 
-### 6.2 Store 使用规范
+### 6.2 Store Usage Rules
 
-- **页面组件** 可以注入 Store，订阅 `vm` (ViewModel) Signal
-- **分子/原子组件** **禁止**直接注入 Store，必须通过 `@Input()` 接收数据
+- **Page components** may inject the Store and subscribe to the `vm` (ViewModel) Signal
+- **Molecule/Atom components** are **forbidden** from directly injecting the Store; they must receive data via `@Input()`
 
 ```typescript
-// 正确：页面组件注入 Store
+// Correct: Page component injects Store
 @Component({ ... })
 export class BookingPageComponent {
   private readonly store = inject(BookingStore);
   readonly vm = this.store.vm;
 }
 
-// 正确：分子组件通过 Input 接收数据
+// Correct: Molecule component receives data via Input
 @Component({ ... })
 export class TimeSlotGridComponent {
   @Input() slots: TimeSlot[] = [];
@@ -398,11 +398,11 @@ export class TimeSlotGridComponent {
 
 ---
 
-## 7. API 通信规范
+## 7. API Communication Standard
 
-### 7.1 Service 层职责
+### 7.1 Service Layer Responsibilities
 
-所有 HTTP 请求必须封装在 `*Service` 类中，组件**禁止**直接使用 `HttpClient`。
+All HTTP requests must be encapsulated in `*Service` classes; components are **forbidden** from using `HttpClient` directly.
 
 ```typescript
 @Injectable({ providedIn: 'root' })
@@ -430,9 +430,9 @@ export class BookingService {
 }
 ```
 
-### 7.2 DTO 定义
+### 7.2 DTO Definition
 
-DTO 文件独立定义在 `features/*/dto/` 目录下，与后端 API 响应格式严格对齐。
+DTO files are independently defined in `features/*/dto/` directories, strictly aligned with backend API response formats.
 
 ```typescript
 // auth.dto.ts
@@ -450,26 +450,26 @@ export interface LoginResponse {
 
 export interface UserProfile {
   id: string;
-  email: string;  // email/phone 为脱敏掩码展示字段，原始 PII 存储在 emailEncrypted/phoneEncrypted（AES-256-GCM），前端永不接收
-  phone: string;  // email/phone 为脱敏掩码展示字段，原始 PII 存储在 emailEncrypted/phoneEncrypted（AES-256-GCM），前端永不接收
+  email: string;  // email/phone are masked display fields; raw PII is stored in emailEncrypted/phoneEncrypted (AES-256-GCM); frontend never receives them
+  phone: string;  // email/phone are masked display fields; raw PII is stored in emailEncrypted/phoneEncrypted (AES-256-GCM); frontend never receives them
   firstName: string;
   lastName: string;
   role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
 }
-// 注意：email 和 phone 为脱敏掩码展示字段。
-// 原始 PII 存储在 emailEncrypted/phoneEncrypted（AES-256-GCM），前端永不接收。
-// 唯一索引使用 emailHash/phoneHash（SHA-256），前端永不接收。
+// Note: email and phone are masked display fields.
+// Raw PII is stored in emailEncrypted/phoneEncrypted (AES-256-GCM); frontend never receives them.
+// Unique indexes use emailHash/phoneHash (SHA-256); frontend never receives them.
 ```
 
-> **DTO 命名对齐**：前端 DTO 接口名必须与后端 API 响应字段名完全一致，确保类型安全。
+> **DTO Naming Alignment**: Frontend DTO interface names must be exactly consistent with backend API response field names to ensure type safety.
 
 ---
 
-## 8. 路由与懒加载
+## 8. Routing and Lazy Loading
 
-### 8.1 路由配置
+### 8.1 Route Configuration
 
-每个 feature 模块拥有独立的路由配置文件：
+Each feature module has its own independent route configuration file:
 
 ```typescript
 // features/auth/auth.routes.ts
@@ -489,9 +489,9 @@ export const AUTH_ROUTES: Routes = [
 ];
 ```
 
-### 8.2 懒加载
+### 8.2 Lazy Loading
 
-根路由通过 `loadChildren` 懒加载 feature 模块：
+Root routes lazy-load feature modules via `loadChildren`:
 
 ```typescript
 // app.routes.ts
@@ -511,11 +511,11 @@ export const APP_ROUTES: Routes = [
 
 ---
 
-## 9. 安全规范
+## 9. Security Standard
 
-### 9.1 认证 Guard
+### 9.1 Authentication Guard
 
-路由守卫必须集成在 `core/guards/` 目录下：
+Route guards must be located in the `core/guards/` directory:
 
 ```typescript
 // core/guards/auth.guard.ts
@@ -532,9 +532,9 @@ export const authGuard: CanActivateFn = (route, state) => {
 };
 ```
 
-### 9.2 角色 Guard
+### 9.2 Role Guard
 
-基于角色的路由访问控制，确保不同角色只能访问其授权的页面：
+Role-based route access control ensuring different roles can only access their authorized pages:
 
 ```typescript
 // core/guards/role.guard.ts
@@ -568,16 +568,16 @@ export function roleGuard(config: {
 }
 ```
 
-**角色路由规则**：
+**Role Routing Rules**:
 
-| 路由 | CUSTOMER | ADMIN | SUPER_ADMIN |
+| Route | CUSTOMER | ADMIN | SUPER_ADMIN |
 |------|:---:|:---:|:---:|
 | `/booking/*` | ✅ | ❌ | ❌ |
 | `/my-bookings` | ✅ | ❌ | ❌ |
 | `/profile` | ✅ | ✅ | ✅ |
 | `/admin/*` | ❌ | ✅ | ✅ |
 
-**使用示例**：
+**Usage Example**:
 ```typescript
 // booking.routes.ts — CUSTOMER only
 const customerOnly = [authGuard, roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })];
@@ -586,9 +586,9 @@ const customerOnly = [authGuard, roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })];
 canActivate: [authGuard, roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })],
 ```
 
-### 9.3 HTTP 拦截器
+### 9.3 HTTP Interceptor
 
-认证拦截器自动附加 JWT Token：
+The authentication interceptor automatically attaches the JWT Token:
 
 ```typescript
 // core/interceptors/auth.interceptor.ts
@@ -604,19 +604,19 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 };
 ```
 
-### 9.4 Token 存储
+### 9.4 Token Storage
 
-- Access Token 存储在内存中（`signal`）
-- Refresh Token 通过 Service 层管理，支持自动轮换
-- 禁止将 Token 存储在 `localStorage` 中（XSS 风险）
+- Access Token is stored in memory (`signal`)
+- Refresh Token is managed via the Service layer, supporting automatic rotation
+- Storing Token in `localStorage` is forbidden (XSS risk)
 
 ---
 
-## 10. 测试规范
+## 10. Testing Standard
 
-### 10.1 测试文件位置
+### 10.1 Test File Location
 
-测试文件与源文件同目录，使用 `.spec.ts` 后缀：
+Test files are co-located with source files, using the `.spec.ts` suffix:
 
 ```
 features/booking/
@@ -631,9 +631,9 @@ features/booking/
     └── booking.store.spec.ts
 ```
 
-### 10.2 Store 测试
+### 10.2 Store Testing
 
-Store 测试必须覆盖 State 初始化、Methods 执行和 Computed 计算：
+Store tests must cover State initialization, Methods execution, and Computed calculations:
 
 ```typescript
 describe('BookingStore', () => {
@@ -657,29 +657,29 @@ describe('BookingStore', () => {
 
 ---
 
-## 11. 与其他文档的对齐关系
+## 11. Alignment with Other Documents
 
-| 对齐文档 | 对齐内容 |
+| Aligned Document | Alignment Content |
 |---------|---------|
-| **系统架构设计文档(SAD)** | 前端/后端职责边界、通信协议（REST + WebSocket）、组件层级 |
-| **接口设计规范文档** | DTO 命名、API 响应格式、错误处理格式、HTTP 方法使用 |
-| **数据架构设计文档** | SignalStore State 与后端 Prisma Schema 字段映射、用户会话管理 |
-| **安全架构设计文档** | Auth Guard 实现、Token 存储策略、XSS/CSRF 防护 |
+| **system-architecture-design (SAD)** | Frontend/backend responsibility boundaries, communication protocols (REST + WebSocket), component layers |
+| **api-design-specification** | DTO naming, API response format, error handling format, HTTP method usage |
+| **data-architecture** | SignalStore State mapping to backend Prisma Schema fields, user session management |
+| **security-architecture** | Auth Guard implementation, Token storage strategy, XSS/CSRF protection |
 
-### DTO 命名对齐检查
+### DTO Naming Alignment Check
 
-前端 `*.dto.ts` 中的接口名必须与后端 API 响应字段保持一致：
+Frontend `*.dto.ts` interface names must be consistent with backend API response fields:
 
 ```typescript
-// 前端: features/booking/dto/booking.dto.ts
+// Frontend: features/booking/dto/booking.dto.ts
 export interface CreateBookingDto {
-  timeSlotId: string;     // 对应后端 Appointment.timeSlotId
-  serviceId: string;      // 对应后端 Appointment.serviceId  
-  appointmentDate: string; // 对应后端 Appointment.appointmentDate
+  timeSlotId: string;     // Maps to backend Appointment.timeSlotId
+  serviceId: string;      // Maps to backend Appointment.serviceId  
+  appointmentDate: string; // Maps to backend Appointment.appointmentDate
   customerInfo: CustomerInfo;
 }
 
-// 后端: Prisma Schema Appointment 模型
+// Backend: Prisma Schema Appointment model
 // timeSlotId: String @map("time_slot_id")
 // serviceId: String @map("service_id")
 // appointmentDate: DateTime @map("appointment_date")
@@ -687,10 +687,10 @@ export interface CreateBookingDto {
 
 ---
 
-## 更新记录
+## Change Log
 
-| 日期 | 版本 | 变更内容 | 批准人 |
+| Date | Version | Changes | Approved By |
 |------|------|---------|--------|
-| 2026-05-11 | 1.3.0 | 新增共享组件（app-search-input, app-filter-bar, app-table-wrapper, app-dropdown 增强, app-modal 增强）；系统色从蓝色 #00c6ff 迁移至绿色 #2ecc71 | 架构评审 |
-| 2026-05-11 | 1.2.0 | **[DEPRECATED]** 原 MultiSlotPicker 分子组件说明已标记废弃 | 架构评审 |
-| 2026-04-15 | 1.0.0 | 初始版本，基于评估报告完善 | 架构评审 |
+| 2026-05-11 | 1.3.0 | Added shared components (app-search-input, app-filter-bar, app-table-wrapper, enhanced app-dropdown, enhanced app-modal); system accent color migrated from blue #00c6ff to green #2ecc71 | Architecture Review |
+| 2026-05-11 | 1.2.0 | **[DEPRECATED]** Original MultiSlotPicker molecule component description marked as deprecated | Architecture Review |
+| 2026-04-15 | 1.0.0 | Initial version, refined based on evaluation report | Architecture Review |

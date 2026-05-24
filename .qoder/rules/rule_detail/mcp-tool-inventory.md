@@ -3,248 +3,248 @@ type: model_decision
 description: When working with MCP tools
 ---
 
-# MCP工具清单与调用策略
+# MCP Tool Inventory & Call Strategy
 
-**制定时间**: 2026-04-10  
-**最后更新**: 2026-05-14  
-**版本**: v2.0.0（新增 code-quality-gate MCP 工具 1.12 节，Write-Time Audit 5 项即时检查）
+**Created**: 2026-04-10  
+**Last Updated**: 2026-05-14  
+**Version**: v2.0.0 (Added code-quality-gate MCP tool §1.12, Write-Time Audit 5-item instant checks)
 
 ---
 
-## 一、当前项目可用MCP工具清单
+## 1. Available MCP Tool Inventory for Current Project
 
-### 1.1 GitHub MCP工具集
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.1 GitHub MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `mcp_GitHub_search_repositories` | 搜索GitHub仓库 | 查找参考项目、开源库 |
-| `mcp_GitHub_get_file_contents` | 获取仓库文件内容 | 查看代码、配置文件 |
-| `mcp_GitHub_create_issue` | 创建Issue | 问题跟踪、需求记录 |
-| `mcp_GitHub_create_pull_request` | 创建PR | 代码变更提交 |
-| `mcp_GitHub_list_commits` | 列出提交记录 | 查看变更历史 |
-| `mcp_GitHub_list_issues` | 列出Issues | 项目管理 |
-| `mcp_GitHub_update_issue` | 更新Issue | 状态变更 |
-| `mcp_GitHub_add_issue_comment` | 添加Issue评论 | 讨论交流 |
-| `mcp_GitHub_search_code` | 搜索代码 | 代码示例查找 |
-| `mcp_GitHub_search_issues` | 搜索Issues | 问题查找 |
-| `mcp_GitHub_search_users` | 搜索用户 | 协作者查找 |
-| `mcp_GitHub_get_issue` | 获取Issue详情 | 问题详情查看 |
-| `mcp_GitHub_get_pull_request` | 获取PR详情 | PR详情查看 |
-| `mcp_GitHub_list_pull_requests` | 列出PRs | PR列表查看 |
-| `mcp_GitHub_create_pull_request_review` | 创建PR评审 | 代码评审 |
-| `mcp_GitHub_merge_pull_request` | 合并PR | 代码合并 |
-| `mcp_GitHub_get_pull_request_files` | 获取PR变更文件 | 变更文件查看 |
-| `mcp_GitHub_get_pull_request_status` | 获取PR状态 | PR状态检查 |
-| `mcp_GitHub_update_pull_request_branch` | 更新PR分支 | 分支同步 |
-| `mcp_GitHub_get_pull_request_comments` | 获取PR评论 | 评审讨论查看 |
-| `mcp_GitHub_get_pull_request_reviews` | 获取PR评审 | 评审结果查看 |
+| `mcp_GitHub_search_repositories` | Search GitHub repositories | Find reference projects, open-source libraries |
+| `mcp_GitHub_get_file_contents` | Get repository file contents | View code, config files |
+| `mcp_GitHub_create_issue` | Create Issue | Issue tracking, requirement recording |
+| `mcp_GitHub_create_pull_request` | Create PR | Code change submission |
+| `mcp_GitHub_list_commits` | List commits | View change history |
+| `mcp_GitHub_list_issues` | List Issues | Project management |
+| `mcp_GitHub_update_issue` | Update Issue | Status changes |
+| `mcp_GitHub_add_issue_comment` | Add Issue comment | Discussion |
+| `mcp_GitHub_search_code` | Search code | Code example lookup |
+| `mcp_GitHub_search_issues` | Search Issues | Issue lookup |
+| `mcp_GitHub_search_users` | Search users | Collaborator lookup |
+| `mcp_GitHub_get_issue` | Get Issue details | Issue detail viewing |
+| `mcp_GitHub_get_pull_request` | Get PR details | PR detail viewing |
+| `mcp_GitHub_list_pull_requests` | List PRs | PR list viewing |
+| `mcp_GitHub_create_pull_request_review` | Create PR review | Code review |
+| `mcp_GitHub_merge_pull_request` | Merge PR | Code merging |
+| `mcp_GitHub_get_pull_request_files` | Get PR changed files | Changed file viewing |
+| `mcp_GitHub_get_pull_request_status` | Get PR status | PR status check |
+| `mcp_GitHub_update_pull_request_branch` | Update PR branch | Branch sync |
+| `mcp_GitHub_get_pull_request_comments` | Get PR comments | Review discussion viewing |
+| `mcp_GitHub_get_pull_request_reviews` | Get PR reviews | Review result viewing |
 
-### 1.2 Context7 MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.2 Context7 MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `mcp_context7_resolve-library-id` | 解析库ID | 获取技术栈库信息 |
-| `mcp_context7_query-docs` | 查询文档 | 获取最新技术文档 |
+| `mcp_context7_resolve-library-id` | Resolve library ID | Get tech stack library info |
+| `mcp_context7_query-docs` | Query documentation | Get latest technical docs |
 
-### 1.3 Pandoc MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.3 Pandoc MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `mcp_Pandoc_convert-contents` | 转换文档格式 | Markdown↔PDF↔DOCX等 |
+| `mcp_Pandoc_convert-contents` | Convert document format | Markdown↔PDF↔DOCX, etc. |
 
-### 1.4 Playwright MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.4 Playwright MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| Playwright MCP Server | 浏览器自动化、UI测试 | 浏览器操作、UI测试自动化 |
+| Playwright MCP Server | Browser automation, UI testing | Browser operations, UI test automation |
 
-### 1.5 Salesforce DX MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.5 Salesforce DX MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| Salesforce DX MCP | Salesforce项目开发、Apex/LWC开发 | Salesforce项目、元数据部署、SOQL查询 |
+| Salesforce DX MCP | Salesforce project development, Apex/LWC development | Salesforce projects, metadata deployment, SOQL queries |
 
-### 1.6 Docker MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.6 Docker MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `mcp_docker_list_containers` | 列出容器 | 查看运行中的容器 |
-| `mcp_docker_create_container` | 创建容器 | 创建新容器 |
-| `mcp_docker_run_container` | 运行容器 | 启动容器 |
-| `mcp_docker_recreate_container` | 重建容器 | 重新创建容器 |
-| `mcp_docker_start_container` | 启动容器 | 启动已停止的容器 |
-| `mcp_docker_fetch_container_logs` | 获取容器日志 | 查看容器日志 |
-| `mcp_docker_stop_container` | 停止容器 | 停止运行中的容器 |
-| `mcp_docker_remove_container` | 删除容器 | 删除容器 |
-| `mcp_docker_list_images` | 列出镜像 | 查看本地镜像 |
-| `mcp_docker_pull_image` | 拉取镜像 | 从仓库拉取镜像 |
-| `mcp_docker_push_image` | 推送镜像 | 推送镜像到仓库 |
-| `mcp_docker_build_image` | 构建镜像 | 构建Docker镜像 |
-| `mcp_docker_remove_image` | 删除镜像 | 删除本地镜像 |
-| `mcp_docker_list_networks` | 列出网络 | 查看Docker网络 |
-| `mcp_docker_create_network` | 创建网络 | 创建Docker网络 |
-| `mcp_docker_remove_network` | 删除网络 | 删除Docker网络 |
-| `mcp_docker_list_volumes` | 列出卷 | 查看Docker卷 |
-| `mcp_docker_create_volume` | 创建卷 | 创建Docker卷 |
-| `mcp_docker_remove_volume` | 删除卷 | 删除Docker卷 |
+| `mcp_docker_list_containers` | List containers | View running containers |
+| `mcp_docker_create_container` | Create container | Create new container |
+| `mcp_docker_run_container` | Run container | Start container |
+| `mcp_docker_recreate_container` | Recreate container | Recreate container |
+| `mcp_docker_start_container` | Start container | Start stopped container |
+| `mcp_docker_fetch_container_logs` | Fetch container logs | View container logs |
+| `mcp_docker_stop_container` | Stop container | Stop running container |
+| `mcp_docker_remove_container` | Remove container | Delete container |
+| `mcp_docker_list_images` | List images | View local images |
+| `mcp_docker_pull_image` | Pull image | Pull image from registry |
+| `mcp_docker_push_image` | Push image | Push image to registry |
+| `mcp_docker_build_image` | Build image | Build Docker image |
+| `mcp_docker_remove_image` | Remove image | Delete local image |
+| `mcp_docker_list_networks` | List networks | View Docker networks |
+| `mcp_docker_create_network` | Create network | Create Docker network |
+| `mcp_docker_remove_network` | Remove network | Delete Docker network |
+| `mcp_docker_list_volumes` | List volumes | View Docker volumes |
+| `mcp_docker_create_volume` | Create volume | Create Docker volume |
+| `mcp_docker_remove_volume` | Remove volume | Delete Docker volume |
 
-### 1.7 PostgreSQL MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.7 PostgreSQL MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `mcp_PostgreSQL_query` | 执行SQL查询 | 数据库查询、数据分析 |
+| `mcp_PostgreSQL_query` | Execute SQL query | Database query, data analysis |
 
-### 1.9 Compliance-Gate MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.9 Compliance-Gate MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `compliance_gate_check` | 任务执行前合规门禁检查，验证规则合规、MCP准备、Skill调用要求；自动生成per-session session_id | 所有任务执行前强制调用（P0阻塞） |
-| `compliance_gate_confirm` | 用户确认后锁定合规门禁状态，标记任务计划已获批准；需传入session_id | 用户确认任务计划后调用，解锁任务执行 |
-| `compliance_gate_complete` | 任务执行完成后关闭合规门禁会话，输出审计摘要；需传入session_id | 任务执行完成后强制调用（P0阻塞），产生审计记录 |
+| `compliance_gate_check` | Pre-task compliance gate check; validates rule compliance, MCP readiness, Skill call requirements; auto-generates per-session session_id | Mandatory call before all task execution (P0 blocking) |
+| `compliance_gate_confirm` | Locks compliance gate state after user confirmation; marks task plan as approved; requires session_id | Called after user confirms task plan; unlocks task execution |
+| `compliance_gate_complete` | Closes compliance gate session after task execution; outputs audit summary; requires session_id | Mandatory call after task execution completion (P0 blocking); produces audit record |
 
-### 1.10 Keystone Validate MCP工具
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.10 Keystone Validate MCP Tools
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `keystone_validate` | 执行Keystone全量校验：契约哈希、任务生命周期证据、TDD合规性、合规门禁状态。读取`.qoder/state/machine.json`作为单数据源，返回结构化PASS/FAIL报告 | 多Agent系统内任意Agent在提交或完成阶段调用；CI管道中替代pre-commit hook |
-| CLI: `npm run keystone:validate` | 同上，支持`--pre-commit`/`--audit`/`--ci`三种模式 | 开发者在提交前手动检查；CI脚本中调用 |
+| `keystone_validate` | Executes full Keystone validation: contract hash, task lifecycle evidence, TDD compliance, compliance gate status. Reads `.qoder/state/machine.json` as single data source, returns structured PASS/FAIL report | Any Agent in the multi-Agent system calls during commit or completion phase; replaces pre-commit hook in CI pipeline |
+| CLI: `npm run keystone:validate` | Same as above; supports `--pre-commit`/`--audit`/`--ci` three modes | Developers manually check before commit; CI scripts call |
 
-### 1.11 ESLint Audit MCP工具（v2.2.0新增）
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.11 ESLint Audit MCP Tools (Added in v2.2.0)
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `eslint_audit.run_audit` | 执行ESLint mock-audit合规扫描：(1)从`contract.yaml` `x-eslint-policy`自动生成`tier-rules.json`；(2)用`opencode-mock-audit`插件扫描spec/test文件；(3)更新`machine.json.eslint_state`。检测CAT1.1(TIER1 mock)、CAT1.0(绕过审计)、CAT1.3(TIER3参数验证) | @Coder-BE/@Coder-FE write/edit后提前发现违规（Layer A）；`compliance_gate_complete`内部全量扫描（Layer B）；@Guardian审查时读取machine.json判定合规性 |
+| `eslint_audit.run_audit` | Executes ESLint mock-audit compliance scan: (1) Auto-generates `tier-rules.json` from `contract.yaml` `x-eslint-policy`; (2) Scans spec/test files with `opencode-mock-audit` plugin; (3) Updates `machine.json.eslint_state`. Detects CAT1.1(TIER1 mock), CAT1.0(audit bypass), CAT1.3(TIER3 parameter validation) | @Coder-BE/@Coder-FE detect violations early after write/edit (Layer A); `compliance_gate_complete` internal full scan (Layer B); @Guardian reads machine.json for compliance determination during review |
 
-**调用方式**:
+**Call Method**:
 ```
 eslint_audit.run_audit({ changed_file: "src/modules/time-slots/time-slots.service.spec.ts" })
-→ Layer A: 单文件快速扫描
+→ Layer A: Single-file quick scan
 
 eslint_audit.run_audit({ full_scan: true })
-→ Layer B: compliance_gate_complete 内部全量扫描
+→ Layer B: compliance_gate_complete internal full scan
 ```
 
-### 1.12 Code Quality Gate MCP工具（v3.0.0 新增 — Write-Time Audit）
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.12 Code Quality Gate MCP Tools (Added in v3.0.0 — Write-Time Audit)
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `code_quality_gate.run_write_check({ changed_file, agent_type })` | **Write-Time Audit** — 每次Write/Edit后即时执行5项检查：① Agent Write Scope（路径越界拦截，BLOCKER）② Prettier格式化（自动修复）③ dependency-cruiser架构边界 ④ ESLint mock-audit（TIER1 Mock BLOCKER）⑤ tsc增量类型检查（BLOCKER）。结果写入`machine.json.{type_check_state,dependency_state,format_state,write_audit_state}` | @Coder-BE/@Coder-FE **每次Write/Edit后必须调用**（P0强制，不可跳过）；违规当场阻断 |
-| `code_quality_gate.run_full_scan()` | **Commit-Time全量扫描** — 执行tsc全量类型检查 + depcruise全量依赖扫描 + prettier全量格式检查。用于`compliance_gate_complete`内部和pre-commit hook | `compliance_gate_complete`内部调用；Guardian审查前调用 |
-| `code_quality_gate.get_audit_status({ task_id })` | **审计状态读取** — 读取`machine.json.write_audit_state`，返回某任务的Write-Time检查记录。用于Guardian审查时验证Agent是否执行了Write-Time Audit | @Guardian审查时调用 |
+| `code_quality_gate.run_write_check({ changed_file, agent_type })` | **Write-Time Audit** — Executes 5 checks immediately after each Write/Edit: ① Agent Write Scope (path boundary interception, BLOCKER) ② Prettier formatting (auto-fix) ③ dependency-cruiser architecture boundary ④ ESLint mock-audit (TIER1 Mock BLOCKER) ⑤ tsc incremental type check (BLOCKER). Results written to `machine.json.{type_check_state,dependency_state,format_state,write_audit_state}` | @Coder-BE/@Coder-FE **must call after every Write/Edit** (P0 mandatory, cannot skip); violations block immediately |
+| `code_quality_gate.run_full_scan()` | **Commit-Time Full Scan** — Executes tsc full type check + depcruise full dependency scan + prettier full format check. Used inside `compliance_gate_complete` and pre-commit hook | Called inside `compliance_gate_complete`; called before Guardian review |
+| `code_quality_gate.get_audit_status({ task_id })` | **Audit Status Read** — Reads `machine.json.write_audit_state`, returns Write-Time check records for a task. Used by Guardian to verify whether Agent executed Write-Time Audit | Called by @Guardian during review |
 
-**调用方式**:
+**Call Method**:
 ```
-# Layer A — Write-Time（每次修改后立即执行）
+# Layer A — Write-Time (execute immediately after each modification)
 code_quality_gate.run_write_check({
   changed_file: "booking-backend/src/modules/xxx/xxx.service.ts",
   agent_type: "@Coder-BE",
   task_id: "T-014"
 })
-→ 5项检查同步执行，<5秒返回，违规当场阻断
+→ 5 checks executed synchronously, returns in <5s, violations block immediately
 
-# Layer B — Full Scan（compliance_gate_complete/pre-commit）
+# Layer B — Full Scan (compliance_gate_complete/pre-commit)
 code_quality_gate.run_full_scan()
-→ 全量tsc + depcruise + prettier
+→ Full tsc + depcruise + prettier
 
-# Guardian审计查询
+# Guardian audit query
 code_quality_gate.get_audit_status({ task_id: "T-014" })
-→ 返回write_audit_state，验证checks_run >= files_changed
+→ Returns write_audit_state, verifies checks_run >= files_changed
 ```
 
-### 1.8 Task Agent工具（技术栈专家）
-| 工具名称 | 功能描述 | 适用场景 |
+### 1.8 Task Agent Tools (Tech Stack Experts)
+| Tool Name | Description | Use Case |
 |---------|---------|---------|
-| `Task(search)` | 搜索代理 | 代码库搜索、文档查找 |
-| `Task(salesforce-dx-expert)` | Salesforce DX专家 | Salesforce项目开发、Apex/LWC开发、CI/CD配置、部署故障排除 |
-| `Task(devops-architect)` | DevOps架构师 | CI/CD管道设计、GitOps工作流、容器化应用、云原生基础设施架构设计 |
-| `Task(playwright-mcp-expert)` | Playwright MCP专家 | Playwright MCP Server配置、LLM浏览器自动化、连接问题排除、元素定位策略优化 |
+| `Task(search)` | Search agent | Codebase search, documentation lookup |
+| `Task(salesforce-dx-expert)` | Salesforce DX expert | Salesforce project development, Apex/LWC development, CI/CD configuration, deployment troubleshooting |
+| `Task(devops-architect)` | DevOps architect | CI/CD pipeline design, GitOps workflows, containerized applications, cloud-native infrastructure architecture design |
+| `Task(playwright-mcp-expert)` | Playwright MCP expert | Playwright MCP Server configuration, LLM browser automation, connection troubleshooting, element locator strategy optimization |
 
 ---
 
-## 二、MCP工具调用策略
+## 2. MCP Tool Call Strategy
 
-### 2.1 按任务类型选择MCP工具
+### 2.1 MCP Tool Selection by Task Type
 
-| 任务类型 | 优先MCP工具 | 次要MCP工具 |
+| Task Type | Primary MCP Tools | Secondary MCP Tools |
 |---------|------------|------------|
-| **技术栈咨询** | Context7 MCP | GitHub Search |
-| **代码开发** | Context7 MCP, Task(search) | GitHub MCP |
-| **Write-Time Audit** | **code-quality-gate** (P0强制) | eslint-audit |
-| **Commit-Time验证** | **code-quality-gate**, keystone-validate | eslint-audit |
-| **CI/CD配置** | Task(devops-architect) | GitHub MCP |
-| **GitHub操作** | GitHub MCP | - |
-| **Docker/容器化** | Docker MCP | Task(devops-architect) |
-| **数据库查询** | PostgreSQL MCP | - |
-| **文档转换** | Pandoc MCP | - |
-| **Salesforce开发** | Salesforce DX MCP | GitHub MCP |
+| **Tech Stack Consultation** | Context7 MCP | GitHub Search |
+| **Code Development** | Context7 MCP, Task(search) | GitHub MCP |
+| **Write-Time Audit** | **code-quality-gate** (P0 mandatory) | eslint-audit |
+| **Commit-Time Verification** | **code-quality-gate**, keystone-validate | eslint-audit |
+| **CI/CD Configuration** | Task(devops-architect) | GitHub MCP |
+| **GitHub Operations** | GitHub MCP | - |
+| **Docker/Containerization** | Docker MCP | Task(devops-architect) |
+| **Database Queries** | PostgreSQL MCP | - |
+| **Document Conversion** | Pandoc MCP | - |
+| **Salesforce Development** | Salesforce DX MCP | GitHub MCP |
 | **DevOps/CI/CD** | Task(devops-architect) | Docker MCP, GitHub MCP |
-| **UI测试/浏览器自动化** | Playwright MCP | - |
+| **UI Testing/Browser Automation** | Playwright MCP | - |
 
-### 2.2 阻塞性MCP调用清单
+### 2.2 Blocking MCP Call Checklist
 
-以下MCP调用为阻塞性，必须成功完成才能进入下一阶段：
+The following MCP calls are blocking; they must complete successfully before proceeding to the next phase:
 
-| 任务阶段 | 阻塞性MCP调用 | 失败处理 |
+| Task Phase | Blocking MCP Call | Failure Handling |
 |---------|-------------|---------|
-| **环境验证** | 依赖检查、版本验证 | 重试3次 → 官方文档替代 |
-| **技术栈确认** | Context7查询最新文档 | 重试3次 → 使用已知最佳实践 |
-| **安全扫描** | 依赖漏洞扫描 | 重试3次 → 记录风险继续 |
-| **合规门禁（前）** | `compliance_gate_check` + `compliance_gate_confirm` | 阻塞，未通过不得进行任何任务执行 |
-| **合规门禁（后）** | `compliance_gate_complete` + `code_quality_gate.run_full_scan()` | 阻塞，未完成不得标记任务结束。读取 machine.json 全部 8 维状态，任一 dirty → failed |
-| **Write-Time Audit（P0强制）** | `code_quality_gate.run_write_check({ changed_file, agent_type })` | **P0阻塞不可跳过**。每次 Write/Edit 后必须执行。5项检查：scope/format/deps/eslint/tsc。违规当场阻断。跳过 → CAT5.1 违规 |
-| **测试编写/修改后** | `eslint_audit.run_audit({ changed_file })` | 建议非阻塞。提前发现 TIER1 mock 违规 |
-| **Guardian审查前** | `code_quality_gate.get_audit_status({ task_id })` | 阻塞。验证 write_audit_log 完整性 |
+| **Environment Verification** | Dependency check, version verification | Retry 3 times → Official documentation alternative |
+| **Tech Stack Confirmation** | Context7 query latest docs | Retry 3 times → Use known best practices |
+| **Security Scan** | Dependency vulnerability scan | Retry 3 times → Record risk and continue |
+| **Compliance Gate (Pre)** | `compliance_gate_check` + `compliance_gate_confirm` | Blocking; no task execution permitted until passed |
+| **Compliance Gate (Post)** | `compliance_gate_complete` + `code_quality_gate.run_full_scan()` | Blocking; task cannot be marked complete. Reads all 8 state dimensions from machine.json; any dirty → failed |
+| **Write-Time Audit (P0 Mandatory)** | `code_quality_gate.run_write_check({ changed_file, agent_type })` | **P0 blocking, cannot skip**. Must execute after every Write/Edit. 5 checks: scope/format/deps/eslint/tsc. Violations block immediately. Skip → CAT5.1 violation |
+| **After Test Write/Modification** | `eslint_audit.run_audit({ changed_file })` | Advisory, non-blocking. Early detection of TIER1 mock violations |
+| **Before Guardian Review** | `code_quality_gate.get_audit_status({ task_id })` | Blocking. Verifies write_audit_log completeness |
 
 ---
 
-## 三、MCP调用最佳实践
+## 3. MCP Call Best Practices
 
-### 3.1 调用前检查
-- [ ] 确认MCP工具可用性
-- [ ] 准备必要的参数
-- [ ] 规划失败处理策略
-- [ ] 使用TodoWrite跟踪状态
+### 3.1 Pre-Call Checks
+- [ ] Confirm MCP tool availability
+- [ ] Prepare necessary parameters
+- [ ] Plan failure handling strategy
+- [ ] Use TodoWrite for status tracking
 
-### 3.2 调用中执行
-- [ ] 按优先级顺序调用
-- [ ] 阻塞性调用先执行
-- [ ] 完整记录调用输出
-- [ ] 实时更新TodoWrite状态
+### 3.2 During Execution
+- [ ] Call in priority order
+- [ ] Execute blocking calls first
+- [ ] Fully record call outputs
+- [ ] Update TodoWrite status in real-time
 
-### 3.3 调用后处理
-- [ ] 解析MCP输出关键信息
-- [ ] 应用MCP指导到决策
-- [ ] 记录决策依据
-- [ ] 归档MCP调用记录
-
----
-
-## 四、MCP工具扩展指南
-
-### 4.1 添加新MCP工具
-1. 在本文档"一、当前项目可用MCP工具清单"中添加对应表格
-2. 更新"二、MCP工具调用策略"中的映射关系
-3. 添加调用示例和最佳实践
-
-### 4.2 更新现有MCP工具
-1. 更新工具功能描述
-2. 调整适用场景
-3. 更新调用策略
+### 3.3 Post-Call Processing
+- [ ] Parse key information from MCP output
+- [ ] Apply MCP guidance to decisions
+- [ ] Record decision rationale
+- [ ] Archive MCP call records
 
 ---
 
-## 五、失败处理流程
+## 4. MCP Tool Extension Guide
+
+### 4.1 Adding New MCP Tools
+1. Add the corresponding table entry in "1. Available MCP Tool Inventory for Current Project" above
+2. Update mapping relationships in "2. MCP Tool Call Strategy"
+3. Add call examples and best practices
+
+### 4.2 Updating Existing MCP Tools
+1. Update tool description
+2. Adjust use cases
+3. Update call strategy
+
+---
+
+## 5. Failure Handling Process
 
 ```
-MCP调用失败
+MCP call failure
     ↓
-记录失败详情和时间戳
+Record failure details and timestamp
     ↓
-立即暂停所有后续任务
+Immediately suspend all subsequent tasks
     ↓
-尝试重试（最多3次，每次间隔≥30秒）
+Attempt retry (max 3 times, interval ≥30 seconds each)
     ↓
-重试成功？ → 是 → 继续执行
-    ↓ 否
-启动官方文档替代方案评估
+Retry successful? → Yes → Continue execution
+    ↓ No
+Initiate official documentation alternative assessment
     ↓
-记录替代理由和风险评估
+Record alternative rationale and risk assessment
     ↓
-标记MCP项为"已通过替代方案解决"
+Mark MCP item as "resolved via alternative"
     ↓
-恢复任务执行
+Resume task execution
 ```
 
 ---
 
-*本文档将根据MCP工具变化持续更新。*
+*This document will be continuously updated as MCP tools evolve.*
 

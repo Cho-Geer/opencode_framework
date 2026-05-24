@@ -96,8 +96,8 @@ When the following scenarios are involved, the following must be read and follow
 - Service writing (API services, route guards, HTTP interceptors, data resolvers)
 - State management definition
 - Route configuration and code splitting/lazy loading setup
-- 模板文件写作
-- 样式文件写作
+- Template file authoring
+- Style file authoring
 
 ## Working Memory Scratchpad (TASK_LOG.md) Mandatory Requirement
 

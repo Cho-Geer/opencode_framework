@@ -370,8 +370,8 @@
         }
       ]
     },
-    "requirements/系统架构设计文档（SAD）.md": {
-      "path": ".qoder/context/requirements/系统架构设计文档（SAD）.md",
+    "requirements/system-architecture-design.md": {
+      "path": ".qoder/context/requirements/system-architecture-design.md",
       "category": "requirement",
       "semver": "1.0.0",
       "sha256": "8ea014ffde9b54080dcabebee3f4afb70a842e1d5f8d5911734ef3a18d30c0e3",
@@ -386,8 +386,8 @@
         }
       ]
     },
-    "requirements/接口设计规范文档.md": {
-      "path": ".qoder/context/requirements/接口设计规范文档.md",
+    "requirements/api-design-specification.md": {
+      "path": ".qoder/context/requirements/api-design-specification.md",
       "category": "requirement",
       "semver": "1.0.0",
       "sha256": "0097fae4cff4357e329cae89982484b062bf0d0a125ff7e606650ecaf1bb8b05",

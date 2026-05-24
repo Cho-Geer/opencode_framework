@@ -5,163 +5,163 @@ description: Universal coding standards
 
 # Framework-Agnostic Common Coding Standard
 
-本文档从项目的前端和后端代码规范中提取所有**框架无关**的通用编码规则，作为全项目统一的基线标准。
-框架特定规则请参阅各自的标准文件。
+This document extracts all **framework-agnostic** common coding rules from the project's frontend and backend code standards, serving as the unified baseline standard for the entire project.
+For framework-specific rules, please refer to their respective standard files.
 
-## 关联文档
+## Related Documents
 
-| 文档 | 用途 |
+| Document | Purpose |
 | :--- | :--- |
-| [前端代码规范](.qoder/rules/frontend-coding-standard.md) | Angular 前端框架特定规范 |
-| [后端代码规范](.qoder/rules/backend-coding-standard.md) | NestJS 后端框架特定规范 |
-| [前端代码规范（详细）](.qoder/context/code_standards/frontend-coding-standard.md) | 前端完整的上下文规范 |
-| [后端代码规范（详细）](.qoder/context/code_standards/backend-coding-standard.md) | 后端完整的上下文规范 |
+| [Frontend Coding Standard](.qoder/rules/frontend-coding-standard.md) | Angular frontend framework-specific standards |
+| [Backend Coding Standard](.qoder/rules/backend-coding-standard.md) | NestJS backend framework-specific standards |
+| [Frontend Coding Standard (Detailed)](.qoder/context/code_standards/frontend-coding-standard.md) | Complete frontend context standards |
+| [Backend Coding Standard (Detailed)](.qoder/context/code_standards/backend-coding-standard.md) | Complete backend context standards |
 
 ---
 
-## 1. 文件命名约定 (File Naming Conventions)
+## 1. File Naming Conventions
 
-### 规则
+### Rules
 
-| 类型 | 命名规则 | 示例 |
+| Type | Naming Rule | Example |
 | :--- | :--- | :--- |
-| **文件** | `kebab-case` | `booking-form.component.ts`, `appointment.service.ts` |
-| **类** | `PascalCase` | `BookingFormComponent`, `AppointmentService`, `AuthController` |
-| **接口** | `PascalCase`，**禁止 `I` 前缀** | `Appointment`, `UserSession`, `LoginResponse` |
-| **类型别名** | `PascalCase` | `AppointmentStatus`, `UserRole` |
-| **枚举** | `PascalCase`，成员 `UPPER_SNAKE_CASE` | `enum AppointmentStatus { PENDING, CONFIRMED }` |
-| **常量** | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT`, `JWT_EXPIRES_IN` |
-| **变量/函数** | `camelCase` | `currentUser`, `findAvailableSlots()` |
-| **私有成员** | 前/后端各自约定（前端 `_` 前缀或框架约定，后端 `private readonly`） | `_http` (FE), `private readonly userRepository` (BE) |
+| **Files** | `kebab-case` | `booking-form.component.ts`, `appointment.service.ts` |
+| **Classes** | `PascalCase` | `BookingFormComponent`, `AppointmentService`, `AuthController` |
+| **Interfaces** | `PascalCase`, **no `I` prefix** | `Appointment`, `UserSession`, `LoginResponse` |
+| **Type Aliases** | `PascalCase` | `AppointmentStatus`, `UserRole` |
+| **Enums** | `PascalCase`, members `UPPER_SNAKE_CASE` | `enum AppointmentStatus { PENDING, CONFIRMED }` |
+| **Constants** | `UPPER_SNAKE_CASE` | `MAX_RETRY_COUNT`, `JWT_EXPIRES_IN` |
+| **Variables/Functions** | `camelCase` | `currentUser`, `findAvailableSlots()` |
+| **Private Members** | Per frontend/backend convention (frontend `_` prefix or framework convention, backend `private readonly`) | `_http` (FE), `private readonly userRepository` (BE) |
 
-### 理由
+### Rationale
 
-统一的命名约定降低认知负担，使开发者可以在前后端代码库之间无缝切换。
+Unified naming conventions reduce cognitive load, enabling developers to seamlessly switch between frontend and backend codebases.
 
-### 来源
+### Source
 
-- 前端代码规范 §3.1（`.qoder/context/code_standards/frontend-coding-standard.md`）
-- 后端代码规范 §3.1（`.qoder/context/code_standards/backend-coding-standard.md`）
-
----
-
-## 2. 文件分离原则 (File Separation)
-
-### 规则
-
-每个文件只负责**一个**概念（一个类、一个组件、一个服务、一个 DTO、一个守卫等）。
-
-**禁止**将多个类、组件、或不同职责的逻辑混入同一文件。
-
-### 理由
-
-- 提高代码可读性和可维护性
-- 降低合并冲突概率
-- 使代码审查更聚焦
-
-### 来源
-
-- 前端代码规范 §1.1 关注点分离（`.qoder/context/code_standards/frontend-coding-standard.md`）
-- 后端代码规范 §1.1 模块化与关注点分离（`.qoder/context/code_standards/backend-coding-standard.md`）
+- Frontend Coding Standard §3.1 (`.qoder/context/code_standards/frontend-coding-standard.md`)
+- Backend Coding Standard §3.1 (`.qoder/context/code_standards/backend-coding-standard.md`)
 
 ---
 
-## 3. 禁止 `any` 类型 (No `any` Type)
+## 2. File Separation Principle
 
-### 规则
+### Rules
 
-**强制禁止**使用 TypeScript `any` 类型。
+Each file is responsible for **one** concept only (one class, one component, one service, one DTO, one guard, etc.).
 
-所有函数参数、返回值、变量必须有明确的类型注解。对于确实无法确定类型的情况，使用 `unknown` 并进行类型守卫。
+It is **prohibited** to mix multiple classes, components, or logic with different responsibilities into the same file.
+
+### Rationale
+
+- Improves code readability and maintainability
+- Reduces merge conflict probability
+- Makes code reviews more focused
+
+### Source
+
+- Frontend Coding Standard §1.1 Separation of Concerns (`.qoder/context/code_standards/frontend-coding-standard.md`)
+- Backend Coding Standard §1.1 Modularization and Separation of Concerns (`.qoder/context/code_standards/backend-coding-standard.md`)
+
+---
+
+## 3. No `any` Type
+
+### Rules
+
+The use of TypeScript `any` type is **strictly prohibited**.
+
+All function parameters, return values, and variables must have explicit type annotations. For cases where the type truly cannot be determined, use `unknown` with type guards.
 
 ```typescript
-// ❌ 禁止
+// ❌ Prohibited
 async create(data: any): Promise<any> { ... }
 const items: any[] = [];
 
-// ✅ 正确
+// ✅ Correct
 async create(data: CreateAppointmentDto): Promise<Appointment> { ... }
 const items: Appointment[] = [];
 ```
 
-### 理由
+### Rationale
 
-`any` 类型绕过了 TypeScript 的类型检查系统，使类型安全无效化，增加了运行时错误的风险。
+The `any` type bypasses TypeScript's type checking system, rendering type safety ineffective and increasing the risk of runtime errors.
 
-### 来源
+### Source
 
-- 前端代码规范 §3.2 类型安全（`.qoder/context/code_standards/frontend-coding-standard.md`）
-- 后端代码规范 §3.2 类型安全（`.qoder/context/code_standards/backend-coding-standard.md`）
+- Frontend Coding Standard §3.2 Type Safety (`.qoder/context/code_standards/frontend-coding-standard.md`)
+- Backend Coding Standard §3.2 Type Safety (`.qoder/context/code_standards/backend-coding-standard.md`)
 
 ---
 
-## 4. 导入顺序约定 (Import Ordering)
+## 4. Import Ordering Convention
 
-### 规则
+### Rules
 
-导入语句必须按以下顺序分组，组间用空行分隔：
+Import statements must be grouped in the following order, separated by blank lines between groups:
 
-1. **外部依赖**（第三方包，如 `express`、`react`、`lodash`、`class-validator`）
-2. **内部模块**（项目内 `src/` 下的绝对路径导入，如 `../../common/database/database.service`）
-3. **相对导入**（同级或子目录的相对路径，如 `./dto/create-appointment.dto`）
+1. **External dependencies** (third-party packages, e.g., `express`, `react`, `lodash`, `class-validator`)
+2. **Internal modules** (absolute path imports from within the project's `src/`, e.g., `../../common/database/database.service`)
+3. **Relative imports** (relative paths from the same level or subdirectories, e.g., `./dto/create-appointment.dto`)
 
-每组内按字母顺序排列。
+Each group is sorted alphabetically.
 
 ```typescript
-// 1. 外部依赖
+// 1. External dependencies
 import { Router, Request, Response } from 'express';
 import { IsString, IsUUID } from 'class-validator';
 import { debounce, cloneDeep } from 'lodash';
 
-// 2. 内部模块
+// 2. Internal modules
 import { DatabaseService } from '../../common/database/database.service';
 import { EmailService } from '../email/email.service';
 
-// 3. 相对导入
+// 3. Relative imports
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { Appointment } from './interfaces/appointment.interface';
 ```
 
-### 理由
+### Rationale
 
-统一的导入顺序使依赖关系一目了然，便于快速识别外部依赖和内部模块依赖。
+Unified import ordering makes dependency relationships clear at a glance, enabling quick identification of external and internal module dependencies.
 
-### 来源
+### Source
 
-- 前端代码规范 §3.3 组件类结构（隐含的导入组织要求）
-- 后端代码规范 §3.3 类成员顺序（隐含的导入组织要求）
+- Frontend Coding Standard §3.3 Component Class Structure (implied import organization requirements)
+- Backend Coding Standard §3.3 Class Member Ordering (implied import organization requirements)
 
 ---
 
-## 5. 错误处理模式 (Error Handling)
+## 5. Error Handling Patterns
 
-### 规则
+### Rules
 
-#### 后端
+#### Backend
 
-| 异常类型 | 使用场景 | HTTP 状态码 |
+| Exception Type | Use Case | HTTP Status Code |
 | :--- | :--- | :--- |
-| 资源不存在 (404) | 请求的资源未找到 | 404 |
-| 业务冲突 (409) | 预约冲突、重复操作 | 409 |
-| 参数校验失败 (400) | 请求参数不符合规则 | 400 |
-| 认证失败 (401) | 未提供有效身份凭证 | 401 |
-| 权限不足 (403) | 身份已验证但权限不够 | 403 |
+| Resource Not Found (404) | Requested resource not found | 404 |
+| Business Conflict (409) | Appointment conflict, duplicate operation | 409 |
+| Parameter Validation Failure (400) | Request parameters do not meet rules | 400 |
+| Authentication Failure (401) | No valid identity credentials provided | 401 |
+| Insufficient Permissions (403) | Identity verified but insufficient permissions | 403 |
 
-使用统一的"全局异常处理层"进行错误捕获，并将数据库/ORM 错误映射为上述标准 HTTP 错误响应。
+Use a unified "global exception handling layer" for error capture, and map database/ORM errors to the standard HTTP error responses above.
 
-#### 前端
+#### Frontend
 
-- Store 方法中必须使用 `try-catch` 捕获异步操作错误
-- 错误信息必须写入 Store 的 `error` 状态字段
-- UI 层通过 `vm.error` 展示用户友好的错误信息
+- Store methods must use `try-catch` to capture async operation errors
+- Error messages must be written to the Store's `error` state field
+- The UI layer displays user-friendly error messages via `vm.error`
 
 ```typescript
-// 后端示例
+// Backend example
 if (timeSlot.currentSequence > timeSlot.capacity) {
-  throw new Error('该时段预约名额已满'); // 实际项目中应使用框架对应的业务异常类型
+  throw new Error('This time slot is fully booked'); // In actual projects, use the framework's corresponding business exception type
 }
 
-// 前端示例 (Store)
+// Frontend example (Store)
 async loadAppointments(date: string): Promise<void> {
   patchState(store, { isLoading: true, error: null });
   try {
@@ -176,154 +176,154 @@ async loadAppointments(date: string): Promise<void> {
 }
 ```
 
-### 理由
+### Rationale
 
-统一的错误处理确保用户获得一致的错误反馈，同时便于运维团队监控和定位问题。
+Unified error handling ensures users receive consistent error feedback, while facilitating operations team monitoring and issue localization.
 
-### 来源
+### Source
 
-- 后端代码规范 §6.3 异常处理、§11 错误处理（`.qoder/context/code_standards/backend-coding-standard.md`）
-- 前端代码规范 §6 Store 结构中的错误处理模式（`.qoder/context/code_standards/frontend-coding-standard.md`）
+- Backend Coding Standard §6.3 Exception Handling, §11 Error Handling (`.qoder/context/code_standards/backend-coding-standard.md`)
+- Frontend Coding Standard §6 Error Handling Patterns in Store Structure (`.qoder/context/code_standards/frontend-coding-standard.md`)
 
 ---
 
-## 6. 日志标准 (Logging Standards)
+## 6. Logging Standards
 
-### 规则
+### Rules
 
-所有服务和关键业务逻辑必须包含结构化日志。
+All services and critical business logic must include structured logging.
 
-#### 后端
+#### Backend
 
-使用项目的日志框架（如 NestJS Logger、Winston、Pino 等）：
+Use the project's logging framework (e.g., NestJS Logger, Winston, Pino, etc.):
 
 ```typescript
-// 选择适合项目技术栈的日志方案，以下为通用日志级别模式
-logger.info('Appointment created successfully');     // INFO — 正常业务流程
-logger.warn('Slot capacity approaching limit');     // WARNING — 需要关注
-logger.error('Failed to create appointment', err);  // ERROR — 需要修复
-logger.debug(`Processing slot: ${slotId}`);         // DEBUG — 仅开发环境
+// Choose the logging solution appropriate for the project's tech stack; below is a generic log level pattern
+logger.info('Appointment created successfully');     // INFO — Normal business flow
+logger.warn('Slot capacity approaching limit');     // WARNING — Requires attention
+logger.error('Failed to create appointment', err);  // ERROR — Requires fix
+logger.debug(`Processing slot: ${slotId}`);         // DEBUG — Development environment only
 ```
 
-"请求日志中间件"（或通用的日志拦截机制）应自动记录每个请求的关键信息（方法、路径、用户标识、状态码、耗时）。
+"Request logging middleware" (or a generic logging interception mechanism) should automatically record key information for each request (method, path, user identifier, status code, duration).
 
-#### 前端
+#### Frontend
 
-- 使用前端框架的控制台方法时应保持克制，优先通过状态管理的 `error` 状态传递错误
-- 关键 API 调用失败应在开发环境输出详细错误日志
-- 生产环境禁止输出 `console.log`
+- Exercise restraint when using frontend framework console methods; prefer passing errors through state management's `error` state
+- Critical API call failures should output detailed error logs in the development environment
+- `console.log` is prohibited in production
 
-### 理由
+### Rationale
 
-结构化日志是可观测性的基础，便于故障排查、性能分析和安全审计。
+Structured logging is the foundation of observability, facilitating fault diagnosis, performance analysis, and security auditing.
 
-### 来源
+### Source
 
-- 后端代码规范 §12 日志规范（`.qoder/context/code_standards/backend-coding-standard.md`）
+- Backend Coding Standard §12 Logging Standards (`.qoder/context/code_standards/backend-coding-standard.md`)
 
 ---
 
-## 7. TDD 要求 (Test-Driven Development)
+## 7. TDD Requirements (Test-Driven Development)
 
-### 规则
+### Rules
 
-所有代码实现严格遵循 **RED → GREEN → REFACTOR** 循环：
+All code implementation must strictly follow the **RED → GREEN → REFACTOR** cycle:
 
-1. **RED**：先编写测试用例，执行必须**失败**
-2. **GREEN**：编写**最简**代码使测试通过
-3. **REFACTOR**：在测试全量通过的前提下重构代码
+1. **RED**: Write test cases first; execution must **fail**
+2. **GREEN**: Write the **minimal** code to make tests pass
+3. **REFACTOR**: Refactor code only after all tests pass
 
-**禁止**编写任何没有对应测试用例的业务实现代码。
+It is **prohibited** to write any business implementation code without corresponding test cases.
 
-### 覆盖率要求
+### Coverage Requirements
 
-| 类型 | 最低覆盖率 |
+| Type | Minimum Coverage |
 | :--- | :--- |
-| 行覆盖率 (Lines) | 70% |
-| 分支覆盖率 (Branches) | 70% |
-| 函数覆盖率 (Functions) | 70% |
-| 业务关键路径 (Core Business) | 90%+ |
+| Line Coverage (Lines) | 70% |
+| Branch Coverage (Branches) | 70% |
+| Function Coverage (Functions) | 70% |
+| Core Business Paths (Core Business) | 90%+ |
 
-### 测试文件位置
+### Test File Location
 
-- 测试文件与源文件同目录，使用 `.spec.ts` 后缀
-- 测试报告统一输出到 `.task_temp/{taskId}/test_report.json`，必须包含 `execution_evidence` 字段
+- Test files are co-located with source files in the same directory, using the `.spec.ts` suffix
+- Test reports are uniformly output to `.task_temp/{taskId}/test_report.json` and must include the `execution_evidence` field
 
-### 理由
+### Rationale
 
-TDD 确保代码的可测试性，减少回归缺陷，覆盖率要求提供质量基线。
+TDD ensures code testability, reduces regression defects, and coverage requirements provide a quality baseline.
 
-### 来源
+### Source
 
-- 前端代码规范 §10 测试规范（`.qoder/context/code_standards/frontend-coding-standard.md`）
-- 后端代码规范 §14 测试规范（`.qoder/context/code_standards/backend-coding-standard.md`）
-
----
-
-## 8. 文件长度限制 (Maximum File Length)
-
-### 规则
-
-- 单个文件**不应超过 400 行**（含注释和空行）
-- 超过时必须拆分为更小的模块/组件/服务
-- 前端模板文件（`.component.html`）**不超过 200 行**
-- 超过限制时优先考虑提取子组件或辅助函数
-
-### 理由
-
-长文件难以阅读、理解和维护，增加代码审查负担和合并冲突风险。
-
-### 来源
-
-- 前端代码规范 §4.3 模板尺寸（`.qoder/context/code_standards/frontend-coding-standard.md`）
+- Frontend Coding Standard §10 Testing Standards (`.qoder/context/code_standards/frontend-coding-standard.md`)
+- Backend Coding Standard §14 Testing Standards (`.qoder/context/code_standards/backend-coding-standard.md`)
 
 ---
 
-## 9. 注释与文档标准 (Comments & Documentation)
+## 8. Maximum File Length
 
-### 规则
+### Rules
 
-#### JSDoc 注释
+- A single file **should not exceed 400 lines** (including comments and blank lines)
+- When exceeded, it must be split into smaller modules/components/services
+- Frontend template files (`.component.html`) **should not exceed 200 lines**
+- When limits are exceeded, prioritize extracting sub-components or helper functions
 
-所有公共方法、类、接口必须有 JSDoc 注释，说明用途、参数和返回值：
+### Rationale
+
+Long files are difficult to read, understand, and maintain, increasing code review burden and merge conflict risk.
+
+### Source
+
+- Frontend Coding Standard §4.3 Template Size (`.qoder/context/code_standards/frontend-coding-standard.md`)
+
+---
+
+## 9. Comments & Documentation Standards
+
+### Rules
+
+#### JSDoc Comments
+
+All public methods, classes, and interfaces must have JSDoc comments explaining purpose, parameters, and return values:
 
 ```typescript
 /**
- * 创建预约 - 高并发原子化抢占
- * 依赖 PostgreSQL 部分唯一索引 + slot_sequence 原子递增
- * @param dto - 创建预约数据传输对象
- * @returns 新创建的预约记录
- * @throws ConflictException - 当预约名额已满时抛出
+ * Create appointment — high-concurrency atomic preemption
+ * Relies on PostgreSQL partial unique index + slot_sequence atomic increment
+ * @param dto - Create appointment data transfer object
+ * @returns The newly created appointment record
+ * @throws ConflictException - Thrown when appointment slots are full
  */
 async create(dto: CreateAppointmentDto): Promise<Appointment> { ... }
 ```
 
-#### API 文档
+#### API Documentation
 
-- 后端所有端点必须有完整的 API 文档装饰器（如 NestJS/Swagger 的 `@ApiOperation`、`@ApiResponse`，或 OpenAPI 注解）
-- 所有 DTO 字段必须有对应的文档描述装饰器
+- All backend endpoints must have complete API documentation decorators (e.g., NestJS/Swagger's `@ApiOperation`, `@ApiResponse`, or OpenAPI annotations)
+- All DTO fields must have corresponding documentation description decorators
 
-#### 内联注释
+#### Inline Comments
 
-- 复杂逻辑必须用行内注释解释**为什么**这么做，而非**做了什么**
-- 避免冗余注释（如 `// 创建一个用户` 紧跟在 `createUser()` 之后）
+- Complex logic must have inline comments explaining **why** something is done, not **what** is being done
+- Avoid redundant comments (e.g., `// create a user` immediately following `createUser()`)
 
-### 理由
+### Rationale
 
-良好的文档减少知识孤岛，加速新成员上手，降低长期维护成本。
+Good documentation reduces knowledge silos, accelerates onboarding of new members, and reduces long-term maintenance costs.
 
-### 来源
+### Source
 
-- 后端代码规范 §13 Swagger/OpenAPI 文档（`.qoder/context/code_standards/backend-coding-standard.md`）
-- 前端代码规范 §11 DTO 命名对齐中的注释规范（`.qoder/context/code_standards/frontend-coding-standard.md`）
+- Backend Coding Standard §13 Swagger/OpenAPI Documentation (`.qoder/context/code_standards/backend-coding-standard.md`)
+- Frontend Coding Standard §11 Comment Standards in DTO Naming Alignment (`.qoder/context/code_standards/frontend-coding-standard.md`)
 
 ---
 
-## 10. Git 提交消息格式 (Git Commit Message Format)
+## 10. Git Commit Message Format
 
-### 规则
+### Rules
 
-提交消息必须遵循以下格式：
+Commit messages must follow this format:
 
 ```
 <type>[scope]: <description>
@@ -331,41 +331,41 @@ async create(dto: CreateAppointmentDto): Promise<Appointment> { ... }
 [optional body]
 ```
 
-#### TDD 阶段标签（强制）
+#### TDD Phase Tags (Mandatory)
 
-根据 TDD 阶段，提交消息必须包含对应的标签：
+Based on the TDD phase, commit messages must include the corresponding tag:
 
-| TDD 阶段 | 标签 | 示例 |
+| TDD Phase | Tag | Example |
 | :--- | :--- | :--- |
-| RED（测试先行） | `[Red] {task_id}` | `test(booking): add appointment creation unit tests [Red] T-014` |
-| GREEN（实现通过） | `[Green] {task_id}` | `feat(booking): implement appointment creation [Green] T-014` |
-| REFACTOR（重构） | `[Refactor] {task_id}` | `refactor(booking): extract slot preemption logic [Refactor] T-014` |
+| RED (test-first) | `[Red] {task_id}` | `test(booking): add appointment creation unit tests [Red] T-014` |
+| GREEN (implementation passes) | `[Green] {task_id}` | `feat(booking): implement appointment creation [Green] T-014` |
+| REFACTOR (refactoring) | `[Refactor] {task_id}` | `refactor(booking): extract slot preemption logic [Refactor] T-014` |
 
-#### Type 前缀
+#### Type Prefix
 
-| Type | 用途 |
+| Type | Purpose |
 | :--- | :--- |
-| `feat` | 新功能 |
-| `fix` | Bug 修复 |
-| `refactor` | 代码重构（无功能变更） |
-| `test` | 添加或修改测试 |
-| `docs` | 文档变更 |
-| `style` | 格式调整（不影响逻辑） |
-| `chore` | 构建/工具/依赖变更 |
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `refactor` | Code refactoring (no functional change) |
+| `test` | Adding or modifying tests |
+| `docs` | Documentation changes |
+| `style` | Formatting adjustments (no logic impact) |
+| `chore` | Build/tool/dependency changes |
 
-### 理由
+### Rationale
 
-标准化的提交消息使 Git 历史可读、可检索，TDD 标签支持自动化质量门禁验证。
+Standardized commit messages make Git history readable and searchable; TDD tags support automated quality gate verification.
 
-### 来源
+### Source
 
-- 前端代码规范 §10 测试流程（隐含的 TDD 阶段提交要求）
-- 后端代码规范 §14.1 TDD 流程（隐含的 TDD 阶段提交要求）
+- Frontend Coding Standard §10 Testing Process (implied TDD phase commit requirements)
+- Backend Coding Standard §14.1 TDD Process (implied TDD phase commit requirements)
 
 ---
 
-## 变更记录
+## Change Log
 
-| 日期 | 版本 | 变更内容 | 批准人 |
+| Date | Version | Change Description | Approver |
 | :--- | :--- | :--- | :--- |
-| 2026-05-18 | 1.0.0 | 初始版本，从前端和后端代码规范中提取框架无关规则 | @Architect |
+| 2026-05-18 | 1.0.0 | Initial version, extracted framework-agnostic rules from frontend and backend coding standards | @Architect |

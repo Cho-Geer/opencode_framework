@@ -388,10 +388,10 @@ function checkDeploymentDoc() {
     ".qoder",
     "context",
     "requirements",
-    "运维与部署设计文档.md",
+    "operations-deployment.md",
   );
   const ok = fileExists(docPath);
-  return check(12, ok, ok ? "运维与部署设计文档.md exists" : "MISSING");
+  return check(12, ok, ok ? "operations-deployment.md exists" : "MISSING");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -510,12 +510,12 @@ function checkReferencedFiles() {
     ".qoder/rules/common-project.md",
     ".qoder/rules/mcp-compliance-guide.md",
     ".qoder/rules/skill-compliance-guide.md",
-    ".qoder/context/requirements/系统架构设计文档（SAD）.md",
-    ".qoder/context/requirements/接口设计规范文档.md",
-    ".qoder/context/requirements/数据架构设计文档.md",
-    ".qoder/context/requirements/安全架构设计文档.md",
-    ".qoder/context/requirements/测试策略与计划.md",
-    ".qoder/context/requirements/运维与部署设计文档.md",
+    ".qoder/context/requirements/system-architecture-design.md",
+    ".qoder/context/requirements/api-design-specification.md",
+    ".qoder/context/requirements/data-architecture.md",
+    ".qoder/context/requirements/security-architecture.md",
+    ".qoder/context/requirements/testing-strategy.md",
+    ".qoder/context/requirements/operations-deployment.md",
     ".qoder/context/code_standards/frontend-coding-standard.md",
     ".qoder/context/code_standards/backend-coding-standard.md",
     ".qoder/context/code_standards/testing-coding-standard.md",

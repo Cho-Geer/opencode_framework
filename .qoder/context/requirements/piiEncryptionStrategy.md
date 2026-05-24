@@ -1,236 +1,236 @@
-# PII 加密策略设计文档 (方案 C v4)
+# PII Encryption Strategy Design Document (Plan C v4)
 
-## 文档信息
+## Document Information
 
-| 属性 | 值 |
+| Attribute | Value |
 |------|---|
-| **文档版本** | 1.0.0 |
-| **创建日期** | 2026-04-21 |
-| **最后更新** | 2026-04-21 |
-| **文档状态** | 已基线化 |
-| **作者** | @Architect (多智能体模式 TASK-D1) |
-| **关联任务** | TASK-D1：PII 加密策略设计 + 要件修改前置依据 |
+| **Document Version** | 1.0.0 |
+| **Creation Date** | 2026-04-21 |
+| **Last Updated** | 2026-04-21 |
+| **Document Status** | Baselined |
+| **Author** | @Architect (Multi-Agent Mode TASK-D1) |
+| **Related Task** | TASK-D1: PII Encryption Strategy Design + Prerequisites for Requirements Modification |
 
 ---
 
-## 1. 背景与目标
+## 1. Background and Objectives
 
-本文档为**方案 C v4**（PII 字段级加密）的架构设计决策记录（ADR），作为后续六项要件文档修改的唯一技术依据。
+This document is the Architecture Decision Record (ADR) for **Plan C v4** (PII field-level encryption), serving as the sole technical basis for the subsequent six requirements document modifications.
 
-### 1.1 驱动需求
+### 1.1 Driving Requirements
 
-注册/登录流程的业务约束如下：
+The business constraints for the registration/login flow are as follows:
 
-- **注册**：必须先通过手机或邮箱接收验证码（强制），再设置密码（强制）
-- **登录**：支持两种方式——（A）验证码登录、（B）密码登录，二选一
+- **Registration**: Must first receive a verification code via phone or email (mandatory), then set a password (mandatory)
+- **Login**: Supports two methods — (A) verification code login, (B) password login, choose one
 
-上述约束意味着：
-1. `phone` 或 `email` 必须可用于**精确查找**（验证码发送目标）
-2. 同时需要**唯一性保证**（防止重复注册）
-3. 同时需要**保密性**（存储不得暴露明文 PII）
+These constraints imply:
+1. `phone` or `email` must be usable for **exact lookup** (verification code delivery target)
+2. **Uniqueness guarantee** is required simultaneously (prevent duplicate registration)
+3. **Confidentiality** is required simultaneously (storage must not expose plaintext PII)
 
-以上三个约束相互矛盾，必须通过**三字段模型**解决。
+The above three constraints are mutually contradictory and must be resolved through the **three-field model**.
 
 ---
 
-## 2. 三字段模型设计
+## 2. Three-Field Model Design
 
-### 2.1 字段定义
+### 2.1 Field Definitions
 
-每个 PII 字段（phone、email）拆分为三个物理列：
+Each PII field (phone, email) is split into three physical columns:
 
-| 逻辑概念 | 物理列名 | 存储内容 | 用途 |
+| Logical Concept | Physical Column Name | Stored Content | Purpose |
 |---------|---------|---------|------|
-| 明文脱敏展示 | `phone` / `email` | 中间段掩码字符串 | 前端展示（如 `138****5678`）|
-| 唯一性哈希 | `phoneHash` / `emailHash` | SHA-256(原文 + pepper) | 唯一索引 + 精确查找 |
-| 加密密文 | `phoneEncrypted` / `emailEncrypted` | AES-256-GCM 密文 | 解密还原原文（合规需要时）|
+| Masked plaintext display | `phone` / `email` | Middle-segment masked string | Frontend display (e.g. `138****5678`) |
+| Uniqueness hash | `phoneHash` / `emailHash` | SHA-256(original + pepper) | Unique index + exact lookup |
+| Encrypted ciphertext | `phoneEncrypted` / `emailEncrypted` | AES-256-GCM ciphertext | Decrypt to recover original (for compliance needs) |
 
-### 2.2 查找流程
+### 2.2 Lookup Flow
 
 ```
-用户输入原始手机号/邮箱
+User inputs original phone number/email
   │
-  ├─► SHA-256(输入 + PEPPER) → hash
-  │     └─► WHERE phoneHash = hash   （精确匹配，O(1) 索引查询）
+  ├─► SHA-256(input + PEPPER) → hash
+  │     └─► WHERE phoneHash = hash   (exact match, O(1) index query)
   │
-  └─► 找到记录后，解密 phoneEncrypted → 原文（仅授权场景使用）
+  └─► After finding the record, decrypt phoneEncrypted → original (authorized scenarios only)
 ```
 
-### 2.3 唯一性约束
+### 2.3 Uniqueness Constraint
 
 ```prisma
-// 方案：移除 @unique 约束（明文列不具备唯一性语义）
-// 改为对 hash 列建立唯一索引
+// Approach: Remove @unique constraint (plaintext column has no uniqueness semantics)
+// Instead, create unique index on hash column
 phoneHash       String?  @unique  // SHA-256(phone + pepper)
 emailHash       String?  @unique  // SHA-256(email + pepper)
 ```
 
-**理由**：明文列存储的是掩码字符串，不适合 @unique；hash 列具有确定性、碰撞概率极低（2^256），适合唯一索引。
+**Rationale**: The plaintext column stores masked strings and is not suitable for @unique; the hash column is deterministic with extremely low collision probability (2^256) and is suitable for unique indexes.
 
 ---
 
-## 3. 邮箱加密级别升级决策
+## 3. Email Encryption Level Upgrade Decision
 
-### 3.1 当前状态（偏差）
+### 3.1 Current State (Deviation)
 
 ```
-安全架构设计文档 § 5.1.2 当前定义：
-  邮箱地址 | 中 | 应用层脱敏 | 明文存储
+Security Architecture Design Document § 5.1.2 current definition:
+  Email Address | Medium | Application-layer masking | Plaintext storage
 ```
 
-### 3.2 升级理由
+### 3.2 Upgrade Rationale
 
-| 考量维度 | 分析 |
+| Consideration | Analysis |
 |---------|------|
-| **业务功能** | 邮箱用于发送验证码登录，属于认证凭证，与手机号同等重要 |
-| **GDPR/PIPL** | 邮箱地址在 GDPR Art.4(1) 和 PIPL 第 4 条中均明确属于个人信息 |
-| **数据泄露风险** | 明文存储的邮箱若数据库泄露，可直接导致用户识别和钓鱼攻击 |
-| **对称性原则** | 手机号已定义为"高/AES-256-GCM"，邮箱作为等价认证手段应保持一致 |
-| **OWASP TOP 10** | A02:2021 Cryptographic Failures 要求对 PII 进行加密保护 |
+| **Business Function** | Email is used to send verification codes for login, serving as an authentication credential equivalent in importance to phone number |
+| **GDPR/PIPL** | Email address is explicitly classified as personal information under GDPR Art.4(1) and PIPL Article 4 |
+| **Data Breach Risk** | Plaintext-stored email in a database breach can directly lead to user identification and phishing attacks |
+| **Symmetry Principle** | Phone number is already defined as "High/AES-256-GCM"; email as an equivalent authentication method should maintain consistency |
+| **OWASP TOP 10** | A02:2021 Cryptographic Failures requires cryptographic protection for PII |
 
-### 3.3 升级结论
+### 3.3 Upgrade Conclusion
 
-**邮箱敏感级别：中 → 高**
-**加密策略：应用层脱敏 → AES-256-GCM 全字段加密（与手机号一致）**
+**Email sensitivity level: Medium → High**
+**Encryption strategy: Application-layer masking → AES-256-GCM full-field encryption (consistent with phone number)**
 
 ---
 
-## 4. JWT Payload 设计
+## 4. JWT Payload Design
 
-### 4.1 当前状态（偏差）
+### 4.1 Current State (Deviation)
 
 ```typescript
-// 安全架构设计文档 § 2.1.1 当前定义
+// Security Architecture Design Document § 2.1.1 current definition
 interface AccessTokenPayload {
-  sub: string;     // 用户ID
-  email: string;   // ← 问题：JWT 默认不加密，email 明文暴露
+  sub: string;     // User ID
+  email: string;   // ← Problem: JWT is not encrypted by default, email exposed in plaintext
   roles: string[];
   ...
 }
 ```
 
-### 4.2 移除 email 字段的理由
+### 4.2 Rationale for Removing the email Field
 
-| 依据 | 说明 |
+| Basis | Explanation |
 |------|------|
-| **JWT 非加密** | JWT 仅签名（HMAC-SHA256），Payload 为 Base64 编码，任何持有令牌方均可解码读取 |
-| **最小化原则** | NIST SP 800-63B § 6.2："令牌中仅包含完成操作所需的最少断言" |
-| **GDPR 数据最小化** | GDPR Art.5(1)(c)："个人数据的处理应限于实现处理目的所必要的范围" |
-| **功能冗余** | 业务层如需 email，可通过 `sub`（userId）查询数据库，无需在令牌中携带 |
+| **JWT is not encrypted** | JWT is only signed (HMAC-SHA256); the Payload is Base64 encoded, any party holding the token can decode and read it |
+| **Minimization principle** | NIST SP 800-63B § 6.2: "Tokens should contain only the minimum assertions needed to complete the operation" |
+| **GDPR data minimization** | GDPR Art.5(1)(c): "Processing of personal data shall be limited to what is necessary for the purposes of processing" |
+| **Functional redundancy** | If the business layer needs email, it can query the database via `sub` (userId) without carrying it in the token |
 
-### 4.3 修改后的 Payload 设计
+### 4.3 Modified Payload Design
 
 ```typescript
-// 修改后：移除 email，保留认证必需字段
+// Modified: Remove email, retain authentication-essential fields only
 interface AccessTokenPayload {
-  sub: string;           // 用户ID（唯一标识）
-  roles: string[];       // 用户角色数组
-  permissions: string[]; // 细粒度权限（可选，按需保留）
-  iat: number;           // 签发时间
-  exp: number;           // 过期时间
-  jti: string;           // 令牌唯一标识（支持黑名单）
+  sub: string;           // User ID (unique identifier)
+  roles: string[];       // User roles array
+  permissions: string[]; // Fine-grained permissions (optional, retain as needed)
+  iat: number;           // Issued at
+  exp: number;           // Expiration time
+  jti: string;           // Token unique identifier (supports blacklisting)
 }
 ```
 
 ---
 
-## 5. 密码哈希参数
+## 5. Password Hashing Parameters
 
 ### 5.1 bcrypt Work Factor
 
-| 参数 | 当前值 | 目标值 | 依据 |
+| Parameter | Current Value | Target Value | Basis |
 |------|-------|-------|------|
 | `bcrypt rounds` | 10 | **12** | OWASP Password Storage Cheat Sheet (2023) § bcrypt: "minimum work factor of 10, recommend 12" |
 
-### 5.2 影响分析
+### 5.2 Impact Analysis
 
-| 指标 | rounds=10 | rounds=12 | 说明 |
+| Metric | rounds=10 | rounds=12 | Notes |
 |------|----------|----------|------|
-| 哈希时间 | ~65ms | ~250ms | 合理范围，单次登录可接受 |
-| 暴力破解成本 | 基准 | 4× | 2^2 倍算力提升 |
-| 服务器 CPU | 基准 | 4× | 并发登录场景需压测 |
+| Hash time | ~65ms | ~250ms | Reasonable range, acceptable for a single login |
+| Brute force cost | Baseline | 4× | 2^2 times computational increase |
+| Server CPU | Baseline | 4× | Concurrent login scenarios require load testing |
 
-**结论**：rounds=12 是安全性与性能的最优平衡点，符合 OWASP 2023 最佳实践。
+**Conclusion**: rounds=12 is the optimal balance between security and performance, conforming to OWASP 2023 best practices.
 
 ---
 
-## 6. 验证码流程规范
+## 6. Verification Code Flow Specification
 
-### 6.1 注册流程（两步强制）
+### 6.1 Registration Flow (Two-Step Mandatory)
 
 ```
-Step 1: 发送验证码
+Step 1: Send verification code
   POST /v1/auth/register/send-code
   Body: { contact: string, contactType: 'phone' | 'email' }
-  → Redis 存储: key=verify:{contactHash}, value={code, type:'REGISTER', expireAt}, TTL=5min
+  → Redis store: key=verify:{contactHash}, value={code, type:'REGISTER', expireAt}, TTL=5min
 
-Step 2: 完成注册
+Step 2: Complete registration
   POST /v1/auth/register/complete
   Body: { contact, contactType, code, password, name }
-  → 验证 Redis 验证码 → 创建用户（三字段模型）→ 删除 Redis key → 返回 JWT
+  → Verify Redis code → Create user (three-field model) → Delete Redis key → Return JWT
 ```
 
-### 6.2 登录流程（二选一）
+### 6.2 Login Flow (Choose One)
 
 ```
-方式 A - 验证码登录:
+Method A - Verification code login:
   POST /v1/auth/login/send-code
   Body: { contact, contactType }
-  → 查找用户（via hash）→ 发送验证码
+  → Find user (via hash) → Send verification code
 
   POST /v1/auth/login/verify-code
   Body: { contact, contactType, code }
-  → 验证码校验 → 返回 JWT 双令牌
+  → Code verification → Return JWT dual tokens
 
-方式 B - 密码登录:
+Method B - Password login:
   POST /v1/auth/login/password
   Body: { contact, contactType, password }
-  → 查找用户（via hash）→ bcrypt.compare → 返回 JWT 双令牌
+  → Find user (via hash) → bcrypt.compare → Return JWT dual tokens
 ```
 
 ---
 
-## 7. 加密密钥管理
+## 7. Encryption Key Management
 
-### 7.1 密钥体系
+### 7.1 Key System
 
-| 密钥名 | 用途 | 存储位置 | 轮换周期 |
+| Key Name | Purpose | Storage Location | Rotation Cycle |
 |-------|------|---------|---------|
-| `PII_ENCRYPTION_KEY` | AES-256-GCM 加密/解密 PII 字段 | 环境变量 / K8s Secret | 每年 |
-| `PII_HASH_PEPPER` | SHA-256 哈希的 pepper 值 | 环境变量 / K8s Secret | 永久（一旦设置不可更改） |
-| `JWT_ACCESS_SECRET` | Access Token 签名 | 环境变量 / K8s Secret | 每90天 |
-| `JWT_REFRESH_SECRET` | Refresh Token 签名 | 环境变量 / K8s Secret | 每90天 |
+| `PII_ENCRYPTION_KEY` | AES-256-GCM encrypt/decrypt PII fields | Environment variable / K8s Secret | Annually |
+| `PII_HASH_PEPPER` | Pepper value for SHA-256 hashing | Environment variable / K8s Secret | Permanent (cannot be changed once set) |
+| `JWT_ACCESS_SECRET` | Access Token signing | Environment variable / K8s Secret | Every 90 days |
+| `JWT_REFRESH_SECRET` | Refresh Token signing | Environment variable / K8s Secret | Every 90 days |
 
-### 7.2 哈希 Pepper 不可变性
+### 7.2 Hash Pepper Immutability
 
-`PII_HASH_PEPPER` **不可轮换**，原因：一旦修改，所有已存储的 hash 值失效，用户将无法登录。如需变更，必须全量迁移（解密全部 `*Encrypted` 字段 → 重新计算 hash）。
-
----
-
-## 8. 迁移兼容性说明
-
-若现有数据库中已有明文 phone/email 数据，迁移步骤：
-
-1. 为 User 表添加 `phoneHash`, `phoneEncrypted`, `emailHash`, `emailEncrypted`, `passwordHash` 列
-2. 全量读取现有 phone/email → 计算 hash + 加密 → 写入新列
-3. 将 `phone` / `email` 列改为存储脱敏值（或保留为空）
-4. 移除 `phone @unique` / `email @unique` → 添加 `phoneHash @unique` / `emailHash @unique`
+`PII_HASH_PEPPER` **cannot be rotated**. Reason: once modified, all stored hash values become invalid and users will be unable to log in. If a change is needed, a full migration is required (decrypt all `*Encrypted` fields → recalculate hashes).
 
 ---
 
-## 9. 要件修改范围摘要
+## 8. Migration Compatibility Notes
 
-本设计作为以下六项修改的依据：
+If plaintext phone/email data already exists in the database, migration steps:
 
-| 修改编号 | 目标文件 | 修改内容摘要 |
+1. Add `phoneHash`, `phoneEncrypted`, `emailHash`, `emailEncrypted`, `passwordHash` columns to the User table
+2. Bulk read existing phone/email → compute hash + encrypt → write to new columns
+3. Change `phone` / `email` columns to store masked values (or leave empty)
+4. Remove `phone @unique` / `email @unique` → Add `phoneHash @unique` / `emailHash @unique`
+
+---
+
+## 9. Requirements Modification Scope Summary
+
+This design serves as the basis for the following six modifications:
+
+| Modification ID | Target File | Modification Summary |
 |---------|---------|------------|
-| M-1 | 安全架构设计文档.md § 5.1.2 | 邮箱敏感级别中→高，策略升级为 AES-256-GCM |
-| M-2 | 安全架构设计文档.md § 2.1.1 | AccessTokenPayload 移除 email 字段 |
-| M-3 | 数据架构设计文档.md § 2.2.1 | User Schema 替换为三字段模型（+5 新列，+passwordHash）|
-| M-4 | 数据架构设计文档.md § 8.1 | 敏感数据保护表补充 email 行 |
-| M-5 | 接口设计规范文档.md § 认证端点 | 补充 4 个 Auth 端点（注册2个 + 登录2个）|
-| M-6 | 安全架构设计文档.md (bcrypt) | bcrypt rounds 10 → 12 |
+| M-1 | security-architecture.md § 5.1.2 | Email sensitivity level Medium→High, strategy upgraded to AES-256-GCM |
+| M-2 | security-architecture.md § 2.1.1 | AccessTokenPayload remove email field |
+| M-3 | data-architecture.md § 2.2.1 | User Schema replaced with three-field model (+5 new columns, +passwordHash) |
+| M-4 | data-architecture.md § 8.1 | Sensitive data protection table supplement email row |
+| M-5 | api-design-specification.md § Auth Endpoints | Supplement 4 Auth endpoints (2 registration + 2 login) |
+| M-6 | security-architecture.md (bcrypt) | bcrypt rounds 10 → 12 |
 
 ---
 
-*本文档为要件修改的唯一技术依据，所有修改必须与本设计保持一致。*
+*This document is the sole technical basis for requirements modifications; all modifications must remain consistent with this design.*

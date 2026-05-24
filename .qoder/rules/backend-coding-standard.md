@@ -2,64 +2,64 @@
 type: model_decision
 description: When working on backend code
 ---
-# 后端代码规范引用
+# Backend Coding Standard Reference
 
-> **参见**：[coding-standard-common.md](.qoder/rules/coding-standard-common.md) — 框架无关的通用编码规范（命名约定、类型安全、TDD、文件分离等）。
+> **See also**: [coding-standard-common.md](.qoder/rules/coding-standard-common.md) — Framework-agnostic common coding standards (naming conventions, type safety, TDD, file separation, etc.).
 
-本文档引用 `.qoder/context/code_standards/backend-coding-standard.md` 中的全部规范。
+This document references all standards defined in `.qoder/context/code_standards/backend-coding-standard.md`.
 
-## 适用范围
+## Applicable Scope
 
-所有涉及后端项目的开发、测试、审查任务必须遵循该规范。本文档为项目技术栈的代码规范引用，各项目应根据自身技术栈（NestJS, Express, Spring Boot, Go, etc.）替换 `context/code_standards/backend-coding-standard.md` 中的内容。
+All tasks involving backend project development, testing, and review must comply with this standard. This document provides the coding standard reference for the project's tech stack. Each project should replace the content in `context/code_standards/backend-coding-standard.md` according to its own tech stack (NestJS, Express, Spring Boot, Go, etc.).
 
-## 强制触发 Agent
+## Mandatory Triggering Agents
 
-| Agent | 触发场景 |
+| Agent | Trigger Scenario |
 |-------|---------|
-| **@Coder-BE** | 任何后端 API 开发、服务编写、DTO 定义、Prisma 操作、后端测试编写 |
-| **@Guardian** | 后端代码审查（命名、模块化、事务管理、安全规范） |
-| **@Architect** | 后端架构设计、模块划分、接口契约定义 |
+| **@Coder-BE** | Any backend API development, service implementation, DTO definition, Prisma operations, backend test writing |
+| **@Guardian** | Backend code review (naming, modularization, transaction management, security standards) |
+| **@Architect** | Backend architecture design, module partitioning, interface contract definition |
 
-## 核心规范速查
+## Core Standards Quick Reference
 
-### Tier 1 — 通用规范（Universal）
+### Tier 1 — Universal Standards
 
-以下规范为框架无关的通用要求，所有后端项目必须遵守：
+The following standards are framework-agnostic universal requirements that all backend projects must follow:
 
-1. **文件分离**：每个 artifact 独立文件（controller/service/dto/guard 分离）
-2. **模块化**：按业务领域划分模块，禁止循环依赖
-3. **命名约定**：接口无 `I` 前缀，文件使用 `kebab-case`
-4. **类型安全**：禁止 `any`，DTO 使用 class + class-validator
-5. **TDD**：RED → GREEN → REFACTOR，覆盖率 ≥70%
+1. **File Separation**: Each artifact in its own file (controller/service/dto/guard separated)
+2. **Modularization**: Partition modules by business domain; circular dependencies are prohibited
+3. **Naming Conventions**: No `I` prefix for interfaces; files use `kebab-case`
+4. **Type Safety**: `any` is prohibited; DTOs use class + class-validator
+5. **TDD**: RED → GREEN → REFACTOR; coverage ≥70%
 
-### Tier 2 — 框架参数化规范（Framework-Parameterized）
+### Tier 2 — Framework-Parameterized Standards
 
-以下规范根据项目技术栈参数化，占位符由 `project.config.json` 中的对应配置解析：
+The following standards are parameterized based on the project's tech stack. Placeholders are resolved from the corresponding configuration in `project.config.json`:
 
-6. **事务管理**：使用 `{backend.orm.transaction}` 管理事务边界
-7. **认证授权**：`{backend.auth}`
-8. **限流策略**：`{backend.rate_limit}`
-9. **错误处理**：`{backend.error_handler}`
-10. **日志规范**：`{backend.logger}`
-11. **API 文档**：`{backend.api_docs}`
-12. **缓存**：`{backend.cache_pattern}`
+6. **Transaction Management**: Use `{backend.orm.transaction}` to manage transaction boundaries
+7. **Authentication & Authorization**: `{backend.auth}`
+8. **Rate Limiting Strategy**: `{backend.rate_limit}`
+9. **Error Handling**: `{backend.error_handler}`
+10. **Logging Standards**: `{backend.logger}`
+11. **API Documentation**: `{backend.api_docs}`
+12. **Caching**: `{backend.cache_pattern}`
 
-## 占位符解析规则
+## Placeholder Resolution Rules
 
-占位符在项目初始化时由 `project.config.json` 解析为具体技术栈指令。各占位符的解析源映射如下：
+Placeholders are resolved to specific tech stack directives from `project.config.json` during project initialization. The resolution source mapping for each placeholder is as follows:
 
-| 占位符 | 配置路径 | 解析说明 |
+| Placeholder | Config Path | Resolution Description |
 |--------|---------|---------|
-| `{backend.orm.transaction}` | `tech_stack.database.orm` | ORM 事务管理 API（如 `prisma.$transaction()`） |
-| `{backend.auth}` | `tech_stack.auth` | 认证授权机制（机制 + 跳过/角色控制装饰器） |
-| `{backend.rate_limit}` | `tech_stack.backend.framework` | 框架限流方案（多层限流：用户/时间槽/IP/全局） |
-| `{backend.error_handler}` | `tech_stack.backend.framework` | 框架错误处理（全局异常过滤器 + ORM 错误映射） |
-| `{backend.logger}` | `tech_stack.backend.framework` | 框架日志方案（Logger 类 + 请求拦截器） |
-| `{backend.api_docs}` | `tech_stack.backend.framework` | API 文档规范（OpenAPI/Swagger 完整文档覆盖） |
-| `{backend.cache_pattern}` | `tech_stack.cache` | 缓存策略（引擎 + 客户端 + 缓存模式） |
+| `{backend.orm.transaction}` | `tech_stack.database.orm` | ORM transaction management API (e.g., `prisma.$transaction()`) |
+| `{backend.auth}` | `tech_stack.auth` | Authentication & authorization mechanism (mechanism + skip/role-control decorators) |
+| `{backend.rate_limit}` | `tech_stack.backend.framework` | Framework rate limiting solution (multi-layer: user/time-slot/IP/global) |
+| `{backend.error_handler}` | `tech_stack.backend.framework` | Framework error handling (global exception filter + ORM error mapping) |
+| `{backend.logger}` | `tech_stack.backend.framework` | Framework logging solution (Logger class + request interceptor) |
+| `{backend.api_docs}` | `tech_stack.backend.framework` | API documentation standard (full OpenAPI/Swagger documentation coverage) |
+| `{backend.cache_pattern}` | `tech_stack.cache` | Caching strategy (engine + client + cache pattern) |
 
-> **注意**：占位符的具体实例化值定义在 `.qoder/context/code_standards/backend-coding-standard.md` 中。本文件仅提供占位符引用框架，实际开发时应读取完整文档获取当前技术栈对应的规范细节。
+> **Note**: The specific instantiated values for placeholders are defined in `.qoder/context/code_standards/backend-coding-standard.md`. This file only provides the placeholder reference framework. During actual development, read the full document for the standard details corresponding to the current tech stack.
 
-## 完整文档
+## Full Documentation
 
-完整规范请参阅：[后端代码规范文档](.qoder/context/code_standards/backend-coding-standard.md)
+For the complete specification, see: [Backend Coding Standard Document](.qoder/context/code_standards/backend-coding-standard.md)

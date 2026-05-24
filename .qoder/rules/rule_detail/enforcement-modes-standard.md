@@ -9,92 +9,92 @@ status: active
 
 # Enforcement Modes Standard v1.0
 
-## 一、概述
+## 1. Overview
 
-本文件定义了 OpenCode 多智能体执行框架的**强制执行模式（Enforcement Modes）**。强制执行模式控制合规门禁、pre-commit 钩子、pre-execution 钩子以及 ESLint 审计在不同环境中的行为等级。所有 Agent、钩子和审计工具必须根据当前活动模式调整其阻断/警告策略。
+This file defines the **Enforcement Modes** for the multi-agent execution framework. Enforcement modes control the behavior levels of compliance gates, pre-commit hooks, pre-execution hooks, and ESLint audits across different environments. All Agents, hooks, and audit tools must adjust their blocking/warning strategies according to the currently active mode.
 
-## 二、三种强制执行层级
+## 2. Three Enforcement Levels
 
-### 2.1 Advisory（咨询模式）
+### 2.1 Advisory
 
-**适用环境**：本地开发、实验性分支、原型阶段
+**Applicable Environment**: Local development, experimental branches, prototype phase
 
-**核心行为**：所有违规**仅记录为警告**，不阻断任何操作。
+**Core Behavior**: All violations are **logged as warnings only** and do not block any operations.
 
-| 检查点 | 行为 |
+| Checkpoint | Behavior |
 |--------|------|
-| `compliance_gate_check` | 始终通过（`passed: true`），违规项记录到 `failed_items` 但具有 `severity: WARNING` |
-| `compliance_gate_confirm` | 始终允许武装，即使前置 check 有警告 |
-| `compliance_gate_complete` | 始终标记为完成；ESLint dirty_modules 仅记录，不阻断 |
-| `pre-commit` Layer 0: Gate Armed Check | 跳过 —— 无 gate session 也允许提交 |
-| `pre-commit` Layer 2: Keystone Validation | 运行验证，失败仅警告不阻断 |
-| `pre-commit` Layer 2.5: TDD Order Check | 违规仅警告，不阻断提交 |
-| `pre-execution-hook.sh` DAG Gate | DAG 缺失或任务不存在时仅警告，允许继续 |
-| `eslint-audit` | 运行并报告违规，但不更新 `dirty_modules` 聚合状态 |
-| `write_audit` role scope check | 越权写入仅记录警告 |
+| `compliance_gate_check` | Always passes (`passed: true`); violations logged to `failed_items` but with `severity: WARNING` |
+| `compliance_gate_confirm` | Always allows arming, even if the preceding check has warnings |
+| `compliance_gate_complete` | Always marks as complete; ESLint dirty_modules are only logged, not blocking |
+| `pre-commit` Layer 0: Gate Armed Check | Skipped — commits allowed even without gate session |
+| `pre-commit` Layer 2: Keystone Validation | Runs validation; failures warn only, not blocking |
+| `pre-commit` Layer 2.5: TDD Order Check | Violations warn only, not blocking commits |
+| `pre-execution-hook.sh` DAG Gate | Missing DAG or non-existent task warns only, allows continuation |
+| `eslint-audit` | Runs and reports violations but does not update `dirty_modules` aggregate state |
+| `write_audit` role scope check | Out-of-scope writes are logged as warnings only |
 
-**标识**：所有工具输出以 `[ADVISORY]` 前缀标记，使用 `⚠️` 图标。
+**Identifier**: All tool outputs prefixed with `[ADVISORY]`, using the `⚠️` icon.
 
-### 2.2 Strict（严格模式）
+### 2.2 Strict
 
-**适用环境**：CI 流水线、预发布/Staging 分支、代码审查阶段
+**Applicable Environment**: CI pipelines, pre-release/staging branches, code review phase
 
-**核心行为**：所有违规**阻断**非合规操作，强制修复后方可推进。
+**Core Behavior**: All violations **block** non-compliant operations; fixes are required before proceeding.
 
-| 检查点 | 行为 |
+| Checkpoint | Behavior |
 |--------|------|
-| `compliance_gate_check` | 规则文件缺失或未解决的 role violation → `passed: false`，阻断继续 |
-| `compliance_gate_confirm` | 仅当 check 通过后方可武装 |
-| `compliance_gate_complete` | ESLint dirty_modules 存在 → 返回 `failed`，阻断完成 |
-| `pre-commit` Layer 0: Gate Armed Check | 无活跃 gate session → 阻断提交 |
-| `pre-commit` Layer 2: Keystone Validation | 合约哈希不匹配或完整性链失败 → 阻断提交 |
-| `pre-commit` Layer 2.5: TDD Order Check | 实现文件无对应测试文件 → 阻断提交 |
-| `pre-execution-hook.sh` DAG Gate | DAG 缺失或任务不在 DAG 中或状态非 pending → 阻断执行 |
-| `eslint-audit` | 违规写入 `dirty_modules`，阻断 gate_complete |
-| `write_audit` role scope check | 越权写入标记为 BLOCKER，阻断后续操作 |
+| `compliance_gate_check` | Missing rule files or unresolved role violations → `passed: false`, blocks continuation |
+| `compliance_gate_confirm` | May only arm after check passes |
+| `compliance_gate_complete` | ESLint dirty_modules exist → returns `failed`, blocks completion |
+| `pre-commit` Layer 0: Gate Armed Check | No active gate session → blocks commit |
+| `pre-commit` Layer 2: Keystone Validation | Contract hash mismatch or integrity chain failure → blocks commit |
+| `pre-commit` Layer 2.5: TDD Order Check | Implementation file without corresponding test file → blocks commit |
+| `pre-execution-hook.sh` DAG Gate | Missing DAG or task not in DAG or status not pending → blocks execution |
+| `eslint-audit` | Violations written to `dirty_modules`, blocks gate_complete |
+| `write_audit` role scope check | Out-of-scope write marked as BLOCKER, blocks subsequent operations |
 
-**标识**：所有工具输出以 `[STRICT]` 前缀标记，使用 `❌` 图标。
+**Identifier**: All tool outputs prefixed with `[STRICT]`, using the `❌` icon.
 
-### 2.3 Locked（锁定模式）
+### 2.3 Locked
 
-**适用环境**：生产配置分支、发布标签、安全关键环境
+**Applicable Environment**: Production config branches, release tags, security-critical environments
 
-**核心行为**：与 Strict 相同，**额外**强制执行以下检查，且**不接受任何豁免（waiver）**：
+**Core Behavior**: Same as Strict, with **additional** enforcements below, and **no waivers accepted**:
 
-| 额外检查点 | 行为 |
+| Additional Checkpoint | Behavior |
 |------------|------|
-| 工作区根路径强制执行 | 任何 `machine.json` 中存在非当前 `OPENCODE_ROOT` 的路径 → 阻断所有读写操作 |
-| gate-state 同步强制 | `gate-state.json.active_sessions` 与实际 `sessions` 状态不一致 → 阻断所有 gate 操作直到修复 |
-| write_audit 完整性验证 | 每个文件的写入必须有对应的 write_audit 记录；缺失记录 → 阻断提交 |
-| 豁免 (waiver) 策略 | **所有豁免被拒绝**。`WAIVE.md` 中技术债条目必须附带 @Arbiter 锁模式覆盖批准 |
-| 模式降级 | 不允许从 Locked 降级到 Strict 或 Advisory。必须执行 `state-machine-reset.sh --force --unlock` 并附带 @Arbiter 签名的解锁令牌 |
+| Workspace root path enforcement | Any path in `machine.json` that is not the current `OPENCODE_ROOT` → blocks all read/write operations |
+| gate-state sync enforcement | `gate-state.json.active_sessions` inconsistent with actual `sessions` state → blocks all gate operations until fixed |
+| write_audit integrity verification | Every file write must have a corresponding write_audit record; missing record → blocks commit |
+| Waiver policy | **All waivers are rejected**. `WAIVE.md` tech debt entries must include @Arbiter locked-mode override approval |
+| Mode downgrade | Downgrading from Locked to Strict or Advisory is not allowed. Must execute `state-machine-reset.sh --force --unlock` with an @Arbiter-signed unlock token |
 
-**标识**：所有工具输出以 `[LOCKED]` 前缀标记，使用 `🔒` 图标。
+**Identifier**: All tool outputs prefixed with `[LOCKED]`, using the `🔒` icon.
 
-## 三、模式行为矩阵（完整）
+## 3. Mode Behavior Matrix (Complete)
 
-| 检查项 | Advisory | Strict | Locked |
+| Check Item | Advisory | Strict | Locked |
 |--------|----------|--------|--------|
-| 规则文件存在性 | ⚠️ 警告 | ❌ 阻断 | ❌ 阻断 |
-| Role violation 检查 | ⚠️ 警告 | ❌ 阻断 | ❌ 阻断 |
-| Gate armed 检查 (pre-commit) | ⏭️ 跳过 | ❌ 阻断 | ❌ 阻断 |
-| Keystone 合约哈希 | ⚠️ 警告 | ❌ 阻断 | ❌ 阻断 |
-| Keystone 完整性链 | ⚠️ 警告 | ❌ 阻断 | ❌ 阻断 |
-| TDD 顺序检查 | ⚠️ 警告 | ❌ 阻断 | ❌ 阻断 |
-| DAG 前置检查 (pre-execution) | ⚠️ 警告 | ❌ 阻断 | ❌ 阻断 |
-| ESLint audit 违规 | ⚠️ 警告 | ❌ 阻断 gate_complete | ❌ 阻断 gate_complete |
-| 越权写入 (role scope) | ⚠️ 警告 | ❌ 阻断 | ❌ 阻断 |
-| Workspace-root 路径验证 | ⏭️ 跳过 | ⚠️ 警告 | ❌ 阻断 |
-| Gate-state 同步验证 | ⏭️ 跳过 | ⚠️ 警告 | ❌ 阻断 |
-| Write-audit 完整性 | ⏭️ 跳过 | ⚠️ 警告 | ❌ 阻断 |
-| Waiver 接受 | ✅ 接受 | ✅ 接受（需 @Arbiter） | ❌ 全部拒绝 |
-| 模式降级允许 | N/A | ✅ 允许（需重置） | ❌ 禁止 |
+| Rule file existence | ⚠️ Warn | ❌ Block | ❌ Block |
+| Role violation check | ⚠️ Warn | ❌ Block | ❌ Block |
+| Gate armed check (pre-commit) | ⏭️ Skip | ❌ Block | ❌ Block |
+| Keystone contract hash | ⚠️ Warn | ❌ Block | ❌ Block |
+| Keystone integrity chain | ⚠️ Warn | ❌ Block | ❌ Block |
+| TDD order check | ⚠️ Warn | ❌ Block | ❌ Block |
+| DAG pre-check (pre-execution) | ⚠️ Warn | ❌ Block | ❌ Block |
+| ESLint audit violation | ⚠️ Warn | ❌ Block gate_complete | ❌ Block gate_complete |
+| Out-of-scope write (role scope) | ⚠️ Warn | ❌ Block | ❌ Block |
+| Workspace-root path validation | ⏭️ Skip | ⚠️ Warn | ❌ Block |
+| Gate-state sync validation | ⏭️ Skip | ⚠️ Warn | ❌ Block |
+| Write-audit integrity | ⏭️ Skip | ⚠️ Warn | ❌ Block |
+| Waiver acceptance | ✅ Accepted | ✅ Accepted (requires @Arbiter) | ❌ All rejected |
+| Mode downgrade allowed | N/A | ✅ Allowed (requires reset) | ❌ Prohibited |
 
-## 四、模式配置
+## 4. Mode Configuration
 
-### 4.1 配置位置
+### 4.1 Configuration Location
 
-强制执行模式在 `project.config.json` 的 `template_resolution` 中定义：
+The enforcement mode is defined in `project.config.json` under `template_resolution`:
 
 ```json
 {
@@ -123,53 +123,53 @@ status: active
 }
 ```
 
-### 4.2 环境变量覆盖
+### 4.2 Environment Variable Override
 
-环境变量 `ENFORCEMENT_MODE` 可以覆盖 `project.config.json` 中的配置：
+The environment variable `ENFORCEMENT_MODE` can override the configuration in `project.config.json`:
 
 ```bash
-# 优先级：ENFORCEMENT_MODE > project.config.json.template_resolution.enforcement_mode
+# Priority: ENFORCEMENT_MODE > project.config.json.template_resolution.enforcement_mode
 export ENFORCEMENT_MODE=strict
 ```
 
-**安全约束**：
-- `ENFORCEMENT_MODE=locked` 在 `locked` 模式下不可被环境变量覆盖（写保护）
-- `ENFORCEMENT_MODE=advisory` 在 `locked` 模式下被忽略
+**Security Constraints**:
+- `ENFORCEMENT_MODE=locked` cannot be overridden by environment variable in `locked` mode (write-protected)
+- `ENFORCEMENT_MODE=advisory` is ignored in `locked` mode
 
-### 4.3 运行时查询
+### 4.3 Runtime Query
 
 ```bash
-# 查询当前强制执行模式
+# Query current enforcement mode
 .qoder/scripts/enforcement-mode-check.sh
 
-# 输出示例：ENFORCEMENT_MODE=strict
+# Example output: ENFORCEMENT_MODE=strict
 ```
 
-## 五、模式转换规则
+## 5. Mode Transition Rules
 
-### 5.1 允许的转换
+### 5.1 Allowed Transitions
 
 ```
 advisory ──→ strict ──→ locked
     ↑           ↑           │
     │           │           │
-    └──重置─────┘           │
+    └───reset───┘           │
                             ↓
-                      (不可降级)
+                      (no downgrade)
 ```
 
-### 5.2 转换命令
+### 5.2 Transition Commands
 
-| 转换方向 | 命令 |
+| Transition Direction | Command |
 |----------|------|
-| advisory → strict | 修改 `project.config.json` 中 `enforcement_mode` 为 `"strict"`，提交 |
-| strict → locked | 同上，改为 `"locked"`；需要 @Arbiter 批准 |
-| strict → advisory | 执行 `state-machine-reset.sh --force`，然后修改 `enforcement_mode` 为 `"advisory"` |
-| locked → * | **禁止**。必须执行 `state-machine-reset.sh --force --unlock` 并附带 @Arbiter 签名的解锁令牌 |
+| advisory → strict | Modify `enforcement_mode` to `"strict"` in `project.config.json`, then commit |
+| strict → locked | Same as above, change to `"locked"`; requires @Arbiter approval |
+| strict → advisory | Execute `state-machine-reset.sh --force`, then modify `enforcement_mode` to `"advisory"` |
+| locked → * | **Prohibited**. Must execute `state-machine-reset.sh --force --unlock` with an @Arbiter-signed unlock token |
 
-### 5.3 转换审计
+### 5.3 Transition Audit
 
-所有模式转换记录到 `.qoder/state/machine.json.compliance_records.enforcement_transitions`：
+All mode transitions are recorded in `.qoder/state/machine.json.compliance_records.enforcement_transitions`:
 
 ```json
 {
@@ -186,44 +186,44 @@ advisory ──→ strict ──→ locked
 }
 ```
 
-## 六、集成点回顾
+## 6. Integration Point Review
 
 ### 6.1 compliance_gate_check
 
-在 `runGateCheck()` 中：
-1. 读取 `enforcement_mode`
-2. 若为 `advisory`：所有失败项降级为 `severity: WARNING`，返回 `passed: true`
-3. 若为 `strict` 或 `locked`：所有失败项保持原有严重性，返回 `passed: false`
+In `runGateCheck()`:
+1. Read `enforcement_mode`
+2. If `advisory`: All failed items downgraded to `severity: WARNING`, returns `passed: true`
+3. If `strict` or `locked`: All failed items retain original severity, returns `passed: false`
 
 ### 6.2 compliance_gate_complete
 
-在 `runGateComplete()` 中：
-1. 读取 `enforcement_mode`
-2. 若为 `advisory`：忽略 `dirty_modules`，始终标记完成
-3. 若为 `strict` 或 `locked`：`dirty_modules` → 返回 `failed`
+In `runGateComplete()`:
+1. Read `enforcement_mode`
+2. If `advisory`: Ignores `dirty_modules`, always marks as complete
+3. If `strict` or `locked`: `dirty_modules` → returns `failed`
 
 ### 6.3 pre-commit Hook
 
-在 Layer 0 (Gate Armed Check) 中：
-1. 若为 `advisory`：跳过检查，显示警告
-2. 若为 `strict` 或 `locked`：执行完整检查，无 session → exit 1
+In Layer 0 (Gate Armed Check):
+1. If `advisory`: Skip check, display warning
+2. If `strict` or `locked`: Execute full check; no session → exit 1
 
 ### 6.4 pre-execution-hook.sh
 
-在 DAG Gate 检查中：
-1. 若为 `advisory`：缺失 DAG/任务 → 警告 + exit 0
-2. 若为 `strict` 或 `locked`：缺失 DAG/任务 → exit 1
+In DAG Gate check:
+1. If `advisory`: Missing DAG/task → warning + exit 0
+2. If `strict` or `locked`: Missing DAG/task → exit 1
 
-## 七、故障排除
+## 7. Troubleshooting
 
-| 症状 | 可能原因 | 解决方案 |
+| Symptom | Possible Cause | Solution |
 |------|----------|----------|
-| 所有提交被阻断，但预期为 advisory | `ENFORCEMENT_MODE=strict` 已被设置 | `unset ENFORCEMENT_MODE` 或检查 `project.config.json` |
-| Locked 模式无法提交紧急修复 | 模式降级被禁止 | 执行 `state-machine-reset.sh --force --unlock` + @Arbiter 令牌 |
-| 模式转换后 audit 日志未更新 | `compliance_records` 未刷新 | 手动运行 `node .qoder/scripts/mcp-tools/compliance-gate.js` 或等待下一个 gate 操作 |
-| 环境变量不生效 | `locked` 模式激活中 | locked 模式下环境变量覆盖被禁用；检查 `enforcement_config.locked.allow_downgrade` |
+| All commits blocked but advisory expected | `ENFORCEMENT_MODE=strict` has been set | `unset ENFORCEMENT_MODE` or check `project.config.json` |
+| Locked mode cannot commit emergency fix | Mode downgrade is prohibited | Execute `state-machine-reset.sh --force --unlock` + @Arbiter token |
+| Audit log not updated after mode transition | `compliance_records` not refreshed | Manually run `node .qoder/scripts/mcp-tools/compliance-gate.js` or wait for next gate operation |
+| Environment variable not taking effect | `locked` mode is active | Environment variable override is disabled in locked mode; check `enforcement_config.locked.allow_downgrade` |
 
 ---
 
-*版本历史*：
-- **v1.0** (2026-05-22): 初始版本，定义 advisory/strict/locked 三层强制执行模式及完整行为矩阵。
+*Version History*:
+- **v1.0** (2026-05-22): Initial version, defining advisory/strict/locked three-tier enforcement modes and complete behavior matrix.

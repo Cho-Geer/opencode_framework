@@ -10,6 +10,11 @@ skills:
   - cross-directory-ci
 mcpServers:
   - qoder-framework-tools
+mcp_tools:
+  - compliance_gate_check (qoder-framework-tools)
+  - compliance_gate_confirm (qoder-framework-tools)
+  - compliance_gate_complete (qoder-framework-tools)
+  - docker (docker_run_container, docker_build_image, docker_list_containers, docker_stop_container, docker_remove_container)
 ---
 
 > **Write scope constraint:** CI/CD configuration files, Docker files, GitHub Actions workflows, deployment manifests. Does not participate in business development.

@@ -1,104 +1,104 @@
-# 预约-确认提交页（BookingConfirmationPage）
+# Booking - Confirmation Page (BookingConfirmationPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 预约创建 - 确认提交 |
-| **路由路径** | `/booking/confirmation` |
-| **布局** | `AppLayoutComponent` |
-| **惰性加载** | `features/booking/booking.routes.ts` → `BOOKING_ROUTES` |
-| **组件** | `BookingConfirmationComponent` (`src/app/features/booking/booking-confirmation/booking-confirmation.component.ts`) |
-| **设计依据** | 接口规范 2.5.3（乐观 UI）, 测试策略（预约流程 E2E） |
+| **Page Name** | Booking Creation - Confirmation |
+| **Route Path** | `/booking/confirmation` |
+| **Layout** | `AppLayoutComponent` |
+| **Lazy Loading** | `features/booking/booking.routes.ts` → `BOOKING_ROUTES` |
+| **Component** | `BookingConfirmationComponent` (`src/app/features/booking/booking-confirmation/booking-confirmation.component.ts`) |
+| **Design Basis** | Interface Spec 2.5.3 (Optimistic UI), Test Strategy (booking flow E2E) |
 
-## 用户角色
+## User Roles
 
-- CUSTOMER 专属
+- CUSTOMER exclusive
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 策略 |
+| Guard | Strategy |
 |---|---|
-| `authGuard` | 未认证 → `/auth/login?returnUrl=/booking/confirmation` |
+| `authGuard` | Unauthenticated → `/auth/login?returnUrl=/booking/confirmation` |
 | `roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })` | ADMIN/SUPER_ADMIN → `/admin/dashboard` |
-| `canDeactivateBookingGuard` | 未保存变更弹窗确认 |
+| `canDeactivateBookingGuard` | Unsaved changes confirmation dialog |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
 | `BookingStore` | `hasSelection`, `selectedSlot`, `error`, `isLoading`, `selectedServiceId`, `services`, `bookSlot()`, `selectSlot()` |
-| `AuthStore` | `user()`, `currentUser` — 获取用户 ID 用于预约提交 |
-| `Router` | 预约成功 → `/booking/success`；失败 → `/booking` 重新选择 |
+| `AuthStore` | `user()`, `currentUser` — get user ID for booking submission |
+| `Router` | Success → `/booking/success`; Failure → `/booking` reselect |
 
-## 本地状态
+## Local State
 
-| 信号/变量 | 类型 | 说明 |
+| Signal/Variable | Type | Description |
 |---|---|---|
-| `acceptTerms` | `boolean` | 是否接受服务条款 |
-| `selectedService` | `Service \| undefined` (computed) | 从 BookingStore `services` 查询 |
-| `selectedServiceName` | `string` (computed) | 服务名称 |
-| `serviceDuration` | `number` (computed) | 服务时长（分钟） |
-| `servicePrice` | `number` (computed) | 服务价格 |
-| `estTaxAmount` | `number` (computed) | 估算税额（`servicePrice * taxRate`） |
-| `estTaxIncludedTotal` | `number` (computed) | 含税总价（`servicePrice + estTaxAmount`） |
+| `acceptTerms` | `boolean` | Whether terms of service are accepted |
+| `selectedService` | `Service \| undefined` (computed) | Queried from BookingStore `services` |
+| `selectedServiceName` | `string` (computed) | Service name |
+| `serviceDuration` | `number` (computed) | Service duration (minutes) |
+| `servicePrice` | `number` (computed) | Service price |
+| `estTaxAmount` | `number` (computed) | Estimated tax amount (`servicePrice * taxRate`) |
+| `estTaxIncludedTotal` | `number` (computed) | Tax-included total (`servicePrice + estTaxAmount`) |
 
-## API 契约对照
+## API Contract Reference
 
-| 方法 | 端点 | 请求 DTO | 响应 | 鉴权 | 调用时机 |
+| Method | Endpoint | Request DTO | Response | Auth | Trigger |
 |---|---|---|---|---|---|---|
-| `POST` | `/v1/appointments` | Header: `Idempotency-Key: SHA-256(...)`<br>Body: `CreateAppointmentDto` (`timeSlotId`, `serviceId`, `appointmentDate`, `preferredSequence`, `customerInfo?`, `notes?`, `overtimeMinutes?`) | `ReservationResponse` (`{id, userId, serviceId, timeSlotId, appointmentDate, status, slotSequence, durationMinutes, price, taxRate, taxIncludedAmount, createdAt}`) | Bearer | 用户点击「确认预约」 |
+| `POST` | `/v1/appointments` | Header: `Idempotency-Key: SHA-256(...)`<br>Body: `CreateAppointmentDto` (`timeSlotId`, `serviceId`, `appointmentDate`, `preferredSequence`, `customerInfo?`, `notes?`, `overtimeMinutes?`) | `ReservationResponse` (`{id, userId, serviceId, timeSlotId, appointmentDate, status, slotSequence, durationMinutes, price, taxRate, taxIncludedAmount, createdAt}`) | Bearer | User clicks "Confirm Booking" |
 
-## 后端映射
+## Backend Mapping
 
-| 控制器 | 文件 |
+| Controller | File |
 |---|---|
 | `AppointmentsController` | `src/modules/appointments/appointments.controller.ts` — `POST /appointments` (`create()`) |
 | `AppointmentsService` | `src/modules/appointments/appointments.service.ts` |
 
-`create()` 实现要点：
-- 原子槽位抢占：`Prisma.$transaction` + `ReadCommitted` 隔离
-- 乐观锁重试（max 3, base 100ms 指数退避）
-- `updateMany` 条件更新 `currentSequence`
-- 生成 `appointmentNumber`（`APT-{timestamp}-{random}`）
-- 发送确认邮件 + 通知
+`create()` implementation highlights:
+- Atomic slot preemption: `Prisma.$transaction` + `ReadCommitted` isolation
+- Optimistic lock retry (max 3, base 100ms exponential backoff)
+- `updateMany` conditional update `currentSequence`
+- Generate `appointmentNumber` (`APT-{timestamp}-{random}`)
+- Send confirmation email + notification
 
-## 交互流程
+## Interaction Flow
 
-1. 从 `/booking/slots` 选择槽位后导航至确认页
-2. 展示预约摘要（服务名称、时间、时长、价格、税率、含税总价）
-   - 超时设置：显示 `overtimeMinutes` 和调整后的总 `durationMinutes`
-   - 价格明细：`price`（原始价）+ `taxRate`（税率）= `taxIncludedAmount`（含税价）
-3. 用户勾选「已阅读并接受服务条款」
-4. 点击「确认预约」→ `BookingStore.bookSlot(slotId, userId)`
-5. `BookingService.reserveSlot()` 内部：
-   - 生成随机 `preferredSequence`（0-99）
-   - 生成 `Idempotency-Key`（SHA256）
-   - 调用 `POST /v1/appointments`
-6. **乐观 UI**：提交时显示不可关闭的「处理中...」模态框，收到 `201 Created` 响应后跳转成功页；若遇 `409 Conflict` 则提示时段已被占用，返回槽位选择页。前端**不能**在收到 API 确认前假设请求成功，否则可能因原子化抢占失败导致状态不一致。
-7. **成功** → 导航 `/booking/success`
-8. **失败（409 槽位被占）** → 提示「该时间段已被占用，请重新选择」→ 返回 `/booking/slots`
+1. Navigate from `/booking/slots` after selecting slot to confirmation page
+2. Display booking summary (service name, time, duration, price, tax rate, tax-included total)
+   - Overtime settings: display `overtimeMinutes` and adjusted total `durationMinutes`
+   - Price breakdown: `price` (base) + `taxRate` (tax rate) = `taxIncludedAmount` (tax-included price)
+3. User checks "I have read and accept the Terms of Service"
+4. Click "Confirm Booking" → `BookingStore.bookSlot(slotId, userId)`
+5. `BookingService.reserveSlot()` internally:
+   - Generates random `preferredSequence` (0-99)
+   - Generates `Idempotency-Key` (SHA256)
+   - Calls `POST /v1/appointments`
+6. **Optimistic UI**: Shows a non-dismissible "Processing..." modal on submit; jumps to success page upon `201 Created` response; if `409 Conflict` occurs, prompts that the time slot is taken and returns to slot selection page. Frontend **must not** assume request success before receiving API confirmation, otherwise atomic preemption failure may cause state inconsistency.
+7. **Success** → navigate `/booking/success`
+8. **Failure (409 slot taken)** → prompt "This time slot is already taken, please select another" → return to `/booking/slots`
 
-## 前端高并发策略
+## Frontend High-Concurrency Strategy
 
-| 机制 | 实现 |
+| Mechanism | Implementation |
 |---|---|
-| `preferredSequence` | `Math.floor(Math.random() * 100)` 0-99 随机散列，用于 PostgreSQL Partial Unique Index 分片 |
-| `Idempotency-Key` | SHA-256(serviceId+slotId+userId+preferredSequence+timestamp) — 请求头幂等键，防重复提交（对应 contract.yaml 1.6.8 `headers.Idempotency-Key`） |
-| 乐观 UI | 提交时显示不可关闭的 Loading 模态框，收到 201 响应后跳转成功页；409 冲突则提示返回槽位选择页 |
+| `preferredSequence` | `Math.floor(Math.random() * 100)` 0-99 random hash for PostgreSQL Partial Unique Index sharding |
+| `Idempotency-Key` | SHA-256(serviceId+slotId+userId+preferredSequence+timestamp) — request header idempotency key, prevents duplicate submission (corresponds to contract.yaml 1.6.8 `headers.Idempotency-Key`) |
+| Optimistic UI | Shows non-dismissible loading modal on submit; jumps to success page upon 201 response; 409 conflict prompts return to slot selection page |
 
-## 数据来源
+## Data Sources
 
-- contract.yaml 1.7.2（appointments.create — 含 financial 字段、overtimeMinutes）
-- SAD 4.4（高并发事务 + 乐观锁）
-- 接口设计规范 2.5.3（乐观 UI + preferSeq）
-- 数据架构设计文档 2.2（Appointment 实体）, 5.2（Partial Unique Index）
+- contract.yaml 1.7.2 (appointments.create — includes financial fields, overtimeMinutes)
+- SAD 4.4 (high-concurrency transactions + optimistic locking)
+- Interface Design Specification 2.5.3 (optimistic UI + preferSeq)
+- data-architecture 2.2 (Appointment entity), 5.2 (Partial Unique Index)

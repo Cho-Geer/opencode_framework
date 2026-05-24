@@ -1,101 +1,101 @@
-# ESLint Audit 强约束实施计划
+# ESLint Audit Strict Enforcement Implementation Plan
 
-> **版本**: 2.0.0  
-> **日期**: 2026-05-14  
-> **作者**: @Architect  
-> **审批**: @Arbiter  
-
----
-
-## 1. 要解决的问题
-
-`time-slots.service.spec.ts` mock 了 `PrismaService`（TIER1）——违反 CAT1.1。单元测试未发现（mock 了全部依赖）、@Guardian 审查未拦截、Playwright 抓到症状被误判。根源：**约束规则有文档但无自动执行**。本计划消除这一差距。
+> **Version**: 2.0.0  
+> **Date**: 2026-05-14  
+> **Author**: @Architect  
+> **Approval**: @Arbiter  
 
 ---
 
-## 2. 架构原则
+## 1. Problem to Solve
 
-### 2.1 单一真相源
+`time-slots.service.spec.ts` mocked `PrismaService` (TIER1) — violating CAT1.1. Unit tests did not catch it (all dependencies were mocked), @Guardian review did not block it, and Playwright caught the symptom but it was misdiagnosed. Root cause: **constraint rules have documentation but no automated enforcement**. This plan eliminates that gap.
+
+---
+
+## 2. Architecture Principles
+
+### 2.1 Single Source of Truth
 
 ```
-contract.yaml ← 唯一约束定义
+contract.yaml ← sole constraint definition
       │
-      ├──→ tier-rules.json (自动生成，不手写)
-      ├──→ machine.json    (运行时状态)
-      └──→ ESLint 规则     (执行器)
+      ├──→ tier-rules.json (auto-generated, not hand-written)
+      ├──→ machine.json    (runtime state)
+      └──→ ESLint rules    (enforcer)
 ```
 
-### 2.2 强制分层防御
+### 2.2 Mandatory Layered Defense
 
-不是一层做所有事，而是三层叠加——每一层独立覆盖上一层的盲区：
+Not one layer doing everything, but three layers stacked — each independently covers the blind spots of the previous one:
 
 ```
-Layer A: Agent 主动     → 建议（提前发现，不强制）
-Layer B: Gate 强制      → P0 不可绕过（真正有效的防线）
-Layer C: Hook 兜底      → 拦截 gate 外的意外
+Layer A: Agent proactive  → advisory (early detection, not mandatory)
+Layer B: Gate mandatory   → P0 non-bypassable (the truly effective defense line)
+Layer C: Hook fallback    → catches unexpected bypasses outside the gate
 ```
 
-**只有 Layer B 是真正不可绕过的。** Layer A 和 C 是辅助，不依赖它们。
+**Only Layer B is truly non-bypassable.** Layers A and C are auxiliary; we do not depend on them.
 
 ---
 
-## 3. 角色职责
+## 3. Role Responsibilities
 
-| 角色 | 职责 |
+| Role | Responsibility |
 |------|------|
-| @Architect | 维护 contract.yaml `x-eslint-policy`<br>维护 ESLint 插件 `.qoder/tools/eslint-plugin-opencode-mock-audit/`<br>维护 MCP tool `.qoder/scripts/mcp-tools/eslint-audit.js`<br>维护 machine.json schema |
-| @Coder-BE/@Coder-FE | write/edit 后建议调 eslint-audit（Layer A）<br>**任务结束时必须调 compliance_gate_complete**（Layer B）<br>违规时：修复代码 OR 申请 @Arbiter waiver |
-| @Guardian | 读 machine.json.eslint_state → violations=0 且无 stale 状态 → PASS<br>审 waiver 合理性 → 引用 TECH_DEBT_REGISTRY.md |
-| @Arbiter | 审批 waiver → TECH_DEBT_REGISTRY.md 追加记录 |
-| @Orchestrator | 读 machine.json → dirty 模块拒调度 |
+| @Architect | Maintain contract.yaml `x-eslint-policy`<br>Maintain ESLint plugin `.qoder/tools/eslint-plugin-opencode-mock-audit/`<br>Maintain MCP tool `.qoder/scripts/mcp-tools/eslint-audit.js`<br>Maintain machine.json schema |
+| @Coder-BE/@Coder-FE | After write/edit, recommended to call eslint-audit (Layer A)<br>**Must call compliance_gate_complete at task end** (Layer B)<br>On violations: fix code OR request @Arbiter waiver |
+| @Guardian | Read machine.json.eslint_state → violations=0 and no stale state → PASS<br>Audit waiver validity → reference TECH_DEBT_REGISTRY.md |
+| @Arbiter | Approve waiver → append record to TECH_DEBT_REGISTRY.md |
+| @Orchestrator | Read machine.json → refuse to schedule dirty modules |
 
 ---
 
-## 4. ESLint 插件
+## 4. ESLint Plugin
 
-**位置**: `.qoder/tools/eslint-plugin-opencode-mock-audit/`
+**Location**: `.qoder/tools/eslint-plugin-opencode-mock-audit/`
 
-### 规则
+### Rules
 
-| 规则 | 级别 | 检测内容 |
+| Rule | Level | Detection Target |
 |------|:---:|------|
-| `no-tier1-mock` | **error** | `jest.spyOn(prisma.*, '*').mock*`、直接 `.mockResolvedValue`、`jest.mock('@prisma/client')` |
-| `no-skipped-audit` | **error** | `eslint-disable` 绕过 no-tier1-mock 但未引用有效 waiver ID |
-| `tier3-verify` | warn | TIER3 mock 未验证调用参数 |
+| `no-tier1-mock` | **error** | `jest.spyOn(prisma.*, '*').mock*`, direct `.mockResolvedValue`, `jest.mock('@prisma/client')` |
+| `no-skipped-audit` | **error** | `eslint-disable` bypassing no-tier1-mock without referencing a valid waiver ID |
+| `tier3-verify` | warn | TIER3 mock not verifying call parameters |
 
-### 关键设计
+### Key Design
 
 ```
-规则不硬编码 TIER 服务列表
+Rules do not hardcode TIER service lists
        ↓
-每次执行前从 contract.yaml → 自动生成 tier-rules.json
+Before each execution, auto-generate tier-rules.json from contract.yaml
        ↓
-规则读取 tier-rules.json 获取 TIER1_SERVICES
+Rules read tier-rules.json to obtain TIER1_SERVICES
 ```
 
-### waiver 引用格式
+### Waiver Reference Format
 
 ```typescript
 // eslint-disable-next-line booking/no-tier1-mock -- waiver: WAIVE-2026-001
 ```
 
-waiver ID 必须在 `TECH_DEBT_REGISTRY.md` 中存在且 status = "approved"。空注释或不存在的 ID → `no-skipped-audit` 报 error。
+The waiver ID must exist in `TECH_DEBT_REGISTRY.md` with status = "approved". Empty comment or non-existent ID → `no-skipped-audit` reports error.
 
 ---
 
 ## 5. MCP Tool
 
-**位置**: `.qoder/scripts/mcp-tools/eslint-audit.js`
+**Location**: `.qoder/scripts/mcp-tools/eslint-audit.js`
 
 ```
 MCP Server: eslint-audit
 Tool: run_audit
 
-输入:
-  { changed_file?: string }     // 可选，单文件扫描
-  { full_scan: true }           // 全量扫描，compliance_gate 调用时使用
+Input:
+  { changed_file?: string }     // optional, single file scan
+  { full_scan: true }           // full scan, used when compliance_gate calls
 
-输出:
+Output:
   {
     status: "pass" | "fail",
     module: string,
@@ -103,85 +103,85 @@ Tool: run_audit
     machine_json_updated: boolean
   }
 
-副作用:
-  更新 machine.json.eslint_state.{module}
+Side effects:
+  Updates machine.json.eslint_state.{module}
 ```
 
-### 执行流程
+### Execution Flow
 
 ```
-1. 从 contract.yaml → 生成 .qoder/generated/tier-rules.json
-2. 确定扫描范围 (单文件 or 全量)
+1. From contract.yaml → generate .qoder/generated/tier-rules.json
+2. Determine scan scope (single file or full)
 3. npx eslint --format json
-4. 解析输出 → violations[]
-5. 更新 machine.json.eslint_state:
+4. Parse output → violations[]
+5. Update machine.json.eslint_state:
    ├── status = violations > 0 ? "dirty" : "clean"
    ├── violations = [...]
    ├── last_check = now
-   └── aggregate 计数重算
-6. 返回结果
+   └── aggregate counts recalculated
+6. Return result
 ```
 
 ---
 
-## 6. 三层触发
+## 6. Three-Layer Triggering
 
-### Layer A: Agent 主动（建议）
+### Layer A: Agent Proactive (Advisory)
 
 ```
-@Coder 执行 write/edit
+@Coder performs write/edit
        │
        ▼
-(可选) eslint-audit.run_audit({ changed_file })
+(optional) eslint-audit.run_audit({ changed_file })
        │
-       ├── PASS → 继续
-       └── FAIL → 提前修复，不等 gate
+       ├── PASS → continue
+       └── FAIL → fix early, don't wait for gate
 ```
 
-**不是强制步骤。Agent 可以跳过。** 价值是即时反馈，减少 gate 时返工。
+**Not a mandatory step. Agent may skip.** Value is immediate feedback, reducing rework at gate time.
 
-### Layer B: compliance_gate_complete（P0 不可绕过）
+### Layer B: compliance_gate_complete (P0 Non-Bypassable)
 
 ```
-@Coder 完成开发 → compliance_gate_complete(session_id, summary)
+@Coder completes development → compliance_gate_complete(session_id, summary)
                         │
-                        ├── keystone_validate()           (已有)
-                        ├── eslint_audit.run_audit({       (新增)
+                        ├── keystone_validate()           (existing)
+                        ├── eslint_audit.run_audit({       (new)
                         │       full_scan: true
                         │   })
                         │      │
-                        │      ├── PASS → 继续
+                        │      ├── PASS → continue
                         │      └── FAIL
-                        │         ├── machine.json 标记 dirty
-                        │         └── complete 返回 failed
-                        │            Agent 必须修复后重新 complete
+                        │         ├── machine.json marked dirty
+                        │         └── complete returns failed
+                        │            Agent must fix then re-complete
                         │
                         └── machine.json.contract_compliance = "passed"
 ```
 
-**为什么要依赖 complete 而不是 check**：AGENTS.md 已规定所有任务以 `compliance_gate_check` 开始。同样，`compliance_gate_complete` 必须升级为 P0 强制结束步骤——Agent 不调 complete = 任务未完成 = @Orchestrator 拒调度下一个任务。
+**Why depend on complete rather than check**: AGENTS.md already mandates that all tasks start with `compliance_gate_check`. Likewise, `compliance_gate_complete` must be elevated to a P0 mandatory end step — Agent not calling complete = task incomplete = @Orchestrator refuses to schedule the next task.
 
-**AGENTS.md 需新增**:
+**AGENTS.md addition required**:
 ```markdown
-### 🚨 P0 强制规则（补充）
+### 🚨 P0 Mandatory Rule (Supplement)
 
-所有任务结束时必须调用 compliance_gate_complete。未调 complete 的任务视为未完成，
-@Orchestrator 拒绝调度该 Agent 的下一个任务。
+All tasks must call compliance_gate_complete at end. Tasks without complete called
+are considered incomplete; @Orchestrator refuses to schedule that Agent's next task.
 ```
 
-### Layer C: pre-commit hook（兜底）
+### Layer C: pre-commit hook (Fallback)
 
 ```bash
 # .git/hooks/pre-commit
 npx eslint --rule 'booking/no-tier1-mock: error' $(git diff --cached --name-only | grep '\.spec\.ts$')
-# FAIL → commit 拒绝
+# FAIL → commit rejected
 ```
 
-拦截 Agent 跳过 gate 直接 commit 的边缘情况。可被 `--no-verify` 绕过，但 Layer B 已先行拦截。
+Catches the edge case where Agent bypasses gate and commits directly. Can be bypassed with `--no-verify`, but Layer B has already intercepted first.
 
 ---
 
-## 7. contract.yaml 新增
+## 7. contract.yaml Addition
 
 ```yaml
 x-eslint-policy:
@@ -220,7 +220,7 @@ x-eslint-policy:
 
 ---
 
-## 8. machine.json 新增
+## 8. machine.json Addition
 
 ```jsonc
 {
@@ -244,7 +244,7 @@ x-eslint-policy:
   },
 
   "contract_compliance": {
-    "eslint_audit": "passed",      // 由 compliance_gate_complete 写入
+    "eslint_audit": "passed",      // Written by compliance_gate_complete
     "checked_at": null
   },
 
@@ -254,99 +254,99 @@ x-eslint-policy:
 
 ---
 
-## 9. @Guardian 审查流程（机器判定）
+## 9. @Guardian Audit Flow (Machine Judgment)
 
 ```
-@Guardian 审查:
+@Guardian audit:
 
-1. 读 machine.json.eslint_state
+1. Read machine.json.eslint_state
 
 2. aggregate.total_violations > 0 ?
-   ├── NO  → 继续步骤 3
-   └── YES → 逐个检查 waiver
-       ├── violation.waiver 不为 null
-       │   └── TECH_DEBT_REGISTRY.md 存在且 approved 且未过期
-       │       ├── YES → 该 violation 豁免
-       │       └── NO  → FAIL (CAT1.0: 无效 waiver)
-       └── violation.waiver 为 null
-           └── FAIL (CAT1.1: 无豁免的 TIER1 mock)
+   ├── NO  → proceed to step 3
+   └── YES → check each waiver
+       ├── violation.waiver is not null
+       │   └── Exists in TECH_DEBT_REGISTRY.md and approved and not expired
+       │       ├── YES → this violation is waived
+       │       └── NO  → FAIL (CAT1.0: invalid waiver)
+       └── violation.waiver is null
+           └── FAIL (CAT1.1: TIER1 mock without waiver)
 
-3. integration_test_coverage 检查
+3. integration_test_coverage check
    ├── contract.yaml x-eslint-policy.integration_test_requirement.modules
-   ├── 扫描 test/integration/
-   ├── 缺失模块 = [] → PASS
-   └── 缺失模块 ≠ [] → FAIL (CAT3.6)
-       → @Meta-Planner DAG 自动插入补测试任务
+   ├── Scan test/integration/
+   ├── Missing modules = [] → PASS
+   └── Missing modules ≠ [] → FAIL (CAT3.6)
+       → @Meta-Planner DAG auto-inserts test backfill task
 
-4. 写入 machine.json.contract_compliance
+4. Write to machine.json.contract_compliance
 ```
 
 ---
 
-## 10. Waiver 机制
+## 10. Waiver Mechanism
 
 ```
 @Coder → @Arbiter: "/waiver TIER1 time-slots time-slots.service.spec.ts:466"
 
-@Arbiter 审批 → TECH_DEBT_REGISTRY.md 追加:
+@Arbiter approves → append to TECH_DEBT_REGISTRY.md:
   | WAIVE-2026-001 | TIER1 | time-slots | jest.spyOn(prisma.timeSlot) |
-    等待 Testcontainers 迁移 | 2026-06-14 | approved |
+    Awaiting Testcontainers migration | 2026-06-14 | approved |
 
-@Coder 代码中:
+@Coder in code:
   // eslint-disable-next-line booking/no-tier1-mock -- waiver: WAIVE-2026-001
 
 machine.json:
   .eslint_state.modules.time-slots.violations[0].waiver = "WAIVE-2026-001"
   .waivers_consumed += "WAIVE-2026-001"
 
-@Orchestrator 检查:
-  waiver.expires_at < now → 过期 → 模块重新标记 dirty → 拒调度
+@Orchestrator checks:
+  waiver.expires_at < now → expired → module re-marked dirty → scheduling refused
 ```
 
 ---
 
-## 11. 约束强度验证
+## 11. Constraint Strength Verification
 
-### 原始 bug 在新架构下
+### Original Bug Under New Architecture
 
 ```
 @Coder-BE writes: jest.spyOn(prisma.timeSlot, 'findMany').mockResolvedValue(...)
 
-Layer A (主动):  Agent 可能跳过                    → 未发现  ← 允许，不是强制
+Layer A (proactive):  Agent may skip                      → not detected  ← allowed, not mandatory
 
 Layer B (gate):  compliance_gate_complete()
                     └→ eslint-audit.run_audit({ full_scan: true })
                     └→ 'no-tier1-mock' → error
                     └→ machine.json.time-slots.status = "dirty"
-                    └→ complete 返回 FAIL             ← 拦截 ✓
+                    └→ complete returns FAIL              ← intercepted ✓
                     
-                  Agent 不调 complete?
-                    └→ 任务未完成
-                    └→ @Orchestrator 不调度下一个       ← 拦截 ✓
+                  Agent doesn't call complete?
+                    └→ Task incomplete
+                    └→ @Orchestrator won't schedule next   ← intercepted ✓
 
-Layer C (hook):  git commit → pre-commit hook → ESLint → FAIL  ← 拦截 ✓
+Layer C (hook):  git commit → pre-commit hook → ESLint → FAIL  ← intercepted ✓
 
-就算三层全漏:
-  @Guardian 读 machine.json → "dirty" → FAIL           ← 拦截 ✓
+Even if all three layers miss:
+  @Guardian reads machine.json → "dirty" → FAIL            ← intercepted ✓
 ```
 
-### 所有攻击向量
+### All Attack Vectors
 
-| 攻击 | 结果 | 机制 |
+| Attack | Result | Mechanism |
 |------|:---:|------|
-| 写违规代码，调 complete | **拦截** | complete 内全量扫描 → FAIL |
-| 写违规代码，不调 complete | **拦截** | 任务未完成，@Orchestrator 拒调度 |
-| git commit --no-verify | **拦截** | gate 已在 complete 时拦截 |
-| eslint-disable 无 waiver | **拦截** | no-skipped-audit 规则 → error |
-| eslint-disable + 假 waiver ID | **拦截** | @Guardian 验证 TECH_DEBT_REGISTRY |
-| eslint-disable + 过期 waiver | **拦截** | @Orchestrator 检查过期 → 拒调度 |
-| @Guardian 漏判 | **拦截** | machine.json 是机器写的 status 字段，无需人的判断 |
+| Write violating code, call complete | **Intercepted** | Full scan inside complete → FAIL |
+| Write violating code, don't call complete | **Intercepted** | Task incomplete, @Orchestrator refuses to schedule |
+| git commit --no-verify | **Intercepted** | Gate already intercepted at complete time |
+| eslint-disable without waiver | **Intercepted** | no-skipped-audit rule → error |
+| eslint-disable + fake waiver ID | **Intercepted** | @Guardian verifies TECH_DEBT_REGISTRY |
+| eslint-disable + expired waiver | **Intercepted** | @Orchestrator checks expiration → refuses to schedule |
+| @Guardian misjudgment | **Intercepted** | machine.json status field is machine-written, no human judgment required |
 
 ---
 
-## 12. MCP 工具注册
+## 12. MCP Tool Registration
 
-`eslint-audit` MCP server 需要在 opencode 客户端配置中注册才能被 Agent 发现和调用。在 `~/.config/opencode/opencode.json` 或等效的客户端配置中添加以下条目：
+The `eslint-audit` MCP server needs to be registered in the opencode client configuration to be discoverable and callable by Agents. Add the following entry in `~/.config/opencode/opencode.json` or equivalent client configuration:
 
 ```json
 {
@@ -362,21 +362,21 @@ Layer C (hook):  git commit → pre-commit hook → ESLint → FAIL  ← 拦截 
 }
 ```
 
-注册后，所有 Agent 将可以通过 `eslint_audit.run_audit()` 调用此 MCP 工具。
+After registration, all Agents will be able to invoke this MCP tool via `eslint_audit.run_audit()`.
 
-## 13. 实施步骤
+## 13. Implementation Steps
 
-| # | 角色 | 内容 | 产出 |
+| # | Role | Content | Output |
 |:--:|------|------|------|
-| 1 | @Architect | 创建 ESLint plugin | `.qoder/tools/eslint-plugin-opencode-mock-audit/` |
-| 2 | @Architect | 创建 MCP tool server | `.qoder/scripts/mcp-tools/eslint-audit.js` |
-| 3 | @Architect | 更新 contract.yaml | 新增 `x-eslint-policy` 段 |
-| 4 | @Architect | 更新 machine.json schema | 新增 `eslint_state` |
-| 5 | @Architect | 更新 compliance_gate_complete | 新增 eslint_audit 检查 |
-| 6 | @Architect | 更新 AGENTS.md | complete 升级为 P0 强制 |
-| 7 | @Architect | 更新 @Guardian 审查清单 | 新增 eslint_state 判定 |
-| 8 | @Architect | 创建 pre-commit hook | ESLint 兜底检查 |
-| 9 | @Coder-BE | 修复 `time-slots.service.spec.ts` | 改用 Testcontainers |
-| 10 | @Coder-BE | 补 `time-slots.integration.spec.ts` | Testcontainers 真实 PostgreSQL |
-| 11 | @Guardian | 全量验证 | 所有模块 eslint_state = clean |
-| 12 | @Arbiter | 审批遗留 waiver | TECH_DEBT_REGISTRY.md |
+| 1 | @Architect | Create ESLint plugin | `.qoder/tools/eslint-plugin-opencode-mock-audit/` |
+| 2 | @Architect | Create MCP tool server | `.qoder/scripts/mcp-tools/eslint-audit.js` |
+| 3 | @Architect | Update contract.yaml | Add `x-eslint-policy` section |
+| 4 | @Architect | Update machine.json schema | Add `eslint_state` |
+| 5 | @Architect | Update compliance_gate_complete | Add eslint_audit check |
+| 6 | @Architect | Update AGENTS.md | Elevate complete to P0 mandatory |
+| 7 | @Architect | Update @Guardian audit checklist | Add eslint_state judgment |
+| 8 | @Architect | Create pre-commit hook | ESLint fallback check |
+| 9 | @Coder-BE | Fix `time-slots.service.spec.ts` | Switch to Testcontainers |
+| 10 | @Coder-BE | Add `time-slots.integration.spec.ts` | Testcontainers with real PostgreSQL |
+| 11 | @Guardian | Full verification | All modules eslint_state = clean |
+| 12 | @Arbiter | Approve remaining waivers | TECH_DEBT_REGISTRY.md |
