@@ -183,3 +183,24 @@ The following are handled by WorkBuddy natively and are NOT reimplemented:
 - **Content safety**: WorkBuddy built-in content policy (not custom enforcement)
 - **Tool scoping**: Native `tools`/`disallowedTools` frontmatter (not custom write_scopes)
 - **Layer detection**: Conditional rules with `paths` frontmatter (not manual path matching)
+
+---
+
+## MCP Servers
+
+The framework provides WorkBuddy-native MCP servers that replace the original `.opencode/scripts/mcp-tools/` with Markdown-state-compatible equivalents:
+
+| MCP Server | Script | Replaces | Tools |
+|-------------|--------|----------|-------|
+| `workbuddy-compliance-gate` | `.workbuddy/mcp/compliance-gate.js` | `compliance-gate.js` | `compliance_gate_check`, `compliance_gate_confirm`, `compliance_gate_complete` |
+| `workbuddy-code-quality-gate` | `.workbuddy/mcp/code-quality-gate.js` | `code-quality-gate.js` | `run_write_check`, `run_full_scan`, `get_audit_status` |
+| `workbuddy-eslint-audit` | `.workbuddy/mcp/eslint-audit.js` | `eslint-audit.js` | `run_audit` |
+| `workbuddy-keystone-validate` | `.workbuddy/mcp/keystone-validate.js` | `keystone-validate.js` | `keystone_validate` |
+
+**Key differences from original:**
+- Read/write `.workbuddy/memory/` Markdown state files (not `.opencode/` JSON)
+- Use `WORKBUDDY_ROOT` env var (not `OPENCODE_ROOT`)
+- Agent types: `architect`, `coder`, `guardian`, `arbiter`, `devops` (not `@Coder-FE`, etc.)
+- Quality status tracked in `framework-state.md` dimensions table (not `machine.json` sub-states)
+
+**Configuration**: MCP servers are defined in `.workbuddy/mcp.json`. Additional utility servers (context7, playwright, postgres, docker, etc.) are available but disabled by default — enable per-project as needed.

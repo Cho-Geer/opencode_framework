@@ -1,0 +1,83 @@
+{
+  "mcpServers": {
+    "workbuddy-compliance-gate": {
+      "command": "node",
+      "args": ["./.workbuddy/mcp/compliance-gate.js"],
+      "env": {
+        "WORKBUDDY_ROOT": "."
+      },
+      "disabled": false
+    },
+    "workbuddy-code-quality-gate": {
+      "command": "node",
+      "args": ["./.workbuddy/mcp/code-quality-gate.js"],
+      "env": {
+        "WORKBUDDY_ROOT": "."
+      },
+      "disabled": false
+    },
+    "workbuddy-eslint-audit": {
+      "command": "node",
+      "args": ["./.workbuddy/mcp/eslint-audit.js"],
+      "env": {
+        "WORKBUDDY_ROOT": "."
+      },
+      "disabled": false
+    },
+    "workbuddy-keystone-validate": {
+      "command": "node",
+      "args": ["./.workbuddy/mcp/keystone-validate.js"],
+      "env": {
+        "WORKBUDDY_ROOT": "."
+      },
+      "disabled": false
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {
+        "DEFAULT_MINIMUM_TOKENS": "10000"
+      },
+      "disabled": false
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "disabled": false
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": false
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "${POSTGRES_URL}"
+      },
+      "disabled": true
+    },
+    "docker": {
+      "command": "uvx",
+      "args": ["mcp-server-docker"],
+      "disabled": true
+    },
+    "pandoc": {
+      "command": "uvx",
+      "args": ["mcp-pandoc"],
+      "disabled": true
+    },
+    "excel": {
+      "command": "npx",
+      "args": ["--yes", "@negokaz/excel-mcp-server"],
+      "env": {
+        "EXCEL_MCP_PAGING_CELLS_LIMIT": "1000000"
+      },
+      "disabled": true
+    }
+  }
+}
