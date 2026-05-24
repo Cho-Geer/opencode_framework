@@ -789,15 +789,70 @@ function checkReconciliationInfra() {
   }
 
   // 20e: Dry-run execution (verify script doesn't crash on syntax errors)
+  // Cross-platform: resolve relative path first, fall back to absolute on ENOENT
   try {
     const { execSync } = require("child_process");
-    // Use --quiet mode for framework test to avoid verbose output
-    execSync(`bash -n "${reconcilePath}"`, { stdio: "pipe", timeout: 5000 });
+    const relativePath = path.relative(OPENCODE_ROOT, reconcilePath);
+
+    try {
+      // Attempt 1: relative path from OPENCODE_ROOT (cross-platform compatible)
+      execSync(`bash -n "${relativePath}"`, {
+        stdio: "pipe",
+        timeout: 5000,
+        cwd: OPENCODE_ROOT,
+      });
+    } catch (innerErr) {
+      const stderr = (innerErr.stderr || "").toString();
+      const isENOENT =
+        stderr.includes("No such file or directory") ||
+        stderr.includes("cannot open") ||
+        stderr.includes("ENOENT") ||
+        (innerErr.status === 127);
+
+      if (isENOENT) {
+        // Attempt 2: absolute path as fallback (e.g., WSL paths)
+        try {
+          execSync(`bash -n "${reconcilePath}"`, {
+            stdio: "pipe",
+            timeout: 5000,
+          });
+        } catch (absErr) {
+          const absStderr = (absErr.stderr || "").toString();
+          const absIsENOENT =
+            absStderr.includes("No such file or directory") ||
+            absStderr.includes("cannot open") ||
+            (absErr.status === 127);
+
+          if (absIsENOENT) {
+            return check(
+              20,
+              false,
+              `reconciliation-check.sh not found at either path — relative: "${relativePath}", absolute: "${reconcilePath}"`,
+            );
+          }
+          // Absolute path found but has syntax errors
+          return check(
+            20,
+            false,
+            `reconciliation-check.sh has bash syntax errors (absolute path): ${absStderr || absErr.message}`,
+          );
+        }
+        // Absolute path works — script syntax is valid
+        // (no return: falls through to ok below)
+      } else {
+        // Relative path found but has syntax errors
+        return check(
+          20,
+          false,
+          `reconciliation-check.sh has bash syntax errors (relative path "${relativePath}"): ${stderr || innerErr.message}`,
+        );
+      }
+    }
   } catch (e) {
     return check(
       20,
       false,
-      `reconciliation-check.sh has bash syntax errors: ${e.stderr || e.message}`,
+      `reconciliation-check.sh bash check failed: ${e.stderr || e.message}`,
     );
   }
 
@@ -812,6 +867,99 @@ function checkReconciliationInfra() {
     : "See failure details above";
 
   return check(20, ok, detail);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 21: Git hooksPath enforcement (hooks present, executable, configured)
+// ═══════════════════════════════════════════════════════════════
+function checkGitHooksPath() {
+  const hooksDir = path.join(OPENCODE_ROOT, ".opencode", "hooks");
+  const preCommitPath = path.join(hooksDir, "pre-commit");
+  const commitMsgPath = path.join(hooksDir, "commit-msg");
+
+  // 21a: Verify git config core.hooksPath resolves to .opencode/hooks
+  let configuredHooksPath = "";
+  try {
+    const { execSync } = require("child_process");
+    configuredHooksPath = execSync("git config --local core.hooksPath", {
+      stdio: "pipe",
+      encoding: "utf-8",
+    }).trim();
+  } catch (e) {
+    return check(
+      21,
+      false,
+      `Failed to read git config core.hooksPath: ${e.stderr || e.message}`,
+    );
+  }
+
+  if (configuredHooksPath !== ".opencode/hooks") {
+    return check(
+      21,
+      false,
+      `git config core.hooksPath is "${configuredHooksPath}", expected ".opencode/hooks". Run: git config core.hooksPath .opencode/hooks`,
+    );
+  }
+
+  // 21b: Verify pre-commit hook exists and is executable
+  let preCommitExists = false;
+  let preCommitExec = false;
+  try {
+    const stat = fs.statSync(preCommitPath);
+    preCommitExists = stat.isFile();
+    fs.accessSync(preCommitPath, fs.constants.X_OK);
+    preCommitExec = true;
+  } catch (e) {
+    // path not found or not executable
+  }
+
+  if (!preCommitExists) {
+    return check(
+      21,
+      false,
+      ".opencode/hooks/pre-commit does not exist or is not a regular file",
+    );
+  }
+  if (!preCommitExec) {
+    return check(
+      21,
+      false,
+      ".opencode/hooks/pre-commit is not executable (chmod +x)",
+    );
+  }
+
+  // 21c: Verify commit-msg hook exists and is executable
+  let commitMsgExists = false;
+  let commitMsgExec = false;
+  try {
+    const stat = fs.statSync(commitMsgPath);
+    commitMsgExists = stat.isFile();
+    fs.accessSync(commitMsgPath, fs.constants.X_OK);
+    commitMsgExec = true;
+  } catch (e) {
+    // path not found or not executable
+  }
+
+  if (!commitMsgExists) {
+    return check(
+      21,
+      false,
+      ".opencode/hooks/commit-msg does not exist or is not a regular file",
+    );
+  }
+  if (!commitMsgExec) {
+    return check(
+      21,
+      false,
+      ".opencode/hooks/commit-msg is not executable (chmod +x)",
+    );
+  }
+
+  return check(
+    21,
+    true,
+    `hooksPath=${configuredHooksPath}, pre-commit + commit-msg exist and executable`,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -842,6 +990,7 @@ checkUnresolvedPlaceholders();
 checkTemplateResolution();
 checkAbsolutePathLeakage();
 checkReconciliationInfra();
+checkGitHooksPath();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
