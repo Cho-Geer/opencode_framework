@@ -303,6 +303,8 @@ class StateTransaction {
 
   /**
    * Phase 2: COMMIT
+   * - Atomic compare-and-set: verify current revision matches expected
+   * - Retry up to 3 times with exponential backoff on CAS failure
    * - Atomic rename: .tmp → target file (POSIX ensures atomicity on same FS)
    * - Write COMMIT entry to WAL
    * - Remove .prepared marker
@@ -322,6 +324,68 @@ class StateTransaction {
 
     ensureStateDir();
     const timestamp = new Date().toISOString();
+
+    // ═══ P5-002: Atomic compare-and-set for revision ═══
+    // Verify current revision hasn't changed since prepare
+    const MAX_RETRIES = 3;
+    const BACKOFF_MS = [10, 100, 500];
+    let casSuccess = false;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const currentRevision = getCurrentRevision();
+
+      // expected new revision should be current + 1
+      const expectedRevision = currentRevision + 1;
+
+      if (this.newRevision === expectedRevision) {
+        // CAS passed — revision matches expectation
+        casSuccess = true;
+        break;
+      }
+
+      if (attempt === MAX_RETRIES) {
+        throw new Error(
+          `TransactionConflictError: operation_id=${this.operationId}, ` +
+          `expected_revision=${expectedRevision}, actual_revision=${currentRevision}, ` +
+          `new_revision=${this.newRevision}. Concurrent modification detected after ${MAX_RETRIES + 1} attempts.`,
+        );
+      }
+
+      // Backoff and retry: re-read machine.json and recompute revision
+      const backoffMs = BACKOFF_MS[attempt] || 500;
+      process.stderr.write(
+        `[state-transaction] ⚠ CAS retry ${attempt + 1}/${MAX_RETRIES} for ${this.operationId}: ` +
+        `expected rev ${expectedRevision}, current rev ${currentRevision}. Retrying in ${backoffMs}ms\n`,
+      );
+
+      // Sleep for backoff
+      const startSleep = Date.now();
+      while (Date.now() - startSleep < backoffMs) {
+        // busy-wait (short backoff)
+      }
+
+      // Re-read and recompute revision
+      const isMachineJson = path.basename(this.filePath) === "machine.json";
+      if (isMachineJson && fs.existsSync(this.filePath)) {
+        try {
+          const freshContent = fs.readFileSync(this.filePath, "utf-8");
+          const machineObj = JSON.parse(freshContent);
+          this.newRevision = incrementRevision(machineObj);
+          // Update tmp file with new revision
+          fs.writeFileSync(this.tmpPath, JSON.stringify(machineObj, null, 2) + "\n", "utf-8");
+        } catch {
+          this.newRevision = getCurrentRevision() + 1;
+        }
+      } else {
+        this.newRevision = getCurrentRevision() + 1;
+      }
+    }
+
+    if (!casSuccess) {
+      throw new Error(
+        `TransactionConflictError: operation_id=${this.operationId} — CAS failed after all retries`,
+      );
+    }
 
     // ═══ Atomic rename (POSIX guarantee: rename is atomic on same filesystem) ═══
     fs.renameSync(this.tmpPath, this.filePath);
@@ -713,6 +777,93 @@ function initializeTransactionSystem() {
   return recovery;
 }
 
+// ─── P5-002: Repair Monotonic Revision ────────────────────
+/**
+ * Repair the revision sequence to be strictly monotonic.
+ * Scans all COMMIT entries in the transaction log, reassigns sequential
+ * revision numbers (1, 2, 3, ...) ordered by timestamp, and updates
+ * the WAL entries. Also updates machine.json meta.revision to the max.
+ *
+ * @returns {{ success: boolean, entries_repaired: number, max_revision: number, issues: string[] }}
+ */
+function repairMonotonicRevision() {
+  const issues = [];
+  const entries = readTransactionLog();
+
+  // Find all COMMIT entries with new_revision
+  const commitEntries = entries
+    .map((e, idx) => ({ ...e, _index: idx }))
+    .filter((e) => e.phase === "COMMIT" && e.new_revision != null)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  if (commitEntries.length === 0) {
+    return { success: true, entries_repaired: 0, max_revision: 0, issues: [] };
+  }
+
+  // Check for non-monotonic pattern
+  let prevRev = -1;
+  let hasNonMonotonic = false;
+  for (const entry of commitEntries) {
+    if (entry.new_revision <= prevRev) {
+      hasNonMonotonic = true;
+      issues.push(`Non-monotonic: op=${entry.operation_id} rev=${entry.new_revision} after rev=${prevRev}`);
+    }
+    prevRev = entry.new_revision;
+  }
+
+  if (!hasNonMonotonic) {
+    // Already monotonic — just report
+    const maxRev = Math.max(...commitEntries.map((e) => e.new_revision));
+    return { success: true, entries_repaired: 0, max_revision: maxRev, issues: [] };
+  }
+
+  // Repair: reassign sequential revisions ordered by timestamp
+  // We need to rewrite the WAL file
+  let repairedCount = 0;
+  const newRevMap = new Map(); // operation_id → new revision number
+
+  commitEntries.forEach((entry, seqIdx) => {
+    const newRev = seqIdx + 1;
+    if (entry.new_revision !== newRev) {
+      newRevMap.set(entry.operation_id, newRev);
+      repairedCount++;
+    }
+  });
+
+  // Rewrite transaction log with corrected revisions
+  const newLines = entries.map((entry, idx) => {
+    if (entry.phase === "COMMIT" && entry.new_revision != null && newRevMap.has(entry.operation_id)) {
+      const correctedEntry = { ...entry, new_revision: newRevMap.get(entry.operation_id) };
+      return JSON.stringify(correctedEntry);
+    }
+    // Also fix if entry was the old raw entry
+    return JSON.stringify(entry);
+  });
+
+  fs.writeFileSync(TRANSACTION_LOG, newLines.join("\n") + "\n", "utf-8");
+
+  // Update machine.json meta.revision to the max
+  const maxRev = commitEntries.length; // After repair, max = count
+  if (fs.existsSync(MACHINE_JSON)) {
+    try {
+      const machine = JSON.parse(fs.readFileSync(MACHINE_JSON, "utf-8"));
+      if (!machine.meta) machine.meta = {};
+      machine.meta.revision = maxRev;
+      machine.meta.lastUpdated = new Date().toISOString();
+      fs.writeFileSync(MACHINE_JSON, JSON.stringify(machine, null, 2) + "\n", "utf-8");
+    } catch {
+      issues.push("Failed to update machine.json meta.revision");
+    }
+  }
+
+  return {
+    success: true,
+    entries_repaired: repairedCount,
+    max_revision: maxRev,
+    issues,
+  };
+}
+
 // ─── CLI Interface ────────────────────────────────────────
 function runCLI() {
   const command = process.argv[2];
@@ -745,6 +896,15 @@ function runCLI() {
       const result = initializeTransactionSystem();
       console.log(JSON.stringify(result, null, 2));
       process.exit(0);
+    }
+
+    // ═══ P5-002: Repair monotonic revision sequence ═══
+    case "repair-monotonic": {
+      // Rewrite revision sequence to be strict monotonic
+      // Reads all COMMIT entries, reassigns sequential revision numbers
+      const result = repairMonotonicRevision();
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(result.success ? 0 : 1);
     }
 
     // ═══ Internal: prepare+commit in one step (for scripted use) ═══
@@ -807,6 +967,7 @@ module.exports = {
   verifyTransactionLog,
   readTransactionLog,
   getCurrentRevision,
+  repairMonotonicRevision,
   TRANSACTION_LOG,
   MACHINE_JSON,
   STATE_DIR,

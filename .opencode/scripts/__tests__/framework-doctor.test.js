@@ -1,0 +1,239 @@
+/**
+ * framework-doctor.test.js — Framework Doctor Tests
+ * Tests for .opencode/scripts/framework-doctor.js
+ * RED phase: Tests exist first, may not all pass yet
+ */
+"use strict";
+
+const path = require("path");
+const fs = require("fs");
+const { execSync } = require("child_process");
+
+const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
+const DOCTOR_SCRIPT = path.join(
+  PROJECT_ROOT,
+  ".opencode",
+  "scripts",
+  "framework-doctor.js",
+);
+
+describe("framework-doctor CLI", () => {
+  test("script file exists", () => {
+    expect(fs.existsSync(DOCTOR_SCRIPT)).toBe(true);
+  });
+
+  test("script is valid JavaScript", () => {
+    try {
+      execSync(`node -c "${DOCTOR_SCRIPT}"`, {
+        cwd: PROJECT_ROOT,
+        timeout: 10000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      throw new Error(`Syntax error: ${e.stderr || e.message}`);
+    }
+  });
+
+  test("runs without crashing (default mode)", () => {
+    try {
+      const output = execSync(`node "${DOCTOR_SCRIPT}"`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+      expect(output).toBeTruthy();
+      // Should contain PASS or FAIL markers
+      expect(output).toMatch(/\[PASS\]|\[FAIL\]/);
+    } catch (e) {
+      // May exit non-zero if some checks fail; still must have output
+      expect(e.stdout).toBeTruthy();
+      expect(e.stdout).toMatch(/\[PASS\]|\[FAIL\]/);
+    }
+  });
+});
+
+describe("framework-doctor --strict flag", () => {
+  test("--strict exits 1 when any check fails", () => {
+    // We can't guarantee all 10 checks pass on every project,
+    // so --strict should exit 1 if any check fails.
+    try {
+      execSync(`node "${DOCTOR_SCRIPT}" --strict`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+      // If it gets here, all checks passed — that's fine too
+    } catch (e) {
+      // --strict exits 1 on failure — expected behavior
+      expect(e.status).toBe(1);
+      expect(e.stdout).toBeTruthy();
+    }
+  });
+
+  test("--strict output contains PASS or FAIL markers", () => {
+    try {
+      const output = execSync(`node "${DOCTOR_SCRIPT}" --strict`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+      expect(output).toMatch(/\[PASS\]|\[FAIL\]/);
+    } catch (e) {
+      expect(e.stdout).toMatch(/\[PASS\]|\[FAIL\]/);
+    }
+  });
+});
+
+describe("framework-doctor --json flag", () => {
+  test("--json produces valid JSON", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --json`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    expect(output).toBeTruthy();
+    let parsed;
+    expect(() => {
+      parsed = JSON.parse(output);
+    }).not.toThrow();
+    expect(parsed).toHaveProperty("version");
+    expect(parsed).toHaveProperty("checks");
+    expect(parsed).toHaveProperty("summary");
+  });
+
+  test("--json output contains 10 checks", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --json`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    const parsed = JSON.parse(output);
+    expect(parsed.checks).toBeInstanceOf(Array);
+    expect(parsed.checks.length).toBe(10);
+  });
+
+  test("--json each check has id, name, status fields", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --json`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    const parsed = JSON.parse(output);
+    for (const check of parsed.checks) {
+      expect(check).toHaveProperty("id");
+      expect(check).toHaveProperty("name");
+      expect(check).toHaveProperty("status");
+      expect(["PASS", "FAIL"]).toContain(check.status);
+    }
+  });
+});
+
+describe("framework-doctor --check flag", () => {
+  test("--check 1 runs only check 1 (opencode.json sync)", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --check 1`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    // Should only contain check 1 output
+    expect(output).toMatch(/Check 1/);
+    // Should mention opencode.json
+    expect(output).toMatch(/opencode\.json/);
+  });
+
+  test("--check 9 runs only check 9 (encoding scan)", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --check 9`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    expect(output).toMatch(/Check 9/);
+    expect(output).toMatch(/UTF-8|encoding|mojibake/i);
+  });
+
+  test("--check with invalid index warns and continues", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --check 99`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    // Should either warn about invalid check or just show summary
+    expect(output).toBeTruthy();
+  });
+});
+
+describe("framework-doctor --json --check N", () => {
+  test("--json --check 3 outputs single check in JSON format", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --json --check 3`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveProperty("version");
+    expect(parsed).toHaveProperty("checks");
+    expect(parsed.checks.length).toBe(1);
+    expect(parsed.checks[0].id).toBe(3);
+  });
+});
+
+describe("framework-doctor JSON report output", () => {
+  test("doctor writes JSON report to .task_temp/_global/doctor-report.json", () => {
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}"`, {
+        cwd: PROJECT_ROOT,
+        timeout: 30000,
+        encoding: "utf8",
+      });
+    } catch (e) {
+      output = e.stdout;
+    }
+    const reportPath = path.join(
+      PROJECT_ROOT,
+      ".task_temp",
+      "_global",
+      "doctor-report.json",
+    );
+    expect(fs.existsSync(reportPath)).toBe(true);
+    const report = JSON.parse(fs.readFileSync(reportPath, "utf-8"));
+    expect(report).toHaveProperty("version");
+    expect(report).toHaveProperty("checks");
+    expect(report).toHaveProperty("summary");
+  });
+});

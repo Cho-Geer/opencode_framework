@@ -2,18 +2,18 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-24T06:48:53.469Z",
+    "lastUpdated": "2026-05-24T08:03:11.499Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 54
+    "revision": 83
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-24T06:48:53.467Z",
+    "last_full_scan": "2026-05-24T08:03:11.498Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-24T06:48:53.466Z",
+        "last_check": "2026-05-24T08:03:11.498Z",
         "waivers_applied": []
       },
       "unknown": {
@@ -39,20 +39,20 @@
     "status": "clean",
     "dirty_files": [],
     "incremental_errors": 0,
-    "last_incremental_check": "2026-05-24T06:47:53.447Z"
+    "last_incremental_check": "2026-05-24T07:56:11.488Z"
   },
   "dependency_state": {
-    "last_check": "2026-05-24T06:47:53.447Z",
+    "last_check": "2026-05-24T07:56:11.488Z",
     "violations": [],
-    "forbidden_rules_applied": 86,
+    "forbidden_rules_applied": 90,
     "status": "clean"
   },
   "format_state": {
     "status": "clean",
     "unformatted_files": [],
     "last_run": "2026-05-23T12:00:00.000Z",
-    "last_check": "2026-05-24T06:47:53.447Z",
-    "auto_fix_count": 27
+    "last_check": "2026-05-24T07:56:11.488Z",
+    "auto_fix_count": 30
   },
   "write_audit_state": {
     "enabled": true,
@@ -118,14 +118,18 @@
         ".opencode/state/rule_registry.json",
         ".opencode/scripts/mcp-tools/compliance-gate.js",
         ".opencode/scripts/__tests__/compliance-gate.test.js",
-        "Task.DAG.json"
+        "Task.DAG.json",
+        ".opencode/scripts/state-reconciliation.js",
+        ".opencode/scripts/framework-doctor.js",
+        ".opencode/scripts/__tests__/framework-doctor.test.js",
+        ".opencode/scripts/framework-self-test.js"
       ],
-      "checks_run": 59,
-      "checks_passed": 43,
-      "checks_failed": 16,
-      "violations_found": 16,
+      "checks_run": 63,
+      "checks_passed": 44,
+      "checks_failed": 19,
+      "violations_found": 19,
       "violations_resolved": 0,
-      "scope_violations_attempted": 1
+      "scope_violations_attempted": 4
     },
     "history": []
   },
@@ -167,7 +171,8 @@
         ".opencode/scripts/__tests__/compliance-gate.test.js",
         ".opencode/scripts/__tests__/framework-self-test.test.js",
         ".opencode/scripts/__tests__/state-transaction.test.js",
-        ".opencode/scripts/__tests__/compliance-gate.test.js"
+        ".opencode/scripts/__tests__/compliance-gate.test.js",
+        ".opencode/scripts/__tests__/framework-doctor.test.js"
       ],
       "initialized": true
     },
@@ -204,8 +209,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "38a37c31-83f3-45e6-9507-55cef266c938",
-    "last_transaction_at": "2026-05-24T06:50:49.723Z",
+    "last_operation_id": "57681b6a-c997-4117-9c46-7fff56b1b9e2",
+    "last_transaction_at": "2026-05-24T08:03:15.657Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }

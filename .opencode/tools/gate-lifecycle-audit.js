@@ -1,0 +1,188 @@
+#!/usr/bin/env node
+// gate-lifecycle-audit.js — P4-003
+// Audits gate-state.json for lifecycle compliance.
+// --auto-drain flag moves stale sessions (>24h armed) to drained_sessions.
+
+const fs = require('fs');
+const path = require('path');
+
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+const GATE_STATE_PATH = path.join(PROJECT_ROOT, '.opencode', 'state', 'gate-state.json');
+
+function readJSON(filepath) {
+  try {
+    const raw = fs.readFileSync(filepath, 'utf8');
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+const HOURS_24_MS = 24 * 60 * 60 * 1000;
+
+function main() {
+  const args = process.argv.slice(2);
+  const autoDrain = args.includes('--auto-drain');
+
+  const violations = [];
+  const staleSessions = [];
+  let activeCount = 0;
+  let drainedCount = 0;
+
+  const gateState = readJSON(GATE_STATE_PATH);
+
+  if (!gateState) {
+    console.log(JSON.stringify({
+      active_count: 0, drained_count: 0, violations: [{ severity: 'HIGH', issue: 'gate_state_missing', detail: 'gate-state.json missing or invalid' }],
+      stale_sessions: [], summary: 'gate-state.json not found or invalid JSON'
+    }, null, 2));
+    process.exit(1);
+  }
+
+  const sessions = gateState.sessions || {};
+  const drained = gateState.drained_sessions || {};
+
+  drainedCount = Object.keys(drained).length;
+
+  // Ensure drained_sessions field exists
+  if (!gateState.drained_sessions) {
+    gateState.drained_sessions = {};
+  }
+
+  for (const [sid, session] of Object.entries(sessions)) {
+    // Skip non-object values (orchestration_context may contain non-JSON strings)
+    if (typeof session !== 'object' || session === null) {
+      violations.push({
+        severity: 'WARNING',
+        session_id: sid,
+        issue: 'non_object_session',
+        detail: 'Session value is not a JSON object (may be raw orchestration context)'
+      });
+      continue;
+    }
+
+    const armed = session.gate_status === 'armed';
+    const completed = session.gate_status === 'completed';
+
+    // ── Required fields for armed sessions ──
+    if (armed) {
+      activeCount++;
+      if (!session.task_id && !session.task_description) {
+        violations.push({
+          severity: 'WARNING',
+          session_id: sid,
+          issue: 'missing_task_info',
+          detail: 'Armed session missing both task_id and task_description'
+        });
+      }
+      if (!session.agent) {
+        violations.push({
+          severity: 'WARNING',
+          session_id: sid,
+          issue: 'missing_agent',
+          detail: 'Armed session missing agent field'
+        });
+      }
+      if (!session.created_at) {
+        violations.push({
+          severity: 'WARNING',
+          session_id: sid,
+          issue: 'missing_created_at',
+          detail: 'Armed session missing created_at'
+        });
+      }
+      // worktree and expires_at are optional — only warn if armed > 24h
+    }
+
+    // ── Stale session detection (armed > 24h without completion) ──
+    if (armed && session.created_at) {
+      const created = new Date(session.created_at);
+      const ageMs = Date.now() - created.getTime();
+      if (ageMs > HOURS_24_MS) {
+        const ageHours = Math.round(ageMs / (1000 * 60 * 60));
+        staleSessions.push({
+          session_id: sid,
+          age_hours: ageHours,
+          task_description: session.task_description || 'unknown',
+          created_at: session.created_at
+        });
+        violations.push({
+          severity: 'HIGH',
+          session_id: sid,
+          issue: 'stale_armed',
+          detail: `Session armed for ${ageHours}h (>24h max) without completion`
+        });
+      }
+    }
+
+    // ── Also check sessions with gate_status 'checked' or 'failed' that are > 48h ──
+    if ((session.gate_status === 'checked' || session.gate_status === 'failed') && session.created_at) {
+      const created = new Date(session.created_at);
+      const ageMs = Date.now() - created.getTime();
+      if (ageMs > 48 * 60 * 60 * 1000) {
+        const ageHours = Math.round(ageMs / (1000 * 60 * 60));
+        staleSessions.push({
+          session_id: sid,
+          age_hours: ageHours,
+          gate_status: session.gate_status,
+          task_description: session.task_description || 'unknown',
+          created_at: session.created_at
+        });
+        violations.push({
+          severity: 'HIGH',
+          session_id: sid,
+          issue: 'stale_unarmed',
+          detail: `Session in '${session.gate_status}' state for ${ageHours}h (>48h max) without resolution`
+        });
+      }
+    }
+  }
+
+  // ── Count active (armed/checked/failed not completed) ──
+  const activeStatuses = ['armed', 'checked', 'failed'];
+  activeCount = Object.values(sessions).filter(s =>
+    typeof s === 'object' && s !== null && activeStatuses.includes(s.gate_status)
+  ).length;
+
+  // ── Auto-drain if requested ──
+  if (autoDrain && staleSessions.length > 0) {
+    for (const stale of staleSessions) {
+      const sid = stale.session_id;
+      const session = sessions[sid];
+      if (session && typeof session === 'object') {
+        gateState.drained_sessions[sid] = {
+          ...session,
+          drained_at: new Date().toISOString(),
+          drain_reason: `auto-drain: ${stale.issue || 'stale'} (${stale.age_hours}h)`,
+          gate_status: 'drained'
+        };
+        delete gateState.sessions[sid];
+      }
+    }
+    // Only persist if not in dry-run mode
+    if (!args.includes('--dry-run')) {
+      fs.writeFileSync(GATE_STATE_PATH, JSON.stringify(gateState, null, 2));
+    }
+    drainedCount = Object.keys(gateState.drained_sessions).length;
+    activeCount = Object.values(gateState.sessions).filter(s =>
+      typeof s === 'object' && s !== null && activeStatuses.includes(s.gate_status)
+    ).length;
+  }
+
+  // ── Output ──
+  const highViolations = violations.filter(v => v.severity === 'HIGH');
+  const status = highViolations.length > 0 ? 'FAIL' : (violations.length > 0 ? 'WARN' : 'PASS');
+
+  console.log(JSON.stringify({
+    status,
+    active_count: activeCount,
+    drained_count: drainedCount,
+    violations,
+    stale_sessions: staleSessions,
+    summary: `active=${activeCount}, drained=${drainedCount}, violations=${violations.length} (${highViolations.length} HIGH), stale=${staleSessions.length}`
+  }, null, 2));
+
+  process.exit(highViolations.length > 0 ? 1 : 0);
+}
+
+main();
