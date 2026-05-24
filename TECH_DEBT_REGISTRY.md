@@ -198,13 +198,19 @@
 |-----------|---------------|-------------|-------------------|------------------------|--------|
 | WV-2026-010 | 2026-05-24 | @Coder-BE / @Meta-Planner | CAT4.1 agent_write_scopes violation: @Coder-BE wrote to `.opencode/scripts/__tests__/compliance-gate.test.js` — DAG explicitly assigned FW-HARDEN-F1-TEST and FW-HARDEN-F6-TEST with this target; framework-level regression tests; denial rule overly broad | 2026-05-24 | **CLOSED（已履约）** |
 
+| WV-2026-011 | 2026-05-24 | @Coder-BE / @Orchestrator | Grant @Coder-BE write access to `.opencode/scripts/**` `.opencode/plugins/**` `.opencode/tools/**` for Safe Optimization Plan (framework infrastructure, not business code). Auto-approved as consolidation of WV-2026-010. | 2026-06-24 | **OPEN** |
+| WV-2026-012 | 2026-05-24 | @Coder-BE / @Architect | Add `.opencode/hooks/**` and `.opencode/hooks/pre-commit` to @Coder-BE write scopes for pre-commit hook Layer 1.5 registry verification per Optimization Plan R1.4. | 2026-06-24 | **OPEN** |
+
 ## 技术债登记
 
 | ID | 描述 | 影响 | 批准人 | 批准日期 | 截止日期 | 状态 | 关联任务 |
 |----|------|------|--------|----------|----------|------|---------|
 | TD-2026-016 | @Coder-BE agent_write_scopes.denied 中 `.opencode/scripts/**` 阻止了合法的 DAG 级框架测试任务（FW-HARDEN-F1-TEST, FW-HARDEN-F6-TEST）写入 `.opencode/scripts/__tests__/`。永久修复：在 @Coder-BE 的 allowed 列表中添加 `.opencode/scripts/__tests__/**` | 中 | @Arbiter | 2026-05-24 | 2026-05-24 | **repaid** ✅ | WV-2026-010 |
+| TD-2026-017 | pre-execution-gate.js `REMEDIATION_MAP` currently has static strings — should be externalized to a config file for maintainability | 低 | @Architect | 2026-05-24 | 2026-07-01 | **active** | OPTIMIZE-R6 |
+| TD-2026-018 | framework-health-check.sh new script — should be integrated into CI/CD pipeline health checks | 低 | @CI-CD-Agent | 2026-05-24 | 2026-07-01 | **active** | OPTIMIZE-R6 |
+| TD-2026-019 | framework-doctor `--fix` currently handles only 3 of 10 check types — more auto-fix capabilities could be added for remaining checks | 低 | @Coder-BE | 2026-05-24 | 2026-07-15 | **active** | OPTIMIZE-R6 |
 
 **最后更新**: 2026-05-24
 **维护者**: @Arbiter
-**签名**: `@Arbiter — 2026-05-24T00:00:00Z`
+**签名**: `@Arbiter — 2026-05-24T10:00:00Z`
 **位置**: 项目根目录

@@ -47,14 +47,40 @@ const OPENCODE_ROOT = (function () {
 })();
 
 // Path constants (all resolved via Node path APIs)
-const PROJECT_CONFIG_PATH = path.join(OPENCODE_ROOT, ".opencode", "project.config.json");
+const PROJECT_CONFIG_PATH = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "project.config.json",
+);
 const DAG_FILE = path.join(OPENCODE_ROOT, "Task.DAG.json");
-const GATE_STATE_FILE = path.join(OPENCODE_ROOT, ".opencode", "state", "gate-state.json");
-const MACHINE_FILE = path.join(OPENCODE_ROOT, ".opencode", "state", "machine.json");
-const PRIMARY_RULE_REGISTRY = path.join(OPENCODE_ROOT, ".opencode", "state", "rule_registry.json");
-const FALLBACK_RULE_REGISTRY = path.join(OPENCODE_ROOT, ".opencode", "rule_registry.json");
-const RULE_REGISTRY_FILE = fs.existsSync(PRIMARY_RULE_REGISTRY) ? PRIMARY_RULE_REGISTRY : 
-  (fs.existsSync(FALLBACK_RULE_REGISTRY) ? FALLBACK_RULE_REGISTRY : PRIMARY_RULE_REGISTRY);
+const GATE_STATE_FILE = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "state",
+  "gate-state.json",
+);
+const MACHINE_FILE = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "state",
+  "machine.json",
+);
+const PRIMARY_RULE_REGISTRY = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "state",
+  "rule_registry.json",
+);
+const FALLBACK_RULE_REGISTRY = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "rule_registry.json",
+);
+const RULE_REGISTRY_FILE = fs.existsSync(PRIMARY_RULE_REGISTRY)
+  ? PRIMARY_RULE_REGISTRY
+  : fs.existsSync(FALLBACK_RULE_REGISTRY)
+    ? FALLBACK_RULE_REGISTRY
+    : PRIMARY_RULE_REGISTRY;
 const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -66,12 +92,18 @@ const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
 function readJSON(filePath) {
   try {
     if (!fs.existsSync(filePath)) {
-      return { ok: false, error: `File not found: ${path.relative(OPENCODE_ROOT, filePath)}` };
+      return {
+        ok: false,
+        error: `File not found: ${path.relative(OPENCODE_ROOT, filePath)}`,
+      };
     }
     const raw = fs.readFileSync(filePath, "utf-8");
     return { ok: true, data: JSON.parse(raw) };
   } catch (e) {
-    return { ok: false, error: `Cannot read/parse ${path.relative(OPENCODE_ROOT, filePath)}: ${e.message}` };
+    return {
+      ok: false,
+      error: `Cannot read/parse ${path.relative(OPENCODE_ROOT, filePath)}: ${e.message}`,
+    };
   }
 }
 
@@ -85,7 +117,11 @@ function getEnforcementMode() {
     return envMode;
   }
   const cfg = readJSON(PROJECT_CONFIG_PATH);
-  if (cfg.ok && cfg.data.template_resolution && cfg.data.template_resolution.enforcement_mode) {
+  if (
+    cfg.ok &&
+    cfg.data.template_resolution &&
+    cfg.data.template_resolution.enforcement_mode
+  ) {
     const mode = cfg.data.template_resolution.enforcement_mode;
     if (["advisory", "strict", "locked"].includes(mode)) {
       return mode;
@@ -95,17 +131,54 @@ function getEnforcementMode() {
 }
 
 /**
+ * Remediation instructions map — per check name, provides actionable fix commands.
+ */
+const REMEDIATION_MAP = {
+  "DAG Coverage":
+    "Task not found or not pending in Task.DAG.json.\n" +
+    "  🔧 Fix: Add the task to Task.DAG.json, or update status to 'pending'.\n" +
+    "  🔧 Run: node .opencode/scripts/state-reconciliation.js --fix",
+  "Gate Lifecycle":
+    "No armed gate session found or gate-state.json is missing/invalid.\n" +
+    "  🔧 Fix: Run compliance_gate_check() then compliance_gate_confirm() to arm the gate.\n" +
+    "  🔧 Run: node .opencode/scripts/state-reconciliation.js --fix --backfill-audit",
+  "Role Violations":
+    "Unresolved role violations detected in machine.json compliance_records.\n" +
+    "  🔧 Fix: Have the violating agent resolve the scope issue, or file a waiver.\n" +
+    "  🔧 Run: node .opencode/scripts/state-reconciliation.js --fix",
+  "Rule Registry":
+    "Rule registry digest mismatches detected — files may have been modified unexpectedly.\n" +
+    "  🔧 Fix: Run registry repair to recompute and update digests.\n" +
+    "  🔧 Run: node .opencode/scripts/rule-registry-verify.js --repair",
+  "Config Validity":
+    "Required configuration file(s) are missing or unreadable.\n" +
+    "  🔧 Fix: Ensure project.config.json, Task.DAG.json, machine.json, and gate-state.json exist.\n" +
+    "  🔧 Run: node .opencode/scripts/framework-doctor.js",
+};
+
+/**
  * Emit structured error to stderr.
  * In strict/locked mode, always exits non-zero.
  * In advisory mode, prints warning but returns (allows execution).
+ * Enhanced output includes specific violation, enforcement mode, and remediation.
  */
 function emitError(checkName, message, details) {
   const mode = getEnforcementMode();
+  const violation =
+    details && typeof details === "object"
+      ? details.violation || details.issue || details.reason || null
+      : null;
+  const remediation =
+    REMEDIATION_MAP[checkName] ||
+    "  🔧 Run: node .opencode/scripts/framework-doctor.js --strict";
+
   const output = {
     check: checkName,
     status: mode === "advisory" ? "WARNING" : "FAILED",
     enforcement_mode: mode,
     message: message,
+    violation: violation,
+    remediation: remediation.trim(),
     details: details || null,
     timestamp: new Date().toISOString(),
   };
@@ -117,6 +190,12 @@ function emitError(checkName, message, details) {
     return false; // non-blocking in advisory
   } else {
     console.error(`❌ [${mode.toUpperCase()}] ${jsonErr}`);
+    console.error(`   ── Violation: ${violation || message}`);
+    console.error(`   ── Mode: ${mode.toUpperCase()}`);
+    console.error(`   ── Remediation:`);
+    for (const line of remediation.split("\n")) {
+      console.error(`      ${line}`);
+    }
     return true; // blocking in strict/locked
   }
 }
@@ -140,11 +219,19 @@ function computeFileSHA256(filePath) {
  * Print usage and exit 1.
  */
 function printUsage() {
-  console.error("Usage: node .opencode/scripts/pre-execution-gate.js --task-id <task_id>");
-  console.error("       node .opencode/scripts/pre-execution-gate.js <task_id>");
+  console.error(
+    "Usage: node .opencode/scripts/pre-execution-gate.js --task-id <task_id>",
+  );
+  console.error(
+    "       node .opencode/scripts/pre-execution-gate.js <task_id>",
+  );
   console.error("");
-  console.error("Validates that a task is ready for execution in the current project.");
-  console.error("Performs 5 checks: DAG coverage, Gate lifecycle, Role violations,");
+  console.error(
+    "Validates that a task is ready for execution in the current project.",
+  );
+  console.error(
+    "Performs 5 checks: DAG coverage, Gate lifecycle, Role violations,",
+  );
   console.error("Rule registry integrity, and Config validity.");
   console.error("");
   console.error("Exit codes: 0=pass, 1=fail, 2=system error");
@@ -160,7 +247,11 @@ function printUsage() {
 function checkDagCoverage(taskId) {
   const dag = readJSON(DAG_FILE);
   if (!dag.ok) {
-    const blocked = emitError("DAG Coverage", "Task.DAG.json cannot be read", dag.error);
+    const blocked = emitError(
+      "DAG Coverage",
+      "Task.DAG.json cannot be read",
+      dag.error,
+    );
     if (blocked) process.exit(2);
     return true; // advisory: pass through
   }
@@ -170,7 +261,10 @@ function checkDagCoverage(taskId) {
     const blocked = emitError(
       "DAG Coverage",
       `Task '${taskId}' not found in Task.DAG.json`,
-      `Available tasks: ${dag.data.tasks.slice(0, 10).map(t => t.id).join(", ")}${dag.data.tasks.length > 10 ? "..." : ""}`,
+      `Available tasks: ${dag.data.tasks
+        .slice(0, 10)
+        .map((t) => t.id)
+        .join(", ")}${dag.data.tasks.length > 10 ? "..." : ""}`,
     );
     if (blocked) process.exit(1);
     return false;
@@ -264,14 +358,17 @@ function checkGateLifecycle(taskId) {
 function checkRoleViolations() {
   const mach = readJSON(MACHINE_FILE);
   if (!mach.ok) {
-    const blocked = emitError("Role Violations", "machine.json cannot be read", mach.error);
+    const blocked = emitError(
+      "Role Violations",
+      "machine.json cannot be read",
+      mach.error,
+    );
     if (blocked) process.exit(2);
     return true;
   }
 
   const violations =
-    mach.data.compliance_records &&
-    mach.data.compliance_records.role_violations
+    mach.data.compliance_records && mach.data.compliance_records.role_violations
       ? mach.data.compliance_records.role_violations
       : [];
 
@@ -306,7 +403,9 @@ function checkRuleRegistry() {
   const rr = readJSON(RULE_REGISTRY_FILE);
   if (!rr.ok) {
     // rule_registry.json may not exist — skip check
-    console.error(`  ℹ️  rule_registry.json not found — skipping registry check`);
+    console.error(
+      `  ℹ️  rule_registry.json not found — skipping registry check`,
+    );
     return true;
   }
 
@@ -330,14 +429,24 @@ function checkRuleRegistry() {
 
     if (!fs.existsSync(filePath)) {
       highCount++;
-      errorEntries.push({ key, severity: "HIGH", reason: "file_missing", path: entry.path });
+      errorEntries.push({
+        key,
+        severity: "HIGH",
+        reason: "file_missing",
+        path: entry.path,
+      });
       continue;
     }
 
     const actualHash = computeFileSHA256(filePath);
     if (!actualHash) {
       highCount++;
-      errorEntries.push({ key, severity: "HIGH", reason: "read_error", path: entry.path });
+      errorEntries.push({
+        key,
+        severity: "HIGH",
+        reason: "read_error",
+        path: entry.path,
+      });
       continue;
     }
 
@@ -455,7 +564,9 @@ function main() {
 
   // Fallback: positional argument (first non-flag argument)
   if (!taskId) {
-    const positionalArgs = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+    const positionalArgs = process.argv
+      .slice(2)
+      .filter((a) => !a.startsWith("--"));
     if (positionalArgs.length > 0) {
       taskId = positionalArgs[0];
     }
@@ -534,10 +645,14 @@ function main() {
 
   // ── Summary ──
   if (allPassed) {
-    console.error(`✅ [Pre-Exec Gate] All checks passed — task '${taskId}' may proceed.`);
+    console.error(
+      `✅ [Pre-Exec Gate] All checks passed — task '${taskId}' may proceed.`,
+    );
     process.exit(0);
   } else {
-    console.error(`❌ [Pre-Exec Gate] ${mode === "advisory" ? "Warnings found (non-blocking in advisory mode)" : "Validation FAILED — task execution blocked."}`);
+    console.error(
+      `❌ [Pre-Exec Gate] ${mode === "advisory" ? "Warnings found (non-blocking in advisory mode)" : "Validation FAILED — task execution blocked."}`,
+    );
     process.exit(mode === "advisory" ? 0 : 1);
   }
 }
