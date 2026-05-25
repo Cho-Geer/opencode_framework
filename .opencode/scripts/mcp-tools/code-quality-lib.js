@@ -298,17 +298,42 @@ function runDepCruiserCheck(filePath, projectRoot) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // CHECK 4: ESLint mock-audit
 // ═══════════════════════════════════════════════════════════
+/**
+ * Derive the corresponding business code file path from a test file path.
+ * Strips .spec or .test suffix from the filename.
+ * e.g. "time-slots.service.spec.ts" → "time-slots.service.ts"
+ *
+ * @param {string} testFilePath - absolute path to a test file
+ * @returns {string} absolute path to the corresponding business code file
+ */
+function deriveBusinessCodePath(testFilePath) {
+  const dir = path.dirname(testFilePath);
+  const ext = path.extname(testFilePath);
+  let base = path.basename(testFilePath, ext);
+  // Strip .spec or .test suffix
+  base = base.replace(/\.(spec|test)$/, "");
+  return path.join(dir, base + ext);
+}
+
 /**
  * Run ESLint with opencode-mock-audit plugin on test files.
  * Only runs on .spec., .test., or /test/ files.
  *
+ * When options.phase === "red" (CI-EMBED-007), test files whose
+ * corresponding business code file does NOT exist are exempted
+ * from audit. This supports the TDD RED phase where tests are
+ * written before business code exists.
+ *
  * @param {string} filePath - absolute path
  * @param {string} projectRoot - project root
+ * @param {object} [options] - { phase?: "red" }
  * @returns {{ pass, violations, detail, execution_evidence }}
  */
-function runEslintAudit(filePath, projectRoot) {
+function runEslintAudit(filePath, projectRoot, options) {
+  const opts = options || {};
   let absPath = filePath;
   if (!path.isAbsolute(absPath)) absPath = path.resolve(projectRoot, absPath);
 
@@ -323,6 +348,24 @@ function runEslintAudit(filePath, projectRoot) {
     absPath.includes("/test/");
   if (!isTestFile) {
     return makeResult(true, [], "Not a test file — ESLint audit skipped", "");
+  }
+
+  // ─── RED-Phase Exemption Check (CI-EMBED-007) ─────────
+  // During TDD RED phase, test files import business modules that
+  // haven't been created yet. This is intentional — the tests are
+  // expected to fail. The ESLint mock-audit should not flag these
+  // as violations since there is no business code to audit against.
+  if (opts.phase === "red") {
+    const businessCodePath = deriveBusinessCodePath(absPath);
+    if (!fs.existsSync(businessCodePath)) {
+      return makeResult(
+        true,
+        [],
+        `RED-phase exemption: business code "${path.basename(businessCodePath)}" does not exist yet. ESLint audit deferred to GREEN phase.`,
+        `exempted: ${path.relative(projectRoot, absPath)}`,
+      );
+    }
+    // Business code exists — proceed with normal audit below
   }
 
   const pluginDir = path.join(
@@ -391,6 +434,8 @@ function runEslintAudit(filePath, projectRoot) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// CHECK 5: TypeScript Incremental Check
 // ═══════════════════════════════════════════════════════════
 // CHECK 5: TypeScript Incremental Check
 // ═══════════════════════════════════════════════════════════
@@ -738,7 +783,7 @@ function runAllChecks(filePath, projectRoot, agentType, taskId, options) {
 
   // Check 4: ESLint mock-audit
   if (!skip.has("eslint")) {
-    const r = runEslintAudit(absPath, projectRoot);
+    const r = runEslintAudit(absPath, projectRoot, { phase: opts.phase });
     results.checks.eslint = r;
     const tier1Mocks = r.violations.filter((v) => v.rule === "no-tier1-mock");
     if (tier1Mocks.length > 0) {

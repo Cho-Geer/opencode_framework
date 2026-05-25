@@ -1,0 +1,44 @@
+{
+  "$schema": ".opencode/config/eslint-red-exemptions.schema.json",
+  "version": "1.0.0",
+  "description": "RED-phase exemptions for ESLint mock-audit. Test files are exempt from specified rules when their corresponding business code file does not exist — the expected state during TDD RED phase (tests written before implementation).",
+  "phase": "red",
+  "exemptedPatterns": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.js",
+    "**/*.test.js"
+  ],
+  "exemptionCondition": {
+    "description": "Exemption applies ONLY when: (1) audit running with phase=red, AND (2) the corresponding business code file does NOT exist on disk.",
+    "businessCodeMapping": {
+      "description": "Rule for deriving the business code file path from a test file path.",
+      "strategy": "stripSuffix",
+      "suffixesToStrip": [".spec", ".test"],
+      "example": {
+        "testFile": "src/modules/time-slots/time-slots.service.spec.ts",
+        "businessCodeFile": "src/modules/time-slots/time-slots.service.ts"
+      }
+    },
+    "requireNonExistentFile": true,
+    "requireRedPhase": true,
+    "scopeCheckDescription": "The business-code-file-existence check is scoped to the same directory as the test file. If the business code file exists, the exemption does NOT apply — the test proceeds through normal ESLint audit."
+  },
+  "rules": {
+    "onlyTestFiles": true,
+    "productionCodeNeverExempted": true,
+    "exemptFromRules": [
+      "no-tier1-mock",
+      "no-skipped-tests",
+      "no-skipped-audit"
+    ],
+    "note": "These rules are exempted because during RED phase, tests import modules that haven't been created yet. no-tier1-mock: imports may resolve to mock objects. no-skipped-tests: tests are expected to fail (RED). no-skipped-audit: the audit itself is deferred until GREEN phase."
+  },
+  "implementation": {
+    "auditFunction": "runEslintAudit",
+    "libraryFile": ".opencode/scripts/mcp-tools/code-quality-lib.js",
+    "optionKey": "phase",
+    "validValues": ["red"],
+    "defaultBehavior": "When phase is absent or not 'red', audit proceeds normally with no exemptions."
+  }
+}
