@@ -15,6 +15,7 @@
  *   runEslintAudit(filePath, projectRoot)
  *   runTscCheck(filePath, projectRoot, backendDir, frontendDir)
  *   runTddOrderCheck(filePath, workspaceRoot, tddState)
+ *   runTddSpecCheck(filePath, existingFiles, tddState)
  *   runAllChecks(filePath, projectRoot, agentType, taskId, options)
  *   runFullScan(projectRoot, backendDir, frontendDir)
  *   matchGlob(filePath, pattern)
@@ -580,6 +581,84 @@ function runTddOrderCheck(filePath, workspaceRoot, tddState) {
   });
 }
 
+
+// ═══════════════════════════════════════════════════════════
+// CHECK 7: TDD Spec File Existence (CI-EMBED-006)
+// ═══════════════════════════════════════════════════════════
+/**
+ * Enforce that source files have corresponding test files (spec or test).
+ * Checks that a .spec.ts or .test.ts file exists for every .ts/.js source file.
+ * This is a PURE function — it does not mutate state.
+ *
+ * @param {string} filePath - absolute path to changed file
+ * @param {string[]} existingFiles - array of all project file paths to check against
+ * @param {object} tddState - TDD enforcement state (unused, kept for API consistency)
+ * @returns {{ pass, violations, detail, execution_evidence }}
+ */
+function runTddSpecCheck(filePath, existingFiles, tddState) {
+  const fileName = path.basename(filePath);
+  const fileExt = path.extname(filePath);
+
+  // Only check source files (.ts, .js) that are not test, config, or declaration files
+  const isSourceFile =
+    /\.(ts|js)$/.test(fileExt) &&
+    !fileName.includes(".spec.") &&
+    !fileName.includes(".test.") &&
+    !fileName.includes(".config.") &&
+    !fileName.endsWith(".d.ts");
+
+  if (!isSourceFile) {
+    return makeResult(
+      true,
+      [],
+      `Skipped (not a source file): ${fileName}`,
+      "",
+    );
+  }
+
+  // Derive the base name (without extension) and directory
+  const baseName = fileName.replace(/\.(ts|js)$/, "");
+  const dir = path.dirname(filePath);
+
+  // Construct expected spec/test file names
+  const expectedSpec = path.join(dir, baseName + ".spec.ts");
+  const expectedTest = path.join(dir, baseName + ".test.ts");
+
+  // Check if either exists in existingFiles
+  const specExists =
+    existingFiles &&
+    existingFiles.some(
+      (f) => f === expectedSpec || f === expectedTest,
+    );
+
+  if (!specExists) {
+    const msg =
+      `CAT5.2: Implementation file "${fileName}" has no corresponding spec/test file. ` +
+      `Expected: ${path.basename(expectedSpec)} or ${path.basename(expectedTest)}. ` +
+      "Write the test first (RED phase), then implement (GREEN phase).";
+    return makeResult(
+      false,
+      [
+        {
+          check: "tdd_spec",
+          severity: "BLOCKER",
+          code: "CAT5.2",
+          message: msg,
+        },
+      ],
+      msg,
+      "",
+    );
+  }
+
+  return makeResult(
+    true,
+    [],
+    `Spec file found for: ${fileName}`,
+    "",
+  );
+}
+
 // ═══════════════════════════════════════════════════════════
 // BATCH RUNNER: runAllChecks
 // ═══════════════════════════════════════════════════════════
@@ -590,7 +669,7 @@ function runTddOrderCheck(filePath, workspaceRoot, tddState) {
  * @param {string} projectRoot - project root directory
  * @param {string} agentType - agent identifier
  * @param {string} taskId - current task ID
- * @param {object} options - { skip_checks, auto_fix, agentWriteScopes, backendDir, frontendDir, tddState }
+ * @param {object} options - { skip_checks, auto_fix, agentWriteScopes, backendDir, frontendDir, tddState, existingFiles }
  * @returns {{ overall: "pass"|"fail", checks: object, violations: array, fixes_applied: array, tddState: object }}
  */
 function runAllChecks(filePath, projectRoot, agentType, taskId, options) {
@@ -704,6 +783,18 @@ function runAllChecks(filePath, projectRoot, agentType, taskId, options) {
       results.overall = "fail";
       results.violations.push(
         ...r.violations.map((v) => ({ ...v, check: "tdd" })),
+      );
+    }
+  }
+
+  // Check 7: TDD Spec File Existence (CI-EMBED-006)
+  if (!skip.has("tdd_spec") && opts.existingFiles) {
+    const r = runTddSpecCheck(absPath, opts.existingFiles, opts.tddState);
+    results.checks.tdd_spec = r;
+    if (!r.pass) {
+      results.overall = "fail";
+      results.violations.push(
+        ...r.violations.map((v) => ({ ...v, check: "tdd_spec" })),
       );
     }
   }
@@ -912,6 +1003,7 @@ module.exports = {
   runEslintAudit,
   runTscCheck,
   runTddOrderCheck,
+  runTddSpecCheck,
 
   // Safe shell execution
   safeBash,
