@@ -26,12 +26,7 @@ var OPENCODE_ROOT = path.resolve(__dirname, "..", "..");
 
 // --- Helper: run dispatch-subagent.js in child, capture env vars ---
 function runAndCaptureEnv(agentType, taskDesc, taskId) {
-  var argvItems = [
-    JSON.stringify("node"),
-    JSON.stringify(SCRIPT),
-    JSON.stringify(agentType),
-    JSON.stringify(taskDesc),
-  ];
+  var argvItems = [JSON.stringify(agentType), JSON.stringify(taskDesc)];
   if (taskId !== null && taskId !== undefined) {
     argvItems.push(JSON.stringify("--task-id"));
     argvItems.push(JSON.stringify(taskId));

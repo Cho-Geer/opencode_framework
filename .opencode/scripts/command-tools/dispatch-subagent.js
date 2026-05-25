@@ -48,8 +48,10 @@ if (taskIdFlagIdx !== -1 && taskIdFlagIdx + 1 < process.argv.length) {
   // Remove --task-id and its value from argv for clean processing
   process.argv.splice(taskIdFlagIdx, 2);
 }
+process.env.FRAMEWORK_TASK_ID = taskId || "";
 
 const agentType = process.argv[2];
+process.env.FRAMEWORK_AGENT = agentType;
 const taskDescription = process.argv[3] || "";
 
 if (!agentType) {
@@ -78,7 +80,9 @@ if (taskId) {
     "pre-execution-gate.js",
   );
   if (fs.existsSync(gateScript)) {
-    console.error(`[dispatch] Running pre-execution-gate.js for task '${taskId}'...`);
+    console.error(
+      `[dispatch] Running pre-execution-gate.js for task '${taskId}'...`,
+    );
     try {
       const { execSync } = require("child_process");
       execSync(`"${process.execPath}" "${gateScript}" "${taskId}"`, {
@@ -86,15 +90,25 @@ if (taskId) {
         timeout: 15000,
         env: { ...process.env, OPENCODE_ROOT },
       });
-      console.error(`[dispatch] Pre-execution gate PASSED for task '${taskId}'.`);
+      console.error(
+        `[dispatch] Pre-execution gate PASSED for task '${taskId}'.`,
+      );
     } catch (e) {
-      console.error(`[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`);
-      console.error(`[dispatch] Exit code: ${e.status}, Signal: ${e.signal || "none"}`);
+      console.error(
+        `[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`,
+      );
+      console.error(
+        `[dispatch] Exit code: ${e.status}, Signal: ${e.signal || "none"}`,
+      );
       process.exit(e.status || 1);
     }
   } else {
-    console.error(`[dispatch] ⚠️  pre-execution-gate.js not found — skipping gate check.`);
-    console.error(`[dispatch] ⚠️  Install with: node .opencode/scripts/install-hooks.js`);
+    console.error(
+      `[dispatch] ⚠️  pre-execution-gate.js not found — skipping gate check.`,
+    );
+    console.error(
+      `[dispatch] ⚠️  Install with: node .opencode/scripts/install-hooks.js`,
+    );
   }
 }
 
