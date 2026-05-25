@@ -56,12 +56,12 @@ All files have been migrated and translated to English where needed.
 | Original Path | New Path | Changes |
 |---|---|---|
 | `.opencode/context/code_standards/` | `.workbuddy/context/code_standards/` | Unchanged |
-| `.opencode/context/detailed_design/系统页面全景图.md` | `.workbuddy/context/detailed_design/page-panorama.md` | Translated filename |
+| `.opencode/context/detailed_design/system-page-panorama.md` | `.workbuddy/context/detailed_design/page-panorama.md` | Translated filename |
 | `.opencode/context/detailed_design/pages/` | `.workbuddy/context/detailed_design/pages/` | Unchanged |
-| `.opencode/context/requirements/多实例部署需求文档.md` | `.workbuddy/context/requirements/multi-instance-deployment.md` | Translated filename + content |
-| `.opencode/context/requirements/安全架构设计文档.md` | `.workbuddy/context/requirements/security-architecture.md` | Translated filename + content |
-| `.opencode/context/requirements/接口设计规范文档.md` | `.workbuddy/context/requirements/api-interface-specification.md` | Translated filename + content |
-| `.opencode/context/requirements/数据架构设计文档.md` | `.workbuddy/context/requirements/data-architecture.md` | Translated filename + content |
-| `.opencode/context/requirements/测试策略与计划.md` | `.workbuddy/context/requirements/test-strategy-and-plan.md` | Translated filename + content |
-| `.opencode/context/requirements/系统架构设计文档（SAD）.md` | `.workbuddy/context/requirements/system-architecture-design.md` | Translated filename + content |
-| `.opencode/context/requirements/运维与部署设计文档.md` | `.workbuddy/context/requirements/operations-and-deployment-design.md` | Translated filename + content |
+| `.opencode/context/requirements/multi-instance-deployment-requirements.md` | `.workbuddy/context/requirements/multi-instance-deployment.md` | Translated filename + content |
+| `.opencode/context/requirements/security-architecture-design.md` | `.workbuddy/context/requirements/security-architecture.md` | Translated filename + content |
+| `.opencode/context/requirements/api-interface-specification.md` | `.workbuddy/context/requirements/api-interface-specification.md` | Translated filename + content |
+| `.opencode/context/requirements/data-architecture-design.md` | `.workbuddy/context/requirements/data-architecture.md` | Translated filename + content |
+| `.opencode/context/requirements/test-strategy-and-plan.md` | `.workbuddy/context/requirements/test-strategy-and-plan.md` | Translated filename + content |
+| `.opencode/context/requirements/system-architecture-design-(sad).md` | `.workbuddy/context/requirements/system-architecture-design.md` | Translated filename + content |
+| `.opencode/context/requirements/operations-and-deployment-design.md` | `.workbuddy/context/requirements/operations-and-deployment-design.md` | Translated filename + content |

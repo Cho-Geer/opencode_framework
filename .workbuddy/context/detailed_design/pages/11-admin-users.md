@@ -1,151 +1,151 @@
-# 管理员-用户管理页（AdminUserManagementPage）
+# Admin User Management Page (AdminUserManagementPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 用户管理 |
-| **路由路径** | `/admin/users` |
-| **布局** | `AppLayoutComponent`（Admin 侧边栏） |
-| **惰性加载** | `features/admin/admin.routes.ts` → `ADMIN_ROUTES` (loadComponent) |
-| **组件** | `UserManagementComponent` (`src/app/features/admin/pages/user-management/user-management.component.ts`) |
-| **设计依据** | contract.yaml `admin.users` CRUD |
+| **Page Name** | User Management |
+| **Route Path** | `/admin/users` |
+| **Layout** | `AppLayoutComponent` (Admin sidebar) |
+| **Lazy Loading** | `features/admin/admin.routes.ts` → `ADMIN_ROUTES` (loadComponent) |
+| **Component** | `UserManagementComponent` (`src/app/features/admin/pages/user-management/user-management.component.ts`) |
+| **Design Basis** | contract.yaml `admin.users` CRUD |
 
-## 用户角色
+## User Roles
 
-- ADMIN（读 + 编辑，但不可创建/删除 ADMIN 以上角色）
-- SUPER_ADMIN（完全控制）
+- ADMIN (Read + Edit, but cannot create/delete ADMIN or above roles)
+- SUPER_ADMIN (Full control)
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 策略 |
+| Guard | Strategy |
 |---|---|
-| `authGuard`（父级） | 未认证 → 重定向 |
-| `roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })`（父级） | CUSTOMER 禁止访问 |
+| `authGuard` (parent) | Unauthenticated → Redirect |
+| `roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })` (parent) | CUSTOMER denied |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
 | `AdminStore` | `vm`, `setLoading()`, `setUsers()`, `updateUserInList()`, `removeUserFromList()`, `setError()`, `users()`, `usersTotal()`, `usersPage()` |
 | `AdminService` | `getUsers()`, `createUser()`, `updateUser()`, `deleteUser()` |
 
-## 本地信号
+## Local Signals
 
-| 信号 | 类型 | 说明 |
+| Signal | Type | Description |
 |---|---|---|
-| `userDialogVisible` | `boolean` | 用户创建/编辑对话框 |
-| `deleteDialogVisible` | `boolean` | 删除确认对话框 |
-| `selectedUser` | `AdminUser \| null` | 对话框中选择的用户 |
-| `userToDelete` | `AdminUser \| null` | 待删除用户 |
-| `isEdit` | `boolean` | 编辑模式（否则为新建模式） |
-| `submitted` | `boolean` | 表单是否已提交 |
-| `searchQuery` | `string` | 搜索关键词 |
-| `selectedRoleFilter` | `string` | 角色筛选 |
-| `selectedStatusFilter` | `string` | 状态筛选 |
-| `formErrors` | `object` | 表单验证错误 |
-| `formName`, `formEmail`, `formPhone`, `formRole`, `formStatus`, `formPassword` | `string` | 表单字段绑定 |
-| `totalUsers` | `number` (computed) | 用户总数 |
-| `activeUsers` | `number` (computed) | 活跃用户数 |
-| `newThisWeek` | `number` (computed) | 本周新增数 |
+| `userDialogVisible` | `boolean` | User create/edit dialog |
+| `deleteDialogVisible` | `boolean` | Delete confirmation dialog |
+| `selectedUser` | `AdminUser \| null` | Selected user in dialog |
+| `userToDelete` | `AdminUser \| null` | User to be deleted |
+| `isEdit` | `boolean` | Edit mode (otherwise create mode) |
+| `submitted` | `boolean` | Whether form has been submitted |
+| `searchQuery` | `string` | Search keyword |
+| `selectedRoleFilter` | `string` | Role filter |
+| `selectedStatusFilter` | `string` | Status filter |
+| `formErrors` | `object` | Form validation errors |
+| `formName`, `formEmail`, `formPhone`, `formRole`, `formStatus`, `formPassword` | `string` | Form field bindings |
+| `totalUsers` | `number` (computed) | Total users |
+| `activeUsers` | `number` (computed) | Active users count |
+| `newThisWeek` | `number` (computed) | New this week count |
 
-## API 契约对照
+## API Contract Mapping
 
-> **响应信封**：所有成功的 API 响应由 ResponseInterceptor 包装为统一信封格式 `{ statusCode, message, data, timestamp, requestId }`。下表中"响应"列仅描述 `data` 字段内部结构，信封外层隐式适用。
+> **Response Envelope**: All successful API responses are wrapped by ResponseInterceptor in a unified envelope format `{ statusCode, message, data, timestamp, requestId }`. The "Response" column below only describes the internal structure of the `data` field; the outer envelope is implicitly applicable.
 
-| 方法 | 端点 | 请求参数/正文 | 响应 | 鉴权 | 调用时机 |
+| Method | Endpoint | Request Parameters/Body | Response | Auth | Call Timing |
 |---|---|---|---|---|---|
-| `GET` | `/v1/admin/users` | `?page&limit&search&role&status` | `PaginatedResponse<AdminUserDto>`（`{id, name, email(masked), phone?(masked), role, status, createdAt}`） | Bearer ADMIN/SUPER_ADMIN | 页面初始化、筛选变化、分页变化 |
-| `POST` | `/v1/admin/users` | `{name*, email*, phone?, role?, password*}` | `AdminUserDto` (201) | Bearer **SUPER_ADMIN only** | 保存新建用户 |
-| `PUT` | `/v1/admin/users/:id` | `{name?, role?, status?}` | `AdminUserDto` | Bearer ADMIN/SUPER_ADMIN | 保存编辑用户 |
-| `DELETE` | `/v1/admin/users/:id` | path: `id` | `void` (204) | Bearer **SUPER_ADMIN only** | 删除确认 |
+| `GET` | `/v1/admin/users` | `?page&limit&search&role&status` | `PaginatedResponse<AdminUserDto>` (`{id, name, email(masked), phone?(masked), role, status, createdAt}`) | Bearer ADMIN/SUPER_ADMIN | Page init, filter change, pagination change |
+| `POST` | `/v1/admin/users` | `{name*, email*, phone?, role?, password*}` | `AdminUserDto` (201) | Bearer **SUPER_ADMIN only** | Save new user |
+| `PUT` | `/v1/admin/users/:id` | `{name?, role?, status?}` | `AdminUserDto` | Bearer ADMIN/SUPER_ADMIN | Save edited user |
+| `DELETE` | `/v1/admin/users/:id` | path: `id` | `void` (204) | Bearer **SUPER_ADMIN only** | Delete confirmation |
 
-## 后端映射
+## Backend Mapping
 
-| 控制器 | 文件 |
+| Controller | File |
 |---|---|
-| `AdminUsersController` | `src/modules/admin/controllers/admin-users.controller.ts` — 路由前缀 `"admin/users"` |
-| `AdminUsersService` | `src/modules/admin/services/admin-users.service.ts` — 委托 `UsersService` |
+| `AdminUsersController` | `src/modules/admin/controllers/admin-users.controller.ts` — Route prefix `"admin/users"` |
+| `AdminUsersService` | `src/modules/admin/services/admin-users.service.ts` — Delegates to `UsersService` |
 
-权限控制：
-| 端点 | 最低角色 |
+Permission control:
+| Endpoint | Minimum Role |
 |---|---|
 | `GET /admin/users` | ADMIN |
 | `POST /admin/users` | **SUPER_ADMIN** |
 | `PUT /admin/users/:id` | ADMIN |
 | `DELETE /admin/users/:id` | **SUPER_ADMIN** |
 
-## 表单选项
+## Form Options
 
-| 字段 | 选项 |
+| Field | Options |
 |---|---|
 | `role` | `CUSTOMER`, `ADMIN`, `SUPER_ADMIN` |
 | `status` | `ACTIVE`, `INACTIVE`, `BLOCKED` |
 
-## 交互流程
+## Interaction Flow
 
-1. 访问 `/admin/users`，父级守卫验证
+1. Access `/admin/users`, parent guard validation
 2. `loadUsers()` → `AdminService.getUsers({ page, search, role, status })` → `AdminStore.setUsers()`
-3. PrimeNG 表格展示用户列表（分页、排序）
-4. 顶部：搜索框 + 角色下拉筛选 + 状态下拉筛选
-5. 点击「新建用户」→ 对话框（`userDialogVisible = true`），`isEdit = false`，表单清空
-6. 点击某用户「编辑」→ 对话框，`isEdit = true`，表单回填
-7. 新建模式：输入姓名、邮箱、手机（可选）、角色、密码 → 提交
-8. 编辑模式：可修改姓名、角色、状态 → 提交
-9. 删除操作：仅 **SUPER_ADMIN** 可见「删除」按钮 → `deleteDialogVisible = true` → 确认 → `AdminService.deleteUser(id)` → `AdminStore.removeUserFromList()`
+3. PrimeNG table displays user list (paginated, sortable)
+4. Top: Search box + role dropdown filter + status dropdown filter
+5. Click "New User" → Dialog (`userDialogVisible = true`), `isEdit = false`, form cleared
+6. Click user "Edit" → Dialog, `isEdit = true`, form pre-filled
+7. Create mode: Enter name, email, phone (optional), role, password → Submit
+8. Edit mode: Can modify name, role, status → Submit
+9. Delete operation: Only **SUPER_ADMIN** sees "Delete" button → `deleteDialogVisible = true` → Confirm → `AdminService.deleteUser(id)` → `AdminStore.removeUserFromList()`
 
-## 表格列
+## Table Columns
 
-| 列 | 组件 | 说明 |
+| Column | Component | Description |
 |---|---|---|
-| **Name** | `Avatar + text` | 用户头像（首字母圆形背景）+ 名称 |
-| **Email** | `text` | 邮箱地址 |
-| **Role** | `<app-badge>` | 角色映射：`CUSTOMER→completed(蓝色)`，`ADMIN→processing(浅蓝)`，`SUPER_ADMIN→confirmed(绿色)`。标签通过 `customLabel="user.role"` 直接使用后端存储的大写值显示（`CUSTOMER` / `ADMIN` / `SUPER_ADMIN`）。 |
-| **Status** | `<app-badge>` | 状态映射：`ACTIVE→confirmed(绿色)`，`INACTIVE→pending(黄色)`，`BLOCKED→cancelled(红色)`，通过 `mapStatusToBadge()` 转换为 BadgeStatus |
-| **Created** | `date:'short'` | 创建时间 |
-| **Actions** | `<app-button>` | 编辑（ghost+pencil）+ 删除（danger+trash）
+| **Name** | `Avatar + text` | User avatar (initial circle background) + name |
+| **Email** | `text` | Email address |
+| **Role** | `<app-badge>` | Role mapping: `CUSTOMER→completed(blue)`, `ADMIN→processing(light blue)`, `SUPER_ADMIN→confirmed(green)`. Label displays uppercase value from backend directly via `customLabel="user.role"` (`CUSTOMER` / `ADMIN` / `SUPER_ADMIN`). |
+| **Status** | `<app-badge>` | Status mapping: `ACTIVE→confirmed(green)`, `INACTIVE→pending(yellow)`, `BLOCKED→cancelled(red)`, converted via `mapStatusToBadge()` to BadgeStatus |
+| **Created** | `date:'short'` | Creation time |
+| **Actions** | `<app-button>` | Edit (ghost+pencil) + Delete (danger+trash)
 
-## Dashboard 消耗
+## Dashboard Consumption
 
-| 仪表盘面板 | 消耗端点 | 参数 |
+| Dashboard Panel | Consumed Endpoint | Parameters |
 |-----------|---------|------|
 | Recent Users | `GET /v1/admin/users` | `limit=5`, `page=1`, `orderBy=createdAt:desc` |
 
-Dashboard 面板复用此端点获取最近用户列表用于概览展示，与用户管理页的完整分页列表共享同一端点。
+Dashboard panel reuses this endpoint to fetch recent user list for overview display, sharing the same endpoint with the user management page's full paginated list.
 
-## 统计卡片数据来源
+## Stat Card Data Sources
 
-| 卡片 | 数据来源 | 系统级真实值? | 刷新机制 |
+| Card | Data Source | System-Level Actual Value? | Refresh Mechanism |
 |---|---|---|---|
-| **Total Users** | `GET /v1/admin/users` 响应中的 `total` 字段 | ✅ 系统级真实总数（跨分页） | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
-| **Active Users** | 从 `GET /v1/admin/users` 加载全量用户列表（limit=999）后按 `status='ACTIVE'` 过滤计算 | ✅ 系统级真实值 | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
-| **New This Week** | 从全量用户列表按 `createdAt >= 一周前` 过滤计算 | ✅ 系统级真实值 | `ngOnInit` + 筛选/CRUD 操作后重新加载 |
+| **Total Users** | `total` field from `GET /v1/admin/users` response | ✅ System-level actual total (across pagination) | `ngOnInit` + reload after filter/CRUD operations |
+| **Active Users** | Load full user list (limit=999) from `GET /v1/admin/users` and filter by `status='ACTIVE'` | ✅ System-level actual value | `ngOnInit` + reload after filter/CRUD operations |
+| **New This Week** | Filter full user list by `createdAt >= one week ago` | ✅ System-level actual value | `ngOnInit` + reload after filter/CRUD operations |
 
-> **注意**：统计卡片使用独立的全量数据请求（与分页表格分开），确保 Active Users 和 New This Week 反映系统总览而非当前分页数据。Total Users 直接使用 API 响应的 `total` 字段。
+> **Note**: Stat cards use independent full-data requests (separate from paginated table), ensuring Active Users and New This Week reflect system overview rather than current page data. Total Users directly uses the API response's `total` field.
 >
-> **文档缺口**：`admin.users` 当前缺少专用的 summary 统计端点（对比 `admin.services.summary`）。Active Users 和 New This Week 通过 `limit=999` 全量查询前端计算获得，仅适用于用户规模较小的场景。如需支持大规模用户管理，建议新增 `GET /v1/admin/users/summary` 统计端点，返回 `{ totalUsers, activeUsers, newThisWeek }` 三个聚合值。
+> **Documentation gap**: `admin.users` currently lacks a dedicated summary stats endpoint (compared to `admin.services.summary`). Active Users and New This Week are obtained via `limit=999` full query frontend computation, suitable only for small-scale user scenarios. To support large-scale user management, recommend adding `GET /v1/admin/users/summary` stats endpoint returning three aggregate values: `{ totalUsers, activeUsers, newThisWeek }`.
 
-## 数据刷新
+## Data Refresh
 
-| 事件 | 刷新行为 |
+| Event | Refresh Behavior |
 |---|---|
-| 页面初始化 (`ngOnInit`) | 同时发起两个请求：1️⃣ `getUsers({limit:10})` 填充表格；2️⃣ `getUsers({limit:999})` 填充统计卡片 |
-| 筛选变化 (`applyFilter`) | 重新加载分页表格 + 统计卡片 |
-| 搜索/清空 (`clearFilters`) | 同上 |
-| 创建/编辑/删除用户 | 本地更新 store + 重新加载统计卡片 |
-| WebSocket 自动刷新 | ❌ 未实现（无用户变更 WebSocket 事件） |
+| Page init (`ngOnInit`) | Simultaneously initiate two requests: 1️⃣ `getUsers({limit:10})` populate table; 2️⃣ `getUsers({limit:999})` populate stat cards |
+| Filter change (`applyFilter`) | Reload paginated table + stat cards |
+| Search/Clear (`clearFilters`) | Same as above |
+| Create/Edit/Delete user | Local store update + reload stat cards |
+| WebSocket auto-refresh | ❌ Not implemented (no user change WebSocket event) |
 
-## 数据来源
+## Data Sources
 
-- contract.yaml 1.7.1（admin.users CRUD）
-- 安全架构设计文档 2.2.1（角色权限矩阵：SUPER_ADMIN 独占 create 和 delete ADMIN 用户）
-- 数据架构设计文档 2.2（User 实体状态枚举）
+- contract.yaml 1.7.1 (admin.users CRUD)
+- Security Architecture Design Document 2.2.1 (role permission matrix: SUPER_ADMIN exclusive create and delete ADMIN users)
+- Data Architecture Design Document 2.2 (User entity status enum)

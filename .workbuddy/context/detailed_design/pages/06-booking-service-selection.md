@@ -1,103 +1,103 @@
-# 预约-选择服务页（ServiceSelectionPage）
+# Booking - Service Selection Page (ServiceSelectionPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 预约创建 - 选择服务 |
-| **路由路径** | `/booking` |
-| **布局** | `AppLayoutComponent` |
-| **惰性加载** | `features/booking/booking.routes.ts` → `BOOKING_ROUTES` |
-| **组件** | `ServiceSelectionComponent` (`src/app/features/booking/service-selection/service-selection.component.ts`) |
-| **设计依据** | 接口规范 2.5.3（乐观 UI）, SAD 4.4（高并发核心流程） |
+| **Page Name** | Booking Creation - Select Service |
+| **Route Path** | `/booking` |
+| **Layout** | `AppLayoutComponent` |
+| **Lazy Load** | `features/booking/booking.routes.ts` → `BOOKING_ROUTES` |
+| **Component** | `ServiceSelectionComponent` (`src/app/features/booking/service-selection/service-selection.component.ts`) |
+| **Design Basis** | Interface Specification 2.5.3 (optimistic UI), SAD 4.4 (high-concurrency core flow) |
 
-## 用户角色
+## User Role
 
-- CUSTOMER 专属
+- CUSTOMER only
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 策略 |
+| Guard | Strategy |
 |---|---|
-| `authGuard` | 未认证 → `/auth/login?returnUrl=/booking` |
+| `authGuard` | Unauthenticated → `/auth/login?returnUrl=/booking` |
 | `roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })` | ADMIN/SUPER_ADMIN → `/admin/dashboard` |
 
-## 解析器
+## Resolvers
 
-| 解析器 | 提供数据 | 当前状态 |
+| Resolver | Provides Data | Current Status |
 |---|---|---|
-| `serviceResolver` | `services: Service[]` | **当前返回静态 Mock 数据**（5 个示例服务），TODO: 替换为真实 API 调用 |
+| `serviceResolver` | `services: Service[]` | **Currently returns static Mock data** (5 sample services), TODO: replace with real API call |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
 | `BookingStore` | `setSelectedServiceId()`, `loadSlots([])` |
 | `ApiService` | `getServices()` |
-| `Router` | 选择服务后导航至 `/booking/slots` |
+| `Router` | Navigate to `/booking/slots` after service selection |
 
-## 本地信号
+## Local Signals
 
-| 信号 | 类型 | 说明 |
+| Signal | Type | Description |
 |---|---|---|
-| `services` | `Service[]` | 从 API 加载的服务列表 |
-| `selectedServiceId` | `string \| null` | 当前选中的服务 ID |
-| `isLoading` | `boolean` | 加载状态 |
-| `searchQuery` | `string` | 搜索关键词 |
-| `activeCategory` | `string` | 分类筛选 |
-| `categories` | `string[]` (computed) | 由服务名称推导的分类列表 |
-| `filteredServices` | `Service[]` (computed) | 按搜索词和分类筛选后的服务 |
+| `services` | `Service[]` | Service list loaded from API |
+| `selectedServiceId` | `string \| null` | Currently selected service ID |
+| `isLoading` | `boolean` | Loading state |
+| `searchQuery` | `string` | Search keyword |
+| `activeCategory` | `string` | Category filter |
+| `categories` | `string[]` (computed) | Category list derived from service names |
+| `filteredServices` | `Service[]` (computed) | Services filtered by search keyword and category |
 
-## API 契约对照
+## API Contract Mapping
 
-| 方法 | 端点 | 请求参数 | 响应 | 鉴权 | 调用时机 |
+| Method | Endpoint | Request Parameters | Response | Auth | Call Timing |
 |---|---|---|---|---|---|
-| `GET` | `/v1/services` | — | `Service[]` (`{id, name, description, duration, price, active, pricePerMinute?, taxRate?}`) | Bearer | `ngOnInit()` 的 `loadServices()` |
+| `GET` | `/v1/services` | — | `Service[]` (`{id, name, description, duration, price, active, pricePerMinute?, taxRate?}`) | Bearer | `loadServices()` in `ngOnInit()` |
 
-**后端映射**：
+**Backend mapping**:
 
-| 控制器 | 端点 | 详情 |
+| Controller | Endpoint | Details |
 |---|---|---|
-| `ServicesController` | `GET /services` | `findAll()` 分页 + 可选 `isActive` 过滤（类级别 `@RateLimit({ tier: "public", key: "ip" })`) |
+| `ServicesController` | `GET /services` | `findAll()` paginated + optional `isActive` filter (class-level `@RateLimit({ tier: "public", key: "ip" })`) |
 
-## 交互流程
+## Interaction Flow
 
-1. 访问 `/booking`，守卫 + 解析器运行
-2. 解析器 `serviceResolver` 加载服务列表（当前为 Mock，TODO 替换 API）
-3. 页面展示服务卡片列表（包含名称、描述、时长、价格）
-4. 顶部搜索框 → 输入过滤服务
-5. 分类 Tab 栏 → 点击按类别筛选
-6. 点击某个服务 → `selectedServiceId = service.id` → `BookingStore.setSelectedServiceId(serviceId)`
-7. 自动导航至 `/booking/slots`
-8. `preferredSequence` 在确认提交时生成（见 08-booking-confirmation.md）
+1. Visit `/booking`; guards + resolver run
+2. Resolver `serviceResolver` loads service list (currently Mock, TODO replace with API)
+3. Page displays service card list (name, description, duration, price)
+4. Top search box → input filters services
+5. Category tab bar → click to filter by category
+6. Click a service → `selectedServiceId = service.id` → `BookingStore.setSelectedServiceId(serviceId)`
+7. Auto-navigate to `/booking/slots`
+8. `preferredSequence` is generated during confirmation submission (see 08-booking-confirmation.md)
 
-## 数据模型
+## Data Model
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 |---|---|---|
-| `Service.id` | `string (UUID)` | 服务 ID |
-| `Service.name` | `string` | 服务名称 |
-| `Service.description` | `string` | 服务描述 |
-| `Service.duration` | `number` | 时长（分钟） |
-| `Service.price` | `number (decimal)` | 价格 |
-| `Service.pricePerMinute` | `number (decimal)` | 每分钟单价（用于超时计费：`overtimeMinutes × pricePerMinute`） |
-| `Service.taxRate` | `number (decimal)` | 默认税率（如 0.0800 = 8%） |
-| `Service.active` | `boolean` | 是否激活 |
+| `Service.id` | `string (UUID)` | Service ID |
+| `Service.name` | `string` | Service name |
+| `Service.description` | `string` | Service description |
+| `Service.duration` | `number` | Duration (minutes) |
+| `Service.price` | `number (decimal)` | Price |
+| `Service.pricePerMinute` | `number (decimal)` | Per-minute unit price (for overtime billing: `overtimeMinutes × pricePerMinute`) |
+| `Service.taxRate` | `number (decimal)` | Default tax rate (e.g., 0.0800 = 8%) |
+| `Service.active` | `boolean` | Whether active |
 
-> **v1.7.0 新增字段**：`pricePerMinute` 和 `taxRate` 在预约创建时快照至 Appointment，后续 Service 价格变动不影响已有预约账单。
+> **v1.7.0 new fields**: `pricePerMinute` and `taxRate` are snapshotted to Appointment at booking creation time; subsequent Service price changes do not affect existing booking bills.
 
-## 数据来源
+## Data Sources
 
-- contract.yaml 1.7.2（services.list — 含 pricePerMinute、taxRate）
-- SAD 2.2.1（ServicesModule）
-- 接口设计规范 2.5.3（高并发乐观 UI）
-- 数据架构设计文档 2.2（Service 实体, ServiceCategory 实体）
+- contract.yaml 1.7.2 (services.list — includes pricePerMinute, taxRate)
+- SAD 2.2.1 (ServicesModule)
+- Interface Design Specification 2.5.3 (high-concurrency optimistic UI)
+- Data Architecture Design Document 2.2 (Service entity, ServiceCategory entity)

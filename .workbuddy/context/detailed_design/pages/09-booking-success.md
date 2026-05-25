@@ -1,69 +1,69 @@
-# 预约-成功页（BookingSuccessPage）
+# Booking Success Page (BookingSuccessPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 预约创建 - 成功确认 |
-| **路由路径** | `/booking/success` |
-| **布局** | `AppLayoutComponent` |
-| **惰性加载** | `features/booking/booking.routes.ts` → `BOOKING_ROUTES` |
-| **组件** | `BookingSuccessComponent` (`src/app/features/booking/booking-success/booking-success.component.ts`) |
-| **设计依据** | 接口规范 2.5.3（乐观 UI 成功分支） |
+| **Page Name** | Booking Creation - Success Confirmation |
+| **Route Path** | `/booking/success` |
+| **Layout** | `AppLayoutComponent` |
+| **Lazy Loading** | `features/booking/booking.routes.ts` → `BOOKING_ROUTES` |
+| **Component** | `BookingSuccessComponent` (`src/app/features/booking/booking-success/booking-success.component.ts`) |
+| **Design Basis** | API Specification 2.5.3 (Optimistic UI success branch) |
 
-## 用户角色
+## User Roles
 
-- CUSTOMER 专属
+- CUSTOMER only
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 策略 |
+| Guard | Strategy |
 |---|---|
-| `authGuard` | 未认证 → `/auth/login?returnUrl=/booking/success` |
+| `authGuard` | Unauthenticated → `/auth/login?returnUrl=/booking/success` |
 | `roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })` | ADMIN/SUPER_ADMIN → `/admin/dashboard` |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
-| `Router` | 导航至 `/my-bookings`（查看预约列表）或 `/booking`（重新预约） |
-| `BookingStore` | `selectedSlot`（显示已选的预约槽位信息） |
-| `AuthStore` | `currentUser`（显示用户信息） |
+| `Router` | Navigate to `/my-bookings` (view booking list) or `/booking` (re-book) |
+| `BookingStore` | `selectedSlot` (display selected booking slot info) |
+| `AuthStore` | `currentUser` (display user info) |
 
-## 本地信号
+## Local Signals
 
-| 信号 | 类型 | 说明 |
+| Signal | Type | Description |
 |---|---|---|
-| `bookingReference` | `string` | 预约参考号（绑定 `BookingStore.lastAppointment?.appointmentNumber`） |
-| `bookingAmount` | `number` (computed) | 预约金额（`BookingStore.lastAppointment?.taxIncludedAmount`） |
-| `bookingDuration` | `number` (computed) | 预约时长（`BookingStore.lastAppointment?.durationMinutes`） |
+| `bookingReference` | `string` | Booking reference number (bound to `BookingStore.lastAppointment?.appointmentNumber`) |
+| `bookingAmount` | `number` (computed) | Booking amount (`BookingStore.lastAppointment?.taxIncludedAmount`) |
+| `bookingDuration` | `number` (computed) | Booking duration (`BookingStore.lastAppointment?.durationMinutes`) |
 
 
-## API 契约对照
+## API Contract Mapping
 
-本页为纯展示页面，无 API 调用。
+This is a display-only page with no API calls.
 
-## 交互流程
+## Interaction Flow
 
-1. 预约成功提后自动导航至 `/booking/success`
-2. 页面展示成功图标 + 祝贺文案
-3. 显示预约参考号（`bookingReference`）
-4. 显示预约摘要（服务名称、日期时间、用户信息）
-5. **财务摘要**：显示价格（`bookingAmount`）、含税总价（`taxIncludedAmount`）、时长（`bookingDuration` 分钟）
-6. 提供两个操作按钮：
-   - 「查看我的预约」→ 导航至 `/my-bookings`
-   - 「继续预约」→ 导航至 `/booking`（重新开始选择服务）
+1. Automatically navigate to `/booking/success` after successful booking submission
+2. Page displays success icon + congratulatory message
+3. Display booking reference number (`bookingReference`)
+4. Display booking summary (service name, date/time, user info)
+5. **Financial summary**: Display price (`bookingAmount`), tax-included total (`taxIncludedAmount`), duration (`bookingDuration` minutes)
+6. Provide two action buttons:
+   - "View My Bookings" → Navigate to `/my-bookings`
+   - "Continue Booking" → Navigate to `/booking` (restart service selection)
 
-## 数据来源
+## Data Sources
 
-- contract.yaml 1.7.2（预约创建成功响应 — 含 financial 字段）
-- 接口设计规范 2.5.3（乐观 UI）
+- contract.yaml 1.7.2 (booking creation success response — including financial fields)
+- API Design Specification 2.5.3 (Optimistic UI)

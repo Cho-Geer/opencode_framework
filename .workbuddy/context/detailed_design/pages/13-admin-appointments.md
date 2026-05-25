@@ -1,113 +1,113 @@
-# 管理员-预约管理页（AdminAppointmentManagementPage）
+# Admin Appointment Management Page (AdminAppointmentManagementPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 预约管理 |
-| **路由路径** | `/admin/appointments` |
-| **布局** | `AppLayoutComponent`（Admin 侧边栏） |
-| **惰性加载** | `features/admin/admin.routes.ts` → `ADMIN_ROUTES` (loadComponent) |
-| **组件** | `AppointmentManagementComponent` (`src/app/features/admin/pages/appointment-management/appointment-management.component.ts`) |
-| **设计依据** | contract.yaml `admin.appointments`（create/list/update-status/batch-cancel）, SAD 2.3.1（AdminBookingList） |
+| **Page Name** | Appointment Management |
+| **Route Path** | `/admin/appointments` |
+| **Layout** | `AppLayoutComponent` (Admin sidebar) |
+| **Lazy Loading** | `features/admin/admin.routes.ts` → `ADMIN_ROUTES` (loadComponent) |
+| **Component** | `AppointmentManagementComponent` (`src/app/features/admin/pages/appointment-management/appointment-management.component.ts`) |
+| **Design Basis** | contract.yaml `admin.appointments` (create/list/update-status/batch-cancel), SAD 2.3.1 (AdminBookingList) |
 
-## 用户角色
+## User Roles
 
 - ADMIN, SUPER_ADMIN
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数
+- No route parameters
+- No query parameters
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 策略 |
+| Guard | Strategy |
 |---|---|
-| `authGuard`（父级） | 未认证 → 重定向 |
-| `roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })`（父级） | CUSTOMER 禁止访问 |
+| `authGuard` (parent) | Unauthenticated → Redirect |
+| `roleGuard({ allow: ['ADMIN', 'SUPER_ADMIN'] })` (parent) | CUSTOMER denied |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
 | `AdminStore` | `vm`, `setLoading()`, `setAppointments()`, `updateAppointmentStatusInList()`, `removeAppointmentsFromList()`, `setError()` |
 | `AdminService` | `getAdminAppointments()`, `updateAppointmentStatus()`, `batchCancelAppointments()` |
 
-## 本地信号
+## Local Signals
 
-| 信号 | 类型 | 说明 |
+| Signal | Type | Description |
 |---|---|---|
-| `viewMode` | `'list' \| 'calendar'` | 视图切换（列表 / 日历） |
-| `selectedAppointments` | `string[]` | 批量操作选中 ID 数组 |
-| `statusDialogVisible` | `boolean` | 状态更新对话框 |
-| `selectedAppointment` | `AdminAppointment \| null` | 当前操作预约 |
-| `statusUpdateReason` | `string` | 状态变更原因 |
-| `newStatus` | `AppointmentStatus` | 目标状态 |
-| `filterStatus` | `string` | 状态筛选 |
-| `filterStartDate` | `string` | 起始日期 |
-| `filterEndDate` | `string` | 结束日期 |
-| `filterSearch` | `string` | 搜索关键词 |
-| `todayCount` | `number` (computed) | 今日预约数 |
-| `pendingCount` | `number` (computed) | 待确认数 |
-| `confirmedCount` | `number` (computed) | 已确认数 |
-| `cancelledCount` | `number` (computed) | 已取消数 |
-| `calendarEvents` | `CalendarEvent[]` (computed) | 日历视图事件 |
-| `calendarWeeks` | `array` (computed) | 日历周数据结构 |
+| `viewMode` | `'list' \| 'calendar'` | View toggle (list / calendar) |
+| `selectedAppointments` | `string[]` | Selected ID array for batch operations |
+| `statusDialogVisible` | `boolean` | Status update dialog |
+| `selectedAppointment` | `AdminAppointment \| null` | Current appointment |
+| `statusUpdateReason` | `string` | Status change reason |
+| `newStatus` | `AppointmentStatus` | Target status |
+| `filterStatus` | `string` | Status filter |
+| `filterStartDate` | `string` | Start date |
+| `filterEndDate` | `string` | End date |
+| `filterSearch` | `string` | Search keyword |
+| `todayCount` | `number` (computed) | Today's count |
+| `pendingCount` | `number` (computed) | Pending count |
+| `confirmedCount` | `number` (computed) | Confirmed count |
+| `cancelledCount` | `number` (computed) | Cancelled count |
+| `calendarEvents` | `CalendarEvent[]` (computed) | Calendar view events |
+| `calendarWeeks` | `array` (computed) | Calendar week data structure |
 
-## API 契约对照
+## API Contract Mapping
 
-| 方法 | 端点 | 请求参数/正文 | 响应 | 鉴权 | 调用时机 |
-|---|---|---|---|---|---|---|
-| `POST` | `/v1/admin/appointments` | `{userId*, serviceId*, timeSlotId*, appointmentDate*, notes?, overtimeMinutes?}` | `AdminAppointmentDto` (201)（`{id, userId, serviceId, timeSlotId, appointmentDate, status, durationMinutes, price, taxRate, taxIncludedAmount, createdAt}`） | Bearer ADMIN/SUPER_ADMIN | Quick Booking 管理员为客户创建预约 |
-| `GET` | `/v1/admin/appointments` | `?page&limit&status&startDate&endDate&serviceId&userId` | `PaginatedResponse<AdminAppointmentDto>`（`{id, appointmentNumber, userId, userName, serviceId, serviceName, timeSlotId, appointmentDate, status, createdAt, durationMinutes, price, taxRate, taxIncludedAmount}`） | Bearer ADMIN/SUPER_ADMIN | 页面初始化、筛选、分页 |
-| `PUT` | `/v1/admin/appointments/:id/status` | `{status*, reason?}` | `{id, status, updatedAt}` | Bearer ADMIN/SUPER_ADMIN | 单条状态更新 |
-| `POST` | `/v1/admin/appointments/batch-cancel` | `{ids*, reason?}` | `{successCount, failedCount, failedIds}` | Bearer ADMIN/SUPER_ADMIN | 批量取消 |
+| Method | Endpoint | Request Parameters/Body | Response | Auth | Call Timing |
+|---|---|---|---|---|---|
+| `POST` | `/v1/admin/appointments` | `{userId*, serviceId*, timeSlotId*, appointmentDate*, notes?, overtimeMinutes?}` | `AdminAppointmentDto` (201) (`{id, userId, serviceId, timeSlotId, appointmentDate, status, durationMinutes, price, taxRate, taxIncludedAmount, createdAt}`) | Bearer ADMIN/SUPER_ADMIN | Quick Booking - Admin creates appointment for customer |
+| `GET` | `/v1/admin/appointments` | `?page&limit&status&startDate&endDate&serviceId&userId` | `PaginatedResponse<AdminAppointmentDto>` (`{id, appointmentNumber, userId, userName, serviceId, serviceName, timeSlotId, appointmentDate, status, createdAt, durationMinutes, price, taxRate, taxIncludedAmount}`) | Bearer ADMIN/SUPER_ADMIN | Page init, filter, pagination |
+| `PUT` | `/v1/admin/appointments/:id/status` | `{status*, reason?}` | `{id, status, updatedAt}` | Bearer ADMIN/SUPER_ADMIN | Single status update |
+| `POST` | `/v1/admin/appointments/batch-cancel` | `{ids*, reason?}` | `{successCount, failedCount, failedIds}` | Bearer ADMIN/SUPER_ADMIN | Batch cancel |
 
-## 后端映射
+## Backend Mapping
 
-| 控制器 | 文件 |
+| Controller | File |
 |---|---|
-| `AdminAppointmentsController` | `src/modules/admin/controllers/admin-appointments.controller.ts` — 路由前缀 `"admin/appointments"` |
+| `AdminAppointmentsController` | `src/modules/admin/controllers/admin-appointments.controller.ts` — Route prefix `"admin/appointments"` |
 | `AdminAppointmentsService` | `src/modules/admin/services/admin-appointments.service.ts` |
 
-**预约状态机**（`VALID_TRANSITIONS`）：
-| 当前状态 | 可转换到 |
+**Appointment State Machine** (`VALID_TRANSITIONS`):
+| Current State | Can Transition To |
 |---|---|
 | `PENDING` | `CONFIRMED`, `CANCELLED` |
 | `CONFIRMED` | `COMPLETED`, `CANCELLED` |
 | `COMPLETED` | `CANCELLED` |
-| `CANCELLED` | （终态） |
-| `EXPIRED` | （终态） |
+| `CANCELLED` | (Terminal state) |
+| `EXPIRED` | (Terminal state) |
 
-取消操作要求必须填写 `reason`。
+Cancellation requires `reason` to be filled.
 
-## 交互流程
+## Interaction Flow
 
-1. 访问 `/admin/appointments`，父级守卫验证
+1. Access `/admin/appointments`, parent guard validation
 2. `loadAppointments()` → `AdminService.getAdminAppointments(query)` → `AdminStore.setAppointments()`
-3. **列表视图**：PrimeNG 表格（分页、排序、列筛选），每行显示：预约号、用户名、服务名、日期时间、状态
-4. **日历视图**：以月历形式展示预约，按状态着色
-5. 顶部统计卡片：今日预约数、待确认、已确认、已取消（computed 信号）
-6. 筛选栏：状态下拉 + 日期范围选择 + 搜索框
-7. 单条操作：点击「更新状态」→ `statusDialogVisible = true` → 选择目标状态 + 原因 → 提交 → `AdminStore.updateAppointmentStatusInList()`
-8. 批量操作：复选框选中多条 → 点击「批量取消」→ 填写原因 → `batchCancel()` → `AdminStore.removeAppointmentsFromList()`
-9. **Quick Booking**（管理员快速为客户创建预约）：
-   - 点击「新增预约」按钮 → 弹出对话框
-   - 表单字段：选择客户（搜索用户列表）、选择服务、选择日期时间、填写备注
-    - 支持超时设置（`overtimeMinutes`），系统自动验证超时不会与相邻时段预约重叠
-   - 提交 → `POST /v1/admin/appointments` → 成功后刷新列表
-   - 底层复用原子槽位抢占机制（PostgreSQL 部分唯一索引）
-10. 状态变化后，后端通过 WebSocket `appointment_updated` 事件通知相关用户
+3. **List view**: PrimeNG table (paginated, sortable, column filter), each row displays: appointment number, user name, service name, date/time, status
+4. **Calendar view**: Display appointments in monthly calendar, colored by status
+5. Top stat cards: Today's count, Pending, Confirmed, Cancelled (computed signals)
+6. Filter bar: Status dropdown + date range picker + search box
+7. Single item operation: Click "Update Status" → `statusDialogVisible = true` → Select target status + reason → Submit → `AdminStore.updateAppointmentStatusInList()`
+8. Batch operation: Checkboxes select multiple → Click "Batch Cancel" → Fill in reason → `batchCancel()` → `AdminStore.removeAppointmentsFromList()`
+9. **Quick Booking** (Admin quickly creates appointment for customer):
+   - Click "New Appointment" button → Popup dialog
+   - Form fields: Select customer (search user list), Select service, Select date/time, Fill in notes
+    - Supports overtime setting (`overtimeMinutes`), system auto-validates overtime does not overlap with adjacent slot bookings
+   - Submit → `POST /v1/admin/appointments` → Refresh list on success
+   - Underlying reuse of atomic slot reservation mechanism (PostgreSQL partial unique index)
+10. After status change, backend notifies relevant users via WebSocket `appointment_updated` event
 
-## 数据来源
+## Data Sources
 
-- contract.yaml 1.7.1（admin.appointments create/list/update-status/batch-cancel）
-- SAD 2.3.1（AdminBookingList）
-- 接口设计规范 2.8（管理端预约管理）
-- 数据架构设计文档 2.2（Appointment 状态枚举 + AppointmentHistory）
-- 接口设计规范 2.6（WebSocket 事件通知）
+- contract.yaml 1.7.1 (admin.appointments create/list/update-status/batch-cancel)
+- SAD 2.3.1 (AdminBookingList)
+- API Design Specification 2.8 (admin appointment management)
+- Data Architecture Design Document 2.2 (Appointment status enum + AppointmentHistory)
+- API Design Specification 2.6 (WebSocket event notification)

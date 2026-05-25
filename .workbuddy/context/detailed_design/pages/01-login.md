@@ -1,131 +1,131 @@
-# 登录页（LoginPage）
+# Login Page (LoginPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 登录页 |
-| **路由路径** | `/auth/login` |
-| **布局** | 无布局外壳（Standalone 页面） |
-| **惰性加载** | `features/auth/auth.routes.ts` → `AUTH_ROUTES` |
-| **组件** | `LoginComponent` (`src/app/features/auth/login/login.component.ts`) |
-| **设计依据** | SAD 2.3.1, contract.yaml (auth endpoints), Interface 2.1.2 |
+| **Page Name** | Login Page |
+| **Route Path** | `/auth/login` |
+| **Layout** | No layout shell (Standalone page) |
+| **Lazy Load** | `features/auth/auth.routes.ts` → `AUTH_ROUTES` |
+| **Component** | `LoginComponent` (`src/app/features/auth/login/login.component.ts`) |
+| **Design Basis** | SAD 2.3.1, contract.yaml (auth endpoints), Interface 2.1.2 |
 
-## 用户角色
+## User Role
 
-- 未登录用户（`guestGuard` 强制）
+- Unauthenticated users (enforced by `guestGuard`)
 
-## 路由参数
+## Route Parameters
 
-| 参数 | 类型 | 来源 | 说明 |
+| Parameter | Type | Source | Description |
 |---|---|---|---|
-| `returnUrl` | `string` | Query params | `authGuard` 重定向时设置，登录成功后导航回该地址 |
+| `returnUrl` | `string` | Query params | Set by `authGuard` on redirect; navigate back to this address after successful login |
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 路径 | 策略 |
+| Guard | Path | Strategy |
 |---|---|---|
-| `guestGuard` | `auth/login` | 已认证用户禁止访问，重定向到角色专属首页 |
+| `guestGuard` | `auth/login` | Authenticated users denied access, redirected to role-specific home page |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`（独立全页面组件）
+- No `@Input()` / `@Output()` (standalone full-page component)
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
-| `FormBuilder` | 创建响应式表单（`passwordForm`, `codeLoginForm`） |
-| `AuthStore` | 认证状态管理：`isLoading`, `error`, `loginSuccess()`, `setUserProfile()`, `setLoading()`, `setError()` |
-| `ApiService` | HTTP API 调用 |
-| `SocketService` | 登录成功后建立 WebSocket 连接 |
-| `Router` | 登录后导航 |
-| `RouteResolver` | 静态方法 `getPostLoginRoute(profile.userType)` 决定目标路由 |
+| `FormBuilder` | Create reactive forms (`passwordForm`, `codeLoginForm`) |
+| `AuthStore` | Auth state management: `isLoading`, `error`, `loginSuccess()`, `setUserProfile()`, `setLoading()`, `setError()` |
+| `ApiService` | HTTP API calls |
+| `SocketService` | Establish WebSocket connection after successful login |
+| `Router` | Navigate after login |
+| `RouteResolver` | Static method `getPostLoginRoute(profile.userType)` determines target route |
 
-> **注意**：`ApiService` 通过拦截器自动为请求附加 `X-Request-ID`，登录响应中 `requestId` 字段可用于全链路追踪。
+> **Note**: `ApiService` automatically attaches `X-Request-ID` to requests via interceptor; the `requestId` field in login response can be used for full-trace tracking.
 
-## 本地信号
+## Local Signals
 
-| 信号 | 类型 | 说明 |
+| Signal | Type | Description |
 |---|---|---|
-| `activeTab` | `'password' \| 'code'` | 密码登录 / 验证码登录 Tab 切换 |
-| `contactType` | `ContactType.EMAIL \| ContactType.PHONE` | 联系方式类型 |
-| `acceptTerms` | `boolean` | 是否接受服务条款 |
-| `countdown` | `number` | 验证码发送倒计时（60秒） |
-| `codeLoginStep` | `1 \| 2` | 验证码登录步骤 |
-| `showAntiEnumMessage` | `boolean` | 反枚举通用提示 |
-| `passwordVisible` | `boolean` | 密码可见性切换（默认隐藏） |
+| `activeTab` | `'password' \| 'code'` | Password login / Verification code login tab toggle |
+| `contactType` | `ContactType.EMAIL \| ContactType.PHONE` | Contact method type |
+| `acceptTerms` | `boolean` | Whether terms of service are accepted |
+| `countdown` | `number` | Verification code send countdown (60 seconds) |
+| `codeLoginStep` | `1 \| 2` | Verification code login steps |
+| `showAntiEnumMessage` | `boolean` | Generic anti-enumeration message |
+| `passwordVisible` | `boolean` | Password visibility toggle (hidden by default) |
 
-## API 契约对照
+## API Contract Mapping
 
-| 方法 | 端点 | 请求 DTO | 响应 DTO | 鉴权 | 调用时机 |
+| Method | Endpoint | Request DTO | Response DTO | Auth | Call Timing |
 |---|---|---|---|---|---|
-| `POST` | `/v1/auth/login/password` | `LoginPasswordDto` (`contact`, `contactType`, `password`) | `AuthResponseDto` (`accessToken`, `expiresIn`, `tokenType`) | No | 密码表单提交 |
-| `POST` | `/v1/auth/login/send-code` | `LoginSendCodeDto` (`contact`, `contactType`) | `SendCodeResponseDto` (`expiresIn`) | No | 验证码登录-发送验证码 |
-| `POST` | `/v1/auth/login/verify-code` | `LoginVerifyCodeDto` (`contact`, `contactType`, `code`) | `AuthResponseDto` (`accessToken`, `expiresIn`, `tokenType`) | No | 验证码登录-验证验证码 |
-| `GET` | `/v1/users/profile` | — | `{id, name, email, phone, userType, createdAt}` | Bearer | 登录成功后获取用户信息 |
-| `POST` | `/v1/auth/refresh` | —（HttpOnly cookie） | `AuthResponseDto` | No | Token 刷新 |
-| `POST` | `/v1/auth/logout` | — | `LogoutResponseDto` | Bearer | 退出登录 |
+| `POST` | `/v1/auth/login/password` | `LoginPasswordDto` (`contact`, `contactType`, `password`) | `AuthResponseDto` (`accessToken`, `expiresIn`, `tokenType`) | No | Password form submission |
+| `POST` | `/v1/auth/login/send-code` | `LoginSendCodeDto` (`contact`, `contactType`) | `SendCodeResponseDto` (`expiresIn`) | No | Verification code login - send code |
+| `POST` | `/v1/auth/login/verify-code` | `LoginVerifyCodeDto` (`contact`, `contactType`, `code`) | `AuthResponseDto` (`accessToken`, `expiresIn`, `tokenType`) | No | Verification code login - verify code |
+| `GET` | `/v1/users/profile` | — | `{id, name, email, phone, userType, createdAt}` | Bearer | Fetch user info after successful login |
+| `POST` | `/v1/auth/refresh` | — (HttpOnly cookie) | `AuthResponseDto` | No | Token refresh |
+| `POST` | `/v1/auth/logout` | — | `LogoutResponseDto` | Bearer | Logout |
 
-> **信封格式**：响应体遵循 `statusCode/message/data/timestamp/requestId` 信封格式（contract.yaml §response_envelope）。
+> **Envelope format**: Response body follows `statusCode/message/data/timestamp/requestId` envelope format (contract.yaml §response_envelope).
 
-## 认证后端映射
+## Auth Backend Mapping
 
-| 控制器 | 文件 |
+| Controller | File |
 |---|---|
 | `AuthController` | `src/modules/auth/auth.controller.ts` (route prefix: `"auth"`) |
 | `AuthService` | `src/modules/auth/auth.service.ts` |
 
-关键后端实现：
-- `loginSendCode()`: 反枚举策略（不论用户是否存在均返回 200），仅 ACTIVE 用户才真正发码
-- `loginPassword()`: bcrypt 密码比对，`constantTimeLoginDelay()` 防时序攻击（250-350ms 随机延迟）
-- `loginVerifyCode()`: Redis 验证码 TTL=300s，更新 `lastLoginAt`
-- `refreshTokens()`: Token 轮换 + 防重放攻击检测
-- `logout()`: 撤销会话 + JWT 黑名单（Redis）
+Key backend implementation:
+- `loginSendCode()`: Anti-enumeration strategy (always returns 200 regardless of whether user exists); only sends code to ACTIVE users
+- `loginPassword()`: bcrypt password comparison; `constantTimeLoginDelay()` for timing attack protection (250-350ms random delay)
+- `loginVerifyCode()`: Redis verification code TTL=300s; updates `lastLoginAt`
+- `refreshTokens()`: Token rotation + replay attack detection
+- `logout()`: Revoke session + JWT blacklist (Redis)
 
-## 表单验证
+## Form Validation
 
-| 表单 | 字段 | 验证规则 |
+| Form | Field | Validation Rules |
 |---|---|---|
-| `passwordForm` | `contact` | `contactFormatValidator`（邮箱 regex / 手机号 regex） |
-| | `password` | `passwordStrengthValidator`（min 8 字符, 大写, 小写, 数字, 特殊字符） |
-| `codeLoginForm` | `contact` | 同上 |
-| | `code` | 6 位数字 |
-| | `terms` | 必须勾选接受条款 |
+| `passwordForm` | `contact` | `contactFormatValidator` (email regex / phone regex) |
+| | `password` | `passwordStrengthValidator` (min 8 chars, uppercase, lowercase, digit, special char) |
+| `codeLoginForm` | `contact` | Same as above |
+| | `code` | 6-digit number |
+| | `terms` | Must check acceptance of terms |
 
-## 交互流程
+## Interaction Flow
 
-1. 用户访问 `/auth/login`，`guestGuard` 检查未登录则放行
-2. 默认显示「密码登录」Tab（`activeTab = 'password'`）
-3. 用户输入联系方式和密码，提交 → 调用 `POST /v1/auth/login/password`
-4. 成功 → `AuthStore.loginSuccess()` → `ApiService.getUserProfile()` → `SocketService.connect()` → 根据角色导航
-5. 如切换到「验证码登录」Tab，步骤 1：发送验证码 → 步骤 2：验证验证码
-6. 验证码发送后：60 秒倒计时，按钮置灰
-7. 登录成功后的路由：CUSTOMER → `/booking`, ADMIN/SUPER_ADMIN → `/admin/dashboard`
-8. 密码输入框右侧提供可见性切换按钮（`.password-toggle-btn`），
-   点击后通过 `togglePasswordVisibility()` 切换 `passwordVisible` 信号，
-   aria-label 在 "Show password" / "Hide password" 间动态切换，
-   按钮最小尺寸 44px × 44px 满足 WCAG 触摸友好标准
+1. User visits `/auth/login`; `guestGuard` checks authentication and grants access if not logged in
+2. Default display: "Password Login" tab (`activeTab = 'password'`)
+3. User enters contact info and password, submits → calls `POST /v1/auth/login/password`
+4. Success → `AuthStore.loginSuccess()` → `ApiService.getUserProfile()` → `SocketService.connect()` → navigate based on role
+5. If switching to "Verification Code Login" tab: Step 1: send code → Step 2: verify code
+6. After code sent: 60-second countdown, button disabled
+7. Post-login routes: CUSTOMER → `/booking`, ADMIN/SUPER_ADMIN → `/admin/dashboard`
+8. Password input field has visibility toggle button on the right (`.password-toggle-btn`),
+   clicking triggers `togglePasswordVisibility()` to toggle `passwordVisible` signal,
+   aria-label dynamically switches between "Show password" / "Hide password",
+   button minimum size 44px × 44px meets WCAG touch-friendly standard
 
-## 角色路由映射
+## Role Route Mapping
 
-| 用户角色 | 登录后路由 |
+| User Role | Post-Login Route |
 |---|---|
 | `CUSTOMER` | `/booking` |
 | `ADMIN` / `SUPER_ADMIN` | `/admin/dashboard` |
 
-## 相关 API 限流
+## Related API Rate Limiting
 
-| 端点 | 限流策略 |
+| Endpoint | Rate Limit Policy |
 |---|---|
-| `POST /v1/auth/login/send-code` | 5 次/分钟/联系方式 |
-| `POST /v1/auth/login/verify-code` | 10 次/分钟/联系方式 |
-| `POST /v1/auth/login/password` | 5 次/分钟/联系方式 |
+| `POST /v1/auth/login/send-code` | 5 requests/min/contact |
+| `POST /v1/auth/login/verify-code` | 10 requests/min/contact |
+| `POST /v1/auth/login/password` | 5 requests/min/contact |
 
-## 数据来源
+## Data Sources
 
 - contract.yaml 1.7.1
-- SAD 2.3.1 (Pages 列表)
-- 接口设计规范 2.1.2
-- 安全架构设计文档 2.1 (JWT 双 Token), 2.3.2 (防枚举)
-- piiEncryptionStrategy 6.2 (登录流程)
+- SAD 2.3.1 (Pages list)
+- Interface Design Specification 2.1.2
+- Security Architecture Design Document 2.1 (JWT dual token), 2.3.2 (anti-enumeration)
+- piiEncryptionStrategy 6.2 (login flow)

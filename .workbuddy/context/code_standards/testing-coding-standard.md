@@ -1,163 +1,164 @@
-# 测试代码规范（Testing Coding Standard）v2.0
+# Testing Coding Standard v2.0
 
-> **版本**: 2.0.0
-> **生效日期**: 2026-05-14
-> **作者**: @Architect
-> **审批**: @Arbiter
-> **适用范围**: booking_system_refactor (backend + frontend + e2e)
-> **上一版本**: v1.0 (2026-04-16)
-
----
-
-## 目录
-
-1. [核心原则](#1-核心原则)
-2. [三层Mock治理策略](#2-三层mock治理策略)
-3. [TDD双速策略](#3-tdd双速策略)
-4. [测试禁令（AI Redlines）](#4-测试禁令ai-redlines)
-5. [测试分类与比例](#5-测试分类与比例)
-6. [后端测试规范](#6-后端测试规范nestjs)
-7. [前端测试规范](#7-前端测试规范angular)
-8. [测试基础设施](#8-测试基础设施)
-9. [测试数据管理](#9-测试数据管理)
-10. [覆盖率阈值矩阵](#10-覆盖率阈值矩阵)
-11. [高级测试策略](#11-高级测试策略)
-12. [CI/CD质量门禁](#12-cicd质量门禁)
-13. [Pre-Commit钩子](#13-pre-commit钩子)
-14. [证据链要求](#14-证据链要求)
-15. [测试审查清单](#15-测试审查清单)
-16. [缺陷管理](#16-缺陷管理)
-17. [架构约束规则](#17-架构约束规则)
-18. [ADR：架构决策记录](#18-adr架构决策记录)
-19. [相关文档](#19-相关文档)
+> **Version**: 2.0.0
+> **Effective Date**: 2026-05-14
+> **Author**: @Architect
+> **Approved by**: @Arbiter
+> **Scope**: booking_system_refactor (backend + frontend + e2e)
+> **Previous Version**: v1.0 (2026-04-16)
 
 ---
 
-## 1. 核心原则
+## Table of Contents
 
-### 1.1 测试的唯一价值在于发现 Bug
+1. [Core Principles](#1-core-principles)
+2. [Three-Tier Mock Governance Strategy](#2-three-tier-mock-governance-strategy)
+3. [TDD Dual-Speed Strategy](#3-tdd-dual-speed-strategy)
+4. [Test Prohibitions (AI Redlines)](#4-test-prohibitions-ai-redlines)
+5. [Test Classification and Ratios](#5-test-classification-and-ratios)
+6. [Backend Testing Standards (NestJS)](#6-backend-testing-standards-nestjs)
+7. [Frontend Testing Standards (Angular)](#7-frontend-testing-standards-angular)
+8. [Test Infrastructure](#8-test-infrastructure)
+9. [Test Data Management](#9-test-data-management)
+10. [Coverage Threshold Matrix](#10-coverage-threshold-matrix)
+11. [Advanced Testing Strategies](#11-advanced-testing-strategies)
+12. [CI/CD Quality Gates](#12-cicd-quality-gates)
+13. [Pre-Commit Hooks](#13-pre-commit-hooks)
+14. [Evidence Chain Requirements](#14-evidence-chain-requirements)
+15. [Test Review Checklist](#15-test-review-checklist)
+16. [Defect Management](#16-defect-management)
+17. [Architecture Constraint Rules](#17-architecture-constraint-rules)
+18. [ADR: Architecture Decision Records](#18-adr-architecture-decision-records)
+19. [Related Documents](#19-related-documents)
 
-**测试不是为了证明代码能工作，而是为了证明代码不会出错。** 任何不能发现潜在缺陷的测试都是在浪费 CI 时间和维护成本。
+---
 
-### 1.2 TDD 强制铁律
+## 1. Core Principles
 
-所有测试必须遵循 RED → GREEN → REFACTOR 循环：
-1. **RED**: 先编写失败的测试用例，定义预期行为
-2. **GREEN**: 仅编写最简代码使测试通过
-3. **REFACTOR**: 在测试保护下优化代码结构
+### 1.1 The Sole Value of Testing Is to Discover Bugs
 
-### 1.3 Mock最小化原则
+Testing is not meant to prove that code works, but to prove that code won't fail. Any test that cannot discover potential defects is wasting CI time and maintenance costs.
 
-**"宁可测试慢一点，也不要测试假一点"**。过度Mock是测试质量的头号杀手。本规范采用三层Mock治理策略（见第2节），严格限制Mock使用范围。
+### 1.2 TDD Mandatory Iron Rule
 
-### 1.4 测试覆盖优先级
+All tests must follow the RED → GREEN → REFACTOR cycle:
+1. **RED**: Write a failing test case first, defining expected behavior
+2. **GREEN**: Write only the minimal code needed to make the test pass
+3. **REFACTOR**: Refactor code structure under test protection
 
-| 优先级 | 模块类型 | 行覆盖率 | 分支覆盖率 | 函数覆盖率 | 变异杀除率 | 测试策略 |
+### 1.3 Mock Minimization Principle
+
+**"Better to test slower than to test falsely."** Excessive mocking is the number one killer of test quality. This specification adopts a three-tier mock governance strategy (see Section 2) to strictly limit the scope of mock usage.
+
+### 1.4 Test Coverage Priority
+
+| Priority | Module Type | Line Coverage | Branch Coverage | Function Coverage | Mutation Kill Rate | Test Strategy |
 |--------|---------|:------:|:--------:|:--------:|:--------:|---------|
-| P0 | 核心业务逻辑（预约、认证、时段、用户） | ≥95% | ≥90% | ≥95% | ≥85% | 单元 + 集成 + 属性 + 变异 |
-| P1 | 重要服务层（通知、缓存、限流、邮件、验证、翻译） | ≥85% | ≥80% | ≥85% | ≥80% | 单元 + 集成 + 契约 |
-| P2 | 辅助模块（健康检查、统计、服务管理、留存、加密、公共工具） | ≥75% | ≥70% | ≥75% | — | 单元为主 |
-| P3 | 配置类、入口文件、DTO定义 | 豁免 | 豁免 | 豁免 | — | 不纳入覆盖率统计 |
+| P0 | Core Business Logic (Appointments, Auth, Time Slots, Users) | ≥95% | ≥90% | ≥95% | ≥85% | Unit + Integration + Property + Mutation |
+| P1 | Important Service Layer (Notifications, Cache, Rate Limiting, Email, Verification, Translations) | ≥85% | ≥80% | ≥85% | ≥80% | Unit + Integration + Contract |
+| P2 | Auxiliary Modules (Health Check, Stats, Service Management, Retention, Encryption, Common Utilities) | ≥75% | ≥70% | ≥75% | — | Primarily Unit Tests |
+| P3 | Configuration Classes, Entry Files, DTO Definitions | Exempt | Exempt | Exempt | — | Excluded from Coverage Statistics |
 
 ---
 
-## 2. 三层Mock治理策略
+## 2. Three-Tier Mock Governance Strategy
 
-### 2.1 策略总览
+### 2.1 Strategy Overview
 
-本策略定义了三层Mock治理规则，由 `contract.yaml` 的 `x-test-mock-policy` 段声明，由 ESLint mock-audit 规则强制执行，由 @Guardian 最终审查。
+This strategy defines three-tier mock governance rules, declared by the `x-test-mock-policy` section of `contract.yaml`, enforced by the ESLint mock-audit rule, and subject to final review by @Guardian.
 
 ```
 ┌──────────────────────────────────────────────────────┐
 │                 TIER1: REAL-ONLY                      │
 │  PrismaService / RedisService / ConfigService         │
-│  → 永不禁用 Testcontainers 真实实例                   │
-│  → ESLint 拦截 jest.spyOn 这些服务                   │
+│  → Never disable Testcontainers real instances        │
+│  → ESLint blocks jest.spyOn on these services         │
 ├──────────────────────────────────────────────────────┤
 │                 TIER2: FAKE-OK                        │
 │  JwtService / QueueService / NotificationGateway     │
 │  RateLimiterService                                   │
-│  → 优先使用 test/fakes/ 实现                          │
-│  → Fake 行为真实、状态可观测、无外部依赖               │
+│  → Prioritize test/fakes/ implementations             │
+│  → Fake with realistic behavior, observable state,    │
+│    no external dependencies                           │
 ├──────────────────────────────────────────────────────┤
 │                 TIER3: BOUNDARY-MOCK                  │
 │  EmailService / SMSService / PaymentGateway           │
-│  → 允许Mock，但必须验证调用参数                        │
-│  → 每个Mock必须有 expect().toHaveBeenCalledWith()     │
+│  → Mock allowed, but call parameters must be verified │
+│  → Each mock must have expect().toHaveBeenCalledWith()│
 └──────────────────────────────────────────────────────┘
 ```
 
-### 2.2 TIER1 — 真实依赖（永不禁用）
+### 2.2 TIER1 — Real Dependencies (Never Disable)
 
-以下服务**必须**使用 Testcontainers 真实实例，**严禁** `jest.spyOn` 或 `jest.mock`：
+The following services **must** use real Testcontainers instances. `jest.spyOn` or `jest.mock` is **strictly prohibited**:
 
-| 服务 | 模块 | 理由 | 测试策略 |
+| Service | Module | Rationale | Test Strategy |
 |------|------|------|---------|
-| **PrismaService** | `@prisma/client` | Mock隐藏SQL错误、事务Bug、约束违反 | Testcontainers PostgreSQL 16 + schema-per-worker隔离 |
-| **RedisService** | `src/modules/cache/` | Mock隐藏缓存穿透、序列化错误、TTL错误 | Testcontainers Redis 7 或 ioredis-mock（本地TDD阶段） |
-| **ConfigService** | `@nestjs/config` | Mock隐藏配置错误导致的线上故障 | 真实 ConfigModule + .env.test |
+| **PrismaService** | `@prisma/client` | Mock hides SQL errors, transaction bugs, constraint violations | Testcontainers PostgreSQL 16 + schema-per-worker isolation |
+| **RedisService** | `src/modules/cache/` | Mock hides cache penetration, serialization errors, TTL errors | Testcontainers Redis 7 or ioredis-mock (local TDD phase) |
+| **ConfigService** | `@nestjs/config` | Mock hides production failures caused by configuration errors | Real ConfigModule + .env.test |
 
-**违规示例**：
+**Violation Example**:
 ```typescript
-// ❌ TIER1违规：永远不要在 PrismaService 上使用 jest.spyOn
+// ❌ TIER1 violation: Never use jest.spyOn on PrismaService
 jest.spyOn(prismaService.appointment, 'findUnique').mockResolvedValue(mockData);
 ```
 
-### 2.3 TIER2 — Fake优先
+### 2.3 TIER2 — Fake First
 
-以下服务**应**使用 `test/fakes/` 目录中的Fake实现：
+The following services **should** use Fake implementations from the `test/fakes/` directory:
 
-| 服务 | Fake实现 | 位置 |
+| Service | Fake Implementation | Location |
 |------|---------|------|
-| **JwtService** | LocalJwtSigner（Node.js crypto模块真实签名） | `test/fakes/local-jwt-signer.ts` |
-| **QueueService** | FakeMessageQueue（内存事件队列） | `test/fakes/fake-message-queue.ts` |
-| **NotificationGateway** | FakeEventBus（内存发布/订阅） | `test/fakes/fake-event-bus.ts` |
-| **RateLimiterService** | FakeRateLimiter（内存滑动窗口） | `test/fakes/fake-rate-limiter.ts` |
+| **JwtService** | LocalJwtSigner (real signatures using Node.js crypto module) | `test/fakes/local-jwt-signer.ts` |
+| **QueueService** | FakeMessageQueue (in-memory event queue) | `test/fakes/fake-message-queue.ts` |
+| **NotificationGateway** | FakeEventBus (in-memory publish/subscribe) | `test/fakes/fake-event-bus.ts` |
+| **RateLimiterService** | FakeRateLimiter (in-memory sliding window) | `test/fakes/fake-rate-limiter.ts` |
 
-### 2.4 TIER3 — 边界Mock（必须验证参数）
+### 2.4 TIER3 — Boundary Mock (Must Verify Parameters)
 
-以下外部系统边界服务可以Mock，但**必须**验证调用参数：
+The following external system boundary services may be mocked, but call parameters **must** be verified:
 
 ```typescript
-// ✅ TIER3合规：Mock但验证了调用参数
+// ✅ TIER3 compliant: Mocked but verified call parameters
 const emailSpy = jest.spyOn(emailService, 'send').mockResolvedValue(undefined);
 await service.create(dto);
 expect(emailSpy).toHaveBeenCalledWith({
   to: dto.customerEmail,
-  subject: expect.stringContaining('预约确认'),
+  subject: expect.stringContaining('Appointment Confirmation'),
   bookingId: expect.any(String),
 });
 ```
 
 ---
 
-## 3. TDD双速策略
+## 3. TDD Dual-Speed Strategy
 
-### 3.1 两层测试执行模式
+### 3.1 Two-Tier Test Execution Mode
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │            TDD DUAL-SPEED STRATEGY                   │
 ├─────────────────────────────────────────────────────┤
 │                                                      │
-│  RED/GREEN 阶段 (本地, <5s周期):                     │
+│  RED/GREEN Phase (Local, <5s cycle):                 │
 │  ┌──────────────────────────────────────────────┐   │
 │  │ npm run test -- --watch                       │   │
 │  │   → jest.config.unit.js                       │   │
 │  │   → RealTestModule.forUnit()                  │   │
-│  │   → Fake 模式 (FakePrismaClient + Fakes)      │   │
-│  │   → <5s 测试周期                              │   │
-│  │   → 编写测试 → RED → 编写代码 → GREEN         │   │
+│  │   → Fake mode (FakePrismaClient + Fakes)      │   │
+│  │   → <5s test cycle                            │   │
+│  │   → Write Test → RED → Write Code → GREEN     │   │
 │  └──────────────────────────────────────────────┘   │
 │                                                      │
-│  REFACTOR 阶段 (CI, 30-60s):                         │
+│  REFACTOR Phase (CI, 30-60s):                        │
 │  ┌──────────────────────────────────────────────┐   │
 │  │ npm run test:integration                       │   │
 │  │   → jest.config.js (full)                      │   │
 │  │   → RealTestModule.forIntegration()            │   │
 │  │   → ContainerPool → PostgreSQL 16 + Redis 7    │   │
-│  │   → Schema-per-worker 隔离                     │   │
-│  │   → 验证无测试交叉污染                          │   │
+│  │   → Schema-per-worker isolation                │   │
+│  │   → Verify zero test cross-contamination       │   │
 │  └──────────────────────────────────────────────┘   │
 │                                                      │
 └─────────────────────────────────────────────────────┘
@@ -165,54 +166,54 @@ expect(emailSpy).toHaveBeenCalledWith({
 
 ### 3.2 RealTestModule
 
-`RealTestModule` 是测试基础设施基类，自动检测Docker可用性并选择执行模式：
+`RealTestModule` is the test infrastructure base class that automatically detects Docker availability and selects execution mode:
 
-- **Docker可用** → Testcontainers（真实PostgreSQL + Redis）
-- **Docker不可用** → Fake服务（内存实现）
+- **Docker available** → Testcontainers (real PostgreSQL + Redis)
+- **Docker unavailable** → Fake services (in-memory implementation)
 
 ```typescript
-// 自动检测模式
+// Auto-detect mode
 const module = await RealTestModule.forFeature({
   controllers: [AppointmentController],
   providers: [AppointmentService],
 }).compile();
 
-// 强制真实模式（CI使用）
+// Force real mode (CI usage)
 const module = await RealTestModule.forIntegration({ ... }).compile();
 
-// 强制Fake模式（本地RED/GREEN使用）
+// Force Fake mode (local RED/GREEN usage)
 const module = await RealTestModule.forUnit({ ... }).compile();
 ```
 
 ### 3.3 ContainerPool
 
-`ContainerPool` 是全局单例容器管理器，跨测试文件复用Testcontainers实例：
+`ContainerPool` is a global singleton container manager that reuses Testcontainers instances across test files:
 
-- **启动一次**：jest globalSetup（per worker）
-- **Schema隔离**：每个测试文件独立PostgreSQL schema
-- **自动清理**：测试文件结束后DROP SCHEMA CASCADE
-- **性能提升**：从每次启动30s → 启动一次2s + schema创建0.5s/文件
+- **Start once**: jest globalSetup (per worker)
+- **Schema isolation**: Independent PostgreSQL schema per test file
+- **Auto-cleanup**: DROP SCHEMA CASCADE after test file completes
+- **Performance improvement**: From 30s per start → 2s single startup + 0.5s schema creation per file
 
 ---
 
-## 4. 测试禁令（AI Redlines）
+## 4. Test Prohibitions (AI Redlines)
 
-### 4.1 严禁编写"假性测试"
+### 4.1 Prohibition on Writing False Tests
 
-以下测试模式将被 CI 质量门禁自动拦截并标记为违规：
+The following test patterns will be automatically blocked and flagged as violations by CI quality gates:
 
-#### 4.1.1 空断言测试
+#### 4.1.1 Empty Assertion Tests
 ```typescript
-// ❌ 违规：断言了 Nothing
+// ❌ Violation: Asserts nothing
 it('should create a booking', async () => {
   await service.create(dto);
-  // 没有断言任何结果
+  // No result assertions
 });
 ```
 
-#### 4.1.2 仅测试 Getter/Setter
+#### 4.1.2 Getter/Setter-Only Tests
 ```typescript
-// ❌ 违规：测试无逻辑的属性访问
+// ❌ Violation: Tests property access with no logic
 it('should set and get name', () => {
   const user = new User();
   user.name = 'test';
@@ -220,24 +221,24 @@ it('should set and get name', () => {
 });
 ```
 
-#### 4.1.3 TIER1服务Mock
+#### 4.1.3 TIER1 Service Mocking
 ```typescript
-// ❌ 违规：在PrismaService/RedisService/ConfigService上使用 spyOn
+// ❌ Violation: Using spyOn on PrismaService/RedisService/ConfigService
 jest.spyOn(prismaService.appointment, 'findUnique').mockResolvedValue(mockData);
 jest.spyOn(redisService, 'get').mockResolvedValue(cachedData);
 ```
 
-#### 4.1.4 Mock不验证调用
+#### 4.1.4 Mock Without Call Verification
 ```typescript
-// ❌ 违规：创建了mock但未验证是否被调用（TIER3服务）
+// ❌ Violation: Mock created but call not verified (TIER3 services)
 jest.spyOn(notificationService, 'notify');
 await service.processBooking(dto);
-// 未验证 notify 是否被调用
+// Did not verify whether notify was called
 ```
 
-#### 4.1.5 测试耦合实现细节
+#### 4.1.5 Tests Coupled to Implementation Details
 ```typescript
-// ❌ 违规：测试耦合了内部实现，重构即破坏
+// ❌ Violation: Test coupled to internal implementation — breaks on refactor
 it('should call prisma.update before prisma.create', async () => {
   const updateSpy = jest.spyOn(prisma.timeSlot, 'update');
   const createSpy = jest.spyOn(prisma.appointment, 'create');
@@ -248,78 +249,82 @@ it('should call prisma.update before prisma.create', async () => {
 
 ---
 
-## 5. 测试分类与比例
+## 5. Test Classification and Ratios
 
-### 5.1 增强测试金字塔
+### 5.1 Enhanced Testing Pyramid
 
 ```
               ┌───────────────────┐
-              │   视觉回归测试     │ (Playwright screenshots)
+              │   Visual Regression│ (Playwright screenshots)
+              │       Tests       │
               ├───────────────────┤
-              │   混沌测试         │ (Toxiproxy, 每周)
+              │   Chaos Tests     │ (Toxiproxy, weekly)
               ├───────────────────┤
-              │   端到端测试       │ (10%, Playwright 3浏览器)
+              │   End-to-End      │ (10%, Playwright 3 browsers)
+              │       Tests       │
               ├───────────────────┤
-              │   变异测试         │ (核心模块, Stryker)
+              │   Mutation Tests  │ (Core modules, Stryker)
               ├───────────────────┤
-              │   契约测试         │ (从contract.yaml生成)
+              │   Contract Tests  │ (Generated from contract.yaml)
               ├───────────────────┤
-              │   集成测试         │ (20%, Testcontainers)
+              │   Integration     │ (20%, Testcontainers)
+              │       Tests       │
               ├───────────────────┤
-              │   属性测试         │ (fast-check, 核心业务)
+              │   Property-Based  │ (fast-check, core business)
+              │       Tests       │
               ├───────────────────┤
-              │   单元测试         │ (70%, Jest + Fakes)
+              │   Unit Tests      │ (70%, Jest + Fakes)
               └───────────────────┘
 ```
 
-### 5.2 各层级职责
+### 5.2 Responsibilities by Level
 
-| 测试类型 | 验证目标 | 执行速度 | 维护成本 | 执行频率 |
+| Test Type | Verification Target | Execution Speed | Maintenance Cost | Execution Frequency |
 |---------|---------|---------|---------|---------|
-| **单元测试** | 纯函数、算法、工具类、状态管理 | <100ms | 低 | 每次commit/PR |
-| **属性测试** | 数学不变量、业务规则恒成立 | <1s | 低 | 每次PR（P0模块） |
-| **集成测试** | 模块交互、数据库、缓存、HTTP | 1-5s | 中 | 每次PR |
-| **契约测试** | API契约一致性、自动生成 | 1-3s | 低 | 每次PR |
-| **变异测试** | 测试质量（杀除变异体） | 5-15min | 中 | 每次PR（核心模块） |
-| **E2E测试** | 完整用户流程 | 10-30s | 高 | 每次PR |
-| **视觉回归** | UI像素级变化检测 | 5-10s | 中 | 每次PR |
-| **混沌测试** | 基础设施故障恢复 | 1-5min | 高 | 每周 |
-| **模糊测试** | 恶意/随机输入处理 | 1-5min | 中 | 每日/PR |
+| **Unit Tests** | Pure functions, algorithms, utilities, state management | <100ms | Low | Per commit/PR |
+| **Property-Based Tests** | Mathematical invariants, business rule consistency | <1s | Low | Per PR (P0 modules) |
+| **Integration Tests** | Module interactions, database, cache, HTTP | 1-5s | Medium | Per PR |
+| **Contract Tests** | API contract consistency, auto-generated | 1-3s | Low | Per PR |
+| **Mutation Tests** | Test quality (mutant kill rate) | 5-15min | Medium | Per PR (core modules) |
+| **E2E Tests** | Complete user flows | 10-30s | High | Per PR |
+| **Visual Regression** | UI pixel-level change detection | 5-10s | Medium | Per PR |
+| **Chaos Tests** | Infrastructure failure recovery | 1-5min | High | Weekly |
+| **Fuzz Tests** | Malicious/random input handling | 1-5min | Medium | Daily/PR |
 
 ---
 
-## 6. 后端测试规范（NestJS）
+## 6. Backend Testing Standards (NestJS)
 
-### 6.1 单元测试
+### 6.1 Unit Tests
 
-#### 6.1.1 测试范围
+#### 6.1.1 Test Scope
 
-**必须编写单元测试的场景**：
-- 工具函数（纯函数，无外部依赖）
-- 复杂业务逻辑（价格计算、时间槽冲突检测、超时重叠检测）
-- Guards（权限判断逻辑）
-- Interceptors（数据转换逻辑）
-- Pipes（验证逻辑）
+**Scenarios Requiring Unit Tests**:
+- Utility functions (pure functions, no external dependencies)
+- Complex business logic (price calculation, time slot conflict detection, time-out overlap detection)
+- Guards (permission judgment logic)
+- Interceptors (data transformation logic)
+- Pipes (validation logic)
 
-**不需要单元测试的场景**：
-- 纯 Getter/Setter（DTO 属性）
-- 仅转发调用的薄封装（直接走集成测试）
-- 模块配置文件
+**Scenarios Not Requiring Unit Tests**:
+- Pure Getter/Setter (DTO properties)
+- Thin wrappers that only forward calls (covered by integration tests)
+- Module configuration files
 
-#### 6.1.2 测试结构（Arrange-Act-Assert + Given-When-Then）
+#### 6.1.2 Test Structure (Arrange-Act-Assert + Given-When-Then)
 
 ```typescript
 describe('AppointmentService', () => {
   describe('create()', () => {
     it('should create appointment and persist to database', async () => {
-      // Given: 有效的预约DTO和可用时段
+      // Given: Valid appointment DTO and available time slot
       const dto = createValidAppointmentDto();
       const timeSlot = await prisma.timeSlot.create({ data: createAvailableTimeSlot() });
 
-      // When: 调用创建方法
+      // When: Call create method
       const result = await service.create({ ...dto, timeSlotId: timeSlot.id });
 
-      // Then: 预约被创建并持久化
+      // Then: Appointment created and persisted
       expect(result.id).toBeDefined();
       expect(result.status).toBe('confirmed');
       const persisted = await prisma.appointment.findUnique({ where: { id: result.id } });
@@ -328,12 +333,12 @@ describe('AppointmentService', () => {
     });
 
     it('should throw ConflictException when slot is full', async () => {
-      // Given: 已满的时段
+      // Given: Full time slot
       const timeSlot = await prisma.timeSlot.create({
         data: { ...createTimeSlot(), capacity: 1, currentSequence: 1 }
       });
 
-      // When & Then: 创建预约应抛出冲突异常
+      // When & Then: Creating appointment should throw conflict exception
       await expect(service.create({ ...dto, timeSlotId: timeSlot.id }))
         .rejects.toThrow(ConflictException);
     });
@@ -341,7 +346,7 @@ describe('AppointmentService', () => {
 });
 ```
 
-#### 6.1.3 高并发事务测试
+#### 6.1.3 High Concurrency Transaction Tests
 
 ```typescript
 describe('Concurrent Booking - Atomicity', () => {
@@ -351,7 +356,7 @@ describe('Concurrent Booking - Atomicity', () => {
       data: { ...createTimeSlot(), capacity, currentSequence: 0 }
     });
 
-    // 模拟 10 个并发请求
+    // Simulate 10 concurrent requests
     const promises = Array.from({ length: 10 }, (_, i) =>
       service.create({ userId: `user-${i}`, timeSlotId: timeSlot.id, serviceId: 'svc-1' })
     );
@@ -360,18 +365,18 @@ describe('Concurrent Booking - Atomicity', () => {
     const succeeded = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
 
-    expect(succeeded).toBe(capacity); // 仅 capacity 个成功
+    expect(succeeded).toBe(capacity); // Only capacity succeed
     expect(failed).toBe(10 - capacity);
 
     const updated = await prisma.timeSlot.findUnique({ where: { id: timeSlot.id } });
-    expect(updated?.currentSequence).toBe(capacity); // 精确增加 capacity 次
+    expect(updated?.currentSequence).toBe(capacity); // Precisely incremented by capacity
   });
 });
 ```
 
-### 6.2 集成测试（Testcontainers）
+### 6.2 Integration Tests (Testcontainers)
 
-#### 6.2.1 Controller 集成测试
+#### 6.2.1 Controller Integration Tests
 
 ```typescript
 describe('AppointmentController (e2e)', () => {
@@ -410,23 +415,23 @@ describe('AppointmentController (e2e)', () => {
 
 ---
 
-## 7. 前端测试规范（Angular）
+## 7. Frontend Testing Standards (Angular)
 
-### 7.1 单元测试
+### 7.1 Unit Tests
 
-#### 7.1.1 测试范围
+#### 7.1.1 Test Scope
 
-**必须编写单元测试的场景**：
-- 纯函数（格式化、计算、验证）
-- SignalStore 状态管理逻辑
-- Pipe（数据转换）
-- 复杂组件交互（表单验证、动态渲染）
+**Scenarios Requiring Unit Tests**:
+- Pure functions (formatting, calculation, validation)
+- SignalStore state management logic
+- Pipe (data transformation)
+- Complex component interactions (form validation, dynamic rendering)
 
-**不需要单元测试的场景**：
-- 纯展示组件（无逻辑，仅模板绑定）
-- Getter/Setter（无额外逻辑）
+**Scenarios Not Requiring Unit Tests**:
+- Pure presentation components (no logic, template binding only)
+- Getter/Setter (no additional logic)
 
-#### 7.1.2 Component 测试模式
+#### 7.1.2 Component Testing Patterns
 
 ```typescript
 import { render, screen } from '@testing-library/angular';
@@ -436,11 +441,11 @@ describe('AppointmentFormComponent', () => {
   it('should show validation error for invalid phone', async () => {
     await render(AppointmentFormComponent);
 
-    const phoneInput = screen.getByLabelText(/手机号/i);
+    const phoneInput = screen.getByLabelText(/Phone Number/i);
     await userEvent.type(phoneInput, '12345');
     await userEvent.tab();
 
-    expect(screen.getByText(/手机号格式不正确/i)).toBeInTheDocument();
+    expect(screen.getByText(/Phone number format is incorrect/i)).toBeInTheDocument();
   });
 
   it('should emit formSubmitted when form is valid', async () => {
@@ -449,12 +454,12 @@ describe('AppointmentFormComponent', () => {
       componentOutputs: { formSubmitted: { emit: onSubmit } as any },
     });
 
-    await userEvent.type(screen.getByLabelText(/姓名/i), '张三');
-    await userEvent.type(screen.getByLabelText(/手机号/i), '13800138000');
-    await userEvent.click(screen.getByRole('button', { name: /提交/i }));
+    await userEvent.type(screen.getByLabelText(/Name/i), 'John Doe');
+    await userEvent.type(screen.getByLabelText(/Phone Number/i), '13800138000');
+    await userEvent.click(screen.getByRole('button', { name: /Submit/i }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
-      name: '张三',
+      name: 'John Doe',
       phone: '13800138000',
     }));
   });
@@ -463,52 +468,52 @@ describe('AppointmentFormComponent', () => {
 
 ---
 
-## 8. 测试基础设施
+## 8. Test Infrastructure
 
 ### 8.1 RealTestModule
 
-详见第3.2节。位于 `test/setup/real-test-module.ts`。
+See Section 3.2. Located at `test/setup/real-test-module.ts`.
 
 ### 8.2 ContainerPool
 
-详见第3.3节。位于 `test/setup/container-pool.ts`。
+See Section 3.3. Located at `test/setup/container-pool.ts`.
 
-### 8.3 Fake服务目录
+### 8.3 Fake Service Directory
 
-位置：`test/fakes/`
+Location: `test/fakes/`
 
-| 文件 | 说明 |
+| File | Description |
 |------|------|
-| `fake-event-bus.ts` | 内存发布/订阅（替代NotificationGateway） |
-| `fake-message-queue.ts` | 内存消息队列（替代BullMQ/QueueService） |
-| `local-jwt-signer.ts` | Node.js crypto JWT签名（替代JwtService） |
-| `fake-rate-limiter.ts` | 内存滑动窗口限流（替代RateLimiterService） |
-| `fake-prisma-client.ts` | 内存Prisma兼容客户端（可选，超快速本地TDD） |
+| `fake-event-bus.ts` | In-memory publish/subscribe (replaces NotificationGateway) |
+| `fake-message-queue.ts` | In-memory message queue (replaces BullMQ/QueueService) |
+| `local-jwt-signer.ts` | Node.js crypto JWT signing (replaces JwtService) |
+| `fake-rate-limiter.ts` | In-memory sliding window rate limiting (replaces RateLimiterService) |
+| `fake-prisma-client.ts` | In-memory Prisma-compatible client (optional, ultra-fast local TDD) |
 
-每个Fake必须有对应的 `.spec.ts` 自测文件。
+Each Fake must have a corresponding `.spec.ts` self-test file.
 
-### 8.4 测试数据工厂
+### 8.4 Test Data Factory
 
-位置：`test/factories/`
+Location: `test/factories/`
 
-用于快速创建标准测试数据，避免测试代码中重复的数据构造逻辑。
+Used for quickly creating standard test data, avoiding repetitive data construction logic in test code.
 
 ---
 
-## 9. 测试数据管理
+## 9. Test Data Management
 
-### 9.1 数据隔离
+### 9.1 Data Isolation
 
-每个测试文件使用独立的 PostgreSQL schema（Schema-per-Worker隔离）：
-- Schema名格式：`worker_{jestWorkerId}_suite_{hash}`
-- 测试文件开始前创建schema并运行迁移
-- 测试文件结束后 DROP SCHEMA CASCADE
-- 确保零测试交叉污染
+Each test file uses an independent PostgreSQL schema (Schema-per-Worker isolation):
+- Schema name format: `worker_{jestWorkerId}_suite_{hash}`
+- Create schema and run migrations before test file starts
+- DROP SCHEMA CASCADE after test file completes
+- Ensures zero test cross-contamination
 
-### 9.2 数据清理
+### 9.2 Data Cleanup
 
 ```typescript
-// 按依赖顺序删除（子表先删）
+// Delete in dependency order (child tables first)
 afterEach(async () => {
   await prisma.appointment.deleteMany();
   await prisma.timeSlot.deleteMany();
@@ -519,37 +524,37 @@ afterEach(async () => {
 
 ---
 
-## 10. 覆盖率阈值矩阵
+## 10. Coverage Threshold Matrix
 
-### 10.1 正式阈值（jest.config.js 强制执行）
+### 10.1 Formal Thresholds (Enforced by jest.config.js)
 
-| 优先级 | 模块 | 行 | 分支 | 函数 | 语句 | 变异杀除 |
+| Priority | Module | Lines | Branches | Functions | Statements | Mutation Kill |
 |--------|------|:--:|:--:|:--:|:--:|:------:|
-| **全局** | 所有 | 85% | 80% | 85% | 85% | — |
+| **Global** | All | 85% | 80% | 85% | 85% | — |
 | **P0** | appointments, auth, time-slots, users | 95% | 90% | 95% | 95% | 85% |
 | **P1** | notifications, cache, rate-limiter, email, verification, translations | 85% | 80% | 85% | 85% | 80% |
 | **P2** | health, stats, services, retention, encryption, common | 75% | 70% | 75% | 75% | — |
 
-### 10.2 覆盖率排除项
+### 10.2 Coverage Exclusions
 
-以下文件类型**不纳入**覆盖率统计：
-- DTO 定义文件（`*.dto.ts`）
-- 实体/模型文件（`*.entity.ts`）
-- 接口定义（`*.interface.ts`）
-- 模块配置（`*.module.ts`）
-- 应用入口（`main.ts`）
-- 纯常量定义（`*.constants.ts`）
+The following file types are **excluded** from coverage statistics:
+- DTO definition files (`*.dto.ts`)
+- Entity/Model files (`*.entity.ts`)
+- Interface definitions (`*.interface.ts`)
+- Module configurations (`*.module.ts`)
+- Application entry point (`main.ts`)
+- Pure constant definitions (`*.constants.ts`)
 
 ---
 
-## 11. 高级测试策略
+## 11. Advanced Testing Strategies
 
-### 11.1 属性测试（Property-Based Testing）
+### 11.1 Property-Based Testing
 
-使用 `fast-check` 测试数学不变量。适用于：
-- 价格计算（交换性、单调性）
-- 时间槽重叠检测（对称性、传递性）
-- PII加密（往返一致性、幂等性）
+Use `fast-check` to test mathematical invariants. Applicable to:
+- Price calculation (commutativity, monotonicity)
+- Time slot overlap detection (symmetry, transitivity)
+- PII encryption (round-trip consistency, idempotency)
 
 ```typescript
 import fc from 'fast-check';
@@ -565,51 +570,51 @@ it('should satisfy round-trip property for encryption', async () => {
 });
 ```
 
-### 11.2 契约测试（Contract-Driven Testing）
+### 11.2 Contract-Driven Testing
 
-从 `contract.yaml` 的 `x-test-contract` 段自动生成API测试：
-- 正向测试（有效输入 → 预期响应）
-- 负向认证测试（无token、错误角色、过期token）
-- 负向验证测试（缺少必填字段、无效类型、越界值）
-- 限流测试（超出限制 → 429）
-- Schema验证（响应体格式匹配契约定义）
+Auto-generate API tests from the `x-test-contract` section of `contract.yaml`:
+- Positive tests (valid input → expected response)
+- Negative auth tests (no token, wrong role, expired token)
+- Negative validation tests (missing required fields, invalid types, out-of-range values)
+- Rate limit tests (exceed limit → 429)
+- Schema validation (response body format matches contract definition)
 
-### 11.3 模糊测试（Fuzz Testing）
+### 11.3 Fuzz Testing
 
-向所有端点发送随机、恶意或畸形输入：
-- SQL注入模式 → 预期 400/422
-- XSS模式 → 预期 400/422
-- 超长字符串 → 预期 400（非500）
-- Unicode边界字符 → 预期不崩溃
+Send random, malicious, or malformed input to all endpoints:
+- SQL injection patterns → expected 400/422
+- XSS patterns → expected 400/422
+- Excessively long strings → expected 400 (not 500)
+- Unicode boundary characters → expected not to crash
 
-### 11.4 混沌测试（Chaos Testing）
+### 11.4 Chaos Testing
 
-验证基础设施故障恢复能力（每周执行）：
-- PostgreSQL断开 → 503，无数据损坏
-- Redis断开 → 优雅降级，回退到DB
-- 网络延迟注入 → 超时触发，无挂起连接
-- 容器重启 → 自动重连
+Verify infrastructure failure recovery capability (executed weekly):
+- PostgreSQL disconnected → 503, no data corruption
+- Redis disconnected → graceful degradation, fallback to DB
+- Network latency injection → timeout triggered, no hanging connections
+- Container restart → auto-reconnect
 
-### 11.5 视觉回归测试（Visual Regression）
+### 11.5 Visual Regression Testing
 
-Playwright截图像素级对比：
-- 关键页面：登录、仪表盘、预约表单、管理面板
-- 浏览器：Chromium + Firefox
-- 视口：Desktop (1280x720) + Mobile (375x667)
+Playwright screenshot pixel-level comparison:
+- Critical pages: Login, Dashboard, Appointment Form, Admin Panel
+- Browser: Chromium + Firefox
+- Viewport: Desktop (1280x720) + Mobile (375x667)
 
-### 11.6 负向测试矩阵
+### 11.6 Negative Test Matrix
 
-每个端点必须覆盖以下维度：
-- 无token（401）、过期token（401）、错误角色（403）、权限不足（403）
-- 缺少必填字段（400）、无效类型（400）、越界值（400）
-- 超出限流（429）、重复幂等键、并发竞争（409）
-- 资源不存在（404）、资源已删除（404/410）
+Each endpoint must cover the following dimensions:
+- No token (401), Expired token (401), Wrong role (403), Insufficient permissions (403)
+- Missing required fields (400), Invalid types (400), Out-of-range values (400)
+- Rate limit exceeded (429), Duplicate idempotency keys, Concurrent race (409)
+- Resource not found (404), Resource deleted (404/410)
 
 ---
 
-## 12. CI/CD质量门禁
+## 12. CI/CD Quality Gates
 
-### 12.1 七阶段流水线（test-gates.yml）
+### 12.1 Seven-Stage Pipeline (test-gates.yml)
 
 ```
 Stage 1 [PARALLEL, ~3min]
@@ -620,67 +625,67 @@ Stage 1 [PARALLEL, ~3min]
      │
 Stage 2 [PARALLEL, ~5min]
 ├── Integration Tests (Testcontainers, schema-per-worker)
-└── Contract Tests (从contract.yaml生成)
+└── Contract Tests (generated from contract.yaml)
      │
 Stage 3 [SERIAL, ~10min]
-└── Mutation Tests (核心模块, kill≥85%)
+└── Mutation Tests (core modules, kill≥85%)
      │
 Stage 4 [SERIAL, ~8min]
-└── E2E Tests (Playwright 3浏览器)
+└── E2E Tests (Playwright 3 browsers)
      │
 Stage 5 [SERIAL, ~3min]
-└── Visual Regression (Playwright截图对比)
+└── Visual Regression (Playwright screenshot comparison)
      │
 Stage 6 [SERIAL, ~5min]
 └── Performance Tests (k6, P95<500ms)
      │
 Stage 7 [SERIAL, ~2min]
-└── Contract Verification (contract.yaml vs API响应)
+└── Contract Verification (contract.yaml vs API response)
      │
      ▼ ALL PASS → MERGE ALLOWED
 ```
 
-### 12.2 Flaky Test自动检测
+### 12.2 Flaky Test Auto-Detection
 
-- 同一测试在7天内失败 ≥3 次 → 自动隔离（不阻塞合并）
-- 自动创建GitHub Issue追踪
-- 每周生成Flaky Test报告
+- Same test failing ≥3 times within 7 days → auto-quarantine (does not block merge)
+- Auto-create GitHub Issue for tracking
+- Generate Flaky Test report weekly
 
-### 12.3 合并前必须满足
+### 12.3 Must Satisfy Before Merge
 
-- [x] 所有单元测试100%通过
-- [x] 所有集成测试100%通过（排除隔离测试）
-- [x] 覆盖率阈值达标（P0≥95/90/95, Global≥85/80）
-- [x] 变异杀除率达标（P0≥85%, P1≥80%）
-- [x] E2E测试100%通过（3浏览器）
-- [x] 视觉回归无意外差异
-- [x] API P95延迟 <500ms
-- [x] 契约验证0不匹配
-- [x] Mock审计0违规
-- [x] 0 Critical/High漏洞
+- [x] All unit tests 100% passed
+- [x] All integration tests 100% passed (excluding quarantined)
+- [x] Coverage thresholds met (P0≥95/90/95, Global≥85/80)
+- [x] Mutation kill rate met (P0≥85%, P1≥80%)
+- [x] E2E tests 100% passed (3 browsers)
+- [x] Visual regression shows no unexpected differences
+- [x] API P95 latency <500ms
+- [x] Contract verification 0 mismatches
+- [x] Mock audit 0 violations
+- [x] 0 Critical/High vulnerabilities
 
 ---
 
-## 13. Pre-Commit钩子
+## 13. Pre-Commit Hooks
 
-`.husky/pre-commit` 在每次提交前运行快速检查（<10s）：
+`.husky/pre-commit` runs quick checks before each commit (<10s):
 
 ```bash
-1. tsc --noEmit           # TypeScript类型检查 (2-5s)
-2. keystone:hash:verify   # 契约哈希完整性 (0.5s)
-3. eslint mock-audit      # Mock策略强制执行 (1-2s)
-4. jest --onlyChanged --bail  # 变更文件测试Fake模式 (2-5s)
+1. tsc --noEmit           # TypeScript type checking (2-5s)
+2. keystone:hash:verify   # Contract hash integrity (0.5s)
+3. eslint mock-audit      # Mock policy enforcement (1-2s)
+4. jest --onlyChanged --bail  # Changed file tests Fake mode (2-5s)
 ```
 
-**全部通过 → 允许提交。任一失败 → 阻止提交。**
+**All pass → Allow commit. Any failure → Block commit.**
 
 ---
 
-## 14. 证据链要求
+## 14. Evidence Chain Requirements
 
 ### 14.1 test_report.json Schema
 
-每个任务从Testing→Review状态转换时，`test_report.json` 必须包含：
+When each task transitions from Testing→Review status, `test_report.json` must include:
 
 ```json
 {
@@ -707,166 +712,166 @@ Stage 7 [SERIAL, ~2min]
 }
 ```
 
-### 14.2 强制证据字段
+### 14.2 Mandatory Evidence Fields
 
-| 字段 | 必填 | 说明 |
+| Field | Required | Description |
 |------|:--:|------|
-| `execution_evidence` | ✅ | 测试进程退出码和输出摘要 |
-| `coverage` | ✅ | 覆盖率数据 |
-| `mock_audit` | ✅ (v2.0新增) | Mock使用审计 |
-| `flaky_detection` | ✅ (v2.0新增) | Flaky test检测结果 |
+| `execution_evidence` | ✅ | Test process exit code and output summary |
+| `coverage` | ✅ | Coverage data |
+| `mock_audit` | ✅ (New in v2.0) | Mock usage audit |
+| `flaky_detection` | ✅ (New in v2.0) | Flaky test detection results |
 
 ---
 
-## 15. 测试审查清单
+## 15. Test Review Checklist
 
-### 15.1 提交PR前自检
+### 15.1 Pre-PR Self-Check
 
-- [ ] 每个测试是否有至少 1 个非 trivial 断言？
-- [ ] 是否覆盖了正常路径、异常路径、边界条件？
-- [ ] 是否遵循了Given-When-Then结构？
-- [ ] TIER1服务是否使用了真实依赖？
-- [ ] TIER2服务是否使用了Fake（而非Mock）？
-- [ ] TIER3 Mock是否验证了调用次数和参数？
-- [ ] 测试之间是否相互独立（schema-per-file隔离）？
-- [ ] test_report.json是否包含execution_evidence、mock_audit、flaky_detection？
+- [ ] Does each test have at least 1 non-trivial assertion?
+- [ ] Are normal paths, exception paths, and boundary conditions covered?
+- [ ] Is the Given-When-Then structure followed?
+- [ ] Are TIER1 services using real dependencies?
+- [ ] Are TIER2 services using Fakes (not Mocks)?
+- [ ] Are TIER3 Mock call counts and parameters verified?
+- [ ] Are tests independent of each other (schema-per-file isolation)?
+- [ ] Does test_report.json include execution_evidence, mock_audit, flaky_detection?
 
-### 15.2 @Guardian审查清单
+### 15.2 @Guardian Review Checklist
 
-- [ ] Mock审计0违规（CAT1.1-CAT1.3）
-- [ ] machine.json.eslint_state 所有模块 status="clean" 或有效 waiver（CAT1.0）
-- [ ] compliance_gate_complete 已调用且 ESLint audit 通过
-- [ ] 无跳过测试（CAT1.2）
-- [ ] 生产代码无 console.log（CAT2.1）
-- [ ] 角色越权记录为 0（CAT4.1）
-- [ ] 覆盖率达标（CAT2.1-CAT2.4）
-- [ ] TDD完整性（CAT3.1-CAT3.5）
-- [ ] test_report.json 包含 eslint_audit 字段
-- [ ] 测试基础设施齐全（CAT4.1-CAT4.6）
-- [ ] 契约完整性（CAT5.1-CAT5.5）
-- [ ] 证据链完整（CAT6.1-CAT6.3）
-- [ ] 性能达标（CAT7.1-CAT7.3）
-- [ ] 安全合规（CAT8.1-CAT8.3）
+- [ ] Mock audit 0 violations (CAT1.1-CAT1.3)
+- [ ] machine.json.eslint_state all modules status="clean" or valid waiver (CAT1.0)
+- [ ] compliance_gate_complete called and ESLint audit passed
+- [ ] No skipped tests (CAT1.2)
+- [ ] No console.log in production code (CAT2.1)
+- [ ] Role escalation violations recorded as 0 (CAT4.1)
+- [ ] Coverage thresholds met (CAT2.1-CAT2.4)
+- [ ] TDD integrity (CAT3.1-CAT3.5)
+- [ ] test_report.json includes eslint_audit field
+- [ ] Test infrastructure complete (CAT4.1-CAT4.6)
+- [ ] Contract integrity (CAT5.1-CAT5.5)
+- [ ] Evidence chain complete (CAT6.1-CAT6.3)
+- [ ] Performance met (CAT7.1-CAT7.3)
+- [ ] Security compliance (CAT8.1-CAT8.3)
 
-### 15.3 阻断规则（CAT 代码索引）
+### 15.3 Blocking Rules (CAT Code Index)
 
-| ID | 规则 | 阻断 |
+| ID | Rule | Blocks |
 |:--:|------|:---:|
-| CAT1.0 | eslint-disable TIER1 mock 绕过审计未引用有效 waiver | ✅ |
-| CAT1.1 | jest.spyOn/mock 在 PrismaService/RedisService/ConfigService | ✅ |
-| CAT1.2 | 跳过测试: describe.skip / it.skip / xdescribe / xit | ✅ |
-| CAT1.3 | TIER3 Mock 未验证调用参数 | ✅ |
+| CAT1.0 | eslint-disable TIER1 mock bypass audit without valid waiver reference | ✅ |
+| CAT1.1 | jest.spyOn/mock on PrismaService/RedisService/ConfigService | ✅ |
+| CAT1.2 | Skipped tests: describe.skip / it.skip / xdescribe / xit | ✅ |
+| CAT1.3 | TIER3 Mock without call parameter verification | ✅ |
 | CAT2.1 | console.log/error/warn in production code | ✅ |
-| CAT2.2-2.9 | (保留给未来安全规则) | — |
-| CAT3.1 | TIER3 Mock 未验证调用参数 | ✅ |
-| CAT3.2 | switch 语句缺少 default 分支 | ⚠️ |
-| CAT3.4 | test_report.json 不含 eslint_audit 字段 | ✅ |
+| CAT2.2-2.9 | (Reserved for future security rules) | — |
+| CAT3.1 | TIER3 Mock without call parameter verification | ✅ |
+| CAT3.2 | switch statement missing default branch | ⚠️ |
+| CAT3.4 | test_report.json missing eslint_audit field | ✅ |
 | CAT3.5 | machine.json.eslint_state.tier1_violations > 0 | ✅ |
-| CAT3.6 | 业务模块缺少集成测试 | ✅ |
-| CAT3.7 | machine.json.eslint_state 含 dirty 模块且无有效 waiver | ✅ |
-| CAT4.1 | 角色越权: agent_write_scopes 违规 | ✅ |
-| CAT6.1 | test_report.json schema 不完整 | ✅ |
+| CAT3.6 | Business module missing integration tests | ✅ |
+| CAT3.7 | machine.json.eslint_state contains dirty modules without valid waiver | ✅ |
+| CAT4.1 | Role escalation: agent_write_scopes violation | ✅ |
+| CAT6.1 | test_report.json schema incomplete | ✅ |
 
 ---
 
-## 16. 缺陷管理
+## 16. Defect Management
 
-### 16.1 缺陷修复流程
+### 16.1 Defect Fix Flow
 
-1. **复现缺陷**：编写失败的测试用例（RED）
-2. **修复缺陷**：编写最简代码使测试通过（GREEN）
-3. **验证修复**：确认测试通过，回归测试全量通过
-4. **提交修复**：包含缺陷修复代码 + 新增/修改的测试用例
+1. **Reproduce the defect**: Write a failing test case (RED)
+2. **Fix the defect**: Write minimal code to make the test pass (GREEN)
+3. **Verify the fix**: Confirm test passes, full regression tests pass
+4. **Submit the fix**: Include defect fix code + new/modified test cases
 
-### 16.2 缺陷不复发保证
+### 16.2 Defect Non-Recurrence Guarantee
 
-**每个缺陷修复必须附带至少 1 个新测试用例**，确保同类缺陷不再复发。
+**Each defect fix must include at least 1 new test case** to ensure similar defects do not recur.
 
 ---
 
-## 17. 架构约束规则
+## 17. Architecture Constraint Rules
 
-完整约束规则见 `.opencode/context/code_standards/architecture-constraint-rules.md`（由 @Architect 维护）。以下为关键规则摘要：
+See `.opencode/context/code_standards/architecture-constraint-rules.md` (maintained by @Architect) for complete constraint rules. Below is a summary of key rules:
 
-### 阻断级规则（违反即拒绝PR）
+### Blocking-Level Rules (Violation = PR Rejected)
 
-| ID | 规则 |
+| ID | Rule |
 |----|------|
-| CAT1.1 | 禁止jest.spyOn在PrismaService/RedisService/ConfigService |
-| CAT1.3 | TIER3 Mock必须验证调用参数 |
-| CAT2.1-2.4 | 覆盖率阈值必须达标 |
-| CAT3.4 | test_report.json必须含execution_evidence |
-| CAT3.5 | mock_audit.tier1_violations必须为0 |
-| CAT5.4 | keystone哈希必须匹配 |
-| CAT6.1 | test_report.json schema必须完整 |
+| CAT1.1 | Prohibit jest.spyOn on PrismaService/RedisService/ConfigService |
+| CAT1.3 | TIER3 Mock must verify call parameters |
+| CAT2.1-2.4 | Coverage thresholds must be met |
+| CAT3.4 | test_report.json must include execution_evidence |
+| CAT3.5 | mock_audit.tier1_violations must be 0 |
+| CAT5.4 | keystone hash must match |
+| CAT6.1 | test_report.json schema must be complete |
 
 ---
 
-## 18. ADR：架构决策记录
+## 18. ADR: Architecture Decision Records
 
-### ADR-001: 采用三层Mock治理策略
+### ADR-001: Adoption of Three-Tier Mock Governance Strategy
 
-**日期**: 2026-05-14
-**状态**: 已采纳
-**决策**: 采用TIER1(Real-Only) / TIER2(Fake-OK) / TIER3(Boundary-Mock)三层mock治理策略。
-**理由**: 过度Mock是测试质量的头号杀手。完全禁止Mock过于激进（邮件/短信/Payment必须Mock）。三层策略在真实性和实用性间取得平衡。
-**后果**: 需要在test/fakes/目录维护Fake实现；ESLint需要自定义mock-audit规则；@Guardian需要额外审查项。
+**Date**: 2026-05-14
+**Status**: Adopted
+**Decision**: Adopted TIER1(Real-Only) / TIER2(Fake-OK) / TIER3(Boundary-Mock) three-tier mock governance strategy.
+**Rationale**: Excessive mocking is the number one killer of test quality. Completely banning mocks is too aggressive (Email/SMS/Payment must be mocked). The three-tier strategy balances realism and practicality.
+**Consequences**: Need to maintain Fake implementations in `test/fakes/` directory; ESLint needs custom mock-audit rule; @Guardian needs additional review items.
 
-### ADR-002: 采用TDD双速策略
+### ADR-002: Adoption of TDD Dual-Speed Strategy
 
-**日期**: 2026-05-14
-**状态**: 已采纳
-**决策**: 本地TDD使用Fake模式（<5s周期），CI验证使用Testcontainers真实模式。
-**理由**: 纯Testcontainers启动一次30s，无法支撑TDD的快速反馈循环。纯Fake模式无法验证数据库约束和事务隔离。双速策略兼顾速度和真实性。
-**后果**: RealTestModule需要自动检测Docker可用性；ContainerPool需要schema-per-worker隔离；CI需要额外阶段。
+**Date**: 2026-05-14
+**Status**: Adopted
+**Decision**: Local TDD uses Fake mode (<5s cycle), CI verification uses Testcontainers real mode.
+**Rationale**: Pure Testcontainers takes 30s to start once, unable to support TDD's fast feedback loop. Pure Fake mode cannot verify database constraints and transaction isolation. The dual-speed strategy balances speed and authenticity.
+**Consequences**: RealTestModule needs auto-detection of Docker availability; ContainerPool needs schema-per-worker isolation; CI needs additional stages.
 
-### ADR-003: 采用Schema-per-Worker隔离策略
+### ADR-003: Adoption of Schema-per-Worker Isolation Strategy
 
-**日期**: 2026-05-14
-**状态**: 已采纳
-**决策**: 使用PostgreSQL schema隔离（而非database-per-worker或transaction-rollback）。
-**理由**: Schema创建/删除比Database快10倍以上；单容器单连接池，运维简单；比transaction rollback更可靠（NestJS异步操作不受事务约束）。
-**后果**: Prisma迁移需要在每个schema上运行；需要schema manager管理schema生命周期。
+**Date**: 2026-05-14
+**Status**: Adopted
+**Decision**: Use PostgreSQL schema isolation (not database-per-worker or transaction-rollback).
+**Rationale**: Schema creation/deletion is 10x+ faster than Database; single container, single connection pool, simple operations; more reliable than transaction rollback (NestJS async operations are not bound by transactions).
+**Consequences**: Prisma migrations need to run on each schema; schema manager needed to manage schema lifecycle.
 
-### ADR-004: 采用契约驱动测试生成
+### ADR-004: Adoption of Contract-Driven Test Generation
 
-**日期**: 2026-05-14
-**状态**: 已采纳
-**决策**: 从contract.yaml自动生成API测试，而非手工编写。
-**理由**: 手工编写的API测试容易与契约脱节；自动生成确保100%端点覆盖；contract.yaml是单一事实来源。
-**后果**: contract.yaml需要x-test-contract扩展段；需要维护contract-test-generator工具。
+**Date**: 2026-05-14
+**Status**: Adopted
+**Decision**: Auto-generate API tests from contract.yaml, rather than manually writing them.
+**Rationale**: Manually written API tests easily fall out of sync with contracts; auto-generation ensures 100% endpoint coverage; contract.yaml is the single source of truth.
+**Consequences**: contract.yaml needs x-test-contract extension section; contract-test-generator tool needs to be maintained.
 
-### ADR-005: 七阶段CI门禁流水线
+### ADR-005: Seven-Stage CI Gate Pipeline
 
-**日期**: 2026-05-14
-**状态**: 已采纳
-**决策**: 采用7阶段顺序流水线，每阶段有明确的依赖关系和失败处理。
-**理由**: 并行运行所有测试虽然快，但浪费资源（E2E在单元测试失败时无意义）。分阶段运行可以在早期快速失败，节省CI资源。
-**后果**: 最长流水线时间约36分钟；需要维护复杂的GitHub Actions workflow文件；Flaky test检测需要在Stage1和Stage2失败后运行。
+**Date**: 2026-05-14
+**Status**: Adopted
+**Decision**: Adopt 7-stage sequential pipeline with clear dependencies and failure handling per stage.
+**Rationale**: Running all tests in parallel is fast but wastes resources (E2E is meaningless when unit tests fail). Staged execution allows fast early failure, saving CI resources.
+**Consequences**: Maximum pipeline time approximately 36 minutes; complex GitHub Actions workflow files need maintenance; Flaky test detection needs to run after Stage1 and Stage2 failures.
 
 ---
 
-## 19. 相关文档
+## 19. Related Documents
 
-| 文档 | 说明 |
+| Document | Description |
 |------|------|
-| [contract.yaml](../../booking_system_refactor/contract.yaml) | API契约定义（含x-test-mock-policy, x-test-contract, x-coverage-matrix） |
-| [系统架构设计文档](../requirements/系统架构设计文档（SAD）.md) | 系统架构设计 |
-| [安全架构设计文档](../requirements/安全架构设计文档.md) | 安全测试要求 |
-| [测试策略与计划](../requirements/测试策略与计划.md) | 测试策略总纲 |
-| [后端代码规范](./backend-coding-standard.md) | 后端开发规范 |
-| [前端代码规范](./frontend-coding-standard.md) | 前端开发规范 |
-| [架构约束规则 (TEST-ARCH-V2)](../../.task_temp/TEST-ARCH-V2/architecture-constraint-rules.md) | @Guardian审查规则 |
-| [TECH_DEBT_REGISTRY.md](../../booking_system_refactor/TECH_DEBT_REGISTRY.md) | 技术债注册表 |
+| [contract.yaml](../../booking_system_refactor/contract.yaml) | API contract definition (includes x-test-mock-policy, x-test-contract, x-coverage-matrix) |
+| [System Architecture Design Document](../requirements/SAD.md) | System architecture design |
+| [Security Architecture Design Document](../requirements/Security-Architecture-Design.md) | Security testing requirements |
+| [Test Strategy and Plan](../requirements/Test-Strategy-and-Plan.md) | Testing strategy overview |
+| [Backend Coding Standards](./backend-coding-standard.md) | Backend development standards |
+| [Frontend Coding Standards](./frontend-coding-standard.md) | Frontend development standards |
+| [Architecture Constraint Rules (TEST-ARCH-V2)](../../.task_temp/TEST-ARCH-V2/architecture-constraint-rules.md) | @Guardian review rules |
+| [TECH_DEBT_REGISTRY.md](../../booking_system_refactor/TECH_DEBT_REGISTRY.md) | Technical debt registry |
 
 ---
 
-## 版本历史
+## Version History
 
-| 版本 | 日期 | 变更内容 | 作者 |
+| Version | Date | Changes | Author |
 |------|------|---------|------|
-| 2.0 | 2026-05-14 | 全面升级：三层Mock治理策略、TDD双速策略、RealTestModule、ContainerPool、7阶段CI门禁、属性/契约/模糊/混沌/视觉回归测试、证据链增强(Flaky detection + Mock-Audit)、ESLint mock规则、Pre-commit hooks、5项ADR | @Architect |
-| 1.0 | 2026-04-16 | 初始版本，整合测试策略与 AI 测试规范 | @Tester Agent |
+| 2.0 | 2026-05-14 | Comprehensive upgrade: Three-tier mock governance strategy, TDD dual-speed strategy, RealTestModule, ContainerPool, 7-stage CI gate, property/contract/fuzz/chaos/visual regression testing, evidence chain enhancement (Flaky detection + Mock-Audit), ESLint mock rules, Pre-commit hooks, 5 ADRs | @Architect |
+| 1.0 | 2026-04-16 | Initial version, integrating test strategy and AI test specifications | @Tester Agent |
 
 ---
 

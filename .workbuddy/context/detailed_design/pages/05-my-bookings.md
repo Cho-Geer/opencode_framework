@@ -1,100 +1,100 @@
-# 我的预约列表页（MyBookingsPage）
+# My Bookings List Page (MyBookingsPage)
 
-## 基本信息
+## Basic Information
 
-| 字段 | 值 |
+| Field | Value |
 |---|---|
-| **页面名称** | 我的预约列表 |
-| **路由路径** | `/my-bookings` |
-| **布局** | `AppLayoutComponent` |
-| **惰性加载** | `features/my-bookings/my-bookings.routes.ts` → `MY_BOOKINGS_ROUTES` |
-| **组件** | `MyBookingsComponent` (`src/app/features/my-bookings/my-bookings.component.ts`) |
-| **设计依据** | contract.yaml `appointments.list`, SAD 2.3.1（/appointments 页面） |
+| **Page Name** | My Bookings List |
+| **Route Path** | `/my-bookings` |
+| **Layout** | `AppLayoutComponent` |
+| **Lazy Load** | `features/my-bookings/my-bookings.routes.ts` → `MY_BOOKINGS_ROUTES` |
+| **Component** | `MyBookingsComponent` (`src/app/features/my-bookings/my-bookings.component.ts`) |
+| **Design Basis** | contract.yaml `appointments.list`, SAD 2.3.1 (/appointments page) |
 
-## 用户角色
+## User Role
 
-- CUSTOMER 专属
+- CUSTOMER only
 
-## 路由参数
+## Route Parameters
 
-- 无路由参数
-- 无查询参数（API 查询参数通过本地信号传递，非路由绑定）
+- No route parameters
+- No query parameters (API query parameters passed via local signals, not route-bound)
 
-## 路由守卫
+## Route Guards
 
-| 守卫 | 策略 |
+| Guard | Strategy |
 |---|---|
-| `authGuard` | 未认证 → `/auth/login?returnUrl=/my-bookings` |
+| `authGuard` | Unauthenticated → `/auth/login?returnUrl=/my-bookings` |
 | `roleGuard({ deny: ['ADMIN', 'SUPER_ADMIN'] })` | ADMIN/SUPER_ADMIN → `/admin/dashboard` |
 
-## 组件参数
+## Component Parameters
 
-- 无 `@Input()` / `@Output()`
+- No `@Input()` / `@Output()`
 
-## 注入服务与状态管理
+## Injected Services & State Management
 
-| 服务/Store | 用途 |
+| Service/Store | Purpose |
 |---|---|
 | `ApiService` | `getMyAppointments()`, `cancelBooking()` |
-| `AuthStore` | `isLoading`（加载状态） |
+| `AuthStore` | `isLoading` (loading state) |
 
-## 本地信号
+## Local Signals
 
-| 信号 | 类型 | 说明 |
+| Signal | Type | Description |
 |---|---|---|
-| `appointments` | `AppointmentListItem[]` | 预约列表数据 |
-| `activeFilter` | `'all' \| 'PENDING' \| 'CONFIRMED' \| 'COMPLETED' \| 'EXPIRED' \| 'CANCELLED'` | 状态筛选 |
-| `isLoading` | `boolean` | 加载状态 |
-| `loadError` | `string \| null` | 加载错误信息 |
-| `pullToRefreshState` | `'idle' \| 'pulling' \| 'refreshing'` | 下拉刷新状态 |
-| `pullProgress` | `number` | 触摸偏移量(px) |
-| `showCancelDialog` | `boolean` | 取消确认对话框 |
-| `cancellingId` | `string \| null` | 正在取消的预约 ID |
-| `isCancelling` | `boolean` | 取消操作中状态 |
+| `appointments` | `AppointmentListItem[]` | Booking list data |
+| `activeFilter` | `'all' \| 'PENDING' \| 'CONFIRMED' \| 'COMPLETED' \| 'EXPIRED' \| 'CANCELLED'` | Status filter |
+| `isLoading` | `boolean` | Loading state |
+| `loadError` | `string \| null` | Loading error message |
+| `pullToRefreshState` | `'idle' \| 'pulling' \| 'refreshing'` | Pull-to-refresh state |
+| `pullProgress` | `number` | Touch offset (px) |
+| `showCancelDialog` | `boolean` | Cancel confirmation dialog |
+| `cancellingId` | `string \| null` | Booking ID being cancelled |
+| `isCancelling` | `boolean` | Cancel operation in progress |
 
-## API 契约对照
+## API Contract Mapping
 
-| 方法 | 端点 | 请求参数 | 响应 | 鉴权 | 调用时机 |
+| Method | Endpoint | Request Parameters | Response | Auth | Call Timing |
 |---|---|---|---|---|---|
-| `GET` | `/v1/appointments` | `?startDate&endDate&status` | `PaginatedResponse<BookingListItem>` 每项：`{id, appointmentNumber, timeSlotId, appointmentDate, status, serviceName, timeSlotStart, timeSlotEnd, durationMinutes, price, taxRate, taxIncludedAmount}` | Bearer | 页面初始化、筛选切换、下拉刷新 |
-| `POST` | `/v1/appointments/:id/cancel` | path: `id` | `void` | Bearer | 取消预约确认 |
+| `GET` | `/v1/appointments` | `?startDate&endDate&status` | `PaginatedResponse<BookingListItem>` per item: `{id, appointmentNumber, timeSlotId, appointmentDate, status, serviceName, timeSlotStart, timeSlotEnd, durationMinutes, price, taxRate, taxIncludedAmount}` | Bearer | Page init, filter switch, pull-to-refresh |
+| `POST` | `/v1/appointments/:id/cancel` | path: `id` | `void` | Bearer | Cancel booking confirmation |
 
-**注意**：前端 `ApiService.cancelBooking(id)` 使用 `POST` 方法，对应后端路径 `POST /appointments/:id/cancel`（`AppointmentsController.cancel()`）。CUSTOMER 取消预约使用此端点，无需 ADMIN 角色。
+**Note**: Frontend `ApiService.cancelBooking(id)` uses `POST` method, mapping to backend path `POST /appointments/:id/cancel` (`AppointmentsController.cancel()`). CUSTOMER cancels bookings using this endpoint; ADMIN role not required.
 
-**实际调用后端**：
+**Actual backend calls**:
 
-| 控制器 | 端点 | 方法 |
+| Controller | Endpoint | Method |
 |---|---|---|
-| `AppointmentsController` | `GET /appointments` (通过 `getMyAppointments()` 委托给 `findAll` 加 user 过滤) | `findAll()` |
+| `AppointmentsController` | `GET /appointments` (via `getMyAppointments()` delegates to `findAll` with user filter) | `findAll()` |
 | `AppointmentsController` | `POST /appointments/:id/cancel` | `cancel()` |
 
-## 后端映射
+## Backend Mapping
 
-| 文件 | 说明 |
+| File | Description |
 |---|---|
-| `src/modules/appointments/appointments.controller.ts` | 路由前缀 `"appointments"`, `JwtAuthGuard` 类级别 |
-| `src/modules/appointments/appointments.service.ts` | `findAll()` 分页 + 用户过滤, `cancel()` 状态校验 + 事务更新 |
+| `src/modules/appointments/appointments.controller.ts` | Route prefix `"appointments"`, `JwtAuthGuard` at class level |
+| `src/modules/appointments/appointments.service.ts` | `findAll()` pagination + user filter, `cancel()` status validation + transactional update |
 
-后端 `cancel()` 实现：
-- 预约状态机检查：`PENDING/CONFIRMED` 可取消
-- Prisma 事务更新 `Appointment` + 创建 `AppointmentHistory`
-- 队列发送取消邮件 + 通知
+Backend `cancel()` implementation:
+- Appointment state machine check: `PENDING/CONFIRMED` can be cancelled
+- Prisma transaction: update `Appointment` + create `AppointmentHistory`
+- Queue sends cancellation email + notification
 
-## 交互流程
+## Interaction Flow
 
-1. 访问 `/my-bookings`，守卫检查认证 + 角色
-2. `ngOnInit()` → 调用 `api.getMyAppointments()` 加载列表
-3. 默认显示全部（`activeFilter = 'all'`）
-4. 筛选栏（6 个）：全部 / 待确认 / 已确认 / 已完成 / 已过期 / 已取消
-5. 点击筛选 → `activeFilter` 变化 → `triggerRefresh()` → 重新加载
-6. 点击「取消预约」→ `showCancelDialog = true` → 确认 → `confirmCancel()` → `api.cancelBooking(id)`
-7. 下拉刷新（`@HostListener touchstart/touchmove/touchend`）：
-   - 触摸偏移达阈值 → 刷新状态 → 重新加载列表
-8. 列表项包含：服务名称、预约日期、时间段、状态标签
+1. Visit `/my-bookings`; guards check auth + role
+2. `ngOnInit()` → calls `api.getMyAppointments()` to load list
+3. Default display: all (`activeFilter = 'all'`)
+4. Filter bar (6 options): All / Pending / Confirmed / Completed / Expired / Cancelled
+5. Click filter → `activeFilter` changes → `triggerRefresh()` → reload
+6. Click "Cancel Booking" → `showCancelDialog = true` → confirm → `confirmCancel()` → `api.cancelBooking(id)`
+7. Pull-to-refresh (`@HostListener touchstart/touchmove/touchend`):
+   - Touch offset reaches threshold → refresh state → reload list
+8. List items include: service name, booking date, time slot, status label
 
-## 数据来源
+## Data Sources
 
-- contract.yaml 1.7.2（appointments.list）
+- contract.yaml 1.7.2 (appointments.list)
 - SAD 2.3.1
-- 数据架构设计文档 2.2（Appointment 实体）
-- 接口设计规范 2.5.3（乐观 UI 设计原则）
+- Data Architecture Design Document 2.2 (Appointment entity)
+- Interface Design Specification 2.5.3 (optimistic UI design principles)
