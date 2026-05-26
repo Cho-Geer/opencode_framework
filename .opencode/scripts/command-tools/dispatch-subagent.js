@@ -141,7 +141,18 @@ function findRelevantStacks(description, mapping, stackConfig) {
         if (stack && !result.find((r) => r.key === stackKey)) {
           result.push({
             key: stackKey,
-            label: stack.name,
+            label:
+              stack && typeof stack === "object"
+                ? stack.framework ||
+                  stack.orm ||
+                  stack.engine ||
+                  stack.mechanism ||
+                  stack.unit ||
+                  stack.name ||
+                  ""
+                : typeof stack === "string"
+                  ? stack
+                  : stackKey,
             query: stack.context7_query,
           });
         }
@@ -406,7 +417,10 @@ const projectContext = [
   `**OPENCODE_ROOT**: \`${OPENCODE_ROOT}\``,
   `**project_root**: \`${projectRoot}\``,
   `**Tech stack**:`,
-  ...Object.entries(techStack).map(([key, val]) => `  - ${key}: ${val.name}`),
+  ...Object.entries(techStack).map(
+    ([key, val]) =>
+      `  - ${key}: ${typeof val === "string" ? val : val && typeof val === "object" ? val.framework || val.orm || val.engine || val.mechanism || val.unit || val.name || Object.values(val)[0] || "" : val}`,
+  ),
   `**Backend path**: \`${resolvedBackend}\``,
   `**Frontend path**: \`${resolvedFrontend}\``,
   `**Contracts**: \`${resolvedContracts}\``,
@@ -484,7 +498,7 @@ Remember: All runtime artifacts (test_report.json, HANDOVER.md, TASK_LOG.md, *_r
 // ──────────────────────────────────────────────
 // 5.5 Final template resolution pass on the wrapped prompt
 // ──────────────────────────────────────────────
-// The wrappedPrompt may contain unreoslved {project.*}, {backend.*},
+// The wrappedPrompt may contain unresolved {project.*}, {backend.*},
 // {frontend.*}, {cache.*} placeholders from taskDescription or
 // embedded content. This final pass ensures all template variables
 // are resolved before the prompt is consumed by the sub-agent.

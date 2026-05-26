@@ -73,6 +73,7 @@ echo "── Stage 1: Pre-Execution Gate ─────────────
 
 if [ -f "$PRE_EXEC_GATE" ] && command -v node &>/dev/null; then
   if node "$PRE_EXEC_GATE" "$TASK_ID" 2>&1; then
+    echo "  ✅ Stage 1 pre-execution gate passed."
     echo ""
   else
     GATE_EXIT=$?
@@ -102,18 +103,18 @@ if [ ! -f "$PRE_EXEC_GATE" ] || ! command -v node &>/dev/null; then
   # Check if task exists with status "pending"
   # Use jq for robust JSON querying
   if command -v jq &> /dev/null; then
-  TASK_EXISTS=$(jq --arg id "$TASK_ID" '.tasks[] | select(.id == $id)' "$DAG_FILE" 2>/dev/null || echo "")
-  if [ -z "$TASK_EXISTS" ]; then
-    enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
-  fi
+    TASK_EXISTS=$(jq --arg id "$TASK_ID" '.tasks[] | select(.id == $id)' "$DAG_FILE" 2>/dev/null || echo "")
+    if [ -z "$TASK_EXISTS" ]; then
+      enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+    fi
 
-  TASK_STATUS=$(echo "$TASK_EXISTS" | jq -r '.status' 2>/dev/null || echo "")
-  if [ "$TASK_STATUS" != "pending" ]; then
-    enf_exit "工作项 '${TASK_ID}' 的状态为 '${TASK_STATUS}'，非 'pending'。请检查 DAG 状态。"
-  fi
-elif command -v python3 &> /dev/null; then
-  # Fallback: use python3 for JSON parsing if jq is not available
-  PYTHON_CHECK=$(python3 -c "
+    TASK_STATUS=$(echo "$TASK_EXISTS" | jq -r '.status' 2>/dev/null || echo "")
+    if [ "$TASK_STATUS" != "pending" ]; then
+      enf_exit "工作项 '${TASK_ID}' 的状态为 '${TASK_STATUS}'，非 'pending'。请检查 DAG 状态。"
+    fi
+  elif command -v python3 &> /dev/null; then
+    # Fallback: use python3 for JSON parsing if jq is not available
+    PYTHON_CHECK=$(python3 -c "
 import json, sys
 try:
     with open('$DAG_FILE', 'r') as f:
@@ -125,27 +126,27 @@ try:
         print(task.get('status', ''))
 except Exception as e:
     print('ERROR')
-" 2>/dev/null)
-  if [ "$PYTHON_CHECK" = "NOT_FOUND" ]; then
-    enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
-  fi
-  if [ "$PYTHON_CHECK" != "pending" ]; then
-    enf_exit "工作项 '${TASK_ID}' 的状态为 '${PYTHON_CHECK}'，非 'pending'。请检查 DAG 状态。"
-  fi
-else
-  # Fallback: use node for JSON parsing if neither jq nor python3 is available.
-  # Cross-platform node discovery: Unix (node) → Windows (node.exe) → legacy (which/type)
-  NODE_CMD=""
-  if command -v node &> /dev/null; then
-    NODE_CMD="node"
-  elif command -v node.exe &> /dev/null; then
-    NODE_CMD="node.exe"
-  elif which node &> /dev/null 2>&1 || type node &> /dev/null 2>&1; then
-    NODE_CMD="node"
-  fi
+    " 2>/dev/null)
+    if [ "$PYTHON_CHECK" = "NOT_FOUND" ]; then
+      enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+    fi
+    if [ "$PYTHON_CHECK" != "pending" ]; then
+      enf_exit "工作项 '${TASK_ID}' 的状态为 '${PYTHON_CHECK}'，非 'pending'。请检查 DAG 状态。"
+    fi
+  else
+    # Fallback: use node for JSON parsing if neither jq nor python3 is available.
+    # Cross-platform node discovery: Unix (node) → Windows (node.exe) → legacy (which/type)
+    NODE_CMD=""
+    if command -v node &> /dev/null; then
+      NODE_CMD="node"
+    elif command -v node.exe &> /dev/null; then
+      NODE_CMD="node.exe"
+    elif which node &> /dev/null 2>&1 || type node &> /dev/null 2>&1; then
+      NODE_CMD="node"
+    fi
 
-  if [ -n "$NODE_CMD" ]; then
-    NODE_CHECK=$("$NODE_CMD" -e "
+    if [ -n "$NODE_CMD" ]; then
+      NODE_CHECK=$("$NODE_CMD" -e "
       const fs = require('fs');
       const dag = JSON.parse(fs.readFileSync('$DAG_FILE', 'utf8'));
       const task = dag.tasks.find(t => t.id === '$TASK_ID');
@@ -153,21 +154,21 @@ else
         console.log('NOT_FOUND');
         process.exit(0);
       }
-      console.log(task.status);
-    " 2>/dev/null)
-    if [ "$NODE_CHECK" = "NOT_FOUND" ]; then
-      enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+        console.log(task.status);
+      " 2>/dev/null)
+      if [ "$NODE_CHECK" = "NOT_FOUND" ]; then
+        enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
+      fi
+      if [ "$NODE_CHECK" != "pending" ]; then
+        enf_exit "工作项 '${TASK_ID}' 的状态为 '${NODE_CHECK}'，非 'pending'。请检查 DAG 状态。"
+      fi
+    else
+      # No JSON parser available — fail-closed in strict/locked, warning in advisory
+      enf_exit "缺少 JSON 解析器 (jq/python3/node/node.exe)。在 strict/locked 模式下无法验证 DAG。请安装 jq/python3 或 node。"
     fi
-    if [ "$NODE_CHECK" != "pending" ]; then
-      enf_exit "工作项 '${TASK_ID}' 的状态为 '${NODE_CHECK}'，非 'pending'。请检查 DAG 状态。"
-    fi
-  else
-    # No JSON parser available — fail-closed in strict/locked, warning in advisory
-    enf_exit "缺少 JSON 解析器 (jq/python3/node/node.exe)。在 strict/locked 模式下无法验证 DAG。请安装 jq/python3 或 node。"
   fi
-fi
 
-echo "✅ [${ENF_MODE}] 工作项 '${TASK_ID}' 验证通过（状态: pending）。"
+  echo "✅ [${ENF_MODE}] 工作项 '${TASK_ID}' 验证通过（状态: pending）。"
 fi  # End of legacy DAG fallback block
 
 # ─── Stage 2: Rule Registry Integrity Verification ─────────────
