@@ -83,6 +83,7 @@ Before writing or modifying ANY source code (`.ts`, `.js`, `.html`, `.scss`, `.p
 After EACH successful `Write` or `Edit` operation, you MUST immediately:
 
 1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "<your_agent_type>", task_id: "<current_task_id>" })`
+   > ⚠️ **DEPRECATED (CI-UNIFY-004)**: The standalone `run_write_check` MCP tool is deprecated. The underlying audit logic now lives in `code-quality-lib.js` (imported by code-quality-gate.js). For new tooling integrations, use `code-quality-lib.js` functions directly (e.g., `lib.runScopeCheck()`, `lib.runAllChecks()`). The MCP tool continues to work for backward compatibility but will log a deprecation warning.
 2. Check response.overall:
    - `"pass"` → append to `.task_temp/{taskId}/write_audit_log.json` with result `pass` → continue
    - `"fail"` → examine each violation:

@@ -113,7 +113,7 @@ eslint_audit.run_audit({ full_scan: true })
 ### 1.12 Code Quality Gate MCP工具（v3.0.0 新增 — Write-Time Audit）
 | 工具名称 | 功能描述 | 适用场景 |
 |---------|---------|---------|
-| `code_quality_gate.run_write_check({ changed_file, agent_type })` | **Write-Time Audit** — 每次Write/Edit后即时执行5项检查：① Agent Write Scope（路径越界拦截，BLOCKER）② Prettier格式化（自动修复）③ dependency-cruiser架构边界 ④ ESLint mock-audit（TIER1 Mock BLOCKER）⑤ tsc增量类型检查（BLOCKER）。结果写入`machine.json.{type_check_state,dependency_state,format_state,write_audit_state}` | @Coder-BE/@Coder-FE **每次Write/Edit后必须调用**（P0强制，不可跳过）；违规当场阻断 |
+| `code_quality_gate.run_write_check({ changed_file, agent_type })` | ⚠️ **[DEPRECATED]** Write-Time Audit — 每次Write/Edit后即时执行5项检查：① Agent Write Scope（路径越界拦截，BLOCKER）② Prettier格式化（自动修复）③ dependency-cruiser架构边界 ④ ESLint mock-audit（TIER1 Mock BLOCKER）⑤ tsc增量类型检查（BLOCKER）。结果写入`machine.json.{type_check_state,dependency_state,format_state,write_audit_state}`。**底层逻辑已提取到 `code-quality-lib.js`，新集成请直接使用其函数**。 | @Coder-BE/@Coder-FE **每次Write/Edit后必须调用**（P0强制，不可跳过）；违规当场阻断。MCP工具已弃用但仍可用。 |
 | `code_quality_gate.run_full_scan()` | **Commit-Time全量扫描** — 执行tsc全量类型检查 + depcruise全量依赖扫描 + prettier全量格式检查。用于`compliance_gate_complete`内部和pre-commit hook | `compliance_gate_complete`内部调用；Guardian审查前调用 |
 | `code_quality_gate.get_audit_status({ task_id })` | **审计状态读取** — 读取`machine.json.write_audit_state`，返回某任务的Write-Time检查记录。用于Guardian审查时验证Agent是否执行了Write-Time Audit | @Guardian审查时调用 |
 
@@ -125,7 +125,7 @@ code_quality_gate.run_write_check({
   agent_type: "@Coder-BE",
   task_id: "T-014"
 })
-→ 5项检查同步执行，<5秒返回，违规当场阻断
+→ ⚠️ DEPRECATED — delegates to code-quality-lib.js. 5项检查同步执行，<5秒返回，违规当场阻断
 
 # Layer B — Full Scan（compliance_gate_complete/pre-commit）
 code_quality_gate.run_full_scan()
@@ -176,7 +176,7 @@ code_quality_gate.get_audit_status({ task_id: "T-014" })
 | **安全扫描** | 依赖漏洞扫描 | 重试3次 → 记录风险继续 |
 | **合规门禁（前）** | `compliance_gate_check` + `compliance_gate_confirm` | 阻塞，未通过不得进行任何任务执行 |
 | **合规门禁（后）** | `compliance_gate_complete` + `code_quality_gate.run_full_scan()` | 阻塞，未完成不得标记任务结束。读取 machine.json 全部 8 维状态，任一 dirty → failed |
-| **Write-Time Audit（P0强制）** | `code_quality_gate.run_write_check({ changed_file, agent_type })` | **P0阻塞不可跳过**。每次 Write/Edit 后必须执行。5项检查：scope/format/deps/eslint/tsc。违规当场阻断。跳过 → CAT5.1 违规 |
+| **Write-Time Audit（P0强制）** | `code_quality_gate.run_write_check({ changed_file, agent_type })` ⚠️ 已弃用 → 使用 `code-quality-lib.js` | **P0阻塞不可跳过**。每次 Write/Edit 后必须执行。5项检查：scope/format/deps/eslint/tsc（底层由 `code-quality-lib.js` 执行）。违规当场阻断。跳过 → CAT5.1 违规 |
 | **测试编写/修改后** | `eslint_audit.run_audit({ changed_file })` | 建议非阻塞。提前发现 TIER1 mock 违规 |
 | **Guardian审查前** | `code_quality_gate.get_audit_status({ task_id })` | 阻塞。验证 write_audit_log 完整性 |
 

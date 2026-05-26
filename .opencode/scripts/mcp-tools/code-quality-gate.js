@@ -6,12 +6,13 @@
  * ================================
  * OpenCode v3.0 Write-Time Audit Engine
  *
- * Exposes tool `run_write_check` that runs 5 checks on a changed file:
+ * Exposes tool `run_write_check` (DEPRECATED — use code-quality-lib.js functions directly) that runs 6 checks on a changed file:
  *   1. Agent Write Scope  (<0.1s, BLOCKER)
  *   2. Prettier Format    (<0.5s, auto-fix)
  *   3. dependency-cruiser (<1s,   ERROR)
  *   4. ESLint mock-audit  (<1s,   TIER1 BLOCKER)
  *   5. tsc incremental    (2-5s,  BLOCKER)
+ *   6. TDD Order          (<0.1s, BLOCKER)
  *
  * Exposes tool `run_full_scan` for Commit-Time / compliance_gate_complete.
  *
@@ -23,7 +24,14 @@
  *   - write_audit_state rejects paths outside current workspace at write-time
  *   - type_check_state dirty_files filtered to current workspace paths on read
  *   - JSON Schema validation against machine.schema.json on bootstrap (AJV)
+ *
+ * CI-EMBED-001: Core audit logic extracted to ./code-quality-lib.js
+ *   - This file now delegates all 6 checks to the shared library
+ *   - State persistence (machine.json) remains in this MCP server
  */
+
+// ═══ Library import (CI-EMBED-001) ═══
+const lib = require("./code-quality-lib.js");
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const {
@@ -107,17 +115,6 @@ function getProjectConfig() {
 }
 
 /**
- * Extract the first path segment from a relative path string.
- * e.g. "booking-backend/src/" → "booking-backend"
- */
-function firstPathSegment(relativePath) {
-  return (
-    relativePath.replace(/\\/g, "/").split("/").filter(Boolean)[0] ||
-    relativePath
-  );
-}
-
-/**
  * Read backend_src path from config, extract first segment, resolve to absolute.
  */
 function getBackendDir() {
@@ -128,7 +125,7 @@ function getBackendDir() {
         'Add "paths": { "backend_src": "<relative_path>" } to the config file.',
     );
   }
-  const segment = firstPathSegment(cfg.paths.backend_src);
+  const segment = lib.firstPathSegment(cfg.paths.backend_src);
   return path.resolve(getProjectRoot(), segment);
 }
 
@@ -143,7 +140,7 @@ function getFrontendDir() {
         'Add "paths": { "frontend_src": "<relative_path>" } to the config file.',
     );
   }
-  const segment = firstPathSegment(cfg.paths.frontend_src);
+  const segment = lib.firstPathSegment(cfg.paths.frontend_src);
   return path.resolve(getProjectRoot(), segment);
 }
 
@@ -396,377 +393,9 @@ function validateMachineSchema(machine) {
   }
 }
 
-// ─── Glob Matching ────────────────────────────────────────
-// Simple glob: * matches anything except /, ** matches anything
-function matchGlob(filePath, pattern) {
-  const regexStr =
-    "^" +
-    pattern
-      .replace(/\*\*/g, "___DOUBLESTAR___")
-      .replace(/\*/g, "[^/]*")
-      .replace(/___DOUBLESTAR___/g, ".*") +
-    "$";
-  return new RegExp(regexStr).test(filePath);
-}
-
-// ─── Check 1: Agent Write Scope ───────────────────────────
-function checkScope(changedFile, agentType, machine) {
-  const config = getProjectConfig();
-  const scopes = config.agent_write_scopes;
-  if (!scopes || !scopes[agentType]) {
-    return {
-      status: "error",
-      violation: true,
-      message: `No write scope defined for ${agentType}`,
-    };
-  }
-  const scope = scopes[agentType];
-  // Normalize path (strip leading slashes, handle absolute paths)
-  const projectRoot = getProjectRoot();
-  let normFile = changedFile;
-  if (
-    normFile.startsWith(projectRoot + "/") ||
-    normFile.startsWith(projectRoot)
-  ) {
-    normFile = normFile.replace(projectRoot, "").replace(/^\//, "");
-  }
-
-  // Check denied first
-  for (const deny of scope.denied || []) {
-    if (matchGlob(normFile, deny)) {
-      // Record violation
-      if (machine.compliance_records) {
-        machine.compliance_records.role_violations.push({
-          timestamp: new Date().toISOString(),
-          agent: agentType,
-          violation_file: normFile,
-          status: "unresolved",
-          severity: "BLOCKER",
-          denied_by: deny,
-        });
-        writeMachine(machine);
-      }
-      return {
-        status: "fail",
-        violation: true,
-        severity: "BLOCKER",
-        message: `CAT4.1: ${agentType} DENIED from writing ${normFile}. Scope rule: denied ${deny}.`,
-      };
-    }
-  }
-
-  // Check allowed
-  for (const allow of scope.allowed || []) {
-    if (matchGlob(normFile, allow)) return { status: "pass", violation: false };
-  }
-
-  return {
-    status: "fail",
-    violation: true,
-    severity: "BLOCKER",
-    message: `CAT4.1: ${agentType} attempted to write ${normFile} — not in allowed scopes.`,
-  };
-}
-
-// ─── Check 2: Prettier Format ────────────────────────────
-function checkFormat(changedFile, projectRoot, autoFix) {
-  let filePath = changedFile;
-  if (!path.isAbsolute(filePath))
-    filePath = path.resolve(projectRoot, filePath);
-
-  if (!fs.existsSync(filePath))
-    return { status: "skip", message: "File not found" };
-
-  const ext = path.extname(filePath);
-  if (!/\.(ts|js|html|scss|css|json|ya?ml|md)$/i.test(ext))
-    return { status: "skip", message: `Non-formattable: ${ext}` };
-
-  try {
-    execSync(`npx prettier --check "${filePath}"`, {
-      cwd: projectRoot,
-      encoding: "utf8",
-      timeout: 5000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return { status: "pass", formatted: true };
-  } catch {
-    if (autoFix) {
-      try {
-        execSync(`npx prettier --write "${filePath}"`, {
-          cwd: projectRoot,
-          encoding: "utf8",
-          timeout: 5000,
-          stdio: ["pipe", "pipe", "pipe"],
-        });
-        return { status: "pass", formatted: true, auto_fixed: true };
-      } catch {
-        return {
-          status: "fail",
-          formatted: false,
-          message: "Prettier check failed and auto-fix failed",
-        };
-      }
-    }
-    return {
-      status: "fail",
-      formatted: false,
-      message: "Prettier check failed. Run: npx prettier --write <file>",
-    };
-  }
-}
-
-// ─── Check 3: dependency-cruiser ─────────────────────────
-function checkDeps(changedFile, projectRoot) {
-  let filePath = changedFile;
-  if (!path.isAbsolute(filePath))
-    filePath = path.resolve(projectRoot, filePath);
-  if (!fs.existsSync(filePath))
-    return { status: "skip", message: "File not found" };
-
-  try {
-    const result = execSync(
-      `npx depcruise --include-only "^${filePath}" --output-type json "${projectRoot}"`,
-      {
-        cwd: projectRoot,
-        encoding: "utf8",
-        timeout: 10000,
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-    const data = JSON.parse(result);
-    if (data.summary?.violations?.length > 0) {
-      return {
-        status: "fail",
-        violations: data.summary.violations,
-        count: data.summary.violations.length,
-      };
-    }
-    return { status: "pass", violations: [] };
-  } catch (e) {
-    // depcruise exits non-zero on violations
-    try {
-      const data = JSON.parse(e.stdout?.toString() || "{}");
-      if (data.summary?.violations?.length > 0) {
-        return {
-          status: "fail",
-          violations: data.summary.violations,
-          count: data.summary.violations.length,
-        };
-      }
-    } catch {}
-    // Check if depcruise is installed
-    if (e.message && e.message.includes("Cannot find module")) {
-      return {
-        status: "skip",
-        message:
-          "dependency-cruiser not installed. Run: npm install --save-dev dependency-cruiser",
-      };
-    }
-    return {
-      status: "error",
-      message: e.message?.substring(0, 200) || "Unknown error",
-    };
-  }
-}
-
-// ─── Check 4: ESLint mock-audit ─────────────────────────
-function checkESLint(changedFile, projectRoot) {
-  let filePath = changedFile;
-  if (!path.isAbsolute(filePath))
-    filePath = path.resolve(projectRoot, filePath);
-  if (!fs.existsSync(filePath))
-    return { status: "skip", message: "File not found" };
-
-  // Only run on spec/test files for mock audit
-  const isTestFile =
-    filePath.includes(".spec.") ||
-    filePath.includes(".test.") ||
-    filePath.includes("/test/");
-  if (!isTestFile) return { status: "skip", message: "Not a test file" };
-
-  const pluginDir = path.join(
-    OPENCODE_ROOT,
-    ".opencode",
-    "tools",
-    "eslint-plugin-opencode-mock-audit",
-  );
-  if (!fs.existsSync(pluginDir))
-    return { status: "skip", message: "ESLint plugin not found" };
-
-  try {
-    execSync(
-      `npx eslint --no-eslintrc --rulesdir "${pluginDir}/rules" --rule 'no-tier1-mock: error' --rule 'no-skipped-tests: error' --rule 'no-skipped-audit: error' --rule 'no-console-log: error' --rule 'tier3-verify: warn' --format json "${filePath}"`,
-      {
-        cwd: projectRoot,
-        encoding: "utf8",
-        timeout: 10000,
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-    return { status: "pass", violations: [], tier1_mock_count: 0 };
-  } catch (e) {
-    try {
-      const results = JSON.parse(e.stdout?.toString() || "[]");
-      const violations = results
-        .filter((f) => f.messages?.length > 0)
-        .flatMap((f) =>
-          f.messages.map((m) => ({
-            file: f.filePath,
-            line: m.line,
-            rule: m.ruleId,
-            message: m.message,
-            severity: m.severity,
-          })),
-        );
-      const tier1Mocks = violations.filter((v) => v.rule === "no-tier1-mock");
-      return {
-        status: violations.length > 0 ? "fail" : "pass",
-        violations,
-        tier1_mock_count: tier1Mocks.length,
-      };
-    } catch {
-      return {
-        status: "error",
-        message: e.message?.substring(0, 200) || "ESLint error",
-      };
-    }
-  }
-}
-
-// ─── Check 6: TDD Order Enforcement ─────────────────────
-function checkTDDOrder(machine, changedFile) {
-  const fileName = path.basename(changedFile);
-
-  // ─── Canonicalize to relative path (RVW-REVIEW-02) ───
-  const relFile = stateCanon.makePathRelativeToWorkspace(changedFile, OPENCODE_ROOT);
-  // If the path is foreign, reject silently (no state mutation)
-  if (!relFile) {
-    return {
-      status: "skip",
-      message: `Foreign workspace path rejected: ${fileName}`,
-    };
-  }
-
-  const isTestFile =
-    fileName.includes(".spec.") ||
-    fileName.includes(".test.") ||
-    relFile.includes("/test/");
-  const isImplFile =
-    /\.(ts|js)$/.test(relFile) && !isTestFile && !relFile.includes(".config.");
-  const isConfigOrDoc = /\.(json|yaml|yml|md)$/.test(relFile);
-
-  if (!machine.tdd_enforcement_state) {
-    machine.tdd_enforcement_state = {
-      enabled: true,
-      current_session: {
-        test_written: false,
-        impl_files_attempted: [],
-        blocked_attempts: [],
-        test_files_written: [],
-      },
-      violations: [],
-      history: [],
-    };
-  }
-  const state = machine.tdd_enforcement_state;
-
-  if (isTestFile || isImplFile) {
-    if (!state.current_session || !state.current_session.initialized) {
-      state.current_session = {
-        test_written: false,
-        impl_files_attempted: [],
-        blocked_attempts: [],
-        test_files_written: [],
-        initialized: true,
-      };
-    }
-  }
-
-  if (isConfigOrDoc || (!isTestFile && !isImplFile)) {
-    return { status: "pass", message: "Skipped (config/doc/non-code)" };
-  }
-
-  if (isTestFile) {
-    state.current_session.test_written = true;
-    state.current_session.test_files_written.push(relFile);
-    return { status: "pass", message: `Test file recorded: ${fileName}` };
-  }
-
-  if (isImplFile) {
-    if (!state.current_session.test_written) {
-      state.current_session.impl_files_attempted.push(relFile);
-      state.current_session.blocked_attempts.push({
-        file: relFile,
-        timestamp: new Date().toISOString(),
-      });
-      state.violations.push({
-        timestamp: new Date().toISOString(),
-        file: relFile,
-        code: "CAT5.2",
-        message: `Implementation written without preceding test: ${fileName}`,
-      });
-      writeMachine(machine);
-      return {
-        status: "fail",
-        violation: true,
-        severity: "BLOCKER",
-        code: "CAT5.2",
-        message: `CAT5.2: Implementation file "${fileName}" written without a preceding test file. Write the test first (RED phase), then implement (GREEN phase).`,
-      };
-    }
-    return {
-      status: "pass",
-      message: `Impl file allowed (test already written): ${fileName}`,
-    };
-  }
-}
-
-// ─── Check 5: tsc incremental ────────────────────────────
-function checkTsc(changedFile, projectRoot) {
-  let filePath = changedFile;
-  if (!path.isAbsolute(filePath))
-    filePath = path.resolve(projectRoot, filePath);
-  if (!fs.existsSync(filePath))
-    return { status: "skip", message: "File not found" };
-  if (!filePath.endsWith(".ts"))
-    return { status: "skip", message: "Not a TypeScript file" };
-
-  const beDir = getBackendDir();
-  const feDir = getFrontendDir();
-  const isBackend =
-    filePath.startsWith(beDir) || filePath.includes(path.basename(beDir));
-  const isFrontend =
-    filePath.startsWith(feDir) || filePath.includes(path.basename(feDir));
-  if (!isBackend && !isFrontend)
-    return { status: "skip", message: "Not in backend or frontend src" };
-
-  const cwd = isBackend ? beDir : feDir;
-
-  try {
-    const start = Date.now();
-    execSync("npx tsc --noEmit --incremental --pretty false", {
-      cwd,
-      encoding: "utf8",
-      timeout: 30000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    const elapsed = Date.now() - start;
-    return { status: "pass", errors: 0, time_ms: elapsed };
-  } catch (e) {
-    const elapsed = Date.now() - (e.elapsed || 0);
-    return {
-      status: "fail",
-      errors: 1,
-      time_ms: elapsed,
-      message:
-        e.stderr?.substring(0, 300) ||
-        e.stdout?.substring(0, 300) ||
-        "TypeScript error",
-    };
-  }
-}
-
-// ─── Update machine.json states ──────────────────────────
+// ─── State Persistence: updateStates ──────────────────────
+// MACHINE.JSON STATE UPDATES STAY IN THE MCP SERVER, not the library.
+// The library functions return pure results; this function persists them.
 function updateStates(machine, results, agentType, taskId, file) {
   if (!machine.write_audit_state)
     machine.write_audit_state = { current_session: null, history: [] };
@@ -798,7 +427,7 @@ function updateStates(machine, results, agentType, taskId, file) {
   session.checks_run++;
 
   const hasFail = Object.values(results.checks).some(
-    (c) => c?.status === "fail",
+    (c) => c?.pass === false || c?.status === "fail",
   );
   if (hasFail) {
     session.checks_failed++;
@@ -808,14 +437,14 @@ function updateStates(machine, results, agentType, taskId, file) {
   }
 
   const scopeResult = results.checks.scope;
-  if (scopeResult?.violation) session.scope_violations_attempted++;
+  if (scopeResult && !scopeResult.pass) session.scope_violations_attempted++;
 
   machine.write_audit_state.current_session = session;
 
   // Update independent states
   if (results.checks.tsc) {
     machine.type_check_state.last_incremental_check = new Date().toISOString();
-    if (results.checks.tsc.status === "fail") {
+    if (results.checks.tsc.pass === false) {
       machine.type_check_state.incremental_errors++;
       if (relFile) machine.type_check_state.dirty_files.push(relFile);
       machine.type_check_state.status = "dirty";
@@ -823,7 +452,7 @@ function updateStates(machine, results, agentType, taskId, file) {
   }
   if (results.checks.deps) {
     machine.dependency_state.last_check = new Date().toISOString();
-    if (results.checks.deps.status === "fail") {
+    if (results.checks.deps.pass === false) {
       machine.dependency_state.violations.push(
         ...(results.checks.deps.violations || []),
       );
@@ -834,198 +463,156 @@ function updateStates(machine, results, agentType, taskId, file) {
   if (results.checks.format) {
     machine.format_state.last_check = new Date().toISOString();
     if (results.checks.format.auto_fixed) machine.format_state.auto_fix_count++;
-    if (results.checks.format.status === "fail") {
+    if (results.checks.format.pass === false) {
       if (relFile) machine.format_state.unformatted_files.push(relFile);
       machine.format_state.status = "dirty";
     }
   }
 
+  // Record TDD violations from the library result
+  if (results.checks.tdd && !results.checks.tdd.pass) {
+    if (!machine.tdd_enforcement_state) {
+      machine.tdd_enforcement_state = {
+        enabled: true,
+        current_session: null,
+        violations: [],
+        history: [],
+      };
+    }
+    machine.tdd_enforcement_state.violations.push({
+      timestamp: new Date().toISOString(),
+      file: relFile,
+      code: "CAT5.2",
+      message: results.checks.tdd.detail,
+    });
+  }
+
+  // Merge TDD state from library back into machine
+  if (results.tddState) {
+    if (!machine.tdd_enforcement_state) {
+      machine.tdd_enforcement_state = {
+        enabled: true,
+        current_session: null,
+        violations: [],
+        history: [],
+      };
+    }
+    machine.tdd_enforcement_state.current_session = results.tddState;
+  }
+
   writeMachine(machine);
 }
 
-// ─── Main: run_write_check ────────────────────────────────
+// Record scope violation in compliance_records (stays in server, not library)
+function recordScopeViolation(machine, agentType, normFile, denyRule) {
+  if (machine.compliance_records) {
+    machine.compliance_records.role_violations.push({
+      timestamp: new Date().toISOString(),
+      agent: agentType,
+      violation_file: normFile,
+      status: "unresolved",
+      severity: "BLOCKER",
+      denied_by: denyRule,
+    });
+    writeMachine(machine);
+  }
+}
+
+// ─── run_write_check (delegates to library) ────────────────
 function runWriteCheck(params) {
+// ─── DEPRECATED (CI-UNIFY-004) ────────────────────────────
+  // The standalone run_write_check MCP tool is deprecated.
+  // All audit logic has been extracted to code-quality-lib.js.
+  // Use code-quality-lib.js functions directly for new integrations.
+  process.stderr.write(
+    '[DEPRECATED] run_write_check is deprecated. Use code-quality-lib.js functions directly. See CI-UNIFY-004.
+'
+  );
   const { changed_file, agent_type, skip_checks, auto_fix, task_id } = params;
   const projectRoot = getProjectRoot();
   const machine = getMachine() || {};
-  const skip = new Set(skip_checks || []);
-  const results = {
-    checks: {},
-    overall: "pass",
-    violations: [],
-    fixes_applied: [],
-  };
 
   // Resolve file path
   let filePath = changed_file;
   if (!path.isAbsolute(filePath))
     filePath = path.resolve(projectRoot, filePath);
 
-  // ═══ Check 1: Agent Write Scope ═══
-  if (!skip.has("scope")) {
-    const r = checkScope(filePath, agent_type, machine);
-    results.checks.scope = r;
-    if (r.violation) {
-      results.overall = "fail";
-      results.violations.push({ check: "scope", ...r });
-    }
+  // Build options for the library
+  const config = getProjectConfig();
+  const libOptions = {
+    skip_checks: skip_checks || [],
+    auto_fix: auto_fix !== false,
+    agentWriteScopes:
+      config.agent_write_scopes && config.agent_write_scopes[agent_type]
+        ? config.agent_write_scopes[agent_type]
+        : null,
+    backendDir: getBackendDir(),
+    frontendDir: getFrontendDir(),
+    tddState:
+      machine.tdd_enforcement_state &&
+      machine.tdd_enforcement_state.current_session
+        ? machine.tdd_enforcement_state.current_session
+        : null,
+  };
+
+  // Run all checks via the library
+  const results = lib.runAllChecks(
+    filePath,
+    projectRoot,
+    agent_type,
+    task_id,
+    libOptions,
+  );
+
+  // Record scope violations in machine (persistence is server's job)
+  if (results.checks.scope && !results.checks.scope.pass) {
+    const normFile =
+      stateCanon.makePathRelativeToWorkspace(filePath, OPENCODE_ROOT) ||
+      filePath;
+    const agentScopes =
+      config.agent_write_scopes && config.agent_write_scopes[agent_type];
+    const denyRule = "scope";
+    recordScopeViolation(machine, agent_type, normFile, denyRule);
   }
 
-  // ═══ Check 2: Prettier Format ═══
-  if (!skip.has("format")) {
-    const r = checkFormat(filePath, projectRoot, auto_fix !== false);
-    results.checks.format = r;
-    if (r.auto_fixed)
-      results.fixes_applied.push({
-        check: "format",
-        action: "prettier --write",
-      });
-    if (r.status === "fail") {
-      results.overall = "fail";
-      results.violations.push({ check: "format", ...r });
-    }
-  }
-
-  // ═══ Check 3: dependency-cruiser ═══
-  if (!skip.has("deps")) {
-    const r = checkDeps(filePath, projectRoot);
-    results.checks.deps = r;
-    if (r.status === "fail") {
-      results.overall = "fail";
-      results.violations.push({ check: "deps", ...r });
-    }
-  }
-
-  // ═══ Check 4: ESLint mock-audit ═══
-  if (!skip.has("eslint")) {
-    const r = checkESLint(filePath, projectRoot);
-    results.checks.eslint = r;
-    if (r.tier1_mock_count > 0) {
-      results.overall = "fail";
-      results.violations.push({
-        check: "eslint",
-        severity: "BLOCKER",
-        message: `CAT1.1: ${r.tier1_mock_count} Tier1 service mock(s) detected`,
-      });
-    } else if (r.status === "fail") {
-      results.violations.push({
-        check: "eslint",
-        severity: "ERROR",
-        message: `${r.violations?.length || 0} ESLint violations`,
-      });
-    }
-  }
-
-  // ═══ Check 5: tsc incremental ═══
-  if (!skip.has("tsc")) {
-    const r = checkTsc(filePath, projectRoot);
-    results.checks.tsc = r;
-    if (r.status === "fail") {
-      results.overall = "fail";
-      results.violations.push({
-        check: "tsc",
-        severity: "BLOCKER",
-        message: r.message,
-      });
-    }
-  }
-
-  // ═══ Check 6: TDD Order Enforcement ═══
-  if (!skip.has("tdd")) {
-    const r = checkTDDOrder(machine, filePath);
-    results.checks.tdd = r;
-    if (r.violation) {
-      results.overall = "fail";
-      results.violations.push({ check: "tdd", ...r });
-    }
-  }
-
-  // ═══ Update machine.json ═══
+  // Persist state updates to machine.json
   updateStates(machine, results, agent_type, task_id, filePath);
 
   return results;
 }
 
-// ─── Main: run_full_scan (for compliance_gate_complete) ──
+// ─── run_full_scan (delegates to library) ──────────────────
 function runFullScan() {
   const projectRoot = getProjectRoot();
   const machine = getMachine() || {};
-  const results = { overall: "pass", violations: [] };
 
-  // Check #1: TypeScript full check
-  const beCwd = getBackendDir();
-  const feCwd = getFrontendDir();
-  let tscErrors = 0;
+  const beDir = getBackendDir();
+  const feDir = getFrontendDir();
 
-  for (const cwd of [beCwd, feCwd]) {
-    try {
-      execSync("npx tsc --noEmit --pretty false", {
-        cwd,
-        encoding: "utf8",
-        timeout: 60000,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-    } catch (e) {
-      tscErrors++;
-      results.overall = "fail";
-      results.violations.push({
-        check: "tsc_full",
-        severity: "BLOCKER",
-        message: `TypeScript errors in ${path.basename(cwd)}`,
-      });
-    }
-  }
-
-  // Check #2: dependency-cruiser full scan
-  try {
-    execSync(
-      "npx depcruise --config .dependency-cruiser.js --output-type json .",
-      {
-        cwd: projectRoot,
-        encoding: "utf8",
-        timeout: 30000,
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-  } catch (e) {
-    try {
-      const data = JSON.parse(e.stdout?.toString() || "{}");
-      const depsViolations = data.summary?.violations?.length || 0;
-      if (depsViolations > 0) {
-        machine.dependency_state.violations = data.summary.violations;
-        machine.dependency_state.status = "dirty";
-        results.overall = "fail";
-        results.violations.push({
-          check: "dep_full",
-          severity: "ERROR",
-          message: `${depsViolations} dependency violations`,
-        });
-      }
-    } catch {}
-  }
-
-  // Check #3: Prettier full check
-  try {
-    execSync('npx prettier --check "src/**/*.{ts,html,scss,css,json}"', {
-      cwd: projectRoot,
-      encoding: "utf8",
-      timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-  } catch {
-    machine.format_state.status = "dirty";
-    results.overall = "fail";
-    results.violations.push({
-      check: "format_full",
-      severity: "ERROR",
-      message: "Some files are not formatted",
-    });
-  }
+  // Run full scan via library
+  const results = lib.runFullScan(projectRoot, beDir, feDir);
 
   // Update machine state
   machine.type_check_state.last_full_check = new Date().toISOString();
-  machine.type_check_state.full_errors = tscErrors;
-  if (tscErrors > 0) machine.type_check_state.status = "dirty";
+  machine.type_check_state.full_errors = results.tscErrors || 0;
+  if (results.tscErrors > 0) machine.type_check_state.status = "dirty";
+
+  // Update dependency state
+  const depViolations = results.violations.filter(
+    (v) => v.check === "dep_full",
+  );
+  if (depViolations.length > 0) {
+    machine.dependency_state.status = "dirty";
+  }
+
+  // Update format state
+  const fmtViolations = results.violations.filter(
+    (v) => v.check === "format_full",
+  );
+  if (fmtViolations.length > 0) {
+    machine.format_state.status = "dirty";
+  }
+
   writeMachine(machine);
 
   return results;
@@ -1042,7 +629,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "run_write_check",
       description:
-        "Write-Time audit on a single changed file (Layer A). Checks: Agent Scope, Prettier, dependency-cruiser, ESLint mock-audit, tsc incremental.",
+        "[DEPRECATED] Write-Time audit on a single changed file (Layer A). Checks: Agent Scope, Prettier, dependency-cruiser, ESLint mock-audit, tsc incremental. Use code-quality-lib.js functions directly. See CI-UNIFY-004.",
       inputSchema: {
         type: "object",
         required: ["changed_file", "agent_type"],
@@ -1156,17 +743,41 @@ if (require.main === module) {
   });
 }
 
-// Export internals for testing
+// Export internals for testing (delegates to library where possible)
 module.exports = {
   getProjectRoot,
   getBackendDir,
   getFrontendDir,
-  checkScope,
-  checkFormat,
-  checkDeps,
-  checkESLint,
-  checkTDDOrder,
-  checkTsc,
+  // Individual checks — wrapped from library for backward compatibility
+  checkScope: (filePath, agentType, machine) => {
+    const r = lib.runScopeCheck(filePath, null, agentType, null);
+    return { ...r, status: r.pass ? 'pass' : 'violation' };
+  },
+  checkFormat: (filePath, projectRoot, autoFix) => {
+    const r = lib.runPrettierCheck(filePath, projectRoot, autoFix);
+    return { ...r, status: r.pass ? 'pass' : 'violation' };
+  },
+  checkDeps: (filePath, projectRoot) => {
+    const r = lib.runDepCruiserCheck(filePath, projectRoot);
+    return { ...r, status: r.pass ? 'pass' : 'violation' };
+  },
+  checkESLint: (filePath, projectRoot) => {
+    const r = lib.runEslintAudit(filePath, projectRoot);
+    return { ...r, status: r.pass ? 'pass' : 'violation' };
+  },
+  checkTDDOrder: (machine, filePath) => {
+    const wsRoot = process.env.OPENCODE_ROOT || '.';
+    const tddState = machine && machine.tdd_enforcement_state;
+    const r = lib.runTddOrderCheck(filePath, wsRoot, tddState);
+    return { ...r, status: r.pass ? 'pass' : 'violation' };
+  },
+  checkTsc: (filePath, projectRoot) => {
+    const r = lib.runTscCheck(filePath, projectRoot, null, null);
+    return { ...r, status: r.pass ? 'pass' : 'violation' };
+  },
+  // Orchestrators
   runWriteCheck,
   runFullScan,
+  // Library reference for direct access
+  lib,
 };

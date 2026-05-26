@@ -60,9 +60,11 @@ permission:
 
 ## 🚨 Write-Time Audit Mandatory Rule (P0 — After EVERY Write/Edit)
 
+> ⚠️ **DEPRECATED (CI-UNIFY-004)**: The standalone `run_write_check` MCP tool is deprecated. Audit logic now lives in `code-quality-lib.js` (functions like `runScopeCheck()`, `runPrettierCheck()`, `runDepCruiserCheck()`, `runEslintAudit()`, `runTscCheck()`, `runTddOrderCheck()`, and the batch runner `runAllChecks()`). The MCP tool continues to function for backward compatibility.
+
 **Immediately after each `Write` or `Edit` operation, before any subsequent work:**
 
-1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "@Coder-FE", task_id: "<current_task_id>" })`
+1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "@Coder-FE", task_id: "<current_task_id>" })` *(deprecated wrapper — delegates to code-quality-lib.js internally)*
 2. Check the response:
    - `overall: "pass"` → continue
    - `overall: "fail"` → handle violations:
@@ -74,7 +76,7 @@ permission:
      | `deps` | ERROR | **Fix import paths** — architecture boundary violation |
      | `format` | ERROR | Auto-fixed by prettier --write (if auto_fix enabled) |
      | `eslint` (other) | ERROR | Fix or document for @Guardian review |
-3. Fix all violations, re-run `run_write_check` to confirm
+3. Fix all violations, re-run the check to confirm
 4. Append result to `.task_temp/{taskId}/write_audit_log.json`
 
 **Skipping this step is a CAT5.1 violation.** @Guardian will compare write_audit_log.json's checks_run against the number of files changed in git diff.
