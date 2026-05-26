@@ -5,7 +5,7 @@
     "lastUpdated": "2026-05-26T10:43:48.013Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 460,
+    "revision": 461,
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
@@ -4405,8 +4405,8 @@
     ".opencode/agents/arbiter.md": "sha256-d58424b5d7815cdbb30322631b81f7e6a188586c43f543ece1fa09b92279510f",
     ".opencode/agents/architect.md": "sha256-9b4475310c1b031a1d535a666596f8e32ec284a7fcbd7b38883e1c6888f608ff",
     ".opencode/agents/ci-cd-agent.md": "sha256-e10f049755194f406f951b1c81d7ff95b492d85a61fe9fcfd751dd874f93ac58",
-    ".opencode/agents/coder-be.md": "sha256-bbd19b33266d6ee35245007d7387db83b3f4eaa75fa7c695c3257dbecccf8a13",
-    ".opencode/agents/coder-fe.md": "sha256-cb94c2f493043f033c6c9fb09bb5f9d811efc41234d04ba01a00d250e992a442",
+    ".opencode/agents/coder-be.md": "sha256-4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b",
+    ".opencode/agents/coder-fe.md": "sha256-63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8",
     ".opencode/agents/guardian.md": "sha256-a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076",
     ".opencode/agents/meta-planner.md": "sha256-52e887bb3a5efa3fb51e9c3934fd84c8439da90d2ede6907492b5edada235bfb",
     ".opencode/agents/orchestrator.md": "sha256-8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562",
@@ -4414,8 +4414,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "e6b3e7f8-843d-487f-8146-a4ead0b835eb",
-    "last_transaction_at": "2026-05-26T10:44:01.813Z",
+    "last_operation_id": "33326752-159e-44b5-8c4d-8fb8824dc7c2",
+    "last_transaction_at": "2026-05-26T13:52:30.484Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }
