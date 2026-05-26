@@ -1,71 +1,116 @@
 #!/bin/bash
-# commit-msg hook — v2.0.0
-# Validates commit message format via commitlint
+# commit-msg hook — v3.0.0 (CI-UNIFY-002)
+# Validates commit message contains required TDD phase markers
 # Enforces Conventional Commits + TDD [Red]/[Green]/[Refactor] tagging + phase ordering
 set -e
 
-ROOT="$(git rev-parse --show-toplevel)"
-INNER="$ROOT/$(node -e "console.log(require('./.opencode/project.config.json').project_root)")"
-COMMITLINT="$INNER/node_modules/.bin/commitlint"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo '.')"
 COMMIT_EDITMSG="$1"
 
-if [ ! -f "$COMMITLINT" ]; then
-    echo "⚠️  [commitlint] not installed — skipping. Install with:"
-    echo "   cd $INNER && npm install --save-dev @commitlint/cli @commitlint/config-conventional"
-    exit 0
-fi
-
 if [ ! -f "$COMMIT_EDITMSG" ]; then
-    echo "⚠️  [commitlint] no commit message found — skipping"
+    echo "⚠️  [commit-msg] no commit message file found — skipping"
     exit 0
 fi
 
 MSG=$(cat "$COMMIT_EDITMSG")
 
-# ── TDD Phase Ordering Validation ──
-if echo "$MSG" | grep -qiE '^\[(Red|Green|Refactor)\]\s+T([0-9]+)\s+'; then
-    TASK_ID=$(echo "$MSG" | sed -n 's/.*T\([0-9]\+\).*/\1/p')
+# ── Skip merge commits ──
+if echo "$MSG" | grep -qiE '^Merge '; then
+    echo "✅ [commit-msg] Merge commit detected — skipping TDD validation"
+    exit 0
+fi
+
+# ── Detect enforcement mode ──
+MODE="${ENFORCEMENT_MODE:-}"
+if [ -z "$MODE" ]; then
+    # Try to read from project.config.json
+    PCONFIG="$ROOT/.opencode/project.config.json"
+    if [ -f "$PCONFIG" ]; then
+        MODE=$(node -e "
+            try {
+                const c = require('$PCONFIG');
+                console.log(c.template_resolution?.enforcement_mode || c.enforcement_mode || 'strict');
+            } catch(e) { console.log('strict'); }
+        " 2>/dev/null || echo "strict")
+    else
+        MODE="strict"
+    fi
+fi
+
+# ── Check for TDD marker ──
+# Match: [Red] task-id ... or [Green] task-id ... or [Refactor] task-id ...
+if echo "$MSG" | grep -qiE '^\[(Red|Green|Refactor)\]\s+\S+'; then
+    # ── TDD Phase Ordering Validation ──
+    # Extract task ID (supports both T{number} and {PREFIX}-{number} formats)
+    TASK_ID=$(echo "$MSG" | sed -n 's/^\[[A-Za-z]*\]\s*\(\S\+\).*/\1/p')
     PHASE=$(echo "$MSG" | sed -n 's/^\[\([A-Za-z]*\)\].*/\1/p' | tr '[:upper:]' '[:lower:]')
 
     # Get previous commits for this task
-    PREV_COMMITS=$(git log --oneline --all --grep="T$TASK_ID" 2>/dev/null | head -10 || echo "")
+    PREV_COMMITS=$(git log --oneline --all --grep="$TASK_ID" 2>/dev/null | head -10 || echo "")
 
     case "$PHASE" in
         green)
             # [Green] requires a preceding [Red] for the same task
-            if ! echo "$PREV_COMMITS" | grep -qi "\[Red\].*T$TASK_ID"; then
-                echo "❌ [TDD] [Green] commit for task T$TASK_ID without preceding [Red] commit."
+            if ! echo "$PREV_COMMITS" | grep -qi "\[Red\].*$TASK_ID"; then
+                echo "❌ [TDD] [Green] commit for task $TASK_ID without preceding [Red] commit."
                 echo "   The RED phase (failing tests) must precede GREEN (implementation)."
                 exit 1
             fi
             ;;
         refactor)
             # [Refactor] requires preceding [Green] for the same task
-            if ! echo "$PREV_COMMITS" | grep -qi "\[Green\].*T$TASK_ID"; then
-                echo "❌ [TDD] [Refactor] commit for task T$TASK_ID without preceding [Green] commit."
+            if ! echo "$PREV_COMMITS" | grep -qi "\[Green\].*$TASK_ID"; then
+                echo "❌ [TDD] [Refactor] commit for task $TASK_ID without preceding [Green] commit."
                 echo "   The GREEN phase (passing tests) must precede REFACTOR."
                 exit 1
             fi
             ;;
     esac
 
-    # Valid TDD commit — skip commitlint
-    echo "✅ [TDD] Valid $PHASE commit for task T$TASK_ID — skipping commitlint"
+    echo "✅ [TDD] Valid $PHASE commit for task $TASK_ID — skipping commitlint"
     exit 0
 fi
 
-# ── Conventional Commit Validation ──
-echo "🔍 [commitlint] Validating commit message format..."
-cd "$INNER" && npx commitlint --edit "$COMMIT_EDITMSG" || {
-    echo ""
-    echo "❌ Commit message rejected by commitlint."
+# ── No TDD marker found — enforce based on mode ──
+if [ "$MODE" = "strict" ] || [ "$MODE" = "locked" ]; then
+    echo "❌ [TDD] Commit message must contain a TDD phase marker: [Red], [Green], or [Refactor]"
+    echo "   Followed by a task ID (e.g., CI-UNIFY-002) and description."
     echo ""
     echo "Valid formats:"
-    echo "  TDD:   [Red] T{task_id} description"
-    echo "         [Green] T{task_id} description"
-    echo "         [Refactor] T{task_id} description"
-    echo "  Standard:  feat(scope): description"
-    echo "             fix(scope): description"
-    echo "             test(scope): description"
+    echo "  [Red] T{task_id} description"
+    echo "  [Green] T{task_id} description"
+    echo "  [Refactor] T{task_id} description"
+    echo "  [Red] CI-UNIFY-002 description"
+    echo "  [Green] CI-UNIFY-002 description"
+    exit 1
+fi
+
+# advisory mode — warn but allow
+echo "⚠️ [TDD] Advisory: Commit message does not contain [Red]/[Green]/[Refactor] tag."
+echo "   Consider adding a TDD phase marker for traceability."
+
+# ── Conventional Commit Validation ──
+COMMITLINT="$ROOT/$(node -e "
+    try {
+        const p = require('$ROOT/.opencode/project.config.json');
+        console.log(p.project_root || '.');
+    } catch(e) { console.log('.'); }
+" 2>/dev/null || echo ".")/node_modules/.bin/commitlint"
+
+if [ ! -f "$COMMITLINT" ]; then
+    # Try direct path
+    COMMITLINT="$ROOT/node_modules/.bin/commitlint"
+fi
+
+if [ ! -f "$COMMITLINT" ]; then
+    echo "⚠️  [commitlint] not installed — skipping conventional commit validation."
+    echo "   Install with: npm install --save-dev @commitlint/cli @commitlint/config-conventional"
+    exit 0
+fi
+
+echo "🔍 [commitlint] Validating commit message format..."
+npx commitlint --edit "$COMMIT_EDITMSG" 2>/dev/null || {
+    echo ""
+    echo "❌ Commit message rejected by commitlint."
     exit 1
 }
