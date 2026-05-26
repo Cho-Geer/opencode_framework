@@ -15,6 +15,8 @@ mcp_tools:
   - GitHub
 permission:
   edit: deny
+  bash: deny
+  task: deny
 ---
 
 # Role: Verification & Operations Layer – Technical Committee

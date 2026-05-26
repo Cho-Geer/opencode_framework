@@ -15,6 +15,11 @@ mcp_tools:
   - GitHub
   - eslint-audit
   - code-quality-gate
+# Hardened: safe_edit only — native edit denied
+permission:
+  edit: deny
+  bash: deny
+  task: deny
 ---
 
 # Role: Orchestration & Execution Layer – Frontend Development Engineer

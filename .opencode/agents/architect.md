@@ -14,6 +14,11 @@ mcp_tools:
   - code-quality-gate
   - Context7
   - GitHub
+# Hardened: safe_edit only — native edit denied
+permission:
+  edit: deny
+  bash: deny
+  task: deny
 ---
 
 # Role: Orchestration & Execution Layer – System Architect

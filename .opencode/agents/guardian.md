@@ -18,6 +18,7 @@ mcp_tools:
 permission:
   edit: deny
   bash: deny
+  task: deny
 ---
 
 # Role: Verification & Operations Layer – Quality Gate

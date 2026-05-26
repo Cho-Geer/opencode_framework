@@ -3,8 +3,8 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-05-23T07:45:00.000Z",
-    "last_regenerated": "2026-05-23",
+    "last_updated": "2026-05-26T00:02:22.174Z",
+    "last_regenerated": "2026-05-26",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
     "digest_algorithm": "sha256",
@@ -17,7 +17,7 @@
       "semver": "1.0.0",
       "sha256": "264dad21a63f580f55c77f36c14660ac986c572d28af6c5d5628a3394ab87634",
       "last_modified": "2026-05-19T00:59:16.000Z",
-      "description": "Core project rules \u2013 always-on, highest priority for all agents",
+      "description": "Core project rules – always-on, highest priority for all agents",
       "digest_history": [
         {
           "sha256": "264dad21a63f580f55c77f36c14660ac986c572d28af6c5d5628a3394ab87634",
@@ -33,7 +33,7 @@
       "semver": "1.0.0",
       "sha256": "1fa0b6842912ac410e8315598b3e7e74915d51f0e8847c7321284813166b51dd",
       "last_modified": "2026-05-19T00:59:16.000Z",
-      "description": "MCP tool usage compliance requirements \u2013 always-on",
+      "description": "MCP tool usage compliance requirements – always-on",
       "digest_history": [
         {
           "sha256": "1fa0b6842912ac410e8315598b3e7e74915d51f0e8847c7321284813166b51dd",
@@ -49,7 +49,7 @@
       "semver": "1.0.0",
       "sha256": "f5850e9a6aaa54c1d1567273cb098387c42413839b844d9c6db0d7d9cd7cc97f",
       "last_modified": "2026-05-19T00:59:16.000Z",
-      "description": "Skill invocation permissions and compliance requirements \u2013 always-on",
+      "description": "Skill invocation permissions and compliance requirements – always-on",
       "digest_history": [
         {
           "sha256": "f5850e9a6aaa54c1d1567273cb098387c42413839b844d9c6db0d7d9cd7cc97f",
@@ -65,7 +65,7 @@
       "semver": "1.0.0",
       "sha256": "4ad6b97b9615e2eb590bda8de1a49e8258caf6b425972b4f8d0da7fbd27f9c76",
       "last_modified": "2026-05-21T03:22:40.000Z",
-      "description": "Backend code standards \u2013 NestJS, Prisma, DTO patterns",
+      "description": "Backend code standards – NestJS, Prisma, DTO patterns",
       "digest_history": [
         {
           "sha256": "4ad6b97b9615e2eb590bda8de1a49e8258caf6b425972b4f8d0da7fbd27f9c76",
@@ -81,7 +81,7 @@
       "semver": "1.0.0",
       "sha256": "bb632d7dc6d87b9d6b46731590468fc53d10ae4eaedda48e13366b2deff69f8d",
       "last_modified": "2026-05-21T03:27:36.000Z",
-      "description": "Frontend code standards \u2013 Angular, SignalStore, Tailwind, PrimeNG",
+      "description": "Frontend code standards – Angular, SignalStore, Tailwind, PrimeNG",
       "digest_history": [
         {
           "sha256": "bb632d7dc6d87b9d6b46731590468fc53d10ae4eaedda48e13366b2deff69f8d",
@@ -113,7 +113,7 @@
       "semver": "1.0.0",
       "sha256": "e1231b7183cff8e29e3bd1d628b3c92b201ddc536acb55077b7d63de4784bedf",
       "last_modified": "2026-05-19T00:59:16.000Z",
-      "description": "TDD and test coding standards \u2013 Jest, Playwright, Supertest",
+      "description": "TDD and test coding standards – Jest, Playwright, Supertest",
       "digest_history": [
         {
           "sha256": "c3f3cb547d5b981d082e100c754f585b76b0c13c64849d5978cbed928c72a441",
@@ -129,7 +129,7 @@
       "semver": "1.0.0",
       "sha256": "1e014da1a97bbbf3df58455d4409c36c8305f190824c4f0f1d604162608f56ad",
       "last_modified": "2026-05-21T03:56:36.000Z",
-      "description": "Skill invocation standardization \u2013 registration, naming, invocation patterns",
+      "description": "Skill invocation standardization – registration, naming, invocation patterns",
       "digest_history": [
         {
           "sha256": "1e014da1a97bbbf3df58455d4409c36c8305f190824c4f0f1d604162608f56ad",
@@ -145,7 +145,7 @@
       "semver": "1.0.0",
       "sha256": "6c9cadeb41a85cf77cbbd7d40411cf27203fcab1b82cef0175ec9c8cf1b4311e",
       "last_modified": "2026-05-19T01:06:00.000Z",
-      "description": "MCP tool inventory \u2013 available tools, selection guide, invocation patterns",
+      "description": "MCP tool inventory – available tools, selection guide, invocation patterns",
       "digest_history": [
         {
           "sha256": "6c9cadeb41a85cf77cbbd7d40411cf27203fcab1b82cef0175ec9c8cf1b4311e",
@@ -161,7 +161,7 @@
       "semver": "1.1.0",
       "sha256": "1fd672eb1f79539fcef025dee71258097e4861b7c56a1b08660ebe470039a5e6",
       "last_modified": "2026-05-23T07:45:00.000Z",
-      "description": "DAG generation standard v1.1.0 \u2013 parameterized module template replacement",
+      "description": "DAG generation standard v1.1.0 – parameterized module template replacement",
       "digest_history": [
         {
           "sha256": "df75ac7964462692b3158c1ff2ad79ac6705c4561d88bcfe25a490eca3ab752b",
@@ -231,7 +231,7 @@
       "semver": "1.0.0",
       "sha256": "c9c17a7525aa92ff02e3af7115f13dad5702c16bda363ff67a82f92e728aa85a",
       "last_modified": "2026-05-20T11:58:03.000Z",
-      "description": "MANDATORY pre-flight check skill \u2013 verifies rule compliance, MCP readiness, skill requirements",
+      "description": "MANDATORY pre-flight check skill – verifies rule compliance, MCP readiness, skill requirements",
       "critical": true,
       "digest_history": [
         {
@@ -293,48 +293,66 @@
     "agents/architect.md": {
       "path": ".opencode/agents/architect.md",
       "category": "agent",
-      "semver": "1.0.0",
-      "sha256": "ca1f8bcca61839ebb90eae8432cc86afebb860aaa9590bb6b7388919de489e45",
-      "last_modified": "2026-05-21T21:25:17.000Z",
-      "description": "System Architect \u2013 technology selection, interface contracts, directory structure",
+      "semver": "1.0.1",
+      "sha256": "5db05c1e0a10c5871fd9111d43427e18a533b8ed63ce4c62c8a292324eda6ce9",
+      "last_modified": "2026-05-26T00:02:22.172Z",
+      "description": "System Architect – technology selection, interface contracts, directory structure",
       "digest_history": [
         {
           "sha256": "ca1f8bcca61839ebb90eae8432cc86afebb860aaa9590bb6b7388919de489e45",
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "5db05c1e0a10c5871fd9111d43427e18a533b8ed63ce4c62c8a292324eda6ce9",
+          "timestamp": "2026-05-26T00:02:22.172Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
     "agents/coder-be.md": {
       "path": ".opencode/agents/coder-be.md",
       "category": "agent",
-      "semver": "1.0.0",
-      "sha256": "2a85d8c9b20f9b3d40dc5639aa66a14fbadd45f424bec5edf109314e3773aac6",
-      "last_modified": "2026-05-21T21:26:59.000Z",
-      "description": "Backend Development Engineer \u2013 API implementation, business logic",
+      "semver": "1.0.1",
+      "sha256": "7d95b813c7cfe36d5b4f86d04efc98d262d8038af4626b9ecb03074f4c6ebf15",
+      "last_modified": "2026-05-26T00:02:22.173Z",
+      "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
         {
           "sha256": "2a85d8c9b20f9b3d40dc5639aa66a14fbadd45f424bec5edf109314e3773aac6",
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "7d95b813c7cfe36d5b4f86d04efc98d262d8038af4626b9ecb03074f4c6ebf15",
+          "timestamp": "2026-05-26T00:02:22.173Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
     "agents/coder-fe.md": {
       "path": ".opencode/agents/coder-fe.md",
       "category": "agent",
-      "semver": "1.0.0",
-      "sha256": "aa97377bf0de2d17f5353bb093fad3de591508ab6e086287ae4f5dcd28fe392a",
-      "last_modified": "2026-05-21T22:09:19.000Z",
-      "description": "Frontend Development Engineer \u2013 page/component/interaction implementation",
+      "semver": "1.0.1",
+      "sha256": "80226da15c497656fb8988851a4b9a0e1f919d1c2c150835a9cd5117e4f82518",
+      "last_modified": "2026-05-26T00:02:22.173Z",
+      "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
         {
           "sha256": "aa97377bf0de2d17f5353bb093fad3de591508ab6e086287ae4f5dcd28fe392a",
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "80226da15c497656fb8988851a4b9a0e1f919d1c2c150835a9cd5117e4f82518",
+          "timestamp": "2026-05-26T00:02:22.173Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
@@ -344,7 +362,7 @@
       "semver": "1.0.0",
       "sha256": "9ebadf94732ea96b63ddab19784faae8e864f518584b94e822f858504be9aef8",
       "last_modified": "2026-05-21T19:52:28.000Z",
-      "description": "Project Manager \u2013 dedicated scheduling and state control, DAG-driven dispatch",
+      "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch",
       "digest_history": [
         {
           "sha256": "9ebadf94732ea96b63ddab19784faae8e864f518584b94e822f858504be9aef8",
@@ -357,26 +375,32 @@
     "agents/guardian.md": {
       "path": ".opencode/agents/guardian.md",
       "category": "agent",
-      "semver": "1.0.0",
-      "sha256": "88a291a403d21b95ba8a6453a3e371f2e2d413834c408c46be2dd7e4454097ca",
-      "last_modified": "2026-05-21T21:20:59.000Z",
-      "description": "Quality Gate \u2013 code standards, security, architecture constraint review",
+      "semver": "1.0.1",
+      "sha256": "e18f2148779edb797eae089bf8a7cb33d3fe77ea8be710ffc7cd3595e78ef87b",
+      "last_modified": "2026-05-26T00:02:22.173Z",
+      "description": "Quality Gate – code standards, security, architecture constraint review",
       "digest_history": [
         {
           "sha256": "88a291a403d21b95ba8a6453a3e371f2e2d413834c408c46be2dd7e4454097ca",
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "e18f2148779edb797eae089bf8a7cb33d3fe77ea8be710ffc7cd3595e78ef87b",
+          "timestamp": "2026-05-26T00:02:22.173Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
-    "requirements/\u7cfb\u7edf\u67b6\u6784\u8bbe\u8ba1\u6587\u6863\uff08SAD\uff09.md": {
-      "path": ".opencode/context/requirements/\u7cfb\u7edf\u67b6\u6784\u8bbe\u8ba1\u6587\u6863\uff08SAD\uff09.md",
+    "requirements/系统架构设计文档（SAD）.md": {
+      "path": ".opencode/context/requirements/系统架构设计文档（SAD）.md",
       "category": "requirement",
       "semver": "1.0.0",
       "sha256": "8ea014ffde9b54080dcabebee3f4afb70a842e1d5f8d5911734ef3a18d30c0e3",
       "last_modified": "2026-05-19T00:59:16.000Z",
-      "description": "System Architecture Design document \u2013 overall architecture specification",
+      "description": "System Architecture Design document – overall architecture specification",
       "digest_history": [
         {
           "sha256": "8ea014ffde9b54080dcabebee3f4afb70a842e1d5f8d5911734ef3a18d30c0e3",
@@ -386,8 +410,8 @@
         }
       ]
     },
-    "requirements/\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md": {
-      "path": ".opencode/context/requirements/\u63a5\u53e3\u8bbe\u8ba1\u89c4\u8303\u6587\u6863.md",
+    "requirements/接口设计规范文档.md": {
+      "path": ".opencode/context/requirements/接口设计规范文档.md",
       "category": "requirement",
       "semver": "1.0.0",
       "sha256": "0097fae4cff4357e329cae89982484b062bf0d0a125ff7e606650ecaf1bb8b05",

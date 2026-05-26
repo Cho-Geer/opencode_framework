@@ -28,6 +28,10 @@ mcp_tools:
   - docker_stop_container
   - GitHub
   - Context7
+permission:
+  edit: deny
+  bash: deny
+  task: deny
 ---
 
 # Role: Verification & Operations Layer – DevOps/SRE (CI/CD Agent)
