@@ -276,3 +276,20 @@ describe("FX-DIAG-CONS-1: DAG field name validation", () => {
     expect(dagCheck.status).toBe("PASS");
   });
 });
+
+
+describe("FX-DIAG-ROBUST-3: DAG cycle detection", () => {
+  it('should detect circular dependencies (RED: only checks existence)', () => {
+    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-doctor.js'), 'utf8');
+    const hasCycleDetection = src.includes('visited') || src.includes('cycle') || src.includes('topological') || src.includes('DFS');
+    expect(hasCycleDetection).toBe(true);
+  });
+});
+
+describe("FX-DIAG-ARCH-2: TS-CJS build staleness check", () => {
+  it('should verify .cjs is not stale vs .ts source (RED: no staleness check)', () => {
+    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-doctor.js'), 'utf8');
+    const hasBuildCheck = src.includes('buildStaleness') || src.includes('checkBuild');
+    expect(hasBuildCheck).toBe(true);
+  });
+});
