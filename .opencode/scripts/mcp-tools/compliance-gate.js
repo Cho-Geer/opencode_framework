@@ -867,6 +867,42 @@ function runGateComplete(sessionId, executionSummary) {
     );
   }
 
+  // ── CI-UNIFY-003: Validate HANDOVER.md and TASK_LOG.md exist ──
+  const missingArtifacts = validateTaskArtifacts(session.task_id);
+  if (missingArtifacts.length > 0 && enforcementMode !== "advisory") {
+    const now = new Date().toISOString();
+    session.gate_status = "failed";
+    session.consumed_at = now;
+    session.enforcement_mode = enforcementMode;
+    session.fail_reason =
+      "Missing required task artifacts: " + missingArtifacts.join(", ");
+    session.missing_artifacts = missingArtifacts;
+    session.audit = {
+      execution_summary: (executionSummary || "").substring(0, 1000),
+      completed_at: now,
+    };
+    store.active_sessions = store.active_sessions.filter(
+      (sid) => sid !== sessionId,
+    );
+    store.last_updated = new Date().toISOString();
+    saveStore(store);
+    return {
+      status: "failed",
+      reason:
+        "Missing required task artifacts: " +
+        missingArtifacts.join(", ") +
+        ". Create HANDOVER.md and TASK_LOG.md under .task_temp/ before completing.",
+      missing_artifacts: missingArtifacts,
+    };
+  }
+  if (missingArtifacts.length > 0 && enforcementMode === "advisory") {
+    process.stderr.write(
+      "[ADVISORY] Missing task artifacts (proceeding): " +
+        missingArtifacts.join(", ") +
+        "\n",
+    );
+  }
+
   const now = new Date().toISOString();
   session.gate_status = "completed";
   session.consumed_at = now;
@@ -1016,6 +1052,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
   ],
 }));
+
+/**
+ * Validate that HANDOVER.md and TASK_LOG.md exist for a given task.
+ * Used by runGateComplete to enforce CI-UNIFY-003 artifact requirements.
+ * @param {string|null} taskId - The task ID to validate
+ * @returns {string[]} Array of missing artifact filenames (empty if all present or taskId unknown)
+ */
+function validateTaskArtifacts(taskId) {
+  if (!taskId) return []; // Unknown taskId -- skip validation
+  const taskTempDir = path2.join(OPENCODE_ROOT, ".task_temp", taskId);
+  const handoverPath = path2.join(taskTempDir, "HANDOVER.md");
+  const taskLogPath = path2.join(taskTempDir, "TASK_LOG.md");
+  const missing = [];
+  if (!fileExists(handoverPath)) missing.push("HANDOVER.md");
+  if (!fileExists(taskLogPath)) missing.push("TASK_LOG.md");
+  return missing;
+}
 
 /**
  * Drain stale sessions with configurable thresholds.
@@ -1186,3 +1239,15 @@ main().catch((err) => {
   process.stderr.write(`Fatal error: ${err.message}\n`);
   process.exit(1);
 });
+
+
+// ── Module exports (for testability / CI-UNIFY-003) ──
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    runGateCheck,
+    runGateConfirm,
+    runGateComplete,
+    validateTaskArtifacts,
+    getEnforcementMode,
+  };
+}
