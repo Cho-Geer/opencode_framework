@@ -3083,3 +3083,42 @@ describe("FW-HARNESS-PHASE3-INTEGRATION: All Phase 3 features working together",
     expect(getEnforcementMode(OPENCODE_ROOT)).toBe("locked");
   });
 });
+
+// ============ FX-DIAG-CONS-3: drained_sessions object format ============
+describe("FX-DIAG-CONS-3: drained_sessions object format", () => {
+  beforeEach(() => { FEATURE_FLAGS.afterRepair = true; });
+  afterEach(() => { FEATURE_FLAGS.afterRepair = false; });
+
+  it('should preserve object format {sid: {...}} when draining sessions (RED: framework-enforcer uses array .push)', () => {
+    const gatePath = path.join(OPENCODE_ROOT, '.opencode/state/gate-state.json');
+    const now = Date.now();
+    const gateState = {
+      formatVersion: '2.0',
+      active_sessions: ['stale_999'],
+      sessions: {
+        stale_999: { session_id: 'stale_999', gate_status: 'armed', confirmed_at: new Date(now - 25*3600000).toISOString(), consumed_at: null, task_description: 'stale' }
+      },
+      drained_sessions: { prev_001: { session_id: 'prev_001', gate_status: 'drained', drained_at: new Date(now - 7200000).toISOString(), reason: 'manual' } }
+    };
+    fs.writeFileSync(gatePath, JSON.stringify(gateState, null, 2));
+    let drainedCount;
+    try { drainedCount = autoDrainStaleSessions(OPENCODE_ROOT); } catch { drainedCount = -1; }
+    const updated = JSON.parse(fs.readFileSync(gatePath, 'utf8'));
+    // RED: FAILS - autoDrainStaleSessions uses .push() on object, crashes
+    expect(Array.isArray(updated.drained_sessions)).toBe(false);
+    expect(typeof updated.drained_sessions).toBe('object');
+    expect(updated.drained_sessions.prev_001).toBeDefined();
+    expect(drainedCount).toBeGreaterThan(0);
+  });
+
+  // ============ FX-DIAG-MULTI-1: safe-edit integration ============
+  it('should invoke TOCTOU protection for edit/write operations (RED: no safe-edit integration)', () => {
+    // RED: toolExecuteBefore does not call safeEdit for edit operations
+    // This test documents the gap - framework-enforcer has no safe-edit import
+    const hasSafeEditImport = fs.readFileSync(
+      path.join(OPENCODE_ROOT, '.opencode/plugins/framework-enforcer/framework-enforcer.js'), 'utf8'
+    ).includes('safe-edit');
+    // RED: FAILS — safe-edit is not imported or called in framework-enforcer
+    expect(hasSafeEditImport).toBe(true);
+  });
+});

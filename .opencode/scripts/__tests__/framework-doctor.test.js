@@ -237,3 +237,42 @@ describe("framework-doctor JSON report output", () => {
     expect(report).toHaveProperty("summary");
   });
 });
+
+describe("FX-DIAG-CONS-1: DAG field name validation", () => {
+  const dagPath = path.join(PROJECT_ROOT, "Task.DAG.json");
+  let originalDagContent = null;
+
+  beforeAll(() => {
+    if (fs.existsSync(dagPath)) {
+      originalDagContent = fs.readFileSync(dagPath, "utf-8");
+    }
+  });
+
+  afterAll(() => {
+    if (originalDagContent !== null) {
+      fs.writeFileSync(dagPath, originalDagContent, "utf-8");
+    } else if (fs.existsSync(dagPath)) {
+      fs.unlinkSync(dagPath);
+    }
+  });
+
+  it('should accept tasks with "name" field per dag-generation-standard.md §7 (RED: fails because doctor requires "title")', () => {
+    const mockDag = {
+      meta: { total_tasks: 2, completed_tasks: 1, pending_tasks: 1 },
+      tasks: [
+        { id: "T001", name: "Task using standard name field", agent: "@Coder-BE", dependencies: [], priority: "P1", status: "pending", target_files: ["src/test.ts"], definition_of_done: { files_exist: [], logic_complete: "", tests_pass: "", guardian_approved: false } },
+        { id: "T002", name: "Another task", agent: "@Coder-FE", dependencies: ["T001"], priority: "P2", status: "pending", target_files: ["src/test.ts"], definition_of_done: { files_exist: [], logic_complete: "", tests_pass: "", guardian_approved: false } }
+      ]
+    };
+    fs.writeFileSync(dagPath, JSON.stringify(mockDag, null, 2), "utf-8");
+    let output;
+    try {
+      output = execSync(`node "${DOCTOR_SCRIPT}" --json --check 2`, { cwd: PROJECT_ROOT, timeout: 30000, encoding: "utf8" });
+    } catch (e) { output = e.stdout || ""; }
+    const parsed = JSON.parse(output);
+    const dagCheck = parsed.checks.find(c => c.id === 2);
+    expect(dagCheck).toBeDefined();
+    // RED: currently FAILS because doctor.js expects "title" not "name"
+    expect(dagCheck.status).toBe("PASS");
+  });
+});

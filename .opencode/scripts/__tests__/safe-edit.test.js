@@ -244,3 +244,14 @@ if (failed > 0) {
   console.log('=== GREEN: All tests passed ===');
   process.exit(0);
 }
+
+// ============ FX-DIAG-ROBUST-1: single-call safeEdit success ============
+describe("FX-DIAG-ROBUST-1: single-call safeEdit success", () => {
+  it('should succeed on first call to a new file via auto-retry (RED: returns TOCTOU error)', () => {
+    const NEW_FILE = path.join(TEST_TMPDIR, 'fx-diag-robust-1-test.txt');
+    if (fs.existsSync(NEW_FILE)) fs.unlinkSync(NEW_FILE);
+    const result = safeEdit(NEW_FILE, 'single-call write', { createBackup: true });
+    // RED: FAILS — first call returns TOCTOU error "no baseline audit in registry"
+    expect(result.success).toBe(true);
+  });
+});

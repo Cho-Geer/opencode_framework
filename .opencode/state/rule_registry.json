@@ -3,7 +3,7 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-05-26T01:35:48.022946Z",
+    "last_updated": "2026-05-26T10:40:03.757Z",
     "last_regenerated": "2026-05-26",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
@@ -299,9 +299,9 @@
     "agents/architect.md": {
       "path": ".opencode/agents/architect.md",
       "category": "agent",
-      "semver": "1.0.1",
-      "sha256": "5db05c1e0a10c5871fd9111d43427e18a533b8ed63ce4c62c8a292324eda6ce9",
-      "last_modified": "2026-05-26T00:02:22.172Z",
+      "semver": "1.0.2",
+      "sha256": "9b4475310c1b031a1d535a666596f8e32ec284a7fcbd7b38883e1c6888f608ff",
+      "last_modified": "2026-05-26T10:40:03.755Z",
       "description": "System Architect – technology selection, interface contracts, directory structure",
       "digest_history": [
         {
@@ -314,6 +314,12 @@
           "sha256": "5db05c1e0a10c5871fd9111d43427e18a533b8ed63ce4c62c8a292324eda6ce9",
           "timestamp": "2026-05-26T00:02:22.172Z",
           "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "9b4475310c1b031a1d535a666596f8e32ec284a7fcbd7b38883e1c6888f608ff",
+          "timestamp": "2026-05-26T10:40:03.756Z",
+          "semver": "1.0.2",
           "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
@@ -399,9 +405,9 @@
     "agents/guardian.md": {
       "path": ".opencode/agents/guardian.md",
       "category": "agent",
-      "semver": "1.0.1",
-      "sha256": "e18f2148779edb797eae089bf8a7cb33d3fe77ea8be710ffc7cd3595e78ef87b",
-      "last_modified": "2026-05-26T00:02:22.173Z",
+      "semver": "1.0.2",
+      "sha256": "a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076",
+      "last_modified": "2026-05-26T10:40:03.757Z",
       "description": "Quality Gate – code standards, security, architecture constraint review",
       "digest_history": [
         {
@@ -414,6 +420,12 @@
           "sha256": "e18f2148779edb797eae089bf8a7cb33d3fe77ea8be710ffc7cd3595e78ef87b",
           "timestamp": "2026-05-26T00:02:22.173Z",
           "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076",
+          "timestamp": "2026-05-26T10:40:03.757Z",
+          "semver": "1.0.2",
           "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
