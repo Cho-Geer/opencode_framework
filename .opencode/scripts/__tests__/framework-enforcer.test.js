@@ -3122,3 +3122,29 @@ describe("FX-DIAG-CONS-3: drained_sessions object format", () => {
     expect(hasSafeEditImport).toBe(true);
   });
 });
+
+
+describe("FX-DIAG-CONS-4: merged staleness handler", () => {
+  it('should handle stale sessions with a single read (RED: two separate functions)', () => {
+    const gatePath = path.join(OPENCODE_ROOT, '.opencode/state/gate-state.json');
+    const now = Date.now();
+    fs.writeFileSync(gatePath, JSON.stringify({
+      sessions: { s1: { session_id:'s1', gate_status:'armed', confirmed_at: new Date(now-25*3600000).toISOString(), consumed_at:null } },
+      drained_sessions: {}
+    }, null, 2));
+    let hasUnified = false;
+    try {
+      const mod = require('../../plugins/framework-enforcer/framework-enforcer.js');
+      hasUnified = typeof mod.handleStaleSessions === 'function';
+    } catch(e) {}
+    expect(hasUnified).toBe(true);
+  });
+});
+
+describe("FX-DIAG-HARD-1: dynamic hook count", () => {
+  it('should dynamically count exported hooks (RED: hardcoded _pluginHooksCount=14)', () => {
+    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/plugins/framework-enforcer/framework-enforcer.js'), 'utf8');
+    const hasDynamicCount = src.includes('Object.keys') && src.includes('hooks');
+    expect(hasDynamicCount).toBe(true);
+  });
+});
