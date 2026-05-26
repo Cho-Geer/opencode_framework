@@ -858,3 +858,13 @@ describe("FW-HARDEN-F6-TEST: writeJson fail-closed enforcement modes", () => {
     delete process.env.ENFORCEMENT_MODE;
   });
 });
+
+
+describe("FX-DIAG-ROBUST-2: all 11 sub-states checked", () => {
+  it('should validate all 11 machine.json sub-states (RED: only 4 checked)', () => {
+    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-compliance-check.js'), 'utf8');
+    const subStatesToCheck = ['write_audit_state', 'compliance_records', 'tdd_enforcement_state', 'contracts', 'keystone_hashes', 'meta', 'transaction_state'];
+    const allChecked = subStatesToCheck.every(s => src.includes(s));
+    expect(allChecked).toBe(true);
+  });
+});
