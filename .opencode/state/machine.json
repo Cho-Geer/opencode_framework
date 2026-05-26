@@ -2,10 +2,10 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-26T00:20:45.110Z",
+    "lastUpdated": "2026-05-26T00:52:57.235Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 325,
+    "revision": 340,
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
@@ -41,7 +41,7 @@
     "dirty_files": [],
     "incremental_errors": 0,
     "last_incremental_check": "2026-05-25T23:44:36.334Z",
-    "last_full_check": "2026-05-25T23:46:56.628Z",
+    "last_full_check": "2026-05-26T00:48:46.779Z",
     "full_errors": 2
   },
   "dependency_state": {
@@ -3173,14 +3173,14 @@
     ".opencode/agents/coder-be.md": "sha256-7d95b813c7cfe36d5b4f86d04efc98d262d8038af4626b9ecb03074f4c6ebf15",
     ".opencode/agents/coder-fe.md": "sha256-80226da15c497656fb8988851a4b9a0e1f919d1c2c150835a9cd5117e4f82518",
     ".opencode/agents/guardian.md": "sha256-e18f2148779edb797eae089bf8a7cb33d3fe77ea8be710ffc7cd3595e78ef87b",
-    ".opencode/agents/meta-planner.md": "sha256-eb6a75956ebeb5988c61f56ac6ec45fe3ff38ef36d0d233a3470521e176f04b9",
-    ".opencode/agents/orchestrator.md": "sha256-9ebadf94732ea96b63ddab19784faae8e864f518584b94e822f858504be9aef8",
+    ".opencode/agents/meta-planner.md": "sha256-52e887bb3a5efa3fb51e9c3934fd84c8439da90d2ede6907492b5edada235bfb",
+    ".opencode/agents/orchestrator.md": "sha256-8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562",
     "AGENTS.md": "sha256-c73f2e280c390ad297a8e1ec355cc59e2ab2071e741f0bf824458cf16dc49b46",
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "bf2ebad2-6669-4b3f-b75a-13c939065720",
-    "last_transaction_at": "2026-05-26T00:00:40.051Z",
+    "last_operation_id": "6378ec69-76ac-4178-a025-18ed64c4f989",
+    "last_transaction_at": "2026-05-26T00:51:32.637Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }

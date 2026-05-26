@@ -14,6 +14,7 @@ mcp_tools:
   - GitHub
 permission:
   edit: deny
+  bash: deny
 ---
 
 # Role: Meta‑Cognitive Layer – Project CTO

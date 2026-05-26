@@ -14,6 +14,7 @@ mcp_tools:
   - GitHub
 permission:
   edit: deny
+  bash: deny
 agent_tools_whitelist:
   - task
   - todowrite
