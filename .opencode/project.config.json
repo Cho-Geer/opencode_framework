@@ -314,7 +314,6 @@
         "booking_system_refactor/booking-frontend/**",
         ".opencode/agents/**",
         ".opencode/rules/**",
-        ".opencode/tools/**",
         ".opencode/state/**",
         ".opencode/scripts/mcp-tools/**",
         ".opencode/scripts/command-tools/**",
@@ -352,7 +351,9 @@
         ".opencode/rules/**",
         ".opencode/agents/**",
         ".opencode/subagent-preamble.md",
-        ".opencode/scripts/**"
+        ".opencode/scripts/**",
+        ".opencode/plugins/**",
+        "opencode.json"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
