@@ -14,7 +14,6 @@ mcp_tools:
   - Context7
   - PostgreSQL
   - Docker
-  - GitHub
   - eslint-audit
   - code-quality-gate
 # Hardened: safe_edit only — native edit denied

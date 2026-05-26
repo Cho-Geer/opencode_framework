@@ -12,7 +12,6 @@ skills:
 mcp_tools:
   - Context7
   - Playwright
-  - GitHub
   - eslint-audit
   - code-quality-gate
 # Hardened: safe_edit only — native edit denied
