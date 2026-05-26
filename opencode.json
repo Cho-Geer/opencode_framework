@@ -1,35 +1,42 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "_comment": "OpenCode Framework Adapter — DO NOT compete with Task.DAG.json, machine.json, gate-state.json, or contract.yaml as authorities. This file mirrors existing agent configurations and enforces permissions.",
+  "_framework_authorities": {
+    "description": "This opencode.json is an ADAPTER — it reflects/mirrors existing framework authorities without overriding them.",
+    "dag_authority": "Task.DAG.json",
+    "state_authorities": [
+      "machine.json",
+      "gate-state.json"
+    ],
+    "contract_authority": "contract.yaml",
+    "agent_definitions": ".opencode/agents/*.md (canonical, opencode.json mirrors only)"
+  },
   "instructions": [
     "AGENTS.md",
     ".opencode/rules/**/*.md",
     ".opencode/rules/rule_detail/*.md"
   ],
-  "agents": {
+  "agent": {
     "Meta-Planner": {
-      "mode": "primary",
+      "mode": "subagent",
       "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/meta-planner.md",
       "permission": {
-        "write": {
-          "allow": [
-            ".task_temp/**",
-            "Task.DAG.json",
-            "Project.graph"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-backend/src/**",
-            "booking_system_refactor/booking-frontend/src/**",
-            ".opencode/tools/**",
-            ".opencode/scripts/**",
-            ".opencode/state/**",
-            "contract.yaml"
-          ]
-        },
         "read": "allow",
+        "edit": {
+          ".task_temp/**": "allow",
+          "Task.DAG.json": "allow",
+          "Project.graph": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/scripts/**": "deny",
+          ".opencode/state/**": "deny",
+          "contract.yaml": "deny",
+          "*": "deny"
+        },
         "glob": "allow",
-        "grep": "allow"
+        "grep": "allow",
+        "bash": "ask"
       }
     },
     "Orchestrator": {
@@ -37,54 +44,50 @@
       "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/orchestrator.md",
       "permission": {
-        "write": {
-          "allow": [
-            ".task_temp/**",
-            "Task.DAG.json"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-backend/src/**",
-            "booking_system_refactor/booking-frontend/src/**",
-            "contract.yaml",
-            ".opencode/tools/**",
-            ".opencode/scripts/**"
-          ]
+        "read": "deny",
+        "edit": {
+          ".task_temp/**": "allow",
+          "Task.DAG.json": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "contract.yaml": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/scripts/**": "deny",
+          "*": "deny"
         },
-        "tools": {
-          "read": "deny",
-          "grep": "deny",
-          "glob": "deny",
-          "webfetch": "deny"
-        },
+        "glob": "deny",
+        "grep": "deny",
+        "webfetch": "deny",
         "bash": {
           "git *": "ask"
         }
       }
     },
     "Architect": {
-      "mode": "primary",
+      "mode": "subagent",
       "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/architect.md",
       "permission": {
-        "write": {
-          "allow": [
-            ".opencode/state/**",
-            "contract.yaml",
-            ".task_temp/**",
-            ".opencode/project.config.json",
-            "PROJECT_REFERENCE.md",
-            ".opencode/context/**",
-            ".opencode/rules/**",
-            ".opencode/agents/**",
-            ".opencode/subagent-preamble.md",
-            ".opencode/scripts/**"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-backend/src/**",
-            "booking_system_refactor/booking-frontend/src/**",
-            "booking_system_refactor/booking-backend/test/**"
-          ]
-        }
+        "read": "allow",
+        "edit": {
+          ".opencode/state/**": "allow",
+          "contract.yaml": "allow",
+          ".task_temp/**": "allow",
+          ".opencode/project.config.json": "allow",
+          "PROJECT_REFERENCE.md": "allow",
+          ".opencode/context/**": "allow",
+          ".opencode/rules/**": "allow",
+          ".opencode/agents/**": "allow",
+          ".opencode/subagent-preamble.md": "allow",
+          ".opencode/scripts/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "booking_system_refactor/booking-backend/test/**": "deny",
+          "*": "deny"
+        },
+        "glob": "allow",
+        "grep": "allow",
+        "bash": "ask"
       }
     },
     "Coder-BE": {
@@ -92,29 +95,29 @@
       "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/coder-be.md",
       "permission": {
-        "write": {
-          "allow": [
-            "booking_system_refactor/booking-backend/src/**",
-            "booking_system_refactor/booking-backend/test/**",
-            "booking_system_refactor/booking-backend/prisma/**",
-            "booking_system_refactor/booking-backend/*.{json,js,ts}",
-            ".opencode/scripts/__tests__/**",
-            ".task_temp/**",
-            "contract.yaml"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-frontend/**",
-            ".opencode/agents/**",
-            ".opencode/rules/**",
-            ".opencode/tools/**",
-            ".opencode/state/**",
-            ".opencode/scripts/mcp-tools/**",
-            ".opencode/scripts/command-tools/**",
-            "AGENTS.md",
-            "PROJECT_REFERENCE.md",
-            "TECH_DEBT_REGISTRY.md"
-          ]
+        "read": "allow",
+        "edit": {
+          "booking_system_refactor/booking-backend/src/**": "allow",
+          "booking_system_refactor/booking-backend/test/**": "allow",
+          "booking_system_refactor/booking-backend/prisma/**": "allow",
+          "booking_system_refactor/booking-backend/*.{json,js,ts}": "allow",
+          ".opencode/scripts/__tests__/**": "allow",
+          ".task_temp/**": "allow",
+          "contract.yaml": "allow",
+          "booking_system_refactor/booking-frontend/**": "deny",
+          ".opencode/agents/**": "deny",
+          ".opencode/rules/**": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/state/**": "deny",
+          ".opencode/scripts/mcp-tools/**": "deny",
+          ".opencode/scripts/command-tools/**": "deny",
+          "AGENTS.md": "deny",
+          "PROJECT_REFERENCE.md": "deny",
+          "TECH_DEBT_REGISTRY.md": "deny",
+          "*": "deny"
         },
+        "glob": "allow",
+        "grep": "allow",
         "bash": "allow"
       }
     },
@@ -123,24 +126,24 @@
       "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/coder-fe.md",
       "permission": {
-        "write": {
-          "allow": [
-            "booking_system_refactor/booking-frontend/**",
-            ".task_temp/**",
-            "contract.yaml"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-backend/**",
-            ".opencode/agents/**",
-            ".opencode/rules/**",
-            ".opencode/tools/**",
-            ".opencode/state/**",
-            ".opencode/scripts/**",
-            "AGENTS.md",
-            "PROJECT_REFERENCE.md",
-            "TECH_DEBT_REGISTRY.md"
-          ]
+        "read": "allow",
+        "edit": {
+          "booking_system_refactor/booking-frontend/**": "allow",
+          ".task_temp/**": "allow",
+          "contract.yaml": "allow",
+          "booking_system_refactor/booking-backend/**": "deny",
+          ".opencode/agents/**": "deny",
+          ".opencode/rules/**": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/state/**": "deny",
+          ".opencode/scripts/**": "deny",
+          "AGENTS.md": "deny",
+          "PROJECT_REFERENCE.md": "deny",
+          "TECH_DEBT_REGISTRY.md": "deny",
+          "*": "deny"
         },
+        "glob": "allow",
+        "grep": "allow",
         "bash": "allow"
       }
     },
@@ -149,20 +152,19 @@
       "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/guardian.md",
       "permission": {
-        "write": {
-          "allow": [
-            ".task_temp/**"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-backend/src/**",
-            "booking_system_refactor/booking-frontend/src/**",
-            "contract.yaml",
-            ".opencode/**",
-            "AGENTS.md",
-            "PROJECT_REFERENCE.md"
-          ]
-        },
         "read": "allow",
+        "edit": {
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "contract.yaml": "deny",
+          ".opencode/**": "deny",
+          "AGENTS.md": "deny",
+          "PROJECT_REFERENCE.md": "deny",
+          "*": "deny"
+        },
+        "glob": "allow",
+        "grep": "allow",
         "bash": {
           "grep *": "allow",
           "git log*": "allow"
@@ -174,20 +176,20 @@
       "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/arbiter.md",
       "permission": {
-        "write": {
-          "allow": [
-            ".task_temp/**",
-            "WAIVE.md",
-            "TECH_DEBT_REGISTRY.md"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-backend/src/**",
-            "booking_system_refactor/booking-frontend/src/**",
-            "contract.yaml",
-            ".opencode/tools/**",
-            ".opencode/scripts/**"
-          ]
-        }
+        "read": "allow",
+        "edit": {
+          ".task_temp/**": "allow",
+          "WAIVE.md": "allow",
+          "TECH_DEBT_REGISTRY.md": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "contract.yaml": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/scripts/**": "deny",
+          "*": "deny"
+        },
+        "glob": "allow",
+        "grep": "allow"
       }
     },
     "CI-CD-Agent": {
@@ -195,21 +197,19 @@
       "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/ci-cd-agent.md",
       "permission": {
-        "write": {
-          "allow": [
-            "docker-compose*.yml",
-            ".github/workflows/**",
-            "Dockerfile*",
-            ".env.*",
-            "booking_system_refactor/booking-backend/prisma/**",
-            ".task_temp/**"
-          ],
-          "deny": [
-            "booking_system_refactor/booking-backend/src/**",
-            "booking_system_refactor/booking-frontend/src/**",
-            ".opencode/agents/**",
-            ".opencode/rules/**"
-          ]
+        "read": "allow",
+        "edit": {
+          "docker-compose*.yml": "allow",
+          ".github/workflows/**": "allow",
+          "Dockerfile*": "allow",
+          ".env.*": "allow",
+          "booking_system_refactor/booking-backend/prisma/**": "allow",
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          ".opencode/agents/**": "deny",
+          ".opencode/rules/**": "deny",
+          "*": "deny"
         },
         "bash": {
           "docker *": "allow",
@@ -219,13 +219,8 @@
       }
     }
   },
-  "plugin": [".opencode/plugins/framework-enforcer"],
-  "mcp": {},
-  "_framework_authorities": {
-    "description": "This opencode.json is an ADAPTER — it reflects/mirrors existing framework authorities without overriding them. The following remain the single source of truth:",
-    "dag_authority": "Task.DAG.json",
-    "state_authorities": ["machine.json", "gate-state.json"],
-    "contract_authority": "contract.yaml",
-    "agent_definitions": ".opencode/agents/*.md (canonical, opencode.json mirrors only)"
-  }
+  "plugin": [
+    ".opencode/plugins/framework-enforcer"
+  ],
+  "mcp": {}
 }
