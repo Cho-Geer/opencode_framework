@@ -16,6 +16,6 @@
       "@opencode-ai/plugin": ["./node_modules/@opencode-ai/plugin/dist/index.d.ts"]
     }
   },
-  "include": ["framework-enforcer.ts"],
+  "include": ["framework-enforcer.ts", "lib/framework-validation.ts"],
   "exclude": ["node_modules"]
 }

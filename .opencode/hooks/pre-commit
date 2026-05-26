@@ -100,7 +100,7 @@ fi
 # ── Layer 1.8 — Gate lifecycle audit ──
 echo ""
 echo "[1.8/4] Gate lifecycle audit..."
-audit_output=$(node .opencode/tools/gate-lifecycle-audit.js --json 2>&1) || true
+audit_output=$(node .opencode/scripts/gate-lifecycle-audit.js --json 2>&1) || true
 stale_count=$(echo "$audit_output" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len([s for s in d.get('stale_sessions',[]) if s.get('hours_old',0)>24]))" 2>/dev/null || echo "0")
 if [ "$stale_count" -gt 0 ] 2>/dev/null; then
   echo "  ⚠️  $stale_count stale gate session(s) found (>24h)"
