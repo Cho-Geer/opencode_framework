@@ -77,7 +77,7 @@ function main() {
     const orphaned = sessions.filter(s => s.gate_status === 'armed' && !s.confirmed_at);
     const stale = sessions.filter(s => {
       if (s.consumed_at) return false;
-      const created = new Date(s.created_at);
+      const created = new Date(s.confirmed_at || s.created_at);
       const hoursSince = (Date.now() - created.getTime()) / (1000 * 60 * 60);
       return hoursSince > 24;
     });

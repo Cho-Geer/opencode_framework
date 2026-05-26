@@ -41,6 +41,7 @@ import type { Plugin, PluginContext, Hooks } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { PermissionIsolation } from "../../tools/permission-isolation.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -533,6 +534,20 @@ async function toolExecuteBefore(
   const violations: string[] = [];
   const agent = process.env.FRAMEWORK_AGENT || "";
   const taskId = process.env.FRAMEWORK_TASK_ID || "";
+
+  // === P0: Permission isolation check (hard block in strict/locked) ===
+  const PERMISSION_MANAGED_TOOLS = new Set(["edit", "bash", "task"]);
+  if (agent && PERMISSION_MANAGED_TOOLS.has(tool)) {
+    const pi = new PermissionIsolation();
+    const permResult = await pi.checkPermission(agent, tool);
+    if (!permResult.allowed) {
+      const msg = `[FW-ENFORCE] Permission denied: agent '${agent}' cannot use tool '${tool}'. Reason: ${permResult.reason}`;
+      console.error(msg);
+      if (mode !== "advisory") {
+        throw new Error(msg);
+      }
+    }
+  }
 
   // ---- Plugin integrity check (FW-HARNESS-PLUGIN-CHECK) ----
   const integrityResult = checkPluginIntegrity();

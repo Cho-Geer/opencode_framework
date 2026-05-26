@@ -4,7 +4,7 @@ description: System Architect – technology selection, interface contracts, dir
 mode: subagent
 model: DeepSeek/deepseek-v4-pro
 temperature: 0.1
-steps: 15
+steps: 25
 color: "#F59E0B"
 skills:
   - execution-preflight-check

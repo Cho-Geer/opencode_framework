@@ -28,11 +28,15 @@ export interface ScopeResult {
 }
 
 const PERMISSION_PROFILES: Record<string, AgentPermissions> = {
-  '@Coder-BE': { agentType: '@Coder-BE', tools: { edit: 'allow', bash: 'allow', task: 'allow' } },
+  '@Coder-BE': { agentType: '@Coder-BE', tools: { edit: 'deny', bash: 'allow', task: 'allow' } },
   '@Coder-BE-readonly': { agentType: '@Coder-BE-readonly', tools: { edit: 'deny', bash: 'deny', task: 'deny' } },
-  '@Coder-FE': { agentType: '@Coder-FE', tools: { edit: 'allow', bash: 'deny', task: 'allow' } },
+  '@Coder-FE': { agentType: '@Coder-FE', tools: { edit: 'deny', bash: 'deny', task: 'allow' } },
   '@Guardian': { agentType: '@Guardian', tools: { edit: 'deny', bash: 'allow', task: 'deny' } },
   '@Architect': { agentType: '@Architect', tools: { edit: 'allow', bash: 'deny', task: 'deny' } },
+  '@Arbiter': { agentType: '@Arbiter', tools: { edit: 'deny', bash: 'deny', task: 'deny' } },
+  '@CI-CD-Agent': { agentType: '@CI-CD-Agent', tools: { edit: 'allow', bash: 'allow', task: 'allow' } },
+  '@Meta-Planner': { agentType: '@Meta-Planner', tools: { edit: 'deny', bash: 'deny', task: 'allow' } },
+  '@Orchestrator': { agentType: '@Orchestrator', tools: { edit: 'deny', bash: 'deny', task: 'allow' } },
 };
 
 const DENIED_WRITE_PATTERNS: string[] = ['/etc/', 'node_modules'];

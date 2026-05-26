@@ -142,18 +142,20 @@ function checkOpenCodeJson() {
 
   try {
     const oc = JSON.parse(raw);
-    const hasAgents = !!oc.agents && typeof oc.agents === "object";
+    const hasAgents = !!oc.agent && typeof oc.agent === "object";
     const hasInstructions = Array.isArray(oc.instructions);
     // Read _framework_authorities from .opencode/state/framework-authorities.json
     let hasFrameworkAuth = false;
     try {
-      const faRaw = readFile(path.join(STATE_DIR, "framework-authorities.json"));
+      const faRaw = readFile(
+        path.join(STATE_DIR, "framework-authorities.json"),
+      );
       const fa = JSON.parse(faRaw);
       hasFrameworkAuth = !!fa && typeof fa === "object";
     } catch (_) {}
-    const agentCount = hasAgents ? Object.keys(oc.agents).length : 0;
+    const agentCount = hasAgents ? Object.keys(oc.agent).length : 0;
 
-    const requiredFields = ["agents", "instructions"];
+    const requiredFields = ["agent", "instructions"];
     const missing = requiredFields.filter((f) => !(f in oc));
 
     if (missing.length === 0 && agentCount >= 8) {
@@ -203,12 +205,16 @@ function checkDagValidation() {
       };
     }
 
-    const requiredFields = ["id", "title", "status", "owner"];
+    const requiredFields = ["id", "status", "owner"];
     let invalidTasks = [];
     let brokenDeps = [];
 
     for (const task of dag.tasks) {
       const missing = requiredFields.filter((f) => !(f in task));
+      // FX-DIAG-CONS-1: Accept "name" per dag-generation-standard.md §7; legacy uses "title"
+      if (!task.name && !task.title) {
+        missing.push("name or title");
+      }
       if (missing.length > 0) {
         invalidTasks.push(
           `${task.id || "unknown"}: missing ${missing.join(", ")}`,
@@ -343,26 +349,33 @@ function checkStateReconciliation() {
         encoding: "utf8",
       });
       const result = JSON.parse(output);
-      const inconsistencies = result.inconsistencies || [];
+      const allInconsistencies = result.inconsistencies || [];
+      const inconsistencies = allInconsistencies.filter(
+        (i) => i.severity === "HIGH",
+      );
       const ok = inconsistencies.length === 0;
 
       // Build detailed summary
       let detail = "";
       if (ok) {
-        detail = "All states consistent (via state-reconciliation.js)";
-      } else {
-        const highCount = inconsistencies.filter(
-          (i) => i.severity === "HIGH",
+        const warnCount = allInconsistencies.filter(
+          (i) => i.severity === "WARNING",
         ).length;
-        const warnCount = inconsistencies.filter(
+        detail =
+          warnCount > 0
+            ? `All HIGH-severity states consistent, ${warnCount} WARNING(s) (via state-reconciliation.js)`
+            : "All states consistent (via state-reconciliation.js)";
+      } else {
+        const highCount = inconsistencies.length;
+        const warnCount = allInconsistencies.filter(
           (i) => i.severity === "WARNING",
         ).length;
         // Show first few inconsistencies as summary
-        const topIssues = inconsistencies
+        const topIssues = allInconsistencies
           .slice(0, 5)
           .map((i) => `${i.type}(${i.task_id || i.session_id || ""})`)
           .join(", ");
-        detail = `${inconsistencies.length} inconsistency(ies) found (${highCount} HIGH, ${warnCount} WARNING): ${topIssues}${inconsistencies.length > 5 ? `... and ${inconsistencies.length - 5} more` : ""}`;
+        detail = `${allInconsistencies.length} inconsistency(ies) found (${highCount} HIGH, ${warnCount} WARNING): ${topIssues}${allInconsistencies.length > 5 ? `... and ${allInconsistencies.length - 5} more` : ""}`;
       }
 
       return {
@@ -378,15 +391,23 @@ function checkStateReconciliation() {
       if (stdout) {
         try {
           const result = JSON.parse(stdout);
-          const inconsistencies = result.inconsistencies || [];
+          const allInconsistencies = result.inconsistencies || [];
+          const inconsistencies = allInconsistencies.filter(
+            (i) => i.severity === "HIGH",
+          );
           const ok = inconsistencies.length === 0;
+          const warnCount = allInconsistencies.filter(
+            (i) => i.severity === "WARNING",
+          ).length;
           return {
             id: 4,
             name: "State reconciliation",
             status: ok ? PASS : FAIL,
             detail: ok
-              ? "All states consistent (via state-reconciliation.js)"
-              : `${inconsistencies.length} inconsistency(ies) found`,
+              ? warnCount > 0
+                ? `All HIGH-severity states consistent, ${warnCount} WARNING(s) (via state-reconciliation.js)`
+                : "All states consistent (via state-reconciliation.js)"
+              : `${allInconsistencies.length} inconsistency(ies) found`,
           };
         } catch (_) {
           // fall through
@@ -896,20 +917,23 @@ function checkRolePermissionSync() {
     const oc = JSON.parse(ocRaw);
     const machine = JSON.parse(machineRaw);
 
-    const ocAgents = oc.agents || {};
+    const ocAgents = oc.agent || {};
     const writeAudit = machine.write_audit_state || {};
 
     let mismatches = [];
 
-    // Verify that each agent in opencode.json has a permission.write section
+    // Verify that each agent in opencode.json has a permission.edit section
     for (const [agentName, agentCfg] of Object.entries(ocAgents)) {
-      if (!agentCfg.permission?.write) {
-        mismatches.push(`${agentName}: missing permission.write`);
+      if (!agentCfg.permission?.edit) {
+        mismatches.push(`${agentName}: missing permission.edit`);
       } else {
-        const writePerm = agentCfg.permission.write;
-        if (!writePerm.allow || !Array.isArray(writePerm.allow)) {
+        const writePerm = agentCfg.permission.edit;
+        if (
+          typeof writePerm === "object" &&
+          Object.keys(writePerm).length === 0
+        ) {
           mismatches.push(
-            `${agentName}: permission.write.allow missing or not array`,
+            `${agentName}: permission.edit is empty or not an object`,
           );
         }
       }

@@ -525,8 +525,7 @@ function runWriteCheck(params) {
   // All audit logic has been extracted to code-quality-lib.js.
   // Use code-quality-lib.js functions directly for new integrations.
   process.stderr.write(
-    '[DEPRECATED] run_write_check is deprecated. Use code-quality-lib.js functions directly. See CI-UNIFY-004.
-'
+    '[DEPRECATED] run_write_check is deprecated. Use code-quality-lib.js functions directly. See CI-UNIFY-004.\n'
   );
   const { changed_file, agent_type, skip_checks, auto_fix, task_id } = params;
   const projectRoot = getProjectRoot();
@@ -766,7 +765,7 @@ module.exports = {
     return { ...r, status: r.pass ? 'pass' : 'violation' };
   },
   checkTDDOrder: (machine, filePath) => {
-    const wsRoot = process.env.OPENCODE_ROOT || '.';
+    const wsRoot = process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..", "..");
     const tddState = machine && machine.tdd_enforcement_state;
     const r = lib.runTddOrderCheck(filePath, wsRoot, tddState);
     return { ...r, status: r.pass ? 'pass' : 'violation' };

@@ -10,9 +10,9 @@ const {
   ListToolsRequestSchema,
 } = require("@modelcontextprotocol/sdk/types.js");
 
-const OPENCODE_ROOT = process.env.OPENCODE_ROOT || ".";
 const fs2 = require("fs");
 const path2 = require("path");
+const OPENCODE_ROOT = process.env.OPENCODE_ROOT ? path2.resolve(process.env.OPENCODE_ROOT) : path2.resolve(__dirname, "..", "..", "..");
 
 function resolveProjectState() {
   const cfgPath = path2.join(OPENCODE_ROOT, ".opencode", "project.config.json");
@@ -996,6 +996,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description:
               "Summary of the plan that the user confirmed (min 10 chars)",
+          },
+          task_id: {
+            type: "string",
+            description: "Optional DAG task ID for session-task linkage",
+          },
+          agent: {
+            type: "string",
+            description: "Optional agent type for session-agent linkage",
           },
         },
         required: ["session_id", "plan_summary"],

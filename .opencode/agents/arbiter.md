@@ -5,7 +5,7 @@ mode: subagent
 hidden: true
 model: DeepSeek/deepseek-v4-pro
 temperature: 0.1
-steps: 10
+steps: 25
 color: "#F97316"
 skills:
   - execution-preflight-check

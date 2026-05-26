@@ -23,7 +23,7 @@ const fs = require("fs");
 const path = require("path");
 
 const OPENCODE_ROOT =
-  process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", "..", "..");
+  process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..", "..");
 const AGENTS_DIR = path.join(OPENCODE_ROOT, ".opencode", "agents");
 const PREAMBLE_FILE = path.join(
   OPENCODE_ROOT,
@@ -49,6 +49,7 @@ if (taskIdFlagIdx !== -1 && taskIdFlagIdx + 1 < process.argv.length) {
   process.argv.splice(taskIdFlagIdx, 2);
 }
 process.env.FRAMEWORK_TASK_ID = taskId || "";
+process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
 const agentType = process.argv[2];
 process.env.FRAMEWORK_AGENT = agentType;
@@ -240,10 +241,45 @@ function parseYamlSimple(yaml) {
   return result;
 }
 
+function extractPermission(rawContent) {
+  const permission = {};
+  const lines = rawContent.split("\n");
+  let capture = false;
+
+  for (const line of lines) {
+    if (line.trim() === "permission:") {
+      capture = true;
+      continue;
+    }
+    if (!capture) continue;
+
+    if (
+      line.trim() === "---" ||
+      (line.trim() !== "" &&
+        !line.startsWith("  ") &&
+        !line.startsWith("\t") &&
+        !line.trim().startsWith("#"))
+    ) {
+      break;
+    }
+
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const match = trimmed.match(/^(\w[\w_-]*):\s*(.*)/);
+    if (match) {
+      permission[match[1]] = match[2].trim();
+    }
+  }
+
+  return Object.keys(permission).length > 0 ? permission : null;
+}
+
 const agentConfig = parseFrontmatter(agentContent);
 const agentName = agentConfig.name || agentType;
 const skills = agentConfig.skills || [];
 const mcpTools = agentConfig.mcp_tools || [];
+const permission = extractPermission(agentContent);
 
 // ──────────────────────────────────────────────
 // 3.5 Build template variable resolution map
@@ -443,6 +479,9 @@ ${skills.map((s) => `- \`${s}\``).join("\n")}
 
 **Your MCP Tools** (call as needed):
 ${mcpTools.map((t) => `- \`${t}\``).join("\n")}
+
+**Your Tool Permissions** (from agent config):
+${permission ? Object.entries(permission).map(([tool, access]) => `- ${tool}: ${access}`).join("\n") : "- No explicit permission restrictions defined"}
 
 ---
 

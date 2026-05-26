@@ -36,7 +36,7 @@ const crypto = require("crypto");
 
 // ─── Constants ────────────────────────────────────────────
 const OPENCODE_ROOT =
-  process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", "..");
+  process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..");
 const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
 const TRANSACTION_LOG = path.join(STATE_DIR, ".transaction-log");
 const MACHINE_JSON = path.join(STATE_DIR, "machine.json");

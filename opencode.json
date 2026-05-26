@@ -5,6 +5,7 @@
     ".opencode/rules/**/*.md",
     ".opencode/rules/rule_detail/*.md"
   ],
+  "lsp": true,
   "agent": {
     "Meta-Planner": {
       "mode": "subagent",
@@ -60,6 +61,7 @@
       "permission": {
         "read": "allow",
         "edit": {
+          "opencode.json": "allow",
           ".opencode/state/**": "allow",
           "contract.yaml": "allow",
           ".task_temp/**": "allow",
@@ -86,26 +88,8 @@
       "prompt": ".opencode/agents/coder-be.md",
       "permission": {
         "read": "allow",
-        "edit": {
-          "booking_system_refactor/booking-backend/src/**": "allow",
-          "booking_system_refactor/booking-backend/test/**": "allow",
-          "booking_system_refactor/booking-backend/prisma/**": "allow",
-          "booking_system_refactor/booking-backend/*.{json,js,ts}": "allow",
-          ".opencode/scripts/__tests__/**": "allow",
-          ".task_temp/**": "allow",
-          "contract.yaml": "allow",
-          "booking_system_refactor/booking-frontend/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/rules/**": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/state/**": "deny",
-          ".opencode/scripts/mcp-tools/**": "deny",
-          ".opencode/scripts/command-tools/**": "deny",
-          "AGENTS.md": "deny",
-          "PROJECT_REFERENCE.md": "deny",
-          "TECH_DEBT_REGISTRY.md": "deny",
-          "*": "deny"
-        },
+        "edit": "deny",
+        "safe_edit": "allow",
         "glob": "allow",
         "grep": "allow",
         "bash": "allow"
@@ -117,21 +101,8 @@
       "prompt": ".opencode/agents/coder-fe.md",
       "permission": {
         "read": "allow",
-        "edit": {
-          "booking_system_refactor/booking-frontend/**": "allow",
-          ".task_temp/**": "allow",
-          "contract.yaml": "allow",
-          "booking_system_refactor/booking-backend/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/rules/**": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/state/**": "deny",
-          ".opencode/scripts/**": "deny",
-          "AGENTS.md": "deny",
-          "PROJECT_REFERENCE.md": "deny",
-          "TECH_DEBT_REGISTRY.md": "deny",
-          "*": "deny"
-        },
+        "edit": "deny",
+        "safe_edit": "allow",
         "glob": "allow",
         "grep": "allow",
         "bash": "allow"

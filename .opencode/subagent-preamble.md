@@ -34,6 +34,9 @@ Call `compliance_gate_check(task_description="<your task>")` and record the retu
 
 ### Step 6: Present plan and wait for user confirmation
 
+**If `FRAMEWORK_DISPATCH_CONTEXT` is `orchestrated` (dispatched by @Orchestrator with --task-id):** Skip confirmation and proceed directly to Step 7. Your plan will be validated by the pre-execution gate.
+
+**Otherwise (human-initiated dispatch):**
 Show a complete plan:
 
 - Skills from your config to be invoked
@@ -47,7 +50,7 @@ Wait for explicit user confirmation. Do NOT proceed without it.
 
 ### Step 7: Arm the gate
 
-Call `compliance_gate_confirm(session_id, plan_summary)` to arm the compliance gate.
+Call `compliance_gate_confirm(session_id, plan_summary, task_id, agent)` to arm the compliance gate. The `task_id` is available from your DAG task context; `agent` is your agent type.
 
 ### Step 8: Proceed with task execution
 

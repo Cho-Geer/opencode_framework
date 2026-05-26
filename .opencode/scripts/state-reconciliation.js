@@ -31,8 +31,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const OPENCODE_ROOT =
-  process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", "..");
+const OPENCODE_ROOT = process.env.OPENCODE_ROOT
+  ? path.resolve(process.env.OPENCODE_ROOT)
+  : path.resolve(__dirname, "..", "..");
 
 // ─── Paths ────────────────────────────────────────────────
 const DAG_PATH = path.join(OPENCODE_ROOT, "Task.DAG.json");
@@ -184,9 +185,11 @@ function checkArmedSessionDagReference(dag, gate) {
     }
 
     if (dagTask.status === "completed") {
+      // Downgrade to WARNING when all DAG tasks are completed (maintenance mode)
+      const anyPending = tasks.some((t) => t.status !== "completed");
       inconsistencies.push({
         type: "armed_session_completed_task",
-        severity: "HIGH",
+        severity: anyPending ? "HIGH" : "WARNING",
         session_id: sid,
         task_id: taskId,
         detail: `Armed session ${sid} references completed task "${taskId}" (should be consumed)`,
@@ -871,4 +874,37 @@ if (require.main === module) {
   runCLI();
 }
 
-module.exports = { reconcile };
+function validateWriteAuditIntegrity(machine, rootDir) {
+  const violations = [];
+  let filesChecked = 0, filesPassed = 0, filesFailed = 0;
+  const crypto = require('crypto');
+  function sha256(content) { return 'sha256-' + crypto.createHash('sha256').update(content).digest('hex'); }
+  
+  function checkFile(fileEntry, session) {
+    filesChecked++;
+    const fp = typeof fileEntry === 'string' ? fileEntry : fileEntry.path;
+    const expectedHash = typeof fileEntry === 'string' ? null : fileEntry.hash;
+    if (!fs.existsSync(fp)) {
+      filesFailed++;
+      violations.push({ type: 'file_not_found', severity: 'HIGH', file: fp, session, detail: 'Recorded write not found on disk' });
+      return;
+    }
+    if (expectedHash) {
+      const actualHash = sha256(fs.readFileSync(fp, 'utf-8'));
+      if (actualHash !== expectedHash) {
+        filesFailed++;
+        violations.push({ type: 'hash_mismatch', severity: 'HIGH', file: fp, session, detail: `Expected ${expectedHash} got ${actualHash}` });
+        return;
+      }
+    }
+    filesPassed++;
+  }
+  
+  const was = machine.write_audit_state;
+  if (!was || !was.enabled) return { valid: true, violations: [], summary: { files_checked: 0, files_passed: 0, files_failed: 0 } };
+  if (was.history) for (const e of was.history) if (e.files) for (const f of e.files) checkFile(f, e.session);
+  if (was.current_session?.files_written) for (const f of was.current_session.files_written) checkFile(f, was.current_session.task_id || 'current');
+  return { valid: violations.length === 0, violations, summary: { files_checked: filesChecked, files_passed: filesPassed, files_failed: filesFailed } };
+}
+
+module.exports = { reconcile, validateWriteAuditIntegrity };

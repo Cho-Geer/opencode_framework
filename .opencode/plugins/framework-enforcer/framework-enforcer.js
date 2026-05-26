@@ -39,6 +39,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { safeEdit } from '../../tools/safe-edit.js';
 // ---------------------------------------------------------------------------
 // Plugin integrity state (FW-HARNESS-PLUGIN-CHECK)
 // ---------------------------------------------------------------------------
@@ -257,13 +258,13 @@ function autoDrainStaleSessions(paths) {
       isStaleSession(s),
     );
     if (staleEntries.length === 0) return 0;
-    gate.drained_sessions = gate.drained_sessions || [];
+    gate.drained_sessions = gate.drained_sessions || {};
     for (const [sid, session] of staleEntries) {
-      gate.drained_sessions.push({
+      gate.drained_sessions[sid] = {
         ...session,
         drained_at: new Date().toISOString(),
         reason: "auto-drain",
-      });
+      };
       delete gate.sessions[sid];
     }
     gate.active_sessions = (gate.active_sessions || []).filter(

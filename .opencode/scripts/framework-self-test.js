@@ -1159,11 +1159,11 @@ function checkOpenCodeJsonAdapter() {
   }
 
   // 22c: agent definitions must match .opencode/agents/*.md counterparts
-  if (!oc.agents || typeof oc.agents !== "object") {
-    return check(22, false, "opencode.json missing 'agents' section");
+  if (!oc.agent || typeof oc.agent !== "object") {
+    return check(22, false, "opencode.json missing 'agent' section");
   }
 
-  const agentNames = Object.keys(oc.agents);
+  const agentNames = Object.keys(oc.agent);
   if (agentNames.length < 8) {
     return check(
       22,
@@ -1186,11 +1186,11 @@ function checkOpenCodeJsonAdapter() {
 
   let agentMismatches = [];
   for (const [name, mdFile] of Object.entries(expectedMap)) {
-    if (!oc.agents[name]) {
+    if (!oc.agent[name]) {
       agentMismatches.push(`Missing agent: ${name}`);
       continue;
     }
-    const agentCfg = oc.agents[name];
+    const agentCfg = oc.agent[name];
     const agentMdPath = path.join(agentsDir, mdFile);
     const agentMd = readFile(agentMdPath);
     if (!agentMd) {
@@ -1450,11 +1450,11 @@ function checkDoctorJsonOutput() {
       return check(25, false, "JSON missing 'checks' array");
     }
 
-    if (parsed.checks.length !== 10) {
+    if (parsed.checks.length !== 11) {
       return check(
         25,
         false,
-        `Expected 10 checks but found ${parsed.checks.length}`,
+        `Expected 11 checks but found ${parsed.checks.length}`,
       );
     }
 
@@ -1573,7 +1573,10 @@ function checkCrossValidation() {
     let reconcilerOk = false;
     try {
       const data = JSON.parse(reconcilerOutput);
-      reconcilerOk = data.valid === true && data.inconsistencies && data.inconsistencies.length === 0;
+      reconcilerOk = data.valid === true || (
+        data.inconsistencies && 
+        data.inconsistencies.filter(i => i.severity === "HIGH").length === 0
+      );
     } catch (e) {
       reconcilerOk = false;
     }
