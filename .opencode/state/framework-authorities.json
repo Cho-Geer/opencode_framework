@@ -1,0 +1,10 @@
+{
+  "description": "This opencode.json is an ADAPTER \u2014 it reflects/mirrors existing framework authorities without overriding them.",
+  "dag_authority": "Task.DAG.json",
+  "state_authorities": [
+    "machine.json",
+    "gate-state.json"
+  ],
+  "contract_authority": "contract.yaml",
+  "agent_definitions": ".opencode/agents/*.md (canonical, opencode.json mirrors only)"
+}

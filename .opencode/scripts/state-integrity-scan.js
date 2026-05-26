@@ -3,28 +3,11 @@
 // Scans gate-state.json, machine.json, project.config.json, rule_registry.json,
 // and Task.DAG.json for JSON validity, required fields, and orphaned references.
 // --fix flag auto-fixes invalid JSON and orphaned sessions.
+// Refactored FW-HARNESS-MOVE-SCRIPTS: imports from framework-validation.cjs
 
-const fs = require('fs');
-const path = require('path');
+const { readJsonFile, fileExists, resolveFrameworkPaths } = require('../plugins/lib/framework-validation.cjs');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-const STATE_DIR = path.join(PROJECT_ROOT, '.opencode', 'state');
-
-function readJSON(filepath) {
-  try {
-    const raw = fs.readFileSync(filepath, 'utf8');
-    return JSON.parse(raw);
-  } catch (e) {
-    return null;
-  }
-}
-
-function fileExists(filepath) {
-  try {
-    fs.accessSync(filepath, fs.constants.F_OK);
-    return true;
-  } catch { return false; }
-}
+const paths = resolveFrameworkPaths();
 
 function main() {
   const args = process.argv.slice(2);
@@ -35,11 +18,11 @@ function main() {
   let autoFixPossible = false;
 
   const files = {
-    'gate-state.json': path.join(STATE_DIR, 'gate-state.json'),
-    'machine.json': path.join(STATE_DIR, 'machine.json'),
-    'project.config.json': path.join(PROJECT_ROOT, '.opencode', 'project.config.json'),
-    'rule_registry.json': path.join(STATE_DIR, 'rule_registry.json'),
-    'Task.DAG.json': path.join(PROJECT_ROOT, 'Task.DAG.json')
+    'gate-state.json': paths.gateState,
+    'machine.json': paths.machine,
+    'project.config.json': paths.projectConfig,
+    'rule_registry.json': paths.ruleRegistry,
+    'Task.DAG.json': paths.dag
   };
 
   // ── JSON validity check ──
@@ -48,15 +31,14 @@ function main() {
       inconsistencies.push({ severity: 'HIGH', file: name, issue: 'file_missing', detail: 'File not found' });
       continue;
     }
-    try {
-      const raw = fs.readFileSync(filepath, 'utf8');
-      JSON.parse(raw);
-    } catch (e) {
+    const parsed = readJsonFile(filepath);
+    if (parsed === null && fileExists(filepath)) {
+      // fileExists returned true but readJsonFile returned null → invalid JSON
       inconsistencies.push({
         severity: 'HIGH',
         file: name,
         issue: 'invalid_json',
-        detail: e.message
+        detail: 'File exists but cannot be parsed as JSON'
       });
       if (shouldFix) {
         autoFixPossible = true;
@@ -71,10 +53,10 @@ function main() {
   }
 
   // ── Required fields check ──
-  const gateState = readJSON(files['gate-state.json']);
-  const machine = readJSON(files['machine.json']);
-  const dag = readJSON(files['Task.DAG.json']);
-  const registry = readJSON(files['rule_registry.json']);
+  const gateState = readJsonFile(files['gate-state.json']);
+  const machine = readJsonFile(files['machine.json']);
+  const dag = readJsonFile(files['Task.DAG.json']);
+  const registry = readJsonFile(files['rule_registry.json']);
 
   // gate-state.json required fields
   if (gateState) {
@@ -85,11 +67,10 @@ function main() {
       inconsistencies.push({ severity: 'WARNING', file: 'gate-state.json', issue: 'missing_field', detail: 'formatVersion field missing' });
     }
 
-    // Check session fields (only validate JSON-structured fields, skip orchestration_context)
+    // Check session fields
     if (gateState.sessions) {
       for (const [sid, session] of Object.entries(gateState.sessions)) {
         if (typeof session !== 'object' || session === null) {
-          // Allow non-object strings (orchestration_context may contain test data)
           continue;
         }
         if (!session.session_id) {
@@ -139,13 +120,10 @@ function main() {
   }
 
   // ── Orphaned reference checks ──
-  // Check: gate-state sessions reference valid DAG tasks (if task_id in session)
   if (gateState && gateState.sessions && dag && dag.tasks) {
     const taskIds = new Set(dag.tasks.map(t => t.id));
     for (const [sid, session] of Object.entries(gateState.sessions)) {
       if (typeof session !== 'object' || session === null) continue;
-      // Check if session references a task that doesn't exist in DAG
-      // Note: sessions may not always have task_id field
       if (session.task_id && !taskIds.has(session.task_id)) {
         inconsistencies.push({
           severity: 'WARNING',
@@ -155,7 +133,6 @@ function main() {
         });
         autoFixPossible = true;
         if (shouldFix && !dryRun) {
-          // Move orphaned session to drained
           if (!gateState.drained_sessions) gateState.drained_sessions = {};
           gateState.drained_sessions[sid] = { ...session, drained_at: new Date().toISOString(), drain_reason: 'orphaned_task_ref' };
           delete gateState.sessions[sid];
@@ -180,6 +157,7 @@ function main() {
   // ── Apply fixes ──
   if (shouldFix && !dryRun && autoFixPossible) {
     if (gateState) {
+      const fs = require('fs');
       fs.writeFileSync(files['gate-state.json'], JSON.stringify(gateState, null, 2));
     }
   }
@@ -199,4 +177,8 @@ function main() {
   process.exit(valid ? 0 : 1);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main };

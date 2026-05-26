@@ -3,33 +3,20 @@
 // Validates: DAG coverage, gate lifecycle, and state consistency across
 // Task.DAG.json, gate-state.json, and machine.json.
 // Exit 0 if clean, 1 if violations found.
+// Refactored FW-HARNESS-MOVE-SCRIPTS: imports from framework-validation.cjs
 
-const fs = require('fs');
-const path = require('path');
+const { readJsonFile, resolveFrameworkPaths } = require('../plugins/lib/framework-validation.cjs');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-
-function readJSON(filepath) {
-  try {
-    const raw = fs.readFileSync(filepath, 'utf8');
-    return JSON.parse(raw);
-  } catch (e) {
-    return null;
-  }
-}
+const paths = resolveFrameworkPaths();
 
 function main() {
   const violations = [];
   const checks = [];
 
   // ── Load state files ──
-  const dagPath = path.join(PROJECT_ROOT, 'Task.DAG.json');
-  const gatePath = path.join(PROJECT_ROOT, '.opencode', 'state', 'gate-state.json');
-  const machinePath = path.join(PROJECT_ROOT, '.opencode', 'state', 'machine.json');
-
-  const dag = readJSON(dagPath);
-  const gateState = readJSON(gatePath);
-  const machine = readJSON(machinePath);
+  const dag = readJsonFile(paths.dag);
+  const gateState = readJsonFile(paths.gateState);
+  const machine = readJsonFile(paths.machine);
 
   // ── Check 1: Task.DAG.json exists and is valid ──
   if (!dag) {
@@ -70,7 +57,6 @@ function main() {
     : [];
 
   if (completedTasks.length > 0 && consumedSessions.length === 0 && gateState && gateState.sessions) {
-    // This is expected in some cases (tasks completed before gate tracking), downgrade to WARNING
     violations.push({
       check: 'completed_tasks_no_gate',
       severity: 'WARNING',
@@ -158,8 +144,7 @@ function main() {
   }
 
   // ── Check 6: Enforcement mode consistency ──
-  const configPath = path.join(PROJECT_ROOT, '.opencode', 'project.config.json');
-  const config = readJSON(configPath);
+  const config = readJsonFile(paths.projectConfig);
   if (config && config.template_resolution) {
     const enfMode = config.template_resolution.enforcement_mode || 'advisory';
     if (enfMode === 'strict' && activeSessions.length === 0 && pendingTasks.length > 0) {
@@ -190,4 +175,8 @@ function output(report) {
   console.log(JSON.stringify(report, null, 2));
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main };

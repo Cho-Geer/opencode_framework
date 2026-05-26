@@ -4,7 +4,7 @@
 /**
  * framework-doctor.js — OpenCode Framework Health Diagnostic
  * ==========================================================
- * Runs 10 health checks against the OpenCode framework installation.
+ * Runs 11 health checks against the OpenCode framework installation.
  *
  * Usage:
  *   node .opencode/scripts/framework-doctor.js          # human-readable output
@@ -144,12 +144,16 @@ function checkOpenCodeJson() {
     const oc = JSON.parse(raw);
     const hasAgents = !!oc.agents && typeof oc.agents === "object";
     const hasInstructions = Array.isArray(oc.instructions);
-    const hasFrameworkAuth =
-      !!oc._framework_authorities &&
-      typeof oc._framework_authorities === "object";
+    // Read _framework_authorities from .opencode/state/framework-authorities.json
+    let hasFrameworkAuth = false;
+    try {
+      const faRaw = readFile(path.join(STATE_DIR, "framework-authorities.json"));
+      const fa = JSON.parse(faRaw);
+      hasFrameworkAuth = !!fa && typeof fa === "object";
+    } catch (_) {}
     const agentCount = hasAgents ? Object.keys(oc.agents).length : 0;
 
-    const requiredFields = ["agents", "instructions", "_framework_authorities"];
+    const requiredFields = ["agents", "instructions"];
     const missing = requiredFields.filter((f) => !(f in oc));
 
     if (missing.length === 0 && agentCount >= 8) {
@@ -157,7 +161,7 @@ function checkOpenCodeJson() {
         id: 1,
         name: "opencode.json sync",
         status: PASS,
-        detail: `opencode.json valid: ${agentCount} agents, ${oc.instructions.length} instructions, _framework_authorities present`,
+        detail: `opencode.json valid: ${agentCount} agents, ${oc.instructions.length} instructions, framework-authorities.json present`,
       };
     }
 
@@ -940,6 +944,69 @@ function checkRolePermissionSync() {
   }
 }
 
+// ─── Check 11: Framework Compliance ────────────────────────────
+function checkFrameworkCompliance() {
+  const scriptPath = path.join(SCRIPTS_DIR, "framework-compliance-check.js");
+
+  if (!fileExists(scriptPath)) {
+    return {
+      id: 11,
+      name: "Framework compliance",
+      status: FAIL,
+      detail: "framework-compliance-check.js not found",
+    };
+  }
+
+  try {
+    const output = execSync(`node "${scriptPath}"`, {
+      cwd: PROJECT_ROOT,
+      timeout: 15000,
+      encoding: "utf8",
+    });
+    const result = JSON.parse(output);
+    const allPassed = result.status !== "FAIL";
+    const checkCount = (result.checks || []).length;
+    const passedChecks = (result.checks || []).filter(
+      (c) => c.status === "pass",
+    ).length;
+
+    return {
+      id: 11,
+      name: "Framework compliance",
+      status: allPassed ? PASS : FAIL,
+      detail: allPassed
+        ? `All ${checkCount} compliance checks passed`
+        : `${passedChecks}/${checkCount} checks passed, ${result.violations?.length || 0} violations`,
+    };
+  } catch (e) {
+    // framework-compliance-check exits 1 on HIGH violations, try to parse stdout
+    const stdout = e.stdout || "";
+    if (stdout) {
+      try {
+        const result = JSON.parse(stdout);
+        const checkCount = (result.checks || []).length;
+        const passedChecks = (result.checks || []).filter(
+          (c) => c.status === "pass",
+        ).length;
+        return {
+          id: 11,
+          name: "Framework compliance",
+          status: FAIL,
+          detail: `${passedChecks}/${checkCount} checks passed, ${result.violations?.length || 0} violations (${result.violations?.filter((v) => v.severity === "HIGH").length || 0} HIGH)`,
+        };
+      } catch (_) {
+        // fall through
+      }
+    }
+    return {
+      id: 11,
+      name: "Framework compliance",
+      status: FAIL,
+      detail: `framework-compliance-check.js failed: ${(e.stderr || e.message).substring(0, 200)}`,
+    };
+  }
+}
+
 // ─── Check Registry ───────────────────────────────────────────
 const CHECKS = [
   checkOpenCodeJson,
@@ -952,6 +1019,7 @@ const CHECKS = [
   checkPathPortability,
   checkEncoding,
   checkRolePermissionSync,
+  checkFrameworkCompliance,
 ];
 
 // ─── Run Checks ───────────────────────────────────────────────

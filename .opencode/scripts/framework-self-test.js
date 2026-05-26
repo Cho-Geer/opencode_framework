@@ -1226,22 +1226,27 @@ function checkOpenCodeJsonAdapter() {
     );
   }
 
-  // 22d: verify _framework_authorities section exists (adapter declaration)
-  if (
-    !oc._framework_authorities ||
-    typeof oc._framework_authorities !== "object"
-  ) {
-    return check(
-      22,
-      false,
-      "opencode.json missing _framework_authorities adapter declaration",
-    );
+  // 22d: verify framework-authorities.json exists and contains required fields
+  const faPath = path.join(OPENCODE_ROOT, ".opencode", "state", "framework-authorities.json");
+  if (!fileExists(faPath)) {
+    return check(22, false, ".opencode/state/framework-authorities.json not found");
+  }
+  let fa;
+  try {
+    fa = JSON.parse(readFile(faPath));
+  } catch (e) {
+    return check(22, false, `framework-authorities.json is not valid JSON: ${e.message}`);
+  }
+  const requiredFaFields = ["dag_authority", "state_authorities", "contract_authority", "agent_definitions"];
+  const missingFaFields = requiredFaFields.filter(f => !(f in fa));
+  if (missingFaFields.length > 0) {
+    return check(22, false, `framework-authorities.json missing required fields: ${missingFaFields.join(", ")}`);
   }
 
   return check(
     22,
     true,
-    `opencode.json adapter valid: ${agentNames.length} agents, no competing authorities, all agent defs match .md counterparts`,
+    `opencode.json adapter valid: ${agentNames.length} agents, no competing authorities, all agent defs match .md counterparts, framework-authorities.json present`,
   );
 }
 

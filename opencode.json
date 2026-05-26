@@ -1,15 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "_framework_authorities": {
-    "description": "This opencode.json is an ADAPTER — it reflects/mirrors existing framework authorities without overriding them.",
-    "dag_authority": "Task.DAG.json",
-    "state_authorities": [
-      "machine.json",
-      "gate-state.json"
-    ],
-    "contract_authority": "contract.yaml",
-    "agent_definitions": ".opencode/agents/*.md (canonical, opencode.json mirrors only)"
-  },
   "instructions": [
     "AGENTS.md",
     ".opencode/rules/**/*.md",

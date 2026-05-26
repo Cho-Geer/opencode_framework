@@ -131,7 +131,7 @@
 
 ---
 
-**最后更新**: 2026-05-23  
+**最后更新**: 2026-05-25  
 **维护者**: @Arbiter  
 **签名**: `@Architect — 2026-05-23T06:26:00Z`  
 **位置**: 项目根目录
@@ -147,7 +147,7 @@
 |-----------|---------------|-------------|-------------------|------------------------|--------|
 | WV-2026-006 | 2026-05-23 | @CI-CD-Agent / @Coder-BE | Upstream `@modelcontextprotocol/sdk@1.29.0` missing barrel `index.js` — sub-path imports work as alternative | 2026-08-23 | OPEN |
 
-**最后更新**: 2026-05-23
+**最后更新**: 2026-05-25
 **维护者**: @Arbiter
 **签名**: `@Arbiter — 2026-05-23T06:40:00Z`
 **位置**: 项目根目录
@@ -176,11 +176,11 @@
 |----|------|------|--------|----------|----------|------|---------|
 | TD-2026-013 | 7 Angular前端 `.ts` 文件存在预存TypeScript错误（booking_system_refactor/booking-frontend/）— @Coder-FE 需修复这些编译错误 | 中 | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-007 |
 | TD-2026-014 | `contract.yaml` 格式化问题 — pre-existing；auto_fix无法自动修复此文件 | 低 | @Arbiter | 2026-05-23 | 2026-06-15 | **OPEN** | WV-2026-008 |
-| TD-2026-015 | 7条历史CAT5.2 TDD违规（code-quality-gate.js、state-transaction.js、compliance-gate.js、framework-self-test.js）— 来自FW-REPAIR-01（2026-05-21/22）；需补充测试或由@Meta-Planner正式接受为框架修复债务 | 中 | @Arbiter | 2026-05-23 | 2026-06-01 | **OPEN** | WV-2026-009 |
+| TD-2026-015 | 7条历史CAT5.2 TDD违规（code-quality-gate.js、state-transaction.js、compliance-gate.js、framework-self-test.js）— 来自FW-REPAIR-01（2026-05-21/22）；T-TECHDEBT-015已完成测试文件编写，T-TECHDEBT-017验证通过 | 中 | @Arbiter | 2026-05-23 | 2026-06-01 | **repaid** ✅ | T-TECHDEBT-015 / T-TECHDEBT-017 |
 
-**最后更新**: 2026-05-23
+**最后更新**: 2026-05-25
 **维护者**: @Arbiter
-**签名**: `@Arbiter — 2026-05-23T11:40:00Z`
+**签名**: `@Guardian — 2026-05-25T10:30:00Z`
 **位置**: 项目根目录
 
 ---

@@ -2,21 +2,12 @@
 // gate-lifecycle-audit.js — P4-003
 // Audits gate-state.json for lifecycle compliance.
 // --auto-drain flag moves stale sessions (>24h armed) to drained_sessions.
+// Refactored FW-HARNESS-MOVE-SCRIPTS: imports from framework-validation.cjs
 
-const fs = require('fs');
-const path = require('path');
+const { readJsonFile, resolveFrameworkPaths } = require('../plugins/lib/framework-validation.cjs');
 
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-const GATE_STATE_PATH = path.join(PROJECT_ROOT, '.opencode', 'state', 'gate-state.json');
-
-function readJSON(filepath) {
-  try {
-    const raw = fs.readFileSync(filepath, 'utf8');
-    return JSON.parse(raw);
-  } catch (e) {
-    return null;
-  }
-}
+const paths = resolveFrameworkPaths();
+const GATE_STATE_PATH = paths.gateState;
 
 const HOURS_24_MS = 24 * 60 * 60 * 1000;
 
@@ -29,7 +20,7 @@ function main() {
   let activeCount = 0;
   let drainedCount = 0;
 
-  const gateState = readJSON(GATE_STATE_PATH);
+  const gateState = readJsonFile(GATE_STATE_PATH);
 
   if (!gateState) {
     console.log(JSON.stringify({
@@ -50,7 +41,6 @@ function main() {
   }
 
   for (const [sid, session] of Object.entries(sessions)) {
-    // Skip non-object values (orchestration_context may contain non-JSON strings)
     if (typeof session !== 'object' || session === null) {
       violations.push({
         severity: 'WARNING',
@@ -91,7 +81,6 @@ function main() {
           detail: 'Armed session missing created_at'
         });
       }
-      // worktree and expires_at are optional — only warn if armed > 24h
     }
 
     // ── Stale session detection (armed > 24h without completion) ──
@@ -159,8 +148,8 @@ function main() {
         delete gateState.sessions[sid];
       }
     }
-    // Only persist if not in dry-run mode
     if (!args.includes('--dry-run')) {
+      const fs = require('fs');
       fs.writeFileSync(GATE_STATE_PATH, JSON.stringify(gateState, null, 2));
     }
     drainedCount = Object.keys(gateState.drained_sessions).length;
@@ -185,4 +174,8 @@ function main() {
   process.exit(highViolations.length > 0 ? 1 : 0);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { main };

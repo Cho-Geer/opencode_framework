@@ -1,0 +1,711 @@
+{
+  "formatVersion": "2.0",
+  "drained_sessions": {
+    "cg_ses_1779702670721": {
+      "session_id": "cg_ses_1779702670721",
+      "created_at": "2026-05-25T09:51:10.724Z",
+      "task_description": "TUI 空白主区域和底部 JSON 垃圾修复：让 14 个钩子在 tool.execute 事件触发时静默执行，不显示空白区域和 JSON 输出",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "TUI修复计划：1) 探索 TUI/hooks 系统代码；2) 分析根因（空白主区域+底部JSON垃圾）；3) 生成最小 DAG；4) 由 @Meta-Planner 拆分任务给相关 Agent 执行",
+      "confirmed_at": "2026-05-25T09:51:33.459Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T09:51:33.459Z",
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "armed for 9h without completion (threshold: 0.1h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779717049760": {
+      "session_id": "cg_ses_1779717049760",
+      "created_at": "2026-05-25T13:50:49.767Z",
+      "task_description": "P0: Investigate root cause of framework-enforcer.ts plugin not loading automatically at OpenCode startup. Design solution for auto-running the framework harness. Analyze plugin loading mechanism, build requirements, and agent mode configuration in opencode.json. Produce Project.graph, updated Task.DAG.json entries, and ADR.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 0.1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779717464991": {
+      "session_id": "cg_ses_1779717464991",
+      "created_at": "2026-05-25T13:57:44.992Z",
+      "task_description": "P0: Restructure framework-enforcer plugin into proper subdirectory with build configuration - create .opencode/plugins/framework-enforcer/ directory, copy framework-enforcer.ts, create package.json, tsconfig.json, fix import paths, update parent plugins/package.json",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Restructure framework-enforcer plugin: create subdirectory, copy source, create package.json and tsconfig.json with build config, update parent plugins/package.json",
+      "confirmed_at": "2026-05-25T14:08:31.863Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T14:08:31.863Z",
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "armed for 5h without completion (threshold: 0.1h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779719712390": {
+      "session_id": "cg_ses_1779719712390",
+      "created_at": "2026-05-25T14:35:12.393Z",
+      "task_description": "FIX-CONSOLE-2: Replace console.log with process.stdout.write in dispatch-subagent.js",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FIX-CONSOLE-2: One-line fix in dispatch-subagent.js line 502 — replace console.log(outputFile) with process.stdout.write(outputFile + '\\n'). Preserves CLI output behavior, zero functional changes. Will perform root cause analysis, docs consistency check, apply fix, run write-time audit, and close gate.",
+      "confirmed_at": "2026-05-25T14:35:45.946Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T14:35:45.946Z",
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "armed for 5h without completion (threshold: 0.1h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779719720743": {
+      "session_id": "cg_ses_1779719720743",
+      "created_at": "2026-05-25T14:35:20.744Z",
+      "task_description": "T-TECHDEBT-012: Deprecated Skill Cleanup — remove stale skill files (nextjs-router-guardrails, prisma-seed-cicd) and update documentation. Repay TD-2026-011.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Remove stale deprecated skill directories (nextjs-router-guardrails, prisma-seed-cicd) replacing with DEPRECATED.md stubs; update skill-invocation-standard.md; mark TD-2026-011 as repaid in TECH_DEBT_REGISTRY.md; run framework-self-test.js to validate.",
+      "confirmed_at": "2026-05-25T14:35:35.768Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T14:35:35.768Z",
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "armed for 5h without completion (threshold: 0.1h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779719735454": {
+      "session_id": "cg_ses_1779719735454",
+      "created_at": "2026-05-25T14:35:35.455Z",
+      "task_description": "FIX-CONSOLE-1: Replace console.log with process.stdout.write in pre-execution-hook.sh (4 occurrences in inline node -e blocks). TUI silent execution — framework scripts must not emit console output to TUI.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FIX-CONSOLE-1: Replace 4 console.log calls with process.stdout.write in pre-execution-hook.sh (lines 38, 39, 153, 156). Zero console.log remaining. Shell command substitution behavior preserved.",
+      "confirmed_at": "2026-05-25T14:35:53.939Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T14:35:53.939Z",
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "armed for 5h without completion (threshold: 0.1h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779719770666": {
+      "session_id": "cg_ses_1779719770666",
+      "created_at": "2026-05-25T14:36:10.667Z",
+      "task_description": "Evaluate the entire multi-agent harness system of the OpenCode framework from practical and effective perspectives. This includes: compliance gates, dispatch system, state machine, pre-commit hooks, enforcement modes, agent configs, skill system, MCP tool inventory, and template variable resolution.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Evaluate harness system: dispatch-subagent.js, compliance-gate.js, state machine, pre-commit hooks, enforcement modes, agent configs, skill system, MCP inventory, template variables, TDD engine. Full codebase exploration and analysis.",
+      "confirmed_at": "2026-05-25T14:39:09.282Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T14:39:09.282Z",
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "armed for 5h without completion (threshold: 0.1h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779737688028": {
+      "session_id": "cg_ses_1779737688028",
+      "created_at": "2026-05-25T19:34:48.045Z",
+      "task_description": "Full investigation and design of hardened constraint system for multi-agent harness. Based on the permission-model approach (edit:deny + safe_edit custom tool + plugin gate + agent permission isolation). Requires re-reading official OpenCode docs (permission model, plugin hooks, tool schemas) and designing implementation plan. Output: design document.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Dispatch Meta-Planner for DAG entry, then Architect to investigate OpenCode permission model + plugin docs + design hardened constraint system based on edit:deny/safe_edit/plugin-gate model.",
+      "confirmed_at": "2026-05-25T19:35:50.616Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T19:35:50.616Z",
+      "drained_at": "2026-05-25T19:42:24.860Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.1h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779740144936": {
+      "session_id": "cg_ses_1779740144936",
+      "created_at": "2026-05-25T20:15:44.938Z",
+      "task_description": "Test and verify whether OpenCode Plugin Hook receives session_id, agent_id, subagent_id parameters",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Test and verify Plugin Hook receives session_id, agent_id, subagent_id parameters",
+      "confirmed_at": "2026-05-25T20:15:52.570Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T20:15:52.570Z",
+      "drained_at": "2026-05-26T00:28:35.584Z",
+      "drain_reason": "armed for 4h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779740723120": {
+      "session_id": "cg_ses_1779740723120",
+      "created_at": "2026-05-25T20:25:23.122Z",
+      "task_description": "Orchestrate BUG #5894 fix: dispatch @Coder-BE to implement env var propagation fix in dispatch-subagent.js, following TDD RED→GREEN split, then verify with @Guardian",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Dispatch @Coder-BE RED phase to write failing test, then GREEN phase to implement one-line fix for BUG #5894 env var propagation in dispatch-subagent.js",
+      "confirmed_at": "2026-05-25T20:28:46.943Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T20:28:46.943Z",
+      "drained_at": "2026-05-26T00:28:35.584Z",
+      "drain_reason": "armed for 3h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779742904881": {
+      "session_id": "cg_ses_1779742904881",
+      "created_at": "2026-05-25T21:01:44.882Z",
+      "task_description": "Thoroughly re-evaluate the hardened constraint system design report at .task_temp/HARDEN-CONSTRAINT-DESIGN/design-report.md — assess feasibility, risks, implementation plan, and alignment with current framework",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Re-evaluate HARDEN-CONSTRAINT-DESIGN design report. @Architect (primary design owner), @Guardian (quality gate), @Coder-BE (implementation feasibility). Per user policy: @Architect manages all framework config including edits.",
+      "confirmed_at": "2026-05-25T21:02:06.293Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T21:02:06.293Z",
+      "drained_at": "2026-05-26T00:28:35.584Z",
+      "drain_reason": "armed for 3h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779752635169": {
+      "session_id": "cg_ses_1779752635169",
+      "created_at": "2026-05-25T23:43:55.171Z",
+      "task_description": "CI-EMBED-007: Configure RED-phase ESLint mock-audit exemption. Create .opencode/config/eslint-red-exemptions.json defining test-file exemption patterns during RED phase. Update runEslintAudit in code-quality-lib.js to accept options.phase parameter.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "CI-EMBED-007: Create .opencode/config/eslint-red-exemptions.json defining RED-phase test-file exemption patterns. Update runEslintAudit in code-quality-lib.js to accept options.phase parameter. Update runAllChecks to pass phase through. Output TASK_LOG.md and HANDOVER.md to .task_temp/CI-EMBED-007/. Commit with [Config] tag.",
+      "confirmed_at": "2026-05-25T23:44:02.806Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T23:44:02.806Z",
+      "drained_at": "2026-05-26T00:28:35.585Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779753365198": {
+      "session_id": "cg_ses_1779753365198",
+      "created_at": "2026-05-25T23:56:05.200Z",
+      "task_description": "CI-STRENGTHEN-003: Harden the safe_edit rollback mechanism. Create .opencode/tools/safe-edit.ts with symlink resolution, concurrent-write safety, TypeScript types, while keeping existing safe-edit.js for backward compatibility.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "CI-STRENGTHEN-003: Create safe-edit.ts with symlink resolution, concurrent locking via mkdir mutex, TypeScript interfaces, keep all existing TOCTOU/backup/rollback logic. Keep safe-edit.js unchanged. Create test artifact in .task_temp/CI-STRENGTHEN-003/.",
+      "confirmed_at": "2026-05-25T23:57:31.570Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-26T23:57:31.570Z",
+      "drained_at": "2026-05-26T00:28:35.585Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779753369653": {
+      "session_id": "cg_ses_1779753369653",
+      "created_at": "2026-05-25T23:56:09.654Z",
+      "task_description": "CI-STRENGTHEN-001: Apply OpenCode native permission model to all subagent configs. Lock down permissions (edit: deny, bash: deny, task: deny) for Coder-BE, Coder-FE, Architect, CI-CD-Agent, and add missing denies for Guardian/Arbiter. Primary agents (Orchestrator, Meta-Planner) retain existing permissions unchanged.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "CI-STRENGTHEN-001: Lock down 6 subagent configs (guardian, arbiter, coder-be, coder-fe, architect, ci-cd-agent) with permission: {edit: deny, bash: deny, task: deny}. Guardian gets task:deny added, Arbiter gets bash:deny and task:deny added. Coder-BE/FE/Architect get full deny with #Hardened comment. Primary agents unchanged. Output artifacts to .task_temp/CI-STRENGTHEN-001/.",
+      "confirmed_at": "2026-05-26T00:00:40.050Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-27T00:00:40.050Z",
+      "drained_at": "2026-05-26T00:28:35.585Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779738153466": {
+      "session_id": "cg_ses_1779738153466",
+      "created_at": "2026-05-25T19:42:33.467Z",
+      "task_description": "Test whether the OpenCode Plugin Hook fires when dispatching a sub-agent. Dispatch an explore agent to list files in current directory.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779738605709": {
+      "session_id": "cg_ses_1779738605709",
+      "created_at": "2026-05-25T19:50:05.710Z",
+      "task_description": "Clean up test artifacts and generate final test report for Plugin Hook blocking demonstration",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-FE wrote booking_system_refactor/booking-backend/src/test-illegal.txt",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779738758324": {
+      "session_id": "cg_ses_1779738758324",
+      "created_at": "2026-05-25T19:52:38.325Z",
+      "task_description": "Clean up test artifacts: remove test file created during Plugin Hook testing",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-FE wrote booking_system_refactor/booking-backend/src/test-illegal.txt",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779740500707": {
+      "session_id": "cg_ses_1779740500707",
+      "created_at": "2026-05-25T20:21:40.708Z",
+      "task_description": "PLUGIN PARAMETER TEST: Read booking-frontend/README.md to verify Plugin Hook parameter reception",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 4h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779742385490": {
+      "session_id": "cg_ses_1779742385490",
+      "created_at": "2026-05-25T20:53:05.492Z",
+      "task_description": "Thoroughly re-evaluate the hardened constraint system design report at .task_temp/HARDEN-CONSTRAINT-DESIGN/design-report.md — assess feasibility, risks, implementation plan, and alignment with current framework",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/scripts/command-tools/dispatch-subagent.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 4h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779742503266": {
+      "session_id": "cg_ses_1779742503266",
+      "created_at": "2026-05-25T20:55:03.268Z",
+      "task_description": "Update agent_write_scopes in project.config.json to remove .opencode/scripts/command-tools/** from @Coder-BE denied list (BUG-5894-ENV-PROPAGATE follow-up). Also update machine.json compliance_records to mark the violation as resolved.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/scripts/command-tools/dispatch-subagent.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 3h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779742999275": {
+      "session_id": "cg_ses_1779742999275",
+      "created_at": "2026-05-25T21:03:19.276Z",
+      "task_description": "Guardian: Re-evaluate hardened constraint system design report from quality gate perspective. Review guardrail coverage, bypass risks, TDD compliance, evidence chain, and gap analysis at .task_temp/HARDEN-CONSTRAINT-DESIGN/design-report.md",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 3h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779743030651": {
+      "session_id": "cg_ses_1779743030651",
+      "created_at": "2026-05-25T21:03:50.652Z",
+      "task_description": "Coder-BE: Thoroughly re-evaluate the implementation feasibility of the hardened constraint system design report at .task_temp/HARDEN-CONSTRAINT-DESIGN/design-report.md. Evaluate safe_edit tool spec, code-quality-gate integration, safe_bash pattern matching, rollback mechanism, and overall engineering assessment from a backend developer perspective. Output structured evaluation report.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 3h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779743034890": {
+      "session_id": "cg_ses_1779743034890",
+      "created_at": "2026-05-25T21:03:54.891Z",
+      "task_description": "Architect evaluation of HARDEN-CONSTRAINT-DESIGN design report — verifying OpenCode platform capability claims, layer feasibility, implementation plan re-evaluation under new @Architect ownership policy",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 3h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779750489819": {
+      "session_id": "cg_ses_1779750489819",
+      "created_at": "2026-05-25T23:08:09.822Z",
+      "task_description": "Execute Phase 1 CI-EMBED tasks: dispatch CI-EMBED-002 (safe_edit RED tests), CI-EMBED-004 (safe_bash allowlist), CI-EMBED-007 (ESLint exemption). Execute all three sub-agents from their dispatch prompts.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779750960257": {
+      "session_id": "cg_ses_1779750960257",
+      "created_at": "2026-05-25T23:16:00.258Z",
+      "task_description": "Finalize CI-EMBED-004/005: run safeBash GREEN tests, commit, close gates. Launch CI-EMBED-007 (Architect) and dispatch CI-EMBED-003 (Coder-BE safe_edit GREEN).",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779751385685": {
+      "session_id": "cg_ses_1779751385685",
+      "created_at": "2026-05-25T23:23:05.686Z",
+      "task_description": "Complete all remaining Phase 1 tasks: CI-EMBED-003 (safe_edit GREEN), CI-EMBED-006 (TDD Check 6), CI-EMBED-007 (ESLint exemption), close CI-EMBED-004 gate, update DAG.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779752321602": {
+      "session_id": "cg_ses_1779752321602",
+      "created_at": "2026-05-25T23:38:41.604Z",
+      "task_description": "CI-EMBED-006: Implement TDD Check 6 — runTddSpecCheck spec-before-source enforcement in code-quality-lib.js. Add a function that checks if source files have corresponding .spec.ts/.test.ts files, with BLOCKER violations if missing.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/tools/safe-edit.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779752349547": {
+      "session_id": "cg_ses_1779752349547",
+      "created_at": "2026-05-25T23:39:09.548Z",
+      "task_description": "CI-EMBED-006: Implement TDD Check 6 — runTddSpecCheck spec-before-source enforcement in code-quality-lib.js",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/tools/safe-edit.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779752407009": {
+      "session_id": "cg_ses_1779752407009",
+      "created_at": "2026-05-25T23:40:07.010Z",
+      "task_description": "CI-EMBED-007: Configure RED-phase ESLint mock-audit exemption. Create .opencode/config/eslint-red-exemptions.json defining test-file exemption patterns during RED phase. Update runEslintAudit in code-quality-lib.js to accept a phase option that enables RED-phase exemptions, and update runAllChecks to pass through the phase option. Output TASK_LOG.md and HANDOVER.md to .task_temp/CI-EMBED-007/.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/tools/safe-edit.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    },
+    "cg_ses_1779752529820": {
+      "session_id": "cg_ses_1779752529820",
+      "created_at": "2026-05-25T23:42:09.822Z",
+      "task_description": "Update Task.DAG.json v4.2.0 → v4.3.0: mark CI-EMBED-001 through CI-EMBED-005 as completed based on actual execution evidence. Increment version to v4.3.0, add changelog entry, reconcile meta stats.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "agent_role_violation",
+          "desc": "CAT4.1: 1 unresolved role violations found in machine.json.compliance_records. Last: @Coder-BE wrote .opencode/tools/safe-edit.js",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-26T00:54:15.214Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED",
+      "drained_by": "compliance_gate_drain_stale"
+    }
+  },
+  "last_drained": "2026-05-26T00:54:15.214Z",
+  "total_drained": 30
+}

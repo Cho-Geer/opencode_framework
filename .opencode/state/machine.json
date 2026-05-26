@@ -2,19 +2,19 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-26T00:59:35.631Z",
+    "lastUpdated": "2026-05-26T03:54:04.996Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 370,
+    "revision": 391,
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-25T23:40:29.138Z",
+    "last_full_scan": "2026-05-26T01:54:07.627Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-25T14:28:37.855Z",
+        "last_check": "2026-05-26T01:54:07.627Z",
         "waivers_applied": []
       },
       "unknown": {
@@ -40,21 +40,21 @@
     "status": "clean",
     "dirty_files": [],
     "incremental_errors": 0,
-    "last_incremental_check": "2026-05-26T00:59:35.629Z",
+    "last_incremental_check": "2026-05-26T01:47:10.634Z",
     "last_full_check": "2026-05-26T00:48:46.779Z",
     "full_errors": 2
   },
   "dependency_state": {
-    "last_check": "2026-05-26T00:59:35.629Z",
+    "last_check": "2026-05-26T01:47:10.634Z",
     "violations": [],
-    "forbidden_rules_applied": 135,
+    "forbidden_rules_applied": 137,
     "status": "clean"
   },
   "format_state": {
     "status": "clean",
     "unformatted_files": [],
     "last_run": "2026-05-23T12:00:00.000Z",
-    "last_check": "2026-05-26T00:59:35.629Z",
+    "last_check": "2026-05-26T01:47:10.634Z",
     "auto_fix_count": 51
   },
   "write_audit_state": {
@@ -172,10 +172,12 @@
         ".opencode/config/eslint-red-exemptions.json",
         ".opencode/tools/safe-edit.ts",
         ".opencode/tools/__tests__/safe-test.test.ts",
-        ".opencode/tools/safe-test.ts"
+        ".opencode/tools/safe-test.ts",
+        ".task_temp/CI-HARDEN-003/bug-1706-report.md",
+        ".opencode/scripts/pre-execution-hook.sh"
       ],
-      "checks_run": 110,
-      "checks_passed": 88,
+      "checks_run": 112,
+      "checks_passed": 90,
       "checks_failed": 22,
       "violations_found": 22,
       "violations_resolved": 0,
@@ -258,6 +260,14 @@
         "denied_by": ".opencode/tools/**",
         "resolved_at": "2026-05-26T10:00:00Z",
         "resolution": "Scope config fixed in CI-UNIFY-001 - .opencode/tools/** removed from denied list"
+      },
+      {
+        "timestamp": "2026-05-26T01:49:17.347Z",
+        "agent": "@Coder-BE",
+        "violation_file": ".opencode/scripts/command-tools/dispatch-subagent.js",
+        "status": "unresolved",
+        "severity": "BLOCKER",
+        "denied_by": ".opencode/scripts/command-tools/**"
       }
     ],
     "gate_violations": [
@@ -3193,8 +3203,8 @@
     ".opencode/agents/arbiter.md": "sha256-ad77ca01c3ee085939ff02593b37f56b456bae0d49b8d65ff3ce403be1c07536",
     ".opencode/agents/architect.md": "sha256-5db05c1e0a10c5871fd9111d43427e18a533b8ed63ce4c62c8a292324eda6ce9",
     ".opencode/agents/ci-cd-agent.md": "sha256-4872e3cc5842da01da63fd85e03a845e1e57b6213c1b8622a863454b10543e0a",
-    ".opencode/agents/coder-be.md": "sha256-7d95b813c7cfe36d5b4f86d04efc98d262d8038af4626b9ecb03074f4c6ebf15",
-    ".opencode/agents/coder-fe.md": "sha256-80226da15c497656fb8988851a4b9a0e1f919d1c2c150835a9cd5117e4f82518",
+    ".opencode/agents/coder-be.md": "sha256-bbd19b33266d6ee35245007d7387db83b3f4eaa75fa7c695c3257dbecccf8a13",
+    ".opencode/agents/coder-fe.md": "sha256-cb94c2f493043f033c6c9fb09bb5f9d811efc41234d04ba01a00d250e992a442",
     ".opencode/agents/guardian.md": "sha256-e18f2148779edb797eae089bf8a7cb33d3fe77ea8be710ffc7cd3595e78ef87b",
     ".opencode/agents/meta-planner.md": "sha256-52e887bb3a5efa3fb51e9c3934fd84c8439da90d2ede6907492b5edada235bfb",
     ".opencode/agents/orchestrator.md": "sha256-8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562",
@@ -3202,8 +3212,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "208b4dc6-af79-4fae-96dc-ba74cc5962d7",
-    "last_transaction_at": "2026-05-26T01:08:29.826Z",
+    "last_operation_id": "c707f307-3eee-4f5a-a875-63f407ff1562",
+    "last_transaction_at": "2026-05-26T01:55:58.590Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }
