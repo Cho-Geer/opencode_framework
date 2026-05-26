@@ -26,7 +26,6 @@ mcp_tools:
   - docker_recreate_container
   - docker_start_container
   - docker_stop_container
-  - GitHub
   - Context7
 permission:
   edit: deny
