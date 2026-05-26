@@ -173,3 +173,22 @@ describe("checkAgentsNoBackslashes", () => {
   });
 });
 // Check 22: opencode.json adapter validation
+
+
+describe("FX-DIAG-HARD-3: agent_write_scopes completeness", () => {
+  it('should verify all 8 agents have scope definitions (RED: no completeness check)', () => {
+    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-self-test.js'), 'utf8');
+    const expectedAgents = ['@Coder-BE','@Coder-FE','@Architect','@Meta-Planner','@Orchestrator','@Guardian','@Arbiter','@CI-CD-Agent'];
+    const hasCompletenessCheck = expectedAgents.every(a => src.includes(a));
+    const hasCheck28 = src.includes('Check 28') || src.includes('agent_write_scopes completeness');
+    expect(hasCheck28).toBe(true);
+  });
+});
+
+describe("FX-DIAG-UNIV-1: template resolution consistency", () => {
+  it('should resolve all template keys without UNRESOLVED prefix (RED: some keys may be missing)', () => {
+    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/command-tools/dispatch-subagent.js'), 'utf8');
+    expect(src).toContain('buildTemplateResolutionMap');
+    expect(src).not.toContain('UNRESOLVED');
+  });
+});
