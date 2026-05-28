@@ -11,6 +11,7 @@ skills:
   - execution-preflight-check
   - context7-first
 mcp_tools:
+  - safe_test
   - Context7
   - GitHub
   - eslint-audit

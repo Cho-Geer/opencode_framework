@@ -93,7 +93,8 @@
         "glob": "allow",
         "grep": "allow",
         "bash": "deny",
-        "safe_bash": "allow"
+        "safe_bash": "allow",
+        "safe_test": "allow"
       }
     },
     "Coder-FE": {
@@ -107,7 +108,8 @@
         "glob": "allow",
         "grep": "allow",
         "bash": "deny",
-        "safe_bash": "allow"
+        "safe_bash": "allow",
+        "safe_test": "allow"
       }
     },
     "Guardian": {
@@ -131,7 +133,8 @@
         "bash": {
           "grep *": "allow",
           "git log*": "allow"
-        }
+        },
+        "safe_test": "allow"
       }
     },
     "Arbiter": {

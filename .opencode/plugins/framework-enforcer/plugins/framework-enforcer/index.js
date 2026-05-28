@@ -10,6 +10,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { safeEdit } from "../../tools/safe-edit.js";
 import { safeBashTool } from "../../tools/safe-bash.js";
+import { validateTestReport } from "../../tools/safe-test.js";
 import { tool } from "@opencode-ai/plugin";
 const plugin = async (_ctx) => {
     return {
@@ -81,6 +82,24 @@ const plugin = async (_ctx) => {
                         return `Command validated (dry run): ${args.command}`;
                     }
                     return JSON.stringify(result, null, 2);
+                },
+            }),
+            safe_test: tool({
+                description: "Validate test_report.json against TDD phase rules. Checks execution_evidence, exit_code, and coverage thresholds.",
+                args: {
+                    taskId: tool.schema
+                        .string()
+                        .describe("Task ID whose test report to validate"),
+                    phase: tool.schema
+                        .string()
+                        .describe("TDD phase (red or green)"),
+                },
+                async execute(args, _context) {
+                    const result = validateTestReport(args.taskId, args.phase);
+                    if (!result.passed) {
+                        throw new Error(`safe_test validation failed: ${result.violations.join("; ")}`);
+                    }
+                    return `Validation passed for ${args.taskId} (${args.phase} phase)`;
                 },
             }),
         },

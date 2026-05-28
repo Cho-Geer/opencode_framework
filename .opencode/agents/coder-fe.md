@@ -15,7 +15,8 @@ mcp_tools:
   - eslint-audit
   - code-quality-gate
   - safe_bash
-# Hardened: safe_edit and safe_bash only — raw bash denied
+  - safe_test
+# Hardened: safe_edit, safe_bash, safe_test only — raw bash denied
 permission:
   edit: deny
   bash: deny
