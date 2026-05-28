@@ -14,7 +14,8 @@ mcp_tools:
   - Playwright
   - eslint-audit
   - code-quality-gate
-# Hardened: safe_edit only — native edit denied
+  - safe_bash
+# Hardened: safe_edit and safe_bash only — raw bash denied
 permission:
   edit: deny
   bash: deny

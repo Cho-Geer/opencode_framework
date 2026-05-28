@@ -106,7 +106,8 @@
         "safe_edit": "allow",
         "glob": "allow",
         "grep": "allow",
-        "bash": "allow"
+        "bash": "deny",
+        "safe_bash": "allow"
       }
     },
     "Guardian": {
