@@ -1489,3 +1489,6 @@
 {"phase":"BEGIN","operation_id":"849c46c1-1ffa-4b9d-bf76-57b1428bf554","file":".opencode/state/gate-state.json","old_hash":"sha256-077a713b651038edf3349da54e22e93088bcf4156f05b5cef17ba6f873899643","timestamp":"2026-05-28T14:58:50.060Z","agent":"@Architect","task_id":"compliance-gate"}
 {"phase":"PREPARE","operation_id":"849c46c1-1ffa-4b9d-bf76-57b1428bf554","timestamp":"2026-05-28T14:58:50.070Z"}
 {"phase":"COMMIT","operation_id":"849c46c1-1ffa-4b9d-bf76-57b1428bf554","timestamp":"2026-05-28T14:58:50.071Z","new_hash":"sha256-7a9ae999c0d40c2bb93a55d9c3528778308644705eb75dd4de54fe562d77d14c","new_revision":500,"duration_ms":22}
+{"phase":"BEGIN","operation_id":"a7cd8d97-cb20-4b12-b3db-0874c212e730","file":".opencode/state/gate-state.json","old_hash":"sha256-7a9ae999c0d40c2bb93a55d9c3528778308644705eb75dd4de54fe562d77d14c","timestamp":"2026-05-28T14:59:41.795Z","agent":"@Architect","task_id":"compliance-gate"}
+{"phase":"PREPARE","operation_id":"a7cd8d97-cb20-4b12-b3db-0874c212e730","timestamp":"2026-05-28T14:59:41.831Z"}
+{"phase":"COMMIT","operation_id":"a7cd8d97-cb20-4b12-b3db-0874c212e730","timestamp":"2026-05-28T14:59:41.832Z","new_hash":"sha256-92159341a18ae0123994a3f91c7d64345fb6af5afbec8491ec120865e2bcb9e1","new_revision":501,"duration_ms":47}

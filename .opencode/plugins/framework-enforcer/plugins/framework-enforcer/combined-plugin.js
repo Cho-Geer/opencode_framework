@@ -1,33 +1,25 @@
-/**
- * index.ts — Framework Enforcer Plugin custom tool: safe_edit
- *
- * Registers safe_edit as a custom tool that performs atomic file edits
- * with TOCTOU protection, backup, and rollback.
- *
- * @phase   TOOL-REGISTRATION
- */
+import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { safeEdit } from "../../tools/safe-edit.js";
 import { safeBashTool } from "../../tools/safe-bash.js";
-import { tool } from "@opencode-ai/plugin";
-const plugin = async (_ctx) => {
+// Import hooks from framework-enforcer.ts
+// We'll re-export them
+const CombinedPlugin = async (ctx) => {
+    // Load the original framework-enforcer hooks
+    const { default: frameworkEnforcer } = await import("./framework-enforcer.js");
+    const hooks = await frameworkEnforcer(ctx);
     return {
+        ...hooks,
         tool: {
             safe_edit: tool({
-                description: "Safe atomic file edit with TOCTOU protection, backup, and rollback. Use this instead of the built-in edit tool for all file modifications.",
+                description: "Safe atomic file edit with TOCTOU protection, backup, and rollback. Use this instead of the built-in edit tool.",
                 args: {
-                    filePath: tool.schema
-                        .string()
-                        .describe("Absolute path of the file to edit"),
-                    oldString: tool.schema
-                        .string()
-                        .describe("Exact string to find and replace"),
-                    newString: tool.schema
-                        .string()
-                        .describe("New string to replace with"),
+                    filePath: tool.schema.string().describe("Absolute path of the file to edit"),
+                    oldString: tool.schema.string().describe("Exact string to find and replace"),
+                    newString: tool.schema.string().describe("New string to replace with"),
                 },
-                async execute(args, _context) {
+                async execute(args, context) {
                     const absPath = path.resolve(args.filePath);
                     let content;
                     try {
@@ -41,7 +33,7 @@ const plugin = async (_ctx) => {
                     }
                     const occurrences = content.split(args.oldString).length - 1;
                     if (occurrences > 1) {
-                        throw new Error(`safe_edit failed: oldString found ${occurrences} times in ${args.filePath}, must be unique`);
+                        throw new Error(`safe_edit failed: oldString found ${occurrences} times, must be unique`);
                     }
                     const newContent = content.replace(args.oldString, args.newString);
                     const result = safeEdit(absPath, newContent);
@@ -52,21 +44,13 @@ const plugin = async (_ctx) => {
                 },
             }),
             safe_bash: tool({
-                description: "Allowlisted shell command execution. Only predefined safe commands are permitted. Use this for all shell/terminal operations instead of the built-in bash tool.",
+                description: "Allowlisted shell command execution. Only predefined safe commands are permitted.",
                 args: {
-                    command: tool.schema
-                        .string()
-                        .describe("Shell command to execute"),
-                    timeout: tool.schema
-                        .number()
-                        .optional()
-                        .describe("Timeout in milliseconds (default: 300000)"),
-                    dryRun: tool.schema
-                        .boolean()
-                        .optional()
-                        .describe("Validate without executing"),
+                    command: tool.schema.string().describe("Shell command to execute"),
+                    timeout: tool.schema.number().optional().describe("Timeout in milliseconds (default: 300000)"),
+                    dryRun: tool.schema.boolean().optional().describe("Validate without executing"),
                 },
-                async execute(args, _context) {
+                async execute(args, context) {
                     const agent = process.env.FRAMEWORK_AGENT || "unknown";
                     const result = safeBashTool({
                         command: args.command,
@@ -86,4 +70,4 @@ const plugin = async (_ctx) => {
         },
     };
 };
-export default plugin;
+export default CombinedPlugin;

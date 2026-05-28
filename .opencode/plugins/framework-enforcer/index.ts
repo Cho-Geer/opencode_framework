@@ -11,6 +11,7 @@ import type { Plugin, PluginInput, Hooks, ToolResult } from "@opencode-ai/plugin
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { safeEdit } from "../../tools/safe-edit.js";
+import { safeBashTool } from "../../tools/safe-bash.js";
 import { tool } from "@opencode-ai/plugin";
 
 const plugin: Plugin = async (_ctx: PluginInput): Promise<Hooks> => {
@@ -65,6 +66,49 @@ const plugin: Plugin = async (_ctx: PluginInput): Promise<Hooks> => {
             throw new Error(`safe_edit failed: ${result.error}`);
           }
           return `File edited successfully (backup: ${result.backupPath || "none"})`;
+        },
+      }),
+
+      safe_bash: tool({
+        description:
+          "Allowlisted shell command execution. Only predefined safe commands are permitted. Use this for all shell/terminal operations instead of the built-in bash tool.",
+        args: {
+          command: tool.schema
+            .string()
+            .describe("Shell command to execute"),
+          timeout: tool.schema
+            .number()
+            .optional()
+            .describe("Timeout in milliseconds (default: 300000)"),
+          dryRun: tool.schema
+            .boolean()
+            .optional()
+            .describe("Validate without executing"),
+        },
+        async execute(
+          args,
+          _context,
+        ): Promise<ToolResult> {
+          const agent = process.env.FRAMEWORK_AGENT || "unknown";
+
+          const result = safeBashTool({
+            command: args.command,
+            timeout: args.timeout,
+            dryRun: args.dryRun,
+            agent,
+          });
+
+          if (!result.allowed) {
+            throw new Error(
+              `safe_bash blocked: ${result.blockedReason}`,
+            );
+          }
+
+          if (args.dryRun) {
+            return `Command validated (dry run): ${args.command}`;
+          }
+
+          return JSON.stringify(result, null, 2);
         },
       }),
     },
