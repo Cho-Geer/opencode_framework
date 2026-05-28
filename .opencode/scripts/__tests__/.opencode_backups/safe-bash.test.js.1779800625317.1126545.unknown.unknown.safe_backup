@@ -1,0 +1,32 @@
+"use strict";
+
+/**
+ * safe-bash.test.js — GREEN phase tests for safeBash function
+ *
+ * safeBash is fully implemented in code-quality-lib.js.
+ * These tests verify allowlist-based shell execution protection.
+ */
+
+const { safeBash, DEFAULT_ALLOWLIST } = require("../mcp-tools/code-quality-lib");
+
+describe("safeBash", () => {
+  it("should allow npm run commands", async () => {
+    const result = await safeBash("npm run build --help", { allowlist: DEFAULT_ALLOWLIST });
+    expect(result.pass).toBe(true);
+  });
+
+  it("should block dangerous commands", async () => {
+    const result = await safeBash("rm -rf /", { allowlist: DEFAULT_ALLOWLIST });
+    expect(result.pass).toBe(false);
+    expect(result.violations.length).toBeGreaterThan(0);
+    expect(result.violations[0].severity).toBe("BLOCKER");
+  });
+
+  it("should match npm run * pattern in allowlist", () => {
+    const matched = DEFAULT_ALLOWLIST.some(pattern => {
+      const re = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
+      return re.test("npm run build");
+    });
+    expect(matched).toBe(true);
+  });
+});

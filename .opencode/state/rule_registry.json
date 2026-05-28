@@ -3,7 +3,7 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-05-26T10:40:03.757Z",
+    "last_updated": "2026-05-26T13:52:40.625Z",
     "last_regenerated": "2026-05-26",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
@@ -327,9 +327,9 @@
     "agents/coder-be.md": {
       "path": ".opencode/agents/coder-be.md",
       "category": "agent",
-      "semver": "1.0.2",
-      "sha256": "bbd19b33266d6ee35245007d7387db83b3f4eaa75fa7c695c3257dbecccf8a13",
-      "last_modified": "2026-05-26T01:35:48.022946Z",
+      "semver": "1.0.3",
+      "sha256": "4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b",
+      "last_modified": "2026-05-26T13:52:40.624Z",
       "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
         {
@@ -349,15 +349,21 @@
           "timestamp": "2026-05-26T01:35:48.022946Z",
           "semver": "1.0.2",
           "change": "CI-UNIFY-004: added run_write_check deprecation notice"
+        },
+        {
+          "sha256": "4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b",
+          "timestamp": "2026-05-26T13:52:40.624Z",
+          "semver": "1.0.3",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
     "agents/coder-fe.md": {
       "path": ".opencode/agents/coder-fe.md",
       "category": "agent",
-      "semver": "1.0.2",
-      "sha256": "cb94c2f493043f033c6c9fb09bb5f9d811efc41234d04ba01a00d250e992a442",
-      "last_modified": "2026-05-26T01:35:48.022946Z",
+      "semver": "1.0.3",
+      "sha256": "63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8",
+      "last_modified": "2026-05-26T13:52:40.624Z",
       "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
         {
@@ -377,6 +383,12 @@
           "timestamp": "2026-05-26T01:35:48.022946Z",
           "semver": "1.0.2",
           "change": "CI-UNIFY-004: added run_write_check deprecation notice"
+        },
+        {
+          "sha256": "63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8",
+          "timestamp": "2026-05-26T13:52:40.624Z",
+          "semver": "1.0.3",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },

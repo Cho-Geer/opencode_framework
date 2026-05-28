@@ -3337,23 +3337,6 @@
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-27T07:43:53.034Z"
     },
-    "cg_ses_1779781751429": {
-      "session_id": "cg_ses_1779781751429",
-      "created_at": "2026-05-26T07:49:11.432Z",
-      "task_description": "Investigate root cause of code-quality-gate MCP tool connection failure without modifications",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "Investigate two issues: 1) why code-quality-gate MCP fails to connect, 2) why @Orchestrator defaults to @General instead of appropriate agents",
-      "confirmed_at": "2026-05-26T07:51:47.053Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": null,
-      "agent": "unknown",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-27T07:51:47.053Z"
-    },
     "cg_ses_1779782005482": {
       "session_id": "cg_ses_1779782005482",
       "created_at": "2026-05-26T07:53:25.483Z",
@@ -3414,25 +3397,6 @@
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-27T08:12:36.075Z"
     },
-    "cg_ses_1779783185482": {
-      "session_id": "cg_ses_1779783185482",
-      "created_at": "2026-05-26T08:13:05.484Z",
-      "task_description": "Register code-quality-gate MCP server in ~/.config/opencode/opencode.json",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
     "cg_ses_1779783311003": {
       "session_id": "cg_ses_1779783311003",
       "created_at": "2026-05-26T08:15:11.007Z",
@@ -3473,59 +3437,6 @@
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-27T08:16:05.992Z"
     },
-    "cg_ses_1779783676571": {
-      "session_id": "cg_ses_1779783676571",
-      "created_at": "2026-05-26T08:21:16.574Z",
-      "task_description": "Investigate root cause of code-quality-gate MCP connection failure — opencode mcp debug says it is not a remote server but tool still fails",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "Investigate code-quality-gate MCP failure: check server startup, dependencies, working directory, script errors — no modifications",
-      "confirmed_at": "2026-05-26T08:21:21.746Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": null,
-      "agent": "unknown",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-27T08:21:21.746Z"
-    },
-    "cg_ses_1779785361301": {
-      "session_id": "cg_ses_1779785361301",
-      "created_at": "2026-05-26T08:49:21.303Z",
-      "task_description": "Apply OPENCODE_ROOT path.resolve() fix to 6 files and remove OPENCODE_ROOT: . from MCP config",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "Batch 1: 6 JS files wrap OPENCODE_ROOT with path.resolve(). Batch 2: remove OPENCODE_ROOT: . from ~/.config/opencode/opencode.json MCP config",
-      "confirmed_at": "2026-05-26T08:49:26.031Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": null,
-      "agent": "unknown",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-27T08:49:26.031Z"
-    },
-    "cg_ses_1779785421203": {
-      "session_id": "cg_ses_1779785421203",
-      "created_at": "2026-05-26T08:50:21.205Z",
-      "task_description": "Apply two batches of OPENCODE_ROOT fixes: Batch 1 - wrap OPENCODE_ROOT with path.resolve() in 6 JS files; Batch 2 - Remove OPENCODE_ROOT from MCP config in ~/.config/opencode/opencode.json",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
     "cg_ses_1779786678217": {
       "session_id": "cg_ses_1779786678217",
       "created_at": "2026-05-26T09:11:18.221Z",
@@ -3545,274 +3456,6 @@
       "agent": "unknown",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-27T09:11:24.339Z"
-    },
-    "cg_ses_1779788416629": {
-      "session_id": "cg_ses_1779788416629",
-      "created_at": "2026-05-26T09:40:16.633Z",
-      "task_description": "[Meta-Planner] Verify claims in opencode-framework-diagnostics-audit.md by creating a read-only verification DAG. Append ~23 new VERIFY-DIAG-* tasks to Task.DAG.json (v4.4.0 → v5.0.0). Tasks organized by audit sections: Bugs #1-#5, Contradictions #1-#4, Omissions #1-#8, Architecture #1-#5 + Summary synthesis. All tasks are read-only source inspection and cross-referencing - NO code changes.",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779789427630": {
-      "session_id": "cg_ses_1779789427630",
-      "created_at": "2026-05-26T09:57:07.632Z",
-      "task_description": "Synthesize 22 verification task results into comprehensive summary report for opencode-framework-diagnostics-audit.md verification",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779790454841": {
-      "session_id": "cg_ses_1779790454841",
-      "created_at": "2026-05-26T10:14:14.851Z",
-      "task_description": "Create FX-DIAG implementation DAG for fixing verified diagnostics audit findings across 8 dimensions (16 TRUE + 4 PARTIAL findings). DAG version bump to 5.2.0. Produce the complete JSON array of new tasks for insertion. All tasks use TDD RED→GREEN pattern.",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779791323192": {
-      "session_id": "cg_ses_1779791323192",
-      "created_at": "2026-05-26T10:28:43.195Z",
-      "task_description": "TDD RED PHASE — Write ONLY failing test for FX-DIAG-CONS-1-RED: framework-doctor.js line 206 requires \"title\" field but dag-generation-standard.md defines \"name\" field. Test should assert that tasks with \"name\" field pass validation (currently fails because doctor.js requires \"title\"). No implementation changes allowed.",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779791325532": {
-      "session_id": "cg_ses_1779791325532",
-      "created_at": "2026-05-26T10:28:45.534Z",
-      "task_description": "TDD RED PHASE: Write failing test for FX-DIAG-CONS-2 — Unify staleness time base to confirmed_at. Test file: .opencode/scripts/__tests__/state-reconciliation.test.js",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779791331126": {
-      "session_id": "cg_ses_1779791331126",
-      "created_at": "2026-05-26T10:28:51.128Z",
-      "task_description": "FX-DIAG-CONS-3-RED: Write only failing test for drained_sessions object format standardization — TDD RED phase for framework-enforcer.js type conflict",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779791340431": {
-      "session_id": "cg_ses_1779791340431",
-      "created_at": "2026-05-26T10:29:00.433Z",
-      "task_description": "FX-DIAG-ROBUST-1-RED — Write ONLY failing test in safe-edit.test.js for single-call auto-retry feature. RED phase only.",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779791354319": {
-      "session_id": "cg_ses_1779791354319",
-      "created_at": "2026-05-26T10:29:14.321Z",
-      "task_description": "FX-DIAG-MULTI-2-RED — TDD RED phase: Write a failing test for write_audit_state integrity validation. Create state-reconciliation.test.js with tests that check if write_audit_state.history records match actual files on disk. Tests must fail because no implementation exists yet.",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_digest_mismatch_agents_architect_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: digest mismatch — NO version change (expected v1.0.1/sha256-5db05c1e0a10c587..., got sha256-9b4475310c1b031a...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_digest_mismatch_agents_guardian_md",
-          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: digest mismatch — NO version change (expected v1.0.1/sha256-e18f2148779edb79..., got sha256-a52297a119f02638...) — possible unauthorized modification",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 22 digests verified, 2 mismatches (HIGH), 0 warnings",
-          "severity": "HIGH"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779792086191": {
-      "session_id": "cg_ses_1779792086191",
-      "created_at": "2026-05-26T10:41:26.193Z",
-      "task_description": "TDD GREEN PHASE — FX-DIAG-CONS-2-GREEN: Unify staleness detection to use confirmed_at in gate-lifecycle-audit.js and framework-compliance-check.js",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "GREEN: Change staleness detection from created_at to confirmed_at (with created_at fallback) in gate-lifecycle-audit.js (line 87-88) and framework-compliance-check.js (line 80). Then run test suite and write audit.",
-      "confirmed_at": "2026-05-26T10:42:00.097Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": "FX-DIAG-CONS-2-GREEN",
-      "agent": "@Coder-BE",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-27T10:42:00.097Z"
-    },
-    "cg_ses_1779792089951": {
-      "session_id": "cg_ses_1779792089951",
-      "created_at": "2026-05-26T10:41:29.953Z",
-      "task_description": "TDD GREEN PHASE — Fix drained_sessions to use object format in framework-enforcer.js. Target: .opencode/plugins/framework-enforcer/framework-enforcer.js. Task: FX-DIAG-CONS-3-GREEN",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
     },
     "cg_ses_1779792095943": {
       "session_id": "cg_ses_1779792095943",
@@ -3834,50 +3477,278 @@
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-27T10:42:17.490Z"
     },
-    "cg_ses_1779792108582": {
-      "session_id": "cg_ses_1779792108582",
-      "created_at": "2026-05-26T10:41:48.583Z",
-      "task_description": "TDD GREEN PHASE — Fix framework-doctor.js line 206 to accept \"name\" field per dag-generation-standard.md. The required fields check currently requires \"title\", but per dag-generation-standard.md §7, tasks use \"name\". Change validation to accept EITHER \"name\" or \"title\". Target file: .opencode/scripts/framework-doctor.js",
+    "cg_ses_1779803737914": {
+      "session_id": "cg_ses_1779803737914",
+      "created_at": "2026-05-26T13:55:37.916Z",
+      "task_description": "Complete task FX-DIAG-AGENT-001: rule registry repair and TDD commits",
       "enforcement_mode": "strict",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_passed": true,
       "last_check_failed_items": [],
-      "plan_summary": "GREEN phase: fix framework-doctor.js to accept \"name\" field per dag-generation-standard.md. Change requiredFields from [\"id\",\"title\",\"status\",\"owner\"] to [\"id\",\"status\",\"owner\"] + fallback check for name or title. Run RED test to verify PASS.",
-      "confirmed_at": "2026-05-26T10:41:56.589Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": "FX-DIAG-CONS-1-GREEN",
-      "agent": "@Coder-BE",
+      "plan_summary": "Complete task FX-DIAG-AGENT-001: rule registry repair and TDD commits for agent config changes",
+      "confirmed_at": "2026-05-26T13:55:46.156Z",
+      "consumed_at": "2026-05-26T13:55:57.152Z",
+      "audit": {
+        "execution_summary": "Successfully completed all requested steps for FX-DIAG-AGENT-001: 1) Repaired rule registry for coder-be.md and coder-fe.md (bumped to v1.0.3), 2) Created audit test file at .opencode/scripts/__tests__/agent-mcp-audit.spec.js with 2 tests verifying GitHub MCP removal, 3) Committed test as [Red] FX-DIAG-AGENT-001 with keystone hashes updated in machine.json, 4) Committed agent config changes as [Green] FX-DIAG-AGENT-001. All keystone validations passed. Both agent configs no longer contain GitHub MCP references.",
+        "completed_at": "2026-05-26T13:55:57.152Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-27T10:41:56.590Z"
+      "expires_at": "2026-05-27T13:55:46.156Z"
     },
-    "cg_ses_1779792115406": {
-      "session_id": "cg_ses_1779792115406",
-      "created_at": "2026-05-26T10:41:55.407Z",
-      "task_description": "TDD GREEN PHASE — Write MINIMAL implementation for FX-DIAG-MULTI-2-GREEN: Add write_audit_state integrity validation to state-reconciliation.js",
+    "cg_ses_1779852866082": {
+      "session_id": "cg_ses_1779852866082",
+      "created_at": "2026-05-27T03:34:26.102Z",
+      "task_description": "Create documentation file /home/zhaoge/workspace/opencode/work-one/docs/review/opencode-workflow-diagram.md with OpenCode multi-agent workflow diagram content",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779860919038": {
+      "session_id": "cg_ses_1779860919038",
+      "created_at": "2026-05-27T05:48:39.044Z",
+      "task_description": "Understand the current workspace structure, the Opencode framework, and the booking system project.",
+      "enforcement_mode": "strict",
+      "gate_status": "failed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Read-only analysis of workspace structure, Opencode framework wiring, and booking system project; no code changes.",
+      "confirmed_at": "2026-05-27T05:56:41.654Z",
+      "consumed_at": "2026-05-27T06:01:23.139Z",
+      "audit": {
+        "execution_summary": "Stopped after read-only Opencode framework orientation. No code changes were made by the analysis task beyond compliance gate state updates.",
+        "completed_at": "2026-05-27T06:01:23.139Z"
+      },
+      "task_id": "READ-WORKSPACE-OVERVIEW",
+      "agent": "Codex",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-28T05:56:41.655Z",
+      "fail_reason": "Missing required task artifacts: HANDOVER.md, TASK_LOG.md",
+      "missing_artifacts": [
+        "HANDOVER.md",
+        "TASK_LOG.md"
+      ]
+    },
+    "cg_ses_1779862063685": {
+      "session_id": "cg_ses_1779862063685",
+      "created_at": "2026-05-27T06:07:43.704Z",
+      "task_description": "Read-only orientation/review: cross-reference docs/review/chicken-egg-scenarios.md and docs/review/opencode-workflow-diagram.md against actual Opencode framework resources, evaluate them, and revise the documents only if needed.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779865461011": {
+      "session_id": "cg_ses_1779865461011",
+      "created_at": "2026-05-27T07:04:21.039Z",
+      "task_description": "Revise the HARDEN-CONSTRAINT-DESIGN design report and final synthesis documents based on the existing Architect, Guardian, and Coder-BE re-evaluation findings.",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Revise docs/review/chicken-egg-scenarios.md and docs/review/opencode-workflow-diagram.md based on HARDEN-CONSTRAINT-DESIGN evaluation findings; markdown-only scoped documentation update, no code changes.",
+      "confirmed_at": "2026-05-27T07:08:04.383Z",
+      "consumed_at": "2026-05-27T07:11:07.174Z",
+      "audit": {
+        "execution_summary": "Updated docs/review/chicken-egg-scenarios.md and docs/review/opencode-workflow-diagram.md based on HARDEN-CONSTRAINT-DESIGN evaluation findings. Changes are markdown-only: added Category 8 safe-toolchain scenarios, corrected counts/severity distribution, updated workflow diagrams/gate table/permission matrix for safe_edit, safe_bash, safe_test, TDD Check 6, RED-phase exemption, and plugin hook caveats.",
+        "completed_at": "2026-05-27T07:11:07.174Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-28T07:08:04.383Z"
+    },
+    "cg_ses_1779885420955": {
+      "session_id": "cg_ses_1779885420955",
+      "created_at": "2026-05-27T12:37:00.966Z",
+      "task_description": "Dispatch @Meta-Planner to investigate feasibility of restructuring OpenCode agent hierarchy: making @Meta-Planner primary entry-point and downgrading @Orchestrator to subagent, while maintaining hardened enforcement constraints",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779961164409": {
+      "session_id": "cg_ses_1779961164409",
+      "created_at": "2026-05-28T09:39:24.414Z",
+      "task_description": "Execute Phase 1 (ROBUST-5, SKILL-1, UNIV-1, TECHDEBT-001) and Phase 2 (ARCH-2, SKILL-2, SKILL-3, UNIV-2) of FX-DIAG audit implementation tasks. Dispatch via appropriate agents with TDD RED/GREEN phases.",
       "enforcement_mode": "strict",
       "gate_status": "armed",
       "last_check_passed": true,
       "last_check_failed_items": [],
-      "plan_summary": "TDD GREEN — Add validateWriteAuditIntegrity function to state-reconciliation.js and export it",
-      "confirmed_at": "2026-05-26T10:42:17.389Z",
+      "plan_summary": "Execute Phase 1: ROBUST-5 (framework self-healing), SKILL-1 (skill registry validation), UNIV-1 (cross-platform compatibility), TECHDEBT-001 (tech debt integration). Then Phase 2: ARCH-2 (ADR template), SKILL-2/3 (skill chain/deprecation), UNIV-2 (placeholder resolution). All dispatched to appropriate agents with TDD RED/GREEN phases.",
+      "confirmed_at": "2026-05-28T09:39:40.927Z",
       "consumed_at": null,
       "audit": null,
-      "task_id": "FX-DIAG-MULTI-2",
+      "task_id": "FX-DIAG-PHASE1-2",
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T09:39:40.927Z"
+    },
+    "cg_ses_1779961220844": {
+      "session_id": "cg_ses_1779961220844",
+      "created_at": "2026-05-28T09:40:20.846Z",
+      "task_description": "FX-DIAG-ROBUST-5: Framework Recovery/Self-Healing Mechanism - RED phase - Write failing tests for framework-recovery.js (detectCorruption, autoRepair, flagForHuman, validateAfterRecovery, logRecoveryAction)",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FX-DIAG-ROBUST-5 RED phase: Create framework-recovery.spec.js with failing tests for detectCorruption, autoRepair, flagForHuman, validateAfterRecovery, logRecoveryAction. 6 test groups, ~35 test cases. Following existing test patterns (state-reconciliation.test.js, framework-doctor.test.js).",
+      "confirmed_at": "2026-05-28T09:41:16.766Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "FX-DIAG-ROBUST-5",
       "agent": "@Coder-BE",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-27T10:42:17.389Z"
+      "expires_at": "2026-05-29T09:41:16.766Z"
+    },
+    "cg_ses_1779961231721": {
+      "session_id": "cg_ses_1779961231721",
+      "created_at": "2026-05-28T09:40:31.723Z",
+      "task_description": "FX-DIAG-SKILL-1: Core Skill Registry Validation - Write failing TDD RED tests for skill registry validator script",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FX-DIAG-SKILL-1 RED: Write failing tests for skill registry validator (validateAllSkills, validateSkillMetadata, checkDeprecatedStatus, checkOrphanedSkills, generateReport). Tests will reference a module that doesn't exist yet, ensuring RED phase failure.",
+      "confirmed_at": "2026-05-28T09:41:56.159Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "FX-DIAG-SKILL-1",
+      "agent": "@Coder-BE",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T09:41:56.159Z"
+    },
+    "cg_ses_1779961243505": {
+      "session_id": "cg_ses_1779961243505",
+      "created_at": "2026-05-28T09:40:43.506Z",
+      "task_description": "FX-DIAG-UNIV-1: Cross-Platform Compatibility Layer - TDD RED phase. Create failing tests for platform compatibility utilities (detectPlatform, normalizePath, getShellCommand, checkPrerequisites, generatePlatformReport) without implementing them yet.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779961255341": {
+      "session_id": "cg_ses_1779961255341",
+      "created_at": "2026-05-28T09:40:55.343Z",
+      "task_description": "FX-DIAG-TECHDEBT-001: TECH_DEBT_REGISTRY.md DAG Integration - RED phase - Write failing tests for techdebt-sync.js",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FX-DIAG-TECHDEBT-001 RED Phase: Write failing test file .opencode/scripts/__tests__/techdebt-sync.spec.js testing 5 functions (scanRegistry, linkToTasks, checkDeadlines, syncWithWaive, generatePlannerInput) for framework-techdebt-sync.js. Tests will fail because implementation doesn't exist yet.",
+      "confirmed_at": "2026-05-28T09:41:41.774Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "FX-DIAG-TECHDEBT-001",
+      "agent": "@Coder-BE",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T09:41:41.774Z"
+    },
+    "cg_ses_1779973430324": {
+      "session_id": "cg_ses_1779973430324",
+      "created_at": "2026-05-28T13:03:50.330Z",
+      "task_description": "Create a new plugin entry file at .opencode/plugins/framework-enforcer/plugin-entry.ts combining hooks and tools from existing files, then compile it to JS",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1779973435726": {
+      "session_id": "cg_ses_1779973435726",
+      "created_at": "2026-05-28T13:03:55.731Z",
+      "task_description": "Create a new plugin entry file at .opencode/plugins/framework-enforcer/plugin-entry.ts combining hooks and tools from existing files, then compile it to JS",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Create plugin-entry.ts combining framework-enforcer hooks and custom tools (safe_edit + safe_bash), then compile to JS",
+      "confirmed_at": "2026-05-28T13:05:40.103Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T13:05:40.103Z"
+    },
+    "cg_ses_1779980320523": {
+      "session_id": "cg_ses_1779980320523",
+      "created_at": "2026-05-28T14:58:40.525Z",
+      "task_description": "Register safe_edit as custom tool and add safe_bash permission - INFRA-003 plugin configuration",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Execute INFRA-003 plugin configuration: compile index.ts, verify compiled output, update package.json main field, update opencode.json agent permissions for Coder-BE safe_bash, then commit all changes.",
+      "confirmed_at": "2026-05-28T14:58:50.059Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "INFRA-003",
+      "agent": "@Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T14:58:50.060Z"
     }
   },
   "active_sessions": [
-    "cg_ses_1779781751429",
-    "cg_ses_1779783676571",
-    "cg_ses_1779785361301",
-    "cg_ses_1779792108582",
-    "cg_ses_1779792086191",
-    "cg_ses_1779792115406"
+    "cg_ses_1779961164409",
+    "cg_ses_1779961220844",
+    "cg_ses_1779961255341",
+    "cg_ses_1779961231721",
+    "cg_ses_1779973435726",
+    "cg_ses_1779980320523"
   ],
-  "last_updated": "2026-05-26T10:44:01.810Z",
+  "last_updated": "2026-05-28T14:58:50.060Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
@@ -6323,6 +6194,28 @@
       "confirmed_at": "2026-05-26T10:42:17.490Z",
       "consumed_at": "2026-05-26T10:44:01.810Z",
       "execution_summary": "TDD GREEN: Fixed safe-edit.js line 125-134 to auto-retry on first call. Replaced TOCTOU failure return with registry baseline setup + recursive safeEdit() call. Module loads and exports correctly conf",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1779803737914",
+      "task_description": "Complete task FX-DIAG-AGENT-001: rule registry repair and TDD commits",
+      "plan_summary": "Complete task FX-DIAG-AGENT-001: rule registry repair and TDD commits for agent config changes",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-05-26T13:55:46.156Z",
+      "consumed_at": "2026-05-26T13:55:57.152Z",
+      "execution_summary": "Successfully completed all requested steps for FX-DIAG-AGENT-001: 1) Repaired rule registry for coder-be.md and coder-fe.md (bumped to v1.0.3), 2) Created audit test file at .opencode/scripts/__tests_",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1779865461011",
+      "task_description": "Revise the HARDEN-CONSTRAINT-DESIGN design report and final synthesis documents based on the existing Architect, Guardian, and Coder-BE re-evaluation findings.",
+      "plan_summary": "Revise docs/review/chicken-egg-scenarios.md and docs/review/opencode-workflow-diagram.md based on HARDEN-CONSTRAINT-DESIGN evaluation findings; markdown-only scoped documentation update, no code changes.",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-05-27T07:08:04.383Z",
+      "consumed_at": "2026-05-27T07:11:07.174Z",
+      "execution_summary": "Updated docs/review/chicken-egg-scenarios.md and docs/review/opencode-workflow-diagram.md based on HARDEN-CONSTRAINT-DESIGN evaluation findings. Changes are markdown-only: added Category 8 safe-toolch",
       "gate_status": "completed"
     }
   ]

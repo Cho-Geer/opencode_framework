@@ -37,7 +37,7 @@
  * @phase   FW-HARNESS-P3 + BOOTSTRAP-DEADLOCK-FIX
  */
 
-import type { Plugin, PluginContext, Hooks } from "@opencode-ai/plugin";
+import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
@@ -768,9 +768,12 @@ async function toolExecuteAfter(
     tool: string;
     sessionID: string;
     callID: string;
+    args: any;
   },
   output: {
-    result: any;
+    title: string;
+    output: string;
+    metadata: any;
   },
 ): Promise<void> {
   const tool = input.tool;
