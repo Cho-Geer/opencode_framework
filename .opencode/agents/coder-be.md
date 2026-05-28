@@ -16,7 +16,8 @@ mcp_tools:
   - Docker
   - eslint-audit
   - code-quality-gate
-# Hardened: safe_edit only — native edit denied
+  - safe_bash
+# Hardened: safe_edit and safe_bash only — native edit denied
 permission:
   edit: deny
   bash: deny

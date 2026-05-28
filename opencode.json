@@ -92,7 +92,8 @@
         "safe_edit": "allow",
         "glob": "allow",
         "grep": "allow",
-        "bash": "allow"
+        "bash": "deny",
+        "safe_bash": "allow"
       }
     },
     "Coder-FE": {
@@ -172,11 +173,8 @@
           ".opencode/rules/**": "deny",
           "*": "deny"
         },
-        "bash": {
-          "docker *": "allow",
-          "gh *": "allow",
-          "git push": "ask"
-        }
+        "bash": "deny",
+        "safe_bash": "allow"
       }
     }
   },
