@@ -41,7 +41,7 @@ import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
-import { PermissionIsolation } from "../../tools/permission-isolation.js";
+import { PermissionIsolation } from "../../lib/permission-isolation-core";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -262,6 +262,34 @@ function findArmedSession(): {
 
   if (armedSession) {
     return { found: true, sessionId: armedSession.session_id };
+  }
+
+  return { found: false, sessionId: null };
+}
+
+/**
+ * Find any non-consumed, non-drained gate session.
+ * Used for planning-phase tools (task) that require at least a checked session,
+ * without requiring the stricter "armed" status.
+ */
+function findAnyGateSession(): {
+  found: boolean;
+  sessionId: string | null;
+} {
+  const gate = readJsonFile<GateState>(STATE_PATHS.gateState());
+  if (!gate || !gate.sessions) {
+    return { found: false, sessionId: null };
+  }
+
+  const sessions = Object.values(gate.sessions);
+  const validSession = sessions.find(
+    (s) =>
+      s.consumed_at === null &&
+      s.gate_status !== "drained",
+  );
+
+  if (validSession) {
+    return { found: true, sessionId: validSession.session_id };
   }
 
   return { found: false, sessionId: null };
@@ -549,6 +577,47 @@ async function toolExecuteBefore(
     }
   }
 
+  // === P0: Orchestrator Mandatory Dispatch Gate (HARDCODED — overrides enforcement_mode) ===
+  if (agent === "Orchestrator" || agent === "@Orchestrator") {
+    const ORCHESTRATOR_ALLOWED_TOOLS = [
+      "task",
+      "read",
+      "todowrite",
+      "compliance_gate_check",
+      "compliance_gate_confirm",
+      "compliance_gate_complete",
+      "dispatch_subagent"
+    ];
+    if (!ORCHESTRATOR_ALLOWED_TOOLS.includes(tool)) {
+      const msg = `[FW-ENFORCE][FATAL] Orchestrator DISPATCH GATE BLOCKED: tool "${tool}" is not in the allowed list [${ORCHESTRATOR_ALLOWED_TOOLS.join(", ")}]. Orchestrator MUST dispatch sub-agents using "task" tool instead of executing "${tool}" directly.`;
+      console.error(msg);
+      throw new Error(msg);
+    }
+
+    // === P0: Orchestrator Task() Token Verification (must go through dispatch-subagent.js) ===
+    if (tool === "task") {
+      const promptText = output.args?.prompt || output.args?.description || "";
+      const tokenMarker = "//DISPATCH_TOKEN:";
+      const tokenIndex = promptText.lastIndexOf(tokenMarker);
+
+      if (tokenIndex === -1) {
+        const msg = `[FW-ENFORCE][FATAL] Orchestrator Task() DISPATCH TOKEN MISSING: Task() call lacks DISPATCH_TOKEN. Orchestrator MUST use dispatch-subagent.js to wrap prompts before calling Task().`;
+        console.error(msg);
+        throw new Error(msg);
+      }
+
+      const actualHash = promptText.substring(tokenIndex + tokenMarker.length).trim().split('\n')[0];
+      const promptWithoutToken = promptText.substring(0, tokenIndex);
+      const expectedHash = crypto.createHash("sha256").update(promptWithoutToken, "utf8").digest("hex");
+
+      if (actualHash !== expectedHash) {
+        const msg = `[FW-ENFORCE][FATAL] Orchestrator Task() DISPATCH TOKEN MISMATCH: expected ${expectedHash}, got ${actualHash}. Token may be tampered.`;
+        console.error(msg);
+        throw new Error(msg);
+      }
+    }
+  }
+
   // ---- Plugin integrity check (FW-HARNESS-PLUGIN-CHECK) ----
   const integrityResult = checkPluginIntegrity();
   if (!integrityResult.valid) {
@@ -581,20 +650,40 @@ async function toolExecuteBefore(
   }
 
   // ---- Check gate armed (FW-HARNESS-GATE-CHECK) ----
-  // Only enforce for modifying tools; skip read-only and bootstrap tools
-  const MODIFYING_TOOLS = ["write", "edit", "bash", "task"];
+  // Two-tier gate check:
+  //   Tier 1 (EXECUTION): write / edit / bash → require armed gate session
+  //   Tier 2 (PLANNING):  task → require any non-consumed gate session (checked or armed)
+  // This resolves the bootstrap deadlock: after compliance_gate_check creates a
+  // "checked" session, Orchestrator can dispatch Meta-Planner via task() for planning.
+  // Execution tools remain strictly blocked until compliance_gate_confirm arms the gate.
+  const EXECUTION_TOOLS = ["write", "edit", "bash"];
+  const PLANNING_TOOLS = ["task"];
+  const MODIFYING_TOOLS = [...EXECUTION_TOOLS, ...PLANNING_TOOLS];
   const BOOTSTRAP_TOOLS = [
     "compliance_gate_check",
     "compliance_gate_confirm",
     "compliance_gate_complete",
   ];
+  const isExecutionTool = EXECUTION_TOOLS.includes(tool);
+  const isPlanningTool = PLANNING_TOOLS.includes(tool);
   const isModifyingTool = MODIFYING_TOOLS.includes(tool);
   const isBootstrapTool = BOOTSTRAP_TOOLS.includes(tool);
-  if (isModifyingTool && !isBootstrapTool) {
+
+  if (isExecutionTool && !isBootstrapTool) {
+    // Execution tools (write/edit/bash) require ARMED gate
     const armedCheck = findArmedSession();
     if (!armedCheck.found && mode !== "advisory") {
       violations.push(
-        `[FW-ENFORCE] No armed compliance gate session found (mode: ${mode})`,
+        `[FW-ENFORCE] No armed compliance gate session found (mode: ${mode}). Call compliance_gate_confirm first.`,
+      );
+    }
+  }
+  if (isPlanningTool && !isBootstrapTool) {
+    // Planning tools (task) require ANY non-consumed gate session
+    const anySession = findAnyGateSession();
+    if (!anySession.found && mode !== "advisory") {
+      violations.push(
+        `[FW-ENFORCE] No active compliance gate session found (mode: ${mode}). Call compliance_gate_check first.`,
       );
     }
   }
@@ -791,7 +880,7 @@ async function toolExecuteAfter(
     taskId,
     filePath,
     action: tool === "write" || tool === "edit" ? "modify" : "execute",
-    result: output?.result !== undefined ? "success" : "completed",
+    result: output?.output !== undefined ? "success" : "completed",
   });
 
   // ---- (b) Detect stale gate sessions (>24h armed without completion) ----
@@ -851,6 +940,16 @@ async function toolExecuteAfter(
 
     // Set deferred full-scan flag — FW-HARNESS-FULL-SCAN
     process.env.FRAMEWORK_PENDING_FULLSCAN = "true";
+  }
+
+  // === Orchestrator behavior audit (Layer 5) ===
+  if ((agent === "Orchestrator" || agent === "@Orchestrator") && tool !== "task" && tool !== "read" && tool !== "todowrite") {
+    logAuditEntry({
+      event: "orchestrator_violation_attempt",
+      tool: tool,
+      timestamp: new Date().toISOString(),
+      message: `Orchestrator attempted to call non-scheduling tool "${tool}" and was blocked by DISPATCH GATE`
+    });
   }
 }
 
@@ -1167,7 +1266,7 @@ async function tuiCommandExecute(
 // Plugin export
 // ---------------------------------------------------------------------------
 
-const plugin: Plugin = async (_ctx: PluginContext): Promise<Hooks> => {
+const plugin: Plugin = async (_ctx: PluginInput): Promise<Hooks> => {
   // Initialize plugin integrity hash (FW-HARNESS-PLUGIN-CHECK)
   checkPluginIntegrity();
 
@@ -1175,7 +1274,7 @@ const plugin: Plugin = async (_ctx: PluginContext): Promise<Hooks> => {
     "tool.execute.before": toolExecuteBefore,
     "tool.execute.after": toolExecuteAfter,
     "shell.env": shellEnv,
-    "file.edited": fileEdited,
+    ["file.edited" as any]: fileEdited,
     // Phase 1 hooks (FW-HARNESS-PHASE1)
     "session.created": sessionCreated,
     "session.error": sessionError,
@@ -1188,7 +1287,7 @@ const plugin: Plugin = async (_ctx: PluginContext): Promise<Hooks> => {
     "message.updated": messageUpdated,
     "todo.updated": todoUpdated,
     "tui.command.execute": tuiCommandExecute,
-  };
+  } as unknown as Hooks;
 };
 
 export default plugin;

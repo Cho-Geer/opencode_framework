@@ -1,0 +1,8 @@
+{
+  "name": "opencode-framework",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@opencode-ai/plugin": "1.14.20"
+  }
+}

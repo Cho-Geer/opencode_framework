@@ -23,6 +23,7 @@ import type { Plugin, PluginInput, Hooks, ToolResult } from "@opencode-ai/plugin
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { PermissionIsolation } from "../../lib/permission-isolation-core";
 
 // ---------------------------------------------------------------------------
 // 1. Import framework enforcer plugin (hooks-only)
@@ -34,14 +35,13 @@ import frameworkEnforcerPlugin from "./framework-enforcer.js";
 // 2. Import safe-edit helper
 // ---------------------------------------------------------------------------
 
-import { safeEdit } from "../../tools/safe-edit.js";
+import { safeEdit, writeSafeFull } from "../../lib/safe-edit-core";
 
 // ---------------------------------------------------------------------------
 // 3. Import safe-bash helper (CJS module — use namespace import)
 // ---------------------------------------------------------------------------
 
-import * as safeBashModule from "../../tools/safe-bash.js";
-const { safeBashTool } = safeBashModule;
+import { safeBashTool } from "../../lib/safe-bash-core";
 
 // ---------------------------------------------------------------------------
 // 4. Combined plugin
@@ -76,8 +76,20 @@ const combinedPlugin: Plugin = async (
             .string()
             .describe("New string to replace with"),
         },
-        async execute(args, _context): Promise<ToolResult> {
+        async execute(args, context): Promise<ToolResult> {
           const absPath = path.resolve(args.filePath);
+
+          // Write-scope validation (G6 fix: @Arbiter WARNING)
+          const permissionIsolation = new PermissionIsolation();
+          const scopeResult = await permissionIsolation.checkWriteScope(
+            (context as any)?.agent || 'unknown',
+            absPath,
+          );
+          if (!scopeResult.allowed) {
+            throw new Error(
+              `safe_edit blocked: ${scopeResult.reason || 'Write scope violation'}`,
+            );
+          }
 
           let content: string;
           try {

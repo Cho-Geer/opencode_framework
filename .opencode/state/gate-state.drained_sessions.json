@@ -1181,8 +1181,208 @@
       "audit": null,
       "drained_at": "2026-05-28T14:58:39.170Z",
       "drain_reason": "checked for 48h without confirmation"
+    },
+    "cg_ses_1779852866082": {
+      "session_id": "cg_ses_1779852866082",
+      "created_at": "2026-05-27T03:34:26.102Z",
+      "task_description": "Create documentation file /home/zhaoge/workspace/opencode/work-one/docs/review/opencode-workflow-diagram.md with OpenCode multi-agent workflow diagram content",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "checked for 96h without confirmation"
+    },
+    "cg_ses_1779862063685": {
+      "session_id": "cg_ses_1779862063685",
+      "created_at": "2026-05-27T06:07:43.704Z",
+      "task_description": "Read-only orientation/review: cross-reference docs/review/chicken-egg-scenarios.md and docs/review/opencode-workflow-diagram.md against actual Opencode framework resources, evaluate them, and revise the documents only if needed.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "checked for 93h without confirmation"
+    },
+    "cg_ses_1779885420955": {
+      "session_id": "cg_ses_1779885420955",
+      "created_at": "2026-05-27T12:37:00.966Z",
+      "task_description": "Dispatch @Meta-Planner to investigate feasibility of restructuring OpenCode agent hierarchy: making @Meta-Planner primary entry-point and downgrading @Orchestrator to subagent, while maintaining hardened enforcement constraints",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "checked for 87h without confirmation"
+    },
+    "cg_ses_1779961164409": {
+      "session_id": "cg_ses_1779961164409",
+      "created_at": "2026-05-28T09:39:24.414Z",
+      "task_description": "Execute Phase 1 (ROBUST-5, SKILL-1, UNIV-1, TECHDEBT-001) and Phase 2 (ARCH-2, SKILL-2, SKILL-3, UNIV-2) of FX-DIAG audit implementation tasks. Dispatch via appropriate agents with TDD RED/GREEN phases.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Execute Phase 1: ROBUST-5 (framework self-healing), SKILL-1 (skill registry validation), UNIV-1 (cross-platform compatibility), TECHDEBT-001 (tech debt integration). Then Phase 2: ARCH-2 (ADR template), SKILL-2/3 (skill chain/deprecation), UNIV-2 (placeholder resolution). All dispatched to appropriate agents with TDD RED/GREEN phases.",
+      "confirmed_at": "2026-05-28T09:39:40.927Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "FX-DIAG-PHASE1-2",
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T09:39:40.927Z",
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "armed for 66h without completion"
+    },
+    "cg_ses_1779961220844": {
+      "session_id": "cg_ses_1779961220844",
+      "created_at": "2026-05-28T09:40:20.846Z",
+      "task_description": "FX-DIAG-ROBUST-5: Framework Recovery/Self-Healing Mechanism - RED phase - Write failing tests for framework-recovery.js (detectCorruption, autoRepair, flagForHuman, validateAfterRecovery, logRecoveryAction)",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FX-DIAG-ROBUST-5 RED phase: Create framework-recovery.spec.js with failing tests for detectCorruption, autoRepair, flagForHuman, validateAfterRecovery, logRecoveryAction. 6 test groups, ~35 test cases. Following existing test patterns (state-reconciliation.test.js, framework-doctor.test.js).",
+      "confirmed_at": "2026-05-28T09:41:16.766Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "FX-DIAG-ROBUST-5",
+      "agent": "@Coder-BE",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T09:41:16.766Z",
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "armed for 66h without completion"
+    },
+    "cg_ses_1779961231721": {
+      "session_id": "cg_ses_1779961231721",
+      "created_at": "2026-05-28T09:40:31.723Z",
+      "task_description": "FX-DIAG-SKILL-1: Core Skill Registry Validation - Write failing TDD RED tests for skill registry validator script",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FX-DIAG-SKILL-1 RED: Write failing tests for skill registry validator (validateAllSkills, validateSkillMetadata, checkDeprecatedStatus, checkOrphanedSkills, generateReport). Tests will reference a module that doesn't exist yet, ensuring RED phase failure.",
+      "confirmed_at": "2026-05-28T09:41:56.159Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "FX-DIAG-SKILL-1",
+      "agent": "@Coder-BE",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T09:41:56.159Z",
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "armed for 66h without completion"
+    },
+    "cg_ses_1779961243505": {
+      "session_id": "cg_ses_1779961243505",
+      "created_at": "2026-05-28T09:40:43.506Z",
+      "task_description": "FX-DIAG-UNIV-1: Cross-Platform Compatibility Layer - TDD RED phase. Create failing tests for platform compatibility utilities (detectPlatform, normalizePath, getShellCommand, checkPrerequisites, generatePlatformReport) without implementing them yet.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "checked for 66h without confirmation"
+    },
+    "cg_ses_1779961255341": {
+      "session_id": "cg_ses_1779961255341",
+      "created_at": "2026-05-28T09:40:55.343Z",
+      "task_description": "FX-DIAG-TECHDEBT-001: TECH_DEBT_REGISTRY.md DAG Integration - RED phase - Write failing tests for techdebt-sync.js",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "FX-DIAG-TECHDEBT-001 RED Phase: Write failing test file .opencode/scripts/__tests__/techdebt-sync.spec.js testing 5 functions (scanRegistry, linkToTasks, checkDeadlines, syncWithWaive, generatePlannerInput) for framework-techdebt-sync.js. Tests will fail because implementation doesn't exist yet.",
+      "confirmed_at": "2026-05-28T09:41:41.774Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "FX-DIAG-TECHDEBT-001",
+      "agent": "@Coder-BE",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T09:41:41.774Z",
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "armed for 66h without completion"
+    },
+    "cg_ses_1779973430324": {
+      "session_id": "cg_ses_1779973430324",
+      "created_at": "2026-05-28T13:03:50.330Z",
+      "task_description": "Create a new plugin entry file at .opencode/plugins/framework-enforcer/plugin-entry.ts combining hooks and tools from existing files, then compile it to JS",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "checked for 62h without confirmation"
+    },
+    "cg_ses_1779973435726": {
+      "session_id": "cg_ses_1779973435726",
+      "created_at": "2026-05-28T13:03:55.731Z",
+      "task_description": "Create a new plugin entry file at .opencode/plugins/framework-enforcer/plugin-entry.ts combining hooks and tools from existing files, then compile it to JS",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Create plugin-entry.ts combining framework-enforcer hooks and custom tools (safe_edit + safe_bash), then compile to JS",
+      "confirmed_at": "2026-05-28T13:05:40.103Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-05-29T13:05:40.103Z",
+      "drained_at": "2026-05-31T03:44:58.840Z",
+      "drain_reason": "armed for 62h without completion"
     }
   },
-  "last_drained": "2026-05-28T14:58:39.170Z",
-  "total_drained": 49
+  "last_drained": "2026-05-31T03:44:58.840Z",
+  "total_drained": 59
 }

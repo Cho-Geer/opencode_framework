@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+// safe_bash: allow-write
 /**
  * dispatch-subagent.js
  * General-purpose sub-agent dispatcher with P0 protocol enforcement.
@@ -21,6 +21,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const OPENCODE_ROOT =
   process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..", "..");
@@ -559,7 +560,10 @@ const outputFile = path.join(
   OUTPUT_DIR,
   `dispatch-${agentType}-${timestamp}.md`,
 );
-fs.writeFileSync(outputFile, resolvedPrompt, "utf8");
+// Append DISPATCH_TOKEN for orchestrator enforcement verification
+const dispatchToken = crypto.createHash("sha256").update(resolvedPrompt, "utf8").digest("hex");
+const tokenizedPrompt = resolvedPrompt + `\n//DISPATCH_TOKEN:${dispatchToken}`;
+fs.writeFileSync(outputFile, tokenizedPrompt, "utf8");
 
 console.error(`[dispatch] Output: ${outputFile}`);
 

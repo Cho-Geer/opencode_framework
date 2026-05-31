@@ -1,0 +1,526 @@
+{
+  "$schema": ".opencode/state/rule_registry.schema.json",
+  "meta": {
+    "version": "1.0.0",
+    "created": "2026-05-22T01:27:00.000Z",
+    "last_updated": "2026-05-26T13:52:40.625Z",
+    "last_regenerated": "2026-05-26",
+    "project": "booking-system",
+    "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
+    "digest_algorithm": "sha256",
+    "digest_format": "sha256-{hex}"
+  },
+  "entries": {
+    "rules/common-project.md": {
+      "path": ".opencode/rules/common-project.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "264dad21a63f580f55c77f36c14660ac986c572d28af6c5d5628a3394ab87634",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "Core project rules – always-on, highest priority for all agents",
+      "digest_history": [
+        {
+          "sha256": "264dad21a63f580f55c77f36c14660ac986c572d28af6c5d5628a3394ab87634",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/mcp-compliance-guide.md": {
+      "path": ".opencode/rules/mcp-compliance-guide.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "1fa0b6842912ac410e8315598b3e7e74915d51f0e8847c7321284813166b51dd",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "MCP tool usage compliance requirements – always-on",
+      "digest_history": [
+        {
+          "sha256": "1fa0b6842912ac410e8315598b3e7e74915d51f0e8847c7321284813166b51dd",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/skill-compliance-guide.md": {
+      "path": ".opencode/rules/skill-compliance-guide.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "f5850e9a6aaa54c1d1567273cb098387c42413839b844d9c6db0d7d9cd7cc97f",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "Skill invocation permissions and compliance requirements – always-on",
+      "digest_history": [
+        {
+          "sha256": "f5850e9a6aaa54c1d1567273cb098387c42413839b844d9c6db0d7d9cd7cc97f",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/backend-coding-standard.md": {
+      "path": ".opencode/rules/backend-coding-standard.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "4ad6b97b9615e2eb590bda8de1a49e8258caf6b425972b4f8d0da7fbd27f9c76",
+      "last_modified": "2026-05-21T03:22:40.000Z",
+      "description": "Backend code standards – NestJS, Prisma, DTO patterns",
+      "digest_history": [
+        {
+          "sha256": "4ad6b97b9615e2eb590bda8de1a49e8258caf6b425972b4f8d0da7fbd27f9c76",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/frontend-coding-standard.md": {
+      "path": ".opencode/rules/frontend-coding-standard.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "bb632d7dc6d87b9d6b46731590468fc53d10ae4eaedda48e13366b2deff69f8d",
+      "last_modified": "2026-05-21T03:27:36.000Z",
+      "description": "Frontend code standards – Angular, SignalStore, Tailwind, PrimeNG",
+      "digest_history": [
+        {
+          "sha256": "bb632d7dc6d87b9d6b46731590468fc53d10ae4eaedda48e13366b2deff69f8d",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/coding-standard-common.md": {
+      "path": ".opencode/rules/coding-standard-common.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "3015c3e4a9557762cf639546060d6a4475ca1e6589717bc50951ad2c3062bbce",
+      "last_modified": "2026-05-21T03:17:55.000Z",
+      "description": "Common coding standards shared across frontend and backend",
+      "digest_history": [
+        {
+          "sha256": "3015c3e4a9557762cf639546060d6a4475ca1e6589717bc50951ad2c3062bbce",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/test-coding-standard.md": {
+      "path": ".opencode/rules/test-coding-standard.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "e1231b7183cff8e29e3bd1d628b3c92b201ddc536acb55077b7d63de4784bedf",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "TDD and test coding standards – Jest, Playwright, Supertest",
+      "digest_history": [
+        {
+          "sha256": "c3f3cb547d5b981d082e100c754f585b76b0c13c64849d5978cbed928c72a441",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/rule_detail/skill-invocation-standard.md": {
+      "path": ".opencode/rules/rule_detail/skill-invocation-standard.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "1e014da1a97bbbf3df58455d4409c36c8305f190824c4f0f1d604162608f56ad",
+      "last_modified": "2026-05-21T03:56:36.000Z",
+      "description": "Skill invocation standardization – registration, naming, invocation patterns",
+      "digest_history": [
+        {
+          "sha256": "1e014da1a97bbbf3df58455d4409c36c8305f190824c4f0f1d604162608f56ad",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/rule_detail/mcp-tool-inventory.md": {
+      "path": ".opencode/rules/rule_detail/mcp-tool-inventory.md",
+      "category": "rule",
+      "semver": "2.0.0",
+      "sha256": "0320ca473f1458e9e95129cfe6d99e559415435aeeb634c6c8a0219a24f13da4",
+      "last_modified": "2026-05-26T01:35:48.022946Z",
+      "description": "MCP tool inventory – available tools, selection guide, invocation patterns",
+      "digest_history": [
+        {
+          "sha256": "6c9cadeb41a85cf77cbbd7d40411cf27203fcab1b82cef0175ec9c8cf1b4311e",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        },
+        {
+          "sha256": "0320ca473f1458e9e95129cfe6d99e559415435aeeb634c6c8a0219a24f13da4",
+          "timestamp": "2026-05-26T01:35:48.022946Z",
+          "semver": "2.0.0",
+          "change": "rule-registry repair: sha256 synced for v2.0.0"
+        }
+      ]
+    },
+    "rules/rule_detail/dag-generation-standard.md": {
+      "path": ".opencode/rules/rule_detail/dag-generation-standard.md",
+      "category": "rule",
+      "semver": "1.1.0",
+      "sha256": "1fd672eb1f79539fcef025dee71258097e4861b7c56a1b08660ebe470039a5e6",
+      "last_modified": "2026-05-23T07:45:00.000Z",
+      "description": "DAG generation standard v1.1.0 – parameterized module template replacement",
+      "digest_history": [
+        {
+          "sha256": "df75ac7964462692b3158c1ff2ad79ac6705c4561d88bcfe25a490eca3ab752b",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.1.0",
+          "change": "initial registration"
+        },
+        {
+          "sha256": "1fd672eb1f79539fcef025dee71258097e4861b7c56a1b08660ebe470039a5e6",
+          "timestamp": "2026-05-23T07:45:00.000Z",
+          "semver": "1.1.0",
+          "change": "content hash updated after .bak file was created during RVW-REVIEW-03 testing"
+        }
+      ]
+    },
+    "rules/rule_detail/state-machine-standard.md": {
+      "path": ".opencode/rules/rule_detail/state-machine-standard.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "b9fd8d9ebece1a48653334d5087473d29e35c245a92700a003627962556010c2",
+      "last_modified": "2026-05-21T23:32:26.000Z",
+      "description": "State machine (machine.json) structural standard and operation procedures",
+      "digest_history": [
+        {
+          "sha256": "b9fd8d9ebece1a48653334d5087473d29e35c245a92700a003627962556010c2",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/rule_detail/template-variable-standard.md": {
+      "path": ".opencode/rules/rule_detail/template-variable-standard.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "a225041b90311083d2d22302da393d88bf67f10fc1685aa473942b2eee930f1b",
+      "last_modified": "2026-05-21T15:45:14.000Z",
+      "description": "Template variable standardization for cross-project compatibility",
+      "digest_history": [
+        {
+          "sha256": "a225041b90311083d2d22302da393d88bf67f10fc1685aa473942b2eee930f1b",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md": {
+      "path": ".opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "97b92876c920d1bda365b4d01470edc4f13275643f4fd12024b6371e01749cc8",
+      "last_modified": "2026-05-21T23:35:29.000Z",
+      "description": "Uppercase variant of template variable standard (legacy/unified)",
+      "digest_history": [
+        {
+          "sha256": "97b92876c920d1bda365b4d01470edc4f13275643f4fd12024b6371e01749cc8",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "skills/execution-preflight-check/SKILL.md": {
+      "path": ".opencode/skills/execution-preflight-check/SKILL.md",
+      "category": "skill",
+      "semver": "1.0.0",
+      "sha256": "c9c17a7525aa92ff02e3af7115f13dad5702c16bda363ff67a82f92e728aa85a",
+      "last_modified": "2026-05-20T11:58:03.000Z",
+      "description": "MANDATORY pre-flight check skill – verifies rule compliance, MCP readiness, skill requirements",
+      "critical": true,
+      "digest_history": [
+        {
+          "sha256": "c9c17a7525aa92ff02e3af7115f13dad5702c16bda363ff67a82f92e728aa85a",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "skills/context7-first/SKILL.md": {
+      "path": ".opencode/skills/context7-first/SKILL.md",
+      "category": "skill",
+      "semver": "1.0.0",
+      "sha256": "c6f8c5b374aca9c425f5b6853ae1bee1b224e8188fb663fe9ca06280fe9f9706",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "Forces context7 MCP tool call before any tech stack related tasks",
+      "digest_history": [
+        {
+          "sha256": "c6f8c5b374aca9c425f5b6853ae1bee1b224e8188fb663fe9ca06280fe9f9706",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "skills/brainstorming/SKILL.md": {
+      "path": ".opencode/skills/brainstorming/SKILL.md",
+      "category": "skill",
+      "semver": "1.0.0",
+      "sha256": "682f4c58b24ba0037ca8f3375fb962d822d0e992d463216cb310077f48df8001",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "Turns vague ideas into clear, implementation-ready designs",
+      "digest_history": [
+        {
+          "sha256": "682f4c58b24ba0037ca8f3375fb962d822d0e992d463216cb310077f48df8001",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "skills/multi-agent-orchestration/SKILL.md": {
+      "path": ".opencode/skills/multi-agent-orchestration/SKILL.md",
+      "category": "skill",
+      "semver": "1.0.0",
+      "sha256": "bcc5635df44fd3680a653cc109a6f1650d36bd45c1278ed11b0ba82c78243ca3",
+      "last_modified": "2026-05-21T05:37:48.000Z",
+      "description": "Triggers and orchestrates the three-layer eight-role multi-agent system",
+      "digest_history": [
+        {
+          "sha256": "bcc5635df44fd3680a653cc109a6f1650d36bd45c1278ed11b0ba82c78243ca3",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "agents/architect.md": {
+      "path": ".opencode/agents/Architect.md",
+      "category": "agent",
+      "semver": "1.0.2",
+      "sha256": "df49fd1b09aaa66e2710cddadc4a8d88ebcfe8335bbb90d68220829938983c27",
+      "last_modified": "2026-05-26T10:40:03.755Z",
+      "description": "System Architect – technology selection, interface contracts, directory structure",
+      "digest_history": [
+        {
+          "sha256": "ca1f8bcca61839ebb90eae8432cc86afebb860aaa9590bb6b7388919de489e45",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        },
+        {
+          "sha256": "5db05c1e0a10c5871fd9111d43427e18a533b8ed63ce4c62c8a292324eda6ce9",
+          "timestamp": "2026-05-26T00:02:22.172Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "9b4475310c1b031a1d535a666596f8e32ec284a7fcbd7b38883e1c6888f608ff",
+          "timestamp": "2026-05-26T10:40:03.756Z",
+          "semver": "1.0.2",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        }
+      ]
+    },
+    "agents/coder-be.md": {
+      "path": ".opencode/agents/Coder-BE.md",
+      "category": "agent",
+      "semver": "1.0.3",
+      "sha256": "4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b",
+      "last_modified": "2026-05-26T13:52:40.624Z",
+      "description": "Backend Development Engineer – API implementation, business logic",
+      "digest_history": [
+        {
+          "sha256": "2a85d8c9b20f9b3d40dc5639aa66a14fbadd45f424bec5edf109314e3773aac6",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        },
+        {
+          "sha256": "7d95b813c7cfe36d5b4f86d04efc98d262d8038af4626b9ecb03074f4c6ebf15",
+          "timestamp": "2026-05-26T00:02:22.173Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "bbd19b33266d6ee35245007d7387db83b3f4eaa75fa7c695c3257dbecccf8a13",
+          "timestamp": "2026-05-26T01:35:48.022946Z",
+          "semver": "1.0.2",
+          "change": "CI-UNIFY-004: added run_write_check deprecation notice"
+        },
+        {
+          "sha256": "4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b",
+          "timestamp": "2026-05-26T13:52:40.624Z",
+          "semver": "1.0.3",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        }
+      ]
+    },
+    "agents/coder-fe.md": {
+      "path": ".opencode/agents/Coder-FE.md",
+      "category": "agent",
+      "semver": "1.0.3",
+      "sha256": "63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8",
+      "last_modified": "2026-05-26T13:52:40.624Z",
+      "description": "Frontend Development Engineer – page/component/interaction implementation",
+      "digest_history": [
+        {
+          "sha256": "aa97377bf0de2d17f5353bb093fad3de591508ab6e086287ae4f5dcd28fe392a",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        },
+        {
+          "sha256": "80226da15c497656fb8988851a4b9a0e1f919d1c2c150835a9cd5117e4f82518",
+          "timestamp": "2026-05-26T00:02:22.173Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "cb94c2f493043f033c6c9fb09bb5f9d811efc41234d04ba01a00d250e992a442",
+          "timestamp": "2026-05-26T01:35:48.022946Z",
+          "semver": "1.0.2",
+          "change": "CI-UNIFY-004: added run_write_check deprecation notice"
+        },
+        {
+          "sha256": "63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8",
+          "timestamp": "2026-05-26T13:52:40.624Z",
+          "semver": "1.0.3",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        }
+      ]
+    },
+    "agents/orchestrator.md": {
+      "path": ".opencode/agents/Orchestrator.md",
+      "category": "agent",
+      "semver": "1.0.1",
+      "sha256": "8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562",
+      "last_modified": "2026-05-26T01:00:03.110Z",
+      "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch",
+      "digest_history": [
+        {
+          "sha256": "9ebadf94732ea96b63ddab19784faae8e864f518584b94e822f858504be9aef8",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        },
+        {
+          "sha256": "8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562",
+          "timestamp": "2026-05-26T01:00:03.110Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        }
+      ]
+    },
+    "agents/guardian.md": {
+      "path": ".opencode/agents/Guardian.md",
+      "category": "agent",
+      "semver": "1.0.2",
+      "sha256": "a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076",
+      "last_modified": "2026-05-26T10:40:03.757Z",
+      "description": "Quality Gate – code standards, security, architecture constraint review",
+      "digest_history": [
+        {
+          "sha256": "88a291a403d21b95ba8a6453a3e371f2e2d413834c408c46be2dd7e4454097ca",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        },
+        {
+          "sha256": "e18f2148779edb797eae089bf8a7cb33d3fe77ea8be710ffc7cd3595e78ef87b",
+          "timestamp": "2026-05-26T00:02:22.173Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076",
+          "timestamp": "2026-05-26T10:40:03.757Z",
+          "semver": "1.0.2",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        }
+      ]
+    },
+    "requirements/系统架构设计文档（SAD）.md": {
+      "path": ".opencode/context/requirements/系统架构设计文档（SAD）.md",
+      "category": "requirement",
+      "semver": "1.0.0",
+      "sha256": "8ea014ffde9b54080dcabebee3f4afb70a842e1d5f8d5911734ef3a18d30c0e3",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "System Architecture Design document – overall architecture specification",
+      "digest_history": [
+        {
+          "sha256": "8ea014ffde9b54080dcabebee3f4afb70a842e1d5f8d5911734ef3a18d30c0e3",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    },
+    "requirements/接口设计规范文档.md": {
+      "path": ".opencode/context/requirements/接口设计规范文档.md",
+      "category": "requirement",
+      "semver": "1.0.0",
+      "sha256": "0097fae4cff4357e329cae89982484b062bf0d0a125ff7e606650ecaf1bb8b05",
+      "last_modified": "2026-05-19T00:59:16.000Z",
+      "description": "API design specification document",
+      "digest_history": [
+        {
+          "sha256": "0097fae4cff4357e329cae89982484b062bf0d0a125ff7e606650ecaf1bb8b05",
+          "timestamp": "2026-05-22T01:27:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration"
+        }
+      ]
+    }
+  },
+  "integrity": {
+    "last_full_verification": "2026-05-26T01:35:48.022946Z",
+    "last_regenerated": "2026-05-23",
+    "last_verified_digest": "sha256-all-24-verified",
+    "verified_count": 24,
+    "mismatch_count": 0,
+    "warning_count": 0,
+    "critical_mismatches": [],
+    "status": "clean"
+  },
+  "verification_policy": {
+    "critical_files": [
+      "rules/common-project.md",
+      "rules/mcp-compliance-guide.md",
+      "rules/skill-compliance-guide.md",
+      "rules/rule_detail/dag-generation-standard.md",
+      "skills/execution-preflight-check/SKILL.md"
+    ],
+    "mismatch_severity_rules": {
+      "digest_mismatch_version_bumped": "WARNING",
+      "digest_mismatch_version_same": "HIGH",
+      "file_missing_registered": "HIGH",
+      "file_not_registered": "INFO",
+      "digest_match": "PASS"
+    },
+    "verification_mode": "STRICT",
+    "allow_unregistered_files": true
+  },
+  "waivers": [
+    {
+      "id": "WV-2026-011",
+      "type": "scope_override",
+      "granted_by": "@Arbiter (auto-consolidated)",
+      "date": "2026-05-24",
+      "summary": "Grant @Coder-BE write access to .opencode/scripts/** .opencode/plugins/** .opencode/tools/** for Safe Optimization Plan (framework infrastructure, not business code). Auto-approved as consolidation of WV-2026-010.",
+      "expiry": "2026-06-24",
+      "conditions": "Restricted to .opencode/ paths only. Business code directories unchanged."
+    },
+    {
+      "id": "WV-2026-012",
+      "type": "scope_override",
+      "granted_by": "@Orchestrator (auto)",
+      "date": "2026-05-24",
+      "summary": "Add .opencode/hooks/** to @Coder-BE write scopes for pre-commit hook Layer 1.5 (registry verification) per Optimization Plan R1.4",
+      "expiry": "2026-06-24",
+      "conditions": "Restricted to pre-commit hook modifications under Optimization Plan v2"
+    }
+  ]
+}

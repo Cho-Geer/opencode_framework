@@ -1,0 +1,29 @@
+import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin";
+import {
+  makeSafeEditTool,
+  makeSafeBashTool,
+  makeSafeTestTool,
+} from "../../tools/tool-definitions";
+
+const combinedPlugin: Plugin = async (
+  ctx: PluginInput,
+): Promise<Hooks> => {
+  // Load governance hooks from framework-enforcer.ts
+  const { default: frameworkEnforcer } = await import(
+    "./framework-enforcer.js"
+  );
+  const hooks = await frameworkEnforcer(ctx);
+
+  // Merge governance hooks with custom tools
+  return {
+    ...hooks,
+    tool: {
+      ...(hooks.tool || {}),
+      safe_edit: makeSafeEditTool(),
+      safe_bash: makeSafeBashTool(),
+      safe_test: makeSafeTestTool(),
+    },
+  };
+};
+
+export default combinedPlugin;

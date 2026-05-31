@@ -124,7 +124,7 @@ function runESLint(projectRoot, targetFiles, scanBusinessCode) {
   const pluginDir = path.join(
     OPENCODE_ROOT,
     ".opencode",
-    "tools",
+    "eslint-plugin",
     "eslint-plugin-opencode-mock-audit",
   );
 

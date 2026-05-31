@@ -2,14 +2,14 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-05-26T13:59:03.826Z",
+    "lastUpdated": "2026-05-30T14:14:57.478Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 500,
+    "revision": 560,
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
-    "last_full_scan": "2026-05-26T10:43:48.005Z",
+    "last_full_scan": "2026-05-30T14:14:57.477Z",
     "modules": {
       "all_modules": {
         "status": "clean",
@@ -20,7 +20,7 @@
       "unknown": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-26T10:43:48.005Z",
+        "last_check": "2026-05-30T14:14:57.476Z",
         "waivers_applied": []
       },
       "admin": {
@@ -4414,8 +4414,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "a7cd8d97-cb20-4b12-b3db-0874c212e730",
-    "last_transaction_at": "2026-05-28T14:59:41.795Z",
+    "last_operation_id": "6c9d90d5-873f-48c7-9f99-bde153ad157a",
+    "last_transaction_at": "2026-05-31T08:54:20.394Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   }

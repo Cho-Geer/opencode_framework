@@ -297,10 +297,10 @@
       ]
     },
     "agents/architect.md": {
-      "path": ".opencode/agents/architect.md",
+      "path": ".opencode/agents/Architect.md",
       "category": "agent",
       "semver": "1.0.2",
-      "sha256": "9b4475310c1b031a1d535a666596f8e32ec284a7fcbd7b38883e1c6888f608ff",
+      "sha256": "df49fd1b09aaa66e2710cddadc4a8d88ebcfe8335bbb90d68220829938983c27",
       "last_modified": "2026-05-26T10:40:03.755Z",
       "description": "System Architect – technology selection, interface contracts, directory structure",
       "digest_history": [
@@ -325,10 +325,10 @@
       ]
     },
     "agents/coder-be.md": {
-      "path": ".opencode/agents/coder-be.md",
+      "path": ".opencode/agents/Coder-BE.md",
       "category": "agent",
       "semver": "1.0.3",
-      "sha256": "4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b",
+      "sha256": "b874990df6abaa517ca3506c26967c01b9b3b46511851fbbc82f54a2f1244c68",
       "last_modified": "2026-05-26T13:52:40.624Z",
       "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
@@ -359,10 +359,10 @@
       ]
     },
     "agents/coder-fe.md": {
-      "path": ".opencode/agents/coder-fe.md",
+      "path": ".opencode/agents/Coder-FE.md",
       "category": "agent",
       "semver": "1.0.3",
-      "sha256": "63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8",
+      "sha256": "cf9f8d9daed5480a27b556a5d27053efca676d08dcd69fdbce7082245fdc5b27",
       "last_modified": "2026-05-26T13:52:40.624Z",
       "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
@@ -393,11 +393,11 @@
       ]
     },
     "agents/orchestrator.md": {
-      "path": ".opencode/agents/orchestrator.md",
+      "path": ".opencode/agents/Orchestrator.md",
       "category": "agent",
-      "semver": "1.0.1",
-      "sha256": "8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562",
-      "last_modified": "2026-05-26T01:00:03.110Z",
+      "semver": "1.0.2",
+      "sha256": "d3b93854545c5cd0e2a0f140c0b498178ecbe22d9a23d36db277988ea16969aa",
+      "last_modified": "2026-05-31T00:00:00.000Z",
       "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch",
       "digest_history": [
         {
@@ -411,14 +411,20 @@
           "timestamp": "2026-05-26T01:00:03.110Z",
           "semver": "1.0.1",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "d3b93854545c5cd0e2a0f140c0b498178ecbe22d9a23d36db277988ea16969aa",
+          "timestamp": "2026-05-31T00:00:00.000Z",
+          "semver": "1.0.2",
+          "change": "added MANDATORY DISPATCH GATE section — English dispatch classification table and iron rules"
         }
       ]
     },
     "agents/guardian.md": {
-      "path": ".opencode/agents/guardian.md",
+      "path": ".opencode/agents/Guardian.md",
       "category": "agent",
       "semver": "1.0.2",
-      "sha256": "a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076",
+      "sha256": "60a5f63e9a88344673d883cd3ff47e687b0eb770175297ca8099f2423f92b54b",
       "last_modified": "2026-05-26T10:40:03.757Z",
       "description": "Quality Gate – code standards, security, architecture constraint review",
       "digest_history": [

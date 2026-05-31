@@ -1,6 +1,18 @@
 #!/usr/bin/env node
 "use strict";
 
+// ── Delegate to .opencode/lib/gate-core.ts (single source of truth) ──
+let _gateCore = null;
+try {
+  const gateCorePath = require("path").join(
+    process.env.OPENCODE_ROOT || require("path").resolve(__dirname, "..", "..", ".."),
+    ".opencode", "lib", "gate-core"
+  );
+  _gateCore = require(gateCorePath);
+} catch (_e) {
+  // Fallback: inline implementations used
+}
+
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const {
   StdioServerTransport,
@@ -15,6 +27,9 @@ const path2 = require("path");
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT ? path2.resolve(process.env.OPENCODE_ROOT) : path2.resolve(__dirname, "..", "..", "..");
 
 function resolveProjectState() {
+  if (_gateCore && typeof _gateCore.resolveStateDir === "function") {
+    return _gateCore.resolveStateDir(OPENCODE_ROOT);
+  }
   const cfgPath = path2.join(OPENCODE_ROOT, ".opencode", "project.config.json");
   try {
     const cfg = JSON.parse(fs2.readFileSync(cfgPath, "utf8"));
@@ -94,6 +109,9 @@ const RULE_REGISTRY_PATH =
   path.join(resolveProjectState(), "rule_registry.json");
 
 function readJson(p) {
+  if (_gateCore && typeof _gateCore.readJsonFile === "function") {
+    return _gateCore.readJsonFile(p);
+  }
   try {
     return JSON.parse(fs.readFileSync(p, "utf8"));
   } catch {
@@ -170,6 +188,9 @@ function writeJsonWithContext(p, data, agent, taskId) {
 }
 
 function fileExists(p) {
+  if (_gateCore && typeof _gateCore.fileExists === "function") {
+    return _gateCore.fileExists(p);
+  }
   try {
     return fs.statSync(p).isFile();
   } catch {
@@ -184,6 +205,9 @@ function fileExists(p) {
  *   digest format: "sha256-{hex}" (consistent with keystone hash convention)
  */
 function computeDigest(filePath) {
+  if (_gateCore && typeof _gateCore.computeDigest === "function") {
+    return _gateCore.computeDigest(OPENCODE_ROOT, filePath);
+  }
   try {
     const resolved = path.resolve(OPENCODE_ROOT, filePath);
     const content = fs.readFileSync(resolved);
@@ -202,16 +226,15 @@ function computeDigest(filePath) {
  * @returns {string|null} - Semantic version string or null
  */
 function extractSemver(filePath) {
+  if (_gateCore && typeof _gateCore.extractSemver === "function") {
+    return _gateCore.extractSemver(OPENCODE_ROOT, filePath);
+  }
   try {
     const resolved = path.resolve(OPENCODE_ROOT, filePath);
     const content = fs.readFileSync(resolved, "utf8");
-    // Pattern 1: YAML frontmatter `version: "1.2.3"` or `version: 1.2.3`
     const fmMatch = content.match(/^version:\s*"?(\d+\.\d+\.\d+)"?/m);
     if (fmMatch) return fmMatch[1];
-    // Pattern 2: Markdown header `## Version 1.2.3` or `# v1.2.3`
-    const hdrMatch = content.match(
-      /^#{1,3}\s+(?:Version|v)\s*(\d+\.\d+\.\d+)/im,
-    );
+    const hdrMatch = content.match(/^#{1,3}\s+(?:Version|v)\s*(\d+\.\d+\.\d+)/im);
     if (hdrMatch) return hdrMatch[1];
     // Pattern 3: Inline `v1.2.3`
     const inlineMatch = content.match(/v(\d+\.\d+\.\d+)/);
@@ -344,17 +367,21 @@ function verifyRuleRegistry() {
 }
 
 function generateSessionId() {
-  const ts = Date.now().toString();
-  return `cg_ses_${ts}`;
+  if (_gateCore && typeof _gateCore.generateSessionId === "function") {
+    return _gateCore.generateSessionId();
+  }
+  const id = "cg_ses_" + Date.now();
+  return id;
 }
 
 // ── Enforcement Mode ────────────────────────────────────────────────────
 function getEnforcementMode() {
-  // Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
+  if (_gateCore && typeof _gateCore.getEnforcementMode === "function") {
+    return _gateCore.getEnforcementMode(OPENCODE_ROOT);
+  }
   const envMode = process.env.ENFORCEMENT_MODE;
   const validModes = ["advisory", "strict", "locked"];
 
-  // Read from project.config.json
   const cfgPath = path2.join(OPENCODE_ROOT, ".opencode", "project.config.json");
   let configMode = "advisory";
   try {
@@ -367,19 +394,17 @@ function getEnforcementMode() {
     }
   } catch {}
 
-  // ENFORCEMENT_MODE env var override (with locked-mode safety)
   if (envMode && validModes.includes(envMode)) {
-    // Safety: locked mode cannot be overridden by env var
-    if (configMode === "locked") {
-      return "locked";
-    }
+    if (configMode === "locked") return "locked";
     return envMode;
   }
-
   return configMode;
 }
 
 function getFreshStore() {
+  if (_gateCore && typeof _gateCore.createFreshStore === "function") {
+    return _gateCore.createFreshStore();
+  }
   return {
     formatVersion: "2.0",
     sessions: {},
@@ -389,39 +414,20 @@ function getFreshStore() {
 }
 
 function loadStore() {
+  if (_gateCore && typeof _gateCore.loadGateStore === "function") {
+    return _gateCore.loadGateStore(OPENCODE_ROOT);
+  }
   const s = readJson(GATE_STATE_FILE);
-  if (
-    s &&
-    s.formatVersion === "2.0" &&
-    s.sessions &&
-    typeof s.sessions === "object"
-  ) {
-    // Backward compat: ensure active_sessions exists
-    if (!Array.isArray(s.active_sessions)) {
-      s.active_sessions = [];
-    }
-    // Reconciliation pass: bidirectional — remove stale + add missing
+  if (s && s.formatVersion === "2.0" && s.sessions && typeof s.sessions === "object") {
+    if (!Array.isArray(s.active_sessions)) { s.active_sessions = []; }
     let reconciled = false;
-
-    // Phase 1: Remove completed/expired sessions from active_sessions
     s.active_sessions = s.active_sessions.filter((sid) => {
       const ses = s.sessions[sid];
-      if (!ses) {
-        reconciled = true;
-        return false;
-      } // orphaned ref
-      if (ses.gate_status === "completed" || ses.gate_status === "failed") {
-        reconciled = true;
-        return false;
-      }
-      if (ses.consumed_at) {
-        reconciled = true;
-        return false;
-      } // consumed but not marked completed/failed
-      return true; // still active (checked or armed)
+      if (!ses) { reconciled = true; return false; }
+      if (ses.gate_status === "completed" || ses.gate_status === "failed") { reconciled = true; return false; }
+      if (ses.consumed_at) { reconciled = true; return false; }
+      return true;
     });
-
-    // Phase 1.5: Remove stale armed sessions (>24h since confirmation, no completion)
     const STALE_MS = 24 * 60 * 60 * 1000;
     const nowTs = Date.now();
     s.active_sessions = s.active_sessions.filter((sid) => {
@@ -429,41 +435,27 @@ function loadStore() {
       if (!ses) return false;
       if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
         const age = nowTs - new Date(ses.confirmed_at).getTime();
-        if (age > STALE_MS) {
-          reconciled = true;
-          return false;
-        }
+        if (age > STALE_MS) { reconciled = true; return false; }
       }
       return true;
     });
-
-    // Phase 2: Add armed sessions missing from active_sessions
-    // Only "armed" (post-confirm, pre-complete) — matches runGateConfirm add behavior.
-    // "checked" sessions are pre-confirmation and should not count as active.
     for (const [sid, ses] of Object.entries(s.sessions)) {
-      if (
-        ses.gate_status === "armed" &&
-        !ses.consumed_at &&
-        !s.active_sessions.includes(sid)
-      ) {
+      if (ses.gate_status === "armed" && !ses.consumed_at && !s.active_sessions.includes(sid)) {
         s.active_sessions.push(sid);
         reconciled = true;
       }
     }
-
-    if (reconciled) {
-      s.last_updated = new Date().toISOString();
-    }
-    // Ensure last_updated exists
-    if (!s.last_updated) {
-      s.last_updated = new Date().toISOString();
-    }
+    if (reconciled) { s.last_updated = new Date().toISOString(); }
+    if (!s.last_updated) { s.last_updated = new Date().toISOString(); }
     return s;
   }
   return getFreshStore();
 }
 
 function saveStore(store) {
+  if (_gateCore && typeof _gateCore.saveGateStore === "function") {
+    return _gateCore.saveGateStore(store, OPENCODE_ROOT);
+  }
   writeJson(GATE_STATE_FILE, store);
 }
 
@@ -1068,7 +1060,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
  * @returns {string[]} Array of missing artifact filenames (empty if all present or taskId unknown)
  */
 function validateTaskArtifacts(taskId) {
-  if (!taskId) return []; // Unknown taskId -- skip validation
+  if (_gateCore && typeof _gateCore.validateTaskArtifacts === "function") {
+    return _gateCore.validateTaskArtifacts(taskId, OPENCODE_ROOT);
+  }
+  if (!taskId) return [];
   const taskTempDir = path2.join(OPENCODE_ROOT, ".task_temp", taskId);
   const handoverPath = path2.join(taskTempDir, "HANDOVER.md");
   const taskLogPath = path2.join(taskTempDir, "TASK_LOG.md");
@@ -1080,96 +1075,52 @@ function validateTaskArtifacts(taskId) {
 
 /**
  * Drain stale sessions with configurable thresholds.
- * Extends purgeStaleSessions() with override thresholds and detailed reporting.
+ * Delegates to gate-core.ts when available.
  * @param {number} armedHours - Hours after which armed sessions are stale (default 24)
  * @param {number} checkedHours - Hours after which checked sessions are stale (default 48)
  * @returns {{ purged: number, drained_sessions: string[], remaining_active: number, drained_armed: number, drained_checked: number }}
  */
 function drainStaleSessions(armedHours, checkedHours) {
+  if (_gateCore && typeof _gateCore.drainStaleSessions === "function") {
+    return _gateCore.drainStaleSessions(OPENCODE_ROOT, armedHours, checkedHours);
+  }
   const ARMED_STALE_MS = (armedHours || 24) * 60 * 60 * 1000;
   const CHECKED_STALE_MS = (checkedHours || 48) * 60 * 60 * 1000;
-
   const store = loadStore();
-  const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(
-    /\.json$/,
-    ".drained_sessions.json",
-  );
-  const drainedStore = readJson(DRAINED_STORE_FILE) || {
-    formatVersion: "2.0",
-    drained_sessions: {},
-    last_drained: null,
-  };
-
+  const DRAINED_STORE_FILE = GATE_STATE_FILE.replace(/\.json$/, ".drained_sessions.json");
+  const drainedStore = readJson(DRAINED_STORE_FILE) || { formatVersion: "2.0", drained_sessions: {}, last_drained: null };
   const nowTs = Date.now();
-  let purged = 0;
-  let drainedArmed = 0;
-  let drainedChecked = 0;
+  let purged = 0, drainedArmed = 0, drainedChecked = 0;
   const drainedIds = [];
-  const sessionIds = Object.keys(store.sessions);
-
-  for (const sid of sessionIds) {
-    const ses = store.sessions[sid];
+  for (const [sid, ses] of Object.entries(store.sessions)) {
     if (!ses) continue;
-
-    let shouldDrain = false;
-    let reason = "";
-    let drainType = "";
-
-    // Armed but never consumed > threshold
+    let shouldDrain = false, reason = "", drainType = "";
     if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
       const age = nowTs - new Date(ses.confirmed_at).getTime();
-      if (age > ARMED_STALE_MS) {
-        shouldDrain = true;
-        drainType = "STALE_ARMED";
-        reason = `armed for ${Math.floor(age / 3600000)}h without completion (threshold: ${armedHours}h)`;
-      }
+      if (age > ARMED_STALE_MS) { shouldDrain = true; drainType = "STALE_ARMED"; reason = `armed for ${Math.floor(age / 3600000)}h without completion (threshold: ${armedHours}h)`; }
     }
-
-    // Checked but never confirmed > threshold
     if (ses.gate_status === "checked" && !ses.confirmed_at) {
       const age = nowTs - new Date(ses.created_at).getTime();
-      if (age > CHECKED_STALE_MS) {
-        shouldDrain = true;
-        drainType = "STALE_CHECKED";
-        reason = `checked for ${Math.floor(age / 3600000)}h without confirmation (threshold: ${checkedHours}h)`;
-      }
+      if (age > CHECKED_STALE_MS) { shouldDrain = true; drainType = "STALE_CHECKED"; reason = `checked for ${Math.floor(age / 3600000)}h without confirmation (threshold: ${checkedHours}h)`; }
     }
-
     if (shouldDrain) {
-      drainedStore.drained_sessions[sid] = {
-        ...ses,
-        drained_at: new Date().toISOString(),
-        drain_reason: reason,
-        drain_type: drainType,
-        drained_by: "compliance_gate_drain_stale",
-      };
+      drainedStore.drained_sessions[sid] = { ...ses, drained_at: new Date().toISOString(), drain_reason: reason, drain_type: drainType, drained_by: "compliance_gate_drain_stale" };
       delete store.sessions[sid];
       store.active_sessions = store.active_sessions.filter((a) => a !== sid);
-      purged++;
-      drainedIds.push(sid);
+      purged++; drainedIds.push(sid);
       if (drainType === "STALE_ARMED") drainedArmed++;
       if (drainType === "STALE_CHECKED") drainedChecked++;
     }
   }
-
   if (purged > 0) {
     drainedStore.last_drained = new Date().toISOString();
-    const totalDrained = Object.keys(drainedStore.drained_sessions).length;
-    drainedStore.total_drained = totalDrained;
+    drainedStore.total_drained = Object.keys(drainedStore.drained_sessions).length;
     fs.mkdirSync(path.dirname(DRAINED_STORE_FILE), { recursive: true });
     writeJson(DRAINED_STORE_FILE, drainedStore);
     store.last_updated = new Date().toISOString();
     saveStore(store);
   }
-
-  return {
-    purged,
-    drained_sessions: drainedIds,
-    drained_armed: drainedArmed,
-    drained_checked: drainedChecked,
-    remaining_active: store.active_sessions.length,
-    remaining_total: Object.keys(store.sessions).length,
-  };
+  return { purged, drained_sessions: drainedIds, drained_armed: drainedArmed, drained_checked: drainedChecked, remaining_active: store.active_sessions.length, remaining_total: Object.keys(store.sessions).length };
 }
 
 // 处理工具调用

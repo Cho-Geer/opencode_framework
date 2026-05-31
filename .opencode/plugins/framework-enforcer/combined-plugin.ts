@@ -2,8 +2,8 @@ import type { Plugin, PluginInput, Hooks, ToolResult } from "@opencode-ai/plugin
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { safeEdit } from "../../tools/safe-edit.js";
-import { safeBashTool } from "../../tools/safe-bash.js";
+import { safeEdit } from "../../lib/safe-edit-core";
+import { safeBashTool } from "../../lib/safe-bash-core";
 
 // Import hooks from framework-enforcer.ts
 // We'll re-export them
@@ -61,7 +61,7 @@ const CombinedPlugin: Plugin = async (ctx: PluginInput): Promise<Hooks> => {
           dryRun: tool.schema.boolean().optional().describe("Validate without executing"),
         },
         async execute(args, context): Promise<ToolResult> {
-          const agent = process.env.FRAMEWORK_AGENT || "unknown";
+          const agent = context.agent ?? process.env.FRAMEWORK_AGENT ?? "unknown";
 
           const result = safeBashTool({
             command: args.command,

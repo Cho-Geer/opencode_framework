@@ -3497,25 +3497,6 @@
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-27T13:55:46.156Z"
     },
-    "cg_ses_1779852866082": {
-      "session_id": "cg_ses_1779852866082",
-      "created_at": "2026-05-27T03:34:26.102Z",
-      "task_description": "Create documentation file /home/zhaoge/workspace/opencode/work-one/docs/review/opencode-workflow-diagram.md with OpenCode multi-agent workflow diagram content",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
     "cg_ses_1779860919038": {
       "session_id": "cg_ses_1779860919038",
       "created_at": "2026-05-27T05:48:39.044Z",
@@ -3541,25 +3522,6 @@
         "TASK_LOG.md"
       ]
     },
-    "cg_ses_1779862063685": {
-      "session_id": "cg_ses_1779862063685",
-      "created_at": "2026-05-27T06:07:43.704Z",
-      "task_description": "Read-only orientation/review: cross-reference docs/review/chicken-egg-scenarios.md and docs/review/opencode-workflow-diagram.md against actual Opencode framework resources, evaluate them, and revise the documents only if needed.",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
     "cg_ses_1779865461011": {
       "session_id": "cg_ses_1779865461011",
       "created_at": "2026-05-27T07:04:21.039Z",
@@ -3580,148 +3542,6 @@
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-28T07:08:04.383Z"
     },
-    "cg_ses_1779885420955": {
-      "session_id": "cg_ses_1779885420955",
-      "created_at": "2026-05-27T12:37:00.966Z",
-      "task_description": "Dispatch @Meta-Planner to investigate feasibility of restructuring OpenCode agent hierarchy: making @Meta-Planner primary entry-point and downgrading @Orchestrator to subagent, while maintaining hardened enforcement constraints",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779961164409": {
-      "session_id": "cg_ses_1779961164409",
-      "created_at": "2026-05-28T09:39:24.414Z",
-      "task_description": "Execute Phase 1 (ROBUST-5, SKILL-1, UNIV-1, TECHDEBT-001) and Phase 2 (ARCH-2, SKILL-2, SKILL-3, UNIV-2) of FX-DIAG audit implementation tasks. Dispatch via appropriate agents with TDD RED/GREEN phases.",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "Execute Phase 1: ROBUST-5 (framework self-healing), SKILL-1 (skill registry validation), UNIV-1 (cross-platform compatibility), TECHDEBT-001 (tech debt integration). Then Phase 2: ARCH-2 (ADR template), SKILL-2/3 (skill chain/deprecation), UNIV-2 (placeholder resolution). All dispatched to appropriate agents with TDD RED/GREEN phases.",
-      "confirmed_at": "2026-05-28T09:39:40.927Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": "FX-DIAG-PHASE1-2",
-      "agent": "unknown",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-29T09:39:40.927Z"
-    },
-    "cg_ses_1779961220844": {
-      "session_id": "cg_ses_1779961220844",
-      "created_at": "2026-05-28T09:40:20.846Z",
-      "task_description": "FX-DIAG-ROBUST-5: Framework Recovery/Self-Healing Mechanism - RED phase - Write failing tests for framework-recovery.js (detectCorruption, autoRepair, flagForHuman, validateAfterRecovery, logRecoveryAction)",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "FX-DIAG-ROBUST-5 RED phase: Create framework-recovery.spec.js with failing tests for detectCorruption, autoRepair, flagForHuman, validateAfterRecovery, logRecoveryAction. 6 test groups, ~35 test cases. Following existing test patterns (state-reconciliation.test.js, framework-doctor.test.js).",
-      "confirmed_at": "2026-05-28T09:41:16.766Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": "FX-DIAG-ROBUST-5",
-      "agent": "@Coder-BE",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-29T09:41:16.766Z"
-    },
-    "cg_ses_1779961231721": {
-      "session_id": "cg_ses_1779961231721",
-      "created_at": "2026-05-28T09:40:31.723Z",
-      "task_description": "FX-DIAG-SKILL-1: Core Skill Registry Validation - Write failing TDD RED tests for skill registry validator script",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "FX-DIAG-SKILL-1 RED: Write failing tests for skill registry validator (validateAllSkills, validateSkillMetadata, checkDeprecatedStatus, checkOrphanedSkills, generateReport). Tests will reference a module that doesn't exist yet, ensuring RED phase failure.",
-      "confirmed_at": "2026-05-28T09:41:56.159Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": "FX-DIAG-SKILL-1",
-      "agent": "@Coder-BE",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-29T09:41:56.159Z"
-    },
-    "cg_ses_1779961243505": {
-      "session_id": "cg_ses_1779961243505",
-      "created_at": "2026-05-28T09:40:43.506Z",
-      "task_description": "FX-DIAG-UNIV-1: Cross-Platform Compatibility Layer - TDD RED phase. Create failing tests for platform compatibility utilities (detectPlatform, normalizePath, getShellCommand, checkPrerequisites, generatePlatformReport) without implementing them yet.",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779961255341": {
-      "session_id": "cg_ses_1779961255341",
-      "created_at": "2026-05-28T09:40:55.343Z",
-      "task_description": "FX-DIAG-TECHDEBT-001: TECH_DEBT_REGISTRY.md DAG Integration - RED phase - Write failing tests for techdebt-sync.js",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "FX-DIAG-TECHDEBT-001 RED Phase: Write failing test file .opencode/scripts/__tests__/techdebt-sync.spec.js testing 5 functions (scanRegistry, linkToTasks, checkDeadlines, syncWithWaive, generatePlannerInput) for framework-techdebt-sync.js. Tests will fail because implementation doesn't exist yet.",
-      "confirmed_at": "2026-05-28T09:41:41.774Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": "FX-DIAG-TECHDEBT-001",
-      "agent": "@Coder-BE",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-29T09:41:41.774Z"
-    },
-    "cg_ses_1779973430324": {
-      "session_id": "cg_ses_1779973430324",
-      "created_at": "2026-05-28T13:03:50.330Z",
-      "task_description": "Create a new plugin entry file at .opencode/plugins/framework-enforcer/plugin-entry.ts combining hooks and tools from existing files, then compile it to JS",
-      "enforcement_mode": "strict",
-      "gate_status": "checked",
-      "last_check_passed": true,
-      "last_check_failed_items": [
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
-          "severity": "INFO"
-        }
-      ],
-      "plan_summary": null,
-      "confirmed_at": null,
-      "consumed_at": null,
-      "audit": null
-    },
-    "cg_ses_1779973435726": {
-      "session_id": "cg_ses_1779973435726",
-      "created_at": "2026-05-28T13:03:55.731Z",
-      "task_description": "Create a new plugin entry file at .opencode/plugins/framework-enforcer/plugin-entry.ts combining hooks and tools from existing files, then compile it to JS",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "Create plugin-entry.ts combining framework-enforcer hooks and custom tools (safe_edit + safe_bash), then compile to JS",
-      "confirmed_at": "2026-05-28T13:05:40.103Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": null,
-      "agent": "unknown",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-05-29T13:05:40.103Z"
-    },
     "cg_ses_1779980320523": {
       "session_id": "cg_ses_1779980320523",
       "created_at": "2026-05-28T14:58:40.525Z",
@@ -3741,16 +3561,805 @@
       "agent": "@Orchestrator",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-05-29T14:58:50.060Z"
+    },
+    "cg_ses_1780199098931": {
+      "session_id": "cg_ses_1780199098931",
+      "created_at": "2026-05-31T03:44:58.938Z",
+      "task_description": "test dispatch",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_missing_agents_architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: file registered but MISSING (expected v1.0.2/sha256-9b4475310c1b031a1d535a666596f8e32ec284a7fcbd7b38883e1c6888f608ff)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_coder_be_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/coder-be.md: file registered but MISSING (expected v1.0.3/sha256-4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_coder_fe_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/coder-fe.md: file registered but MISSING (expected v1.0.3/sha256-63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/orchestrator.md: file registered but MISSING (expected v1.0.1/sha256-8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: file registered but MISSING (expected v1.0.2/sha256-a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 19 digests verified, 5 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780201161012": {
+      "session_id": "cg_ses_1780201161012",
+      "created_at": "2026-05-31T04:19:21.020Z",
+      "task_description": "test meta-planner dispatch",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_missing_agents_architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/architect.md: file registered but MISSING (expected v1.0.2/sha256-9b4475310c1b031a1d535a666596f8e32ec284a7fcbd7b38883e1c6888f608ff)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_coder_be_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/coder-be.md: file registered but MISSING (expected v1.0.3/sha256-4bd7f7797633fb12ff876d129a2d9551d5cfc391b87f3058412d64b4197c847b)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_coder_fe_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/coder-fe.md: file registered but MISSING (expected v1.0.3/sha256-63071dc9231634c89af34e0464ee710622357c4df83dd401fbcdaa9267a650d8)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/orchestrator.md: file registered but MISSING (expected v1.0.1/sha256-8e4b1b3419a4f22073ab6ccdb033851db269918d8bc4212cb9779fdb38cb3562)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_missing_agents_guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/guardian.md: file registered but MISSING (expected v1.0.2/sha256-a52297a119f02638f301b5a64b4f96ba224932d781c2d52663db4cb7707fe076)",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 19 digests verified, 5 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780201272399": {
+      "session_id": "cg_ses_1780201272399",
+      "created_at": "2026-05-31T04:21:12.402Z",
+      "task_description": "test after case fix",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.2/sha256-9b4475310c1b031a..., got sha256-df49fd1b09aaa66e...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_be_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.3/sha256-4bd7f7797633fb12..., got sha256-b874990df6abaa51...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_fe_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.3/sha256-63071dc9231634c8..., got sha256-cf9f8d9daed5480a...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.1/sha256-8e4b1b3419a4f220..., got sha256-11fe1a4dff138fa7...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.2/sha256-a52297a119f02638..., got sha256-60a5f63e9a883446...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 19 digests verified, 5 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780204808339": {
+      "session_id": "cg_ses_1780204808339",
+      "created_at": "2026-05-31T05:20:08.350Z",
+      "task_description": "Orchestrator调度员状态验证 - 确认合规门可用性",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.2/sha256-9b4475310c1b031a..., got sha256-df49fd1b09aaa66e...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_be_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.3/sha256-4bd7f7797633fb12..., got sha256-b874990df6abaa51...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_fe_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.3/sha256-63071dc9231634c8..., got sha256-cf9f8d9daed5480a...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.1/sha256-8e4b1b3419a4f220..., got sha256-4a0e15d3cf2f1498...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.2/sha256-a52297a119f02638..., got sha256-60a5f63e9a883446...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 19 digests verified, 5 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780205332882": {
+      "session_id": "cg_ses_1780205332882",
+      "created_at": "2026-05-31T05:28:52.885Z",
+      "task_description": "派遣子Agent修正Orchestrator权限配置，移除多余权限使其专职调度",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.2/sha256-9b4475310c1b031a..., got sha256-df49fd1b09aaa66e...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_be_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.3/sha256-4bd7f7797633fb12..., got sha256-b874990df6abaa51...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_fe_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.3/sha256-63071dc9231634c8..., got sha256-cf9f8d9daed5480a...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.1/sha256-8e4b1b3419a4f220..., got sha256-4a0e15d3cf2f1498...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.2/sha256-a52297a119f02638..., got sha256-60a5f63e9a883446...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 19 digests verified, 5 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780205551787": {
+      "session_id": "cg_ses_1780205551787",
+      "created_at": "2026-05-31T05:32:31.791Z",
+      "task_description": "派遣子Agent修正Orchestrator权限配置，移除多余权限使其专职调度",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": "派遣@Coder-BE修正Orchestrator权限配置：1)修改opencode.json移除safe_bash/safe_edit/webfetch/websearch权限并限制read范围；2)修改Orchestrator.md移除多余mcp_tools和whitelist条目；3)更新framework-enforcer.ts增加AGENT_ROLE_WHITELIST硬拦截；4)更新rule_registry.json digest。完成后切回strict模式并验证。",
+      "confirmed_at": "2026-05-31T05:33:37.347Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T05:33:37.347Z"
+    },
+    "cg_ses_1780205690021": {
+      "session_id": "cg_ses_1780205690021",
+      "created_at": "2026-05-31T05:34:50.024Z",
+      "task_description": "修正Orchestrator权限配置：1) 修改opencode.json中Orchestrator权限块为调度专用权限；2) 修改.opencode/agents/Orchestrator.md的mcp_tools和agent_tools_whitelist；3) 在framework-enforcer.ts中增加硬拦截角色白名单；4) 更新rule_registry.json中5个agent文件的sha256 digest。最后将enforcement_mode改回strict。",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_architect_md",
+          "desc": "[ADVISORY] [Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.2/sha256-9b4475310c1b031a..., got sha256-df49fd1b09aaa66e...) — possible unauthorized modification",
+          "severity": "WARNING"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_be_md",
+          "desc": "[ADVISORY] [Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.3/sha256-4bd7f7797633fb12..., got sha256-b874990df6abaa51...) — possible unauthorized modification",
+          "severity": "WARNING"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_coder_fe_md",
+          "desc": "[ADVISORY] [Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.3/sha256-63071dc9231634c8..., got sha256-cf9f8d9daed5480a...) — possible unauthorized modification",
+          "severity": "WARNING"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_orchestrator_md",
+          "desc": "[ADVISORY] [Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.1/sha256-8e4b1b3419a4f220..., got sha256-4a0e15d3cf2f1498...) — possible unauthorized modification",
+          "severity": "WARNING"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_guardian_md",
+          "desc": "[ADVISORY] [Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.2/sha256-a52297a119f02638..., got sha256-60a5f63e9a883446...) — possible unauthorized modification",
+          "severity": "WARNING"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[ADVISORY] [Gate Preflight v2] 19 digests verified, 5 mismatches (HIGH), 0 warnings",
+          "severity": "WARNING"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780205951399": {
+      "session_id": "cg_ses_1780205951399",
+      "created_at": "2026-05-31T05:39:11.402Z",
+      "task_description": "Orchestrator调度：派遣子Agent保存权限修正方案并执行permission matrix任务",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": "派遣@Coder-BE执行两个任务：1)将Orchestrator权限修正方案保存为docs/review/orchestrator-permission-hardening-plan.md；2)修改opencode.json和Orchestrator.md移除多余权限，更新framework-enforcer.ts增加硬拦截，更新rule_registry.json digest，最后切回strict模式。",
+      "confirmed_at": "2026-05-31T05:40:03.903Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T05:40:03.903Z"
+    },
+    "cg_ses_1780206388838": {
+      "session_id": "cg_ses_1780206388838",
+      "created_at": "2026-05-31T05:46:28.840Z",
+      "task_description": "验证Orchestrator权限修正后的合规状态",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780207446897": {
+      "session_id": "cg_ses_1780207446897",
+      "created_at": "2026-05-31T06:04:06.903Z",
+      "task_description": "调度Coder-BE实施5层强制方案：修改Orchestrator.md英文版+framework-enforcer.ts硬拦截",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.1/sha256-423d18a8fbb8e6dc..., got sha256-283cb1ea96a73b2f...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 23 digests verified, 1 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780207545119": {
+      "session_id": "cg_ses_1780207545119",
+      "created_at": "2026-05-31T06:05:45.123Z",
+      "task_description": "调度Coder-BE实施5层强制方案：修改Orchestrator.md英文版+framework-enforcer.ts硬拦截",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": "调度@Coder-BE实施5层强制方案：1)修改Orchestrator.md增加英文强制调度门；2)修改framework-enforcer.ts增加Orchestrator专用硬拦截（优先级高于enforcement_mode）；3)系统提示词增加前置思考步骤；4)增加Orchestrator行为审计日志。完成后更新rule_registry并切回strict模式。",
+      "confirmed_at": "2026-05-31T06:06:00.671Z",
+      "consumed_at": "2026-05-31T06:15:14.699Z",
+      "audit": {
+        "execution_summary": "5层强制调度方案全部实施完成：Layer1 Orchestrator.md增加英文MANDATORY DISPATCH GATE(184行)；Layer2 framework-enforcer.ts增加Orchestrator硬拦截；Layer3 opencode.json权限锁定(已完成)；Layer4 推理层Dispatch Gate前置分类；Layer5 审计日志。合规门24 digests 0 mismatches。",
+        "completed_at": "2026-05-31T06:15:14.699Z"
+      },
+      "task_id": null,
+      "agent": "Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T06:06:00.671Z"
+    },
+    "cg_ses_1780207630577": {
+      "session_id": "cg_ses_1780207630577",
+      "created_at": "2026-05-31T06:07:10.579Z",
+      "task_description": "为Orchestrator实施5层强制调度约束：1)修改Orchestrator.md插入调度门控文档 2)修改framework-enforcer.ts添加代码层验证 3)更新rule_registry.json SHA256 4)enforcement_mode切回strict 5)合规验证",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_orchestrator_md",
+          "desc": "[ADVISORY] [Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.1/sha256-423d18a8fbb8e6dc..., got sha256-283cb1ea96a73b2f...) — possible unauthorized modification",
+          "severity": "WARNING"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[ADVISORY] [Gate Preflight v2] 23 digests verified, 1 mismatches (HIGH), 0 warnings",
+          "severity": "WARNING"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780207826476": {
+      "session_id": "cg_ses_1780207826476",
+      "created_at": "2026-05-31T06:10:26.478Z",
+      "task_description": "验证5层方案实施结果",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_orchestrator_md",
+          "desc": "[ADVISORY] [Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.1/sha256-423d18a8fbb8e6dc..., got sha256-283cb1ea96a73b2f...) — possible unauthorized modification",
+          "severity": "WARNING"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[ADVISORY] [Gate Preflight v2] 23 digests verified, 1 mismatches (HIGH), 0 warnings",
+          "severity": "WARNING"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780208097792": {
+      "session_id": "cg_ses_1780208097792",
+      "created_at": "2026-05-31T06:14:57.795Z",
+      "task_description": "最终验证5层强制方案实施后的合规状态",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780208556804": {
+      "session_id": "cg_ses_1780208556804",
+      "created_at": "2026-05-31T06:22:36.811Z",
+      "task_description": "调查 safe_bash 是否阻止 dispatch-subagent.js 执行的问题",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780208599531": {
+      "session_id": "cg_ses_1780208599531",
+      "created_at": "2026-05-31T06:23:19.533Z",
+      "task_description": "Investigate whether safe_bash blocks dispatch-subagent.js due to file write operations. Read dispatch-subagent.js, opencode.json configs, and execute test run.",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Investigate safe_bash blocking dispatch-subagent.js: (1) Read dispatch-subagent.js for file write operations and exec patterns, (2) Check opencode.json local and global configs for safe_bash permissions, (3) Search for contentScan/Script.writeFile blocking code, (4) Execute test run of dispatch-subagent.js, (5) Report findings with root cause analysis and fix recommendations.",
+      "confirmed_at": "2026-05-31T06:23:29.169Z",
+      "consumed_at": "2026-05-31T06:27:58.941Z",
+      "audit": {
+        "execution_summary": "Investigated safe_bash blocking dispatch-subagent.js. CONFIRMED: safe_bash content scan blocks dispatch-subagent.js because it contains fs.mkdirSync (L554) and fs.writeFileSync (L562) and is not in ALLOWED_SCRIPT_PATHS. Root cause in safe-bash-core.ts L335-354 (content scanning). Test executed and confirmed block. 4 fix options provided: (1) add // safe_bash: allow-write header, (2) add .opencode/scripts/ to ALLOWED_SCRIPT_PATHS, (3) use dispatch_subagent platform tool, (4) combined approach. Full code-level analysis with line numbers provided.",
+        "completed_at": "2026-05-31T06:27:58.941Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T06:23:29.169Z"
+    },
+    "cg_ses_1780209392854": {
+      "session_id": "cg_ses_1780209392854",
+      "created_at": "2026-05-31T06:36:32.858Z",
+      "task_description": "修复 dispatch-subagent.js 被 safe_bash 阻断：在文件第一行添加 \"// safe_bash: allow-write\" 标注，并验证修复生效。",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "在 dispatch-subagent.js 第一行添加 \"// safe_bash: allow-write\" 标注，修复 safe_bash 内容安全扫描阻断问题，然后执行验证命令。",
+      "confirmed_at": "2026-05-31T06:36:40.849Z",
+      "consumed_at": "2026-05-31T06:37:34.030Z",
+      "audit": {
+        "execution_summary": "修复 dispatch-subagent.js 被 safe_bash 阻断：在第1行添加 \"// safe_bash: allow-write\" 标注，移除冲突的 shebang 行（脚本始终通过 node 调用，无需 #!/usr/bin/env node）。验证测试通过（exitCode: 0），脚本正常执行生成正确的 dispatch 输出文件。",
+        "completed_at": "2026-05-31T06:37:34.030Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T06:36:40.849Z"
+    },
+    "cg_ses_1780209752599": {
+      "session_id": "cg_ses_1780209752599",
+      "created_at": "2026-05-31T06:42:32.604Z",
+      "task_description": "设计\"强制走 dispatch-subagent.js\"的架构方案 - 分析当前架构，评估4个候选方案，给出推荐和实施步骤",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Architecture design for enforcing mandatory dispatch-subagent.js usage by Orchestrator. Recommended approach: Token-Based Dispatch Enforcement (Scheme C enhanced) — embed SHA-256 token in dispatch-subagent.js output, verify in framework-enforcer.ts before allowing Task() calls. Involves modifying 4 files (~80 lines total): opencode.json (safe_bash + read permissions), dispatch-subagent.js (token generation), framework-enforcer.ts (token verification), Orchestrator.md (dispatch protocol docs).",
+      "confirmed_at": "2026-05-31T06:46:38.403Z",
+      "consumed_at": "2026-05-31T06:46:49.586Z",
+      "audit": {
+        "execution_summary": "Completed architecture design for mandatory dispatch-subagent.js enforcement. Analyzed current architecture (dispatch-subagent.js outputs file path to stdout + writes wrapped prompt to .task_temp/_dispatch/), evaluated 4 schemes (A: remove task ❌, B: check in dispatch-subagent.js ⚠️, C: intercept in framework-enforcer.ts ✅, D: pipeline shell ❌). Recommended Scheme C Enhanced with SHA-256 token verification: dispatch-subagent.js appends cryptographically-signed token, framework-enforcer.ts validates before allowing Task(). Implementation requires ~80 lines across 4 files (opencode.json, dispatch-subagent.js, framework-enforcer.ts, Orchestrator.md). Zero impact on business code.",
+        "completed_at": "2026-05-31T06:46:49.586Z"
+      },
+      "task_id": null,
+      "agent": "@Architect",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T06:46:38.403Z"
+    },
+    "cg_ses_1780209814637": {
+      "session_id": "cg_ses_1780209814637",
+      "created_at": "2026-05-31T06:43:34.639Z",
+      "task_description": "调查task工具直接调用与通过dispatch-subagent.js调用agent的区别",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "派遣Architect调查task工具直接调用与dispatch-subagent.js调用的差异，涵盖代码实现、前置处理、执行上下文、合规约束4个维度",
+      "confirmed_at": "2026-05-31T07:18:41.693Z",
+      "consumed_at": "2026-05-31T07:29:32.238Z",
+      "audit": {
+        "execution_summary": "完成task工具直接调用与dispatch-subagent.js调用agent的差异调查。通过读取dispatch-subagent.js源码(573行)、subagent-preamble.md(147行)、project.config.json(436行)等5个关键文件，从代码实现流程、前置处理包装层、执行上下文、合规约束、写权限5个维度进行了完整分析，生成了11步流程对比、11层包装对比、9项合规检查丢失清单等详细报告。",
+        "completed_at": "2026-05-31T07:29:32.238Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T07:18:41.693Z"
+    },
+    "cg_ses_1780210796729": {
+      "session_id": "cg_ses_1780210796729",
+      "created_at": "2026-05-31T06:59:56.732Z",
+      "task_description": "Implement Token-Based Dispatch Enforcement across 3 files: (1) dispatch-subagent.js - append DISPATCH_TOKEN before file write, (2) framework-enforcer.ts - add token verification for Orchestrator Task() calls, (3) opencode.json - adjust Orchestrator permissions for restricted safe_bash and read access",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Implement Token-Based Dispatch Enforcement: (1) Modify dispatch-subagent.js to append SHA-256 DISPATCH_TOKEN before file write, (2) Modify framework-enforcer.ts to verify token for Orchestrator Task() calls, (3) Modify opencode.json to restrict Orchestrator safe_bash and extend read permissions to _dispatch/ directory",
+      "confirmed_at": "2026-05-31T07:00:16.234Z",
+      "consumed_at": "2026-05-31T07:01:28.247Z",
+      "audit": {
+        "execution_summary": "Implement Token-Based Dispatch Enforcement across 3 files: (1) dispatch-subagent.js: added crypto import and DISPATCH_TOKEN SHA-256 hash appended before file write; (2) framework-enforcer.ts: added Orchestrator Task() DISPATCH_TOKEN verification block after existing Dispatch Gate; (3) opencode.json: changed Orchestrator safe_bash from \"deny\" to restricted allow_scripts mode, added .task_temp/_dispatch/* read permission. All 3 verifications passed: token generation works, code syntax correct, JSON valid.",
+        "completed_at": "2026-05-31T07:01:28.247Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T07:00:16.234Z"
+    },
+    "cg_ses_1780212109848": {
+      "session_id": "cg_ses_1780212109848",
+      "created_at": "2026-05-31T07:21:49.850Z",
+      "task_description": "Investigate the differences between Task() tool direct calls vs dispatch-subagent.js mediated calls. Analyze the full processing pipeline: template resolution, preamble injection, compliance gate integration, execution context differences, constraint/audit differences, and agent_write_scopes injection.",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Investigate dispatch-subagent.js processing pipeline: read source code, subagent-preamble.md, agent configs, and project.config.json; analyze 6 dimensions (code implementation, preprocessing, execution context, compliance/constraint differences, write_scope injection); produce comprehensive comparison report between direct Task() calls and dispatch-subagent.js mediated calls.",
+      "confirmed_at": "2026-05-31T07:22:08.451Z",
+      "consumed_at": "2026-05-31T07:24:11.016Z",
+      "audit": {
+        "execution_summary": "Investigated and documented the full processing pipeline of dispatch-subagent.js vs direct Task() calls. Read dispatch-subagent.js (573 lines), subagent-preamble.md (147 lines), pre-execution-gate.js (685 lines), project.config.json (436 lines). Produced comprehensive 6-dimension analysis report covering code implementation, preprocessing pipeline, execution context differences, compliance/constraint differences, and agent_write_scopes injection.",
+        "completed_at": "2026-05-31T07:24:11.016Z"
+      },
+      "task_id": null,
+      "agent": "@Architect",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T07:22:08.451Z"
+    },
+    "cg_ses_1780212147586": {
+      "session_id": "cg_ses_1780212147586",
+      "created_at": "2026-05-31T07:22:27.587Z",
+      "task_description": "修复 Plugin 入口不加载 hooks + TS 未编译 + args Bug — 修改 index.ts 合并 hooks，修改 framework-enforcer.ts 修复 args 引用，编译 TypeScript",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780212279100": {
+      "session_id": "cg_ses_1780212279100",
+      "created_at": "2026-05-31T07:24:39.102Z",
+      "task_description": "修复 .opencode/plugins/framework-enforcer/framework-enforcer.ts 中的3个 TypeScript 编译错误：1) L835 output?.result → output?.output；2) L1221 PluginContext → PluginInput；3) L1229 \"file.edited\" 类型断言。修复后执行 npx tsc 编译并验证。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780212384712": {
+      "session_id": "cg_ses_1780212384712",
+      "created_at": "2026-05-31T07:26:24.714Z",
+      "task_description": "@Architect: 调查Task()工具直接调用与经过dispatch-subagent.js调用agent的差异 — 5维度对比分析（代码实现、前置处理、执行上下文、合规约束、写权限差异），纯只读分析，不修改任何代码文件",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "@Architect read-only analysis: 5-dimension comparison of Task() direct call vs dispatch-subagent.js — (1) Code implementation flow diff, (2) Pre-processing layers, (3) Execution context (env vars, template vars, preamble, skills/mcp injection), (4) Compliance/constraint checks lost when bypassing dispatch, (5) Write scope enforcement diff. No code will be modified. Read files: dispatch-subagent.js, subagent-preamble.md, project.config.json, Architect.md, pre-execution-gate.js.",
+      "confirmed_at": "2026-05-31T07:26:34.932Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "@Architect",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T07:26:34.932Z"
+    },
+    "cg_ses_1780212561034": {
+      "session_id": "cg_ses_1780212561034",
+      "created_at": "2026-05-31T07:29:21.036Z",
+      "task_description": "搜索 OpenCode 官方文档，验证插件架构诊断结论。使用 Context7 MCP 查询 OpenCode 插件 hooks 注册机制、入口点机制、函数签名和最佳实践。",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "使用 Context7 MCP 搜索 OpenCode 官方文档，验证插件架构的4个关键问题：hooks注册机制、入口点机制、toolExecuteBefore函数签名、tools+hooks最佳实践。对比前后诊断结论。",
+      "confirmed_at": "2026-05-31T07:32:32.664Z",
+      "consumed_at": "2026-05-31T07:32:38.589Z",
+      "audit": {
+        "execution_summary": "Verified OpenCode plugin architecture via Context7 docs (/websites/opencode_ai_plugins + /mspiegel31/opencode-cmux). Key findings: (1) Current code ALREADY correct - index.js dynamically imports framework-enforcer.js and merges hooks+tools; (2) tool.execute.before signature confirmed: args in output.args, not input.args; (3) Orchestrator dispatch gate present in framework-enforcer.js lines 392-422; (4) Previous diagnosis was for older code version; current architecture follows official best practices.",
+        "completed_at": "2026-05-31T07:32:38.589Z"
+      },
+      "task_id": null,
+      "agent": "@Architect",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T07:32:32.664Z"
+    },
+    "cg_ses_1780212901793": {
+      "session_id": "cg_ses_1780212901793",
+      "created_at": "2026-05-31T07:35:01.795Z",
+      "task_description": "调查 Token 拦截未生效的根因：检查 opencode.json 插件注册、framework-enforcer 插件目录结构、全局配置冲突、JS 加载测试、日志和依赖版本。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780213447018": {
+      "session_id": "cg_ses_1780213447018",
+      "created_at": "2026-05-31T07:44:07.021Z",
+      "task_description": "添加 chat.params 钩子到 framework-enforcer.ts，在 orchestator 消息到来时注入 FRAMEWORK_AGENT 环境变量，修复 Agent 身份识别问题",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "在 framework-enforcer.ts 的 hooks 对象中添加 chat.params 钩子，在 orchestator 消息到来时将 agent 注入 process.env.FRAMEWORK_AGENT，修复 tool.execute.before 中 Agent 身份识别问题。然后编译并用 grep 验证。",
+      "confirmed_at": "2026-05-31T07:44:13.094Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T07:44:13.094Z"
+    },
+    "cg_ses_1780216782333": {
+      "session_id": "cg_ses_1780216782333",
+      "created_at": "2026-05-31T08:39:42.341Z",
+      "task_description": "同步 framework-enforcer.ts 和 framework-enforcer.js：清理 JS 死代码，尝试编译 TS→JS，验证一致性和 plugin 配置",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "同步 framework-enforcer.ts 和 framework-enforcer.js：清理 JS 死代码，尝试编译 TS→JS，验证一致性和 plugin 配置",
+      "confirmed_at": "2026-05-31T08:39:45.863Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T08:39:45.863Z"
+    },
+    "cg_ses_1780217154372": {
+      "session_id": "cg_ses_1780217154372",
+      "created_at": "2026-05-31T08:45:54.376Z",
+      "task_description": "修改 opencode.json 权限配置：将 Coder-BE 和 Coder-FE 的 safe_bash 从 \"allow\" 改为带具体命令限制模式。同步检查 agent 配置文件 frontmatter。",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "修改 opencode.json 中 Coder-BE 和 Coder-FE 的 safe_bash 从 \"allow\" 改为带具体命令限制的对象模式；同步检查 agent 配置文件的 frontmatter skills/mcp_tools 对齐情况。",
+      "confirmed_at": "2026-05-31T08:45:59.952Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T08:45:59.952Z"
+    },
+    "cg_ses_1780217232710": {
+      "session_id": "cg_ses_1780217232710",
+      "created_at": "2026-05-31T08:47:12.714Z",
+      "task_description": "检查当前配置状态并继续完成权限配置",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780217274499": {
+      "session_id": "cg_ses_1780217274499",
+      "created_at": "2026-05-31T08:47:54.501Z",
+      "task_description": "修改 opencode.json，将 Coder-FE 的 safe_bash 从 \"allow\" 改为白名单模式，与 Coder-BE 保持一致",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780217370342": {
+      "session_id": "cg_ses_1780217370342",
+      "created_at": "2026-05-31T08:49:30.345Z",
+      "task_description": "Handle R1 (compile TS→JS) and R2 (remove nested copy) for framework-enforcer plugin",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780217660387": {
+      "session_id": "cg_ses_1780217660387",
+      "created_at": "2026-05-31T08:54:20.392Z",
+      "task_description": "验证 framework-enforcer 插件编译结果 — 检查文件结构、JS 行数、死代码引用、嵌套副本清理",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
     }
   },
   "active_sessions": [
-    "cg_ses_1779961164409",
-    "cg_ses_1779961220844",
-    "cg_ses_1779961255341",
-    "cg_ses_1779961231721",
-    "cg_ses_1779973435726"
+    "cg_ses_1780205551787",
+    "cg_ses_1780205951399",
+    "cg_ses_1780212384712",
+    "cg_ses_1780213447018",
+    "cg_ses_1780216782333",
+    "cg_ses_1780217154372"
   ],
-  "last_updated": "2026-05-28T14:59:41.794Z",
+  "last_updated": "2026-05-31T08:54:20.392Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
@@ -6229,6 +6838,94 @@
       "confirmed_at": "2026-05-28T14:58:50.059Z",
       "consumed_at": "2026-05-28T14:59:41.794Z",
       "execution_summary": "INFRA-003: Compiled index.ts with nodenext module resolution (original commonjs+node failed on @opencode-ai/plugin imports). Verified index.js exists (2488 bytes). Updated package.json main to ./index",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780207545119",
+      "task_description": "调度Coder-BE实施5层强制方案：修改Orchestrator.md英文版+framework-enforcer.ts硬拦截",
+      "plan_summary": "调度@Coder-BE实施5层强制方案：1)修改Orchestrator.md增加英文强制调度门；2)修改framework-enforcer.ts增加Orchestrator专用硬拦截（优先级高于enforcement_mode）；3)系统提示词增加前置思考步骤；4)增加Orchestrator行为审计日志。完成后更新rule_registry并切回strict模式。",
+      "agent": "Orchestrator",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T06:06:00.671Z",
+      "consumed_at": "2026-05-31T06:15:14.699Z",
+      "execution_summary": "5层强制调度方案全部实施完成：Layer1 Orchestrator.md增加英文MANDATORY DISPATCH GATE(184行)；Layer2 framework-enforcer.ts增加Orchestrator硬拦截；Layer3 opencode.json权限锁定(已完成)；Layer4 推理层Dispatch Gate前置分类；Layer5 审计日志。合规门24 digests",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780208599531",
+      "task_description": "Investigate whether safe_bash blocks dispatch-subagent.js due to file write operations. Read dispatch-subagent.js, opencode.json configs, and execute test run.",
+      "plan_summary": "Investigate safe_bash blocking dispatch-subagent.js: (1) Read dispatch-subagent.js for file write operations and exec patterns, (2) Check opencode.json local and global configs for safe_bash permissions, (3) Search for contentScan/Script.writeFile blocking code, (4) Execute test run of dispatch-subagent.js, (5) Report findings with root cause analysis and fix recommendations.",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T06:23:29.169Z",
+      "consumed_at": "2026-05-31T06:27:58.941Z",
+      "execution_summary": "Investigated safe_bash blocking dispatch-subagent.js. CONFIRMED: safe_bash content scan blocks dispatch-subagent.js because it contains fs.mkdirSync (L554) and fs.writeFileSync (L562) and is not in AL",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780209392854",
+      "task_description": "修复 dispatch-subagent.js 被 safe_bash 阻断：在文件第一行添加 \"// safe_bash: allow-write\" 标注，并验证修复生效。",
+      "plan_summary": "在 dispatch-subagent.js 第一行添加 \"// safe_bash: allow-write\" 标注，修复 safe_bash 内容安全扫描阻断问题，然后执行验证命令。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T06:36:40.849Z",
+      "consumed_at": "2026-05-31T06:37:34.030Z",
+      "execution_summary": "修复 dispatch-subagent.js 被 safe_bash 阻断：在第1行添加 \"// safe_bash: allow-write\" 标注，移除冲突的 shebang 行（脚本始终通过 node 调用，无需 #!/usr/bin/env node）。验证测试通过（exitCode: 0），脚本正常执行生成正确的 dispatch 输出文件。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780209752599",
+      "task_description": "设计\"强制走 dispatch-subagent.js\"的架构方案 - 分析当前架构，评估4个候选方案，给出推荐和实施步骤",
+      "plan_summary": "Architecture design for enforcing mandatory dispatch-subagent.js usage by Orchestrator. Recommended approach: Token-Based Dispatch Enforcement (Scheme C enhanced) — embed SHA-256 token in dispatch-subagent.js output, verify in framework-enforcer.ts before allowing Task() calls. Involves modifying 4 files (~80 lines total): opencode.json (safe_bash + read permissions), dispatch-subagent.js (token generation), framework-enforcer.ts (token verification), Orchestrator.md (dispatch protocol docs).",
+      "agent": "@Architect",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T06:46:38.403Z",
+      "consumed_at": "2026-05-31T06:46:49.586Z",
+      "execution_summary": "Completed architecture design for mandatory dispatch-subagent.js enforcement. Analyzed current architecture (dispatch-subagent.js outputs file path to stdout + writes wrapped prompt to .task_temp/_dis",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780210796729",
+      "task_description": "Implement Token-Based Dispatch Enforcement across 3 files: (1) dispatch-subagent.js - append DISPATCH_TOKEN before file write, (2) framework-enforcer.ts - add token verification for Orchestrator Task() calls, (3) opencode.json - adjust Orchestrator permissions for restricted safe_bash and read access",
+      "plan_summary": "Implement Token-Based Dispatch Enforcement: (1) Modify dispatch-subagent.js to append SHA-256 DISPATCH_TOKEN before file write, (2) Modify framework-enforcer.ts to verify token for Orchestrator Task() calls, (3) Modify opencode.json to restrict Orchestrator safe_bash and extend read permissions to _dispatch/ directory",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T07:00:16.234Z",
+      "consumed_at": "2026-05-31T07:01:28.247Z",
+      "execution_summary": "Implement Token-Based Dispatch Enforcement across 3 files: (1) dispatch-subagent.js: added crypto import and DISPATCH_TOKEN SHA-256 hash appended before file write; (2) framework-enforcer.ts: added Or",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780212109848",
+      "task_description": "Investigate the differences between Task() tool direct calls vs dispatch-subagent.js mediated calls. Analyze the full processing pipeline: template resolution, preamble injection, compliance gate integration, execution context differences, constraint/audit differences, and agent_write_scopes injection.",
+      "plan_summary": "Investigate dispatch-subagent.js processing pipeline: read source code, subagent-preamble.md, agent configs, and project.config.json; analyze 6 dimensions (code implementation, preprocessing, execution context, compliance/constraint differences, write_scope injection); produce comprehensive comparison report between direct Task() calls and dispatch-subagent.js mediated calls.",
+      "agent": "@Architect",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T07:22:08.451Z",
+      "consumed_at": "2026-05-31T07:24:11.016Z",
+      "execution_summary": "Investigated and documented the full processing pipeline of dispatch-subagent.js vs direct Task() calls. Read dispatch-subagent.js (573 lines), subagent-preamble.md (147 lines), pre-execution-gate.js ",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780209814637",
+      "task_description": "调查task工具直接调用与通过dispatch-subagent.js调用agent的区别",
+      "plan_summary": "派遣Architect调查task工具直接调用与dispatch-subagent.js调用的差异，涵盖代码实现、前置处理、执行上下文、合规约束4个维度",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T07:18:41.693Z",
+      "consumed_at": "2026-05-31T07:29:32.238Z",
+      "execution_summary": "完成task工具直接调用与dispatch-subagent.js调用agent的差异调查。通过读取dispatch-subagent.js源码(573行)、subagent-preamble.md(147行)、project.config.json(436行)等5个关键文件，从代码实现流程、前置处理包装层、执行上下文、合规约束、写权限5个维度进行了完整分析，生成了11步流程对比、11层包装对比、",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780212561034",
+      "task_description": "搜索 OpenCode 官方文档，验证插件架构诊断结论。使用 Context7 MCP 查询 OpenCode 插件 hooks 注册机制、入口点机制、函数签名和最佳实践。",
+      "plan_summary": "使用 Context7 MCP 搜索 OpenCode 官方文档，验证插件架构的4个关键问题：hooks注册机制、入口点机制、toolExecuteBefore函数签名、tools+hooks最佳实践。对比前后诊断结论。",
+      "agent": "@Architect",
+      "task_id": null,
+      "confirmed_at": "2026-05-31T07:32:32.664Z",
+      "consumed_at": "2026-05-31T07:32:38.589Z",
+      "execution_summary": "Verified OpenCode plugin architecture via Context7 docs (/websites/opencode_ai_plugins + /mspiegel31/opencode-cmux). Key findings: (1) Current code ALREADY correct - index.js dynamically imports frame",
       "gate_status": "completed"
     }
   ]

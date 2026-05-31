@@ -10,14 +10,21 @@
 import type { Plugin, PluginInput, Hooks, ToolResult } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { safeEdit } from "../../tools/safe-edit.js";
-import { safeBashTool } from "../../tools/safe-bash.js";
-import { validateTestReport } from "../../tools/safe-test.js";
+import { safeEdit, writeSafeFull } from "../../lib/safe-edit-core";
+import { safeBashTool } from "../../lib/safe-bash-core";
+import { validateTestReport } from "../../lib/safe-test-core";
 import { tool } from "@opencode-ai/plugin";
 
-const plugin: Plugin = async (_ctx: PluginInput): Promise<Hooks> => {
+const plugin: Plugin = async (input: PluginInput): Promise<Hooks> => {
+  // 动态导入 framework-enforcer 以获取其 hooks（tool.execute.before/after 等 14 个 hooks）
+  const enforcerModule = await import("./framework-enforcer.js");
+  const enforcerHooks = await enforcerModule.default(input);
+
+  // 合并 hooks + tools
   return {
+    ...enforcerHooks,
     tool: {
+      ...(enforcerHooks.tool || {}),
       safe_edit: tool({
         description:
           "Safe atomic file edit with TOCTOU protection, backup, and rollback. Use this instead of the built-in edit tool for all file modifications.",
@@ -88,9 +95,9 @@ const plugin: Plugin = async (_ctx: PluginInput): Promise<Hooks> => {
         },
         async execute(
           args,
-          _context,
+          context,
         ): Promise<ToolResult> {
-          const agent = process.env.FRAMEWORK_AGENT || "unknown";
+          const agent = context.agent ?? process.env.FRAMEWORK_AGENT ?? "unknown";
 
           const result = safeBashTool({
             command: args.command,

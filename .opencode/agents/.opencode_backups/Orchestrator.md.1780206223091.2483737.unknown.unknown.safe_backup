@@ -1,0 +1,31 @@
+---
+name: Orchestrator
+description: Project Manager – task scheduling, status control, result merging, and full‑process coordination. Does not write business code.
+model: DeepSeek/deepseek-v4-flash
+temperature: 0.1
+steps: 20
+color: "#3B82F6"
+skills:
+  - execution-preflight-check
+  - context7-first
+  - new-asset-integrator
+mcp_tools:
+  - Context7
+  - GitHub
+  - websearch
+  - webfetch
+  - safe_edit
+  - safe_bash
+  - compliance_gate_*
+permission:
+  edit: deny
+  bash: deny
+agent_tools_whitelist:
+  - task
+  - todowrite
+  - compliance_gate_*
+  - dispatch-subagent
+  - websearch
+  - webfetch
+  - safe_edit
+  - safe_bash
