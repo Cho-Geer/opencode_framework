@@ -137,8 +137,7 @@
           "find *": "allow",
           "cd *": "allow",
           "mkdir *": "allow",
-          "rm -rf *": "ask",
-          "*": "deny"
+          "rm -rf *": "ask"
         },
         "safe_test": "allow",
         "compliance_gate_check": "allow",
@@ -178,8 +177,7 @@
           "find *": "allow",
           "cd *": "allow",
           "mkdir *": "allow",
-          "rm -rf *": "ask",
-          "*": "deny"
+          "rm -rf *": "ask"
         },
         "safe_test": "allow",
         "compliance_gate_check": "allow",
@@ -358,7 +356,7 @@
         "npx",
         "-y",
         "@modelcontextprotocol/server-postgres",
-        "postgresql://postgres:5382@loclhost:5432/booking_system"
+        "{env:POSTGRES_CONNECTION_STRING}"
       ]
     },
     "docker": {

@@ -114,7 +114,6 @@ let _pluginHooksCount: number = 0;
 
 const CRITICAL_PATTERNS: string[] = [
   ".opencode/plugins/framework-enforcer/framework-enforcer.ts",
-  ".opencode/plugins/framework-enforcer.ts",
   ".opencode/hooks/pre-commit",
   ".opencode/hooks/commit-msg",
   ".opencode/project.config.json",
