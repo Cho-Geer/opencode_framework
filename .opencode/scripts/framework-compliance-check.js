@@ -5,7 +5,7 @@
 // Exit 0 if clean, 1 if violations found.
 // Refactored FW-HARNESS-MOVE-SCRIPTS: imports from framework-validation.cjs
 
-const { readJsonFile, resolveFrameworkPaths } = require('../plugins/lib/framework-validation.cjs');
+const { readJsonFile, resolveFrameworkPaths } = require('../lib/framework-validation.cjs');
 
 const paths = resolveFrameworkPaths();
 

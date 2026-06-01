@@ -4812,6 +4812,271 @@
       "agent": "@CI-CD-Agent",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-06-01T14:55:07.010Z"
+    },
+    "cg_ses_1780240544415": {
+      "session_id": "cg_ses_1780240544415",
+      "created_at": "2026-05-31T15:15:44.418Z",
+      "task_description": "Git filter-branch: remove .opencode_backups/ directory from all commit history, then force push to opencode-framework remote (work-one branch) to completely overwrite remote with local.",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780240565780": {
+      "session_id": "cg_ses_1780240565780",
+      "created_at": "2026-05-31T15:16:05.783Z",
+      "task_description": "git filter-branch 清理备份文件 + force push 覆盖远程",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "git filter-branch 清理备份文件 + force push 覆盖远程",
+      "confirmed_at": "2026-05-31T15:16:10.906Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T15:16:10.906Z"
+    },
+    "cg_ses_1780240878694": {
+      "session_id": "cg_ses_1780240878694",
+      "created_at": "2026-05-31T15:21:18.698Z",
+      "task_description": "Execute git filter-branch to replace hardcoded token in opencode.json across all history and force push to remote. DevOps/CI-CD task with no code changes to business logic.",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Execute git filter-branch to replace hardcoded GITHUB token in opencode.json across all commit history, then force push to remote opencode-framework. No business code changes.",
+      "confirmed_at": "2026-05-31T15:21:26.236Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-01T15:21:26.236Z"
+    },
+    "cg_ses_1780272157584": {
+      "session_id": "cg_ses_1780272157584",
+      "created_at": "2026-06-01T00:02:37.595Z",
+      "task_description": "全面框架审核：context7搜索+审查plugins/tools/lib三个目录的死代码。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "全面审核完成：plugins/已清理完毕无.js，tools/仅剩5个备份，lib/4个死代码.js已删除。context7确认Bun运行时TS优先。",
+      "confirmed_at": "2026-06-01T00:03:12.787Z",
+      "consumed_at": "2026-06-01T00:03:18.611Z",
+      "audit": {
+        "execution_summary": "全面审核完成。plugins/无.js纯TS。tools/仅剩5个备份。lib/4个死代码.js已删除仅剩6个.ts。context7确认OpenCode/Bun TS优先。总死代码：0（已全部清理）。",
+        "completed_at": "2026-06-01T00:03:18.611Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:03:12.787Z"
+    },
+    "cg_ses_1780272433895": {
+      "session_id": "cg_ses_1780272433895",
+      "created_at": "2026-06-01T00:07:13.898Z",
+      "task_description": "调查 plugins/lib/ 是否可安全删除。检查目录内容、跨文件引用、import链。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "调查完成。plugins/lib/不可全删：framework-validation.cjs被3个脚本引用。.ts已清空，6个备份+2个测试可清。",
+      "confirmed_at": "2026-06-01T00:07:47.139Z",
+      "consumed_at": "2026-06-01T00:07:54.222Z",
+      "audit": {
+        "execution_summary": "调查完成。plugins/lib/共10文件：1个活跃依赖(framework-validation.cjs,517行,3脚本引用)、6个备份、2个测试、1个空目录(.ts全已删)。不可全删，.cjs需保留或迁移。",
+        "completed_at": "2026-06-01T00:07:54.222Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:07:47.139Z"
+    },
+    "cg_ses_1780272672630": {
+      "session_id": "cg_ses_1780272672630",
+      "created_at": "2026-06-01T00:11:12.633Z",
+      "task_description": "调查 framework-validation.cjs 迁移到 lib/ 并 TS 化。读取源码、追踪引用链、检查消费脚本的模块模式。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "调查完成：framework-validation.cjs 517行导出17项，被3个CJS脚本require。设计了迁移+TS化+路径更新方案。",
+      "confirmed_at": "2026-06-01T00:11:38.855Z",
+      "consumed_at": "2026-06-01T00:11:49.080Z",
+      "audit": {
+        "execution_summary": "调查完成。framework-validation.cjs:517行CJS编译产物，导出17项(16函数+1类)。被3个CJS脚本require。额外被ts-build.test.js测试引用。设计了TS化+路径迁移+消费者更新的三阶段方案。risk: CJS/ESM桥接。",
+        "completed_at": "2026-06-01T00:11:49.080Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:11:38.855Z"
+    },
+    "cg_ses_1780273106174": {
+      "session_id": "cg_ses_1780273106174",
+      "created_at": "2026-06-01T00:18:26.179Z",
+      "task_description": "制定 framework-validation.cjs 纯迁移方案：复制到lib/、更新3个require路径、删除plugins/lib/。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "调查完成。1个.cjs复制、3个CJS脚本require路径更新、1个测试路径更新、plugins/lib/整体删除。",
+      "confirmed_at": "2026-06-01T00:18:44.106Z",
+      "consumed_at": "2026-06-01T00:18:49.911Z",
+      "audit": {
+        "execution_summary": "方案制定完成。1文件复制+4文件修改+plugins/lib/全删。不涉及TS化，保持CJS。5处路径更新。",
+        "completed_at": "2026-06-01T00:18:49.911Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:18:44.106Z"
+    },
+    "cg_ses_1780273558383": {
+      "session_id": "cg_ses_1780273558383",
+      "created_at": "2026-06-01T00:25:58.387Z",
+      "task_description": "检查Architect的opencode.json权限是否覆盖migration所需的4类操作。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780273607077": {
+      "session_id": "cg_ses_1780273607077",
+      "created_at": "2026-06-01T00:26:47.079Z",
+      "task_description": "迁移 framework-validation.cjs 从 .opencode/plugins/lib/ 到 .opencode/lib/，修改 3 个脚本的 require 路径和 1 个测试文件路径，然后删除旧的 plugins/lib/ 目录。",
+      "enforcement_mode": "advisory",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 24 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1780273688373": {
+      "session_id": "cg_ses_1780273688373",
+      "created_at": "2026-06-01T00:28:08.376Z",
+      "task_description": "迁移 framework-validation.cjs 从 plugins/lib/ 到 lib/",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "迁移 framework-validation.cjs 从 plugins/lib/ 到 lib/",
+      "confirmed_at": "2026-06-01T00:28:13.205Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:28:13.205Z"
+    },
+    "cg_ses_1780273946311": {
+      "session_id": "cg_ses_1780273946311",
+      "created_at": "2026-06-01T00:32:26.316Z",
+      "task_description": "执行 framework-validation.cjs 迁移：复制到lib/、更新4个文件require路径、删除plugins/lib/。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "迁移完成：复制.cjs到lib/、更新4文件require路径、删除plugins/lib/。全部5项验证通过。",
+      "confirmed_at": "2026-06-01T00:33:11.652Z",
+      "consumed_at": "2026-06-01T00:33:17.080Z",
+      "audit": {
+        "execution_summary": "迁移完成。lib/framework-validation.cjs(19KB)创建，3脚本+1测试require路径更新，plugins/lib/已删除。全部5项验证通过。",
+        "completed_at": "2026-06-01T00:33:17.080Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:33:11.652Z"
+    },
+    "cg_ses_1780274248957": {
+      "session_id": "cg_ses_1780274248957",
+      "created_at": "2026-06-01T00:37:28.961Z",
+      "task_description": "全量扫描项目构建配置：package.json/tsconfig.json/node_modules位置、依赖版本冲突、统一可行性。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "全量扫描完成：6个package.json、3个tsconfig、3个node_modules(343MB)、2个版本冲突。统一可行性分析。",
+      "confirmed_at": "2026-06-01T00:38:45.769Z",
+      "consumed_at": "2026-06-01T00:38:53.041Z",
+      "audit": {
+        "execution_summary": "全量扫描完成。6个package.json(4活跃+2临时)、3个tsconfig(module混杂)、3个node_modules(343MB)、2个版本冲突(@opencode-ai/plugin,typescript)。统一结论：OpenCode架构要求插件独立package.json，建议标准化版本保留结构。",
+        "completed_at": "2026-06-01T00:38:53.041Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:38:45.769Z"
+    },
+    "cg_ses_1780274564771": {
+      "session_id": "cg_ses_1780274564771",
+      "created_at": "2026-06-01T00:42:44.774Z",
+      "task_description": "执行依赖版本统一：删除2个临时package.json、统一typescript和@opencode-ai/plugin版本。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "统一完成：删2临时文件、typescript统一^6.0.3、@opencode-ai/plugin统一为*。0冲突。",
+      "confirmed_at": "2026-06-01T00:43:33.069Z",
+      "consumed_at": "2026-06-01T00:43:38.882Z",
+      "audit": {
+        "execution_summary": "依赖统一完成。删除2临时package.json，typescript统一^6.0.3，@opencode-ai/plugin统一*。验证0冲突。",
+        "completed_at": "2026-06-01T00:43:38.882Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:43:33.069Z"
+    },
+    "cg_ses_1780275165799": {
+      "session_id": "cg_ses_1780275165799",
+      "created_at": "2026-06-01T00:52:45.802Z",
+      "task_description": "提交并推送 framework 清理和统一工作",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "git commit and push framework cleanup work",
+      "confirmed_at": "2026-06-01T00:52:52.460Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T00:52:52.460Z"
     }
   },
   "active_sessions": [
@@ -4824,9 +5089,13 @@
     "cg_ses_1780229735727",
     "cg_ses_1780233087032",
     "cg_ses_1780234851866",
-    "cg_ses_1780239285863"
+    "cg_ses_1780239285863",
+    "cg_ses_1780240565780",
+    "cg_ses_1780240878694",
+    "cg_ses_1780273688373",
+    "cg_ses_1780275165799"
   ],
-  "last_updated": "2026-05-31T14:55:07.010Z",
+  "last_updated": "2026-06-01T00:52:52.460Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
@@ -7558,6 +7827,83 @@
       "confirmed_at": "2026-05-31T14:45:59.663Z",
       "consumed_at": "2026-05-31T14:46:06.091Z",
       "execution_summary": "35个.js文件梳理完成。死代码4个(lib/permission-isolation-core.js, safe-bash-core.js, safe-edit-core.js, safe-test-core.js)。唯一实现31个(eslint-plugin 11 + scripts 20)。plugins/目录无.js。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780272157584",
+      "task_description": "全面框架审核：context7搜索+审查plugins/tools/lib三个目录的死代码。只读调查。",
+      "plan_summary": "全面审核完成：plugins/已清理完毕无.js，tools/仅剩5个备份，lib/4个死代码.js已删除。context7确认Bun运行时TS优先。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T00:03:12.787Z",
+      "consumed_at": "2026-06-01T00:03:18.611Z",
+      "execution_summary": "全面审核完成。plugins/无.js纯TS。tools/仅剩5个备份。lib/4个死代码.js已删除仅剩6个.ts。context7确认OpenCode/Bun TS优先。总死代码：0（已全部清理）。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780272433895",
+      "task_description": "调查 plugins/lib/ 是否可安全删除。检查目录内容、跨文件引用、import链。只读调查。",
+      "plan_summary": "调查完成。plugins/lib/不可全删：framework-validation.cjs被3个脚本引用。.ts已清空，6个备份+2个测试可清。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T00:07:47.139Z",
+      "consumed_at": "2026-06-01T00:07:54.222Z",
+      "execution_summary": "调查完成。plugins/lib/共10文件：1个活跃依赖(framework-validation.cjs,517行,3脚本引用)、6个备份、2个测试、1个空目录(.ts全已删)。不可全删，.cjs需保留或迁移。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780272672630",
+      "task_description": "调查 framework-validation.cjs 迁移到 lib/ 并 TS 化。读取源码、追踪引用链、检查消费脚本的模块模式。只读调查。",
+      "plan_summary": "调查完成：framework-validation.cjs 517行导出17项，被3个CJS脚本require。设计了迁移+TS化+路径更新方案。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T00:11:38.855Z",
+      "consumed_at": "2026-06-01T00:11:49.080Z",
+      "execution_summary": "调查完成。framework-validation.cjs:517行CJS编译产物，导出17项(16函数+1类)。被3个CJS脚本require。额外被ts-build.test.js测试引用。设计了TS化+路径迁移+消费者更新的三阶段方案。risk: CJS/ESM桥接。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780273106174",
+      "task_description": "制定 framework-validation.cjs 纯迁移方案：复制到lib/、更新3个require路径、删除plugins/lib/。只读调查。",
+      "plan_summary": "调查完成。1个.cjs复制、3个CJS脚本require路径更新、1个测试路径更新、plugins/lib/整体删除。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T00:18:44.106Z",
+      "consumed_at": "2026-06-01T00:18:49.911Z",
+      "execution_summary": "方案制定完成。1文件复制+4文件修改+plugins/lib/全删。不涉及TS化，保持CJS。5处路径更新。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780273946311",
+      "task_description": "执行 framework-validation.cjs 迁移：复制到lib/、更新4个文件require路径、删除plugins/lib/。",
+      "plan_summary": "迁移完成：复制.cjs到lib/、更新4文件require路径、删除plugins/lib/。全部5项验证通过。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T00:33:11.652Z",
+      "consumed_at": "2026-06-01T00:33:17.080Z",
+      "execution_summary": "迁移完成。lib/framework-validation.cjs(19KB)创建，3脚本+1测试require路径更新，plugins/lib/已删除。全部5项验证通过。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780274248957",
+      "task_description": "全量扫描项目构建配置：package.json/tsconfig.json/node_modules位置、依赖版本冲突、统一可行性。只读调查。",
+      "plan_summary": "全量扫描完成：6个package.json、3个tsconfig、3个node_modules(343MB)、2个版本冲突。统一可行性分析。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T00:38:45.769Z",
+      "consumed_at": "2026-06-01T00:38:53.041Z",
+      "execution_summary": "全量扫描完成。6个package.json(4活跃+2临时)、3个tsconfig(module混杂)、3个node_modules(343MB)、2个版本冲突(@opencode-ai/plugin,typescript)。统一结论：OpenCode架构要求插件独立package.json，建议标准化版本保留结构。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780274564771",
+      "task_description": "执行依赖版本统一：删除2个临时package.json、统一typescript和@opencode-ai/plugin版本。",
+      "plan_summary": "统一完成：删2临时文件、typescript统一^6.0.3、@opencode-ai/plugin统一为*。0冲突。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T00:43:33.069Z",
+      "consumed_at": "2026-06-01T00:43:38.882Z",
+      "execution_summary": "依赖统一完成。删除2临时package.json，typescript统一^6.0.3，@opencode-ai/plugin统一*。验证0冲突。",
       "gate_status": "completed"
     }
   ]

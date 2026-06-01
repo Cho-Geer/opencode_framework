@@ -5,7 +5,7 @@
 // --fix flag auto-fixes invalid JSON and orphaned sessions.
 // Refactored FW-HARNESS-MOVE-SCRIPTS: imports from framework-validation.cjs
 
-const { readJsonFile, fileExists, resolveFrameworkPaths } = require('../plugins/lib/framework-validation.cjs');
+const { readJsonFile, fileExists, resolveFrameworkPaths } = require('../lib/framework-validation.cjs');
 
 const paths = resolveFrameworkPaths();
 

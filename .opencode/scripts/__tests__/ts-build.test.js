@@ -19,8 +19,8 @@ const path = require("path");
 const fs = require("fs");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
-const CJS_PATH = path.join(PROJECT_ROOT, ".opencode", "plugins", "lib", "framework-validation.cjs");
-const TS_PATH = path.join(PROJECT_ROOT, ".opencode", "plugins", "lib", "framework-validation.ts");
+const CJS_PATH = path.join(PROJECT_ROOT, ".opencode", "lib", "framework-validation.cjs");
+const TS_PATH = path.join(PROJECT_ROOT, ".opencode", "lib", "framework-validation.ts");
 
 // =============================================================================
 // Test 1: Implementation Existence

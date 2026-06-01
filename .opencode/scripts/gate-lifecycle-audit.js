@@ -7,7 +7,7 @@
 const {
   readJsonFile,
   resolveFrameworkPaths,
-} = require("../plugins/lib/framework-validation.cjs");
+} = require('../lib/framework-validation.cjs');
 
 const paths = resolveFrameworkPaths();
 const GATE_STATE_PATH = paths.gateState;
