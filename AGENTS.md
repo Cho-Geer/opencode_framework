@@ -120,7 +120,7 @@
 |-------|---------|---------|
 | @Guardian | 质量门禁，代码规范/安全/架构约束审查 + 测试执行证据验证 | `@Guardian` |
 | @Arbiter | 技术委员会，冲突裁决与技术债豁免审批 | `@Arbiter` |
-| @CI-CD-Agent | DevOps/SRE，CI管道运维、自动部署与生产自愈 | `@CI-CD-Agent` |
+| @CI-CD-Agent | DevOps/SRE，CI管道运维、自动部署、git版本管理（commit/push/tag/release）与生产自愈 | `@CI-CD-Agent` |
 
 ## 四、核心协作协议
 

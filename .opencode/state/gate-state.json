@@ -5177,17 +5177,94 @@
       "created_at": "2026-06-01T01:42:39.559Z",
       "task_description": "Execute git add, commit, force push to opencode-framework remote on work-one branch with CI-CD-Agent write access fix",
       "enforcement_mode": "advisory",
-      "gate_status": "armed",
+      "gate_status": "completed",
       "last_check_passed": true,
       "last_check_failed_items": [],
       "plan_summary": "Execute git add -A, commit with CI-CD-Agent fix message, force push to opencode-framework remote on work-one branch, and capture commit ID",
       "confirmed_at": "2026-06-01T01:42:48.163Z",
+      "consumed_at": "2026-06-01T01:43:28.796Z",
+      "audit": {
+        "execution_summary": "Executed git add -A, commit (f780826e), force push to opencode-framework/work-one. 4 files changed, 201 insertions, 10 deletions.",
+        "completed_at": "2026-06-01T01:43:28.796Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:42:48.163Z"
+    },
+    "cg_ses_1780278366192": {
+      "session_id": "cg_ses_1780278366192",
+      "created_at": "2026-06-01T01:46:06.195Z",
+      "task_description": "调查CI-CD-Agent的git职责是否在AGENTS.md、CI-CD-Agent.md、Orchestrator.md中落实。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "调查完成：AGENTS.md缺git职责声明、CI-CD-Agent.md缺显式git命令、Orchestrator DISPATCH GATE缺CI-CD路由。3处需补充。",
+      "confirmed_at": "2026-06-01T01:46:39.434Z",
+      "consumed_at": "2026-06-01T01:46:46.174Z",
+      "audit": {
+        "execution_summary": "调查完成。3处缺漏：AGENTS.md无git职责声明、CI-CD-Agent.md无显式git/push、Orchestrator DISPATCH GATE无CI-CD/部署路由。已给出补充方案。",
+        "completed_at": "2026-06-01T01:46:46.174Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:46:39.434Z"
+    },
+    "cg_ses_1780278751014": {
+      "session_id": "cg_ses_1780278751014",
+      "created_at": "2026-06-01T01:52:31.017Z",
+      "task_description": "执行3个文档更新：AGENTS.md CI-CD描述、CI-CD-Agent.md git职责、Orchestrator.md DISPATCH GATE路由。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "文档更新完成：AGENTS.md CI-CD描述+git、CI-CD-Agent.md新git职责(顺序1-8)、Orchestrator DISPATCH GATE新增2行路由。",
+      "confirmed_at": "2026-06-01T01:55:52.393Z",
+      "consumed_at": "2026-06-01T01:55:59.191Z",
+      "audit": {
+        "execution_summary": "3文件更新完成。AGENTS.md: +git版本管理。CI-CD-Agent.md: +git职责(#3)，重新编号1-8。Orchestrator.md: +Diagnose路由、Configuration改Architect、+Git/Deploy路由到CI-CD-Agent。",
+        "completed_at": "2026-06-01T01:55:59.191Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:55:52.393Z"
+    },
+    "cg_ses_1780279026057": {
+      "session_id": "cg_ses_1780279026057",
+      "created_at": "2026-06-01T01:57:06.061Z",
+      "task_description": "提交推送文档更新到远程",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": "commit and push dispatch gate documentation updates",
+      "confirmed_at": "2026-06-01T01:57:10.941Z",
       "consumed_at": null,
       "audit": null,
       "task_id": null,
       "agent": "unknown",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-06-02T01:42:48.163Z"
+      "expires_at": "2026-06-02T01:57:10.941Z"
+    },
+    "cg_ses_1780279060908": {
+      "session_id": "cg_ses_1780279060908",
+      "created_at": "2026-06-01T01:57:40.909Z",
+      "task_description": "执行 git add/commit/push 操作：提交文档更新（dispatch gate routing 和 CI-CD-Agent git role），并 force push 到 opencode-framework 远程仓库的 work-one 分支。",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": "执行 git add -A → git commit → git push --force opencode-framework work-one，提交文档更新（dispatch gate routing + CI-CD-Agent git role），并输出最新 COMMIT_ID。",
+      "confirmed_at": "2026-06-01T01:57:48.322Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "@CI-CD-Agent",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:57:48.322Z"
     }
   },
   "active_sessions": [
@@ -5207,9 +5284,10 @@
     "cg_ses_1780275165799",
     "cg_ses_1780276983967",
     "cg_ses_1780278125578",
-    "cg_ses_1780278159557"
+    "cg_ses_1780279026057",
+    "cg_ses_1780279060908"
   ],
-  "last_updated": "2026-06-01T01:42:48.163Z",
+  "last_updated": "2026-06-01T01:57:48.322Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
@@ -8051,6 +8129,39 @@
       "confirmed_at": "2026-06-01T01:41:44.797Z",
       "consumed_at": "2026-06-01T01:41:50.829Z",
       "execution_summary": "git权限分离完成。DEFAULT: git add/commit/* → git show/branch。CI-CD-Agent: +git *。Orchestrator: -git *。验证通过。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780278159557",
+      "task_description": "Execute git add, commit, force push to opencode-framework remote on work-one branch with CI-CD-Agent write access fix",
+      "plan_summary": "Execute git add -A, commit with CI-CD-Agent fix message, force push to opencode-framework remote on work-one branch, and capture commit ID",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T01:42:48.163Z",
+      "consumed_at": "2026-06-01T01:43:28.796Z",
+      "execution_summary": "Executed git add -A, commit (f780826e), force push to opencode-framework/work-one. 4 files changed, 201 insertions, 10 deletions.",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780278366192",
+      "task_description": "调查CI-CD-Agent的git职责是否在AGENTS.md、CI-CD-Agent.md、Orchestrator.md中落实。只读调查。",
+      "plan_summary": "调查完成：AGENTS.md缺git职责声明、CI-CD-Agent.md缺显式git命令、Orchestrator DISPATCH GATE缺CI-CD路由。3处需补充。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T01:46:39.434Z",
+      "consumed_at": "2026-06-01T01:46:46.174Z",
+      "execution_summary": "调查完成。3处缺漏：AGENTS.md无git职责声明、CI-CD-Agent.md无显式git/push、Orchestrator DISPATCH GATE无CI-CD/部署路由。已给出补充方案。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780278751014",
+      "task_description": "执行3个文档更新：AGENTS.md CI-CD描述、CI-CD-Agent.md git职责、Orchestrator.md DISPATCH GATE路由。",
+      "plan_summary": "文档更新完成：AGENTS.md CI-CD描述+git、CI-CD-Agent.md新git职责(顺序1-8)、Orchestrator DISPATCH GATE新增2行路由。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T01:55:52.393Z",
+      "consumed_at": "2026-06-01T01:55:59.191Z",
+      "execution_summary": "3文件更新完成。AGENTS.md: +git版本管理。CI-CD-Agent.md: +git职责(#3)，重新编号1-8。Orchestrator.md: +Diagnose路由、Configuration改Architect、+Git/Deploy路由到CI-CD-Agent。",
       "gate_status": "completed"
     }
   ]
