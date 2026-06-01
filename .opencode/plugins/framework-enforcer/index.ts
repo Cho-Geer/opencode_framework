@@ -7,6 +7,8 @@ import * as path from "node:path";
 import {
   safeEdit,
   writeSafeFull,
+  safeDelete,
+  safeMkdir,
   safeBashTool,
   validateTestReport,
 } from "../../lib/index";
@@ -49,10 +51,10 @@ const plugin: Plugin = async (input: PluginInput): Promise<Hooks> => {
             if (!args.content) {
               throw new Error("safe_edit failed: content parameter is required for overwrite mode");
             }
-            let result = safeEdit(absPath, args.content);
+            let result = writeSafeFull(absPath, args.content);
             // ★ TOCTOU: retry once on "first call establishes baseline"
             if (!result.success && result.error?.includes("first call establishes baseline")) {
-              result = safeEdit(absPath, args.content);
+              result = writeSafeFull(absPath, args.content);
             }
             if (!result.success) {
               throw new Error(`safe_edit failed: ${result.error}`);
@@ -141,6 +143,50 @@ const plugin: Plugin = async (input: PluginInput): Promise<Hooks> => {
             throw new Error(`safe_test validation failed: ${result.violations.join("; ")}`);
           }
           return `Validation passed for ${args.taskId} (${args.phase} phase)`;
+        },
+      }),
+
+      // ═══════════════════════════════════════════════════════
+      // safe_delete: TOCTOU-protected file deletion
+      // ═══════════════════════════════════════════════════════
+      safe_delete: tool({
+        description:
+          "Safely delete a file with TOCTOU protection, backup, and rollback.",
+        args: {
+          filePath: tool.schema.string()
+            .describe("Absolute path of the file to delete"),
+        },
+        async execute(args, _context): Promise<ToolResult> {
+          const absPath = path.resolve(args.filePath);
+          let result = safeDelete(absPath);
+          if (!result.success && result.error?.includes("first call")) {
+            result = safeDelete(absPath);
+          }
+          if (!result.success) {
+            throw new Error("safe_delete failed: " + result.error);
+          }
+          return "File deleted (backup: " + (result.backupPath || "none") + ")";
+        },
+      }),
+
+      // ═══════════════════════════════════════════════════════
+      // safe_mkdir: atomic directory creation
+      // ═══════════════════════════════════════════════════════
+      safe_mkdir: tool({
+        description:
+          "Safely create a directory.",
+        args: {
+          dirPath: tool.schema.string()
+            .describe("Absolute path of directory to create"),
+          recursive: tool.schema.boolean().optional()
+            .describe("Create parents (default: true)"),
+        },
+        async execute(args, _context): Promise<ToolResult> {
+          const result = safeMkdir(args.dirPath, { recursive: args.recursive });
+          if (!result.success) {
+            throw new Error("safe_mkdir failed: " + result.error);
+          }
+          return "Directory created: " + result.path;
         },
       }),
     },

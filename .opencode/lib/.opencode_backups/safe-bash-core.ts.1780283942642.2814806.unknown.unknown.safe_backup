@@ -214,8 +214,6 @@ export function isDangerous(command: string): boolean {
  * Merges DEFAULT_ALLOWLIST with agent-specific extensions.
  */
 export function getAllowlist(agent: string): string[] {
-  // Normalize: ensure leading @ for AGENT_ALLOWLISTS lookup
-  if (!agent.startsWith('@')) agent = '@' + agent;
   const extensions = AGENT_ALLOWLISTS[agent] || [];
   return [...DEFAULT_ALLOWLIST, ...extensions];
 }

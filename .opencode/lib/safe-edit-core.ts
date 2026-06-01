@@ -2,7 +2,6 @@
  * safe-edit-core.ts — Shared File Edit Validation & Diff Generation
  * =================================================================
  *
- * Extracted from .opencode/tools/safe-edit.ts and .opencode/tools/safe-edit.js.
  * Contains ONLY the core logic — no framework-specific tool registration.
  *
  * Exports:
@@ -609,5 +608,112 @@ export function writeSafeFull(
     return { success: false, error: `Unexpected error: ${msg}` };
   } finally {
     if (releaseLock) releaseLock();
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════
+// PUBLIC: safeDelete
+// ════════════════════════════════════════════════════════════
+/**
+ * Safely delete a file with TOCTOU protection and backup.
+ * Uses the same _fileRegistry as writeSafe for TOCTOU detection.
+ * Creates an atomic backup before deletion.
+ */
+export function safeDelete(
+  filePath: string,
+  options?: WriteOptions,
+): WriteResult {
+  const opts = options || {};
+  const agentType = opts.agentType || "unknown";
+  const taskId = opts.taskId || "unknown";
+  const absPath = path.resolve(filePath);
+
+  if (!fs.existsSync(absPath)) {
+    return { success: false, error: "File not found: " + absPath };
+  }
+
+  // Acquire lock
+  let releaseLock: (() => void) | null = null;
+  try {
+    releaseLock = acquireLock(absPath);
+  } catch (lockErr: unknown) {
+    const msg = lockErr instanceof Error ? lockErr.message : String(lockErr);
+    return { success: false, error: "Concurrent lock failed: " + msg };
+  }
+
+  try {
+    const resolvedPath = fs.realpathSync(absPath);
+    const origStat = captureStat(resolvedPath);
+
+    // TOCTOU: registry check
+    const registryKey = resolvedPath;
+    if (!_fileRegistry.has(registryKey)) {
+      _fileRegistry.set(registryKey, {
+        ino: origStat.ino,
+        size: origStat.size,
+        mtimeMs: origStat.mtimeMs,
+        ctimeMs: origStat.ctimeMs,
+        dev: origStat.dev,
+      });
+      return {
+        success: false,
+        error: "TOCTOU: first call establishes baseline, call safeDelete again",
+      };
+    }
+
+    // Re-stat for TOCTOU
+    const currentStat = captureStat(resolvedPath);
+    if (
+      origStat.ino !== currentStat.ino ||
+      origStat.size !== currentStat.size ||
+      origStat.mtimeMs !== currentStat.mtimeMs
+    ) {
+      return {
+        success: false,
+        error: "TOCTOU: file state changed between checks",
+      };
+    }
+
+    // Create backup
+    const bDir = path.join(path.dirname(resolvedPath), ".opencode_backups");
+    fs.mkdirSync(bDir, { recursive: true });
+    const backupPathStr = backupPath(resolvedPath, agentType, taskId);
+    const tmpBackup = backupPathStr + ".tmp";
+    fs.copyFileSync(resolvedPath, tmpBackup);
+    fs.renameSync(tmpBackup, backupPathStr);
+
+    // Atomic delete: rename to trash first, then unlink
+    const trashPath = resolvedPath + ".trash." + Date.now();
+    fs.renameSync(resolvedPath, trashPath);
+    fs.unlinkSync(trashPath);
+
+    return { success: true, backupPath: backupPathStr };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { success: false, error: "Delete failed: " + msg };
+  } finally {
+    if (releaseLock) releaseLock();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// PUBLIC: safeMkdir
+// ════════════════════════════════════════════════════════════
+/**
+ * Safely create a directory. mkdir is inherently atomic — no TOCTOU needed.
+ */
+export function safeMkdir(
+  dirPath: string,
+  options?: { recursive?: boolean },
+): { success: boolean; error?: string; path?: string } {
+  const absPath = path.resolve(dirPath);
+  const recursive = options?.recursive !== false;
+  try {
+    fs.mkdirSync(absPath, { recursive });
+    return { success: true, path: absPath };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { success: false, error: msg };
   }
 }

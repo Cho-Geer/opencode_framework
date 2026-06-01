@@ -3,8 +3,8 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-05-26T13:52:40.625Z",
-    "last_regenerated": "2026-05-26",
+    "last_updated": "2026-06-01T04:49:56.294Z",
+    "last_regenerated": "2026-06-01",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
     "digest_algorithm": "sha256",
@@ -299,9 +299,9 @@
     "agents/architect.md": {
       "path": ".opencode/agents/Architect.md",
       "category": "agent",
-      "semver": "1.0.2",
-      "sha256": "df49fd1b09aaa66e2710cddadc4a8d88ebcfe8335bbb90d68220829938983c27",
-      "last_modified": "2026-05-26T10:40:03.755Z",
+      "semver": "1.0.3",
+      "sha256": "bd99af6961502a57cb5c5b8abfca7ad1639ea0cf44f6bfb577e68d34cda8c94a",
+      "last_modified": "2026-06-01T04:49:56.285Z",
       "description": "System Architect – technology selection, interface contracts, directory structure",
       "digest_history": [
         {
@@ -321,15 +321,21 @@
           "timestamp": "2026-05-26T10:40:03.756Z",
           "semver": "1.0.2",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "bd99af6961502a57cb5c5b8abfca7ad1639ea0cf44f6bfb577e68d34cda8c94a",
+          "timestamp": "2026-06-01T04:49:56.286Z",
+          "semver": "1.0.3",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
     "agents/coder-be.md": {
       "path": ".opencode/agents/Coder-BE.md",
       "category": "agent",
-      "semver": "1.0.3",
-      "sha256": "b874990df6abaa517ca3506c26967c01b9b3b46511851fbbc82f54a2f1244c68",
-      "last_modified": "2026-05-26T13:52:40.624Z",
+      "semver": "1.0.4",
+      "sha256": "367b0e8a0159964a53cf64e80779dba74cd6493fd333efd794b62625201ea618",
+      "last_modified": "2026-06-01T04:49:56.287Z",
       "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
         {
@@ -355,15 +361,21 @@
           "timestamp": "2026-05-26T13:52:40.624Z",
           "semver": "1.0.3",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "367b0e8a0159964a53cf64e80779dba74cd6493fd333efd794b62625201ea618",
+          "timestamp": "2026-06-01T04:49:56.287Z",
+          "semver": "1.0.4",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
     "agents/coder-fe.md": {
       "path": ".opencode/agents/Coder-FE.md",
       "category": "agent",
-      "semver": "1.0.3",
-      "sha256": "cf9f8d9daed5480a27b556a5d27053efca676d08dcd69fdbce7082245fdc5b27",
-      "last_modified": "2026-05-26T13:52:40.624Z",
+      "semver": "1.0.4",
+      "sha256": "67cd52f683ff7819f9968c1d98ec3ed53d36b5b46184db1e2d70865dc9890360",
+      "last_modified": "2026-06-01T04:49:56.288Z",
       "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
         {
@@ -389,15 +401,21 @@
           "timestamp": "2026-05-26T13:52:40.624Z",
           "semver": "1.0.3",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "67cd52f683ff7819f9968c1d98ec3ed53d36b5b46184db1e2d70865dc9890360",
+          "timestamp": "2026-06-01T04:49:56.288Z",
+          "semver": "1.0.4",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },
     "agents/orchestrator.md": {
       "path": ".opencode/agents/Orchestrator.md",
       "category": "agent",
-      "semver": "1.0.2",
-      "sha256": "d3b93854545c5cd0e2a0f140c0b498178ecbe22d9a23d36db277988ea16969aa",
-      "last_modified": "2026-05-31T00:00:00.000Z",
+      "semver": "1.0.4",
+      "sha256": "10a9f266f4ce1e861012f4d7541e36770581a1ec36a9569eb229def8112bad7f",
+      "last_modified": "2026-06-01T04:49:56.289Z",
       "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch",
       "digest_history": [
         {
@@ -417,6 +435,18 @@
           "timestamp": "2026-05-31T00:00:00.000Z",
           "semver": "1.0.2",
           "change": "added MANDATORY DISPATCH GATE section — English dispatch classification table and iron rules"
+        },
+        {
+          "sha256": "f0b3c4b138da4d3f41c79a01dd0443a06bc2df5de5465aa94070d6810811af13",
+          "timestamp": "2026-06-01T02:01:23.201Z",
+          "semver": "1.0.3",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "10a9f266f4ce1e861012f4d7541e36770581a1ec36a9569eb229def8112bad7f",
+          "timestamp": "2026-06-01T04:49:56.289Z",
+          "semver": "1.0.4",
+          "change": "auto-repaired by rule-registry-verify.js --repair"
         }
       ]
     },

@@ -560,6 +560,17 @@ async function toolExecuteBefore(
   const mode = getEnforcementMode();
   const violations: string[] = [];
   const agent = process.env.FRAMEWORK_AGENT || "";
+  // === P0: Orchestrator DAG modification block (physical constraint) ===
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit") && (agent === "Orchestrator" || agent === "@Orchestrator")) {
+    const filePath = output.args?.filePath || "";
+    if (filePath.endsWith("Task.DAG.json")) {
+      throw new Error(
+        "[FW-ENFORCE][LOCKED] Orchestrator modification of Task.DAG.json blocked. " +
+        "Only @Meta-Planner may modify the DAG."
+      );
+    }
+  }
+
   const taskId = process.env.FRAMEWORK_TASK_ID || "";
 
   // === P0: Permission isolation check (hard block in strict/locked) ===
@@ -616,6 +627,67 @@ async function toolExecuteBefore(
       }
     }
   }
+
+  
+  // === P0: Coder-BE — block framework writes (physical constraint) ===
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit") && 
+      (agent === "Coder-BE" || agent === "@Coder-BE")) {
+    const filePath = output.args?.filePath || "";
+    if (filePath.includes(".opencode/")) {
+      throw new Error(
+        "[FW-ENFORCE][LOCKED] Coder-BE modification of framework files blocked. " +
+        "Coder-BE may only modify business code (booking-backend/src/). " +
+        "Framework changes must go through @Architect."
+      );
+    }
+  }
+
+  // === P0: Coder-BE — block safe_bash writes to .opencode/ (physical constraint) ===
+  if (tool === "safe_bash" && (agent === "Coder-BE" || agent === "@Coder-BE")) {
+    const cmd = (output.args?.command as string) || "";
+    const WRITE_PATTERNS = [/s+>s*.opencode//, /s+>>s*.opencode//, /rms+.*.opencode//, /cps+.*.opencode//, /mvs+.*.opencode//, /mkdirs+.*.opencode//, /tees+.*.opencode//, /nodes+-es+.*.opencode//];
+    if (WRITE_PATTERNS.some(p => p.test(cmd))) {
+      throw new Error("[FW-ENFORCE][LOCKED] Coder-BE safe_bash write to framework files blocked. Framework changes must go through @Architect.");
+    }
+  }
+  
+  // === P0: Coder-FE — block framework writes (physical constraint) ===
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit") && 
+      (agent === "Coder-FE" || agent === "@Coder-FE")) {
+    const filePath = output.args?.filePath || "";
+    if (filePath.includes(".opencode/")) {
+      throw new Error(
+        "[FW-ENFORCE][LOCKED] Coder-FE modification of framework files blocked. " +
+        "Coder-FE may only modify business code (booking-frontend/src/). " +
+        "Framework changes must go through @Architect."
+      );
+    }
+  }
+
+  // === P0: Coder-FE — block safe_bash writes to .opencode/ (physical constraint) ===
+  if (tool === "safe_bash" && (agent === "Coder-FE" || agent === "@Coder-FE")) {
+    const cmd = (output.args?.command as string) || "";
+    const WRITE_PATTERNS = [/s+>s*.opencode//, /s+>>s*.opencode//, /rms+.*.opencode//, /cps+.*.opencode//, /mvs+.*.opencode//, /mkdirs+.*.opencode//, /tees+.*.opencode//, /nodes+-es+.*.opencode//];
+    if (WRITE_PATTERNS.some(p => p.test(cmd))) {
+      throw new Error("[FW-ENFORCE][LOCKED] Coder-FE safe_bash write to framework files blocked. Framework changes must go through @Architect.");
+    }
+  }
+  
+  // === P0: Architect — block business code writes (physical constraint) ===
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit") && 
+      (agent === "Architect" || agent === "@Architect")) {
+    const filePath = output.args?.filePath || "";
+    if (filePath.includes("booking_system_refactor/booking-backend/src/") ||
+        filePath.includes("booking_system_refactor/booking-frontend/src/") ||
+        filePath.includes("booking_system_refactor/booking-backend/test/")) {
+      throw new Error(
+        "[FW-ENFORCE][LOCKED] Architect modification of business code blocked. " +
+        "Architect may only modify framework files (.opencode/). " +
+        "Business code changes must go through @Coder-BE / @Coder-FE."
+      );
+    }
+  }
+
 
   // ---- Plugin integrity check (FW-HARNESS-PLUGIN-CHECK) ----
   const integrityResult = checkPluginIntegrity();

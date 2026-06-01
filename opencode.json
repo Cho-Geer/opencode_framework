@@ -36,7 +36,31 @@
         "safe_bash": "allow",
         "compliance_gate_check": "allow",
         "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow"
+        "compliance_gate_complete": "allow",
+        "safe_delete": {
+          ".task_temp/**": "allow",
+          "Task.DAG.json": "allow",
+          "Project.graph": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/scripts/**": "deny",
+          ".opencode/state/**": "deny",
+          "contract.yaml": "deny",
+          "*": "deny"
+        },
+        "safe_mkdir": {
+          ".task_temp/**": "allow",
+          "Task.DAG.json": "allow",
+          "Project.graph": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/scripts/**": "deny",
+          ".opencode/state/**": "deny",
+          "contract.yaml": "deny",
+          "*": "deny"
+        }
       }
     },
     "Orchestrator": {
@@ -68,7 +92,9 @@
         "edit": "deny",
         "bash": "deny",
         "glob": "deny",
-        "grep": "deny"
+        "grep": "deny",
+        "safe_delete": "deny",
+        "safe_mkdir": "deny"
       }
     },
     "Architect": {
@@ -95,8 +121,7 @@
           ".opencode/**": "allow",
           "booking_system_refactor/booking-backend/src/**": "deny",
           "booking_system_refactor/booking-frontend/src/**": "deny",
-          "booking_system_refactor/booking-backend/test/**": "deny",
-          "*": "deny"
+          "booking_system_refactor/booking-backend/test/**": "deny"
         },
         "safe_bash": {
           "cat *": "allow",
@@ -128,7 +153,43 @@
         "compliance_gate_check": "allow",
         "compliance_gate_confirm": "allow",
         "compliance_gate_complete": "allow",
-        "code_quality_gate": "allow"
+        "code_quality_gate": "allow",
+        "safe_delete": {
+          "opencode.json": "allow",
+          ".opencode/state/**": "allow",
+          "contract.yaml": "allow",
+          ".task_temp/**": "allow",
+          ".opencode/project.config.json": "allow",
+          "PROJECT_REFERENCE.md": "allow",
+          ".opencode/context/**": "allow",
+          ".opencode/rules/**": "allow",
+          ".opencode/agents/**": "allow",
+          ".opencode/subagent-preamble.md": "allow",
+          ".opencode/scripts/**": "allow",
+          "docs/**": "allow",
+          ".opencode/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "booking_system_refactor/booking-backend/test/**": "deny"
+        },
+        "safe_mkdir": {
+          "opencode.json": "allow",
+          ".opencode/state/**": "allow",
+          "contract.yaml": "allow",
+          ".task_temp/**": "allow",
+          ".opencode/project.config.json": "allow",
+          "PROJECT_REFERENCE.md": "allow",
+          ".opencode/context/**": "allow",
+          ".opencode/rules/**": "allow",
+          ".opencode/agents/**": "allow",
+          ".opencode/subagent-preamble.md": "allow",
+          ".opencode/scripts/**": "allow",
+          "docs/**": "allow",
+          ".opencode/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "booking_system_refactor/booking-backend/test/**": "deny"
+        }
       }
     },
     "Coder-BE": {
@@ -155,7 +216,7 @@
           "contract.yaml": "deny",
           "opencode.json": "deny",
           ".opencode/**": "deny",
-          "*": "deny"  
+          "*": "deny"
         },
         "safe_bash": {
           "which *": "allow",
@@ -181,7 +242,35 @@
         "docker": "allow",
         "postgre_sql": "allow",
         "eslint_audit": "allow",
-        "code_quality_gate": "allow"
+        "code_quality_gate": "allow",
+        "safe_delete": {
+          "booking_system_refactor/booking-backend/src/**": "allow",
+          "booking_system_refactor/booking-backend/test/**": "allow",
+          "booking_system_refactor/booking-backend/prisma/**": "allow",
+          "booking_system_refactor/booking-backend/*.json": "allow",
+          "booking_system_refactor/booking-backend/*.js": "allow",
+          "booking_system_refactor/booking-backend/*.ts": "allow",
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-frontend/**": "deny",
+          "contract.yaml": "deny",
+          "opencode.json": "deny",
+          ".opencode/**": "deny",
+          "*": "deny"
+        },
+        "safe_mkdir": {
+          "booking_system_refactor/booking-backend/src/**": "allow",
+          "booking_system_refactor/booking-backend/test/**": "allow",
+          "booking_system_refactor/booking-backend/prisma/**": "allow",
+          "booking_system_refactor/booking-backend/*.json": "allow",
+          "booking_system_refactor/booking-backend/*.js": "allow",
+          "booking_system_refactor/booking-backend/*.ts": "allow",
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-frontend/**": "deny",
+          "contract.yaml": "deny",
+          "opencode.json": "deny",
+          ".opencode/**": "deny",
+          "*": "deny"
+        }
       }
     },
     "Coder-FE": {
@@ -228,7 +317,25 @@
         "compliance_gate_complete": "allow",
         "playwright": "allow",
         "eslint_audit": "allow",
-        "code_quality_gate": "allow"
+        "code_quality_gate": "allow",
+        "safe_delete": {
+          "booking_system_refactor/booking-frontend/**": "allow",
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/**": "deny",
+          "contract.yaml": "deny",
+          "opencode.json": "deny",
+          ".opencode/**": "deny",
+          "*": "deny"
+        },
+        "safe_mkdir": {
+          "booking_system_refactor/booking-frontend/**": "allow",
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/**": "deny",
+          "contract.yaml": "deny",
+          "opencode.json": "deny",
+          ".opencode/**": "deny",
+          "*": "deny"
+        }
       }
     },
     "Guardian": {
@@ -264,7 +371,27 @@
         "compliance_gate_confirm": "allow",
         "compliance_gate_complete": "allow",
         "eslint_audit": "allow",
-        "code_quality_gate": "allow"
+        "code_quality_gate": "allow",
+        "safe_delete": {
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "contract.yaml": "deny",
+          ".opencode/**": "deny",
+          "AGENTS.md": "deny",
+          "PROJECT_REFERENCE.md": "deny",
+          "*": "deny"
+        },
+        "safe_mkdir": {
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "contract.yaml": "deny",
+          ".opencode/**": "deny",
+          "AGENTS.md": "deny",
+          "PROJECT_REFERENCE.md": "deny",
+          "*": "deny"
+        }
       }
     },
     "Arbiter": {
@@ -301,7 +428,29 @@
         "bash": "deny",
         "compliance_gate_check": "allow",
         "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow"
+        "compliance_gate_complete": "allow",
+        "safe_delete": {
+          ".task_temp/**": "allow",
+          "WAIVE.md": "allow",
+          "TECH_DEBT_REGISTRY.md": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "contract.yaml": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/scripts/**": "deny",
+          "*": "deny"
+        },
+        "safe_mkdir": {
+          ".task_temp/**": "allow",
+          "WAIVE.md": "allow",
+          "TECH_DEBT_REGISTRY.md": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          "contract.yaml": "deny",
+          ".opencode/tools/**": "deny",
+          ".opencode/scripts/**": "deny",
+          "*": "deny"
+        }
       }
     },
     "CI-CD-Agent": {
@@ -334,7 +483,33 @@
         "compliance_gate_confirm": "allow",
         "compliance_gate_complete": "allow",
         "docker": "allow",
-        "github": "allow"
+        "github": "allow",
+        "safe_delete": {
+          "docker-compose*.yml": "allow",
+          ".github/workflows/**": "allow",
+          "Dockerfile*": "allow",
+          ".env.*": "allow",
+          "booking_system_refactor/booking-backend/prisma/**": "allow",
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          ".opencode/agents/**": "deny",
+          ".opencode/rules/**": "deny",
+          "*": "deny"
+        },
+        "safe_mkdir": {
+          "docker-compose*.yml": "allow",
+          ".github/workflows/**": "allow",
+          "Dockerfile*": "allow",
+          ".env.*": "allow",
+          "booking_system_refactor/booking-backend/prisma/**": "allow",
+          ".task_temp/**": "allow",
+          "booking_system_refactor/booking-backend/src/**": "deny",
+          "booking_system_refactor/booking-frontend/src/**": "deny",
+          ".opencode/agents/**": "deny",
+          ".opencode/rules/**": "deny",
+          "*": "deny"
+        }
       }
     }
   },

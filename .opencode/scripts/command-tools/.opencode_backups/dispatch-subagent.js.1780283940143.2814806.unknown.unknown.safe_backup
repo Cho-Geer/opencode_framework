@@ -53,7 +53,7 @@ process.env.FRAMEWORK_TASK_ID = taskId || "";
 process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
 const agentType = process.argv[2];
-process.env.FRAMEWORK_AGENT = '@' + agentType;
+process.env.FRAMEWORK_AGENT = agentType;
 const taskDescription = process.argv[3] || "";
 
 if (!agentType) {
