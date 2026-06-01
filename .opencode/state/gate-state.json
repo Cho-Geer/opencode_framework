@@ -5077,6 +5077,117 @@
       "agent": "unknown",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
       "expires_at": "2026-06-02T00:52:52.460Z"
+    },
+    "cg_ses_1780275809626": {
+      "session_id": "cg_ses_1780275809626",
+      "created_at": "2026-06-01T01:03:29.638Z",
+      "task_description": "调查多行bash命令被阻塞根因：检查matchGlob正则、DANGEROUS_PATTERNS、context7搜索。只读调查。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "根因确认：matchGlob缺少s(dotAll)标志，`.`不匹配\\n。修复：加's'到RegExp——单行多行均通过。",
+      "confirmed_at": "2026-06-01T01:04:10.494Z",
+      "consumed_at": "2026-06-01T01:04:16.855Z",
+      "audit": {
+        "execution_summary": "根因确认：safe-bash-core.ts L193的matchGlob缺少's'标志导致`.`不匹配\\n。单字符修复，不影响DANGEROUS_PATTERNS安全层。",
+        "completed_at": "2026-06-01T01:04:16.855Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:04:10.494Z"
+    },
+    "cg_ses_1780276983967": {
+      "session_id": "cg_ses_1780276983967",
+      "created_at": "2026-06-01T01:23:03.976Z",
+      "task_description": "提交并推送matchGlob修复到远程",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "git commit and push matchGlob fix, local as source of truth",
+      "confirmed_at": "2026-06-01T01:23:09.584Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:23:09.584Z"
+    },
+    "cg_ses_1780277427178": {
+      "session_id": "cg_ses_1780277427178",
+      "created_at": "2026-06-01T01:30:27.181Z",
+      "task_description": "为CI-CD-Agent设计git权限：读safe_bash双层白名单、AGENT_ALLOWLISTS、DANGEROUS_PATTERNS。只读调查+方案设计。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "设计方案完成：将git写命令从DEFAULT移至CI-CD-Agent专属，其他Agent仅保留只读git。修改1文件2处。",
+      "confirmed_at": "2026-06-01T01:31:13.247Z",
+      "consumed_at": "2026-06-01T01:31:21.770Z",
+      "audit": {
+        "execution_summary": "方案完成。关键发现：DEFAULT_ALLOWLIST已有git *（所有Agent全权限）。设计：将git写命令移至@CI-CD-Agent专属，DEFAULT保留只读git。",
+        "completed_at": "2026-06-01T01:31:21.770Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:31:13.247Z"
+    },
+    "cg_ses_1780277886248": {
+      "session_id": "cg_ses_1780277886248",
+      "created_at": "2026-06-01T01:38:06.251Z",
+      "task_description": "执行git权限分离：DEFAULT_ALLOWLIST移除git写命令、CI-CD-Agent添加git *、Orchestrator移除冗余git *。",
+      "enforcement_mode": "advisory",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "git权限分离完成：DEFAULT仅保留只读git，CI-CD-Agent获得git *，Orchestrator移除冗余git *。",
+      "confirmed_at": "2026-06-01T01:41:44.797Z",
+      "consumed_at": "2026-06-01T01:41:50.829Z",
+      "audit": {
+        "execution_summary": "git权限分离完成。DEFAULT: git add/commit/* → git show/branch。CI-CD-Agent: +git *。Orchestrator: -git *。验证通过。",
+        "completed_at": "2026-06-01T01:41:50.829Z"
+      },
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:41:44.797Z"
+    },
+    "cg_ses_1780278125578": {
+      "session_id": "cg_ses_1780278125578",
+      "created_at": "2026-06-01T01:42:05.581Z",
+      "task_description": "提交推送git权限分离修改",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "git commit and push git permission separation",
+      "confirmed_at": "2026-06-01T01:42:11.693Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:42:11.693Z"
+    },
+    "cg_ses_1780278159557": {
+      "session_id": "cg_ses_1780278159557",
+      "created_at": "2026-06-01T01:42:39.559Z",
+      "task_description": "Execute git add, commit, force push to opencode-framework remote on work-one branch with CI-CD-Agent write access fix",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Execute git add -A, commit with CI-CD-Agent fix message, force push to opencode-framework remote on work-one branch, and capture commit ID",
+      "confirmed_at": "2026-06-01T01:42:48.163Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-02T01:42:48.163Z"
     }
   },
   "active_sessions": [
@@ -5093,9 +5204,12 @@
     "cg_ses_1780240565780",
     "cg_ses_1780240878694",
     "cg_ses_1780273688373",
-    "cg_ses_1780275165799"
+    "cg_ses_1780275165799",
+    "cg_ses_1780276983967",
+    "cg_ses_1780278125578",
+    "cg_ses_1780278159557"
   ],
-  "last_updated": "2026-06-01T00:52:52.460Z",
+  "last_updated": "2026-06-01T01:42:48.163Z",
   "drained_sessions": {
     "cg_ses_1779322955929_1779577885742": {
       "session_id": "cg_ses_1779322955929",
@@ -7904,6 +8018,39 @@
       "confirmed_at": "2026-06-01T00:43:33.069Z",
       "consumed_at": "2026-06-01T00:43:38.882Z",
       "execution_summary": "依赖统一完成。删除2临时package.json，typescript统一^6.0.3，@opencode-ai/plugin统一*。验证0冲突。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780275809626",
+      "task_description": "调查多行bash命令被阻塞根因：检查matchGlob正则、DANGEROUS_PATTERNS、context7搜索。只读调查。",
+      "plan_summary": "根因确认：matchGlob缺少s(dotAll)标志，`.`不匹配\\n。修复：加's'到RegExp——单行多行均通过。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T01:04:10.494Z",
+      "consumed_at": "2026-06-01T01:04:16.855Z",
+      "execution_summary": "根因确认：safe-bash-core.ts L193的matchGlob缺少's'标志导致`.`不匹配\\n。单字符修复，不影响DANGEROUS_PATTERNS安全层。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780277427178",
+      "task_description": "为CI-CD-Agent设计git权限：读safe_bash双层白名单、AGENT_ALLOWLISTS、DANGEROUS_PATTERNS。只读调查+方案设计。",
+      "plan_summary": "设计方案完成：将git写命令从DEFAULT移至CI-CD-Agent专属，其他Agent仅保留只读git。修改1文件2处。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T01:31:13.247Z",
+      "consumed_at": "2026-06-01T01:31:21.770Z",
+      "execution_summary": "方案完成。关键发现：DEFAULT_ALLOWLIST已有git *（所有Agent全权限）。设计：将git写命令移至@CI-CD-Agent专属，DEFAULT保留只读git。",
+      "gate_status": "completed"
+    },
+    {
+      "session_id": "cg_ses_1780277886248",
+      "task_description": "执行git权限分离：DEFAULT_ALLOWLIST移除git写命令、CI-CD-Agent添加git *、Orchestrator移除冗余git *。",
+      "plan_summary": "git权限分离完成：DEFAULT仅保留只读git，CI-CD-Agent获得git *，Orchestrator移除冗余git *。",
+      "agent": "unknown",
+      "task_id": null,
+      "confirmed_at": "2026-06-01T01:41:44.797Z",
+      "consumed_at": "2026-06-01T01:41:50.829Z",
+      "execution_summary": "git权限分离完成。DEFAULT: git add/commit/* → git show/branch。CI-CD-Agent: +git *。Orchestrator: -git *。验证通过。",
       "gate_status": "completed"
     }
   ]

@@ -71,9 +71,8 @@ export const DEFAULT_ALLOWLIST: string[] = [
   'git status',
   'git log *',
   'git diff *',
-  'git add *',
-  'git commit *',
-  'git *',
+  'git show *',
+  'git branch *',
   'docker --version',
   'docker-compose --version',
   'echo *',
@@ -118,6 +117,7 @@ export const AGENT_ALLOWLISTS: Record<string, string[]> = {
     'helm *',
     'terraform *',
     'ansible-playbook *',
+    'git *',
   ],
   '@Coder-BE': [
     'npx prisma *',
@@ -132,7 +132,6 @@ export const AGENT_ALLOWLISTS: Record<string, string[]> = {
     'node *.js *',
     'node *.ts *',
     'node -e *',
-    'git *',
   ],
 };
 
@@ -190,7 +189,7 @@ export function matchGlob(command: string, pattern: string): boolean {
     .replace(/\?/g, '.')
     .replace(/\[/g, '\\[')
     .replace(/\]/g, '\\]');
-  return new RegExp(`^${regex}$`, 'i').test(command.trim());
+  return new RegExp(`^${regex}$`, 'is').test(command.trim());
 }
 
 /**
