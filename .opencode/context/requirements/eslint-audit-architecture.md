@@ -43,7 +43,8 @@ Layer C: Hook 兜底      → 拦截 gate 外的意外
 
 | 角色 | 职责 |
 |------|------|
-| @Architect | 维护 contract.yaml `x-eslint-policy`<br>维护 ESLint 插件 `.opencode/tools/eslint-plugin-opencode-mock-audit/`<br>维护 MCP tool `.opencode/scripts/mcp-tools/eslint-audit.js`<br>维护 machine.json schema |
+| @Architect | 维护 contract.yaml `x-eslint-policy`（定义 TIER 分类规则） |
+| @Super-Admin | 维护 ESLint 插件 `.opencode/tools/eslint-plugin-opencode-mock-audit/`<br>维护 MCP tool `.opencode/scripts/mcp-tools/eslint-audit.js`<br>维护 machine.json schema |
 | @Coder-BE/@Coder-FE | write/edit 后建议调 eslint-audit（Layer A）<br>**任务结束时必须调 compliance_gate_complete**（Layer B）<br>违规时：修复代码 OR 申请 @Arbiter waiver |
 | @Guardian | 读 machine.json.eslint_state → violations=0 且无 stale 状态 → PASS<br>审 waiver 合理性 → 引用 TECH_DEBT_REGISTRY.md |
 | @Arbiter | 审批 waiver → TECH_DEBT_REGISTRY.md 追加记录 |
@@ -53,7 +54,7 @@ Layer C: Hook 兜底      → 拦截 gate 外的意外
 
 ## 4. ESLint 插件
 
-**位置**: `.opencode/tools/eslint-plugin-opencode-mock-audit/`
+**位置**: `.opencode/eslint-plugin/eslint-plugin-opencode-mock-audit/`
 
 ### 规则
 

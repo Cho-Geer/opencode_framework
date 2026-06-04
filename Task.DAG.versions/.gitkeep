@@ -1,0 +1,3 @@
+# Task.DAG Version Snapshots Directory
+# Contains full DAG snapshots at each version bump (e.g., Task.DAG.v5.4.0.json).
+# Managed by dag-version-manager.ts

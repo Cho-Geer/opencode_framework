@@ -1,11 +1,11 @@
-# 三层八角色多智能体体系 - 全局协作规范
+# 三层九角色多智能体体系 - 全局协作规范
 
 ### 🚨 P0 强制规则: 所有任务必须从 `/compliance-gate` 开始
 任何开发、分析、设计、审查或部署任务必须以 `/compliance-gate "<task_description>"` 命令启动。合规门未武装（gate not armed），严禁进入分析、设计、编码或审查阶段。此规则优先级高于本文件所有其他规则。
 
 ### 🚨 P0 子Agent派遣规则: 必须使用 `/dispatch` 命令
 当主Agent需要委托子Agent（subagent）执行任务时，必须通过以下流程：
-1. 运行 `node .opencode/scripts/command-tools/dispatch-subagent.js <agent_type> "<task>"` 生成包装后的Prompt
+1. 调用 `dispatch_subagent` 工具生成包装后的 Prompt
 2. 将生成的包装Prompt原样传递给 `Task()` 工具的 `prompt` 参数
 3. 禁止手动编写子Agent Prompt绕过执行前检查
 
@@ -16,6 +16,19 @@
 - 子Agent配置文件中定义的执行协议
 
 此规则确保子Agent始终执行完整的 P0 协议，无论接收何种类型的任务。
+
+### 🚨 P0 Super-Admin 人工触发规则: 禁止自动调度
+
+@Orchestrator 绝对禁止自动调度 @Super-Admin。@Super-Admin 仅可通过 `/dispatch @Super-Admin "<task_description>"` 或 `@super-admin` 手动触发。framework-enforcer.ts 物理强制此规则。
+
+**Super-Admin 调用矩阵**:
+
+| 场景 | 正确动作 | 违规动作 |
+|------|---------|---------|
+| 框架文件损坏 | 人工 `/dispatch @Super-Admin "repair..."` | ❌ @Orchestrator 自动派遣 |
+| machine.json 状态不一致 | 人工 `/dispatch @Super-Admin "fix state..."` | ❌ @Orchestrator 自行修改 |
+| 合规门无法关闭 | 人工 `/dispatch @Super-Admin "drain gate..."` | ❌ @Orchestrator 直接提交 |
+| 插件完整性破坏 | 人工 `@super-admin repair plugin` | ❌ @Coder-BE 直接编辑 |
 
 ### 🚨 P0 全域入口规则: 所有新工作项必须先经 @Meta-Planner
 任何新工作项——包括但不限于功能开发、Bug修复、样式调整、性能优化、配置变更——在进入分析、设计或编码阶段前，**必须先经由 @Meta-Planner** 生成或更新 `Task.DAG.json`。禁止任何Agent在 @Meta-Planner 未参与的情况下自行分析或拆解需求。
@@ -38,7 +51,7 @@
 
 | 场景 | 正确动作 | 违规动作 |
 |------|---------|---------|
-| 收到新工作项，无对应 DAG | 调 `dispatch-subagent.js` 派遣 @Meta-Planner | ❌ 自行分析需求 |
+| 收到新工作项，无对应 DAG | 调用 `dispatch_subagent` 工具派遣 @Meta-Planner | ❌ 自行分析需求 |
 | DAG 已存在，任务状态 pending | 按 DAG 依赖顺序调度子Agent | ❌ 自行修改 DAG 任务定义 |
 | DAG 状态与文件状态不同步 | 调 @Meta-Planner 更新 DAG 状态 | ❌ 自行修改 task.status |
 | DAG 覆盖率不足（<100%） | 暂停执行，通知 @Meta-Planner 补充 | ❌ 跳过未覆盖任务继续执行 |
@@ -48,7 +61,7 @@
 
 ## 一、体系总览
 
-本项目采用**三层八角色**全生命周期自治多智能体架构，覆盖从需求规划、开发实现、质量验证到运维部署的完整链路，严格遵循项目规则。
+本项目采用**三层九角色**全生命周期自治多智能体架构，覆盖从需求规划、开发实现、质量验证到运维部署的完整链路，严格遵循项目规则。
 
 ### 可用子Agent清单（必须完整声明）
 - @Meta-Planner
@@ -59,6 +72,7 @@
 - @Guardian
 - @Arbiter
 - @CI-CD-Agent
+- @Super-Admin
 
 ## 二、全局强制规则（Always Apply，最高优先级）
 所有智能体必须严格遵循以下项目规则文件（自动加载）：
@@ -97,7 +111,7 @@
 4. REFACTOR阶段：重构必须在测试全量通过后进行
 5. 门禁规则：测试未100%通过，禁止进入代码审查环节
 
-## 三、角色清单与分工（8大专业智能体）
+## 三、角色清单与分工（9大专业智能体）
 
 ### 元认知层（Meta Layer）
 

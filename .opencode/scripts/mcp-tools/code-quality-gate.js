@@ -28,6 +28,14 @@
  * CI-EMBED-001: Core audit logic extracted to ./code-quality-lib.js
  *   - This file now delegates all 6 checks to the shared library
  *   - State persistence (machine.json) remains in this MCP server
+ *
+ * Phase 2 R6 (2026-06-03, @Super-Admin): write_audit_log.json unified into machine.json.
+ *   - Per-task write_audit_log.json files (.task_temp/{taskId}/write_audit_log.json) have been
+ *     removed from all agent instructions (Coder-BE, Coder-FE, Guardian, preamble Step 5b).
+ *   - machine.json.write_audit_state is now the SINGLE source of truth for write audit data.
+ *   - @Guardian CAT5.1 checks now read from machine.json.write_audit_state instead of per-task JSON.
+ *   - framework-enforcer.ts toolExecuteAfter auto-triggers write-time checks (Phase 2 R4),
+ *     updating machine.json states directly without agent-initiated MCP calls.
  */
 
 // ═══ Library import (CI-EMBED-001) ═══

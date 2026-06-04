@@ -1,5 +1,8 @@
-#!/usr/bin/env node
+// safe_bash: allow-write
 /**
+ * FW-REPAIR-13: safe_bash allow-write granted — this is a framework state repair tool
+ * that only writes to .opencode/state/ files. Always invoked via `node state-reconciliation.js`.
+ *
  * state-reconciliation.js — State Reconciliation Daemon
  * ======================================================
  * P5-003: Gate-state ↔ DAG ↔ machine.json consistency checks with auto-repair.
@@ -65,6 +68,29 @@ function safeGet(obj, ...keys) {
     obj = obj[k];
   }
   return obj;
+}
+
+/**
+ * Normalize gate-state from V3 format (active_sessions + recent_sessions) to a
+ * V2-compatible view with a combined `sessions` object.
+ *
+ * V3 hot file: { active_sessions, recent_sessions, meta }
+ * V2 hot file: { sessions, active_sessions, drained_sessions, ... }
+ *
+ * This shim merges active_sessions + recent_sessions into a virtual `sessions`
+ * field so all existing reconciliation logic continues to work.
+ */
+function normalizeGateV3(gate) {
+  if (!gate) return gate;
+  // Already has V2-style sessions map — no conversion needed
+  if (gate.sessions) return gate;
+  // V3: combine active_sessions + recent_sessions into virtual sessions
+  gate.sessions = Object.assign(
+    {},
+    gate.active_sessions || {},
+    gate.recent_sessions || {},
+  );
+  return gate;
 }
 
 // ─── Check #1: Completed DAG tasks have consumed gate sessions ──
@@ -140,7 +166,11 @@ function checkArmedSessionDagReference(dag, gate) {
   const inconsistencies = [];
   const tasks = dag.tasks || [];
   const sessions = gate.sessions || {};
-  const activeSessions = gate.active_sessions || [];
+  // FW-REPAIR-13: Handle V3 format (active_sessions is object) or V2 format (array)
+  const rawActive = gate.active_sessions || [];
+  const activeSessions = Array.isArray(rawActive)
+    ? rawActive
+    : Object.keys(rawActive);
   const taskMap = {};
   for (const t of tasks) {
     taskMap[t.id] = t;
@@ -354,9 +384,12 @@ function fixDrainOrphanedSessions(gate) {
     s.gate_status = "drained";
     s.drained_at = new Date().toISOString();
     s.drain_reason = "auto-reconciled: stale armed session >24h";
-    gate.active_sessions = (gate.active_sessions || []).filter(
-      (a) => a !== sid,
-    );
+    // FW-REPAIR-13: V2 (array) → use filter; V3 (object) → use delete
+    if (Array.isArray(gate.active_sessions)) {
+      gate.active_sessions = gate.active_sessions.filter((a) => a !== sid);
+    } else {
+      delete gate.active_sessions[sid];
+    }
     drained++;
     drainedList.push(sid);
   }
@@ -421,9 +454,12 @@ function fixForceDrainOrphanedSessions(gate, dag) {
     s.gate_status = "drained";
     s.drained_at = new Date().toISOString();
     s.drain_reason = reason;
-    gate.active_sessions = (gate.active_sessions || []).filter(
-      (a) => a !== sid,
-    );
+    // FW-REPAIR-13: V2 (array) → use filter; V3 (object) → use delete
+    if (Array.isArray(gate.active_sessions)) {
+      gate.active_sessions = gate.active_sessions.filter((a) => a !== sid);
+    } else {
+      delete gate.active_sessions[sid];
+    }
     drained++;
     drainedList.push({ session_id: sid, reason });
   }
@@ -542,6 +578,7 @@ function reconcile(options = {}) {
       check2: null,
       check3: null,
       check4: null,
+      check5: null,
     },
     inconsistencies: [],
     auto_fixable: false,
@@ -551,6 +588,7 @@ function reconcile(options = {}) {
   // Read state files
   const dag = readJson(DAG_PATH);
   const gate = readJson(GATE_PATH);
+  normalizeGateV3(gate);  // V3→V2 shim: merge active_sessions + recent_sessions → sessions
   const machine = readJson(MACHINE_PATH);
 
   if (!dag) {
@@ -643,6 +681,7 @@ function reconcile(options = {}) {
     let dagChanged = check4.inconsistencies.length > 0;
 
     if (gateChanged) {
+      delete gate.sessions;  // Remove V3→V2 virtual field before writing back
       const gateContent = JSON.stringify(gate, null, 2) + "\n";
       fs.writeFileSync(GATE_PATH, gateContent, "utf-8");
     }
@@ -662,6 +701,7 @@ function reconcile(options = {}) {
     results.force_drain.drainedList = forceResult.drainedList;
 
     if (forceResult.drained > 0) {
+      delete gate.sessions;  // Remove V3→V2 virtual field before writing back
       const gateContent = JSON.stringify(gate, null, 2) + "\n";
       fs.writeFileSync(GATE_PATH, gateContent, "utf-8");
     }
@@ -712,6 +752,7 @@ function reconcile(options = {}) {
     if (!results.dry_run_plan) results.dry_run_plan = {};
     const dagLocal = readJson(DAG_PATH);
     const gateLocal = readJson(GATE_PATH);
+    normalizeGateV3(gateLocal);  // V3→V2 shim
     if (dagLocal && gateLocal) {
       const result = fixForceDrainOrphanedSessions(gateLocal, dagLocal);
       results.dry_run_plan.force_drain = {
@@ -732,6 +773,21 @@ function reconcile(options = {}) {
         count: result.backfilled,
         tasks: result.backfilledList,
       };
+    }
+  }
+
+  // ─── Check #5: Hierarchical v3 state cross-file integrity ───
+  const check5 = checkHierarchicalStateIntegrity(OPENCODE_ROOT);
+  results.checks.check5 = check5;
+  if (!check5.valid) {
+    results.valid = false;
+    for (const issue of check5.issues) {
+      results.inconsistencies.push({
+        check: "check5_hierarchical_state",
+        gate_session: issue.ref,
+        severity: issue.severity,
+        detail: issue.detail,
+      });
     }
   }
 
@@ -907,4 +963,148 @@ function validateWriteAuditIntegrity(machine, rootDir) {
   return { valid: violations.length === 0, violations, summary: { files_checked: filesChecked, files_passed: filesPassed, files_failed: filesFailed } };
 }
 
-module.exports = { reconcile, validateWriteAuditIntegrity };
+/**
+ * P1-1: Validate hierarchical v3 state files for cross-file consistency.
+ * Checks gate-state.json ↔ gate-state.index.json ↔ gate-state.archive.json
+ *
+ * @param {string} rootDir - Project root directory
+ * @returns {{ valid: boolean, issues: Array<{ref: string, severity: string, detail: string}> }}
+ */
+function checkHierarchicalStateIntegrity(rootDir) {
+  const issues = [];
+  const gateHot = readJson(path.join(rootDir, ".opencode/state/gate-state.json"));
+  const gateIndex = readJson(path.join(rootDir, ".opencode/state/gate-state.index.json"));
+  const gateArchive = readJson(path.join(rootDir, ".opencode/state/gate-state.archive.json"));
+
+  if (!gateHot) {
+    issues.push({ ref: "gate-state.json", severity: "HIGH", detail: "gate-state.json missing or unparseable" });
+    return { valid: false, issues };
+  }
+
+  // Only validate v3 format
+  if (gateHot.formatVersion !== "3.0") {
+    return { valid: true, issues: [] }; // v2 format — skip v3 checks
+  }
+
+  const activeCount = Object.keys(gateHot.active_sessions || {}).length;
+  const recentCount = Object.keys(gateHot.recent_sessions || {}).length;
+
+  // Check 5a: Index exists and has correct count
+  if (gateIndex) {
+    const indexCount = Object.keys(gateIndex.sessions || {}).length;
+    if (indexCount < recentCount) {
+      issues.push({
+        ref: "gate-state.index.json",
+        severity: "HIGH",
+        detail: `Index count (${indexCount}) < recent sessions (${recentCount}) — possible data loss`,
+      });
+    }
+
+    // Spot-check 3 random archive references
+    const recentEntries = Object.entries(gateHot.recent_sessions || {}).slice(0, 3);
+    for (const [sid, entry] of recentEntries) {
+      if (entry.archive_ref) {
+        const refMatch = entry.archive_ref.match(/^gate-state\.history\/(\d{4}-\d{2}-\d{2}\.jsonl)#(\d+)$/);
+        if (!refMatch) {
+          issues.push({
+            ref: `session ${sid.substring(0, 20)}`,
+            severity: "MEDIUM",
+            detail: `Invalid archive_ref format: ${entry.archive_ref}`,
+          });
+        } else {
+          const historyFile = path.join(rootDir, ".opencode/state/gate-state.history", refMatch[1]);
+          if (!fs.existsSync(historyFile)) {
+            issues.push({
+              ref: `session ${sid.substring(0, 20)}`,
+              severity: "HIGH",
+              detail: `archive_ref points to missing history file: ${refMatch[1]}`,
+            });
+          }
+        }
+      }
+    }
+  } else {
+    issues.push({
+      ref: "gate-state.index.json",
+      severity: "MEDIUM",
+      detail: "gate-state.index.json not found — index file should exist for v3 format",
+    });
+  }
+
+  // Check 5b: Archive has correct session count
+  if (gateArchive) {
+    const archiveSessions = Object.keys(gateArchive.sessions || {}).length;
+    if (archiveSessions !== (gateArchive.session_count || 0)) {
+      issues.push({
+        ref: "gate-state.archive.json",
+        severity: "MEDIUM",
+        detail: `Archive session_count (${gateArchive.session_count}) != actual keys (${archiveSessions})`,
+      });
+    }
+  }
+
+  // Check 5c: DAG changelog consistency
+  const dagFile = path.join(rootDir, "Task.DAG.json");
+  const dagChangelog = path.join(rootDir, "Task.DAG.changelog.md");
+  if (fs.existsSync(dagFile)) {
+    try {
+      const dag = JSON.parse(fs.readFileSync(dagFile, "utf8"));
+      if (dag.change_log) {
+        issues.push({
+          ref: "Task.DAG.json",
+          severity: "LOW",
+          detail: "Task.DAG.json still has inline change_log — run DAG migration",
+        });
+      }
+      if (!fs.existsSync(dagChangelog) && !dag.change_log) {
+        issues.push({
+          ref: "Task.DAG.changelog.md",
+          severity: "LOW",
+          detail: "Task.DAG.changelog.md missing — changelog should be externalized",
+        });
+      }
+    } catch (e) { /* skip if unparseable */ }
+  }
+
+  // Check 5d (Wave 2.3): Spot-validate history entries against schema
+  const historySchemaPath = path.join(rootDir, ".opencode/state/history-entry.schema.json");
+  if (fs.existsSync(historySchemaPath)) {
+    try {
+      const historyDir = path.join(rootDir, ".opencode/state/gate-state.history");
+      if (fs.existsSync(historyDir)) {
+        const jsonlFiles = fs.readdirSync(historyDir).filter(f => f.endsWith(".jsonl"));
+        let checked = 0, invalid = 0;
+        for (const f of jsonlFiles.slice(0, 3)) {
+          const lines = fs.readFileSync(path.join(historyDir, f), "utf8").split("\n").filter(l => l.trim());
+          for (const line of lines.slice(0, 2)) {
+            try {
+              const entry = JSON.parse(line);
+              if (!entry.session_id || !/^cg_ses_\d{13}$/.test(entry.session_id)) invalid++;
+              if (!entry.task_description || entry.task_description.length < 5) invalid++;
+              checked++;
+            } catch { invalid++; checked++; }
+          }
+        }
+        if (checked > 0 && invalid === 0) {
+          // All spot-checks pass — no issue to report
+        } else if (invalid > 0) {
+          issues.push({ ref: "history.schema", severity: "MEDIUM",
+            detail: `History schema validation: ${invalid}/${checked} entries failed spot-check` });
+        }
+      }
+    } catch { /* schema file unparseable — skip */ }
+  }
+
+  return {
+    valid: issues.length === 0,
+    issues,
+    summary: {
+      active_sessions: activeCount,
+      recent_sessions: recentCount,
+      index_entries: gateIndex ? Object.keys(gateIndex.sessions || {}).length : 0,
+      archive_entries: gateArchive ? Object.keys(gateArchive.sessions || {}).length : 0,
+    },
+  };
+}
+
+module.exports = { reconcile, validateWriteAuditIntegrity, checkHierarchicalStateIntegrity };

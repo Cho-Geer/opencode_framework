@@ -15,7 +15,6 @@ const {
   statsEqual,
   backupPath,
   clearRegistry,
-  registrySize,
   restore,
 } = require('../safe-edit-core');
 
@@ -108,10 +107,4 @@ describe('safe-edit-core', () => {
     });
   });
 
-  describe('registrySize and clearRegistry', () => {
-    it('should start with zero registry size', () => {
-      clearRegistry();
-      expect(registrySize()).toBe(0);
-    });
-  });
 });

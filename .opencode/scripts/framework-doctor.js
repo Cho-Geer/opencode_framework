@@ -1,7 +1,10 @@
-#!/usr/bin/env node
+// safe_bash: allow-write
 "use strict";
 
 /**
+ * FW-REPAIR-13: safe_bash allow-write granted — this is a diagnostic tool
+ * that only reads .opencode/state/ files. Always invoked via `node framework-doctor.js`.
+ *
  * framework-doctor.js — OpenCode Framework Health Diagnostic
  * ==========================================================
  * Runs 11 health checks against the OpenCode framework installation.
@@ -184,6 +187,7 @@ function checkOpenCodeJson() {
 // ─── Check 2: DAG validation ──────────────────────────────────
 function checkDagValidation() {
   const dagPath = path.join(PROJECT_ROOT, "Task.DAG.json");
+  const indexPath = path.join(PROJECT_ROOT, "Task.DAG.index.json");
   const raw = readFile(dagPath);
   if (!raw) {
     return {
@@ -205,12 +209,28 @@ function checkDagValidation() {
       };
     }
 
-    const requiredFields = ["id", "status", "owner"];
+    // Load index for cross-referencing archived task dependencies
+    let dagIndex = null;
+    try {
+      const indexRaw = readFile(indexPath);
+      if (indexRaw) {
+        const parsed = JSON.parse(indexRaw);
+        dagIndex = parsed.task_index || null;
+      }
+    } catch (_) { /* index optional */ }
+
+    // FW-REPAIR-13: Accept "agent" as equivalent to "owner" — the DAG schema
+    // uses "agent" for task ownership per dag-generation-standard.md §7.
+    const requiredFields = ["id", "status"];
+    const hasOwner = (t) => t.owner || t.agent;
     let invalidTasks = [];
     let brokenDeps = [];
 
     for (const task of dag.tasks) {
       const missing = requiredFields.filter((f) => !(f in task));
+      if (!hasOwner(task)) {
+        missing.push("owner or agent");
+      }
       // FX-DIAG-CONS-1: Accept "name" per dag-generation-standard.md §7; legacy uses "title"
       if (!task.name && !task.title) {
         missing.push("name or title");
@@ -221,11 +241,12 @@ function checkDagValidation() {
         );
       }
 
-      // Check dependencies
+      // Check dependencies — also look in index for archived tasks
       if (task.dependencies && Array.isArray(task.dependencies)) {
         for (const dep of task.dependencies) {
-          const depExists = dag.tasks.some((t) => t.id === dep);
-          if (!depExists) {
+          const depInHot = dag.tasks.some((t) => t.id === dep);
+          const depInIndex = dagIndex && dagIndex[dep];
+          if (!depInHot && !depInIndex) {
             brokenDeps.push(`${task.id} depends on missing: ${dep}`);
           }
         }
@@ -282,22 +303,34 @@ function checkGateDryRun() {
   try {
     const gate = JSON.parse(raw);
     const hasFormatVersion = !!gate.formatVersion;
-    const hasSessions = !!gate.sessions && typeof gate.sessions === "object";
+
+    // FW-REPAIR-13: Handle V3 format (active_sessions + recent_sessions)
+    // and V2 format (sessions). The V3 migration moved bulk data to index.json.
+    const isV3 = gate.formatVersion === "3.0" || (!!gate.active_sessions && !gate.sessions);
+    const hasSessions = isV3
+      ? (!!gate.active_sessions && typeof gate.active_sessions === "object")
+      : (!!gate.sessions && typeof gate.sessions === "object");
 
     if (!hasFormatVersion || !hasSessions) {
       return {
         id: 3,
         name: "Compliance gate dry-run",
         status: FAIL,
-        detail: "gate-state.json missing formatVersion or sessions",
+        detail: isV3
+          ? "gate-state.json V3: missing active_sessions"
+          : "gate-state.json missing formatVersion or sessions",
       };
     }
 
-    const sessionIds = Object.keys(gate.sessions);
+    // Collect all sessions from V3 (active + recent) or V2 (sessions map)
+    const allSessions = isV3
+      ? { ...(gate.active_sessions || {}), ...(gate.recent_sessions || {}) }
+      : (gate.sessions || {});
+    const sessionIds = Object.keys(allSessions);
     let corruptedCount = 0;
     let anomalies = [];
 
-    for (const [sid, session] of Object.entries(gate.sessions)) {
+    for (const [sid, session] of Object.entries(allSessions)) {
       if (!session || typeof session !== "object") {
         corruptedCount++;
         anomalies.push(`${sid}: not an object`);
@@ -502,7 +535,11 @@ function checkStateReconciliation() {
     const gate = JSON.parse(gateRaw);
 
     const hasWriteAudit = !!machine.write_audit_state?.current_session;
-    const activeSessions = Object.keys(gate.sessions || {}).length;
+    // FW-REPAIR-13: Handle V3 (active+recent) or V2 (sessions) format
+    const isV3_4 = gate.formatVersion === "3.0" || (!!gate.active_sessions && !gate.sessions);
+    const activeSessions = isV3_4
+      ? Object.keys(gate.active_sessions || {}).length + Object.keys(gate.recent_sessions || {}).length
+      : Object.keys(gate.sessions || {}).length;
     const issues = [];
     if (hasWriteAudit && activeSessions === 0) {
       issues.push("write_audit active but no gate sessions");

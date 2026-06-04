@@ -63,7 +63,8 @@
     "container": "Docker Compose v2"
   },
   "template_resolution": {
-    "enforcement_mode": "advisory",
+    "develop_enforcement_mode": "advisory",
+    "runtime_enforcement_mode": "advisory",
     "compatibility_profile": "native",
     "enforcement_config": {
       "advisory": {
@@ -342,23 +343,25 @@
     },
     "@Architect": {
       "allowed": [
-        ".opencode/state/**",
         "contract.yaml",
-        ".task_temp/**",
-        ".opencode/project.config.json",
-        "PROJECT_REFERENCE.md",
+        ".opencode/state/machine.json",
         ".opencode/context/**",
-        ".opencode/rules/**",
-        ".opencode/agents/**",
-        ".opencode/subagent-preamble.md",
-        ".opencode/scripts/**",
-        ".opencode/plugins/**",
-        "opencode.json"
+        ".task_temp/**",
+        "docs/**"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
-        "booking_system_refactor/booking-backend/test/**"
+        "booking_system_refactor/booking-backend/test/**",
+        ".opencode/agents/**",
+        ".opencode/rules/**",
+        ".opencode/scripts/**",
+        ".opencode/plugins/**",
+        ".opencode/subagent-preamble.md",
+        ".opencode/state/gate-state.json",
+        ".opencode/project.config.json",
+        "opencode.json",
+        "PROJECT_REFERENCE.md"
       ]
     },
     "@Meta-Planner": {
@@ -391,7 +394,10 @@
     },
     "@Guardian": {
       "allowed": [
-        ".task_temp/**"
+        ".task_temp/**",
+        ".opencode/state/machine.json",
+        ".opencode/state/gate-state.json",
+        ".opencode/state/gate-state.index.json"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
@@ -423,13 +429,35 @@
         "Dockerfile*",
         ".env.*",
         "booking_system_refactor/booking-backend/prisma/**",
-        ".task_temp/**"
+        ".task_temp/**",
+        ".opencode/state/gate-state.history/**",
+        ".opencode/state/gate-state.index.json",
+        ".opencode/state/gate-state.archive.json",
+        ".opencode/logs/archive/**"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
         ".opencode/agents/**",
         ".opencode/rules/**"
+      ]
+    },
+    "@Super-Admin": {
+      "allowed": [
+        ".opencode/**",
+        "opencode.json",
+        "AGENTS.md",
+        "PROJECT_REFERENCE.md",
+        "contract.yaml",
+        "Task.DAG.json",
+        "TECH_DEBT_REGISTRY.md",
+        "WAIVE.md",
+        ".task_temp/**"
+      ],
+      "denied": [
+        "booking_system_refactor/booking-backend/src/**",
+        "booking_system_refactor/booking-frontend/src/**",
+        "booking_system_refactor/booking-backend/prisma/schema.prisma"
       ]
     }
   }

@@ -310,7 +310,7 @@ Add the new framework to the `tech_stack` section and add corresponding `templat
 
 #### Step 2: Add Guardian Review Checklist Row
 
-In `.opencode/agents/guardian.md`, add a new row to the frontend framework table:
+In `.opencode/agents/Guardian.md`, add a new row to the frontend framework table:
 
 ```markdown
 | Svelte | • SFC structure (script/template/style)<br>• Rune-based reactivity ($state, $derived, $effect)<br>• Svelte Store pattern<br>• Scoped styles |
@@ -578,7 +578,7 @@ When migrating the OpenCode Framework to a new tech stack, use this checklist:
 | `project.config.json`                                            | **Source of truth** for all stack values                                      |
 | `.opencode/scripts/command-tools/dispatch-subagent.js`           | Template resolver implementation                                              |
 | `.opencode/scripts/framework-self-test.js`                       | Validation (Check 17: UNRESOLVED placeholders, Check 18: template_resolution) |
-| `.opencode/agents/guardian.md`                                   | Per-framework review checklists                                               |
+| `.opencode/agents/Guardian.md`                                   | Per-framework review checklists                                               |
 | `.opencode/rules/backend-coding-standard.md`                     | Backend Tier 2 extended placeholder resolution table                          |
 | `.opencode/rules/frontend-coding-standard.md`                    | Frontend Tier 2 resolution mapping table                                      |
 | `.opencode/rules/coding-standard-common.md`                      | Framework-agnostic Tier 1 rules                                               |

@@ -206,7 +206,8 @@ function fileExists(p) {
  */
 function computeDigest(filePath) {
   if (_gateCore && typeof _gateCore.computeDigest === "function") {
-    return _gateCore.computeDigest(OPENCODE_ROOT, filePath);
+    // FW-REPAIR-13: Resolve to absolute path — _gateCore.computeDigest() takes 1 arg
+    return _gateCore.computeDigest(path.resolve(OPENCODE_ROOT, filePath));
   }
   try {
     const resolved = path.resolve(OPENCODE_ROOT, filePath);
@@ -418,6 +419,35 @@ function loadStore() {
     return _gateCore.loadGateStore(OPENCODE_ROOT);
   }
   const s = readJson(GATE_STATE_FILE);
+  
+  // FW-REPAIR-12: V3 format bridge — convert object-based active_sessions
+  // to V2 array representation for internal compatibility
+  if (s && s.formatVersion === "3.0") {
+    const sessions = {};
+    const activeSessions = [];
+    
+    // Merge active_sessions (object) into sessions dict
+    if (s.active_sessions && typeof s.active_sessions === "object") {
+      for (const [sid, ses] of Object.entries(s.active_sessions)) {
+        sessions[sid] = { ...ses, session_id: sid };
+        activeSessions.push(sid);
+      }
+    }
+    
+    // Merge recent_sessions into sessions dict
+    if (s.recent_sessions && typeof s.recent_sessions === "object") {
+      for (const [sid, ses] of Object.entries(s.recent_sessions)) {
+        sessions[sid] = { ...ses, session_id: sid };
+      }
+    }
+    
+    s.sessions = sessions;
+    s.active_sessions = activeSessions;
+    s.last_updated = s.meta?.last_compacted || new Date().toISOString();
+    s._v3Bridge = true; // Internal flag for saveStore()
+    return s;
+  }
+  
   if (s && s.formatVersion === "2.0" && s.sessions && typeof s.sessions === "object") {
     if (!Array.isArray(s.active_sessions)) { s.active_sessions = []; }
     let reconciled = false;
@@ -456,6 +486,62 @@ function saveStore(store) {
   if (_gateCore && typeof _gateCore.saveGateStore === "function") {
     return _gateCore.saveGateStore(store, OPENCODE_ROOT);
   }
+  
+  // FW-REPAIR-12: V3 format bridge — convert internal V2 representation
+  // back to V3 object-based format before writing to disk
+  if (store._v3Bridge) {
+    const v3 = {
+      formatVersion: "3.0",
+      active_sessions: {},
+      recent_sessions: {},
+      meta: {
+        total_sessions: Object.keys(store.sessions || {}).length,
+        active_count: (store.active_sessions || []).length,
+        recent_count: 0,
+        last_compacted: new Date().toISOString(),
+      },
+    };
+    
+    // Convert active sessions back to V3 object format
+    for (const sid of (store.active_sessions || [])) {
+      const ses = store.sessions?.[sid];
+      if (ses) {
+        v3.active_sessions[sid] = {
+          session_id: ses.session_id || sid,
+          created_at: ses.created_at,
+          gate_status: ses.gate_status,
+          confirmed_at: ses.confirmed_at || null,
+          consumed_at: ses.consumed_at || null,
+          task_description: ses.task_description || "",
+          plan_summary: ses.plan_summary || "",
+        };
+      }
+    }
+    
+    // Identify recent completed sessions
+    const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    for (const [sid, ses] of Object.entries(store.sessions || {})) {
+      if (store.active_sessions?.includes(sid)) continue;
+      if (ses.gate_status === "completed" && ses.consumed_at) {
+        const consumedMs = new Date(ses.consumed_at).getTime();
+        if (consumedMs > recentCutoff) {
+          v3.recent_sessions[sid] = {
+            session_id: sid,
+            created_at: ses.created_at,
+            gate_status: "completed",
+            consumed_at: ses.consumed_at,
+            archive_ref: ses.archive_ref || "",
+          };
+          v3.meta.recent_count++;
+        }
+      }
+    }
+    
+    delete store._v3Bridge; // Clean flag before writing
+    writeJson(GATE_STATE_FILE, v3);
+    return;
+  }
+  
   writeJson(GATE_STATE_FILE, store);
 }
 
@@ -928,6 +1014,33 @@ function runGateComplete(sessionId, executionSummary) {
   store.last_updated = new Date().toISOString();
   saveStore(store);
 
+  // ── P0-2: StateCompactor auto-archival (fire-and-forget) ──
+  // Arches completed session to gate-state.history/YYYY-MM-DD.jsonl
+  // and updates gate-state.index.json. Best-effort — never blocks gate completion.
+  try {
+    const { StateCompactor } = require("../../lib/dist/state-compactor");
+    const compactor = new StateCompactor();
+    compactor
+      .onGateComplete(sessionId, {
+        session_id: sessionId,
+        created_at: session.created_at,
+        gate_status: "completed",
+        confirmed_at: session.confirmed_at,
+        task_description: session.task_description,
+        plan_summary: session.plan_summary,
+      })
+      .catch((err) => {
+        process.stderr.write(
+          "[state-compactor] Archival deferred: " + err.message + "\n",
+        );
+      });
+  } catch (err) {
+    // Best-effort: require() or constructor may fail, don't block gate
+    process.stderr.write(
+      "[state-compactor] Module load failed: " + err.message + "\n",
+    );
+  }
+
   const audit = {
     status: "completed",
     session_id: sessionId,
@@ -1082,7 +1195,14 @@ function validateTaskArtifacts(taskId) {
  */
 function drainStaleSessions(armedHours, checkedHours) {
   if (_gateCore && typeof _gateCore.drainStaleSessions === "function") {
-    return _gateCore.drainStaleSessions(OPENCODE_ROOT, armedHours, checkedHours);
+    /**
+     * @fix P0-REPAIR: Parameter order corrected.
+     * Was: drainStaleSessions(OPENCODE_ROOT, armedHours, checkedHours)
+     * Now: drainStaleSessions(armedHours, checkedHours, OPENCODE_ROOT)
+     * Bug caused compliance_gate_check to crash with ERR_INVALID_ARG_TYPE
+     * because root (number 48) was passed to path.join().
+     */
+    return _gateCore.drainStaleSessions(armedHours, checkedHours, OPENCODE_ROOT);
   }
   const ARMED_STALE_MS = (armedHours || 24) * 60 * 60 * 1000;
   const CHECKED_STALE_MS = (checkedHours || 48) * 60 * 60 * 1000;

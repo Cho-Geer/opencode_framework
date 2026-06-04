@@ -4,7 +4,7 @@
 # ==============================================================================
 # Purpose: Resolves the current enforcement mode from (in priority order):
 #   1. ENFORCEMENT_MODE environment variable (with locked-mode safety guards)
-#   2. project.config.json → template_resolution.enforcement_mode
+#   2. project.config.json → template_resolution.runtime_enforcement_mode (dual-key per FW-REPAIR-12)
 #   3. Default: "advisory"
 #
 # Also validates mode transitions (no downgrade from locked without unlock token).
@@ -33,7 +33,9 @@ read_config_mode() {
       node -e "
         try {
           const cfg = require('$CONFIG_FILE');
-          const mode = cfg.template_resolution?.enforcement_mode;
+          // FW-REPAIR-12: Dual-key resolution per enforcement-modes-standard.md §4.1
+          const mode = cfg.template_resolution?.runtime_enforcement_mode
+                    || cfg.template_resolution?.develop_enforcement_mode;
           if (mode && ['advisory','strict','locked'].includes(mode)) {
             console.log(mode);
           } else {
@@ -49,7 +51,9 @@ import json, sys
 try:
     with open('$CONFIG_FILE') as f:
         cfg = json.load(f)
-    mode = cfg.get('template_resolution', {}).get('enforcement_mode', '$DEFAULT_MODE')
+    # FW-REPAIR-12: Dual-key resolution
+    tr = cfg.get('template_resolution', {})
+    mode = tr.get('runtime_enforcement_mode') or tr.get('develop_enforcement_mode') or '$DEFAULT_MODE'
     if mode in ['advisory', 'strict', 'locked']:
         print(mode)
     else:
@@ -73,7 +77,10 @@ read_full_config() {
         try {
           const cfg = require('$CONFIG_FILE');
           const ec = cfg.template_resolution?.enforcement_config || {};
-          const mode = cfg.template_resolution?.enforcement_mode || '$DEFAULT_MODE';
+          // FW-REPAIR-12: Dual-key resolution
+          const mode = cfg.template_resolution?.runtime_enforcement_mode
+                    || cfg.template_resolution?.develop_enforcement_mode
+                    || '$DEFAULT_MODE';
           console.log(JSON.stringify({ mode, config: ec[mode] || {} }, null, 2));
         } catch(e) {
           console.log(JSON.stringify({ mode: '$DEFAULT_MODE', config: {} }, null, 2));

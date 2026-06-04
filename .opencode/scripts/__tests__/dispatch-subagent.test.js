@@ -24,13 +24,10 @@ var SCRIPT = path.join(
 );
 var OPENCODE_ROOT = path.resolve(__dirname, "..", "..");
 
-// --- Helper: run dispatch-subagent.js in child, capture env vars ---
-function runAndCaptureEnv(agentType, taskDesc, taskId) {
-  var argvItems = [JSON.stringify(agentType), JSON.stringify(taskDesc)];
-  if (taskId !== null && taskId !== undefined) {
-    argvItems.push(JSON.stringify("--task-id"));
-    argvItems.push(JSON.stringify(taskId));
-  }
+// --- Helper: run dispatch-subagent.js in child with positional task_id ---
+function runAndCaptureEnvPositional(agentType, taskId, taskDesc) {
+  // Pattern: node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"
+  var argvItems = [JSON.stringify(agentType), JSON.stringify(taskId), JSON.stringify(taskDesc)];
 
   var childCode = [
     'var path = require("path");',
@@ -40,11 +37,10 @@ function runAndCaptureEnv(agentType, taskDesc, taskId) {
     "var origExit = process.exit;",
     "process.exit = function(c) { process.exitCode = c || 0; };",
     "try { require(script); } catch(e) { process.exitCode = 1; }",
-    'console.log("ENVJSON:" + JSON.stringify({ FA: process.env.FRAMEWORK_AGENT, FT: process.env.FRAMEWORK_TASK_ID }));',
+    'console.log("ENVJSON:" + JSON.stringify({ FA: process.env.FRAMEWORK_AGENT, FT: process.env.FRAMEWORK_TASK_ID, FD: process.env.FRAMEWORK_DISPATCH_CONTEXT }));',
   ].join("\n");
 
   try {
-    // execFileSync returns stdout directly (Buffer), NOT an object with .stdout
     var stdout = execFileSync(process.execPath, ["-e", childCode], {
       env: Object.assign({}, process.env, { OPENCODE_ROOT: OPENCODE_ROOT }),
       encoding: "utf8",
@@ -52,11 +48,10 @@ function runAndCaptureEnv(agentType, taskDesc, taskId) {
       timeout: 15000,
     });
   } catch (e) {
-    // Child may exit non-zero; stdout is on e.stdout when encoding is set
     if (e.stdout) {
       var stdout = e.stdout;
     } else {
-      return { FA: null, FT: null, error: e.message };
+      return { FA: null, FT: null, FD: null, error: e.message };
     }
   }
 
@@ -67,7 +62,7 @@ function runAndCaptureEnv(agentType, taskDesc, taskId) {
       return JSON.parse(lines[i].slice(8));
     }
   }
-  return { FA: null, FT: null, error: "ENVJSON not found" };
+  return { FA: null, FT: null, FD: null, error: "ENVJSON not found" };
 }
 
 // --- Test 1: FRAMEWORK_AGENT is set to agent type ---
@@ -104,6 +99,34 @@ function runAndCaptureEnv(agentType, taskDesc, taskId) {
   console.log("  PASS");
 })();
 
+// --- Test 3b: FRAMEWORK_TASK_ID is set from positional 2nd param (NEW) ---
+(function testPositionalTaskId() {
+  console.log("--- Test 3b: FRAMEWORK_TASK_ID set from positional param (NEW) ---");
+  var env = runAndCaptureEnvPositional("Architect", "T-014", "implement booking");
+  console.log("  FRAMEWORK_TASK_ID =", JSON.stringify(env.FT));
+  console.log('  Expected:         "T-014"');
+  assert.strictEqual(
+    env.FT,
+    "T-014",
+    'FRAMEWORK_TASK_ID should be "T-014" from positional task_id param',
+  );
+  console.log("  FRAMEWORK_AGENT =", JSON.stringify(env.FA));
+  console.log('  Expected:         "Architect"');
+  assert.strictEqual(
+    env.FA,
+    "Architect",
+    'FRAMEWORK_AGENT should be "Architect"',
+  );
+  console.log("  FRAMEWORK_DISPATCH_CONTEXT =", JSON.stringify(env.FD));
+  console.log('  Expected:         "orchestrated"');
+  assert.strictEqual(
+    env.FD,
+    "orchestrated",
+    'FRAMEWORK_DISPATCH_CONTEXT should be "orchestrated"',
+  );
+  console.log("  PASS");
+})();
+
 // --- Test 3: FRAMEWORK_TASK_ID defaults to empty string ---
 (function testTaskIdDefault() {
   console.log("--- Test 3: FRAMEWORK_TASK_ID defaults to empty string ---");
@@ -134,5 +157,6 @@ function runAndCaptureEnv(agentType, taskDesc, taskId) {
 console.log("");
 console.log("=== RED Phase Test Summary ===");
 console.log("Tests 1-3 should FAIL (env vars not yet implemented)");
+console.log("Test 3b should PASS (positional task_id param supported)");
 console.log("Test 4 should PASS (env spread already exists)");
 console.log("Expected exit code: 1 (non-zero = FAIL)");

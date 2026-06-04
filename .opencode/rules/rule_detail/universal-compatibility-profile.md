@@ -640,7 +640,7 @@ These tasks produced output that is fundamentally tied to the Angular/NestJS/Nod
 | [state-machine-standard.md](./state-machine-standard.md)         | State machine configuration and Git hook integration          |
 | [dag-generation-standard.md](./dag-generation-standard.md)       | DAG planning rules (stack-agnostic)                           |
 | `project.config.json`                                            | **Source of truth** for current compatibility profile setting |
-| `.opencode/agents/guardian.md`                                   | Per-framework review checklists                               |
+| `.opencode/agents/Guardian.md`                                   | Per-framework review checklists                               |
 | `.opencode/scripts/framework-self-test.js`                       | Checks 17/18 for placeholder validation                       |
 
 ---

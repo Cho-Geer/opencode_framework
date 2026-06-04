@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.ai/schemas/Task.DAG.v2.schema.json",
+  "title": "Task DAG v2 Schema (Hierarchical)",
+  "description": "JSON Schema for the hierarchical Task.DAG.json v2 format. Validates hot file (Task.DAG.json) and index file (Task.DAG.index.json) structures.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the DAG (e.g., '5.4.0')"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project name from project.config.json"
+    },
+    "generated_by": {
+      "type": "string",
+      "description": "Agent that generated/updated this DAG (e.g., '@Meta-Planner')"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of DAG generation"
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Pending + recently completed tasks (hot file). Archived tasks are in version snapshots.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique task identifier (e.g., 'T001', 'B-MSG-CONTRACT')"
+          },
+          "title": {
+            "type": "string",
+            "description": "Human-readable task title"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed"],
+            "description": "Task lifecycle status"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date",
+            "description": "Date when task was completed (YYYY-MM-DD). Used by DAGVersionManager for archival."
+          },
+          "owner": {
+            "type": "string",
+            "description": "Agent responsible for this task (e.g., '@Coder-BE')"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["P0", "P1", "P2"],
+            "description": "Task priority level"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Task IDs this task depends on"
+          },
+          "target_files": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Expected output file paths"
+          }
+        },
+        "required": ["id", "status"]
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "DAG metadata and compaction state",
+      "properties": {
+        "total_tasks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total tasks across all tiers (hot + archived)"
+        },
+        "pending_tasks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Tasks with status 'pending' in hot file"
+        },
+        "completed_tasks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total completed tasks across all tiers"
+        },
+        "recent_completed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Completed tasks within RECENT_DAYS (14 days) still in hot file"
+        },
+        "archived_completed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Completed tasks moved to version snapshots"
+        },
+        "last_compacted": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of last DAGVersionManager compaction"
+        },
+        "progress": {
+          "type": "string",
+          "description": "Human-readable progress percentage"
+        }
+      },
+      "required": ["total_tasks", "pending_tasks"]
+    }
+  },
+  "required": ["version", "tasks", "meta"]
+}

@@ -1,0 +1,4 @@
+# Gate State History Directory
+# Contains daily append-only JSONL files (e.g., 2026-06-03.jsonl)
+# with full verbose session data for completed compliance gate sessions.
+# Managed by state-compactor.ts

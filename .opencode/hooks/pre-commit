@@ -40,7 +40,11 @@ elif [ -f "$INNER/.opencode/project.config.json" ]; then
   ENF_MODE=$(node -e "
     try {
       const cfg = require('$INNER/.opencode/project.config.json');
-      const mode = cfg.template_resolution?.enforcement_mode;
+      // FW-REPAIR-12: Resolve dual-key enforcement mode per enforcement-modes-standard.md §4.1
+      // Pre-commit is CI-bound → runtime_enforcement_mode takes priority
+      // develop_enforcement_mode is for in-agent code only
+      const mode = cfg.template_resolution?.runtime_enforcement_mode
+                || cfg.template_resolution?.develop_enforcement_mode;
       console.log(mode && ['advisory','strict','locked'].includes(mode) ? mode : 'advisory');
     } catch(e) { console.log('advisory'); }
   " 2>/dev/null || echo "advisory")
@@ -67,7 +71,15 @@ echo "[Layer 0/4] Checking compliance gate state..."
 if [ "$ENF_MODE" = "advisory" ]; then
     echo "  ⚠️  [ADVISORY] Gate armed check skipped (advisory mode)"
 elif [ -f "$GATE_STATE" ]; then
-    ARMED=$(node -e "const g=require('$GATE_STATE'); console.log(g.active_sessions?.length || 0)" 2>/dev/null || echo "0")
+    # FW-REPAIR-12: Handle both V2 (array) and V3 (object) active_sessions format
+    ARMED=$(node -e "
+      const g=require('$GATE_STATE');
+      const sessions = g.active_sessions;
+      if (!sessions) { console.log(0); process.exit(0); }
+      // V3 format: { session_id: { ... } } (object) — use key count
+      // V2 format: [session_id, ...] (array) — use length
+      console.log(Array.isArray(sessions) ? sessions.length : Object.keys(sessions).length);
+    " 2>/dev/null || echo "0")
     if [ "$ARMED" = "0" ]; then
         echo "❌ [GATE] No compliance gate session is armed for this commit."
         echo "   Run: compliance_gate_check → compliance_gate_confirm before committing."
@@ -107,6 +119,100 @@ if [ "$stale_count" -gt 0 ] 2>/dev/null; then
   echo "  🔧 Fix: node .opencode/scripts/state-reconciliation.js --fix"
 else
   echo "  ✅ No stale gate sessions"
+fi
+
+# ── Layer 1.9: State Format Validation (v3 gate-state + v2 DAG cross-file integrity) ──
+echo ""
+echo "[1.9/4] State format validation (v3 gate-state + v2 DAG)..."
+GATE_INDEX="$ROOT/.opencode/state/gate-state.index.json"
+GATE_ARCHIVE="$ROOT/.opencode/state/gate-state.archive.json"
+DAG_CHANGELOG="$ROOT/Task.DAG.changelog.md"
+
+# ── gate-state v3 schema validation (FW-REPAIR-12) ──
+GATE_V3_SCHEMA="$ROOT/.opencode/state/gate-state.v3.schema.json"
+if [ -f "$GATE_V3_SCHEMA" ]; then
+  SCHEMA_VALID=$(node -e "
+    try {
+      const Ajv = require('ajv');
+      const schema = require('$GATE_V3_SCHEMA');
+      const hot = require('$GATE_STATE');
+      const ajv = new Ajv({ allErrors: true });
+      const valid = ajv.validate(schema, hot);
+      if (!valid) {
+        console.log('FAIL:' + ajv.errorsText(ajv.errors));
+        process.exit(0);
+      }
+      console.log('OK');
+    } catch(e) { console.log('ERR:' + e.message); process.exit(0); }
+  " 2>/dev/null || echo "CHECK_FAILED")
+  
+  if [ "$SCHEMA_VALID" = "OK" ]; then
+    echo "  ✅ gate-state.json V3 schema valid"
+  elif echo "$SCHEMA_VALID" | grep -q "^FAIL:"; then
+    echo "  ⚠️  V3 schema: $SCHEMA_VALID"
+    if [ "$ENF_MODE" != "advisory" ]; then
+      echo "  ❌ gate-state.json fails V3 schema — commit BLOCKED in $ENF_MODE mode"
+      exit 1
+    fi
+  else
+    echo "  ⚠️  V3 schema check skipped ($SCHEMA_VALID)"
+  fi
+fi
+
+# ── gate-state v3 cross-file integrity ──
+if [ -f "$GATE_STATE" ]; then
+  FORMAT_VERSION=$(node -e "try{console.log(require('$GATE_STATE').formatVersion||'1.0')}catch(e){console.log('1.0')}" 2>/dev/null)
+
+  if [ "$FORMAT_VERSION" = "3.0" ]; then
+    HOT_ACTIVE=$(node -e "try{console.log(Object.keys(require('$GATE_STATE').active_sessions||{}).length)}catch(e){console.log(0)}" 2>/dev/null)
+    HOT_RECENT=$(node -e "try{console.log(Object.keys(require('$GATE_STATE').recent_sessions||{}).length)}catch(e){console.log(0)}" 2>/dev/null)
+
+    if [ -f "$GATE_INDEX" ]; then
+      INDEX_COUNT=$(node -e "try{console.log(Object.keys(require('$GATE_INDEX').sessions||{}).length)}catch(e){console.log(0)}" 2>/dev/null)
+      if [ "$INDEX_COUNT" -lt "$HOT_RECENT" ] 2>/dev/null; then
+        echo "  ❌ gate-state v3 inconsistency: index ($INDEX_COUNT) < recent ($HOT_RECENT)"
+        exit 1
+      fi
+    fi
+
+    if [ -f "$GATE_ARCHIVE" ]; then
+      ARCHIVE_COUNT=$(node -e "try{console.log(require('$GATE_ARCHIVE').session_count||0)}catch(e){console.log(0)}" 2>/dev/null)
+      echo "  ✅ gate-state v3: active=$HOT_ACTIVE recent=$HOT_RECENT index=$INDEX_COUNT archive=$ARCHIVE_COUNT"
+    else
+      echo "  ✅ gate-state v3: active=$HOT_ACTIVE recent=$HOT_RECENT index=$INDEX_COUNT"
+    fi
+  else
+    echo "  ⚠️  gate-state v2 format (pre-migration) — consider running migration script"
+  fi
+
+  # ── archive_ref spot-check (v3 cross-file integrity) ──
+  if [ "$FORMAT_VERSION" = "3.0" ] && [ -n "$HOT_RECENT" ] && [ "$HOT_RECENT" -gt 0 ] 2>/dev/null; then
+    SPOT_COUNT=0
+    ARCHIVE_REFS=$(node -e "try{const s=require('$GATE_STATE').recent_sessions||{};Object.values(s).slice(0,3).forEach(v=>{if(v.archive_ref)console.log(v.archive_ref)})}catch(e){}" 2>/dev/null)
+    for ref in $ARCHIVE_REFS; do
+      [ -z "$ref" ] && continue
+      HISTORY_FILE=$(echo "$ref" | cut -d'#' -f1)
+      if [ ! -f "$ROOT/.opencode/state/$HISTORY_FILE" ]; then
+        echo "  ❌ gate-state v3: archive_ref points to missing file: $HISTORY_FILE"
+        exit 1
+      fi
+      SPOT_COUNT=$((SPOT_COUNT + 1))
+    done
+    if [ "$SPOT_COUNT" -gt 0 ] 2>/dev/null; then
+      echo "  ✅ archive_ref spot-check: $SPOT_COUNT refs validated"
+    fi
+  fi
+fi
+
+# ── Task.DAG v2: changelog should be in .md, not in hot file ──
+DAG_FILE="$ROOT/Task.DAG.json"
+if [ -f "$DAG_FILE" ]; then
+  HAS_CHANGELOG=$(node -e "try{const d=require('$DAG_FILE'); console.log(d.change_log?'yes':'no')}catch(e){console.log('unknown')}" 2>/dev/null)
+  if [ "$HAS_CHANGELOG" = "yes" ]; then
+    echo "  ⚠️  Task.DAG.json still has inline change_log — consider running DAG migration"
+  elif [ -f "$DAG_CHANGELOG" ]; then
+    echo "  ✅ Task.DAG.json: changelog externalized to changelog.md"
+  fi
 fi
 
 # ── Layer 1: lint-staged (auto-format + eslint fix) ──

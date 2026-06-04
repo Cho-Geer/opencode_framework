@@ -50,7 +50,7 @@ export type SafeTestPhase = 'red' | 'green';
 // CONSTANTS
 // ════════════════════════════════════════════════════════════
 
-export const COVERAGE_THRESHOLD = 70;
+export const COVERAGE_THRESHOLD = 80;
 export const REPORT_FILENAME = 'test_report.json';
 
 // ════════════════════════════════════════════════════════════

@@ -1,0 +1,3 @@
+# Log Archive Directory
+# Contains monthly compressed log archives (e.g., 2026-06.tar.gz).
+# Managed by log-rotator.ts

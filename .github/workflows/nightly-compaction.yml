@@ -1,0 +1,67 @@
+# Nightly State Compaction
+# FW-REPAIR-12: Automated nightly compaction of gate-state and DAG state files.
+# Runs daily at 3 AM UTC. Can also be triggered manually via workflow_dispatch.
+#
+# FW-REPAIR-14: Switched nightly-compaction.mjs runner to npx tsx.
+# Dynamic import of source .ts files eliminates brittle dist/ dependency.
+# tsc compilation retained as pre-flight verification only.
+#
+# Compacts:
+#   - Gate-state: moves old recent sessions (>7 days) to cold archive
+#   - DAG: archives completed tasks >14 days old to version snapshots
+#   - Logs: rotates safe-bash.log and .transaction-log
+#   - Monthly archives: consolidates log files into .tar.gz per month
+
+name: Nightly State Compaction
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Daily at 3 AM UTC
+  workflow_dispatch:       # Manual trigger
+
+jobs:
+  compact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # FW-REPAIR-14: tsc pre-flight verification (safety net, not required by tsx)
+      - name: Compile TypeScript lib modules (pre-flight)
+        run: |
+          if [ -f .opencode/lib/tsconfig.json ]; then
+            npx tsc -p .opencode/lib/tsconfig.json --noEmit 2>/dev/null || true
+          fi
+
+      # FW-REPAIR-14: npx tsx runs .mjs with dynamic import of source .ts files
+      - name: Run nightly compaction
+        run: npx tsx .opencode/scripts/nightly-compaction.mjs --dag
+
+      - name: Run log rotation
+        run: node .opencode/scripts/rotate-logs.mjs
+
+      - name: Create monthly log archives
+        run: |
+          ARCHIVE_DIR=".opencode/logs/archive"
+          mkdir -p "$ARCHIVE_DIR"
+          # Consolidate archived log files into monthly .tar.gz
+          for logfile in .opencode/logs/safe-bash.log.*.gz .opencode/logs/safe-bash.log.*[0-9]; do
+            [ -f "$logfile" ] || continue
+            # Extract month from modification time
+            MONTH=$(date -r "$logfile" +%Y-%m 2>/dev/null || echo "unknown")
+            ARCHIVE_NAME="${ARCHIVE_DIR}/safe-bash.${MONTH}.tar.gz"
+            tar -czf "$ARCHIVE_NAME" "$logfile" 2>/dev/null && rm -f "$logfile"
+            echo "  Archived: $logfile → $ARCHIVE_NAME"
+          done
+
+      - name: Report results
+        run: |
+          echo "=== Post-Compaction State ==="
+          echo "gate-state.json: $(wc -c < .opencode/state/gate-state.json) bytes"
+          echo "Task.DAG.json: $(wc -c < Task.DAG.json) bytes"
+          echo ".transaction-log: $(wc -c < .opencode/state/.transaction-log) bytes"

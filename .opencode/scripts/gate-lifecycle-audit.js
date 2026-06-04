@@ -2,12 +2,11 @@
 // gate-lifecycle-audit.js — P4-003
 // Audits gate-state.json for lifecycle compliance.
 // --auto-drain flag moves stale sessions (>24h armed) to drained_sessions.
-// Refactored FW-HARNESS-MOVE-SCRIPTS: imports from framework-validation.cjs
-
+// FW-ENHANCE-A2-A5-EXTRAS: migrated to gate-core.ts (dist/lib/gate-core.js)
 const {
   readJsonFile,
   resolveFrameworkPaths,
-} = require('../lib/framework-validation.cjs');
+} = require('../lib/dist/lib/gate-core.js');
 
 const paths = resolveFrameworkPaths();
 const GATE_STATE_PATH = paths.gateState;

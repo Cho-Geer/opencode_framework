@@ -273,7 +273,7 @@ When a `{template_key}` cannot be resolved:
 
 | Location          | Example File                                                                | Resolution Timing                                                                                                                  |
 | ----------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Agent Configs** | `.opencode/agents/architect.md`, `coder-be.md`, `coder-fe.md`               | At dispatch, before prompt assembly                                                                                                |
+| **Agent Configs** | `.opencode/agents/Architect.md`, `Coder-BE.md`, `Coder-FE.md`               | At dispatch, before prompt assembly                                                                                                |
 | **Rule Files**    | `.opencode/rules/backend-coding-standard.md`, `frontend-coding-standard.md` | These are injected into prompts; extended placeholders remain as `UNRESOLVED{...}` and are interpreted via internal mapping tables |
 | **Skill Files**   | `.opencode/skills/*/SKILL.md`                                               | At dispatch, when skill content is injected                                                                                        |
 | **Preamble**      | `.opencode/subagent-preamble.md`                                            | At dispatch, line 299-304 of `dispatch-subagent.js` resolves preamble placeholders                                                 |
@@ -575,9 +575,9 @@ grep -r '\{[a-z_]*\.[a-z_.]*\}' .opencode/ --include="*.md" | grep -v 'UNRESOLVE
 | `.opencode/subagent-preamble.md`                       | Consumer of template variables; all `{template_key}` references resolved before prompt injection                |
 | `.opencode/rules/backend-coding-standard.md`           | Consumer of 7 extended `{backend.*}` placeholders (§3.2); contains internal resolution table                    |
 | `.opencode/rules/frontend-coding-standard.md`          | Consumer of 5 extended `{frontend.*}` placeholders (§3.3); contains internal resolution table                   |
-| `.opencode/agents/architect.md`                        | Consumer of `{project.contract_hash_command}`                                                                   |
-| `.opencode/agents/coder-be.md`                         | Consumer of `{backend.orm.schema}` and `{project.contract_hash_command}`                                        |
-| `.opencode/agents/coder-fe.md`                         | Consumer of `{frontend.dto_path}`, `{frontend.env_path}`, and `{project.contract_hash_command}`                 |
+| `.opencode/agents/Architect.md`                        | Consumer of `{project.contract_hash_command}`                                                                   |
+| `.opencode/agents/Coder-BE.md`                         | Consumer of `{backend.orm.schema}` and `{project.contract_hash_command}`                                        |
+| `.opencode/agents/Coder-FE.md`                         | Consumer of `{frontend.dto_path}`, `{frontend.env_path}`, and `{project.contract_hash_command}`                 |
 
 ---
 

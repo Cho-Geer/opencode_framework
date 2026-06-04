@@ -3,7 +3,19 @@
  * dispatch-subagent.js
  * General-purpose sub-agent dispatcher with P0 protocol enforcement.
  *
- * Usage: node dispatch-subagent.js <agent_type> "<task_description>"
+ * Usage:
+ *   node dispatch-subagent.js <agent_type> "<task_description>"
+ *   node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"
+ *
+ * When 1 positional param follows agent_type → treated as task_description.
+ * When 2 positional params follow agent_type → first = task_id, second = task_description.
+ * Env vars (FRAMEWORK_TASK_ID, DISPATCH_TASK_DESC) and --task-id flag always take precedence.
+ *
+ * NOTE: task_id (FRAMEWORK_TASK_ID) is a dispatch session identifier — an ID
+ * assigned to the background sub-agent process/delegation in OpenCode. It is
+ * used for output path namespacing (.task_temp/{taskId}/) and session tracking.
+ * It is NOT a DAG task ID and should NOT be validated against Task.DAG.json.
+ * Pre-execution gate is called with --dispatch-session flag to skip DAG checks.
  *
  * Reads:
  *   .opencode/project.config.json          — project config (project_root, tech_stack, paths)
@@ -38,36 +50,84 @@ const PROJECT_CONFIG = path.join(
 );
 const OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
 
+// ── 日志重定向 ──
+const LOG_FILE = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch", "dispatch.log");
+
+function logInfo(msg) {
+  const dir = path.dirname(LOG_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] INFO  ${msg}\n`);
+}
+function logWarn(msg) {
+  const dir = path.dirname(LOG_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] WARN  ${msg}\n`);
+}
+
 // ──────────────────────────────────────────────
 // 1. Parse CLI arguments
 // ──────────────────────────────────────────────
-// Support: node dispatch-subagent.js <agent_type> "<task_description>" [--task-id <id>]
-let taskId = null;
-const taskIdFlagIdx = process.argv.indexOf("--task-id");
-if (taskIdFlagIdx !== -1 && taskIdFlagIdx + 1 < process.argv.length) {
-  taskId = process.argv[taskIdFlagIdx + 1];
-  // Remove --task-id and its value from argv for clean processing
-  process.argv.splice(taskIdFlagIdx, 2);
+// Support:
+//   node dispatch-subagent.js <agent_type> "<task_description>" [--task-id <id>]
+//   node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>" [--task-id <id>]
+//
+// Resolution priority (highest wins):
+//   1. Env vars: FRAMEWORK_TASK_ID, DISPATCH_TASK_DESC (set by dispatch_subagent.ts)
+//   2. Positional args: argv[3]=task_id, argv[4]=task_description (if both present)
+//   3. --task-id CLI flag (legacy)
+//   4. Single positional arg: argv[3]=task_description (backward compatible)
+let taskId = process.env.FRAMEWORK_TASK_ID || null;
+
+// NEW: Detect 2+ positional params after agent_type for task_id+task_description
+// Pattern: node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"
+if (!taskId && process.argv.length >= 5 && !process.argv[3].startsWith('--')) {
+  taskId = process.argv[3];
+  // Remove task_id from argv so process.argv[3] shifts to task_description
+  process.argv.splice(3, 1);
+}
+
+// Fall back to --task-id CLI flag
+if (!taskId) {
+  const taskIdFlagIdx = process.argv.indexOf("--task-id");
+  if (taskIdFlagIdx !== -1 && taskIdFlagIdx + 1 < process.argv.length) {
+    taskId = process.argv[taskIdFlagIdx + 1];
+    // Remove --task-id and its value from argv for clean processing
+    process.argv.splice(taskIdFlagIdx, 2);
+  }
 }
 process.env.FRAMEWORK_TASK_ID = taskId || "";
 process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
 const agentType = process.argv[2];
 process.env.FRAMEWORK_AGENT = '@' + agentType;
-const taskDescription = process.argv[3] || "";
+
+// task_description: env var > argv[4] (if task_id was spliced, argv[3] is now desc) > argv[3]
+const taskDescription = process.env.DISPATCH_TASK_DESC || process.argv[3] || "";
 
 if (!agentType) {
   console.error(
     'Usage: node dispatch-subagent.js <agent_type> "<task_description>"',
   );
   console.error(
+    '       node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"',
+  );
+  console.error(
     'Example: node dispatch-subagent.js Architect "Validate architecture"',
+  );
+  console.error(
+    'Example: node dispatch-subagent.js Architect "dispatch-20260603" "Implement booking service"',
   );
   process.exit(1);
 }
 
 if (!taskDescription) {
   console.error("ERROR: task_description is required");
+  console.error(
+    'Usage: node dispatch-subagent.js <agent_type> "<task_description>"',
+  );
+  console.error(
+    '       node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"',
+  );
   process.exit(1);
 }
 
@@ -82,20 +142,18 @@ if (taskId) {
     "pre-execution-gate.js",
   );
   if (fs.existsSync(gateScript)) {
-    console.error(
-      `[dispatch] Running pre-execution-gate.js for task '${taskId}'...`,
-    );
+    logInfo(`Running pre-execution-gate.js for dispatch session '${taskId}' (--dispatch-session)...`);
     try {
       const { execSync } = require("child_process");
-      execSync(`"${process.execPath}" "${gateScript}" "${taskId}"`, {
-        stdio: "inherit",
+      const gateResult = execSync(`"${process.execPath}" "${gateScript}" "${taskId}" --dispatch-session`, {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
         timeout: 15000,
         env: { ...process.env, OPENCODE_ROOT },
       });
-      console.error(
-        `[dispatch] Pre-execution gate PASSED for task '${taskId}'.`,
-      );
+      logInfo(`Pre-execution gate passed: ${gateResult.substring(0, 200)}`);
     } catch (e) {
+      logWarn(`Pre-execution gate failed: ${e.stderr?.toString() || e.message}`);
       console.error(
         `[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`,
       );
@@ -276,6 +334,37 @@ function extractPermission(rawContent) {
   return Object.keys(permission).length > 0 ? permission : null;
 }
 
+// ──────────────────────────────────────────────
+// Read opencode.json runtime permissions for this agent
+// ──────────────────────────────────────────────
+function readRuntimePermissions(agentType) {
+  const opencodeJsonPath = path.join(OPENCODE_ROOT, "opencode.json");
+  if (!fs.existsSync(opencodeJsonPath)) {
+    logWarn(`opencode.json not found at ${opencodeJsonPath}`);
+    return null;
+  }
+  try {
+    const raw = fs.readFileSync(opencodeJsonPath, "utf8");
+    const opencodeConfig = JSON.parse(raw);
+    const agentDict = opencodeConfig.agent || {};
+    const agentKey = Object.keys(agentDict).find(
+      (key) => key.toLowerCase() === agentType.toLowerCase()
+    );
+    if (!agentKey) {
+      logWarn(`Agent "${agentType}" not found in opencode.json`);
+      return null;
+    }
+    return {
+      permission: agentDict[agentKey].permission || {},
+    };
+  } catch (e) {
+    console.error(
+      `[dispatch] WARNING: Failed to parse opencode.json for ${agentType}: ${e.message}`
+    );
+    return null;
+  }
+}
+
 const agentConfig = parseFrontmatter(agentContent);
 const agentName = agentConfig.name || agentType;
 const skills = agentConfig.skills || [];
@@ -373,16 +462,16 @@ function resolveTemplateVariables(content, templateMap, sourceLabel) {
     if (templateMap.hasOwnProperty(key)) {
       return templateMap[key];
     }
-    console.error(
-      `[dispatch] WARNING: Unresolvable placeholder '${match}' in ${sourceLabel}`,
+    logWarn(
+      `Unresolvable placeholder '${match}' in ${sourceLabel}`,
     );
     return `UNRESOLVED${match}`;
   });
 }
 
 const templateMap = buildTemplateResolutionMap(projectConfig);
-console.error(
-  `[dispatch] Template resolution map: ${Object.keys(templateMap).length} keys`,
+logInfo(
+  `Template resolution map: ${Object.keys(templateMap).length} keys`,
 );
 
 // Resolve placeholders in CLI task description
@@ -399,14 +488,14 @@ const resolvedAgentContent = resolveTemplateVariables(
   agentFileEntry,
 );
 
-console.error(`[dispatch] Project: ${projectConfig.project.name}`);
-console.error(`[dispatch] Project root: ${projectRoot}`);
-console.error(`[dispatch] OPENCODE_ROOT: ${OPENCODE_ROOT}`);
-console.error(`[dispatch] Agent: ${agentName}`);
-console.error(`[dispatch] Skills: ${skills.join(", ")}`);
-console.error(`[dispatch] MCP tools: ${mcpTools.join(", ")}`);
-console.error(
-  `[dispatch] Context7 stacks matched: ${relevantStacks.map((s) => s.label).join(", ")}`,
+logInfo(`Project: ${projectConfig.project.name}`);
+logInfo(`Project root: ${projectRoot}`);
+logInfo(`OPENCODE_ROOT: ${OPENCODE_ROOT}`);
+logInfo(`Agent: ${agentName}`);
+logInfo(`Skills: ${skills.join(", ")}`);
+logInfo(`MCP tools: ${mcpTools.join(", ")}`);
+logInfo(
+  `Context7 stacks matched: ${relevantStacks.map((s) => s.label).join(", ")}`,
 );
 
 // ──────────────────────────────────────────────
@@ -463,11 +552,58 @@ const projectContext = [
   `**Contracts**: \`${resolvedContracts}\``,
 ].join("\n");
 
+// ──────────────────────────────────────────────
+// Build Permissions Section
+// ──────────────────────────────────────────────
+const runtimePerms = readRuntimePermissions(agentType);
+
+const configPermSection = permission
+  ? Object.entries(permission)
+      .map(([tool, access]) => `  - ${tool}: ${access}`)
+      .join("\n")
+  : "  - (no permission block declared in agent config)";
+
+const runtimePermSection = (runtimePerms && runtimePerms.permission)
+  ? Object.entries(runtimePerms.permission)
+      .map(([key, val]) => {
+        const valStr = typeof val === "object" ? JSON.stringify(val, null, 4).replace(/\n/g, "\n    ") : String(val);
+        return `  - ${key}: ${valStr}`;
+      })
+      .join("\n")
+  : "  - (not found in opencode.json — check your permissions manually)";
+
+const permissionsSection = `
+## 🔑 Your Permissions
+
+### Source 1: Agent Config File (.opencode/agents/${agentFileEntry})
+_A declarative guide — tells you which tools are relevant to your role_
+${configPermSection}
+
+### Source 2: Runtime Enforcement (opencode.json)
+_The authoritative source — controls what you can actually invoke_
+${runtimePermSection}
+
+### Conflict Resolution
+If Source 1 and Source 2 conflict, **Source 2 (opencode.json) is authoritative**.
+- Tools/config declared in your config file but NOT in opencode.json → may be blocked at runtime
+- Permissions granted in opencode.json but NOT in your config file → still usable (opencode.json grants them)
+- Always verify by reading opencode.json directly (see Step 1a of P0 protocol)
+`;
+
 const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
 
 ### P0 Protocol — Read and execute FIRST
 
 ${preamble}
+
+/**
+ * Phase 2 R5: Agent-type awareness injection.
+ * Injects targeted guidance so code-producing agents (@Coder-BE, @Coder-FE)
+ * know that Steps 5a/5b are mandatory; non-coding agents see them as informational.
+ */
+${agentType === "Coder-BE" || agentType === "Coder-FE"
+  ? `> **Agent-type note**: As a code-producing agent (@${agentType}), Steps 5a (docs consistency) and 5b (write-time quality) in the P0 protocol above are **MANDATORY** for all source code changes.`
+  : `> **Agent-type note**: As a ${agentType}, Steps 5a and 5b in the P0 protocol above are informational — you may not be writing source code.`}
 
 ---
 
@@ -481,8 +617,7 @@ ${skills.map((s) => `- \`${s}\``).join("\n")}
 **Your MCP Tools** (call as needed):
 ${mcpTools.map((t) => `- \`${t}\``).join("\n")}
 
-**Your Tool Permissions** (from agent config):
-${permission ? Object.entries(permission).map(([tool, access]) => `- ${tool}: ${access}`).join("\n") : "- No explicit permission restrictions defined"}
+${permissionsSection}
 
 ---
 
@@ -519,6 +654,8 @@ ${mcpTools.map((t) => `- \`${t}\`: ✅ Called or ❌ Not applicable (state reaso
 - \`context7_query-docs\`: List queries run with key results
 
 Do NOT skip this section. It is required for audit trail compliance.
+
+**File persistence**: ALSO save a copy to `.task_temp/_dispatch/INVOCATION_SUMMARY.md` (append, do not overwrite). This creates a persistent audit trail across all sub-agent invocations.
 
 ---
 
@@ -565,7 +702,7 @@ const dispatchToken = crypto.createHash("sha256").update(resolvedPrompt, "utf8")
 const tokenizedPrompt = resolvedPrompt + `\n//DISPATCH_TOKEN:${dispatchToken}`;
 fs.writeFileSync(outputFile, tokenizedPrompt, "utf8");
 
-console.error(`[dispatch] Output: ${outputFile}`);
+logInfo(`Output: ${outputFile}`);
 
 // ──────────────────────────────────────────────
 // 7. Output file path to stdout (for the primary agent)

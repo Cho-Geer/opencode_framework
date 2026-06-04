@@ -16,7 +16,11 @@
  *   4. Enforcement mode reading (from project.config.json)
  *
  * @author @Architect
- * @version 1.0.0
+ * @version 1.1.0
+ * @since 2026-05-25
+ *
+ * @module gate-core
+ * @public — All exported functions are public API for framework consumers
  */
 
 import * as fs from 'fs';
@@ -127,6 +131,7 @@ interface DrainedStore {
 /**
  * Get the project root directory.
  * Priority: OPENCODE_ROOT env var > process.cwd()
+ * @public — Foundation API used by all state path resolvers
  */
 export function getProjectRoot(): string {
   return process.env.OPENCODE_ROOT || process.cwd();
@@ -135,6 +140,7 @@ export function getProjectRoot(): string {
 /**
  * Resolve the state directory path.
  * Handles project_root nesting (e.g., booking_system_refactor/).
+ * @public — Primary state directory resolver for framework consumers
  */
 export function resolveStateDir(root?: string): string {
   const projectRoot = root || getProjectRoot();
@@ -160,6 +166,7 @@ export function resolveStateDir(root?: string): string {
 
 /**
  * Read and parse a JSON file. Returns null on any failure.
+ * @internal — Low-level file I/O utility, not intended for external consumption
  */
 export function readJsonFile<T>(filePath: string): T | null {
   try {
@@ -173,6 +180,7 @@ export function readJsonFile<T>(filePath: string): T | null {
 
 /**
  * Check if a file exists at the given path.
+ * @internal — Low-level file I/O utility, not intended for external consumption
  */
 export function fileExists(filePath: string): boolean {
   try {
@@ -185,6 +193,7 @@ export function fileExists(filePath: string): boolean {
 /**
  * Compute SHA-256 hex digest of a file's content.
  * Returns hex string or null on failure.
+ * @internal — Low-level crypto utility, not intended for external consumption
  */
 export function computeSHA256(filePath: string): string | null {
   try {
@@ -199,6 +208,7 @@ export function computeSHA256(filePath: string): string | null {
 
 /**
  * Write JSON to a file with mkdirp.
+ * @internal — Low-level file I/O utility, not intended for external consumption
  */
 export function writeJsonFile(filePath: string, data: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -216,8 +226,23 @@ const VALID_MODES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Determine the current enforcement mode.
- * Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
+ * Determine the current enforcement mode from the project configuration.
+ *
+ * Reads the two-tier enforcement mode keys introduced in project.config.json v2:
+ *   - `develop_enforcement_mode`: Used during local development (agent execution)
+ *   - `runtime_enforcement_mode`: Used in CI/production environments
+ *
+ * Priority:
+ *   1. ENFORCEMENT_MODE env var (runtime override)
+ *   2. project.config.json `develop_enforcement_mode` (primary)
+ *   3. project.config.json `runtime_enforcement_mode` (fallback)
+ *   4. Default: "advisory"
+ *
+ * **Why this change**: The old key `template_resolution.enforcement_mode` was
+ * replaced by the two-tier `develop_enforcement_mode` / `runtime_enforcement_mode`
+ * in FW-HARNESS-P6. All consumers must use the new keys.
+ *
+ * @public
  */
 export function getEnforcementMode(root?: string): EnforcementMode {
   const envMode = process.env.ENFORCEMENT_MODE;
@@ -230,7 +255,10 @@ export function getEnforcementMode(root?: string): EnforcementMode {
   try {
     if (fs.existsSync(cfgPath)) {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-      const mode = cfg.template_resolution?.enforcement_mode;
+      const tr = cfg.template_resolution;
+      // Two-tier enforcement: prefer develop mode, fall back to runtime mode
+      const mode = tr?.develop_enforcement_mode ||
+                   tr?.runtime_enforcement_mode;
       if (mode && VALID_MODES.has(mode)) {
         configMode = mode;
       }
@@ -252,23 +280,27 @@ export function getEnforcementMode(root?: string): EnforcementMode {
 // GATE STORE I/O
 // ════════════════════════════════════════════════════════════
 
+/** @public — Primary gate state file path resolver */
 export function getGateStatePath(root?: string): string {
   const stateDir = resolveStateDir(root);
   return process.env.GATE_STATE_PATH ||
     path.join(stateDir, 'gate-state.json');
 }
 
+/** @public — Machine state file path resolver */
 export function getMachinePath(root?: string): string {
   const stateDir = resolveStateDir(root);
   return path.join(stateDir, 'machine.json');
 }
 
+/** @public — Drained sessions store path resolver */
 export function getDrainedStorePath(gateStateFile: string): string {
   return gateStateFile.replace(/\.json$/, '.drained_sessions.json');
 }
 
 /**
  * Create a fresh gate store with default values.
+ * @internal — Utility function; external consumers should use loadGateStore()
  */
 export function createFreshStore(): GateStore {
   return {
@@ -281,6 +313,7 @@ export function createFreshStore(): GateStore {
 
 /**
  * Load the gate store from disk, with active_sessions reconciliation.
+ * @public — Primary gate store loader with auto-reconciliation
  */
 export function loadGateStore(root?: string): GateStore {
   const gateFile = getGateStatePath(root);
@@ -349,7 +382,65 @@ export function loadGateStore(root?: string): GateStore {
 }
 
 /**
+ * Search for an armed (confirmed, not consumed) gate session.
+ *
+ * Framework-enforcer.ts previously had its own inline implementation of this
+ * function (~20 lines).  Centralising the lookup here eliminates duplication
+ * and ensures the armed-session predicate stays consistent across all
+ * consumers (plugin, gate-core, CI scripts).
+ *
+ * @returns { found: true, sessionId } when an armed session exists;
+ *          { found: false, sessionId: null } otherwise.
+ *
+ * @public — Used by framework-enforcer.ts for pre-execution gate checks.
+ * @since FW-HARNESS-P0-2a
+ */
+export function findArmedSession(root?: string): {
+  found: boolean;
+  sessionId: string | null;
+} {
+  const gate = loadGateStore(root);
+  const sessions = Object.values(gate.sessions);
+  const armed = sessions.find(
+    (s) => s.gate_status === "armed" && s.consumed_at === null,
+  );
+  return armed
+    ? { found: true, sessionId: armed.session_id }
+    : { found: false, sessionId: null };
+}
+
+/**
+ * Search for any non-consumed, non-drained gate session.
+ *
+ * Used for planning-phase tools (task) that require at least a checked
+ * session without demanding the stricter "armed" status.  Previously
+ * inlined in framework-enforcer.ts (~22 lines).
+ *
+ * @returns { found: true, sessionId } when a valid session exists;
+ *          { found: false, sessionId: null } otherwise.
+ *
+ * @public — Used by framework-enforcer.ts for task-scheduling gate checks.
+ * @since FW-HARNESS-P0-2a
+ */
+export function findAnyGateSession(root?: string): {
+  found: boolean;
+  sessionId: string | null;
+} {
+  const gate = loadGateStore(root);
+  const sessions = Object.values(gate.sessions);
+  const valid = sessions.find(
+    (s) =>
+      s.consumed_at === null &&
+      s.gate_status !== "drained",
+  );
+  return valid
+    ? { found: true, sessionId: valid.session_id }
+    : { found: false, sessionId: null };
+}
+
+/**
  * Save the gate store to disk.
+ * @public — Primary gate store persistence API
  */
 export function saveGateStore(store: GateStore, root?: string): void {
   const gateFile = getGateStatePath(root);
@@ -362,6 +453,7 @@ export function saveGateStore(store: GateStore, root?: string): void {
 
 /**
  * Generate a unique session ID.
+ * @internal — Internal helper; external consumers use createSession() which calls this
  */
 export function generateSessionId(): string {
   return 'cg_ses_' + Date.now();
@@ -370,6 +462,7 @@ export function generateSessionId(): string {
 /**
  * Create a new session in the gate store.
  * Returns the created session.
+ * @public — Primary session creation API (compliance_gate_check entry point)
  */
 export function createSession(
   taskDescription: string,
@@ -405,6 +498,7 @@ export function createSession(
 
 /**
  * Validate and arm a session (confirm).
+ * @public — Primary session arming API (compliance_gate_confirm entry point)
  */
 export function armSession(
   sessionId: string,
@@ -479,6 +573,7 @@ export function armSession(
 
 /**
  * Complete a session and produce audit record.
+ * @public — Primary session completion API (compliance_gate_complete entry point)
  */
 export function completeSession(
   sessionId: string,
@@ -615,6 +710,7 @@ export function completeSession(
 
 /**
  * Drain stale sessions with configurable thresholds.
+ * @public — Stale session cleanup API (compliance_gate_drain_stale / purge)
  */
 export function drainStaleSessions(
   armedHours = 24,
@@ -709,6 +805,7 @@ export function drainStaleSessions(
 
 /**
  * Validate that HANDOVER.md and TASK_LOG.md exist for a given task.
+ * @public — Task artifact validation used by completeSession and external audits
  */
 export function validateTaskArtifacts(
   taskId: string | null,
@@ -730,6 +827,7 @@ export function validateTaskArtifacts(
 /**
  * Compute a digest (sha256-prefixed) from a file path,
  * compatible with the keystone hash convention.
+ * @public — Keystone hash computation for contract/rule validation
  */
 export function computeDigest(filePath: string): { digest: string | null; error: string | null } {
   try {
@@ -743,6 +841,7 @@ export function computeDigest(filePath: string): { digest: string | null; error:
 
 /**
  * Extract semantic version from file content.
+ * @public — Semver extraction for rule registry version comparison
  */
 export function extractSemver(filePath: string): string | null {
   try {
@@ -760,4 +859,490 @@ export function extractSemver(filePath: string): string | null {
     // ignore
   }
   return null;
+}
+
+// ════════════════════════════════════════════════════════════
+// FRAMEWORK PATH RESOLUTION (MIGRATED from framework-validation.cjs, FW-ENHANCE-A2-A5-EXTRAS)
+// ════════════════════════════════════════════════════════════
+
+export interface FrameworkPaths {
+  root: string;
+  dag: string;
+  gateState: string;
+  machine: string;
+  projectConfig: string;
+  ruleRegistry: string;
+  ruleRegistryFallback: string;
+  pluginsDir: string;
+  hooksDir: string;
+  stateDir: string;
+  scriptsDir: string;
+  agentsDir: string;
+  rulesDir: string;
+}
+
+/**
+ * Derive the OpenCode project root by walking up from known marker directories.
+ * Pure function — no environment access beyond cwd walk-up.
+ * @internal — Helper for resolveFrameworkPaths
+ */
+function deriveOpenCodeRoot(): string {
+  let current = path.resolve(process.cwd());
+  for (let i = 0; i < 10; i++) {
+    const dotOpenCode = path.join(current, '.opencode');
+    if (fs.existsSync(dotOpenCode)) return current;
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  return process.cwd();
+}
+
+/**
+ * Resolve all framework file paths from a project root.
+ * If no root is provided, derives it from cwd walk-up.
+ *
+ * @param rootDir - Optional explicit project root path
+ * @returns FrameworkPaths with all paths resolved as absolute paths
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function resolveFrameworkPaths(rootDir?: string): FrameworkPaths {
+  const resolvedRoot = rootDir ? path.resolve(rootDir) : deriveOpenCodeRoot();
+  return {
+    root: resolvedRoot,
+    dag: path.join(resolvedRoot, 'Task.DAG.json'),
+    gateState: path.join(resolvedRoot, '.opencode', 'state', 'gate-state.json'),
+    machine: path.join(resolvedRoot, '.opencode', 'state', 'machine.json'),
+    projectConfig: path.join(resolvedRoot, '.opencode', 'project.config.json'),
+    ruleRegistry: path.join(resolvedRoot, '.opencode', 'state', 'rule_registry.json'),
+    ruleRegistryFallback: path.join(resolvedRoot, '.opencode', 'rule_registry.json'),
+    pluginsDir: path.join(resolvedRoot, '.opencode', 'plugins'),
+    hooksDir: path.join(resolvedRoot, '.opencode', 'hooks'),
+    stateDir: path.join(resolvedRoot, '.opencode', 'state'),
+    scriptsDir: path.join(resolvedRoot, '.opencode', 'scripts'),
+    agentsDir: path.join(resolvedRoot, '.opencode', 'agents'),
+    rulesDir: path.join(resolvedRoot, '.opencode', 'rules'),
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// DAG VALIDATION (MIGRATED from framework-validation.cjs, FW-ENHANCE-A2-A5-EXTRAS)
+// ════════════════════════════════════════════════════════════
+
+export interface DagExistsResult {
+  found: boolean;
+  taskCount: number;
+}
+
+/**
+ * Check if Task.DAG.json exists and count tasks.
+ * @param dagPath - Optional explicit path to Task.DAG.json; uses framework paths if omitted
+ * @param verbose - Whether to log diagnostic info (default false)
+ * @returns { found, taskCount }
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkDagExists(dagPath?: string, verbose?: boolean): DagExistsResult {
+  const fp = dagPath ? { dag: dagPath } : resolveFrameworkPaths();
+  const dag = readJsonFile<{ tasks?: unknown[] }>(fp.dag || (fp as FrameworkPaths).dag);
+  if (verbose) {
+    // diagnostic output — silent in production
+  }
+  if (!dag || !Array.isArray(dag.tasks)) {
+    return { found: fileExists(fp.dag || (fp as FrameworkPaths).dag), taskCount: 0 };
+  }
+  return { found: true, taskCount: dag.tasks.length };
+}
+
+export interface TaskInDagResult {
+  found: boolean;
+  status: string;
+  owner: string;
+}
+
+/**
+ * Check if a specific task exists in Task.DAG.json and return its status.
+ * @param dag - The parsed DAG object or path to DAG file
+ * @param taskId - Task ID to search for
+ * @returns { found, status, owner }
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkTaskInDag(dag: { tasks?: Array<{ id: string; status: string; owner?: string }> }, taskId: string): TaskInDagResult {
+  if (!dag || !Array.isArray(dag.tasks)) {
+    return { found: false, status: 'unknown', owner: '' };
+  }
+  const task = dag.tasks.find((t) => t.id === taskId);
+  if (!task) {
+    return { found: false, status: 'unknown', owner: '' };
+  }
+  return { found: true, status: task.status, owner: task.owner || '' };
+}
+
+export interface DagProgressResult {
+  total: number;
+  completed: number;
+  pending: number;
+  progressPercent: number;
+}
+
+/**
+ * Calculate DAG progress (total, completed, pending, percent).
+ * @param dag - The parsed DAG object
+ * @returns Progress statistics
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkDagProgress(dag: { tasks?: Array<{ status: string }> }): DagProgressResult {
+  if (!dag || !Array.isArray(dag.tasks)) {
+    return { total: 0, completed: 0, pending: 0, progressPercent: 0 };
+  }
+  const tasks = dag.tasks;
+  const total = tasks.length;
+  const completed = tasks.filter((t) => t.status === 'completed').length;
+  const pending = tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress').length;
+  const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total, completed, pending, progressPercent };
+}
+
+// ════════════════════════════════════════════════════════════
+// GATE STATE VALIDATION (MIGRATED from framework-validation.cjs, FW-ENHANCE-A2-A5-EXTRAS)
+// ════════════════════════════════════════════════════════════
+
+export interface ArmedSessionResult {
+  found: boolean;
+  sessionId: string | null;
+}
+
+/**
+ * Check if an armed compliance gate session exists.
+ * An "armed" session has confirmed_at set, consumed_at is null,
+ * and gate_status is "armed" (not "failed" or "drained").
+ *
+ * @param gateState - Parsed gate-state.json object
+ * @returns { found, sessionId }
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkArmedSession(gateState: { sessions?: Record<string, { gate_status?: string; consumed_at?: string | null; session_id?: string }> }): ArmedSessionResult {
+  if (!gateState || !gateState.sessions) {
+    return { found: false, sessionId: null };
+  }
+  const sessions = Object.values(gateState.sessions);
+  const armed = sessions.find(
+    (s) => s.gate_status === 'armed' && s.consumed_at === null,
+  );
+  return armed
+    ? { found: true, sessionId: armed.session_id || null }
+    : { found: false, sessionId: null };
+}
+
+export interface StaleSessionInfo {
+  id: string;
+  age: number;
+}
+
+export interface StaleSessionsResult {
+  stale: StaleSessionInfo[];
+  count: number;
+}
+
+/**
+ * Scan for stale gate sessions (older than thresholds).
+ * Stale = drained > 48h, or checked > 48h without confirmation.
+ *
+ * @param gateState - Parsed gate-state.json object
+ * @param thresholdHours - Hours threshold for staleness (default 48)
+ * @returns Stale session info
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkStaleSessions(
+  gateState: { sessions?: Record<string, { session_id?: string; created_at?: string; confirmed_at?: string | null; gate_status?: string }> },
+  thresholdHours?: number,
+): StaleSessionsResult {
+  const now = Date.now();
+  const stale: StaleSessionInfo[] = [];
+  if (!gateState || !gateState.sessions) return { stale, count: 0 };
+  const THRESHOLD = (thresholdHours ?? 48) * 60 * 60 * 1000;
+
+  for (const s of Object.values(gateState.sessions)) {
+    const createdAt = s.created_at ? new Date(s.created_at).getTime() : 0;
+    if (!createdAt) continue;
+    const ageHours = (now - createdAt) / (60 * 60 * 1000);
+    if (s.gate_status === 'drained' && ageHours * 60 * 60 * 1000 > THRESHOLD) {
+      stale.push({ id: s.session_id || '', age: Math.round(ageHours * 10) / 10 });
+      continue;
+    }
+    if (s.gate_status === 'checked' && !s.confirmed_at && ageHours * 60 * 60 * 1000 > THRESHOLD) {
+      stale.push({ id: s.session_id || '', age: Math.round(ageHours * 10) / 10 });
+    }
+  }
+  return { stale, count: stale.length };
+}
+
+export interface GateIntegrityResult {
+  valid: boolean;
+  issues: string[];
+}
+
+/**
+ * Check gate-state.json structural integrity.
+ * Validates: formatVersion presence, sessions structure, session ID format.
+ *
+ * @param gateState - Parsed gate-state.json object
+ * @returns Integrity check result
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkGateIntegrity(gateState: { formatVersion?: string; sessions?: Record<string, { session_id?: string; gate_status?: string }>; active_sessions?: unknown[] }): GateIntegrityResult {
+  const issues: string[] = [];
+  if (!gateState) {
+    issues.push('gate-state.json exists but cannot be parsed as JSON');
+    return { valid: false, issues };
+  }
+  if (!gateState.formatVersion) {
+    issues.push('gate-state.json missing formatVersion field');
+  }
+  if (!gateState.sessions || typeof gateState.sessions !== 'object') {
+    issues.push("gate-state.json missing 'sessions' object");
+  } else {
+    const sessions = Object.values(gateState.sessions);
+    if (sessions.length === 0 && (Array.isArray(gateState.active_sessions) && gateState.active_sessions.length > 0)) {
+      issues.push('gate-state.json: active_sessions non-empty but sessions object is empty');
+    }
+    for (const s of sessions) {
+      if (!s.session_id) {
+        issues.push('gate-state.json: session entry missing session_id');
+      }
+      if (s.gate_status && !['checked', 'armed', 'completed', 'failed', 'drained'].includes(s.gate_status)) {
+        issues.push(`gate-state.json: unknown gate_status '${s.gate_status}' in session ${s.session_id || '(unknown)'}`);
+      }
+    }
+  }
+  return { valid: issues.length === 0, issues };
+}
+
+// ════════════════════════════════════════════════════════════
+// MACHINE STATE VALIDATION (MIGRATED from framework-validation.cjs, FW-ENHANCE-A2-A5-EXTRAS)
+// ════════════════════════════════════════════════════════════
+
+export interface MachineCleanlinessResult {
+  clean: boolean;
+  dirty: string[];
+}
+
+/**
+ * Check if machine.json sub-states are clean (no violations, no dirty modules).
+ *
+ * @param machineState - Parsed machine.json object
+ * @returns Cleanliness check result
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkMachineCleanliness(machineState: Record<string, unknown> | null): MachineCleanlinessResult {
+  const dirty: string[] = [];
+  if (!machineState) return { clean: true, dirty: [] };
+
+  const eslintAgg = (machineState as any).eslint_state?.aggregate;
+  if (eslintAgg?.dirty_modules?.length > 0) {
+    dirty.push(`eslint_state: ${eslintAgg.dirty_modules.length} dirty module(s) — ${eslintAgg.dirty_modules.join(', ')}`);
+  }
+
+  const tcs = (machineState as any).type_check_state;
+  if (tcs?.status && tcs.status !== 'clean') {
+    dirty.push(`type_check_state: status=${tcs.status}, ${(tcs.dirty_files || []).length} dirty file(s)`);
+  }
+
+  const ds = (machineState as any).dependency_state;
+  if (ds?.status && ds.status !== 'clean') {
+    dirty.push(`dependency_state: status=${ds.status}, ${(ds.violations || []).length} violation(s)`);
+  }
+
+  const fs2 = (machineState as any).format_state;
+  if (fs2?.status && fs2.status !== 'clean') {
+    dirty.push(`format_state: status=${fs2.status}, ${(fs2.unformatted_files || []).length} unformatted file(s)`);
+  }
+
+  return { clean: dirty.length === 0, dirty };
+}
+
+// ════════════════════════════════════════════════════════════
+// RULE REGISTRY VALIDATION (MIGRATED from framework-validation.cjs, FW-ENHANCE-A2-A5-EXTRAS)
+// ════════════════════════════════════════════════════════════
+
+export interface RegistryMismatch {
+  file: string;
+  severity: 'HIGH' | 'WARNING';
+}
+
+export interface RuleRegistryResult {
+  valid: boolean;
+  mismatches: RegistryMismatch[];
+}
+
+/**
+ * Check rule_registry.json integrity by comparing stored digests with actual file digests.
+ * HIGH = digest changed but version unchanged. WARNING = version bumped.
+ *
+ * @returns Integrity check result
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function checkRuleRegistryIntegrity(): RuleRegistryResult {
+  const mismatches: RegistryMismatch[] = [];
+  const fp = resolveFrameworkPaths();
+
+  let registryPath = fp.ruleRegistry;
+  if (!fileExists(registryPath)) {
+    if (fileExists(fp.ruleRegistryFallback)) {
+      registryPath = fp.ruleRegistryFallback;
+    } else {
+      return { valid: true, mismatches: [] };
+    }
+  }
+
+  const rr = readJsonFile<{ entries?: Record<string, { path: string; sha256?: string; semver?: string }> }>(registryPath);
+  if (!rr || !rr.entries) {
+    mismatches.push({ file: 'rule_registry.json', severity: 'HIGH' });
+    return { valid: false, mismatches };
+  }
+
+  for (const [key, entry] of Object.entries(rr.entries)) {
+    const filePath = path.join(fp.root, entry.path);
+    if (!fileExists(filePath)) {
+      mismatches.push({ file: entry.path, severity: 'HIGH' });
+      continue;
+    }
+    const actualHash = computeSHA256(filePath);
+    if (!actualHash) {
+      mismatches.push({ file: entry.path, severity: 'HIGH' });
+      continue;
+    }
+    const storedHash = entry.sha256 || '';
+    if (actualHash !== storedHash) {
+      let versionBumped = false;
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const ymMatch = content.match(/^version:\s*"?(\d+\.\d+\.\d+)"?/m);
+        if (ymMatch && ymMatch[1] !== entry.semver) {
+          versionBumped = true;
+        }
+      } catch { /* can't read — treat as HIGH */ }
+      mismatches.push({
+        file: entry.path,
+        severity: versionBumped ? 'WARNING' : 'HIGH',
+      });
+    }
+  }
+  return {
+    valid: mismatches.filter((m) => m.severity === 'HIGH').length === 0,
+    mismatches,
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// PERMISSION ISOLATION (MIGRATED from framework-validation.cjs, FW-ENHANCE-A2-A5-EXTRAS)
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Simple glob matching for agent_write_scopes patterns.
+ * Supports ** (recursive), * (single-segment wildcard), and literal paths.
+ *
+ * @param filePath - File path to test against pattern
+ * @param pattern - Glob pattern (from agent_write_scopes)
+ * @returns true if path matches the pattern
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function pathMatchesGlob(filePath: string, pattern: string): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  const pat = pattern.replace(/\\/g, '/');
+  const regexStr = pat
+    .replace(/\./g, '\\.')
+    .replace(/\*\*/g, '{{GLOBSTAR}}')
+    .replace(/\*/g, '[^/]*')
+    .replace(/{{GLOBSTAR}}/g, '.*');
+  return new RegExp(`^${regexStr}$`).test(normalized);
+}
+
+export interface WriteScope {
+  allowed: string[];
+  denied: string[];
+}
+
+/**
+ * Check whether an agent is allowed to write to a given file path.
+ * Checks denied patterns first (explicit deny always wins).
+ *
+ * @param agentType - Agent type string (e.g., "@Coder-BE")
+ * @param filePath - File path to check
+ * @param permissionProfiles - Agent write scope profiles (from project.config.json agent_write_scopes)
+ * @returns true if write is permitted, false otherwise
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export function isAgentAllowedToWrite(
+  agentType: string,
+  filePath: string,
+  permissionProfiles: Record<string, WriteScope>,
+): boolean {
+  const scopes = permissionProfiles?.[agentType];
+  if (!scopes) return true; // No scope defined — allow all
+
+  for (const pattern of scopes.denied || []) {
+    if (pathMatchesGlob(filePath, pattern)) return false;
+  }
+  for (const pattern of scopes.allowed || []) {
+    if (pathMatchesGlob(filePath, pattern)) return true;
+  }
+  return false; // No matching allow pattern — deny
+}
+
+// ════════════════════════════════════════════════════════════
+// ERROR CLASS (MIGRATED from framework-validation.cjs, FW-ENHANCE-A2-A5-EXTRAS)
+// ════════════════════════════════════════════════════════════
+
+/**
+ * FrameworkEnforcementError — structured error for enforcement violations.
+ * Carries check name, severity, agent identity, task ID, and enforcement mode
+ * for rich error handling upstream.
+ *
+ * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ */
+export class FrameworkEnforcementError extends Error {
+  /** Which check failed (e.g., "DAG Coverage", "Gate Lifecycle") */
+  check: string;
+  /** Severity level: "HIGH", "WARNING", or "INFO" */
+  severity: 'HIGH' | 'WARNING' | 'INFO';
+  /** Agent type that triggered the violation (e.g., "@Coder-BE") */
+  agent: string;
+  /** Task ID associated with the violation */
+  taskId: string;
+  /** Enforcement mode at the time of the violation */
+  mode: string;
+
+  constructor(
+    check: string,
+    message: string,
+    severity: 'HIGH' | 'WARNING' | 'INFO' = 'HIGH',
+    agent: string = '',
+    taskId: string = '',
+    mode: string = 'strict',
+  ) {
+    super(message);
+    this.name = 'FrameworkEnforcementError';
+    this.check = check;
+    this.severity = severity;
+    this.agent = agent;
+    this.taskId = taskId;
+    this.mode = mode;
+    Object.setPrototypeOf(this, FrameworkEnforcementError.prototype);
+  }
+
+  /**
+   * Serialise the error to a JSON-friendly object.
+   * @public
+   */
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      message: this.message,
+      check: this.check,
+      severity: this.severity,
+      agent: this.agent,
+      taskId: this.taskId,
+      mode: this.mode,
+    };
+  }
 }

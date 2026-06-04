@@ -21,6 +21,12 @@ if [ -z "$TASK_ID" ]; then
   exit 1
 fi
 
+# Super-Admin bypass: emergency framework administrator
+if [ "${FRAMEWORK_AGENT:-}" = "Super-Admin" ] || [ "${FRAMEWORK_AGENT:-}" = "@Super-Admin" ]; then
+  echo "[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance."
+  exit 0
+fi
+
 # Resolve project root: .opencode/scripts/pre-execution-hook.sh → project_root/
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"

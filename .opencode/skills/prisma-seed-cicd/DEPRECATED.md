@@ -13,4 +13,4 @@
 - **关联文档**:
   - `TECH_DEBT_REGISTRY.md` § TD-2026-011
   - `.opencode/rules/rule_detail/skill-invocation-standard.md` §3.1
-  - `.opencode/agents/coder-be.md`
+   - `.opencode/agents/Coder-BE.md`

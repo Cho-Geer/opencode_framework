@@ -92,12 +92,18 @@ status: active
 
 ### 4.1 配置位置
 
-强制执行模式在 `project.config.json` 的 `template_resolution` 中定义：
+强制执行模式在 `project.config.json` 的 `template_resolution` 中定义。
+
+> **⚠️ FW-HARNESS-P6 双键设计（2026-05-22）**：`project.config.json` 使用**双模式键**设计，替代了早期的单一 `enforcement_mode` 键：
+> - `develop_enforcement_mode`：本地开发模式（Agent 运行时使用，如 gate-core.ts、framework-enforcer.ts）
+> - `runtime_enforcement_mode`：CI/生产运行时模式（部署脚本使用，如 framework-validation.cjs）
+> - 二者分别由执行上下文自动区分，`ENFORCEMENT_MODE` 环境变量为最高优先级覆盖（locked 模式除外）
 
 ```json
 {
   "template_resolution": {
-    "enforcement_mode": "advisory",
+    "develop_enforcement_mode": "advisory",
+    "runtime_enforcement_mode": "advisory",
     "enforcement_config": {
       "advisory": {
         "description": "Warnings only, non-blocking. Suitable for local development.",
@@ -126,7 +132,7 @@ status: active
 环境变量 `ENFORCEMENT_MODE` 可以覆盖 `project.config.json` 中的配置：
 
 ```bash
-# 优先级：ENFORCEMENT_MODE > project.config.json.template_resolution.enforcement_mode
+# 优先级：ENFORCEMENT_MODE > project.config.json.template_resolution.{develop,runtime}_enforcement_mode
 export ENFORCEMENT_MODE=strict
 ```
 
@@ -160,9 +166,9 @@ advisory ──→ strict ──→ locked
 
 | 转换方向 | 命令 |
 |----------|------|
-| advisory → strict | 修改 `project.config.json` 中 `enforcement_mode` 为 `"strict"`，提交 |
+| advisory → strict | 修改 `project.config.json` 中 `develop_enforcement_mode` 和 `runtime_enforcement_mode` 为 `"strict"`，提交 |
 | strict → locked | 同上，改为 `"locked"`；需要 @Arbiter 批准 |
-| strict → advisory | 执行 `state-machine-reset.sh --force`，然后修改 `enforcement_mode` 为 `"advisory"` |
+| strict → advisory | 执行 `state-machine-reset.sh --force`，然后修改双模式键为 `"advisory"` |
 | locked → * | **禁止**。必须执行 `state-machine-reset.sh --force --unlock` 并附带 @Arbiter 签名的解锁令牌 |
 
 ### 5.3 转换审计
@@ -189,14 +195,14 @@ advisory ──→ strict ──→ locked
 ### 6.1 compliance_gate_check
 
 在 `runGateCheck()` 中：
-1. 读取 `enforcement_mode`
+1. 通过 `getEnforcementMode()` 读取当前生效模式（解析自 `develop_enforcement_mode` / `runtime_enforcement_mode` / `ENFORCEMENT_MODE` 环境变量）
 2. 若为 `advisory`：所有失败项降级为 `severity: WARNING`，返回 `passed: true`
 3. 若为 `strict` 或 `locked`：所有失败项保持原有严重性，返回 `passed: false`
 
 ### 6.2 compliance_gate_complete
 
 在 `runGateComplete()` 中：
-1. 读取 `enforcement_mode`
+1. 通过 `getEnforcementMode()` 读取当前生效模式（同上双键 + 环境变量解析）
 2. 若为 `advisory`：忽略 `dirty_modules`，始终标记完成
 3. 若为 `strict` 或 `locked`：`dirty_modules` → 返回 `failed`
 

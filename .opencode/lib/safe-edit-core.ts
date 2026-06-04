@@ -73,16 +73,11 @@ const _fileRegistry = new Map<string, Omit<StatSnapshot, 'path'>>();
 /**
  * Clear the in-memory file registry.
  * Useful for testing and resetting state between operations.
+ *
+ * @internal — Unit test reset only; not part of the public API.
  */
 export function clearRegistry(): void {
   _fileRegistry.clear();
-}
-
-/**
- * Get the current registry size (for diagnostics).
- */
-export function registrySize(): number {
-  return _fileRegistry.size;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -109,6 +104,8 @@ function _spinWait(ms: number): void {
 /**
  * Acquire a file lock using mkdir as a mutex.
  * Returns a release function that removes the lock directory.
+ *
+ * @public — Core TOCTOU component; used by writeSafe and safeDelete.
  */
 export function acquireLock(
   filePath: string,
@@ -150,6 +147,8 @@ export function acquireLock(
 
 /**
  * Capture a stat snapshot of a file, resolving symlinks first.
+ *
+ * @public — TOCTOU detection foundation; used by writeSafe, safeDelete.
  */
 export function captureStat(filePath: string): StatSnapshot {
   const resolvedPath = fs.realpathSync(filePath);
@@ -206,6 +205,8 @@ export function backupPath(
 /**
  * Validate that a file path is writable and content is acceptable.
  * Checks: file exists, path is absolute, content is non-empty.
+ *
+ * @public — Path validation entry point for safe_edit, writeSafeFull, safeDelete.
  */
 export function validateEdit(
   filePath: string,
@@ -245,6 +246,8 @@ export function validateEdit(
 /**
  * Generate a unified-diff style comparison between original and updated content.
  * Simple line-by-line comparison suitable for small files.
+ *
+ * @public — Diff generation for future safe_diff tool and writeSafe verification.
  */
 export function generateDiff(original: string, updated: string): DiffResult {
   const origLines = (original || '').split('\n');
@@ -299,6 +302,8 @@ export function generateDiff(original: string, updated: string): DiffResult {
  *
  * This is the core extraction of the safeEdit() function from safe-edit.ts,
  * without the tool-specific wrappers.
+ *
+ * @public — Core TOCTOU-protected file write. Used by safe_edit tool.
  */
 export function writeSafe(
   filePath: string,
@@ -461,6 +466,8 @@ export function writeSafe(
 /**
  * Restore a file from a backup created by writeSafe.
  * Uses atomic restore (copy to temp → rename) for crash safety.
+ *
+ * @public — Backup restore capability; used by safe_rollback tool.
  */
 export function restore(
   backupPathStr: string,
@@ -518,6 +525,8 @@ export const safeEdit = writeSafe;
  *
  * G1 fix: Enables the plugin safe_edit tool to create new files and
  * do full rewrites, not just oldString→newString replacement.
+ *
+ * @public — Full overwrite / new file creation. Used by safe_edit tool for non-patch writes.
  */
 export function writeSafeFull(
   filePath: string,
@@ -619,6 +628,8 @@ export function writeSafeFull(
  * Safely delete a file with TOCTOU protection and backup.
  * Uses the same _fileRegistry as writeSafe for TOCTOU detection.
  * Creates an atomic backup before deletion.
+ *
+ * @public — Safe file deletion with atomic backup. Used by safe_delete tool.
  */
 export function safeDelete(
   filePath: string,
@@ -702,6 +713,8 @@ export function safeDelete(
 // ════════════════════════════════════════════════════════════
 /**
  * Safely create a directory. mkdir is inherently atomic — no TOCTOU needed.
+ *
+ * @public — Directory creation with recursive support. Used by safe_mkdir tool.
  */
 export function safeMkdir(
   dirPath: string,

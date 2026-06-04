@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.ai/schemas/gate-state.v3.schema.json",
+  "title": "Gate State v3 Schema",
+  "description": "JSON Schema for the hierarchical gate-state v3 format. Validates hot file (gate-state.json), index file (gate-state.index.json), and archive file (gate-state.archive.json).",
+  "type": "object",
+  "properties": {
+    "formatVersion": {
+      "type": "string",
+      "const": "3.0",
+      "description": "Format version identifier. Must be '3.0' for v3 format."
+    },
+    "active_sessions": {
+      "type": "object",
+      "description": "Sessions currently active or pending (hot data, frequent access).",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "session_id": { "type": "string", "minLength": 1 },
+          "created_at": { "type": "string", "format": "date-time" },
+          "gate_status": { "type": "string", "enum": ["checked", "active", "armed", "pending"] },
+          "confirmed_at": { "type": "string", "format": "date-time" },
+          "consumed_at": { "type": "string", "format": "date-time" },
+          "task_description": { "type": "string" },
+          "plan_summary": { "type": "string" }
+        },
+        "required": ["session_id", "created_at", "gate_status", "task_description", "plan_summary"],
+        "additionalProperties": true
+      }
+    },
+    "recent_sessions": {
+      "type": "object",
+      "description": "Sessions completed within the last 7 days (warm data, kept in hot file for quick access).",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "session_id": { "type": "string", "minLength": 1 },
+          "created_at": { "type": "string", "format": "date-time" },
+          "gate_status": { "type": "string", "enum": ["completed"] },
+          "consumed_at": { "type": "string", "format": "date-time" },
+          "archive_ref": {
+            "type": "string",
+            "description": "Reference to full session data in gate-state.history/YYYY-MM-DD.jsonl#N",
+            "pattern": "^gate-state\\.history/\\d{4}-\\d{2}-\\d{2}\\.jsonl#\\d+$"
+          }
+        },
+        "required": ["session_id", "created_at", "gate_status", "consumed_at", "archive_ref"]
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "Metadata about the session store.",
+      "properties": {
+        "total_sessions": { "type": "integer", "minimum": 0 },
+        "active_count": { "type": "integer", "minimum": 0 },
+        "recent_count": { "type": "integer", "minimum": 0 },
+        "last_compacted": { "type": "string", "format": "date-time" }
+      },
+      "required": ["total_sessions", "active_count", "recent_count", "last_compacted"]
+    }
+  },
+  "required": ["formatVersion", "active_sessions", "recent_sessions", "meta"],
+  "additionalProperties": false
+}

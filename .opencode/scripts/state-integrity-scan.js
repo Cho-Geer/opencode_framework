@@ -3,9 +3,8 @@
 // Scans gate-state.json, machine.json, project.config.json, rule_registry.json,
 // and Task.DAG.json for JSON validity, required fields, and orphaned references.
 // --fix flag auto-fixes invalid JSON and orphaned sessions.
-// Refactored FW-HARNESS-MOVE-SCRIPTS: imports from framework-validation.cjs
-
-const { readJsonFile, fileExists, resolveFrameworkPaths } = require('../lib/framework-validation.cjs');
+// FW-ENHANCE-A2-A5-EXTRAS: migrated to gate-core.ts (dist/lib/gate-core.js)
+const { readJsonFile, fileExists, resolveFrameworkPaths } = require('../lib/dist/lib/gate-core.js');
 
 const paths = resolveFrameworkPaths();
 

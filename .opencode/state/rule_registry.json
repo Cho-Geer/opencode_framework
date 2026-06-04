@@ -3,8 +3,8 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-06-01T04:49:56.294Z",
-    "last_regenerated": "2026-06-01",
+    "last_updated": "2026-06-04T07:58:47.881Z",
+    "last_regenerated": "2026-06-04",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
     "digest_algorithm": "sha256",
@@ -219,8 +219,8 @@
       "path": ".opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md",
       "category": "rule",
       "semver": "1.0.0",
-      "sha256": "97b92876c920d1bda365b4d01470edc4f13275643f4fd12024b6371e01749cc8",
-      "last_modified": "2026-05-21T23:35:29.000Z",
+      "sha256": "6cebb866703a0f24645bb189f96d64b9986ef74e6edc94d7131550bd8dcebf2e",
+      "last_modified": "2026-06-04T07:58:47.878Z",
       "description": "Uppercase variant of template variable standard (legacy/unified)",
       "digest_history": [
         {
@@ -228,6 +228,12 @@
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "6cebb866703a0f24645bb189f96d64b9986ef74e6edc94d7131550bd8dcebf2e",
+          "timestamp": "2026-06-04T07:58:47.878Z",
+          "semver": "1.0.0",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
         }
       ]
     },
@@ -296,12 +302,12 @@
         }
       ]
     },
-    "agents/architect.md": {
+    "agents/Architect.md": {
       "path": ".opencode/agents/Architect.md",
       "category": "agent",
       "semver": "1.0.3",
-      "sha256": "bd99af6961502a57cb5c5b8abfca7ad1639ea0cf44f6bfb577e68d34cda8c94a",
-      "last_modified": "2026-06-01T04:49:56.285Z",
+      "sha256": "e6f28e139fb7b28832f5ab1e83351fb9f1a1af9e716ea08affb8bfa57bf57311",
+      "last_modified": "2026-06-04T07:58:47.878Z",
       "description": "System Architect – technology selection, interface contracts, directory structure",
       "digest_history": [
         {
@@ -327,15 +333,27 @@
           "timestamp": "2026-06-01T04:49:56.286Z",
           "semver": "1.0.3",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "1d39ff2c3f64f1e3bbfc034d8d76928626eda14b238bdae836ab40576df8381f",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.4",
+          "change": "uppercase path normalization"
+        },
+        {
+          "sha256": "e6f28e139fb7b28832f5ab1e83351fb9f1a1af9e716ea08affb8bfa57bf57311",
+          "timestamp": "2026-06-04T07:58:47.878Z",
+          "semver": "1.0.3",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
         }
       ]
     },
-    "agents/coder-be.md": {
+    "agents/Coder-BE.md": {
       "path": ".opencode/agents/Coder-BE.md",
       "category": "agent",
       "semver": "1.0.4",
-      "sha256": "367b0e8a0159964a53cf64e80779dba74cd6493fd333efd794b62625201ea618",
-      "last_modified": "2026-06-01T04:49:56.287Z",
+      "sha256": "1d82a3a8a66037a71b1840ff8f0225f47b2e2ca3ec7240b30bf20c7082ce74dd",
+      "last_modified": "2026-06-04T07:58:47.878Z",
       "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
         {
@@ -367,15 +385,27 @@
           "timestamp": "2026-06-01T04:49:56.287Z",
           "semver": "1.0.4",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "d7feae286fc6d3d3f198ed994e09ab75fe579a0f73d058bca6f0a2f330a5debc",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.5",
+          "change": "uppercase path normalization"
+        },
+        {
+          "sha256": "1d82a3a8a66037a71b1840ff8f0225f47b2e2ca3ec7240b30bf20c7082ce74dd",
+          "timestamp": "2026-06-04T07:58:47.878Z",
+          "semver": "1.0.4",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
         }
       ]
     },
-    "agents/coder-fe.md": {
+    "agents/Coder-FE.md": {
       "path": ".opencode/agents/Coder-FE.md",
       "category": "agent",
       "semver": "1.0.4",
-      "sha256": "67cd52f683ff7819f9968c1d98ec3ed53d36b5b46184db1e2d70865dc9890360",
-      "last_modified": "2026-06-01T04:49:56.288Z",
+      "sha256": "806fb1600080071a854e241cbf04444c09adb0cf1bde92dc39021f9ad8f666a6",
+      "last_modified": "2026-06-04T07:58:47.879Z",
       "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
         {
@@ -407,15 +437,27 @@
           "timestamp": "2026-06-01T04:49:56.288Z",
           "semver": "1.0.4",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "ab740fc85bf1278d2f1fd5cd6e7cbd35d368fc0a275ae567a3e12beaad50d8ab",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.5",
+          "change": "uppercase path normalization"
+        },
+        {
+          "sha256": "806fb1600080071a854e241cbf04444c09adb0cf1bde92dc39021f9ad8f666a6",
+          "timestamp": "2026-06-04T07:58:47.879Z",
+          "semver": "1.0.4",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
         }
       ]
     },
-    "agents/orchestrator.md": {
+    "agents/Orchestrator.md": {
       "path": ".opencode/agents/Orchestrator.md",
       "category": "agent",
       "semver": "1.0.4",
-      "sha256": "10a9f266f4ce1e861012f4d7541e36770581a1ec36a9569eb229def8112bad7f",
-      "last_modified": "2026-06-01T04:49:56.289Z",
+      "sha256": "ab78ca132e76c257a75bb1d97596635189b25f1f766e96c7bd73590adc88edbd",
+      "last_modified": "2026-06-04T07:58:47.879Z",
       "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch",
       "digest_history": [
         {
@@ -447,15 +489,27 @@
           "timestamp": "2026-06-01T04:49:56.289Z",
           "semver": "1.0.4",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "4cbddd4d2ecc6367970f3f5cdc4e12eb4b8bcf8e4a2cac39530cf3ff6ed7ba6c",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.5",
+          "change": "uppercase path normalization"
+        },
+        {
+          "sha256": "ab78ca132e76c257a75bb1d97596635189b25f1f766e96c7bd73590adc88edbd",
+          "timestamp": "2026-06-04T07:58:47.879Z",
+          "semver": "1.0.4",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
         }
       ]
     },
-    "agents/guardian.md": {
+    "agents/Guardian.md": {
       "path": ".opencode/agents/Guardian.md",
       "category": "agent",
       "semver": "1.0.2",
-      "sha256": "60a5f63e9a88344673d883cd3ff47e687b0eb770175297ca8099f2423f92b54b",
-      "last_modified": "2026-05-26T10:40:03.757Z",
+      "sha256": "547cf0fe3a3a65caee37d4b9680b6a141b4240022239e9b154fc21635c10f454",
+      "last_modified": "2026-06-04T07:58:47.879Z",
       "description": "Quality Gate – code standards, security, architecture constraint review",
       "digest_history": [
         {
@@ -475,6 +529,84 @@
           "timestamp": "2026-05-26T10:40:03.757Z",
           "semver": "1.0.2",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "1f240dec5755bb24c678a14443c6df07f2e5f419c487daa0d2abe30e6a5000e9",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.3",
+          "change": "uppercase path normalization"
+        },
+        {
+          "sha256": "547cf0fe3a3a65caee37d4b9680b6a141b4240022239e9b154fc21635c10f454",
+          "timestamp": "2026-06-04T07:58:47.879Z",
+          "semver": "1.0.2",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
+        }
+      ]
+    },
+    "agents/Meta-Planner.md": {
+      "path": ".opencode/agents/Meta-Planner.md",
+      "category": "agent",
+      "semver": "1.0.0",
+      "sha256": "50d99b5a2a0dbb11c8619c54d31792f20e5c3ce8c477467fc8809dbf4258a462",
+      "last_modified": "2026-06-04T07:58:47.879Z",
+      "description": "Project CTO – top-level requirement decomposition and DAG planning",
+      "digest_history": [
+        {
+          "sha256": "c034ff97cf25b96738bf96c2486a41c2bac416778794659b532b2536abe4d49a",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration (uppercase path normalization)"
+        },
+        {
+          "sha256": "50d99b5a2a0dbb11c8619c54d31792f20e5c3ce8c477467fc8809dbf4258a462",
+          "timestamp": "2026-06-04T07:58:47.879Z",
+          "semver": "1.0.0",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
+        }
+      ]
+    },
+    "agents/Arbiter.md": {
+      "path": ".opencode/agents/Arbiter.md",
+      "category": "agent",
+      "semver": "1.0.0",
+      "sha256": "8f5d0607c9e3356b4119077cd64ea20aab1863309e50037a4d29eb9dce712cad",
+      "last_modified": "2026-06-04T07:58:47.880Z",
+      "description": "Technical Committee – conflict resolution and technical debt waiver approval",
+      "digest_history": [
+        {
+          "sha256": "0b6ab720a6ca49bc798f15e788f148321d72904e83c4031d685b66803197a003",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration (uppercase path normalization)"
+        },
+        {
+          "sha256": "8f5d0607c9e3356b4119077cd64ea20aab1863309e50037a4d29eb9dce712cad",
+          "timestamp": "2026-06-04T07:58:47.880Z",
+          "semver": "1.0.0",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
+        }
+      ]
+    },
+    "agents/CI-CD-Agent.md": {
+      "path": ".opencode/agents/CI-CD-Agent.md",
+      "category": "agent",
+      "semver": "1.0.0",
+      "sha256": "9402622590b47c624a449ca0a13b51ed88d4e564e7518efded8ee9c7a4ec08dd",
+      "last_modified": "2026-06-04T07:58:47.880Z",
+      "description": "DevOps/SRE – CI pipeline management, auto-deployment, git version management, production self-healing",
+      "digest_history": [
+        {
+          "sha256": "67e01ae0b20888144a32bf1959ee61dc5b44438fb18a5122b86d61ce2acf8102",
+          "timestamp": "2026-06-01T16:26:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration (uppercase path normalization)"
+        },
+        {
+          "sha256": "9402622590b47c624a449ca0a13b51ed88d4e564e7518efded8ee9c7a4ec08dd",
+          "timestamp": "2026-06-04T07:58:47.880Z",
+          "semver": "1.0.0",
+          "change": "FW-REPAIR-13: digest regenerated after content change"
         }
       ]
     },
@@ -514,8 +646,8 @@
   "integrity": {
     "last_full_verification": "2026-05-26T01:35:48.022946Z",
     "last_regenerated": "2026-05-23",
-    "last_verified_digest": "sha256-all-24-verified",
-    "verified_count": 24,
+    "last_verified_digest": "sha256-all-27-verified",
+    "verified_count": 27,
     "mismatch_count": 0,
     "warning_count": 0,
     "critical_mismatches": [],

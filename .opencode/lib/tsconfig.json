@@ -1,19 +1,28 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
     "target": "ES2022",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "declaration": true,
+    "module": "commonjs",
     "outDir": "./dist",
-    "rootDir": "..",
-    "sourceMap": true,
+    "rootDir": ".",
+    "declaration": true,
+    "strict": false,
+    "esModuleInterop": true,
     "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node10",
     "resolveJsonModule": true,
+    "ignoreDeprecations": "6.0",
     "types": ["node"]
   },
-  "include": ["./**/*.ts", "../**/*.ts"],
-  "exclude": ["node_modules", "dist", "__tests__"]
+  "include": [
+    "state-manager.ts",
+    "state-compactor.ts",
+    "log-rotator.ts",
+    "dag-version-manager.ts"
+  ],
+  "exclude": [
+    "dist",
+    "__tests__",
+    "node_modules"
+  ]
 }

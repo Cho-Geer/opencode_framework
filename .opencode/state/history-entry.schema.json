@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.ai/schemas/history-entry.schema.json",
+  "title": "Gate Session History Entry",
+  "description": "JSON Schema for individual JSONL entries in gate-state.history/YYYY-MM-DD.jsonl. Each line is a serialized GateSessionHistoryEntry containing the full verbose audit trail for a completed compliance gate session.",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "pattern": "^cg_ses_\\d{13}$",
+      "description": "Unique session identifier matching the compliance gate session ID format (e.g., cg_ses_1779323731637)"
+    },
+    "task_description": {
+      "type": "string",
+      "minLength": 5,
+      "description": "Original task description provided by the user at compliance_gate_check time"
+    },
+    "plan_summary": {
+      "type": "string",
+      "minLength": 5,
+      "description": "Execution plan summary confirmed via compliance_gate_confirm"
+    },
+    "execution_summary": {
+      "type": "string",
+      "description": "Final execution summary provided at compliance_gate_complete time"
+    },
+    "audit": {
+      "type": "object",
+      "description": "Audit metadata recorded at gate completion",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["completed", "drained"],
+          "description": "Final gate session status. 'completed' = normal completion, 'drained' = force-drained as stale"
+        },
+        "session_id": {
+          "type": "string",
+          "description": "Redundant session ID for cross-reference integrity"
+        },
+        "task_description": {
+          "type": "string",
+          "description": "Redundant task description for cross-reference integrity (may differ slightly from top-level)"
+        },
+        "plan_summary": {
+          "type": "string",
+          "description": "Redundant plan summary for cross-reference integrity"
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when compliance_gate_confirm was called"
+        },
+        "consumed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when compliance_gate_complete consumed the armed state"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when the session was marked as completed"
+        },
+        "execution_summary": {
+          "type": "string",
+          "description": "Redundant execution summary for cross-reference integrity"
+        },
+        "audit_history_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of audit history entries recorded for this session"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "required": ["session_id", "task_description", "plan_summary", "execution_summary"]
+}

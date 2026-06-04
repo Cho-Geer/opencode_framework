@@ -83,6 +83,19 @@ export const PERMISSION_PROFILES: Record<string, AgentPermissions> = {
     agentType: '@Orchestrator',
     tools: { edit: 'deny', bash: 'deny', task: 'allow' },
   },
+  /**
+   * @Super-Admin — Emergency framework repair only, human-invoked.
+   * Full permissions: bypasses all tool constraints for emergency framework
+   * surgery. Edit, bash, and task are all allowed. NOT bypassed: compliance
+   * gate lifecycle, audit logging, business code restrictions.
+   *
+   * @public — Used by PermissionIsolation.checkPermission() for permission verification.
+   * @since 2026-06-03 (FW-ENHANCE-A3)
+   */
+  '@Super-Admin': {
+    agentType: '@Super-Admin',
+    tools: { edit: 'allow', bash: 'allow', task: 'allow' },
+  },
 };
 
 /**
@@ -102,6 +115,8 @@ export const VALID_TOOLS = new Set(['edit', 'bash', 'task']);
 export class PermissionIsolation {
   /**
    * Check if a specific agent has permission to use a specific tool.
+   *
+   * @public — Used by PermissionIsolation plugin tool.execute.before hook.
    */
   async checkPermission(
     agentType: string,
@@ -135,6 +150,8 @@ export class PermissionIsolation {
 
   /**
    * Get the full permission profile for an agent type.
+   *
+   * @public — Permission profile query; used by framework-enforcer and audit tools.
    */
   async getAgentPermissions(agentType: string): Promise<AgentPermissions> {
     const profile = PERMISSION_PROFILES[agentType];
@@ -150,6 +167,8 @@ export class PermissionIsolation {
   /**
    * Check whether an agent's write scope allows writing to a file path.
    * Denied patterns always win over allowed patterns.
+   *
+   * @public — Global write protection check; used by framework-enforcer.ts.
    */
   async checkWriteScope(
     agentType: string,

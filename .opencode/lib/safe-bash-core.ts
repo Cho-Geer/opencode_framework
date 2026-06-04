@@ -136,6 +136,9 @@ export const AGENT_ALLOWLISTS: Record<string, string[]> = {
   '@Architect': [
     'sed *',
   ],
+  '@Super-Admin': [
+    'git *',
+  ],
 };
 
 /**
@@ -185,6 +188,8 @@ export const WRITE_PATTERNS: RegExp[] = [
 /**
  * Performs glob-style matching of a command against a pattern.
  * Supports `*` as a wildcard for any sequence of characters.
+ *
+ * @public — Command pattern matching. Also used by framework-enforcer.ts for write-scope checks.
  */
 export function matchGlob(command: string, pattern: string): boolean {
   const regex = pattern
@@ -197,6 +202,8 @@ export function matchGlob(command: string, pattern: string): boolean {
 
 /**
  * Check if a command matches any pattern in the given allowlist.
+ *
+ * @public — Allowlist validation; used by safeBashTool and framework-enforcer.
  */
 export function isAllowed(command: string, allowlist: string[]): boolean {
   return allowlist.some((pattern) => matchGlob(command, pattern));
@@ -204,6 +211,8 @@ export function isAllowed(command: string, allowlist: string[]): boolean {
 
 /**
  * Check if a command contains any dangerous patterns.
+ *
+ * @public — Dangerous pattern detection; used by safeBashTool.
  */
 export function isDangerous(command: string): boolean {
   return DANGEROUS_PATTERNS.some((pattern) => pattern.test(command));
@@ -212,6 +221,8 @@ export function isDangerous(command: string): boolean {
 /**
  * Get the effective allowlist for a given agent.
  * Merges DEFAULT_ALLOWLIST with agent-specific extensions.
+ *
+ * @public — Agent-specific merged allowlist; used by safeBashTool and framework-enforcer.
  */
 export function getAllowlist(agent: string): string[] {
   // Normalize: ensure leading @ for AGENT_ALLOWLISTS lookup
@@ -292,6 +303,14 @@ function logAction(result: SafeBashResult): void {
   };
 
   fs.appendFileSync(logFile, JSON.stringify(entry) + '\n');
+
+  // ── P2-2: Log rotation trigger (best-effort, fire-and-forget) ──
+  try {
+    const { rotateSafeBashLogIfNeeded } = require("./dist/log-rotator");
+    rotateSafeBashLogIfNeeded().catch(() => {});
+  } catch {
+    // Best-effort: rotation module may not be compiled yet
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -301,6 +320,8 @@ function logAction(result: SafeBashResult): void {
 /**
  * Execute safe bash command with allowlist validation, dangerous pattern
  * detection, and script content scanning for node *.ts/*.js scripts.
+ *
+ * @public — Core safe bash execution. Entry point for safe_shell tool.
  */
 export function safeBashTool(options: SafeBashOptions): SafeBashResult {
   const {

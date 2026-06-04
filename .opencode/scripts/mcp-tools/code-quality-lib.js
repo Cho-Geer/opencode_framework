@@ -371,7 +371,7 @@ function runEslintAudit(filePath, projectRoot, options) {
   const pluginDir = path.join(
     projectRoot,
     ".opencode",
-    "tools",
+    "eslint-plugin",
     "eslint-plugin-opencode-mock-audit",
   );
   if (!fs.existsSync(pluginDir)) {

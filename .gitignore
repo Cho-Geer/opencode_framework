@@ -99,3 +99,28 @@ screenshots/
 .codex/
 .workbuddy/
 docs/handover/
+
+# Safe-edit auto-backups (temporary rollback artifacts)
+**/.opencode_backups/
+
+# TypeScript compiled output
+.opencode/lib/gate-core.js
+.opencode/lib/lib/
+.opencode/lib/plugins/
+.opencode/lib/tools/
+
+# Empty scaffold directories (keep .gitkeep only)
+.opencode/lib/hooks/
+.opencode/lib/scripts/
+
+# Runtime state (not for commit)
+.opencode/logs/safe-bash.log*
+!.opencode/logs/archive/.gitkeep
+.opencode/state/.transaction-log*
+
+# Deprecated backups
+.opencode/state/.backups/legacy/
+
+.docs/review/
+!docs/review/rule-registry/
+!docs/review/state-management/.opencode/logs/safe-bash.log*

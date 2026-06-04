@@ -89,11 +89,54 @@ function incrementRevision(machineObj) {
 /**
  * Append a log entry to the Write-Ahead Log (NDJSON format).
  * Each line is a JSON object terminated by \n.
+ * 
+ * FW-REPAIR-12: Auto-rotates .transaction-log when it exceeds 100KB
+ * (same policy as safe-bash.log). Rotation is non-blocking — if it fails,
+ * the log continues in the current file.
  */
 function appendTransactionLog(entry) {
   ensureStateDir();
   const line = JSON.stringify(entry) + "\n";
   fs.appendFileSync(TRANSACTION_LOG, line, "utf-8");
+  
+  // Auto-rotate if log exceeds 100KB (non-blocking)
+  try {
+    const stat = fs.statSync(TRANSACTION_LOG);
+    if (stat.size > 100 * 1024) {
+      rotateTransactionLog();
+    }
+  } catch (_) {
+    // Rotation is best-effort; failures should not block the append
+  }
+}
+
+/**
+ * Rotate .transaction-log: shift .2→.3, .1→.2, current→.1
+ */
+function rotateTransactionLog() {
+  const MAX_ROTATED = 3;
+  const dir = path.dirname(TRANSACTION_LOG);
+  
+  // Remove oldest rotated file
+  const oldestFile = `${TRANSACTION_LOG}.${MAX_ROTATED}`;
+  if (fs.existsSync(oldestFile)) {
+    fs.unlinkSync(oldestFile);
+  }
+  
+  // Shift rotated files: .2→.3, .1→.2
+  for (let i = MAX_ROTATED - 1; i >= 1; i--) {
+    const src = `${TRANSACTION_LOG}.${i}`;
+    const dst = `${TRANSACTION_LOG}.${i + 1}`;
+    if (fs.existsSync(src)) {
+      fs.renameSync(src, dst);
+    }
+  }
+  
+  // Move current to .1
+  fs.renameSync(TRANSACTION_LOG, `${TRANSACTION_LOG}.1`);
+  
+  // Start fresh log
+  fs.writeFileSync(TRANSACTION_LOG, "", "utf-8");
 }
 
 /**

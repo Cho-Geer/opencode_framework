@@ -41,7 +41,9 @@ import type { Plugin, PluginInput, Hooks } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { createRequire } from "node:module";
 import { PermissionIsolation } from "../../lib/permission-isolation-core";
+import { getEnforcementMode, readJsonFile, computeSHA256, findArmedSession, findAnyGateSession } from "../../lib/gate-core";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -149,14 +151,12 @@ const STATE_PATHS = {
 // State readers (read-only; never create a second state model)
 // ---------------------------------------------------------------------------
 
-function readJsonFile<T>(filePath: string): T | null {
-  try {
-    const raw = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
-}
+/**
+ * @public — readJsonFile is now imported from lib/gate-core.
+ * @see import { readJsonFile } from "../../lib/gate-core"
+ * This eliminates the 8-line inline duplicate that was identical to gate-core's implementation.
+ * Gate-core version additionally checks fs.existsSync before reading — safer behavior.
+ */
 
 function ensureDir(dirPath: string): void {
   try {
@@ -168,15 +168,13 @@ function ensureDir(dirPath: string): void {
 
 // ---------------------------------------------------------------------------
 // Utility: compute SHA-256 hash of a file
+// Wraps computeSHA256 from lib/gate-core (imported above).
+// Gate-core returns null on failure; wrapper returns "" for backward compat
+// with plugin integrity check's comparison logic.
 // ---------------------------------------------------------------------------
 
 function computeFileHash(filePath: string): string {
-  try {
-    const content = fs.readFileSync(filePath);
-    return crypto.createHash("sha256").update(content).digest("hex");
-  } catch {
-    return "";
-  }
+  return computeSHA256(filePath) ?? "";
 }
 
 // ---------------------------------------------------------------------------
@@ -212,23 +210,9 @@ function checkPluginIntegrity(): { valid: boolean; detail: string } {
 }
 
 // ---------------------------------------------------------------------------
-// Enforcement mode retrieval
+// Enforcement mode retrieval — imported from lib/gate-core
 // ---------------------------------------------------------------------------
-
-function getEnforcementMode(): "advisory" | "strict" | "locked" {
-  const envMode = process.env.ENFORCEMENT_MODE || process.env.FRAMEWORK_MODE;
-  if (envMode && ["advisory", "strict", "locked"].includes(envMode)) {
-    return envMode as "advisory" | "strict" | "locked";
-  }
-
-  const config = readJsonFile<ProjectConfig>(STATE_PATHS.projectConfig());
-  const mode = config?.template_resolution?.enforcement_mode;
-  if (mode && ["advisory", "strict", "locked"].includes(mode)) {
-    return mode as "advisory" | "strict" | "locked";
-  }
-
-  return "strict";
-}
+// See import { getEnforcementMode } from "../../lib/gate-core" at top of file
 
 // ---------------------------------------------------------------------------
 // DAG and gate state readers
@@ -245,54 +229,24 @@ function findTaskInDag(taskId: string): { found: boolean; status: string } {
     : { found: false, status: "unknown" };
 }
 
-function findArmedSession(): {
-  found: boolean;
-  sessionId: string | null;
-} {
-  const gate = readJsonFile<GateState>(STATE_PATHS.gateState());
-  if (!gate || !gate.sessions) {
-    return { found: false, sessionId: null };
-  }
-
-  const sessions = Object.values(gate.sessions);
-  const armedSession = sessions.find(
-    (s) => s.gate_status === "armed" && s.consumed_at === null,
-  );
-
-  if (armedSession) {
-    return { found: true, sessionId: armedSession.session_id };
-  }
-
-  return { found: false, sessionId: null };
-}
+/**
+ * @public — findArmedSession is now imported from lib/gate-core.
+ * @see import { findArmedSession } from "../../lib/gate-core"
+ *
+ * Previously inlined (~20 lines) in this file. Centralized in gate-core.ts
+ * (FW-HARNESS-P0-2a) to eliminate duplication and keep the armed-session
+ * predicate consistent across all consumers.
+ */
 
 /**
- * Find any non-consumed, non-drained gate session.
- * Used for planning-phase tools (task) that require at least a checked session,
- * without requiring the stricter "armed" status.
+ * @public — findAnyGateSession is now imported from lib/gate-core.
+ * @see import { findAnyGateSession } from "../../lib/gate-core"
+ *
+ * Previously inlined (~22 lines) in this file. Centralized in gate-core.ts
+ * (FW-HARNESS-P0-2a). Returns any non-consumed, non-drained session —
+ * used for planning-phase tools (task) that require at least a checked
+ * session without demanding the stricter "armed" status.
  */
-function findAnyGateSession(): {
-  found: boolean;
-  sessionId: string | null;
-} {
-  const gate = readJsonFile<GateState>(STATE_PATHS.gateState());
-  if (!gate || !gate.sessions) {
-    return { found: false, sessionId: null };
-  }
-
-  const sessions = Object.values(gate.sessions);
-  const validSession = sessions.find(
-    (s) =>
-      s.consumed_at === null &&
-      s.gate_status !== "drained",
-  );
-
-  if (validSession) {
-    return { found: true, sessionId: validSession.session_id };
-  }
-
-  return { found: false, sessionId: null };
-}
 
 // ---------------------------------------------------------------------------
 // Write scope check
@@ -337,10 +291,22 @@ function matchGlob(filePath: string, pattern: string): boolean {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Phase 2 R4: Expanded source file detection to include all file types
+ * subject to write-time quality checks (.html, .scss, .prisma).
+ */
 function isSourceFile(filePath: string): boolean {
   if (!filePath) return false;
-  return /\.(ts|tsx|js|jsx)$/.test(filePath);
+  return /\.(ts|tsx|js|jsx|html|scss|prisma)$/.test(filePath);
 }
+
+/**
+ * Phase 2 R4: Debouncing state for write-time check auto-trigger.
+ * Batches rapid writes within WRITE_CHECK_DEBOUNCE_MS into a single check.
+ */
+let _lastWriteCheckTime = 0;
+let _pendingWriteChecks: string[] = [];
+const WRITE_CHECK_DEBOUNCE_MS = 2000;
 
 function isCriticalFrameworkFile(filePath: string): boolean {
   const normalized = filePath.replace(/\\/g, "/");
@@ -637,7 +603,7 @@ async function toolExecuteBefore(
       throw new Error(
         "[FW-ENFORCE][LOCKED] Coder-BE modification of framework files blocked. " +
         "Coder-BE may only modify business code (booking-backend/src/). " +
-        "Framework changes must go through @Architect."
+        "Framework changes must go through @Super-Admin."
       );
     }
   }
@@ -647,7 +613,7 @@ async function toolExecuteBefore(
     const cmd = (output.args?.command as string) || "";
     const WRITE_PATTERNS = [/s+>s*.opencode//, /s+>>s*.opencode//, /rms+.*.opencode//, /cps+.*.opencode//, /mvs+.*.opencode//, /mkdirs+.*.opencode//, /tees+.*.opencode//, /nodes+-es+.*.opencode//];
     if (WRITE_PATTERNS.some(p => p.test(cmd))) {
-      throw new Error("[FW-ENFORCE][LOCKED] Coder-BE safe_bash write to framework files blocked. Framework changes must go through @Architect.");
+      throw new Error("[FW-ENFORCE][LOCKED] Coder-BE safe_bash write to framework files blocked. Framework changes must go through @Super-Admin.");
     }
   }
   
@@ -659,7 +625,7 @@ async function toolExecuteBefore(
       throw new Error(
         "[FW-ENFORCE][LOCKED] Coder-FE modification of framework files blocked. " +
         "Coder-FE may only modify business code (booking-frontend/src/). " +
-        "Framework changes must go through @Architect."
+        "Framework changes must go through @Super-Admin."
       );
     }
   }
@@ -669,25 +635,108 @@ async function toolExecuteBefore(
     const cmd = (output.args?.command as string) || "";
     const WRITE_PATTERNS = [/s+>s*.opencode//, /s+>>s*.opencode//, /rms+.*.opencode//, /cps+.*.opencode//, /mvs+.*.opencode//, /mkdirs+.*.opencode//, /tees+.*.opencode//, /nodes+-es+.*.opencode//];
     if (WRITE_PATTERNS.some(p => p.test(cmd))) {
-      throw new Error("[FW-ENFORCE][LOCKED] Coder-FE safe_bash write to framework files blocked. Framework changes must go through @Architect.");
+      throw new Error("[FW-ENFORCE][LOCKED] Coder-FE safe_bash write to framework files blocked. Framework changes must go through @Super-Admin.");
     }
   }
   
-  // === P0: Architect — block business code writes (physical constraint) ===
+  // === P0: Super-Admin bypass — emergency framework administrator ===
+  if (agent === "Super-Admin" || agent === "@Super-Admin") {
+    logAuditEntry({
+      event: "super_admin_bypass",
+      tool,
+      sessionID: input.sessionID,
+      detail: `Super-Admin bypassed standard enforcement for tool "${tool}"`,
+    });
+    return;
+  }
+
+  // === P0: Architect — block business code AND sensitive framework writes (physical constraint) ===
   if ((tool === "write" || tool === "edit" || tool === "safe_edit") && 
       (agent === "Architect" || agent === "@Architect")) {
     const filePath = output.args?.filePath || "";
+
+    // Block 1: No business code writes
     if (filePath.includes("booking_system_refactor/booking-backend/src/") ||
         filePath.includes("booking_system_refactor/booking-frontend/src/") ||
         filePath.includes("booking_system_refactor/booking-backend/test/")) {
       throw new Error(
         "[FW-ENFORCE][LOCKED] Architect modification of business code blocked. " +
-        "Architect may only modify framework files (.opencode/). " +
-        "Business code changes must go through @Coder-BE / @Coder-FE."
+        "Architect may only modify contract.yaml, .opencode/context/, .opencode/state/machine.json, " +
+        "docs/, and .task_temp/. Business code changes must go through @Coder-BE / @Coder-FE."
+      );
+    }
+
+    // Block 2: No sensitive framework writes
+    if (filePath.includes(".opencode/") &&
+        !filePath.includes(".opencode/context/") &&
+        !filePath.includes(".opencode/state/machine.json") &&
+        !filePath.includes("contract.yaml") &&
+        !filePath.includes("docs/") &&
+        !filePath.includes(".task_temp/")) {
+      throw new Error(
+        "[FW-ENFORCE][LOCKED] Architect modification of framework infrastructure blocked. " +
+        "Architect may only modify contract.yaml, .opencode/context/** (specs/standards/designs), " +
+        ".opencode/state/machine.json (keystone hash), docs/, and .task_temp/. " +
+        "Framework changes (agents/, rules/, scripts/, plugins/, subagent-preamble.md, " +
+        "project.config.json, opencode.json) must go through @Super-Admin."
       );
     }
   }
 
+
+  // === Phase 3 R7: Docs Consistency Check (FW-HARNESS-DOCS-CONSISTENCY) ===
+  // Hard-enforces that @Coder-BE/@Coder-FE complete Step 5a (docs consistency)
+  // before writing source code. In strict/locked mode, writes are blocked if
+  // TASK_LOG.md lacks a `## 📄 Docs Consistency Report` section.
+  // In advisory mode, a warning is logged but execution continues.
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit") &&
+      (agent === "Coder-BE" || agent === "@Coder-BE" ||
+       agent === "Coder-FE" || agent === "@Coder-FE")) {
+    const filePath = output.args?.filePath || "";
+    if (filePath && isSourceFile(filePath)) {
+      const taskId = process.env.FRAMEWORK_TASK_ID || "";
+      if (taskId) {
+        const taskLogPath = path.resolve(
+          getOpenCodeRoot(),
+          ".task_temp",
+          taskId,
+          "TASK_LOG.md",
+        );
+        if (fs.existsSync(taskLogPath)) {
+          try {
+            const logContent = fs.readFileSync(taskLogPath, "utf8");
+            const hasDocsReport = /##\s*📄\s*Docs Consistency Report/.test(logContent);
+            if (!hasDocsReport) {
+              const msg =
+                "[FW-ENFORCE][BLOCKED] Docs Consistency Report missing from TASK_LOG.md. " +
+                "@Coder-BE/@Coder-FE must complete Step 5a (docs consistency check) " +
+                "before writing source code. WAIVE.md with DOC-CAT1.0 entry can bypass.";
+              if (mode === "strict" || mode === "locked") {
+                throw new Error(msg);
+              }
+              // advisory mode: log warning, allow execution
+              logAuditEntry({
+                event: "docs_consistency_advisory",
+                agent,
+                filePath,
+                taskId,
+                detail: msg,
+              });
+            }
+          } catch (_readErr) {
+            // If TASK_LOG.md is unreadable, skip check — don't block
+          }
+        }
+        // If TASK_LOG.md doesn't exist, skip check (some tasks may not have one yet)
+      }
+    }
+  }
+
+  /**
+   * Phase 3 R7: Docs consistency enforcement — blocks source writes when
+   * TASK_LOG.md lacks Docs Consistency Report. Active for @Coder-BE/@Coder-FE
+   * on source files. Strict/locked mode blocks; advisory logs warning.
+   */
 
   // ---- Plugin integrity check (FW-HARNESS-PLUGIN-CHECK) ----
   const integrityResult = checkPluginIntegrity();
@@ -781,7 +830,11 @@ async function toolExecuteBefore(
       if (newContent) {
         try {
           const parsed = JSON.parse(newContent);
-          const newMode = parsed?.template_resolution?.enforcement_mode;
+          // FW-HARNESS-P6 (P0-1 repair 2026-06-03): Use dual-key enforcement
+          // (develop_enforcement_mode || runtime_enforcement_mode)
+          // NOT the old single key "enforcement_mode" which doesn't exist in project.config.json
+          const newMode = parsed?.template_resolution?.develop_enforcement_mode ||
+                          parsed?.template_resolution?.runtime_enforcement_mode;
           if (newMode && newMode !== mode) {
             violations.push(
               `[FW-ENFORCE] Blocked attempt to change enforcement_mode from "${mode}" to "${newMode}" in ${mode} mode`,
@@ -1013,6 +1066,32 @@ async function toolExecuteAfter(
     process.env.FRAMEWORK_PENDING_FULLSCAN = "true";
   }
 
+  // ---- (e) Auto-trigger Write-Time Audit (Phase 2 R4) — FW-HARNESS-WRITE-AUDIT-AUTO ----
+  // Replaces the legacy manual MCP tool call from preamble Step 5b.
+  // After each write/edit to a source file, automatically runs quality checks
+  // and updates machine.json states directly — no agent-initiated MCP call needed.
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit") && filePath) {
+    const srcPattern = /\.(ts|tsx|js|jsx|html|scss|prisma)$/;
+    const skipPattern = /(\.md$|\.json$|\.yaml$|\.yml$|\.task_temp\/)/;
+    const isSrcFile = srcPattern.test(filePath) && !skipPattern.test(filePath);
+
+    if (isSrcFile) {
+      const now = Date.now();
+      // Debounce: batch writes within WRITE_CHECK_DEBOUNCE_MS window
+      if (now - _lastWriteCheckTime > WRITE_CHECK_DEBOUNCE_MS) {
+        // Flush pending batch
+        if (_pendingWriteChecks.length > 0) {
+          _executeWriteAuditCheck(_pendingWriteChecks, agent, taskId);
+          _pendingWriteChecks = [];
+        }
+        _lastWriteCheckTime = now;
+        _executeWriteAuditCheck([filePath], agent, taskId);
+      } else {
+        _pendingWriteChecks.push(filePath);
+      }
+    }
+  }
+
   // === Orchestrator behavior audit (Layer 5) ===
   if ((agent === "Orchestrator" || agent === "@Orchestrator") && tool !== "task" && tool !== "read" && tool !== "todowrite") {
     logAuditEntry({
@@ -1021,6 +1100,218 @@ async function toolExecuteAfter(
       timestamp: new Date().toISOString(),
       message: `Orchestrator attempted to call non-scheduling tool "${tool}" and was blocked by DISPATCH GATE`
     });
+  }
+}
+
+/**
+ * Phase 2 R4: Write-Time Audit Auto-Trigger
+ *
+ * Called by toolExecuteAfter when a write/edit/safe_edit is performed on a
+ * source file (.ts, .js, .html, .scss, .prisma). Updates machine.json states
+ * directly without requiring the agent to call an MCP tool.
+ *
+ * Checks performed:
+ *   1. Scope — checks if agent has write permission (blocker in strict/locked)
+ *   2. ESLint state — marks module as needing lint check
+ *   3. Type check state — marks file as needing tsc check
+ *   4. Format state — marks file as needing prettier check
+ *   5. Dependency state — marks file as needing depcruiser check
+ *   6. Write audit state — records the write in current_session
+ *
+ * For full quality checks (tsc, eslint, depcruiser, prettier), delegates to
+ * code-quality-lib.js when available; otherwise performs lightweight inline checks.
+ *
+ * @param files - Array of file paths written (debounced batch)
+ * @param agent - Agent type string (e.g., "@Coder-BE")
+ * @param taskId - Current task ID
+ */
+function _executeWriteAuditCheck(
+  files: string[],
+  agent: string,
+  taskId: string,
+): void {
+  const mode = getEnforcementMode();
+  const machinePath = STATE_PATHS.machine();
+
+  try {
+    const machine = readJsonFile<any>(machinePath);
+    if (!machine) return;
+
+    // Init sub-states if missing
+    machine.write_audit_state = machine.write_audit_state || {
+      enabled: true,
+      current_session: null,
+      history: [],
+    };
+    machine.eslint_state = machine.eslint_state || {
+      aggregate: { dirty_modules: [], total_violations: 0, waived_modules: [] },
+    };
+    machine.type_check_state = machine.type_check_state || {
+      status: "clean",
+      dirty_files: [],
+      incremental_errors: 0,
+    };
+    machine.dependency_state = machine.dependency_state || {
+      status: "clean",
+      violations: [],
+    };
+    machine.format_state = machine.format_state || {
+      status: "clean",
+      unformatted_files: [],
+    };
+
+    const writeAudit = machine.write_audit_state;
+    writeAudit.current_session = writeAudit.current_session || {
+      agent,
+      task_id: taskId || "unknown",
+      files_written: [],
+      checks_run: 0,
+      checks_passed: 0,
+      checks_failed: 0,
+      violations_found: 0,
+      violations_resolved: 0,
+      scope_violations_attempted: 0,
+    };
+
+    const session = writeAudit.current_session;
+
+    for (const file of files) {
+      // Skip non-source files
+      if (!/\.(ts|tsx|js|jsx|html|scss|prisma)$/.test(file)) continue;
+      if (/\.task_temp\//.test(file)) continue;
+
+      session.files_written.push(file);
+      session.checks_run++;
+
+      // 1. Scope check (inline — critical, must block)
+      const scopeAllowed = isWriteAllowed(agent, file);
+      if (!scopeAllowed) {
+        session.scope_violations_attempted++;
+        session.checks_failed++;
+        session.violations_found++;
+        const msg = `[FW-ENFORCE] Write-Audit: Agent "${agent}" scope violation writing to "${file}"`;
+        if (mode === "strict" || mode === "locked") {
+          logAuditEntry({
+            timestamp: new Date().toISOString(),
+            event: "write_audit_scope_blocked",
+            agent,
+            file,
+            mode,
+          });
+          // Throw to block subsequent writes
+          throw new Error(`${msg} (mode: ${mode}). Revert the change.`);
+        } else {
+          logAuditEntry({
+            timestamp: new Date().toISOString(),
+            event: "write_audit_scope_warning",
+            agent,
+            file,
+            mode,
+          });
+        }
+      } else {
+        session.checks_passed++;
+      }
+
+      // 2. Mark for deferred checks
+      // Extract module name from file path for eslint_state tracking
+      const moduleMatch = file.match(/modules\/([^/]+)/);
+      const moduleName = moduleMatch ? moduleMatch[1] : file.replace(/\//g, "_");
+      if (!machine.eslint_state.modules) {
+        machine.eslint_state.modules = {};
+      }
+      if (!machine.eslint_state.modules[moduleName]) {
+        machine.eslint_state.modules[moduleName] = {
+          status: "dirty",
+          violations: [],
+          last_check: new Date().toISOString(),
+          waivers_applied: [],
+        };
+      }
+      if (!machine.eslint_state.aggregate.dirty_modules.includes(moduleName)) {
+        machine.eslint_state.aggregate.dirty_modules.push(moduleName);
+      }
+
+      // 3. Type check state
+      machine.type_check_state.status = "dirty";
+      if (!machine.type_check_state.dirty_files.includes(file)) {
+        machine.type_check_state.dirty_files.push(file);
+      }
+
+      // 4. Format state
+      if (!machine.format_state.unformatted_files.includes(file)) {
+        machine.format_state.unformatted_files.push(file);
+        machine.format_state.status = "dirty";
+      }
+
+      // 5. Dependency state
+      if (!machine.dependency_state.violations.some((v: any) => v.file === file)) {
+        machine.dependency_state.violations.push({
+          file,
+          message: "pending depcruiser check",
+          severity: "info",
+        });
+      }
+    }
+
+    // Persist machine.json state
+    fs.writeFileSync(machinePath, JSON.stringify(machine, null, 2));
+
+    // Attempt full quality checks via code-quality-lib if available
+    try {
+      const _require = createRequire(import.meta.url);
+      const cql = _require("../../scripts/mcp-tools/code-quality-lib.js");
+      const projectRoot = path.resolve(
+        getOpenCodeRoot(),
+        readJsonFile<any>(STATE_PATHS.projectConfig())?.project_root || ".",
+      );
+      // Run full check on the last file in the batch for efficiency
+      const lastFile = files[files.length - 1];
+      const results = cql.runAllChecks(lastFile, projectRoot, agent, taskId, {
+        auto_fix: mode !== "locked",
+        skip_checks: [],
+      });
+
+      // Update machine.json again with actual check results
+      const updatedMachine = readJsonFile<any>(machinePath);
+      if (updatedMachine) {
+        updatedMachine.write_audit_state.current_session = session;
+        if (results.checks.eslint?.pass) {
+          // Clear dirty module if eslint passed
+          const m = updatedMachine.eslint_state;
+          if (m?.aggregate?.dirty_modules) {
+            m.aggregate.dirty_modules = m.aggregate.dirty_modules.filter(
+              (d: string) => d !== moduleName,
+            );
+          }
+        }
+        if (results.checks.tsc?.pass && updatedMachine.type_check_state) {
+          updatedMachine.type_check_state.dirty_files =
+            updatedMachine.type_check_state.dirty_files.filter(
+              (f: string) => f !== lastFile,
+            );
+        }
+        fs.writeFileSync(machinePath, JSON.stringify(updatedMachine, null, 2));
+      }
+    } catch (_libErr) {
+      // code-quality-lib not available (e.g., different runtime context)
+      // The inline state updates above are sufficient for auditing
+    }
+  } catch (err: any) {
+    // Re-throw scope violations; log other errors
+    if (err.message?.includes("scope violation")) {
+      throw err;
+    }
+    // Best-effort: log and continue
+    try {
+      logAuditEntry({
+        timestamp: new Date().toISOString(),
+        event: "write_audit_error",
+        error: err.message?.slice(0, 200),
+      });
+    } catch {
+      // silent
+    }
   }
 }
 

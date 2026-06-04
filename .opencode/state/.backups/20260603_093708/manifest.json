@@ -1,0 +1,6 @@
+{
+  "migration": "gate-state v2 → v3",
+  "timestamp": "2026-06-03T09:37:08.166Z",
+  "source": "/home/zhaoge/workspace/opencode/work-one/.opencode/state/gate-state.json",
+  "dryRun": false
+}
