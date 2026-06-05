@@ -4422,8 +4422,8 @@
   "knowledge_state": {
     "version": "1.2.0",
     "index_manifest_sha256": null,
-    "total_docs_count": 0,
-    "total_size_bytes": 0,
+    "total_docs_count": 2,
+    "total_size_bytes": 7150,
     "last_janitor_run": null,
     "active_queries": [],
     "query_stats": {

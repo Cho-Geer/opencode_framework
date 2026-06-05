@@ -1,3 +1,4 @@
+// safe_bash: allow-write
 /**
  * janitor.js — UC7KS Knowledge Janitor v1.0.0
  *

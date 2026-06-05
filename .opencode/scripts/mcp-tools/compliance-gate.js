@@ -388,9 +388,18 @@ function getEnforcementMode() {
   try {
     if (fs2.existsSync(cfgPath)) {
       const cfg = JSON.parse(fs2.readFileSync(cfgPath, "utf-8"));
-      const mode = cfg.template_resolution?.enforcement_mode;
-      if (mode && validModes.includes(mode)) {
-        configMode = mode;
+      const tr = cfg.template_resolution;
+      /**
+       * Dual-key design (FW-HARNESS-P6): check develop_enforcement_mode first (local dev),
+       * then runtime_enforcement_mode (CI/production), then enforcement_mode (legacy).
+       * This aligns with enforcement-modes-standard.md §4.1 which defines separate
+       * develop and runtime keys replacing the old singular enforcement_mode.
+       */
+      if (tr) {
+        const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode || tr.enforcement_mode;
+        if (mode && validModes.includes(mode)) {
+          configMode = mode;
+        }
       }
     }
   } catch {}

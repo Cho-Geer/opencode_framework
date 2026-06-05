@@ -579,6 +579,7 @@ function reconcile(options = {}) {
       check3: null,
       check4: null,
       check5: null,
+      check6: null,
     },
     inconsistencies: [],
     auto_fixable: false,
@@ -789,6 +790,23 @@ function reconcile(options = {}) {
         detail: issue.detail,
       });
     }
+  }
+
+  // ─── Check #6: UC7KS knowledge_state ↔ index.json sync (UC7-HARDEN-08) ───
+  const raw6 = checkKnowledgeStateIntegrity(OPENCODE_ROOT);
+  const check6 = {
+    passed: raw6.ok,
+    description: raw6.detail,
+    inconsistencies: raw6.fixes.map(f => ({ detail: f })),
+  };
+  results.checks.check6 = check6;
+  if (!check6.passed) {
+    results.valid = false;
+    results.inconsistencies.push({
+      check: "check6_knowledge_state",
+      severity: "WARNING",
+      detail: raw6.detail,
+    });
   }
 
   return results;

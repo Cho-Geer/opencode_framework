@@ -1,26 +1,11 @@
 {
-  "formatVersion": "2.0",
-  "sessions": {
-    "cg_ses_1780651117797": {
-      "session_id": "cg_ses_1780651117797",
-      "created_at": "2026-06-05T09:18:37.799Z",
-      "task_description": "Commit all UC7KS implementation changes and push to remote. Framework-only changes spanning 6 phases: agent configs, plugins, hooks, KMS scripts, project.config.json, machine.json, docs/official_docs/, design documents. No business code modifications. User explicitly requested.",
-      "enforcement_mode": "advisory",
-      "gate_status": "armed",
-      "last_check_passed": false,
-      "last_check_failed_items": [],
-      "plan_summary": "Commit all UC7KS changes (framework files, docs, agent configs, KMS scripts, plugins) and push to remote. Local is single source of truth.",
-      "confirmed_at": "2026-06-05T09:18:44.721Z",
-      "consumed_at": null,
-      "audit": null,
-      "task_id": null,
-      "agent": "unknown",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-06-06T09:18:44.721Z"
-    }
-  },
-  "active_sessions": [
-    "cg_ses_1780651117797"
-  ],
-  "last_updated": "2026-06-05T09:18:44.721Z"
+  "formatVersion": "3.0",
+  "active_sessions": {},
+  "recent_sessions": {},
+  "meta": {
+    "total_sessions": 0,
+    "active_count": 0,
+    "recent_count": 0,
+    "last_compacted": "2026-06-05T12:57:16.800Z"
+  }
 }

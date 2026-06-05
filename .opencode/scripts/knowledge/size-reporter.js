@@ -1,3 +1,4 @@
+// safe_bash: allow-write
 /**
  * size-reporter.js — UC7KS Knowledge Size Reporter v1.0.0
  *

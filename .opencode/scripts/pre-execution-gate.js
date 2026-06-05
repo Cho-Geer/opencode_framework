@@ -121,13 +121,16 @@ function getEnforcementMode() {
     return envMode;
   }
   const cfg = readJSON(PROJECT_CONFIG_PATH);
-  if (
-    cfg.ok &&
-    cfg.data.template_resolution &&
-    cfg.data.template_resolution.enforcement_mode
-  ) {
-    const mode = cfg.data.template_resolution.enforcement_mode;
-    if (["advisory", "strict", "locked"].includes(mode)) {
+  /**
+   * Dual-key design (FW-HARNESS-P6): check develop_enforcement_mode first (local dev),
+   * then runtime_enforcement_mode (CI/production), then enforcement_mode (legacy).
+   * This aligns with enforcement-modes-standard.md §4.1 which defines separate
+   * develop and runtime keys replacing the old singular enforcement_mode.
+   */
+  if (cfg.ok && cfg.data.template_resolution) {
+    const tr = cfg.data.template_resolution;
+    const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode || tr.enforcement_mode;
+    if (mode && ["advisory", "strict", "locked"].includes(mode)) {
       return mode;
     }
   }

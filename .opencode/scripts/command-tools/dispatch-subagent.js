@@ -655,7 +655,7 @@ ${mcpTools.map((t) => `- \`${t}\`: ✅ Called or ❌ Not applicable (state reaso
 
 Do NOT skip this section. It is required for audit trail compliance.
 
-**File persistence**: ALSO save a copy to `.task_temp/_dispatch/INVOCATION_SUMMARY.md` (append, do not overwrite). This creates a persistent audit trail across all sub-agent invocations.
+**File persistence**: ALSO save a copy to \`.task_temp/_dispatch/INVOCATION_SUMMARY.md\` (append, do not overwrite). This creates a persistent audit trail across all sub-agent invocations.
 
 ---
 
