@@ -2,6 +2,7 @@
 name: Coder-BE
 description: Backend/server‑side development engineer – API implementation, business logic, database mapping, following interface contracts.
 mode: subagent
+hidden: true
 model: DeepSeek/deepseek-v4-flash
 temperature: 0.6
 steps: 40
@@ -12,7 +13,7 @@ skills:
   - context7-first
   - cicd-database-seeding
 mcp_tools:
-  - Context7
+  # Context7 denied per UC7-004 — route via @Knowledge-Curator
   - PostgreSQL
   - Docker
   - eslint-audit

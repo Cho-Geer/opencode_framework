@@ -2,6 +2,7 @@
 name: Coder-FE
 description: Frontend Development Engineer – page/component/interaction/state management implementation, following interface contracts.
 mode: subagent
+hidden: true
 model: DeepSeek/deepseek-v4-flash
 temperature: 0.6
 steps: 40
@@ -11,7 +12,7 @@ skills:
   - execution-preflight-check
   - context7-first
 mcp_tools:
-  - Context7
+  # Context7 denied per UC7-004 — route via @Knowledge-Curator
   - Playwright
   - eslint-audit
   - code-quality-gate

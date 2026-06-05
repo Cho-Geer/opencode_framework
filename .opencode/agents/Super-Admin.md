@@ -1,7 +1,7 @@
 ---
 name: Super-Admin
 description: Emergency framework administrator – repairs broken enforcement, modifies governance rules, reprovisions infrastructure. Human-only invocation. Bypasses standard quality gates with full audit trail.
-mode: all
+mode: subagent
 model: DeepSeek/deepseek-v4-pro
 temperature: 0.1
 steps: 30
@@ -12,9 +12,9 @@ skills:
   - context7-first
   - customize-opencode
 mcp_tools:
+  # Context7 denied per UC7-009 — must use UC7KS pipeline
   - code-quality-gate
   - compliance-gate
-  - Context7
   - Github
   - safe_edit
   - safe_shell

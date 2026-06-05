@@ -13,7 +13,6 @@ skills:
   - context7-first
 mcp_tools:
   - safe_test
-  - Context7
   - eslint-audit
   - code-quality-gate
   - safe_edit

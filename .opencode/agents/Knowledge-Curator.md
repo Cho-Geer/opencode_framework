@@ -10,6 +10,20 @@ skills:
   - execution-preflight-check
   - context7-first
   - spreadsheet-processor
+mcp_tools:
+  - context7_resolve-library-id
+  - context7_query-docs
+  - webfetch
+  - websearch
+  - task
+  - safe_edit
+  - safe_shell
+  - safe_mkdir
+  - safe_delete
+  - safe_diff
+  - skill
+  - question
+  - todowrite
 ---
 
 # @Knowledge-Curator — Universal Context7-First Knowledge System (UC7KS)

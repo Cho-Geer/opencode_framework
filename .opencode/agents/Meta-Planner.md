@@ -11,7 +11,7 @@ skills:
   - execution-preflight-check
   - context7-first
 mcp_tools:
-  - Context7
+  # Context7 denied per UC7-004 — route via @Knowledge-Curator
   - safe_edit
   - safe_delete
   - safe_mkdir

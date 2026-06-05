@@ -16,6 +16,7 @@ skills:
   - cross-directory-ci
   - context7-first
 mcp_tools:
+  # Context7 denied per UC7-004 — route via @Knowledge-Curator
   - docker_list_containers
   - docker_run_container
   - docker_build_image
@@ -27,8 +28,8 @@ mcp_tools:
   - docker_recreate_container
   - docker_start_container
   - docker_stop_container
-  - Context7
   - Github
+  - safe_edit
   - safe_edit
   - safe_shell
   - safe_delete

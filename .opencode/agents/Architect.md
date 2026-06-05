@@ -2,6 +2,7 @@
 name: Architect
 description: System Architect – technology selection, interface contracts, directory structure and architectural specification definitions. Read‑only on business source code.
 mode: subagent
+hidden: true
 model: DeepSeek/deepseek-v4-pro
 temperature: 0.4
 steps: 25
@@ -12,8 +13,8 @@ skills:
   - brainstorming
   - context7-first
 mcp_tools:
+  # Context7 denied per UC7-004 — route via @Knowledge-Curator
   - code-quality-gate
-  - Context7
   - safe_edit
   - safe_shell
   - safe_delete
@@ -35,7 +36,7 @@ permission:
   bash: deny
   task: deny
   skill: allow
-  context7: allow
+  context7: deny  # UC7-004: route via @Knowledge-Curator
 ---
 
 
