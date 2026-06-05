@@ -957,6 +957,74 @@ async function toolExecuteBefore(
     );
   }
 
+  // === UC7KS: UC7-004 — No Direct Context7 for non-Knowledge-Curator agents ===
+  const CONTEXT7_TOOLS = new Set(["context7_resolve-library-id", "context7_query-docs", "context7"]);
+  if (CONTEXT7_TOOLS.has(tool) && agent !== "Knowledge-Curator" && agent !== "@Knowledge-Curator") {
+    const msg = `[FW-ENFORCE][UC7-004] Direct Context7 MCP call blocked for agent "${agent}". All external documentation queries must route through @Orchestrator → @Knowledge-Curator. Use the UC7KS pipeline: check local cache first (docs/official_docs/index.json), then request @Orchestrator to dispatch @Knowledge-Curator.`;
+    console.error(msg);
+    if (mode !== "advisory") {
+      throw new Error(msg);
+    }
+    violations.push("UC7-004: Unauthorized direct Context7 call");
+    logAuditEntry({ event: "uc7ks_uc7_004_violation", tool, agent, sessionID: input.sessionID, detail: `Agent "${agent}" attempted direct Context7 call` });
+  }
+
+  // === UC7KS: UC7-008 — @Knowledge-Curator Scope Isolation ===
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit") && (agent === "Knowledge-Curator" || agent === "@Knowledge-Curator")) {
+    const filePath = output.args?.filePath || "";
+    if (filePath.includes("booking_system_refactor/") ||
+        filePath.includes(".opencode/agents/") ||
+        filePath.includes(".opencode/rules/") ||
+        filePath.includes(".opencode/state/") ||
+        filePath.includes(".opencode/hooks/") ||
+        filePath.includes(".opencode/plugins/") ||
+        filePath.includes("contract.yaml") ||
+        filePath.includes("project.config.json") ||
+        filePath.includes("Task.DAG.json")) {
+      const msg = `[FW-ENFORCE][UC7-008] @Knowledge-Curator scope violation: attempted write to "${filePath}". @KC may only write to docs/official_docs/** and .metadata/**.`;
+      console.error(msg);
+      if (mode !== "advisory") { throw new Error(msg); }
+      violations.push("UC7-008: @Knowledge-Curator scope violation");
+      logAuditEntry({ event: "uc7ks_uc7_008_violation", tool, agent, sessionID: input.sessionID, detail: `@KC attempted write to restricted path: ${filePath}` });
+    }
+  }
+
+  // === UC7KS: UC7-009 — Super-Admin Knowledge Equality (must check local cache) ===
+  if ((agent === "Super-Admin" || agent === "@Super-Admin") && (tool === "webfetch" || tool === "websearch" || CONTEXT7_TOOLS.has(tool))) {
+    // Log warning — Super-Admin should use UC7KS pipeline but has emergency bypass
+    const indexPath = path.resolve(process.cwd(), "docs/official_docs/index.json");
+    let localCacheChecked = false;
+    try {
+      if (fs.existsSync(indexPath)) {
+        const stat = fs.statSync(indexPath);
+        localCacheChecked = stat.size > 0; // Non-empty index exists
+      }
+    } catch (_) { /* ignore */ }
+    if (!localCacheChecked) {
+      console.warn(`[FW-ENFORCE][UC7-009] Super-Admin is making external queries without local cache check. UC7-009 requires all agents, including Super-Admin, to check docs/official_docs/index.json first.`);
+      violations.push("UC7-009: Super-Admin bypassed local cache check (advisory warning)");
+      logAuditEntry({ event: "uc7ks_uc7_009_warning", tool, agent, sessionID: input.sessionID, detail: "Super-Admin external query without prior local cache check" });
+    }
+  }
+
+  // === UC7KS: UC7-005 — Size Cap (pre-write check for docs/official_docs/) ===
+  if ((tool === "write" || tool === "edit" || tool === "safe_edit")) {
+    const filePath = output.args?.filePath || "";
+    if (filePath.includes("docs/official_docs/")) {
+      const content = output.args?.content || output.args?.newString || "";
+      const sizeBytes = Buffer.byteLength(content, "utf8");
+      const MAX_FILE_SIZE = 524288; // 500KB (UC7-005)
+
+      if (sizeBytes > MAX_FILE_SIZE) {
+        const msg = `[FW-ENFORCE][UC7-005] File size cap exceeded: ${filePath} is ${(sizeBytes / 1024).toFixed(1)}KB (max 500KB per UC7-005). Split or compress before saving.`;
+        console.error(msg);
+        if (mode !== "advisory") { throw new Error(msg); }
+        violations.push("UC7-005: Docs file size cap exceeded");
+        logAuditEntry({ event: "uc7ks_uc7_005_violation", tool, agent, sessionID: input.sessionID, detail: `${filePath}: ${sizeBytes} bytes` });
+      }
+    }
+  }
+
   if (violations.length > 0) {
     if (mode === "advisory") {
       logAuditEntry({

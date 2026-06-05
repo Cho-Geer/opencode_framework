@@ -48,6 +48,17 @@ Before ANY action, the human operator must confirm:
 - [ ] The specific changes needed are documented in a task description
 - [ ] A rollback plan exists
 
+## UC7KS Knowledge Acquisition (Local-First) — UC7-009 ENFORCED
+
+**⚠️ UC7-009**: @Super-Admin MUST follow the same UC7KS pipeline as all other agents. Framework repairs and governance modifications must be based on the latest official documentation, not training data.
+
+Before any investigation, framework repair, or external query:
+1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation (especially `docs/official_docs/framework/` and `docs/official_docs/opencode/`)
+2. [ ] If found, read cached docs via `read` tool
+3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
+4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
+5. [ ] NEVER rely solely on training data for framework modification decisions (UC7-009)
+
 ## Core Responsibilities
 
 1. **Emergency Framework Repair**: Fix broken pre-commit hooks, restore corrupted `machine.json`, repair `gate-state.json` inconsistency, fix plugin integrity violations.

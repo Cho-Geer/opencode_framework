@@ -1010,6 +1010,79 @@ function checkReconciliationInfra() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 22: UC7KS Docs Manifest Integrity
+// ═══════════════════════════════════════════════════════════════
+function checkDocsManifestIntegrity() {
+  const indexPath = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.json");
+  const docsDir = path.join(OPENCODE_ROOT, "docs", "official_docs");
+
+  // 22a: index.json exists
+  if (!fs.existsSync(indexPath)) {
+    return check(22, true, "docs/official_docs/index.json not yet created (no cache entries) — OK");
+  }
+
+  // 22b: index.json is valid JSON with required fields
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+  } catch (e) {
+    return check(22, false, `index.json is not valid JSON: ${e.message}`);
+  }
+
+  if (!manifest.manifest_version || !Array.isArray(manifest.entries)) {
+    return check(22, false, "index.json missing required fields (manifest_version, entries)");
+  }
+
+  // 22c: Check for orphan files (docs not in manifest)
+  const orphanFiles = [];
+  if (fs.existsSync(docsDir)) {
+    const walkDir = (dir) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        const rel = path.relative(docsDir, full);
+        if (entry.isDirectory()) {
+          if (!rel.startsWith(".metadata") && !rel.startsWith("scout-extracts")) {
+            walkDir(full);
+          }
+        } else if (entry.isFile() && !rel.includes("index.json") && !rel.startsWith(".metadata")) {
+          const inManifest = manifest.entries.some(e =>
+            e.files && e.files.some(f => f.path && rel.includes(f.path))
+          );
+          if (!inManifest) orphanFiles.push(rel);
+        }
+      }
+    };
+    try { walkDir(docsDir); } catch (_) { /* ignore */ }
+  }
+
+  if (orphanFiles.length > 0) {
+    return check(22, false, `Orphan docs not in index.json: ${orphanFiles.slice(0, 3).join(", ")}${orphanFiles.length > 3 ? " (+" + (orphanFiles.length - 3) + " more)" : ""}`);
+  }
+
+  // 22d: Check total size against cap
+  let totalSize = 0;
+  try {
+    const calcSize = (dir) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) calcSize(full);
+        else totalSize += fs.statSync(full).size;
+      }
+    };
+    calcSize(docsDir);
+  } catch (_) { /* ignore */ }
+
+  const maxSize = 52428800; // 50MB
+  if (totalSize > maxSize) {
+    return check(22, false, `docs/official_docs/ total size ${(totalSize / 1048576).toFixed(1)}MB exceeds 50MB cap (UC7-005)`);
+  }
+
+  return check(22, true, `${manifest.entries.length} entries, ${totalSize < 1048576 ? (totalSize / 1024).toFixed(0) + "KB" : (totalSize / 1048576).toFixed(1) + "MB"} total, 0 orphans`);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Check 21: Git hooksPath enforcement (hooks present, executable, configured)
 // ═══════════════════════════════════════════════════════════════
 function checkGitHooksPath() {
@@ -1643,6 +1716,7 @@ checkUnresolvedPlaceholders();
 checkTemplateResolution();
 checkAbsolutePathLeakage();
 checkReconciliationInfra();
+checkDocsManifestIntegrity();
 checkGitHooksPath();
 checkOpenCodeJsonAdapter();
 checkPreExecGate();

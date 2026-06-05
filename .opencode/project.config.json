@@ -13,7 +13,9 @@
     "requirements": ".opencode/context/requirements/",
     "code_standards": ".opencode/context/code_standards/",
     "tests": "booking_system_refactor/booking-backend/test/",
-    "state": ".opencode/state/"
+    "state": ".opencode/state/",
+    "knowledge_docs": "docs/official_docs/",
+    "knowledge_index": "docs/official_docs/index.json"
   },
   "tech_stack": {
     "backend": {
@@ -130,7 +132,15 @@
     "frontend.api_pattern": "Service encapsulation + DTO alignment; HttpClient forbidden in components",
     "cache.engine": "Redis 7.x",
     "cache.client": "ioredis",
-    "queue.engine": "BullMQ"
+    "queue.engine": "BullMQ",
+    "knowledge.max_file_size": 524288,
+    "knowledge.max_total_size": 52428800,
+    "knowledge.default_ttl": 30,
+    "knowledge.fallback_ttl": 14,
+    "knowledge.opencode_ttl": 7,
+    "knowledge.scout_ttl": 14,
+    "knowledge.janitor_interval_hours": 24,
+    "knowledge.compression_threshold_kb": 200
   },
   "context7_task_mapping": [
     {
@@ -236,6 +246,98 @@
       "priority": 2
     }
   ],
+  "knowledge_semantic_map": {
+    "domains": [
+      {
+        "domain_id": "backend_api",
+        "keywords": ["controller", "endpoint", "guard", "middleware", "swagger", "dto", "api", "service", "module", "interceptor", "pipe", "filter", "provider", "decorator"],
+        "context7_libraries": ["{backend.framework}"],
+        "fallback_pattern": "https://docs.nestjs.com/{topic}",
+        "save_path": "backend/nestjs/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "persistence",
+        "keywords": ["database", "prisma", "schema", "migration", "transaction", "sql", "orm", "seed", "model", "relation"],
+        "context7_libraries": ["{db.orm}"],
+        "fallback_pattern": "https://www.prisma.io/docs/{topic}",
+        "save_path": "backend/prisma/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "frontend_ui",
+        "keywords": ["component", "template", "signal", "store", "style", "css", "tailwind", "angular", "primeng", "routing", "lazy", "defer", "directive", "pipe"],
+        "context7_libraries": ["{frontend.framework}", "{frontend.ui_library}"],
+        "fallback_pattern": "https://angular.dev/{topic}",
+        "save_path": "frontend/angular/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "caching",
+        "keywords": ["cache", "redis", "ioredis", "ttl", "cache-aside", "cache-pattern"],
+        "context7_libraries": ["{cache.engine}"],
+        "fallback_pattern": "https://redis.io/docs/{topic}",
+        "save_path": "database/redis/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "queue",
+        "keywords": ["queue", "bullmq", "job", "worker", "scheduler", "message-queue"],
+        "context7_libraries": ["{queue.engine}"],
+        "fallback_pattern": "https://docs.bullmq.io/{topic}",
+        "save_path": "devops/bullmq/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "testing",
+        "keywords": ["test", "jest", "spec", "coverage", "e2e", "playwright", "supertest", "mock", "stub", "spy", "assert"],
+        "context7_libraries": ["{testing.unit}", "{testing.e2e}"],
+        "fallback_pattern": "https://jestjs.io/docs/{topic}",
+        "save_path": "devops/testing/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "auth_security",
+        "keywords": ["auth", "jwt", "passport", "oauth", "guard", "token", "refresh", "csrf", "rate-limit", "helmet", "roles"],
+        "context7_libraries": ["{auth.mechanism}"],
+        "fallback_pattern": "https://jwt.io/introduction",
+        "save_path": "backend/auth/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "framework_tools",
+        "keywords": ["eslint", "prettier", "typescript", "hook", "plugin", "config", "linter", "formatter", "tsc", "tsconfig"],
+        "context7_libraries": ["/eslint/eslint", "/typescript/typescript"],
+        "fallback_pattern": "https://eslint.org/docs/{topic}",
+        "save_path": "framework/eslint/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "devops_ci",
+        "keywords": ["docker", "compose", "github-actions", "ci", "cd", "pipeline", "deploy", "workflow", "container", "image"],
+        "context7_libraries": ["/docker/docker", "/github/github"],
+        "fallback_pattern": "https://docs.docker.com/{topic}",
+        "save_path": "devops/docker/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "opencode_framework",
+        "keywords": ["opencode", "agent", "skill", "mcp", "framework", "compliance", "gate", "orchestrator", "dispatch", "subagent", "permission", "plugin", "config"],
+        "context7_libraries": [],
+        "fallback_pattern": "https://opencode.ai/docs/{topic}",
+        "save_path": "opencode/framework/",
+        "ttl_days": 7
+      },
+      {
+        "domain_id": "infrastructure",
+        "keywords": ["git", "json-schema", "nodejs", "markdown", "yaml", "pandoc", "shell", "bash", "npm", "npx"],
+        "context7_libraries": ["/git/git"],
+        "fallback_pattern": "https://git-scm.com/docs/{topic}",
+        "save_path": "framework/git/",
+        "ttl_days": 30
+      }
+    ]
+  },
   "path_lint": {
     "$description": "Absolute path leakage detection configuration. Used by Check 19 in framework-self-test.js and path-canonical-lint.sh.",
     "scan_roots": [
@@ -452,12 +554,33 @@
         "Task.DAG.json",
         "TECH_DEBT_REGISTRY.md",
         "WAIVE.md",
-        ".task_temp/**"
+        ".task_temp/**",
+        "docs/**"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
         "booking_system_refactor/booking-backend/prisma/schema.prisma"
+      ]
+    },
+    "@Knowledge-Curator": {
+      "allowed": [
+        "docs/official_docs/**",
+        "docs/official_docs/.metadata/**",
+        "docs/official_docs/index.json"
+      ],
+      "denied": [
+        "booking_system_refactor/**",
+        ".opencode/agents/**",
+        ".opencode/rules/**",
+        ".opencode/state/**",
+        ".opencode/hooks/**",
+        ".opencode/plugins/**",
+        ".opencode/scripts/**",
+        "contract.yaml",
+        "project.config.json",
+        "opencode.json",
+        "Task.DAG.json"
       ]
     }
   }

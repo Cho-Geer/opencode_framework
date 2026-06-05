@@ -769,6 +769,27 @@ function runGateCheck(taskDescription) {
   }
 
   const passed = enforcementMode === "advisory" ? true : failed.length === 0;
+
+  // ── UC7KS: Local Cache Check ──
+  const uc7ksStateDir = resolveProjectState();
+  const indexPath = path2.resolve(uc7ksStateDir, "..", "..", "docs", "official_docs", "index.json");
+  let knowledgeCacheStatus = "not_found";
+  try {
+    if (fs2.existsSync(indexPath)) {
+      const manifest = JSON.parse(fs2.readFileSync(indexPath, "utf-8"));
+      if (manifest.manifest_version && Array.isArray(manifest.entries)) {
+        knowledgeCacheStatus = `v${manifest.manifest_version} (${manifest.entries.length} entries)`;
+      } else {
+        knowledgeCacheStatus = "malformed";
+      }
+    }
+  } catch (_) { knowledgeCacheStatus = "error"; }
+  failed.push({
+    id: "uc7ks_knowledge_cache",
+    desc: `[Gate Preflight v2] UC7KS Knowledge Cache: ${knowledgeCacheStatus}`,
+    severity: knowledgeCacheStatus === "not_found" || knowledgeCacheStatus === "malformed" ? "WARNING" : "INFO",
+  });
+
   store.sessions[sessionId] = {
     session_id: sessionId,
     created_at: new Date().toISOString(),
@@ -1050,6 +1071,18 @@ function runGateComplete(sessionId, executionSummary) {
     consumed_at: session.consumed_at,
     execution_summary: session.audit.execution_summary,
     audit_history_count: store.audit_history.length,
+    // UC7KS: Track knowledge cache state at gate completion
+    knowledge_cache: (() => {
+      try {
+        const gateStateDir = resolveProjectState();
+        const idxPath = path2.resolve(gateStateDir, "..", "..", "docs", "official_docs", "index.json");
+        if (fs2.existsSync(idxPath)) {
+          const m = JSON.parse(fs2.readFileSync(idxPath, "utf-8"));
+          return { version: m.manifest_version, entries: (m.entries || []).length };
+        }
+      } catch (_) {}
+      return { version: "none", entries: 0 };
+    })(),
   };
   return { status: "completed", audit };
 }

@@ -245,6 +245,61 @@ if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     fi
 fi
 
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(node -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run node .opencode/scripts/framework-self-test.js to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(node -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
 # ── Layer 2: keystone-validate (mode-aware) ──
 echo ""
 echo "[Layer 2/4] Running keystone full validation..."

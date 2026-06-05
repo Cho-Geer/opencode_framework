@@ -121,7 +121,24 @@ Resolved from `tech_stack.testing`.
 | 27  | `{testing.integration}`        | Integration test tool  | `tech_stack.testing.integration`        | `Supertest + Testcontainers` |
 | 28  | `{testing.coverage_threshold}` | Coverage threshold (%) | `tech_stack.testing.coverage_threshold` | `80`                         |
 
-### §2.9 Available but Not Currently Used
+### §2.9 `{knowledge.*}` Placeholders
+
+Resolved from `project.config.json.template_resolution` using keys with `knowledge.` prefix (added in UC7KS Phase 2).
+
+| #   | Placeholder                         | Resolves To                        | Source Field                                   | Example Value |
+| --- | ----------------------------------- | ---------------------------------- | ---------------------------------------------- | ------------- |
+| 29  | `{knowledge.docs_root}`             | Official docs directory            | `paths.knowledge_docs`                         | `docs/official_docs/` |
+| 30  | `{knowledge.index_manifest}`        | Index manifest file path           | `paths.knowledge_index`                        | `docs/official_docs/index.json` |
+| 31  | `{knowledge.max_file_size}`         | Max single file size (bytes)       | `template_resolution.knowledge.max_file_size`  | `524288` (512KB) |
+| 32  | `{knowledge.max_total_size}`        | Max total docs size (bytes)        | `template_resolution.knowledge.max_total_size` | `52428800` (50MB) |
+| 33  | `{knowledge.default_ttl}`           | Default doc TTL (days)             | `template_resolution.knowledge.default_ttl`    | `30` |
+| 34  | `{knowledge.fallback_ttl}`          | Web fallback TTL (days)            | `template_resolution.knowledge.fallback_ttl`   | `14` |
+| 35  | `{knowledge.opencode_ttl}`          | OpenCode docs TTL (days)           | `template_resolution.knowledge.opencode_ttl`   | `7` |
+| 36  | `{knowledge.scout_ttl}`             | Scout findings TTL (days)          | `template_resolution.knowledge.scout_ttl`      | `14` |
+| 37  | `{knowledge.janitor_interval_hours}` | Janitor run interval (hours)      | `template_resolution.knowledge.janitor_interval_hours` | `24` |
+| 38  | `{knowledge.compression_threshold_kb}` | Compression threshold (KB)      | `template_resolution.knowledge.compression_threshold_kb` | `200` |
+
+### §2.10 Available but Not Currently Used
 
 These namespaces have values in `project.config.json` but no placeholders are currently used in any file:
 

@@ -4418,5 +4418,25 @@
     "last_transaction_at": "2026-06-03T09:13:19.489Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
+  },
+  "knowledge_state": {
+    "version": "1.2.0",
+    "index_manifest_sha256": null,
+    "total_docs_count": 0,
+    "total_size_bytes": 0,
+    "last_janitor_run": null,
+    "active_queries": [],
+    "query_stats": {
+      "total_queries": 0,
+      "context7_hits": 0,
+      "web_fallbacks": 0,
+      "websearch_fallbacks": 0,
+      "scout_escalations": 0,
+      "cache_hits": 0,
+      "failed_queries": 0
+    },
+    "ttl_violations": [],
+    "size_violations": [],
+    "last_reconciliation": null
   }
 }

@@ -1107,4 +1107,86 @@ function checkHierarchicalStateIntegrity(rootDir) {
   };
 }
 
-module.exports = { reconcile, validateWriteAuditIntegrity, checkHierarchicalStateIntegrity };
+// ─── UC7KS: Knowledge State Integrity Check ──
+/**
+ * Validates that machine.json.knowledge_state is consistent with
+ * the actual docs/official_docs/index.json manifest.
+ * @param {string} rootDir - Project root directory
+ * @returns {{ ok: boolean, detail: string, fixes: string[] }}
+ */
+function checkKnowledgeStateIntegrity(rootDir) {
+  const issues = [];
+  const fixes = [];
+  const indexPath = path.join(rootDir, "docs", "official_docs", "index.json");
+  const docsDir = path.join(rootDir, "docs", "official_docs");
+  const machinePath = path.join(rootDir, ".opencode", "state", "machine.json");
+
+  // Read machine.json knowledge_state
+  let machine;
+  try {
+    machine = JSON.parse(fs.readFileSync(machinePath, "utf-8"));
+  } catch {
+    return { ok: false, detail: "Cannot read machine.json", fixes: [] };
+  }
+  const ks = machine.knowledge_state;
+  if (!ks) {
+    return { ok: true, detail: "knowledge_state section not yet initialized in machine.json", fixes: [] };
+  }
+
+  // Read index.json
+  let manifest;
+  try {
+    if (fs.existsSync(indexPath)) {
+      manifest = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+    }
+  } catch {
+    issues.push("index.json is malformed or unreadable");
+  }
+
+  // Check 1: entry count sync
+  if (manifest && Array.isArray(manifest.entries)) {
+    const actualCount = manifest.entries.length;
+    if (ks.total_docs_count !== actualCount) {
+      issues.push(`knowledge_state.total_docs_count (${ks.total_docs_count}) != actual index.json entries (${actualCount})`);
+      fixes.push(`Update machine.json.knowledge_state.total_docs_count to ${actualCount}`);
+    }
+  }
+
+  // Check 2: total size
+  let actualSize = 0;
+  try {
+    const walk = (dir) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const e of entries) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) { walk(full); }
+        else { actualSize += fs.statSync(full).size; }
+      }
+    };
+    if (fs.existsSync(docsDir)) walk(docsDir);
+  } catch (_) {}
+  if (actualSize > 0 && ks.total_size_bytes !== actualSize) {
+    issues.push(`knowledge_state.total_size_bytes (${ks.total_size_bytes}) != actual (${actualSize})`);
+    fixes.push(`Update machine.json.knowledge_state.total_size_bytes to ${actualSize}`);
+  }
+
+  // Check 3: stale active queries
+  if (Array.isArray(ks.active_queries)) {
+    const now = Date.now();
+    const staleTTL = 24 * 60 * 60 * 1000; // 24h
+    for (const q of ks.active_queries) {
+      if (q.timestamp && (now - new Date(q.timestamp).getTime()) > staleTTL) {
+        issues.push(`Stale active query: ${q.token_id} (since ${q.timestamp})`);
+        fixes.push(`Drain stale query ${q.token_id} from knowledge_state.active_queries`);
+      }
+    }
+  }
+
+  return {
+    ok: issues.length === 0,
+    detail: issues.length > 0 ? issues.join("; ") : "knowledge_state synchronized with docs/official_docs/",
+    fixes,
+  };
+}
+
+module.exports = { reconcile, validateWriteAuditIntegrity, checkHierarchicalStateIntegrity, checkKnowledgeStateIntegrity };

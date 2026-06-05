@@ -1,0 +1,43 @@
+{
+  "manifest_version": "1.2.0",
+  "last_updated": "2026-06-05T09:12:00Z",
+  "total_entries": 2,
+  "entries": [
+    {
+      "library_id": "web-fallback",
+      "query_topic": "opencode release notes latest version changes",
+      "domain": "opencode",
+      "tags": ["opencode", "release", "changelog", "v1.16.0", "version"],
+      "files": [{
+        "path": "opencode/releases/v1.16.0-release-notes.md",
+        "source": "webfetch",
+        "original_url": "https://github.com/anomalyco/opencode/releases",
+        "sha256": "sha256:placeholder-will-be-recomputed",
+        "size_bytes": 0,
+        "created_at": "2026-06-05T09:12:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
+    {
+      "library_id": "web-fallback",
+      "query_topic": "opencode mcp servers custom tool construction",
+      "domain": "opencode",
+      "tags": ["opencode", "mcp", "custom-tool", "server", "local", "remote", "oauth"],
+      "files": [{
+        "path": "opencode/mcp/mcp-servers-docs.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/mcp-servers/",
+        "sha256": "sha256:placeholder-will-be-recomputed",
+        "size_bytes": 0,
+        "created_at": "2026-06-05T09:12:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    }
+  ]
+}

@@ -41,6 +41,14 @@ permission:
 
 # Role: Orchestration & Execution Layer – System Architect
 
+## UC7KS Knowledge Acquisition (Local-First)
+
+Before any investigation or external query:
+1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
+2. [ ] If found, read cached docs via `read` tool
+3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
+4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
+
 ## Core Responsibilities
 
 0. Read `project.config.json` to determine the project's tech stack before designing any architecture.

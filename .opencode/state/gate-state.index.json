@@ -2881,6 +2881,55 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-04T08:22:46.448Z",
       "archive_ref": "gate-state.history/2026-06-04.jsonl#1"
+    },
+    "cg_ses_1780644629726": {
+      "session_id": "cg_ses_1780644629726",
+      "created_at": "2026-06-05T07:30:29.769Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-05T07:34:28.145Z",
+      "archive_ref": "gate-state.history/2026-06-05.jsonl#0"
+    },
+    "cg_ses_1780645633530": {
+      "session_id": "cg_ses_1780645633530",
+      "created_at": "2026-06-05T07:47:13.531Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-05T07:52:19.435Z",
+      "archive_ref": "gate-state.history/2026-06-05.jsonl#1"
+    },
+    "cg_ses_1780646100491": {
+      "session_id": "cg_ses_1780646100491",
+      "created_at": "2026-06-05T07:55:00.493Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-05T07:59:22.987Z",
+      "archive_ref": "gate-state.history/2026-06-05.jsonl#2"
+    },
+    "cg_ses_1780647327336": {
+      "session_id": "cg_ses_1780647327336",
+      "created_at": "2026-06-05T08:15:27.345Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-05T08:18:36.587Z",
+      "archive_ref": "gate-state.history/2026-06-05.jsonl#3"
+    },
+    "cg_ses_1780647581019": {
+      "session_id": "cg_ses_1780647581019",
+      "created_at": "2026-06-05T08:19:41.022Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-05T08:21:43.561Z",
+      "archive_ref": "gate-state.history/2026-06-05.jsonl#4"
+    },
+    "cg_ses_1780649151618": {
+      "session_id": "cg_ses_1780649151618",
+      "created_at": "2026-06-05T08:45:51.622Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-05T08:46:29.375Z",
+      "archive_ref": "gate-state.history/2026-06-05.jsonl#5"
+    },
+    "cg_ses_1780650600791": {
+      "session_id": "cg_ses_1780650600791",
+      "created_at": "2026-06-05T09:10:00.813Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-05T09:11:03.558Z",
+      "archive_ref": "gate-state.history/2026-06-05.jsonl#6"
     }
   }
 }

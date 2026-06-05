@@ -1,0 +1,11 @@
+{
+  "queries": [],
+  "stats": {
+    "total_queries": 0,
+    "context7_queries": 0,
+    "webfetch_queries": 0,
+    "websearch_queries": 0,
+    "scout_escalations": 0,
+    "failed_queries": 0
+  }
+}

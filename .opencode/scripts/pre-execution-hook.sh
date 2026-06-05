@@ -251,4 +251,32 @@ else
   echo "  ℹ️  install-hooks.js not found or node unavailable — skipping Stage 3."
 fi
 
+# ── Stage 4: UC7KS Knowledge Gate ──
+echo ""
+echo "────────────────────────────────────────────────────"
+echo "  Stage 4: UC7KS Knowledge Gate"
+echo "────────────────────────────────────────────────────"
+INDEX_FILE="${PROJECT_ROOT}/docs/official_docs/index.json"
+KNOWLEDGE_STATE="/tmp/uc7ks_knowledge_gate_$"
+FRAMEWORK_KC="${FRAMEWORK_AGENT:-}"
+
+# Check if agent has docs/official_docs/index.json as a known knowledge source
+if [ -f "$INDEX_FILE" ]; then
+  if node -e "
+    const idx = require('$INDEX_FILE');
+    if (!idx.manifest_version || !Array.isArray(idx.entries)) process.exit(1);
+    console.log(JSON.stringify({version: idx.manifest_version, entries: idx.entries.length}));
+  " > "$KNOWLEDGE_STATE" 2>/dev/null; then
+    KC_VERSION=$(node -e "console.log(require('$KNOWLEDGE_STATE').version)" 2>/dev/null || echo "unknown")
+    KC_ENTRIES=$(node -e "console.log(require('$KNOWLEDGE_STATE').entries)" 2>/dev/null || echo "0")
+    echo "  ✅ UC7KS Knowledge Cache: v$KC_VERSION ($KC_ENTRIES entries)"
+    rm -f "$KNOWLEDGE_STATE"
+  else
+    echo "  ⚠️  UC7KS index.json is malformed — agents should rebuild via @Knowledge-Curator"
+    rm -f "$KNOWLEDGE_STATE"
+  fi
+else
+  echo "  ℹ️  UC7KS knowledge cache not yet initialized (docs/official_docs/index.json not found)"
+fi
+
 exit 0

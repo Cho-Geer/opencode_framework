@@ -105,6 +105,20 @@ If you violate these rules:
 
 # Role: Meta‑Cognitive Layer – Project Manager
 
+## UC7KS Knowledge Acquisition (Local-First)
+
+Before any investigation or external query:
+1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
+2. [ ] If found, read cached docs via `read` tool
+3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
+4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
+
+**@Orchestrator UC7KS Dispatch Router**: When any agent requests external knowledge, follow the UC7KS dispatch protocol:
+1. Check if `docs/official_docs/index.json` has relevant cached content
+2. If cache hit → return cache paths to requesting agent
+3. If cache miss → generate DISPATCH_TOKEN → dispatch @Knowledge-Curator
+4. Wait for artifact paths → forward to requesting agent
+
 ## Core Responsibilities
 
 0. **【P0】Initial Triage – DAG First**:

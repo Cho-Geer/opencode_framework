@@ -785,6 +785,38 @@ module.exports = {
   // Orchestrators
   runWriteCheck,
   runFullScan,
+  // UC7KS: Docs size validation
+  checkDocsSize: () => {
+    const docsDir = path.resolve(getProjectRoot(), "docs", "official_docs");
+    const maxFileSize = 524288;   // 500KB (UC7-005)
+    const maxTotalSize = 52428800; // 50MB
+    const violations = [];
+    let totalSize = 0;
+    try {
+      const walk = (dir) => {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const e of entries) {
+          const full = path.join(dir, e.name);
+          if (e.isDirectory()) { walk(full); }
+          else {
+            const sz = fs.statSync(full).size;
+            totalSize += sz;
+            if (sz > maxFileSize) violations.push(`${path.relative(docsDir, full)}: ${(sz/1024).toFixed(1)}KB > 500KB`);
+          }
+        }
+      };
+      if (fs.existsSync(docsDir)) walk(docsDir);
+    } catch (_) {}
+    const pass = violations.length === 0 && totalSize <= maxTotalSize;
+    return {
+      pass,
+      status: pass ? "pass" : "violation",
+      violations,
+      totalSize,
+      totalSizeMB: (totalSize / 1048576).toFixed(1),
+      maxTotalMB: 50,
+    };
+  },
   // Library reference for direct access
   lib,
 };
