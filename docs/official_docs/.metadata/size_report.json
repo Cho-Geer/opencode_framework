@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-06-05T12:55:16.266Z",
+  "total_size_bytes": 3540,
+  "total_size_mb": "0.0",
+  "max_total_mb": 50,
+  "total_files": 2,
+  "total_entries": 2,
+  "per_domain": {
+    "opencode": {
+      "size_bytes": 3540,
+      "file_count": 2
+    }
+  },
+  "thresholds": {
+    "max_file_bytes": 524288,
+    "max_total_bytes": 52428800,
+    "compression_kb": 200
+  }
+}
