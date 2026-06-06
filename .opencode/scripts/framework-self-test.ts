@@ -488,7 +488,7 @@ function checkThreeLayersEightRoles() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 15: code-quality-gate.js bootstrap
+// Check 15: code-quality-gate.ts bootstrap
 // ═══════════════════════════════════════════════════════════════
 function checkCQGBootstrap() {
   const cqgPath = path.join(
@@ -496,10 +496,10 @@ function checkCQGBootstrap() {
     ".opencode",
     "scripts",
     "mcp-tools",
-    "code-quality-gate.js",
+    "code-quality-gate.ts",
   );
   const content = readFile(cqgPath);
-  if (!content) return check(15, false, "code-quality-gate.js not found");
+  if (!content) return check(15, false, "code-quality-gate.ts not found");
 
   // Check getStatePath() calls ensureStateDir()
   const hasEnsureStateDirCall =
@@ -780,7 +780,7 @@ function checkAbsolutePathLeakage() {
 // Check 20: Reconciliation script is wired into pre-execution-hook.sh
 // ═══════════════════════════════════════════════════════════════
 function checkReconciliationInfra() {
-  // 20a: At least one reconciliation script exists (reconciliation-check.sh OR state-reconciliation.js)
+  // 20a: At least one reconciliation script exists (reconciliation-check.sh OR state-reconciliation.ts)
   const reconcileShellPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
@@ -791,7 +791,7 @@ function checkReconciliationInfra() {
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
-    "state-reconciliation.js",
+    "state-reconciliation.ts",
   );
 
   const hasShellScript = fileExists(reconcileShellPath);
@@ -801,24 +801,24 @@ function checkReconciliationInfra() {
     return check(
       20,
       false,
-      "No reconciliation script found — expected reconciliation-check.sh or state-reconciliation.js",
+      "No reconciliation script found — expected reconciliation-check.sh or state-reconciliation.ts",
     );
   }
 
   // 20b: At least one reconciliation script has all 3 cross-reference check types
-  // Check state-reconciliation.js first (primary), then reconciliation-check.sh (fallback)
+  // Check state-reconciliation.ts first (primary), then reconciliation-check.sh (fallback)
   let primaryPath = null;
   let scriptType = "";
 
   if (hasJSScript) {
     primaryPath = reconcileJSPath;
-    scriptType = "state-reconciliation.js";
+    scriptType = "state-reconciliation.ts";
   } else {
     primaryPath = reconcileShellPath;
     scriptType = "reconciliation-check.sh";
   }
 
-  // 20b-i: For state-reconciliation.js, verify it has the 4 check functions
+  // 20b-i: For state-reconciliation.ts, verify it has the 4 check functions
   // For reconciliation-check.sh, verify it has the 3 cross-ref markers
   let hasCheck1 = false;
   let hasCheck2 = false;
@@ -828,10 +828,10 @@ function checkReconciliationInfra() {
   if (hasJSScript) {
     const jsContent = readFile(reconcileJSPath);
     if (!jsContent) {
-      return check(20, false, "state-reconciliation.js cannot be read");
+      return check(20, false, "state-reconciliation.ts cannot be read");
     }
 
-    // Check for the 4 check functions in state-reconciliation.js
+    // Check for the 4 check functions in state-reconciliation.ts
     hasCheck1 = jsContent.includes("checkCompletedDagHasGateSession");
     hasCheck2 = jsContent.includes("checkArmedSessionDagReference");
     hasCheck3 = jsContent.includes("checkOrphanedSessions");
@@ -847,7 +847,7 @@ function checkReconciliationInfra() {
       return check(
         20,
         false,
-        `state-reconciliation.js missing functions: ${missing.join(", ")}`,
+        `state-reconciliation.ts missing functions: ${missing.join(", ")}`,
       );
     }
   }
@@ -892,7 +892,7 @@ function checkReconciliationInfra() {
     );
   }
 
-  // 20c: pre-execution-hook.sh references state-reconciliation.js or reconciliation-check.sh
+  // 20c: pre-execution-hook.sh references state-reconciliation.ts or reconciliation-check.sh
   const preExecPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
@@ -909,7 +909,7 @@ function checkReconciliationInfra() {
   }
 
   const preExecHasReconcile =
-    preExecContent.includes("state-reconciliation.js") ||
+    preExecContent.includes("state-reconciliation.ts") ||
     preExecContent.includes("reconciliation-check.sh") ||
     preExecContent.includes("Stage 2.5: State Reconciliation") ||
     preExecContent.includes("Stage 2: State Reconciliation");
@@ -917,7 +917,7 @@ function checkReconciliationInfra() {
     return check(
       20,
       false,
-      "pre-execution-hook.sh does not invoke state-reconciliation.js or reconciliation-check.sh",
+      "pre-execution-hook.sh does not invoke state-reconciliation.ts or reconciliation-check.sh",
     );
   }
 
@@ -1331,19 +1331,19 @@ function checkOpenCodeJsonAdapter() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 23: pre-execution-gate.js exists, valid JS, wired into hook
+// Check 23: pre-execution-gate.ts exists, valid JS, wired into hook
 // ═══════════════════════════════════════════════════════════════
 function checkPreExecGate() {
   const gatePath = path.join(
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
-    "pre-execution-gate.js",
+    "pre-execution-gate.ts",
   );
 
   // 23a: File exists
   if (!fileExists(gatePath)) {
-    return check(23, false, "pre-execution-gate.js not found");
+    return check(23, false, "pre-execution-gate.ts not found");
   }
 
   // 23b: Is valid JavaScript (syntax check)
@@ -1357,7 +1357,7 @@ function checkPreExecGate() {
     return check(
       23,
       false,
-      `pre-execution-gate.js has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
+      `pre-execution-gate.ts has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
     );
   }
 
@@ -1368,7 +1368,7 @@ function checkPreExecGate() {
     return check(
       23,
       false,
-      "pre-execution-gate.js is not executable (chmod +x)",
+      "pre-execution-gate.ts is not executable (chmod +x)",
     );
   }
 
@@ -1389,20 +1389,20 @@ function checkPreExecGate() {
   }
 
   const wiredIntoHook =
-    hookContent.includes("pre-execution-gate.js") &&
+    hookContent.includes("pre-execution-gate.ts") &&
     hookContent.includes("Stage 1");
   if (!wiredIntoHook) {
     return check(
       23,
       false,
-      "pre-execution-gate.js not wired into pre-execution-hook.sh (missing Stage 1 reference)",
+      "pre-execution-gate.ts not wired into pre-execution-hook.sh (missing Stage 1 reference)",
     );
   }
 
   // 23e: Key functions exist in script (structural validation)
   const gateContent = readFile(gatePath);
   if (!gateContent) {
-    return check(23, false, "pre-execution-gate.js cannot be read");
+    return check(23, false, "pre-execution-gate.ts cannot be read");
   }
 
   const requiredFunctions = [
@@ -1421,31 +1421,31 @@ function checkPreExecGate() {
     return check(
       23,
       false,
-      `pre-execution-gate.js missing required functions: ${missingFuncs.join(", ")}`,
+      `pre-execution-gate.ts missing required functions: ${missingFuncs.join(", ")}`,
     );
   }
 
   return check(
     23,
     true,
-    "pre-execution-gate.js exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate)",
+    "pre-execution-gate.ts exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate)",
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 24: framework-doctor.js exists, is valid JS
+// Check 24: framework-doctor.ts exists, is valid JS
 // ═══════════════════════════════════════════════════════════════
 function checkFrameworkDoctorExists() {
   const doctorPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
-    "framework-doctor.js",
+    "framework-doctor.ts",
   );
 
   // 24a: File exists
   if (!fileExists(doctorPath)) {
-    return check(24, false, "framework-doctor.js not found");
+    return check(24, false, "framework-doctor.ts not found");
   }
 
   // 24b: Is valid JavaScript (syntax check)
@@ -1459,7 +1459,7 @@ function checkFrameworkDoctorExists() {
     return check(
       24,
       false,
-      `framework-doctor.js has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
+      `framework-doctor.ts has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
     );
   }
 
@@ -1468,10 +1468,10 @@ function checkFrameworkDoctorExists() {
   const stat = fs.statSync(doctorPath);
   if ((stat.mode & 0o111) === 0) {
     // Non-blocking: warn but don't fail — `node script.js` works without +x
-    console.warn("  ⚠️  framework-doctor.js is not executable — always invoked via `node`, not directly");
+    console.warn("  ⚠️  framework-doctor.ts is not executable — always invoked via `node`, not directly");
   }
 
-  return check(24, true, "framework-doctor.js exists, valid JS" + ((stat.mode & 0o111) ? ", executable" : ", node-invoked"));
+  return check(24, true, "framework-doctor.ts exists, valid JS" + ((stat.mode & 0o111) ? ", executable" : ", node-invoked"));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1482,14 +1482,14 @@ function checkDoctorJsonOutput() {
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
-    "framework-doctor.js",
+    "framework-doctor.ts",
   );
 
   if (!fileExists(doctorPath)) {
     return check(
       25,
       false,
-      "framework-doctor.js not found (cannot test --json output)",
+      "framework-doctor.ts not found (cannot test --json output)",
     );
   }
 
@@ -1577,14 +1577,14 @@ function checkDoctorStrict() {
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
-    "framework-doctor.js",
+    "framework-doctor.ts",
   );
 
   if (!fileExists(doctorPath)) {
     return check(
       26,
       false,
-      "framework-doctor.js not found (cannot test --strict)",
+      "framework-doctor.ts not found (cannot test --strict)",
     );
   }
 
@@ -1629,12 +1629,12 @@ function checkDoctorStrict() {
 
 
 function checkCrossValidation() {
-  // Check 27: Cross-validate framework-doctor and state-reconciliation.js agree
-  const reconcilerPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "state-reconciliation.js");
-  const doctorPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "framework-doctor.js");
+  // Check 27: Cross-validate framework-doctor and state-reconciliation.ts agree
+  const reconcilerPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "state-reconciliation.ts");
+  const doctorPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "framework-doctor.ts");
 
   if (!fileExists(reconcilerPath) || !fileExists(doctorPath)) {
-    return check(27, false, "state-reconciliation.js or framework-doctor.js not found");
+    return check(27, false, "state-reconciliation.ts or framework-doctor.ts not found");
   }
 
   try {

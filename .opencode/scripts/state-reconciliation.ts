@@ -1,9 +1,9 @@
 // safe_bash: allow-write
 /**
  * FW-REPAIR-13: safe_bash allow-write granted — this is a framework state repair tool
- * that only writes to .opencode/state/ files. Always invoked via `node state-reconciliation.js`.
+ * that only writes to .opencode/state/ files. Always invoked via `node state-reconciliation.ts`.
  *
- * state-reconciliation.js — State Reconciliation Daemon
+ * state-reconciliation.ts — State Reconciliation Daemon
  * ======================================================
  * P5-003: Gate-state ↔ DAG ↔ machine.json consistency checks with auto-repair.
  *
@@ -14,7 +14,7 @@
  *   #4 — DAG meta counts match actual task statuses
  *
  * Usage:
- *   node .opencode/scripts/state-reconciliation.js [options]
+ *   node .opencode/scripts/state-reconciliation.ts [options]
  *     --json           Output raw JSON report (default: human-readable)
  *     --fix            Auto-fix resolvable inconsistencies (stale sessions, meta counts)
  *     --strict         Exit 1 if ANY inconsistency found

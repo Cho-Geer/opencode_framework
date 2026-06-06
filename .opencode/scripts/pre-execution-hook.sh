@@ -2,9 +2,9 @@
 # ==============================================================================
 # pre-execution-hook.sh — Multi-Stage Pre-Execution Validation Hook
 # ==============================================================================
-# Stage 1 — Node-first DAG/Gate/Registry Validation (pre-execution-gate.js)
-# Stage 2 — Rule Registry Integrity Verification (rule-registry-verify.js)
-# Stage 3 — Git Hooks Installation & Verification (install-hooks.js)
+# Stage 1 — Node-first DAG/Gate/Registry Validation (pre-execution-gate.ts)
+# Stage 2 — Rule Registry Integrity Verification (rule-registry-verify.ts)
+# Stage 3 — Git Hooks Installation & Verification (install-hooks.ts)
 #
 # Usage:   pre-execution-hook.sh <task_id>
 #
@@ -36,7 +36,7 @@ PRE_EXEC_GATE="${SCRIPT_DIR}/pre-execution-gate.ts"
 # ── Resolve Enforcement Mode ─────────────────────────────────────────
 # Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
 ENF_MODE="advisory"
-if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && { command -v bun &>/dev/null || command -v node &>/dev/null; }; then
+if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && { command -v bun &>/dev/null || command -v bun &>/dev/null; }; then
   ENF_MODE=$(/home/zhaoge/.bun/bin/bun -e "
     try {
       const cfg = require('${PROJECT_ROOT}/.opencode/project.config.json');
@@ -70,15 +70,15 @@ enf_exit() {
 }
 
 # ══════════════════════════════════════════════════════════════════════
-# Stage 1: Node-First Pre-Execution Gate (pre-execution-gate.js)
+# Stage 1: Node-First Pre-Execution Gate (pre-execution-gate.ts)
 # ══════════════════════════════════════════════════════════════════════
 # Validates DAG coverage, gate lifecycle, role violations, rule registry,
 # and config validity — all via Node path APIs (no shell path manipulation).
 echo ""
 echo "── Stage 1: Pre-Execution Gate ────────────────────────────────────"
 
-if [ -f "$PRE_EXEC_GATE" ] && command -v node &>/dev/null; then
-  if node "$PRE_EXEC_GATE" "$TASK_ID" 2>&1; then
+if [ -f "$PRE_EXEC_GATE" ] && command -v bun &>/dev/null; then
+  if bun "$PRE_EXEC_GATE" "$TASK_ID" 2>&1; then
     echo "  ✅ Stage 1 pre-execution gate passed."
     echo ""
   else
@@ -91,14 +91,14 @@ if [ -f "$PRE_EXEC_GATE" ] && command -v node &>/dev/null; then
     fi
   fi
 else
-  echo "  ℹ️  pre-execution-gate.js not found or node unavailable — skipping Stage 1."
+  echo "  ℹ️  pre-execution-gate.ts not found or node unavailable — skipping Stage 1."
   echo "  ⚠️  Full DAG/gate/registry validation not performed."
 fi
 
 # ── Legacy DAG Fallback Check ────────────────────────────────────────
-# If pre-execution-gate.js ran, DAG coverage is already validated.
-# This fallback only runs when pre-execution-gate.js is not available.
-if [ ! -f "$PRE_EXEC_GATE" ] || ! command -v node &>/dev/null; then
+# If pre-execution-gate.ts ran, DAG coverage is already validated.
+# This fallback only runs when pre-execution-gate.ts is not available.
+if [ ! -f "$PRE_EXEC_GATE" ] || ! command -v bun &>/dev/null; then
   echo ""
   echo "── Stage 1b: Legacy DAG Fallback Check ────────────────────────────"
 
@@ -143,9 +143,9 @@ except Exception as e:
     # Fallback: use node for JSON parsing if neither jq nor python3 is available.
     # Cross-platform node discovery: Unix (node) → Windows (node.exe) → legacy (which/type)
     NODE_CMD=""
-    if command -v node &> /dev/null; then
+    if command -v bun &> /dev/null; then
       NODE_CMD="node"
-    elif command -v node.exe &> /dev/null; then
+    elif command -v bun.exe &> /dev/null; then
       NODE_CMD="node.exe"
     elif which node &> /dev/null 2>&1 || type node &> /dev/null 2>&1; then
       NODE_CMD="node"
@@ -178,15 +178,15 @@ except Exception as e:
 fi  # End of legacy DAG fallback block
 
 # ─── Stage 2: Rule Registry Integrity Verification ─────────────
-# Runs rule-registry-verify.js to validate all registered rule/skill/
+# Runs rule-registry-verify.ts to validate all registered rule/skill/
 # requirement/agent file digests against rule_registry.json.
 # Mismatches without semver bump (HIGH) block execution in strict/locked mode.
 echo ""
 echo "── Stage 2: Rule Registry Verification ─────────────────────────"
 
 RULE_VERIFY_SCRIPT="${SCRIPT_DIR}/rule-registry-verify.ts"
-if [ -f "$RULE_VERIFY_SCRIPT" ] && command -v node &>/dev/null; then
-  if node "$RULE_VERIFY_SCRIPT" --strict 2>&1; then
+if [ -f "$RULE_VERIFY_SCRIPT" ] && command -v bun &>/dev/null; then
+  if bun "$RULE_VERIFY_SCRIPT" --strict 2>&1; then
     echo "  ✅ All rule registry digests verified."
   else
     VERIFY_EXIT=$?
@@ -198,32 +198,32 @@ if [ -f "$RULE_VERIFY_SCRIPT" ] && command -v node &>/dev/null; then
     fi
   fi
 else
-  echo "  ℹ️  rule-registry-verify.js not found or node unavailable — skipping Stage 2."
+  echo "  ℹ️  rule-registry-verify.ts not found or node unavailable — skipping Stage 2."
 fi
 
 # ─── Stage 2.5: State Reconciliation (DAG ↔ Gate ↔ Machine consistency) ──
-# Runs state-reconciliation.js in --quick mode (skips deep write-audit scan).
+# Runs state-reconciliation.ts in --quick mode (skips deep write-audit scan).
 # In strict/locked mode, inconsistencies block execution.
 echo ""
 echo "── Stage 2.5: State Reconciliation ────────────────────────────"
 
-STATE_RECONCILE_SCRIPT="${SCRIPT_DIR}/state-reconciliation.js"
-if [ -f "$STATE_RECONCILE_SCRIPT" ] && command -v node &>/dev/null; then
-  if node "$STATE_RECONCILE_SCRIPT" --quick 2>&1; then
+STATE_RECONCILE_SCRIPT="${SCRIPT_DIR}/state-reconciliation.ts"
+if [ -f "$STATE_RECONCILE_SCRIPT" ] && command -v bun &>/dev/null; then
+  if bun "$STATE_RECONCILE_SCRIPT" --quick 2>&1; then
     echo "  ✅ State reconciliation passed."
   else
     RECONCILE_EXIT=$?
     if [ "$ENF_MODE" = "advisory" ]; then
       echo "  ⚠️  [ADVISORY] State reconciliation found inconsistencies (non-blocking)."
-      echo "  🔧 Fix: node .opencode/scripts/state-reconciliation.js --fix"
+      echo "  🔧 Fix: bun .opencode/scripts/state-reconciliation.ts --fix"
     else
       echo "  ❌ [${ENF_MODE}] State reconciliation FAILED — dispatch blocked."
-      echo "  🔧 Fix: node .opencode/scripts/state-reconciliation.js --fix"
+      echo "  🔧 Fix: bun .opencode/scripts/state-reconciliation.ts --fix"
       exit $RECONCILE_EXIT
     fi
   fi
 else
-  echo "  ℹ️  state-reconciliation.js not found or node unavailable — skipping Stage 2.5."
+  echo "  ℹ️  state-reconciliation.ts not found or node unavailable — skipping Stage 2.5."
 fi
 
 # ─── Stage 3: Git Hooks Installation & Verification ────────────
@@ -232,23 +232,23 @@ fi
 echo ""
 echo "── Stage 3: Git Hooks Verification ─────────────────────────────"
 
-INSTALL_HOOKS_SCRIPT="${SCRIPT_DIR}/install-hooks.js"
-if [ -f "$INSTALL_HOOKS_SCRIPT" ] && command -v node &>/dev/null; then
-  if node "$INSTALL_HOOKS_SCRIPT" --verify 2>&1; then
+INSTALL_HOOKS_SCRIPT="${SCRIPT_DIR}/install-hooks.ts"
+if [ -f "$INSTALL_HOOKS_SCRIPT" ] && command -v bun &>/dev/null; then
+  if bun "$INSTALL_HOOKS_SCRIPT" --verify 2>&1; then
     echo "  ✅ Git hooks verified."
   else
     HOOKS_EXIT=$?
     if [ "$ENF_MODE" = "advisory" ]; then
       echo "  ⚠️  [ADVISORY] Git hooks verification failed (non-blocking)."
-      echo "  ⚠️  Run 'node .opencode/scripts/install-hooks.js' to repair."
+      echo "  ⚠️  Run 'bun .opencode/scripts/install-hooks.ts' to repair."
     else
       echo "  ❌ [${ENF_MODE}] Git hooks verification FAILED — dispatch blocked."
-      echo "  ❌ Run 'node .opencode/scripts/install-hooks.js' to repair hooks."
+      echo "  ❌ Run 'bun .opencode/scripts/install-hooks.ts' to repair hooks."
       exit $HOOKS_EXIT
     fi
   fi
 else
-  echo "  ℹ️  install-hooks.js not found or node unavailable — skipping Stage 3."
+  echo "  ℹ️  install-hooks.ts not found or node unavailable — skipping Stage 3."
 fi
 
 # ── Stage 4: UC7KS Knowledge Gate ──
@@ -262,13 +262,13 @@ FRAMEWORK_KC="${FRAMEWORK_AGENT:-}"
 
 # Check if agent has docs/official_docs/index.json as a known knowledge source
 if [ -f "$INDEX_FILE" ]; then
-  if node -e "
+  if bun -e "
     const idx = require('$INDEX_FILE');
     if (!idx.manifest_version || !Array.isArray(idx.entries)) process.exit(1);
     console.log(JSON.stringify({version: idx.manifest_version, entries: idx.entries.length}));
   " > "$KNOWLEDGE_STATE" 2>/dev/null; then
-    KC_VERSION=$(node -e "console.log(require('$KNOWLEDGE_STATE').version)" 2>/dev/null || echo "unknown")
-    KC_ENTRIES=$(node -e "console.log(require('$KNOWLEDGE_STATE').entries)" 2>/dev/null || echo "0")
+    KC_VERSION=$(bun -e "console.log(require('$KNOWLEDGE_STATE').version)" 2>/dev/null || echo "unknown")
+    KC_ENTRIES=$(bun -e "console.log(require('$KNOWLEDGE_STATE').entries)" 2>/dev/null || echo "0")
     echo "  ✅ UC7KS Knowledge Cache: v$KC_VERSION ($KC_ENTRIES entries)"
     rm -f "$KNOWLEDGE_STATE"
   else

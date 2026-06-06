@@ -2,14 +2,14 @@
 "use strict";
 
 /**
- * pre-execution-gate.js — Node-First DAG/Gate Validation with Fail-Closed Semantics
+ * pre-execution-gate.ts — Node-First DAG/Gate Validation with Fail-Closed Semantics
  * ================================================================================
  * Replaces shell-first dispatch validation with Node-only path resolution.
  *
  * Usage:
- *   node .opencode/scripts/pre-execution-gate.js --task-id <id>
- *   node .opencode/scripts/pre-execution-gate.js <task_id>
- *   node .opencode/scripts/pre-execution-gate.js <task_id> --dispatch-session
+ *   node .opencode/scripts/pre-execution-gate.ts --task-id <id>
+ *   node .opencode/scripts/pre-execution-gate.ts <task_id>
+ *   node .opencode/scripts/pre-execution-gate.ts <task_id> --dispatch-session
  *
  * Exit codes:
  *   0 — All checks passed (task may proceed)
@@ -150,23 +150,23 @@ const REMEDIATION_MAP = {
   "DAG Coverage":
     "Task not found or not pending in Task.DAG.json.\n" +
     "  🔧 Fix: Add the task to Task.DAG.json, or update status to 'pending'.\n" +
-    "  🔧 Run: node .opencode/scripts/state-reconciliation.js --fix",
+    "  🔧 Run: node .opencode/scripts/state-reconciliation.ts --fix",
   "Gate Lifecycle":
     "No armed gate session found or gate-state.json is missing/invalid.\n" +
     "  🔧 Fix: Run compliance_gate_check() then compliance_gate_confirm() to arm the gate.\n" +
-    "  🔧 Run: node .opencode/scripts/state-reconciliation.js --fix --backfill-audit",
+    "  🔧 Run: node .opencode/scripts/state-reconciliation.ts --fix --backfill-audit",
   "Role Violations":
     "Unresolved role violations detected in machine.json compliance_records.\n" +
     "  🔧 Fix: Have the violating agent resolve the scope issue, or file a waiver.\n" +
-    "  🔧 Run: node .opencode/scripts/state-reconciliation.js --fix",
+    "  🔧 Run: node .opencode/scripts/state-reconciliation.ts --fix",
   "Rule Registry":
     "Rule registry digest mismatches detected — files may have been modified unexpectedly.\n" +
     "  🔧 Fix: Run registry repair to recompute and update digests.\n" +
-    "  🔧 Run: node .opencode/scripts/rule-registry-verify.js --repair",
+    "  🔧 Run: node .opencode/scripts/rule-registry-verify.ts --repair",
   "Config Validity":
     "Required configuration file(s) are missing or unreadable.\n" +
     "  🔧 Fix: Ensure project.config.json, Task.DAG.json, machine.json, and gate-state.json exist.\n" +
-    "  🔧 Run: node .opencode/scripts/framework-doctor.js",
+    "  🔧 Run: node .opencode/scripts/framework-doctor.ts",
 };
 
 /**
@@ -183,7 +183,7 @@ function emitError(checkName, message, details) {
       : null;
   const remediation =
     REMEDIATION_MAP[checkName] ||
-    "  🔧 Run: node .opencode/scripts/framework-doctor.js --strict";
+    "  🔧 Run: node .opencode/scripts/framework-doctor.ts --strict";
 
   const output = {
     check: checkName,
@@ -233,10 +233,10 @@ function computeFileSHA256(filePath) {
  */
 function printUsage() {
   console.error(
-    "Usage: node .opencode/scripts/pre-execution-gate.js --task-id <task_id>",
+    "Usage: node .opencode/scripts/pre-execution-gate.ts --task-id <task_id>",
   );
   console.error(
-    "       node .opencode/scripts/pre-execution-gate.js <task_id>",
+    "       node .opencode/scripts/pre-execution-gate.ts <task_id>",
   );
   console.error("");
   console.error(

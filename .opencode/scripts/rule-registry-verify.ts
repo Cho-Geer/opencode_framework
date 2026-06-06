@@ -1,5 +1,5 @@
 // safe_bash: allow-write
-// rule-registry-verify.js — P6-001
+// rule-registry-verify.ts — P6-001
 // Validates rule_registry.json entries against actual file contents.
 // For each entry: verifies semver, digest (SHA-256), change_reason, actor, timestamp exist.
 // Computes SHA-256 of each registered file and compares with registry digest.
@@ -274,7 +274,7 @@ function main() {
           sha256: actualHash,
           timestamp: new Date().toISOString(),
           semver: newSemver,
-          change: "auto-repaired by rule-registry-verify.js --repair",
+          change: "auto-repaired by rule-registry-verify.ts --repair",
         });
         modified = true;
         violations.push({

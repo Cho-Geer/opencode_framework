@@ -3,17 +3,17 @@
 
 /**
  * FW-REPAIR-13: safe_bash allow-write granted — this is a diagnostic tool
- * that only reads .opencode/state/ files. Always invoked via `node framework-doctor.js`.
+ * that only reads .opencode/state/ files. Always invoked via `node framework-doctor.ts`.
  *
- * framework-doctor.js — OpenCode Framework Health Diagnostic
+ * framework-doctor.ts — OpenCode Framework Health Diagnostic
  * ==========================================================
  * Runs 11 health checks against the OpenCode framework installation.
  *
  * Usage:
- *   node .opencode/scripts/framework-doctor.js          # human-readable output
- *   node .opencode/scripts/framework-doctor.js --strict  # exit 1 on any failure
- *   node .opencode/scripts/framework-doctor.js --json    # JSON-only output
- *   node .opencode/scripts/framework-doctor.js --check N # run single check
+ *   node .opencode/scripts/framework-doctor.ts          # human-readable output
+ *   node .opencode/scripts/framework-doctor.ts --strict  # exit 1 on any failure
+ *   node .opencode/scripts/framework-doctor.ts --json    # JSON-only output
+ *   node .opencode/scripts/framework-doctor.ts --check N # run single check
  *
  * Exit code: 0 if all checks pass, 1 if any fail (with --strict)
  */
@@ -371,8 +371,8 @@ function checkGateDryRun() {
 
 // ─── Check 4: Central state reconciliation ────────────────────
 function checkStateReconciliation() {
-  // Shell out to state-reconciliation.js --json --strict
-  const reconcilePath = path.join(SCRIPTS_DIR, "state-reconciliation.js");
+  // Shell out to state-reconciliation.ts --json --strict
+  const reconcilePath = path.join(SCRIPTS_DIR, "state-reconciliation.ts");
 
   if (fileExists(reconcilePath)) {
     try {
@@ -396,8 +396,8 @@ function checkStateReconciliation() {
         ).length;
         detail =
           warnCount > 0
-            ? `All HIGH-severity states consistent, ${warnCount} WARNING(s) (via state-reconciliation.js)`
-            : "All states consistent (via state-reconciliation.js)";
+            ? `All HIGH-severity states consistent, ${warnCount} WARNING(s) (via state-reconciliation.ts)`
+            : "All states consistent (via state-reconciliation.ts)";
       } else {
         const highCount = inconsistencies.length;
         const warnCount = allInconsistencies.filter(
@@ -438,8 +438,8 @@ function checkStateReconciliation() {
             status: ok ? PASS : FAIL,
             detail: ok
               ? warnCount > 0
-                ? `All HIGH-severity states consistent, ${warnCount} WARNING(s) (via state-reconciliation.js)`
-                : "All states consistent (via state-reconciliation.js)"
+                ? `All HIGH-severity states consistent, ${warnCount} WARNING(s) (via state-reconciliation.ts)`
+                : "All states consistent (via state-reconciliation.ts)"
               : `${allInconsistencies.length} inconsistency(ies) found`,
           };
         } catch (_) {
@@ -450,7 +450,7 @@ function checkStateReconciliation() {
         id: 4,
         name: "State reconciliation",
         status: FAIL,
-        detail: `state-reconciliation.js failed: ${(e.stderr || e.message).substring(0, 200)}`,
+        detail: `state-reconciliation.ts failed: ${(e.stderr || e.message).substring(0, 200)}`,
       };
     }
   }
@@ -480,11 +480,11 @@ function checkStateReconciliation() {
     }
   }
 
-  // Fallback: reconciliation-validate.js
+  // Fallback: reconciliation-validate.ts
   const reconcileJs = path.join(
     SCRIPTS_DIR,
     "mcp-tools",
-    "reconciliation-validate.js",
+    "reconciliation-validate.ts",
   );
   if (fileExists(reconcileJs)) {
     try {
@@ -502,7 +502,7 @@ function checkStateReconciliation() {
         name: "State reconciliation",
         status: ok ? PASS : FAIL,
         detail: ok
-          ? "All states consistent (via reconciliation-validate.js)"
+          ? "All states consistent (via reconciliation-validate.ts)"
           : `${inconsistencies} inconsistencies found`,
       };
     } catch (e) {
@@ -510,7 +510,7 @@ function checkStateReconciliation() {
         id: 4,
         name: "State reconciliation",
         status: FAIL,
-        detail: `reconciliation-validate.js failed: ${(e.stderr || e.message).substring(0, 200)}`,
+        detail: `reconciliation-validate.ts failed: ${(e.stderr || e.message).substring(0, 200)}`,
       };
     }
   }
@@ -566,13 +566,13 @@ function checkStateReconciliation() {
 
 // ─── Check 5: Transaction verification ────────────────────────
 function checkTransactionVerification() {
-  const txnPath = path.join(SCRIPTS_DIR, "state-transaction.js");
+  const txnPath = path.join(SCRIPTS_DIR, "state-transaction.ts");
   if (!fileExists(txnPath)) {
     return {
       id: 5,
       name: "Transaction verification",
       status: FAIL,
-      detail: "state-transaction.js not found",
+      detail: "state-transaction.ts not found",
     };
   }
 
@@ -641,13 +641,13 @@ function checkTransactionVerification() {
 
 // ─── Check 6: Rule registry verification (live recomputation) ──
 function checkRuleRegistry() {
-  const verifyPath = path.join(SCRIPTS_DIR, "rule-registry-verify.js");
+  const verifyPath = path.join(SCRIPTS_DIR, "rule-registry-verify.ts");
   if (!fileExists(verifyPath)) {
     return {
       id: 6,
       name: "Rule registry verification",
       status: FAIL,
-      detail: "rule-registry-verify.js not found",
+      detail: "rule-registry-verify.ts not found",
     };
   }
 
@@ -711,7 +711,7 @@ function checkRuleRegistry() {
       id: 6,
       name: "Rule registry verification",
       status: FAIL,
-      detail: `rule-registry-verify.js failed: ${(e.stderr || e.message).substring(0, 200)}`,
+      detail: `rule-registry-verify.ts failed: ${(e.stderr || e.message).substring(0, 200)}`,
     };
   }
 }
@@ -1007,14 +1007,14 @@ function checkRolePermissionSync() {
 
 // ─── Check 11: Framework Compliance ────────────────────────────
 function checkFrameworkCompliance() {
-  const scriptPath = path.join(SCRIPTS_DIR, "framework-compliance-check.js");
+  const scriptPath = path.join(SCRIPTS_DIR, "framework-compliance-check.ts");
 
   if (!fileExists(scriptPath)) {
     return {
       id: 11,
       name: "Framework compliance",
       status: FAIL,
-      detail: "framework-compliance-check.js not found",
+      detail: "framework-compliance-check.ts not found",
     };
   }
 
@@ -1063,7 +1063,7 @@ function checkFrameworkCompliance() {
       id: 11,
       name: "Framework compliance",
       status: FAIL,
-      detail: `framework-compliance-check.js failed: ${(e.stderr || e.message).substring(0, 200)}`,
+      detail: `framework-compliance-check.ts failed: ${(e.stderr || e.message).substring(0, 200)}`,
     };
   }
 }
@@ -1107,13 +1107,13 @@ function runChecks() {
 // Map check IDs to fix scripts for --fix mode
 const FIX_MAP = {
   4: {
-    script: "state-reconciliation.js",
+    script: "state-reconciliation.ts",
     args: ["--fix", "--backfill-audit"],
     name: "State reconciliation",
   },
-  7: { script: "install-hooks.js", args: [], name: "Git hook installation" },
+  7: { script: "install-hooks.ts", args: [], name: "Git hook installation" },
   6: {
-    script: "rule-registry-verify.js",
+    script: "rule-registry-verify.ts",
     args: ["--repair"],
     name: "Rule registry verification",
   },

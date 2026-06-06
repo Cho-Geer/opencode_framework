@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// install-hooks.js — P6-002
+// install-hooks.ts — P6-002
 // Ensures git config core.hooksPath = .opencode/hooks.
 // Validates hook scripts exist and are executable.
 // Works on: Windows, Git Bash, WSL, Linux, macOS.
@@ -19,10 +19,10 @@ const REQUIRED_HOOKS = ['pre-commit', 'commit-msg'];
 const OPTIONAL_HOOKS = ['pre-push', 'post-commit', 'post-merge'];
 // FW-REPAIR-14: Framework scripts that MUST be executable (shebang scripts invoked directly)
 // These are NOT in .opencode/hooks/ but are critical for framework operation.
-// Previously pre-execution-gate.js was tracked as 100644 in Git, causing recurring
+// Previously pre-execution-gate.ts was tracked as 100644 in Git, causing recurring
 // framework-self-test failures. Now tracked as 100755 + repaired here as safety net.
 const REQUIRED_EXECUTABLE_SCRIPTS = [
-  '.opencode/scripts/pre-execution-gate.js',
+  '.opencode/scripts/pre-execution-gate.ts',
   '.opencode/scripts/pre-execution-hook.sh',
   '.opencode/scripts/enforcement-mode-check.sh',
   '.opencode/scripts/framework-health-check.sh',
