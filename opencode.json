@@ -167,6 +167,7 @@
           "rmdir *": "deny",
           "sed -i '' *": "deny",
           "node *": "deny",
+          "bun *": "deny",
           "npx *": "deny",
           "npm *": "deny",
           "python3 *": "deny"
@@ -247,6 +248,7 @@
           "tsc *": "allow",
           "echo *": "allow",
           "node *": "allow",
+          "bun *": "allow",
           "npx *": "allow",
           "npm *": "allow",
           "grep *": "allow",
@@ -324,6 +326,7 @@
           "tsc *": "allow",
           "echo *": "allow",
           "node *": "allow",
+          "bun *": "allow",
           "npx *": "allow",
           "npm *": "allow",
           "grep *": "allow",
@@ -613,7 +616,9 @@
           "rmdir *": "allow",
           "sed -i *": "allow",
           "node *": "allow",
+          "bun *": "allow",
           "node .opencode/scripts/*": "allow",
+          "bun .opencode/scripts/*": "allow",
           "npx *": "allow",
           "npm *": "allow",
           "grep *": "allow",
@@ -668,6 +673,7 @@
         "safe_shell": {
           "mkdir *docs/official_docs*": "allow",
           "node .opencode/scripts/knowledge/*": "allow",
+          "bun .opencode/scripts/knowledge/*": "allow",
           "npm *": "allow",
           "ls *": "allow",
           "cat *": "allow",
@@ -702,8 +708,8 @@
     "compliance-gate": {
       "type": "local",
       "command": [
-        "node",
-        "./.opencode/scripts/mcp-tools/compliance-gate.js"
+        "/home/zhaoge/.bun/bin/bun",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts"
       ],
       "timeout": 60000,
       "enabled": true
@@ -711,8 +717,8 @@
     "eslint-audit": {
       "type": "local",
       "command": [
-        "node",
-        "./.opencode/scripts/mcp-tools/eslint-audit.js"
+        "/home/zhaoge/.bun/bin/bun",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/eslint-audit.ts"
       ],
       "timeout": 60000,
       "enabled": true

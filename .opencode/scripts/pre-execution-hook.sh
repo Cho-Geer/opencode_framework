@@ -31,13 +31,13 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DAG_FILE="${PROJECT_ROOT}/Task.DAG.json"
-PRE_EXEC_GATE="${SCRIPT_DIR}/pre-execution-gate.js"
+PRE_EXEC_GATE="${SCRIPT_DIR}/pre-execution-gate.ts"
 
 # ── Resolve Enforcement Mode ─────────────────────────────────────────
 # Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
 ENF_MODE="advisory"
-if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && { command -v node &>/dev/null || command -v node.exe &>/dev/null; }; then
-  ENF_MODE=$(node -e "
+if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && { command -v bun &>/dev/null || command -v node &>/dev/null; }; then
+  ENF_MODE=$(/home/zhaoge/.bun/bin/bun -e "
     try {
       const cfg = require('${PROJECT_ROOT}/.opencode/project.config.json');
       const mode = cfg.template_resolution?.enforcement_mode;
@@ -184,7 +184,7 @@ fi  # End of legacy DAG fallback block
 echo ""
 echo "── Stage 2: Rule Registry Verification ─────────────────────────"
 
-RULE_VERIFY_SCRIPT="${SCRIPT_DIR}/rule-registry-verify.js"
+RULE_VERIFY_SCRIPT="${SCRIPT_DIR}/rule-registry-verify.ts"
 if [ -f "$RULE_VERIFY_SCRIPT" ] && command -v node &>/dev/null; then
   if node "$RULE_VERIFY_SCRIPT" --strict 2>&1; then
     echo "  ✅ All rule registry digests verified."

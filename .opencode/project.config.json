@@ -107,7 +107,7 @@
         "allow_downgrade": false
       }
     },
-    "contract_hash_command": "node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml",
+    "contract_hash_command": "/home/zhaoge/.bun/bin/bun .opencode/scripts/mcp-tools/keystone-validate.ts --hash contract.yaml",
     "backend.src": "booking_system_refactor/booking-backend/src/",
     "backend.framework": "NestJS",
     "backend.runtime": "Node.js 22.x",

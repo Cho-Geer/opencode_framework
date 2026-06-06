@@ -1,26 +1,26 @@
 {
   "formatVersion": "2.0",
   "sessions": {
-    "cg_ses_1780708655378": {
-      "session_id": "cg_ses_1780708655378",
-      "created_at": "2026-06-06T01:17:35.382Z",
-      "task_description": "提交框架修改到work-one分支并推送到远程",
+    "cg_ses_1780716521860": {
+      "session_id": "cg_ses_1780716521860",
+      "created_at": "2026-06-06T03:28:41.862Z",
+      "task_description": "TS统一收尾: 提交framework-self-test验证通过的变更, 推送work-one",
       "enforcement_mode": "advisory",
       "gate_status": "armed",
       "last_check_passed": true,
       "last_check_failed_items": [],
-      "plan_summary": "提交work-one分支框架修改: FW-HARDEN-UC7KS(UC7KS硬化), FW-REPAIR-14(权限修复), FW-HARDEN-UC7KS-001(UC7-001强制)三批修改, 含rule_registry修复",
-      "confirmed_at": "2026-06-06T01:17:42.202Z",
+      "plan_summary": "验证28/28 PASS, 提交TS统一变更(MCP bun+.ts, 编译产物清理, safe-bash-core/opencode.json/hooks更新), 推送",
+      "confirmed_at": "2026-06-06T03:28:49.561Z",
       "consumed_at": null,
       "audit": null,
       "task_id": null,
       "agent": "@Super-Admin",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-06-07T01:17:42.202Z"
+      "expires_at": "2026-06-07T03:28:49.561Z"
     }
   },
   "active_sessions": [
-    "cg_ses_1780708655378"
+    "cg_ses_1780716521860"
   ],
-  "last_updated": "2026-06-06T01:17:42.202Z"
+  "last_updated": "2026-06-06T03:28:49.561Z"
 }

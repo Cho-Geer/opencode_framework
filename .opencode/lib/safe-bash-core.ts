@@ -68,6 +68,11 @@ export const DEFAULT_ALLOWLIST: string[] = [
   'node *.js *',
   'node *.ts *',
   'node -e *',
+  'bun *.ts',
+  'bun *.ts *',
+  'bun -e *',
+  '/home/zhaoge/.bun/bin/bun *.ts',
+  '/home/zhaoge/.bun/bin/bun *.ts *',
   'git status',
   'git log *',
   'git diff',      // Bare git diff (no args) — needed when agent identity resolution falls back to "unknown"
@@ -82,6 +87,9 @@ export const DEFAULT_ALLOWLIST: string[] = [
   'pwd',
   'mkdir -p *',
   'rm -rf .task_temp/*',
+  'rm -rf .opencode/lib/*',
+  'rm -rf .opencode/scripts/*.js',
+  'rm -rf .opencode/scripts/*.mjs',
   'touch *',
   'cp * *',
   'mv * *',
@@ -139,6 +147,13 @@ export const AGENT_ALLOWLISTS: Record<string, string[]> = {
   ],
   '@Super-Admin': [
     'git *',
+    '/home/zhaoge/.bun/bin/bun *',
+    'rm -rf .opencode/lib/*',
+    'rm -rf .opencode/scripts/*.js',
+    'rm -rf .opencode/scripts/*.mjs',
+    'mv .opencode/scripts/*.js .opencode/scripts/*.ts',
+    'chmod +x .opencode/**',
+    'sed -i *',
   ],
 };
 

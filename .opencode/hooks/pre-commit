@@ -9,18 +9,18 @@
 set -e
 
 ROOT="$(git rev-parse --show-toplevel)"
-INNER="$ROOT/$(node -e "console.log(require('./.opencode/project.config.json').project_root)")"
+INNER="$ROOT/$(/home/zhaoge/.bun/bin/bun -e "console.log(require('./.opencode/project.config.json').project_root)")"
 
 # ── Fallback path resolution: when $INNER paths don't exist, try $ROOT/.opencode/ ──
 # Handles monorepo edge cases where project_root nesting differs from .opencode layout
-VALIDATOR="$INNER/scripts/keystone-validate.js"
+VALIDATOR="$INNER/scripts/keystone-validate.ts"
 MACHINE="$INNER/.opencode/state/machine.json"
 GATE_STATE="$INNER/.opencode/state/gate-state.json"
 ENF_SCRIPT="$INNER/.opencode/scripts/enforcement-mode-check.sh"
 
 # If INNER-prefixed paths don't resolve, fall back to ROOT/.opencode/
 if [ ! -f "$VALIDATOR" ]; then
-  VALIDATOR="$ROOT/.opencode/scripts/mcp-tools/keystone-validate.js"
+  VALIDATOR="$ROOT/.opencode/scripts/mcp-tools/keystone-validate.ts"
 fi
 if [ ! -f "$MACHINE" ]; then
   MACHINE="$ROOT/.opencode/state/machine.json"
@@ -37,7 +37,7 @@ ENF_MODE="advisory"
 if [ -x "$ENF_SCRIPT" ]; then
   ENF_MODE=$("$ENF_SCRIPT" 2>/dev/null || echo "advisory")
 elif [ -f "$INNER/.opencode/project.config.json" ]; then
-  ENF_MODE=$(node -e "
+  ENF_MODE=$(/home/zhaoge/.bun/bin/bun -e "
     try {
       const cfg = require('$INNER/.opencode/project.config.json');
       // FW-REPAIR-12: Resolve dual-key enforcement mode per enforcement-modes-standard.md §4.1
@@ -72,7 +72,7 @@ if [ "$ENF_MODE" = "advisory" ]; then
     echo "  ⚠️  [ADVISORY] Gate armed check skipped (advisory mode)"
 elif [ -f "$GATE_STATE" ]; then
     # FW-REPAIR-12: Handle both V2 (array) and V3 (object) active_sessions format
-    ARMED=$(node -e "
+    ARMED=$(/home/zhaoge/.bun/bin/bun -e "
       const g=require('$GATE_STATE');
       const sessions = g.active_sessions;
       if (!sessions) { console.log(0); process.exit(0); }
@@ -112,11 +112,11 @@ fi
 # ── Layer 1.8 — Gate lifecycle audit ──
 echo ""
 echo "[1.8/4] Gate lifecycle audit..."
-audit_output=$(node .opencode/scripts/gate-lifecycle-audit.js --json 2>&1) || true
+audit_output=$(bun .opencode/scripts/gate-lifecycle-audit.ts --json 2>&1) || true
 stale_count=$(echo "$audit_output" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len([s for s in d.get('stale_sessions',[]) if s.get('hours_old',0)>24]))" 2>/dev/null || echo "0")
 if [ "$stale_count" -gt 0 ] 2>/dev/null; then
   echo "  ⚠️  $stale_count stale gate session(s) found (>24h)"
-  echo "  🔧 Fix: node .opencode/scripts/state-reconciliation.js --fix"
+  echo "  🔧 Fix: Run bun .opencode/scripts/state-reconciliation.ts --fix"
 else
   echo "  ✅ No stale gate sessions"
 fi
@@ -265,7 +265,7 @@ if [ -f "$INDEX_FILE" ]; then
       echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
     else
       echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
-      echo "     Fix: Run node .opencode/scripts/framework-self-test.js to validate"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
       exit 1
     fi
   else
@@ -310,7 +310,7 @@ else
     if [ ! -f "$MACHINE" ]; then
         echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
     else
-        if node "$VALIDATOR" --pre-commit; then
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
             echo "  ✅ Keystone validation passed."
         else
             if [ "$ENF_MODE" = "advisory" ]; then
