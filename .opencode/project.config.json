@@ -75,19 +75,20 @@
         "log_level": "warn"
       },
       "strict": {
-        "description": "Blocks non-compliant actions. Suitable for CI/staging.",
+        "description": "Blocks non-compliant actions. Suitable for CI/staging. UC7KS pipeline enforced: external doc queries blocked if local cache exists but not searched.",
         "block_on": [
           "gate_armed",
           "keystone_hash",
           "tdd_order",
           "dag_gate",
           "eslint_audit",
-          "role_scope"
+          "role_scope",
+          "uc7ks_pipeline"
         ],
         "log_level": "error"
       },
       "locked": {
-        "description": "Prevents all changes without governance override. Suitable for production config branches.",
+        "description": "Prevents all changes without governance override. ALL external doc queries blocked — only @Knowledge-Curator may fetch docs. Suitable for production config branches.",
         "block_on": [
           "gate_armed",
           "keystone_hash",
@@ -98,7 +99,8 @@
           "role_scope",
           "workspace_root",
           "gate_state_sync",
-          "write_audit_integrity"
+          "write_audit_integrity",
+          "uc7ks_pipeline"
         ],
         "log_level": "error",
         "allow_waivers": false,
@@ -140,7 +142,18 @@
     "knowledge.opencode_ttl": 7,
     "knowledge.scout_ttl": 14,
     "knowledge.janitor_interval_hours": 24,
-    "knowledge.compression_threshold_kb": 200
+    "knowledge.compression_threshold_kb": 200,
+    "knowledge.fallback_url_nestjs": "https://docs.nestjs.com/{topic}",
+    "knowledge.fallback_url_prisma": "https://www.prisma.io/docs/{topic}",
+    "knowledge.fallback_url_angular": "https://angular.dev/{topic}",
+    "knowledge.fallback_url_redis": "https://redis.io/docs/{topic}",
+    "knowledge.fallback_url_bullmq": "https://docs.bullmq.io/{topic}",
+    "knowledge.fallback_url_jest": "https://jestjs.io/docs/{topic}",
+    "knowledge.fallback_url_jwt": "https://jwt.io/introduction",
+    "knowledge.fallback_url_eslint": "https://eslint.org/docs/{topic}",
+    "knowledge.fallback_url_docker": "https://docs.docker.com/{topic}",
+    "knowledge.fallback_url_opencode": "https://opencode.ai/docs/{topic}",
+    "knowledge.fallback_url_git": "https://git-scm.com/docs/{topic}"
   },
   "context7_task_mapping": [
     {
@@ -395,6 +408,49 @@
       "windows_drive_match": "Consider replacing with a repo-relative path (./...)",
       "tmp_not_opencode": "Consider using /tmp/opencode/ (approved) or $TMPDIR",
       "fallback": "Consider replacing with a repo-relative path or {placeholder}"
+    }
+  },
+  "agent_tool_scopes": {
+    "$description": "UC7KS knowledge pipeline tool permissions per agent. Controls which agents may use external documentation tools (webfetch, websearch, context7_*). Enforced by uc7ks-enforcer.ts plugin and framework-enforcer.ts. Values: 'allow' (direct access), 'via_curator' (must route through @Knowledge-Curator in strict+ modes), 'deny' (never allowed).",
+    "@Knowledge-Curator": {
+      "doc_tools": "allow",
+      "reason": "Designated knowledge curator — must fetch external docs to populate local cache"
+    },
+    "@Super-Admin": {
+      "doc_tools": "via_curator",
+      "reason": "Emergency framework admin — should follow UC7KS pipeline; bypass only in advisory mode"
+    },
+    "@Coder-BE": {
+      "doc_tools": "via_curator",
+      "reason": "Backend developer — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Coder-FE": {
+      "doc_tools": "via_curator",
+      "reason": "Frontend developer — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Architect": {
+      "doc_tools": "via_curator",
+      "reason": "System architect — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Meta-Planner": {
+      "doc_tools": "via_curator",
+      "reason": "Project CTO — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Orchestrator": {
+      "doc_tools": "via_curator",
+      "reason": "Project manager — should dispatch @Knowledge-Curator rather than query directly"
+    },
+    "@Guardian": {
+      "doc_tools": "deny",
+      "reason": "Quality gate — read-only; uses cached rules and standards only"
+    },
+    "@Arbiter": {
+      "doc_tools": "deny",
+      "reason": "Technical committee — reads cached rules and standards only"
+    },
+    "@CI-CD-Agent": {
+      "doc_tools": "via_curator",
+      "reason": "DevOps/SRE — deployment docs should be cached by @Knowledge-Curator first"
     }
   },
   "agent_write_scopes": {

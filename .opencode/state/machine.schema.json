@@ -12,6 +12,8 @@
     "format_state",
     "write_audit_state",
     "compliance_records",
+    "knowledge_audit_state",
+    "knowledge_cache_state",
     "tdd_enforcement_state",
     "contracts",
     "keystone_hashes"
@@ -432,6 +434,52 @@
       "additionalProperties": true
     },
 
+    "knowledge_audit_state": {
+      "type": "object",
+      "description": "UC7KS Knowledge Pipeline audit state. Tracks knowledge acquisition activity across all agents.",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether knowledge pipeline auditing is enabled."
+        },
+        "last_cache_check": {
+          "type": ["string", "null"],
+          "description": "ISO 8601 timestamp of last cache check."
+        },
+        "last_knowledge_acquisition": {
+          "type": ["string", "null"],
+          "description": "ISO 8601 timestamp of last external knowledge acquisition."
+        },
+        "current_session": {
+          "type": "object",
+          "description": "Per-session knowledge audit state.",
+          "properties": {
+            "agent": { "type": ["string", "null"] },
+            "cache_checked": { "type": "boolean" },
+            "cache_hits": { "type": "array", "items": { "type": "string" } },
+            "cache_misses": { "type": "array", "items": { "type": "string" } },
+            "knowledge_curator_dispatched": { "type": "boolean" },
+            "dispatch_token_validated": { "type": "boolean" },
+            "files_acquired": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "aggregate": {
+          "type": "object",
+          "description": "Aggregated knowledge pipeline statistics.",
+          "properties": {
+            "total_cache_checks": { "type": "integer" },
+            "total_cache_hits": { "type": "integer" },
+            "total_cache_misses": { "type": "integer" },
+            "total_curator_dispatches": { "type": "integer" },
+            "total_external_fetches": { "type": "integer" },
+            "cat_know_violations": { "type": "array", "items": { "type": "object" } }
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+
     "tdd_enforcement_state": {
       "type": "object",
       "description": "TDD enforcement tracking state.",
@@ -563,6 +611,116 @@
         "transaction_log_path": {
           "type": "string",
           "description": "Relative path from project root to the transaction WAL log file (e.g., '.opencode/state/.transaction-log')."
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "knowledge_cache_state": {
+      "type": "object",
+      "description": "UC7KS knowledge cache state — tracks cache health, agent compliance, and pipeline bypass attempts. Added Phase 4 hardening (FW-HARDEN-UC7KS).",
+      "required": ["cache_status", "total_entries", "last_index_check", "compliance"],
+      "properties": {
+        "cache_status": {
+          "type": "string",
+          "enum": ["healthy", "stale", "empty", "corrupt"],
+          "description": "Overall health status of the local knowledge cache."
+        },
+        "total_entries": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of entries in docs/official_docs/index.json."
+        },
+        "last_index_check": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of the last time index.json was verified."
+        },
+        "last_fetch_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of most recent @Knowledge-Curator fetch."
+        },
+        "compliance": {
+          "type": "object",
+          "description": "Per-agent UC7KS pipeline compliance tracking.",
+          "properties": {
+            "total_bypass_attempts": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total number of bypass attempts (direct external queries without cache check)."
+            },
+            "bypass_attempts_by_agent": {
+              "type": "object",
+              "description": "Bypass attempts keyed by agent type.",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "count": { "type": "integer", "minimum": 0 },
+                  "last_attempt_at": { "type": "string", "format": "date-time" },
+                  "last_tool_attempted": { "type": "string" }
+                }
+              }
+            },
+            "cache_hits": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of times agents successfully used cached docs."
+            },
+            "cache_misses": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of times agents needed docs not in cache."
+            }
+          }
+        },
+        "pipeline_integrity": {
+          "type": "object",
+          "description": "Integrity verification of the knowledge pipeline.",
+          "properties": {
+            "last_verification_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "verified_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of cache files verified in last integrity check."
+            },
+            "mismatch_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of hash mismatches found in last integrity check."
+            }
+          }
+        },
+        "session_access": {
+          "type": "object",
+          "description": "UC7-001 per-agent cache access tracking. Records when each agent type last read docs/official_docs/index.json. Used by compliance_gate_check and uc7ks-enforcer to enforce the 'local-first' mandate. Keyed by agent type (e.g. '@Super-Admin', '@Coder-BE'). Added FW-HARDEN-UC7KS-001.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["last_read_at", "uc7_001_compliant"],
+            "properties": {
+              "last_read_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp of the most recent cache index read."
+              },
+              "last_file_read": {
+                "type": "string",
+                "description": "Last cache file path that was read (e.g., 'docs/official_docs/index.json')."
+              },
+              "uc7_001_compliant": {
+                "type": "boolean",
+                "description": "Whether this agent has satisfied UC7-001 (read local cache before proceeding)."
+              },
+              "total_cache_reads": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Total number of times this agent has read cache files."
+              }
+            }
+          }
         }
       },
       "additionalProperties": true

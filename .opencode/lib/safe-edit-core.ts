@@ -57,6 +57,8 @@ export interface StatSnapshot {
   mtimeMs: number;
   ctimeMs: number;
   dev: number;
+  /** Unix file mode (permissions). Captured so atomic writes can restore original permissions (e.g., executable bit for hooks/scripts). Added FW-REPAIR-14. */
+  mode: number;
 }
 
 export interface RestoreResult {
@@ -160,6 +162,7 @@ export function captureStat(filePath: string): StatSnapshot {
     mtimeMs: stat.mtimeMs,
     ctimeMs: stat.ctimeMs,
     dev: stat.dev,
+    mode: stat.mode,
   };
 }
 
@@ -413,10 +416,19 @@ export function writeSafe(
     }
 
     // Phase 5: Atomic write (temp → rename)
+    // FW-REPAIR-14: Preserve original file mode (permissions) after atomic write.
+    // fs.writeFileSync creates temp files with default 0644 mode. Without chmodSync,
+    // executable bits (e.g., hooks/pre-commit, scripts/*.sh) are silently stripped
+    // on every framework edit — causing recurring framework-self-test failures.
+    const origMode = origStat.mode;
     const tmpWrite = resolvedPath + '.tmp.' + Date.now();
     try {
       fs.writeFileSync(tmpWrite, content, encoding);
       fs.renameSync(tmpWrite, resolvedPath);
+      // Restore original permissions if the temp file defaults don't match
+      if (origMode !== 0) {
+        fs.chmodSync(resolvedPath, origMode);
+      }
     } catch (e: unknown) {
       try { fs.rmSync(tmpWrite, { force: true }); } catch { /* ignore */ }
       if (backupPathStr) {

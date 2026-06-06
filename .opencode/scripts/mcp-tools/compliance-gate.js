@@ -799,6 +799,53 @@ function runGateCheck(taskDescription) {
     severity: knowledgeCacheStatus === "not_found" || knowledgeCacheStatus === "malformed" ? "WARNING" : "INFO",
   });
 
+  // ── UC7KS: UC7-001 Enforcement — Check agent has read local cache ──
+  // FW-HARDEN-UC7KS-001: Reads machine.json.knowledge_cache_state.session_access
+  // to verify the current agent has satisfied the UC7-001 "local-first" mandate
+  // before the gate can be armed. This is the POSITIVE ENFORCEMENT layer:
+  //   - advisory: WARNING only (non-blocking)
+  //   - strict:   BLOCK if cache is available but agent hasn't read it
+  //   - locked:   BLOCK unconditionally if agent hasn't read the cache
+  const currentAgent = process.env.FRAMEWORK_AGENT || "";
+  if (currentAgent) {
+    try {
+      const machinePath = path2.resolve(
+        resolveProjectState(), "machine.json"
+      );
+      if (fs2.existsSync(machinePath)) {
+        const machine = JSON.parse(fs2.readFileSync(machinePath, "utf-8"));
+        const sessionAccess = machine?.knowledge_cache_state?.session_access;
+        const agentAccess = sessionAccess?.[currentAgent];
+
+        if (!agentAccess || !agentAccess.uc7_001_compliant) {
+          // Agent has NOT satisfied UC7-001
+          const severity = enforcementMode === "advisory" ? "WARNING"
+            : enforcementMode === "locked" ? "HIGH"
+            : "WARNING";
+          failed.push({
+            id: "uc7ks_uc7_001_cache_not_read",
+            desc: `[Gate Preflight v2][UC7-001] Agent "${currentAgent}" has NOT read the local knowledge cache (docs/official_docs/index.json). UC7-001 mandates local-first search before any external queries or task execution.`,
+            severity,
+          });
+        } else {
+          // Agent HAS read the cache — verify recency
+          const lastRead = new Date(agentAccess.last_read_at).getTime();
+          const now = Date.now();
+          const hoursSinceRead = (now - lastRead) / (1000 * 60 * 60);
+          if (hoursSinceRead > 24) {
+            failed.push({
+              id: "uc7ks_uc7_001_cache_stale",
+              desc: `[Gate Preflight v2][UC7-001] Agent "${currentAgent}" last read the cache ${hoursSinceRead.toFixed(1)}h ago. Consider re-reading for latest cache entries.`,
+              severity: "INFO",
+            });
+          }
+        }
+      }
+    } catch (_) {
+      // Non-fatal: if machine.json is unreadable, skip UC7-001 check
+    }
+  }
+
   store.sessions[sessionId] = {
     session_id: sessionId,
     created_at: new Date().toISOString(),

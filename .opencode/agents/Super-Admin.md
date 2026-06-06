@@ -1,10 +1,9 @@
 ---
 name: Super-Admin
 description: Emergency framework administrator – repairs broken enforcement, modifies governance rules, reprovisions infrastructure. Human-only invocation. Bypasses standard quality gates with full audit trail.
-mode: subagent
+mode: primary
 model: DeepSeek/deepseek-v4-pro
 temperature: 0.1
-steps: 30
 color: "#8B5CF6"
 top_p: 0.1
 skills:

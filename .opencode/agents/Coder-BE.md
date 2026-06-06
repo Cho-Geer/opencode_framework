@@ -5,7 +5,7 @@ mode: subagent
 hidden: true
 model: DeepSeek/deepseek-v4-flash
 temperature: 0.6
-steps: 40
+steps: 50
 color: "#059669"
 top_p: 0.7
 skills:

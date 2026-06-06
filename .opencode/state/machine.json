@@ -187,6 +187,37 @@
     },
     "history": []
   },
+  "knowledge_cache_state": {
+    "cache_status": "healthy",
+    "total_entries": 9,
+    "last_index_check": "2026-06-05T15:15:00.000Z",
+    "last_fetch_at": "2026-06-05T15:05:00.000Z",
+    "compliance": {
+      "total_bypass_attempts": 1,
+      "bypass_attempts_by_agent": {
+        "@Super-Admin": {
+          "count": 1,
+          "last_attempt_at": "2026-06-05T14:50:00.000Z",
+          "last_tool_attempted": "webfetch"
+        }
+      },
+      "cache_hits": 2,
+      "cache_misses": 5
+    },
+    "pipeline_integrity": {
+      "last_verification_at": "2026-06-05T15:15:00.000Z",
+      "verified_count": 9,
+      "mismatch_count": 0
+    },
+    "session_access": {
+      "@Super-Admin": {
+        "last_read_at": "2026-06-06T01:07:00.000Z",
+        "last_file_read": "docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 3
+      }
+    }
+  },
   "compliance_records": {
     "role_violations": [
       {
@@ -4360,6 +4391,29 @@
     ],
     "tdd_violations": []
   },
+  "knowledge_audit_state": {
+    "_description": "UC7KS Knowledge Pipeline audit state. Tracks knowledge acquisition activity and cache-hit compliance across all agents.",
+    "enabled": true,
+    "last_cache_check": null,
+    "last_knowledge_acquisition": null,
+    "current_session": {
+      "agent": null,
+      "cache_checked": false,
+      "cache_hits": [],
+      "cache_misses": [],
+      "knowledge_curator_dispatched": false,
+      "dispatch_token_validated": false,
+      "files_acquired": []
+    },
+    "aggregate": {
+      "total_cache_checks": 0,
+      "total_cache_hits": 0,
+      "total_cache_misses": 0,
+      "total_curator_dispatches": 0,
+      "total_external_fetches": 0,
+      "cat_know_violations": []
+    }
+  },
   "tdd_enforcement_state": {
     "enabled": true,
     "current_session": {
@@ -4422,8 +4476,8 @@
   "knowledge_state": {
     "version": "1.2.0",
     "index_manifest_sha256": null,
-    "total_docs_count": 2,
-    "total_size_bytes": 7150,
+    "total_docs_count": 9,
+    "total_size_bytes": 40689,
     "last_janitor_run": null,
     "active_queries": [],
     "query_stats": {

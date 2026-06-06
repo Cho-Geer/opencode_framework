@@ -70,6 +70,7 @@ export const DEFAULT_ALLOWLIST: string[] = [
   'node -e *',
   'git status',
   'git log *',
+  'git diff',      // Bare git diff (no args) — needed when agent identity resolution falls back to "unknown"
   'git diff *',
   'git show *',
   'git branch *',
@@ -170,6 +171,22 @@ export const DANGEROUS_PATTERNS: RegExp[] = [
 /** Script paths where file-write operations are permitted (no scan needed) */
 export const ALLOWED_SCRIPT_PATHS: string[] = ['__tests__', '.opencode_backups', '.task_temp'];
 
+/**
+ * Agent-specific script allowlist — bypasses content scanning for maintenance
+ * scripts that legitimately need file-write operations (e.g., rule_registry repair,
+ * state reset). Only the listed agents may execute these scripts via `node <script>`.
+ *
+ * Added FW-REPAIR-14: Super-Admin needs rule-registry-verify.js --repair to
+ * regenerate digests after framework sync operations.
+ */
+export const AGENT_ALLOWED_SCRIPTS: Record<string, string[]> = {
+  '@Super-Admin': [
+    'rule-registry-verify.js',
+    'state-reconciliation.js',
+    'state-transaction.js',
+  ],
+};
+
 /** File-write patterns to detect in scanned scripts */
 export const WRITE_PATTERNS: RegExp[] = [
   /fs\.writeFileSync\s*\(/,
@@ -250,9 +267,20 @@ export function _scriptContainsFileWrite(
     return { blocked: false, reason: null };
   }
 
-  // Check for opt-in header comment (must be first line)
-  const firstLine = content.split('\n')[0].trim();
-  if (firstLine === '// safe_bash: allow-write') {
+  // Check for opt-in header comment.
+  // FW-REPAIR-14: Skip shebang lines (#!/usr/bin/env node) and check the first
+  // non-shebang, non-empty line. Previously only checked line 0, which broke
+  // scripts with shebangs where the opt-in was on line 1.
+  const lines = content.split('\n');
+  let firstNonShebangLine = '';
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#!')) {
+      firstNonShebangLine = trimmed;
+      break;
+    }
+  }
+  if (firstNonShebangLine === '// safe_bash: allow-write') {
     return { blocked: false, reason: null };
   }
 
@@ -363,17 +391,30 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
     const scriptArg = nodeScriptMatch[1];
     const scriptPath = path.resolve(process.cwd(), scriptArg);
 
-    if (!_isScriptInAllowedPath(scriptPath)) {
-      const scanResult = _scriptContainsFileWrite(scriptPath);
-      if (scanResult.blocked) {
-        const result: SafeBashResult = {
-          command, agent, allowed: false, executed: false,
-          exitCode: null, stdout: '', stderr: '',
-          blockedReason: scanResult.reason,
-          timestamp: new Date().toISOString(),
-        };
-        logAction(result);
-        return result;
+    // FW-REPAIR-14: Agent-specific script bypass — skip content scan for
+    // maintenance scripts that legitimately need file-write operations.
+    // Only the listed agents (e.g., @Super-Admin for rule-registry-verify.js)
+    // may execute these scripts. Other agents are still blocked by content scan.
+    // Normalize agent name: FRAMEWORK_AGENT may be "Super-Admin" without @ prefix.
+    const normalizedAgent = agent.startsWith('@') ? agent : '@' + agent;
+    const agentScripts = AGENT_ALLOWED_SCRIPTS[normalizedAgent] || [];
+    const isAgentAllowedScript = agentScripts.some(
+      (allowed) => scriptArg.includes(allowed)
+    );
+
+    if (!isAgentAllowedScript) {
+      if (!_isScriptInAllowedPath(scriptPath)) {
+        const scanResult = _scriptContainsFileWrite(scriptPath);
+        if (scanResult.blocked) {
+          const result: SafeBashResult = {
+            command, agent, allowed: false, executed: false,
+            exitCode: null, stdout: '', stderr: '',
+            blockedReason: scanResult.reason,
+            timestamp: new Date().toISOString(),
+          };
+          logAction(result);
+          return result;
+        }
       }
     }
   }

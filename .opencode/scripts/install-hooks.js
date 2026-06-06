@@ -17,6 +17,17 @@ const HOOKS_DIR = path.join(PROJECT_ROOT, '.opencode', 'hooks');
 const REQUIRED_HOOKS = ['pre-commit', 'commit-msg'];
 // Optional hooks (check existence, warn if missing)
 const OPTIONAL_HOOKS = ['pre-push', 'post-commit', 'post-merge'];
+// FW-REPAIR-14: Framework scripts that MUST be executable (shebang scripts invoked directly)
+// These are NOT in .opencode/hooks/ but are critical for framework operation.
+// Previously pre-execution-gate.js was tracked as 100644 in Git, causing recurring
+// framework-self-test failures. Now tracked as 100755 + repaired here as safety net.
+const REQUIRED_EXECUTABLE_SCRIPTS = [
+  '.opencode/scripts/pre-execution-gate.js',
+  '.opencode/scripts/pre-execution-hook.sh',
+  '.opencode/scripts/enforcement-mode-check.sh',
+  '.opencode/scripts/framework-health-check.sh',
+  '.opencode/scripts/state-machine-reset.sh',
+];
 
 function isWindows() {
   return os.platform() === 'win32';
@@ -137,7 +148,35 @@ function main() {
     }
   }
 
-  // ── Step 5: Verify final hooksPath ──
+  // ── Step 5: Check framework scripts that require executable permissions ──
+  // FW-REPAIR-14: These scripts have #! shebangs and are invoked directly (not via `node`).
+  // Without the execute bit, they fail silently or require explicit `node` invocation,
+  // which breaks pre-commit hooks and framework-self-test validation.
+  for (const scriptRel of REQUIRED_EXECUTABLE_SCRIPTS) {
+    const scriptPath = path.join(PROJECT_ROOT, scriptRel);
+    const scriptName = path.basename(scriptRel);
+    if (!fs.existsSync(scriptPath)) {
+      results.push({ check: `script_${scriptName}`, status: 'missing', detail: `Required script '${scriptRel}' not found` });
+      needsRepair = true;
+      continue;
+    }
+    if (!isExecutable(scriptPath)) {
+      if (!dryRun && !verifyOnly) {
+        if (makeExecutable(scriptPath)) {
+          results.push({ check: `script_${scriptName}`, status: 'fixed', detail: `Made '${scriptRel}' executable (chmod +x)` });
+        } else {
+          results.push({ check: `script_${scriptName}`, status: 'error', detail: `'${scriptRel}' exists but cannot make executable` });
+          needsRepair = true;
+        }
+      } else if (dryRun) {
+        results.push({ check: `script_${scriptName}`, status: 'would_fix', detail: `Would make '${scriptRel}' executable` });
+      }
+    } else {
+      results.push({ check: `script_${scriptName}`, status: 'pass', detail: `'${scriptRel}' exists and is executable` });
+    }
+  }
+
+  // ── Step 6: Verify final hooksPath ──
   const finalPath = runGit(['config', '--local', 'core.hooksPath']);
   if (finalPath.success && finalPath.stdout === targetPath) {
     results.push({ check: 'hooksPath_verify', status: 'pass', detail: 'Verified hooksPath is correctly set' });

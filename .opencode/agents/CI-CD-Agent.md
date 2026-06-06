@@ -5,7 +5,7 @@ mode: subagent
 hidden: true
 model: DeepSeek/deepseek-v4-pro
 temperature: 0.2
-steps: 12
+steps: 30
 color: "#EC4899"
 top_p: 0.4
 skills:

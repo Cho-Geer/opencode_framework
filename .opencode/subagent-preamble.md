@@ -3,7 +3,23 @@ trigger: always_on
 alwaysApply: true
 ---
 
+---
+
 ## 🔒 P0 PROTOCOL — MANDATORY PREEXECUTION SEQUENCE
+
+### Step 0: UC7KS Knowledge Cache Check (P0 HARD CONSTRAINT — BEFORE COMPLIANCE GATE)
+
+**This step executes BEFORE all other steps. It is NOT optional. It is enforced by pre-execution-gate.js.**
+
+Before ANY analysis, design, coding, or external query:
+
+1. **Search local cache**: Read `docs/official_docs/index.json` and search entries for topic/technology matches
+2. **Read cached docs**: If matches found, read the cached files via the `read` tool
+3. **Cache sufficient?** → Proceed to Step 1 (compliance gate). **Do NOT query external sources.**
+4. **Cache insufficient?** → Report the specific missing topics to @Orchestrator and request @Knowledge-Curator dispatch. **Do NOT proceed with the task using training data alone.**
+5. **No cache at all?** → Same as insufficient. Report to @Orchestrator.
+
+**VIOLATION**: Proceeding to compliance_gate_check without completing this cache search is a CAT-KNOW-01 violation. In strict/locked enforcement mode, this is physically blocked by pre-execution-gate.js.
 
 You are launched as a sub-agent. Execute the following P0 protocol FIRST, before any analysis, design, implementation, testing, or deployment work. This protocol applies to ALL task types.
 

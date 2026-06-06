@@ -1,8 +1,134 @@
 {
-  "manifest_version": "1.2.0",
-  "last_updated": "2026-06-05T09:12:00Z",
-  "total_entries": 2,
+  "manifest_version": "1.3.0",
+  "last_updated": "2026-06-05T23:45:00Z",
+  "total_entries": 9,
   "entries": [
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode plugins system hook events create",
+      "domain": "opencode",
+      "tags": ["opencode", "plugins", "hooks", "events", "tool.execute.before", "tool.execute.after", "plugin-development"],
+      "files": [{
+        "path": "opencode/framework/plugins.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/plugins/",
+        "sha256": "sha256:5df79e28bbf7d66936c2dfa76d763300e5cc3733b0ff812c956de17fdfd37982",
+        "size_bytes": 5699,
+        "created_at": "2026-06-05T23:45:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode built-in tools list permissions configuration",
+      "domain": "opencode",
+      "tags": ["opencode", "tools", "built-in", "bash", "edit", "write", "read", "grep", "glob", "webfetch", "websearch", "skill", "todowrite", "question", "lsp", "apply_patch", "permissions"],
+      "files": [{
+        "path": "opencode/framework/tools.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/tools/",
+        "sha256": "sha256:3e490c973d3d91f4ef28fee257b7a75981ba88c6552a75f5ef1ac4bc5b9eaee3",
+        "size_bytes": 2903,
+        "created_at": "2026-06-05T23:45:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode custom tools definition schema multiple exports",
+      "domain": "opencode",
+      "tags": ["opencode", "custom-tools", "tool()", "zod", "schema", "args", "execute", "context", "multiple-exports", "naming"],
+      "files": [{
+        "path": "opencode/framework/custom-tools.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/custom-tools/",
+        "sha256": "sha256:5fd3f780db5d91926d147b48f053bf63664b433a0e501263f5ea51d6acf86402",
+        "size_bytes": 2728,
+        "created_at": "2026-06-05T23:45:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode agents configuration permissions options markdown",
+      "domain": "opencode",
+      "tags": ["opencode", "agents", "primary", "subagent", "hidden", "build", "plan", "general", "explore", "scout", "permissions", "configure", "mode", "task-permissions", "markdown-config"],
+      "files": [{
+        "path": "opencode/framework/agents.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/agents/",
+        "sha256": "sha256:ec1454e169d3662ef1954f5fd0691d013d880122bef868015752d99d86529231",
+        "size_bytes": 4436,
+        "created_at": "2026-06-05T23:45:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode permissions system complete key list agent override",
+      "domain": "opencode",
+      "tags": ["opencode", "permissions", "allow", "ask", "deny", "wildcard", "glob", "external-directory", "doom-loop", "agent-override", "granular-rules"],
+      "files": [{
+        "path": "opencode/framework/permissions.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/permissions/",
+        "sha256": "sha256:30d9920104faa22da2de700b86590e0f34c6d72a6a4cb033f57efc63f6e40c79",
+        "size_bytes": 4396,
+        "created_at": "2026-06-05T23:45:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode mcp servers configuration local remote oauth per-agent",
+      "domain": "opencode",
+      "tags": ["opencode", "mcp", "servers", "local", "remote", "oauth", "per-agent", "enable", "disable", "tool-naming", "glob"],
+      "files": [{
+        "path": "opencode/framework/mcp-servers.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/mcp-servers/",
+        "sha256": "sha256:50a72518fd8c3377a3a147d76de924bd7d9330c517a6e9640eb1c384c8ef76e2",
+        "size_bytes": 3719,
+        "created_at": "2026-06-05T23:45:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode policies experimental provider control",
+      "domain": "opencode",
+      "tags": ["opencode", "policies", "experimental", "provider", "allow", "deny", "resource", "action", "provider.use", "global-override"],
+      "files": [{
+        "path": "opencode/framework/policies.md",
+        "source": "webfetch",
+        "original_url": "https://opencode.ai/docs/policies/",
+        "sha256": "sha256:f0d097d5f50dd8c17f3f551873977ff1a52744399267bb33823cca517d20a392",
+        "size_bytes": 2841,
+        "created_at": "2026-06-05T23:45:00Z",
+        "ttl_days": 7,
+        "access_count": 0,
+        "last_accessed": null,
+        "status": "active"
+      }]
+    },
     {
       "library_id": "web-fallback",
       "query_topic": "opencode release notes latest version changes",

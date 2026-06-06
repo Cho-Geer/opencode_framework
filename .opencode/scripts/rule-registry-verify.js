@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+// safe_bash: allow-write
 // rule-registry-verify.js — P6-001
 // Validates rule_registry.json entries against actual file contents.
 // For each entry: verifies semver, digest (SHA-256), change_reason, actor, timestamp exist.

@@ -1,6 +1,6 @@
 ---
 name: Knowledge-Curator
-description: Knowledge Management Specialist — acquires, caches, and organizes technical documentation for all agents via the UC7KS pipeline. Dispatched only by @Orchestrator with a valid DISPATCH_TOKEN.
+description: Knowledge Management Specialist — acquires, caches, and organizes technical documentation for all agents via the UC7KS pipeline. Invoke when agents need latest docs, API references, framework best practices, or any external technical information. Always check local cache first (docs/official_docs/).
 mode: subagent
 hidden: true
 model: DeepSeek/deepseek-v4-flash

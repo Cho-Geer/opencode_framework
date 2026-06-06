@@ -989,21 +989,104 @@ async function toolExecuteBefore(
     }
   }
 
-  // === UC7KS: UC7-009 — Super-Admin Knowledge Equality (must check local cache) ===
-  if ((agent === "Super-Admin" || agent === "@Super-Admin") && (tool === "webfetch" || tool === "websearch" || CONTEXT7_TOOLS.has(tool))) {
-    // Log warning — Super-Admin should use UC7KS pipeline but has emergency bypass
-    const indexPath = path.resolve(process.cwd(), "docs/official_docs/index.json");
-    let localCacheChecked = false;
-    try {
-      if (fs.existsSync(indexPath)) {
-        const stat = fs.statSync(indexPath);
-        localCacheChecked = stat.size > 0; // Non-empty index exists
+  // === UC7KS: UC7-009 — ALL agents (incl. Super-Admin) must follow UC7KS pipeline ===
+  //
+  // Per UC7-009: "@Super-Admin MUST follow the same UC7KS pipeline as all other agents.
+  // Framework repairs and governance modifications must be based on the latest official
+  // documentation, not training data."
+  //
+  // This check is a SECONDARY defense layer. The PRIMARY enforcement is in
+  // uc7ks-enforcer.ts which intercepts ALL external doc tools at the plugin hook level.
+  // This layer catches any bypass that slips past the plugin.
+  //
+  // Enforcement:
+  //   advisory: Log warning for audit trail (non-blocking)
+  //   strict:   BLOCK if local cache exists but wasn't checked
+  //   locked:   BLOCK all direct external queries (only @Knowledge-Curator may bypass)
+  const EXTERNAL_DOC_TOOLS = new Set(["webfetch", "websearch", "context7_resolve-library-id", "context7_query-docs", "context7"]);
+  if (EXTERNAL_DOC_TOOLS.has(tool)) {
+    // @Knowledge-Curator is always allowed (it IS the pipeline)
+    const isKC = (agent === "Knowledge-Curator" || agent === "@Knowledge-Curator");
+
+    if (!isKC) {
+      // Check if local cache exists and has entries
+      const indexPath = path.resolve(process.cwd(), "docs/official_docs/index.json");
+      let localCacheAvailable = false;
+      try {
+        if (fs.existsSync(indexPath)) {
+          const content = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+          localCacheAvailable = !!(content.manifest_version && Array.isArray(content.entries) && content.entries.length > 0);
+        }
+      } catch (_) { /* ignore */ }
+
+      if (mode === "locked") {
+        // LOCKED: BLOCK ALL direct external queries (uc7ks-enforcer.ts primary, this is secondary)
+        const msg = `[FW-ENFORCE][UC7-009][LOCKED] Direct external query "${tool}" blocked for agent "${agent}". LOCKED mode requires ALL documentation to go through @Knowledge-Curator. Use local cache: docs/official_docs/index.json.`;
+        console.error(msg);
+        violations.push("UC7-009: Direct external query in LOCKED mode");
+        logAuditEntry({ event: "uc7ks_uc7_009_blocked_locked", tool, agent, sessionID: input.sessionID, detail: `Agent "${agent}" attempted direct "${tool}" in locked mode` });
+      } else if (mode === "strict" && localCacheAvailable) {
+        // STRICT: Block if cache exists (agent should have checked it first)
+        const msg = `[FW-ENFORCE][UC7-009][STRICT] Direct external query "${tool}" blocked for agent "${agent}". Local knowledge cache exists (${indexPath}). Check cached docs before external queries.`;
+        console.error(msg);
+        violations.push("UC7-009: Direct external query without local cache check in STRICT mode");
+        logAuditEntry({ event: "uc7ks_uc7_009_blocked_strict", tool, agent, sessionID: input.sessionID, detail: `Agent "${agent}" attempted direct "${tool}" with cache available` });
+      } else {
+        // ADVISORY or STRICT-without-cache: Log warning
+        console.warn(`[FW-ENFORCE][UC7-009][${mode.toUpperCase()}] External query "${tool}" by "${agent}". UC7-009 requires all agents to follow UC7KS pipeline: local cache → @Knowledge-Curator.`);
+        logAuditEntry({ event: "uc7ks_uc7_009_warning", tool, agent, sessionID: input.sessionID, detail: `Agent "${agent}" external query "${tool}" — cache ${localCacheAvailable ? "available" : "unavailable"}` });
       }
-    } catch (_) { /* ignore */ }
-    if (!localCacheChecked) {
-      console.warn(`[FW-ENFORCE][UC7-009] Super-Admin is making external queries without local cache check. UC7-009 requires all agents, including Super-Admin, to check docs/official_docs/index.json first.`);
-      violations.push("UC7-009: Super-Admin bypassed local cache check (advisory warning)");
-      logAuditEntry({ event: "uc7ks_uc7_009_warning", tool, agent, sessionID: input.sessionID, detail: "Super-Admin external query without prior local cache check" });
+    }
+  }
+
+  // === UC7KS: UC7-001 — Auto-Track Knowledge Cache Access (read detection) ===
+  // FW-HARDEN-UC7KS-001: Physically detects when any agent reads the knowledge cache
+  // index (docs/official_docs/index.json) or cached docs. Records the access in
+  // machine.json.knowledge_cache_state.session_access for downstream enforcement:
+  //   - compliance_gate_check verifies UC7-001 before arming the gate
+  //   - uc7ks-enforcer.ts checks cache access before allowing external queries
+  //
+  // This is the POSITIVE DETECTION layer — unlike the NEGATIVE BLOCKING layers
+  // (UC7-004, UC7-009), this records compliance rather than blocking violations.
+  if (tool === "read") {
+    const filePath = output.args?.filePath || "";
+    if (filePath.includes("docs/official_docs/")) {
+      try {
+        const machine = readJsonFile<any>(STATE_PATHS.machine());
+        if (machine && machine.knowledge_cache_state) {
+          const kcs = machine.knowledge_cache_state;
+          // Initialize session_access if needed
+          if (!kcs.session_access) kcs.session_access = {};
+          if (!kcs.session_access[agent]) {
+            kcs.session_access[agent] = {
+              last_read_at: null,
+              last_file_read: null,
+              uc7_001_compliant: false,
+              total_cache_reads: 0,
+            };
+          }
+          // Update tracking
+          const now = new Date().toISOString();
+          kcs.session_access[agent].last_read_at = now;
+          kcs.session_access[agent].last_file_read = filePath;
+          kcs.session_access[agent].uc7_001_compliant = true;
+          kcs.session_access[agent].total_cache_reads =
+            (kcs.session_access[agent].total_cache_reads || 0) + 1;
+
+          // Also update compliance counters
+          if (!kcs.compliance) kcs.compliance = {};
+          kcs.compliance.cache_hits = (kcs.compliance.cache_hits || 0) + 1;
+
+          // Atomic write — preserve other state fields
+          const updated = { ...machine, knowledge_cache_state: kcs };
+          const tmpPath = STATE_PATHS.machine() + ".tmp." + Date.now();
+          fs.writeFileSync(tmpPath, JSON.stringify(updated, null, 2), "utf8");
+          fs.renameSync(tmpPath, STATE_PATHS.machine());
+        }
+      } catch (e) {
+        // Non-fatal: tracking failure should not block the agent's read operation
+        console.warn(`[FW-ENFORCE][UC7-001] Failed to record cache access: ${(e as Error).message}`);
+      }
     }
   }
 

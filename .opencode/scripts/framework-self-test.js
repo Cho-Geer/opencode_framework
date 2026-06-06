@@ -1016,6 +1016,13 @@ function checkDocsManifestIntegrity() {
   const indexPath = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.json");
   const docsDir = path.join(OPENCODE_ROOT, "docs", "official_docs");
 
+  // FW-REPAIR-14: Known non-document files in docs/official_docs/ that should
+  // not be flagged as orphans. .gitkeep is a Git convention placeholder to track
+  // empty directories. Other OS metadata files can be added here as needed.
+  const KNOWN_NON_DOC_FILES = new Set([
+    '.gitkeep',
+  ]);
+
   // 22a: index.json exists
   if (!fs.existsSync(indexPath)) {
     return check(22, true, "docs/official_docs/index.json not yet created (no cache entries) — OK");
@@ -1045,7 +1052,7 @@ function checkDocsManifestIntegrity() {
           if (!rel.startsWith(".metadata") && !rel.startsWith("scout-extracts")) {
             walkDir(full);
           }
-        } else if (entry.isFile() && !rel.includes("index.json") && !rel.startsWith(".metadata")) {
+        } else if (entry.isFile() && !rel.includes("index.json") && !rel.startsWith(".metadata") && !KNOWN_NON_DOC_FILES.has(entry.name)) {
           const inManifest = manifest.entries.some(e =>
             e.files && e.files.some(f => f.path && rel.includes(f.path))
           );
@@ -1404,6 +1411,7 @@ function checkPreExecGate() {
     "checkRoleViolations",
     "checkRuleRegistry",
     "checkConfigValidity",
+    "checkKnowledgeGate",
     "getEnforcementMode",
   ];
   const missingFuncs = requiredFunctions.filter(
@@ -1420,7 +1428,7 @@ function checkPreExecGate() {
   return check(
     23,
     true,
-    "pre-execution-gate.js exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 5 checks implemented",
+    "pre-execution-gate.js exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate)",
   );
 }
 

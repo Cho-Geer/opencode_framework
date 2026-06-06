@@ -66,6 +66,7 @@ status: active
 | write_audit 完整性验证 | 每个文件的写入必须有对应的 write_audit 记录；缺失记录 → 阻断提交 |
 | 豁免 (waiver) 策略 | **所有豁免被拒绝**。`WAIVE.md` 中技术债条目必须附带 @Arbiter 锁模式覆盖批准 |
 | 模式降级 | 不允许从 Locked 降级到 Strict 或 Advisory。必须执行 `state-machine-reset.sh --force --unlock` 并附带 @Arbiter 签名的解锁令牌 |
+| UC7KS 知识管道 | 所有外部文档查询（webfetch, websearch, context7_*）必须经过 @Knowledge-Curator。直接查询被 uc7ks-enforcer.ts 插件物理阻断（throw Error）。仅 @Knowledge-Curator 可豁免 |
 
 **标识**：所有工具输出以 `[LOCKED]` 前缀标记，使用 `🔒` 图标。
 
@@ -85,6 +86,7 @@ status: active
 | Workspace-root 路径验证 | ⏭️ 跳过 | ⚠️ 警告 | ❌ 阻断 |
 | Gate-state 同步验证 | ⏭️ 跳过 | ⚠️ 警告 | ❌ 阻断 |
 | Write-audit 完整性 | ⏭️ 跳过 | ⚠️ 警告 | ❌ 阻断 |
+| UC7KS 知识管道 (外部查询) | ⚠️ 警告 | ❌ 阻断 (缓存存在时) | ❌ 阻断 (全部直接查询) |
 | Waiver 接受 | ✅ 接受 | ✅ 接受（需 @Arbiter） | ❌ 全部拒绝 |
 | 模式降级允许 | N/A | ✅ 允许（需重置） | ❌ 禁止 |
 

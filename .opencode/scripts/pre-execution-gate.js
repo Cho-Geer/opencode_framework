@@ -25,6 +25,8 @@
  *   Check 3 — Role Violations: no unresolved role violations in machine.json
  *   Check 4 — Rule Registry: no HIGH severity mismatches (or all mismatches waived)
  *   Check 5 — Config Validity: required config files are readable
+ *   Check 6 — Knowledge Pipeline (NEW): when Knowledge-Curator is dispatched,
+ *             verifies DISPATCH_TOKEN presence and UC7KS cache-first compliance
  */
 
 const fs = require("fs");
@@ -86,6 +88,10 @@ const RULE_REGISTRY_FILE = fs.existsSync(PRIMARY_RULE_REGISTRY)
     ? FALLBACK_RULE_REGISTRY
     : PRIMARY_RULE_REGISTRY;
 const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
+
+// Knowledge pipeline paths (UC7KS)
+const KNOWLEDGE_INDEX_FILE = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.json");
+const DISPATCH_OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -237,9 +243,9 @@ function printUsage() {
     "Validates that a task is ready for execution in the current project.",
   );
   console.error(
-    "Performs 5 checks: DAG coverage, Gate lifecycle, Role violations,",
+    "Performs 6 checks: DAG coverage, Gate lifecycle, Role violations,",
   );
-  console.error("Rule registry integrity, and Config validity.");
+  console.error("Rule registry integrity, Config validity, and Knowledge pipeline.");
   console.error("");
   console.error("Exit codes: 0=pass, 1=fail, 2=system error");
   process.exit(1);
@@ -557,6 +563,106 @@ function checkConfigValidity() {
   return true;
 }
 
+/**
+ * Check 6 — Knowledge Pipeline Gate (UC7KS):
+ * When Knowledge-Curator is dispatched, verify DISPATCH_TOKEN is present.
+ * When any agent is dispatched, verify UC7KS cache-first compliance
+ * (index.json exists and has been checked).
+ *
+ * CAT-KNOW-01: Missing knowledge cache check before task execution.
+ * CAT-KNOW-02: Knowledge-Curator dispatch without DISPATCH_TOKEN.
+ */
+function checkKnowledgeGate(taskId) {
+  const KNOWLEDGE_KEYWORDS = [
+    "Knowledge-Curator", "knowledge", "context7", "docs lookup",
+    "external documentation", "fetch docs", "latest version",
+    "API reference", "library docs", "webfetch", "websearch"
+  ];
+
+  // Only activate when task or dispatch involves knowledge acquisition
+  const taskLower = taskId.toLowerCase();
+  const isKnowledgeTask = KNOWLEDGE_KEYWORDS.some(kw => taskLower.includes(kw.toLowerCase()));
+
+  // Also check if Knowledge-Curator dispatch output exists
+  const dispatchFiles = fs.existsSync(DISPATCH_OUTPUT_DIR)
+    ? fs.readdirSync(DISPATCH_OUTPUT_DIR).filter(f => f.startsWith("dispatch-Knowledge-Curator"))
+    : [];
+
+  const isKnowledgeDispatch = dispatchFiles.length > 0;
+
+  // ── Check 6a: Knowledge pipeline integrity (ALWAYS checked for Knowledge-Curator tasks) ──
+  if (isKnowledgeTask || isKnowledgeDispatch) {
+    // Verify knowledge cache index exists
+    if (!fs.existsSync(KNOWLEDGE_INDEX_FILE)) {
+      const blocked = emitError(
+        "Knowledge Pipeline",
+        "Knowledge cache index (docs/official_docs/index.json) not found",
+        "The UC7KS pipeline requires this file. Run: touch docs/official_docs/index.json and initialize with valid JSON."
+      );
+      if (blocked) process.exit(1);
+      return false;
+    }
+
+    // For Knowledge-Curator dispatches, DISPATCH_TOKEN must be present
+    if (isKnowledgeDispatch) {
+      let tokenFound = false;
+      for (const f of dispatchFiles) {
+        try {
+          const content = fs.readFileSync(path.join(DISPATCH_OUTPUT_DIR, f), "utf8");
+          if (content.includes("//DISPATCH_TOKEN:")) {
+            tokenFound = true;
+            break;
+          }
+        } catch { /* skip unreadable files */ }
+      }
+
+      if (!tokenFound) {
+        const blocked = emitError(
+          "Knowledge Pipeline",
+          "Knowledge-Curator dispatch missing DISPATCH_TOKEN",
+          "All @Knowledge-Curator dispatches must go through @Orchestrator using the dispatch_subagent tool, which generates a cryptographic DISPATCH_TOKEN. Direct dispatch without this token violates the UC7KS pipeline."
+        );
+        if (blocked) process.exit(1);
+        return false;
+      }
+    }
+  }
+
+  // ── Check 6b: UC7KS bypass audit (reads machine.json knowledge_cache_state) ──
+  const machine = readJSON(MACHINE_FILE);
+  if (machine && machine.knowledge_cache_state) {
+    const kcs = machine.knowledge_cache_state;
+    const bypassAttempts = kcs.compliance?.total_bypass_attempts || 0;
+
+    if (bypassAttempts > 0) {
+      const agent = process.env.FRAMEWORK_AGENT || "unknown";
+      const agentBypasses = kcs.compliance?.bypass_attempts_by_agent?.[agent];
+      const agentCount = agentBypasses?.count || 0;
+
+      if (agentCount > 0) {
+        console.error(
+          `    ⚠️  Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) recorded. ` +
+          `Last attempt: ${agentBypasses?.last_attempt_at || "unknown"} using "${agentBypasses?.last_tool_attempted || "unknown"}". ` +
+          `Total system bypasses: ${bypassAttempts}.`
+        );
+
+        const mode = getEnforcementMode();
+        if (mode === "locked" && agentCount >= 1) {
+          const blocked = emitError(
+            "Knowledge Pipeline",
+            `Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) in LOCKED mode`,
+            "In LOCKED mode, all external documentation queries must go through @Knowledge-Curator. Bypass attempts are not tolerated. Remediation: clear bypass attempts via state-reconciliation --reset-knowledge-audit after verifying all cached docs are up to date."
+          );
+          if (blocked) process.exit(1);
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────
 
 function main() {
@@ -590,10 +696,21 @@ function main() {
     printUsage();
   }
 
-  // Special case: Super-Admin bypass — emergency framework administrator
+  // Special case: Super-Admin — emergency framework administrator
+  // Bypasses DAG coverage and gate lifecycle checks (emergency repairs cannot wait for planning)
+  // BUT: knowledge pipeline (UC7KS) checks still apply to prevent documentation bypass
   const agent = process.env.FRAMEWORK_AGENT || "";
   if (agent === "Super-Admin" || agent === "@Super-Admin") {
     console.log("[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance.");
+    console.log("[GATE] Knowledge pipeline (UC7KS) checks still enforced.");
+    if (!checkKnowledgeGate(taskId)) {
+      const mode = getEnforcementMode();
+      if (mode === "locked") {
+        console.error("[GATE][LOCKED] Knowledge pipeline check FAILED for Super-Admin — blocked.");
+        process.exit(1);
+      }
+      console.error("[GATE] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory/strict).");
+    }
     process.exit(0);
   }
 
@@ -622,7 +739,7 @@ function main() {
   let allPassed = true;
 
   // Check 0: Config validity (must pass first)
-  console.error("  Check 1/5 — Config Validity...");
+  console.error("  Check 1/6 — Config Validity...");
   if (!checkConfigValidity()) {
     allPassed = false;
     // checkConfigValidity exits on failure in strict/locked
@@ -633,7 +750,7 @@ function main() {
 
   // Check 1: DAG Coverage (SKIPPED for dispatch sessions — dispatch session IDs
   // are OpenCode background sub-agent process identifiers, not DAG task IDs)
-  console.error("  Check 2/5 — DAG Coverage...");
+  console.error("  Check 2/6 — DAG Coverage...");
   if (isDispatchSession) {
     console.error(
       `    ⏭️  SKIPPED (--dispatch-session: task_id '${taskId}' is a dispatch session identifier, not a DAG task ID)`,
@@ -646,7 +763,7 @@ function main() {
   }
 
   // Check 2: Gate Lifecycle
-  console.error("  Check 3/5 — Gate Lifecycle...");
+  console.error("  Check 3/6 — Gate Lifecycle...");
   if (checkGateLifecycle(taskId)) {
     console.error("    ✅ Armed gate session found");
   } else {
@@ -654,7 +771,7 @@ function main() {
   }
 
   // Check 3: Role Violations
-  console.error("  Check 4/5 — Role Violations...");
+  console.error("  Check 4/6 — Role Violations...");
   if (checkRoleViolations()) {
     console.error("    ✅ No unresolved role violations");
   } else {
@@ -662,9 +779,17 @@ function main() {
   }
 
   // Check 4: Rule Registry
-  console.error("  Check 5/5 — Rule Registry...");
+  console.error("  Check 5/6 — Rule Registry...");
   if (checkRuleRegistry()) {
     console.error("    ✅ Rule registry integrity verified");
+  } else {
+    allPassed = false;
+  }
+
+  // Check 6: Knowledge Pipeline Gate (UC7KS)
+  console.error("  Check 6/6 — Knowledge Pipeline...");
+  if (checkKnowledgeGate(taskId)) {
+    console.error("    ✅ Knowledge pipeline compliance verified");
   } else {
     allPassed = false;
   }
@@ -709,5 +834,6 @@ if (require.main === module) {
     checkRoleViolations,
     checkRuleRegistry,
     checkConfigValidity,
+    checkKnowledgeGate,
   };
 }
