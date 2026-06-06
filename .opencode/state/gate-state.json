@@ -1,26 +1,26 @@
 {
   "formatVersion": "2.0",
   "sessions": {
-    "cg_ses_1780716521860": {
-      "session_id": "cg_ses_1780716521860",
-      "created_at": "2026-06-06T03:28:41.862Z",
-      "task_description": "TS统一收尾: 提交framework-self-test验证通过的变更, 推送work-one",
+    "cg_ses_1780717067872": {
+      "session_id": "cg_ses_1780717067872",
+      "created_at": "2026-06-06T03:37:47.876Z",
+      "task_description": "TS统一Phase2: MCP和hooks从全路径bun切为bun命令, 删除.js运行时副本, hooks批量node→bun, 提交推送",
       "enforcement_mode": "advisory",
       "gate_status": "armed",
       "last_check_passed": true,
       "last_check_failed_items": [],
-      "plan_summary": "验证28/28 PASS, 提交TS统一变更(MCP bun+.ts, 编译产物清理, safe-bash-core/opencode.json/hooks更新), 推送",
-      "confirmed_at": "2026-06-06T03:28:49.561Z",
+      "plan_summary": "Phase2: opencode.json/project.config/pre-commit全路径bun→bun命令, 删.js副本, 提交推送",
+      "confirmed_at": "2026-06-06T03:37:56.276Z",
       "consumed_at": null,
       "audit": null,
       "task_id": null,
       "agent": "@Super-Admin",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-06-07T03:28:49.561Z"
+      "expires_at": "2026-06-07T03:37:56.276Z"
     }
   },
   "active_sessions": [
-    "cg_ses_1780716521860"
+    "cg_ses_1780717067872"
   ],
-  "last_updated": "2026-06-06T03:28:49.561Z"
+  "last_updated": "2026-06-06T03:37:56.276Z"
 }

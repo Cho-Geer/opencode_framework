@@ -708,8 +708,8 @@
     "compliance-gate": {
       "type": "local",
       "command": [
-        "/home/zhaoge/.bun/bin/bun",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts"
+        "bun",
+        "./.opencode/scripts/mcp-tools/compliance-gate.ts"
       ],
       "timeout": 60000,
       "enabled": true
@@ -717,8 +717,8 @@
     "eslint-audit": {
       "type": "local",
       "command": [
-        "/home/zhaoge/.bun/bin/bun",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/eslint-audit.ts"
+        "bun",
+        "./.opencode/scripts/mcp-tools/eslint-audit.ts"
       ],
       "timeout": 60000,
       "enabled": true
