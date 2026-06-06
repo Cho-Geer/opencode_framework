@@ -3098,6 +3098,13 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-06T03:30:47.370Z",
       "archive_ref": "gate-state.history/2026-06-06.jsonl#6"
+    },
+    "cg_ses_1780717067872": {
+      "session_id": "cg_ses_1780717067872",
+      "created_at": "2026-06-06T03:37:47.876Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-06T03:39:16.717Z",
+      "archive_ref": "gate-state.history/2026-06-06.jsonl#7"
     }
   }
 }

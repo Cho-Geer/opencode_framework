@@ -1,26 +1,26 @@
 {
   "formatVersion": "2.0",
   "sessions": {
-    "cg_ses_1780717067872": {
-      "session_id": "cg_ses_1780717067872",
-      "created_at": "2026-06-06T03:37:47.876Z",
-      "task_description": "TS统一Phase2: MCP和hooks从全路径bun切为bun命令, 删除.js运行时副本, hooks批量node→bun, 提交推送",
+    "cg_ses_1780717649073": {
+      "session_id": "cg_ses_1780717649073",
+      "created_at": "2026-06-06T03:47:29.076Z",
+      "task_description": "#3 safe_shell常量外部化到project.config.json → 解除sed DANGEROUS_PATTERN → #1 hooks批量node→bun → #2 删除.js副本",
       "enforcement_mode": "advisory",
       "gate_status": "armed",
       "last_check_passed": true,
       "last_check_failed_items": [],
-      "plan_summary": "Phase2: opencode.json/project.config/pre-commit全路径bun→bun命令, 删.js副本, 提交推送",
-      "confirmed_at": "2026-06-06T03:37:56.276Z",
+      "plan_summary": "#3 project.config.json新增safe_shell节(allowlist/patterns/agents) → safe-bash-core.ts从config读取 → 移除sed限制 → #1 hooks批量sed替换node→bun → #2 删除.js副本",
+      "confirmed_at": "2026-06-06T03:47:42.123Z",
       "consumed_at": null,
       "audit": null,
       "task_id": null,
       "agent": "@Super-Admin",
       "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-06-07T03:37:56.276Z"
+      "expires_at": "2026-06-07T03:47:42.123Z"
     }
   },
   "active_sessions": [
-    "cg_ses_1780717067872"
+    "cg_ses_1780717649073"
   ],
-  "last_updated": "2026-06-06T03:37:56.276Z"
+  "last_updated": "2026-06-06T03:47:42.123Z"
 }

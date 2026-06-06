@@ -639,5 +639,56 @@
         "Task.DAG.json"
       ]
     }
+  },
+  "safe_shell": {
+    "$description": "Safe shell command allowlist and dangerous pattern configuration. Externalized from safe-bash-core.ts for runtime configurability. Added FW-UNIFY-TS-P3.",
+    "default_allowlist": [
+      "npm run *", "npx jest *", "npx tsc *", "npx eslint *",
+      "node * --help", "node *.js", "node *.ts", "node *.js *", "node *.ts *", "node -e *",
+      "bun *.ts", "bun *.ts *", "bun -e *",
+      "git status", "git log *", "git diff", "git diff *", "git show *", "git branch *",
+      "docker --version", "docker-compose --version",
+      "echo *", "cat *", "ls *", "pwd", "grep *", "find *",
+      "head *", "tail *", "wc -l *", "sort *", "uniq *",
+      "cp * *", "mv * *", "touch *", "mkdir -p *",
+      "rm -rf .task_temp/*", "rm -rf .opencode/lib/*",
+      "whoami", "date", "uname *", "which *", "env | grep *"
+    ],
+    "agent_allowlists": {
+      "@Super-Admin": ["git *", "rm -rf .opencode/**", "mv .opencode/**", "chmod +x .opencode/**", "sed -i *", "for *", "find * -exec *", "/home/zhaoge/.bun/bin/bun *"],
+      "@CI-CD-Agent": ["docker build *", "docker push *", "docker pull *", "docker run *", "docker-compose up *", "docker-compose down *", "docker ps *", "docker images *", "docker logs *", "kubectl *", "helm *", "terraform *", "ansible-playbook *", "git *"],
+      "@Coder-BE": ["npx prisma *", "npm run db:*", "npm run test:*", "npm run build", "npm run lint", "npm run format", "curl *"],
+      "@Orchestrator": ["node *.js *", "node *.ts *", "node -e *"],
+      "@Architect": ["sed *"]
+    },
+    "agent_allowed_scripts": {
+      "@Super-Admin": ["rule-registry-verify.js", "state-reconciliation.js", "state-transaction.js"]
+    },
+    "dangerous_patterns": [
+      "rm .*\\.(json|yaml|yml|md|ts|js)\\b",
+      "rm -rf /",
+      "> .*(opencode|git)",
+      "curl .*\\| sh",
+      "wget .*\\| sh",
+      "eval \\(",
+      "exec \\(",
+      "child_process",
+      "require\\(['\"]http['\"]\\)",
+      "require\\(['\"]https['\"]\\)",
+      "git add .*\\.opencode/(state|agents|rules|hooks|lib)\\b",
+      "(cp|mv) .*\\.opencode/(hooks|state|agents|rules)\\b",
+      "tee .*\\.opencode/(hooks|state|agents|rules)\\b",
+      "chmod .*\\.opencode/(hooks|agents)\\b"
+    ],
+    "write_patterns": [
+      "fs\\.writeFileSync\\(",
+      "fs\\.writeFile\\(",
+      "fs\\.appendFileSync\\(",
+      "fs\\.createWriteStream\\(",
+      "fs\\.renameSync\\(",
+      "fs\\.copyFileSync\\(",
+      "fs\\.mkdirSync\\("
+    ],
+    "allowed_script_paths": ["__tests__", ".opencode_backups", ".task_temp"]
   }
 }

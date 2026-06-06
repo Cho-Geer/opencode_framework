@@ -53,9 +53,43 @@ export interface SafeBashOptions {
 // CONSTANTS — Single source of truth
 // ════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════
+// CONFIG LOADER — reads project.config.json.safe_shell at runtime
+// FW-UNIFY-TS-P3: Externalizes allowlists/patterns from hardcoded constants.
+// Falls back to hardcoded values when config section is absent.
+// ════════════════════════════════════════════════════════════
+
+let _safeShellConfigCache: any = null;
+let _safeShellConfigLoaded = false;
+
+function _loadSafeShellConfig(): any {
+  if (_safeShellConfigLoaded) return _safeShellConfigCache;
+  _safeShellConfigLoaded = true;
+  try {
+    const root = process.env.OPENCODE_ROOT || process.cwd();
+    const configPath = path.resolve(root, '.opencode', 'project.config.json');
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      _safeShellConfigCache = config.safe_shell || null;
+    }
+  } catch { /* use hardcoded fallbacks */ }
+  return _safeShellConfigCache;
+}
+
+function _getConfigList(key: string, fallback: string[]): string[] {
+  const cfg = _loadSafeShellConfig();
+  return (cfg && Array.isArray(cfg[key])) ? cfg[key] : fallback;
+}
+
+function _getConfigMap(key: string, fallback: Record<string, string[]>): Record<string, string[]> {
+  const cfg = _loadSafeShellConfig();
+  return (cfg && cfg[key] && typeof cfg[key] === 'object') ? cfg[key] : fallback;
+}
+
 /**
  * Default allowlist for safe bash commands.
  * These patterns are allowed for ALL agents by default.
+ * Overridable via project.config.json.safe_shell.default_allowlist.
  */
 export const DEFAULT_ALLOWLIST: string[] = [
   'npm run *',
@@ -247,6 +281,12 @@ export function isAllowed(command: string, allowlist: string[]): boolean {
  * @public — Dangerous pattern detection; used by safeBashTool.
  */
 export function isDangerous(command: string): boolean {
+  // FW-UNIFY-TS-P3: Config-aware — read dangerous_patterns from project.config.json,
+  // converting string patterns to RegExp at runtime. Falls back to hardcoded DANGEROUS_PATTERNS.
+  const cfg = _loadSafeShellConfig();
+  if (cfg && Array.isArray(cfg.dangerous_patterns)) {
+    return cfg.dangerous_patterns.some((p: string) => new RegExp(p, 'i').test(command));
+  }
   return DANGEROUS_PATTERNS.some((pattern) => pattern.test(command));
 }
 
@@ -259,8 +299,11 @@ export function isDangerous(command: string): boolean {
 export function getAllowlist(agent: string): string[] {
   // Normalize: ensure leading @ for AGENT_ALLOWLISTS lookup
   if (!agent.startsWith('@')) agent = '@' + agent;
-  const extensions = AGENT_ALLOWLISTS[agent] || [];
-  return [...DEFAULT_ALLOWLIST, ...extensions];
+  // FW-UNIFY-TS-P3: Config-aware — merge project.config.json overrides with hardcoded fallbacks
+  const configDefaults = _getConfigList('default_allowlist', DEFAULT_ALLOWLIST);
+  const configAgents = _getConfigMap('agent_allowlists', AGENT_ALLOWLISTS);
+  const extensions = configAgents[agent] || [];
+  return [...configDefaults, ...extensions];
 }
 
 // ════════════════════════════════════════════════════════════
@@ -299,8 +342,10 @@ export function _scriptContainsFileWrite(
     return { blocked: false, reason: null };
   }
 
-  // Scan for file-write patterns
-  for (const pattern of WRITE_PATTERNS) {
+  // Scan for file-write patterns — config-aware (FW-UNIFY-TS-P3)
+  const writePatterns = _getConfigList('write_patterns', []).map((p: string) => new RegExp(p, 'i'));
+  const patterns = writePatterns.length > 0 ? writePatterns : WRITE_PATTERNS;
+  for (const pattern of patterns) {
     if (pattern.test(content)) {
       return {
         blocked: true,
@@ -318,7 +363,8 @@ export function _scriptContainsFileWrite(
  */
 export function _isScriptInAllowedPath(scriptPath: string): boolean {
   const normalized = path.resolve(scriptPath).replace(/\\/g, '/');
-  return ALLOWED_SCRIPT_PATHS.some(
+  const allowedPaths = _getConfigList('allowed_script_paths', ALLOWED_SCRIPT_PATHS);
+  return allowedPaths.some(
     (allowed) =>
       normalized.includes(`/${allowed}/`) ||
       normalized.endsWith(`/${allowed}`),
@@ -406,13 +452,10 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
     const scriptArg = nodeScriptMatch[1];
     const scriptPath = path.resolve(process.cwd(), scriptArg);
 
-    // FW-REPAIR-14: Agent-specific script bypass — skip content scan for
-    // maintenance scripts that legitimately need file-write operations.
-    // Only the listed agents (e.g., @Super-Admin for rule-registry-verify.js)
-    // may execute these scripts. Other agents are still blocked by content scan.
-    // Normalize agent name: FRAMEWORK_AGENT may be "Super-Admin" without @ prefix.
+    // FW-REPAIR-14: Agent-specific script bypass — config-aware (FW-UNIFY-TS-P3)
     const normalizedAgent = agent.startsWith('@') ? agent : '@' + agent;
-    const agentScripts = AGENT_ALLOWED_SCRIPTS[normalizedAgent] || [];
+    const configAgentScripts = _getConfigMap('agent_allowed_scripts', AGENT_ALLOWED_SCRIPTS);
+    const agentScripts = configAgentScripts[normalizedAgent] || [];
     const isAgentAllowedScript = agentScripts.some(
       (allowed) => scriptArg.includes(allowed)
     );
