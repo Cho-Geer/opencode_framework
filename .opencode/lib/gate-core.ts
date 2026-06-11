@@ -1,6 +1,7 @@
 /**
  * gate-core.ts — Shared Compliance Gate Core Logic
  * =================================================
+ * BUN-CACHE-VERSION: 2026-06-11-SA-UNIFY-005 (diagnostic + enforcement fix)
  *
  * SINGLE SOURCE OF TRUTH for compliance gate state operations.
  * Currently duplicated across:
@@ -226,6 +227,41 @@ const VALID_MODES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Determine whether enforcement-mode diagnostic logging is enabled.
+ *
+ * Debug sources (checked in order):
+ *   1. `DEBUG` env var contains "enforcement" or "gate-core"
+ *   2. `OPENCODE_ENFORCEMENT_DEBUG=1`
+ *   3. `project.config.json` `template_resolution.logs.level` is "DEBUG"
+ *
+ * This stays consistent with log-manager.ts level semantics without
+ * creating a circular import (log-manager imports getEnforcementMode).
+ */
+function isEnforcementDebugEnabled(root?: string): boolean {
+  const debug = process.env.DEBUG || '';
+  if (debug.includes('enforcement') || debug.includes('gate-core')) {
+    return true;
+  }
+  if (process.env.OPENCODE_ENFORCEMENT_DEBUG === '1') {
+    return true;
+  }
+  try {
+    const projectRoot = root || getProjectRoot();
+    const cfgPath = path.join(projectRoot, '.opencode', 'project.config.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      const level = cfg?.template_resolution?.['logs.level'];
+      if (typeof level === 'string' && level.toUpperCase() === 'DEBUG') {
+        return true;
+      }
+    }
+  } catch {
+    // Config unreadable — default to quiet
+  }
+  return false;
+}
+
+/**
  * Determine the current enforcement mode from the project configuration.
  *
  * Reads the two-tier enforcement mode keys introduced in project.config.json v2:
@@ -265,6 +301,36 @@ export function getEnforcementMode(root?: string): EnforcementMode {
     }
   } catch {
     // use default
+  }
+
+  // ── Diagnostic logging (SA-UNIFY-005, 2026-06-11) ──
+  // Available when DEBUG contains "enforcement"/"gate-core",
+  // OPENCODE_ENFORCEMENT_DEBUG=1, or logs.level=DEBUG.
+  // Gated to prevent UI flooding on every hook/tool call.
+  if (isEnforcementDebugEnabled(projectRoot)) {
+    try {
+      const cfgExists = fs.existsSync(cfgPath);
+      const devMode = (() => {
+        if (cfgExists) {
+          const c = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+          return c?.template_resolution?.develop_enforcement_mode || '(unset)';
+        }
+        return '(cfg not found)';
+      })();
+      const runMode = (() => {
+        if (cfgExists) {
+          const c = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+          return c?.template_resolution?.runtime_enforcement_mode || '(unset)';
+        }
+        return '(cfg not found)';
+      })();
+      const resolvedMode = envMode && VALID_MODES.has(envMode)
+        ? (configMode === 'locked' ? 'locked' : envMode)
+        : configMode;
+      console.error(`[gate-core:getEnforcementMode] DIAGNOSTIC projectRoot=${projectRoot} cfgPath=${cfgPath} cfgExists=${cfgExists} ENFORCEMENT_MODE=${envMode || '(unset)'} develop_enforcement_mode=${devMode} runtime_enforcement_mode=${runMode} configMode=${configMode} RESOLVED=${resolvedMode}`);
+    } catch (_diagErr) {
+      // Diagnostic failure is non-blocking
+    }
   }
 
   // Environment variable override (locked mode is protected)

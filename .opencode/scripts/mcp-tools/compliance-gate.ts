@@ -2,18 +2,26 @@
 "use strict";
 
 // ── Delegate to .opencode/lib/gate-core.ts (single source of truth) ──
+// SA-UNIFY-005 (2026-06-11): Prefer compiled dist/gate-core.js to avoid
+// Bun CJS→ESM transpilation fragility. Falls back to .ts source if dist unavailable.
 let _gateCore = null;
 try {
-  const gateCorePath = require("path").join(
-    process.env.OPENCODE_ROOT ||
-      require("path").resolve(__dirname, "..", "..", ".."),
-    ".opencode",
-    "lib",
-    "gate-core",
-  );
-  _gateCore = require(gateCorePath);
+  const rootDir = process.env.OPENCODE_ROOT ||
+    require("path").resolve(__dirname, "..", "..", "..");
+  // Try compiled JS first (reliable CJS require), then TypeScript source
+  const distPath = require("path").join(rootDir, ".opencode", "lib", "dist", "gate-core.js");
+  const tsPath = require("path").join(rootDir, ".opencode", "lib", "gate-core");
+  try {
+    _gateCore = require(distPath);
+  } catch (_distErr) {
+    try {
+      _gateCore = require(tsPath);
+    } catch (_tsErr) {
+      process.stderr.write("[compliance-gate] gate-core load failed (dist+source). dist=" + _distErr.message + " source=" + _tsErr.message + "\n");
+    }
+  }
 } catch (_e) {
-  // Fallback: inline implementations used
+  process.stderr.write("[compliance-gate] gate-core path resolution failed: " + _e.message + "\n");
 }
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
@@ -27,6 +35,34 @@ const {
 
 const fs2 = require("fs");
 const path2 = require("path");
+
+// ── Enforcement-mode debug helper ──
+// Mirrors lib/gate-core.ts isEnforcementDebugEnabled() so the fallback
+// getEnforcementMode() respects the same debug flags.
+function isEnforcementDebugEnabled(root?: string): boolean {
+  const debug = process.env.DEBUG || "";
+  if (debug.includes("enforcement") || debug.includes("gate-core")) {
+    return true;
+  }
+  if (process.env.OPENCODE_ENFORCEMENT_DEBUG === "1") {
+    return true;
+  }
+  try {
+    const projectRoot = root || OPENCODE_ROOT;
+    const cfgPath = path2.join(projectRoot, ".opencode", "project.config.json");
+    if (fs2.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs2.readFileSync(cfgPath, "utf-8"));
+      const level = cfg?.template_resolution?.["logs.level"];
+      if (typeof level === "string" && level.toUpperCase() === "DEBUG") {
+        return true;
+      }
+    }
+  } catch {
+    // Config unreadable — default to quiet
+  }
+  return false;
+}
+
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
   ? path2.resolve(process.env.OPENCODE_ROOT)
   : path2.resolve(__dirname, "..", "..", "..");
@@ -418,6 +454,17 @@ function getEnforcementMode() {
     if (configMode === "locked") return "locked";
     return envMode;
   }
+
+  // ── Diagnostic logging (SA-UNIFY-005, 2026-06-11) ──
+  // Available when DEBUG contains "enforcement"/"gate-core",
+  // OPENCODE_ENFORCEMENT_DEBUG=1, or logs.level=DEBUG.
+  // Gated to prevent UI flooding on every hook/tool call.
+  if (isEnforcementDebugEnabled(OPENCODE_ROOT)) {
+    try {
+      process.stderr.write(`[compliance-gate:getEnforcementMode] DIAGNOSTIC OPENCODE_ROOT=${OPENCODE_ROOT} cfgPath=${cfgPath} cfgExists=${fs2.existsSync(cfgPath)} ENFORCEMENT_MODE=${envMode || '(unset)'} configMode=${configMode} RESOLVED=${configMode}\n`);
+    } catch (_diagErr) { /* non-blocking */ }
+  }
+
   return configMode;
 }
 

@@ -699,7 +699,7 @@
     "@Coder-FE": {
       "allowed": [
         "booking_system_refactor/booking-frontend/**",
-        ".task_temp/**",
+        ".task_temp/**"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/**",
@@ -750,7 +750,7 @@
         "booking_system_refactor/booking-frontend/src/**",
         ".opencode/tools/**",
         ".opencode/scripts/**",
-        ".opencode/state/**",
+        ".opencode/state/**"
       ]
     },
     "@Orchestrator": {

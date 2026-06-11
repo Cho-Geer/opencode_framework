@@ -1,8 +1,15 @@
 {
   "manifest_version": "1.4.1",
   "last_updated": "2026-06-11T07:30:00Z",
-  "total_entries": 35,
+  "total_entries": 36,
   "entries": [
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns",
+      "domain": "opencode",
+      "tags": ["opencode", "mcp", "typescript", "bun", "cjs", "esm", "require", "import", "module.exports", "sdk", "StdioServerTransport", "compliance-gate", "server", "tool"],
+      "files": [{"path": "opencode/mcp-typescript-bun/findings-summary.md", "source": "webfetch+github-api", "original_url": "https://opencode.ai/docs/mcp-servers/", "sha256": "sha256:3fdd0c88a943768a65369ceb730240a7a461a162466bebf74e714b7751ad9df7", "size_bytes": 18385, "created_at": "2026-06-11T14:12:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode json config schema reference all fields",
