@@ -2,6 +2,12 @@ import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { tolerantParse } from "../lib/tolerant-json";
+import {
+  getDomainEntry,
+  updateAgentRollups,
+  atomicWriteMachine,
+  evictOldAgents,
+} from "../lib/uc7ks-schema";
 
 var VALID_MODULES = [
   "backend_api",
@@ -32,17 +38,7 @@ export default tool({
   async execute(args, context) {
     var agent = (context && context.agent) || "unknown";
     var projectRoot = process.env.OPENCODE_ROOT || process.cwd();
-    var configPath = path.resolve(
-      projectRoot,
-      ".opencode",
-      "project.config.json",
-    );
-    var machinePath = path.resolve(
-      projectRoot,
-      ".opencode",
-      "state",
-      "machine.json",
-    );
+    var configPath = path.resolve(projectRoot, ".opencode", "project.config.json");
 
     if (VALID_MODULES.indexOf(args.module) === -1) {
       return JSON.stringify({
@@ -58,10 +54,7 @@ export default tool({
       return JSON.stringify({ error: "Cannot read project.config.json" });
     }
 
-    var domains =
-      (config.knowledge_semantic_map &&
-        config.knowledge_semantic_map.domains) ||
-      [];
+    var domains = (config.knowledge_semantic_map && config.knowledge_semantic_map.domains) || [];
     var domain = null;
     for (var i = 0; i < domains.length; i++) {
       if (domains[i].domain_id === args.module) {
@@ -72,37 +65,47 @@ export default tool({
     if (!domain) {
       return JSON.stringify({
         error: "Unknown domain: " + args.module,
-        available: domains.map(function (d) {
-          return d.domain_id;
-        }),
+        available: domains.map(function (d: any) { return d.domain_id; }),
       });
     }
 
+    // ── Write to machine.json via CAS (F2: nested per-task-per-domain) ──
     try {
-      if (fs.existsSync(machinePath)) {
-        var machine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
-        machine.knowledge_cache_state = machine.knowledge_cache_state || {
-          session_access: {},
-          compliance: {},
-        };
-        var sa = machine.knowledge_cache_state.session_access;
-        var agentKey = agent.replace(/^@/, "");
-        sa[agent] = sa[agent] || sa[agentKey] || {};
-        sa[agent].declared_scope = args.module;
-        sa[agent].declared_at = new Date().toISOString();
-        sa[agent].pipeline_task_id = args.task_id || "";
-        sa[agent].pipeline_status = "declared";
-        if (!sa[agent].cache_sufficiency) {
-          sa[agent].cache_sufficiency = {
+      var taskId = args.task_id || "unknown";
+      var domainName = args.module;
+      var agentRef = agent;
+
+      atomicWriteMachine(function (machine: any) {
+        var kcs = machine.knowledge_cache_state = machine.knowledge_cache_state || { session_access: {}, compliance: {} };
+        kcs.session_access = kcs.session_access || {};
+
+        // Write to nested domain entry (F2)
+        var domainEntry = getDomainEntry(kcs.session_access, agentRef, taskId, domainName);
+        domainEntry.pipeline_status = "declared";
+        domainEntry.declared_at = new Date().toISOString();
+        // Preserve any existing cache_sufficiency from prior calls
+        if (!domainEntry.cache_sufficiency || domainEntry.cache_sufficiency.status === "undeclared") {
+          domainEntry.cache_sufficiency = domainEntry.cache_sufficiency || {
             status: "undeclared",
             missing_topics: [],
             declared_at: null,
+            reason: "",
+            files_read: [],
+            content_summary: "",
           };
         }
-        var tmpPath = machinePath + ".tmp." + Date.now();
-        fs.writeFileSync(tmpPath, JSON.stringify(machine, null, 2), "utf8");
-        fs.renameSync(tmpPath, machinePath);
-      }
+
+        // Update agent rollups
+        updateAgentRollups(kcs.session_access, agentRef);
+
+        // Legacy flat fields (backward compat bridge)
+        kcs.session_access[agentRef].pipeline_task_id = taskId;
+        kcs.session_access[agentRef].declared_scope = domainName;
+        kcs.session_access[agentRef].pipeline_status = "declared";
+
+        // Cap management
+        evictOldAgents(kcs.session_access);
+      });
     } catch (e) {
       /* non-fatal */
     }

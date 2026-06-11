@@ -968,10 +968,8 @@ function runGateCheck(taskDescription, taskId) {
   }
 
   // ── UC7KS: Pipeline Task-ID Chain Hard Constraint ──
-  // Verifies that the current task has completed the full UC7KS pipeline:
-  // (1) module_scope_declare → pipeline_task_id + "declared"
-  // (2) knowledge_cache_search → validates → "completed" + cache_sufficiency
-  // (3) If insufficient → kc_dispatched must be true
+  // F3 (2026-06-11): Nested per-task-per-domain schema with flat fallback.
+  // Reads tasks[task_id].domains[domain] paths first, then legacy flat fields.
   {
     try {
       const machinePath = path2.resolve(resolveProjectState(), "machine.json");
@@ -979,15 +977,34 @@ function runGateCheck(taskDescription, taskId) {
         const machine = JSON.parse(fs2.readFileSync(machinePath, "utf-8"));
         const sessionAccess = machine?.knowledge_cache_state?.session_access || {};
         const agents = Object.keys(sessionAccess);
-
-        // Find any agent entry whose pipeline_task_id matches the current task
         const currentTaskId = taskId || process.env.FRAMEWORK_TASK_ID || "";
-        const matchedAgent = currentTaskId
-          ? agents.find((a) => sessionAccess[a]?.pipeline_task_id === currentTaskId)
-          : null;
+
+        // ── F3: Find pipeline agent — check nested tasks first, then flat ──
+        let matchedAgent = null;
+        let matchedAgentFoundInNested = false;
+        if (currentTaskId) {
+          // Check nested tasks[task_id] for any agent with completed domains
+          for (const a of agents) {
+            const saEntry = sessionAccess[a];
+            if (saEntry.tasks?.[currentTaskId]) {
+              const taskDomains = saEntry.tasks[currentTaskId].domains || {};
+              for (const d of Object.keys(taskDomains)) {
+                if (taskDomains[d].pipeline_status === "completed") {
+                  matchedAgent = a;
+                  matchedAgentFoundInNested = true;
+                  break;
+                }
+              }
+              if (matchedAgent) break;
+            }
+          }
+          // Fall back to legacy flat
+          if (!matchedAgent) {
+            matchedAgent = agents.find((a) => sessionAccess[a]?.pipeline_task_id === currentTaskId) || null;
+          }
+        }
 
         if (currentTaskId && !matchedAgent) {
-          // No agent has started the pipeline for this task
           const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
           failed.push({
             id: "uc7ks_pipeline_not_started",
@@ -996,14 +1013,46 @@ function runGateCheck(taskDescription, taskId) {
           });
         } else if (matchedAgent) {
           const sa = sessionAccess[matchedAgent];
-          if (sa.pipeline_status !== "completed") {
+
+          // ── F3: Read sufficiency from nested or flat ──
+          let suff = null;
+          let pipelineCompleted = false;
+          let pipelineInsufficient = false;
+
+          if (matchedAgentFoundInNested && sa.tasks?.[currentTaskId]) {
+            // Read from nested: aggregate all domains
+            const taskDomains = sa.tasks[currentTaskId].domains || {};
+            const domainKeys = Object.keys(taskDomains);
+            let allCompleted = domainKeys.length > 0;
+            let anySufficient = false;
+            let anyInsufficient = false;
+            for (const d of domainKeys) {
+              const de = taskDomains[d];
+              if (de.pipeline_status !== "completed") allCompleted = false;
+              if (de.cache_sufficiency?.status === "sufficient") anySufficient = true;
+              if (de.cache_sufficiency?.status === "insufficient") anyInsufficient = true;
+              // Use last domain's sufficiency for evidence check
+              if (de.cache_sufficiency?.status === "sufficient" || de.cache_sufficiency?.status === "insufficient") {
+                suff = de.cache_sufficiency;
+              }
+            }
+            pipelineCompleted = allCompleted;
+            pipelineInsufficient = anyInsufficient && !anySufficient;
+          } else {
+            // Legacy flat path
+            pipelineCompleted = sa.pipeline_status === "completed";
+            pipelineInsufficient = sa.cache_sufficiency?.status === "insufficient" && !sa.kc_dispatched;
+            suff = sa.cache_sufficiency || null;
+          }
+
+          if (!pipelineCompleted) {
             const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
             failed.push({
               id: "uc7ks_pipeline_not_completed",
-              desc: `[UC7KS] Pipeline for "${currentTaskId}" has not completed (status: ${sa.pipeline_status || "undeclared"}). Run knowledge_cache_search to complete the pipeline.`,
+              desc: `[UC7KS] Pipeline for "${currentTaskId}" has not completed. Run knowledge_cache_search to complete the pipeline.`,
               severity,
             });
-          } else if (sa.cache_sufficiency?.status === "insufficient" && !sa.kc_dispatched) {
+          } else if (pipelineInsufficient && !sa.kc_dispatched) {
             const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
             failed.push({
               id: "uc7ks_cache_insufficient_no_kc",
@@ -1011,10 +1060,10 @@ function runGateCheck(taskDescription, taskId) {
               severity,
             });
           }
-          // UC7-001c HARDEN: Verify evidence completeness
-          if (sa.cache_sufficiency) {
-            const suff = sa.cache_sufficiency;
-            const evidenceMissing: string[] = [];
+
+          // UC7-001c HARDEN: Verify evidence completeness (works on nested or flat)
+          if (suff) {
+            const evidenceMissing = [];
             if (!suff.reason) evidenceMissing.push("reason");
             if (!suff.files_read) evidenceMissing.push("files_read");
             if (!suff.content_summary) evidenceMissing.push("content_summary");
@@ -1027,8 +1076,24 @@ function runGateCheck(taskDescription, taskId) {
             }
           }
         } else if (!currentTaskId) {
-          // No task_id provided — fall back to broad anyPipelineDone check
-          const anyDone = agents.some((a) => sessionAccess[a]?.pipeline_status === "completed");
+          // No task_id — check ANY nested or flat pipeline completion
+          let anyDone = agents.some((a) => sessionAccess[a]?.pipeline_status === "completed");
+          if (!anyDone) {
+            // Also check nested
+            for (const a of agents) {
+              const tasks = sessionAccess[a]?.tasks || {};
+              for (const tid of Object.keys(tasks)) {
+                for (const d of Object.keys(tasks[tid].domains || {})) {
+                  if (tasks[tid].domains[d].pipeline_status === "completed") {
+                    anyDone = true;
+                    break;
+                  }
+                }
+                if (anyDone) break;
+              }
+              if (anyDone) break;
+            }
+          }
           if (!anyDone) {
             const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
             failed.push({

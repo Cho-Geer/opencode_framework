@@ -1,6 +1,8 @@
 // uc7ks-utils.ts — UC7KS knowledge pipeline compliance utilities (lib)
+// BUN-CACHE-VERSION: 2026-06-11-FW-BATCH-A (nested schema reader)
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { readCacheSufficiency, getSufficientDomains } from "./uc7ks-schema";
 
 const INDEX_PATH = "docs/official_docs/index.json";
 
@@ -77,25 +79,75 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
     return buildUC7KSError(agent, tool, mode, true, "UC7-001: Agent has not read local knowledge cache before external query.");
   }
 
+  // ── F3: Per-domain sufficiency check with nested schema fallback ──
   if (agentReadCache && cacheAvailable) {
     try {
       const mp = path.join(process.env.OPENCODE_ROOT || ".", ".opencode", "state", "machine.json");
       if (fs.existsSync(mp)) {
         const m = JSON.parse(fs.readFileSync(mp, "utf8"));
-        const sa = m?.knowledge_cache_state?.session_access?.[agent] || {};
-        const status = sa?.cache_sufficiency?.status;
-        if (status !== "sufficient" && status !== "insufficient") {
-          return buildUC7KSError(agent, tool, mode, true, `UC7-001b: Cache sufficiency not declared (status: ${status || "undeclared"}). See subagent-preamble.md Step 0c.`);
+        const sa = m?.knowledge_cache_state?.session_access || {};
+        const agentKey = agent.replace(/^@/, "");
+
+        // Try nested: find any completed domain with sufficient cache for this agent
+        let hasSufficientCache = false;
+        let suff: any = null;
+        let evidenceOk = true;
+
+        const agentEntry = sa[agent] || sa[agentKey];
+        if (agentEntry?.tasks) {
+          for (const tid of Object.keys(agentEntry.tasks)) {
+            for (const domain of Object.keys(agentEntry.tasks[tid].domains || {})) {
+              const d = agentEntry.tasks[tid].domains[domain];
+              if (d.pipeline_status === "completed" && d.cache_sufficiency?.status === "sufficient") {
+                hasSufficientCache = true;
+                suff = d.cache_sufficiency;
+                break;
+              }
+            }
+            if (hasSufficientCache) break;
+          }
         }
-        // UC7-001c HARDEN: Verify evidence fields (reason, files_read, content_summary)
-        // are present and non-empty. Any missing → treated as insufficient.
-        const suff = sa?.cache_sufficiency;
+
+        // Fall back to legacy flat (F3: backward compat)
+        if (!hasSufficientCache) {
+          const flat = agentEntry || {};
+          if (flat.cache_sufficiency?.status === "sufficient") {
+            hasSufficientCache = true;
+            suff = flat.cache_sufficiency;
+          }
+        }
+
+        if (!hasSufficientCache) {
+          // Check for any insufficient cache
+          let hasAnyCache = false;
+          if (agentEntry?.tasks) {
+            for (const tid of Object.keys(agentEntry.tasks)) {
+              for (const domain of Object.keys(agentEntry.tasks[tid].domains || {})) {
+                const d = agentEntry.tasks[tid].domains[domain];
+                if (d.cache_sufficiency?.status === "insufficient") {
+                  hasAnyCache = true;
+                  break;
+                }
+              }
+              if (hasAnyCache) break;
+            }
+          }
+          if (!hasAnyCache) {
+            const flat = agentEntry || {};
+            if (flat.cache_sufficiency?.status === "insufficient") hasAnyCache = true;
+            else if (!flat.cache_sufficiency?.status || flat.cache_sufficiency.status === "undeclared") {
+              return buildUC7KSError(agent, tool, mode, true,
+                `UC7-001b: Cache sufficiency not declared (status: ${flat.cache_sufficiency?.status || "undeclared"}). See subagent-preamble.md Step 0c.`);
+            }
+          }
+        }
+
+        // UC7-001c HARDEN: Verify evidence fields
         if (suff) {
           const missing: string[] = [];
           if (!suff.reason || suff.reason.length === 0) missing.push("reason");
           if (!suff.files_read || !Array.isArray(suff.files_read) || suff.files_read.length === 0) {
-            // files_read can be empty only when cache is actually empty (insufficient)
-            if (status === "sufficient") missing.push("files_read");
+            if (suff.status === "sufficient") missing.push("files_read");
           }
           if (!suff.content_summary || suff.content_summary.length === 0) missing.push("content_summary");
           if (missing.length > 0) {

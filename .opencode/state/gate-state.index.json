@@ -3651,6 +3651,20 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-11T14:38:44.544Z",
       "archive_ref": "gate-state.history/2026-06-11.jsonl#37"
+    },
+    "cg_ses_1781191267454": {
+      "session_id": "cg_ses_1781191267454",
+      "created_at": "2026-06-11T15:21:07.461Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T15:29:12.233Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#38"
+    },
+    "cg_ses_1781192081459": {
+      "session_id": "cg_ses_1781192081459",
+      "created_at": "2026-06-11T15:34:41.463Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T15:38:25.459Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#39"
     }
   }
 }

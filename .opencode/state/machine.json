@@ -2,14 +2,14 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-06-10T18:36:51.927Z",
+    "lastUpdated": "2026-06-11T15:26:56.856Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 1037,
+    "revision": 1038,
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
-    "last_full_scan": "2026-06-11T14:36:23.064Z",
+    "last_full_scan": "2026-06-11T15:38:25.456Z",
     "modules": {
       "all_modules": {
         "status": "clean",
@@ -20,7 +20,7 @@
       "unknown": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-06-01T09:55:56.466Z",
+        "last_check": "2026-06-11T15:26:56.849Z",
         "waivers_applied": []
       },
       "admin": {
@@ -592,16 +592,29 @@
         "violations": [],
         "last_check": "2026-06-11T14:57:53.233Z",
         "waivers_applied": []
+      },
+      "cat > _tmp_find_dispatch.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n__ Find dispatch_subagent tool registration\nvar tools = obj.mcpServers || {};\nfor (var key in tools) {\n  var server = tools[key];\n  if (server.tools && Array.isArray(server.tools)) {\n    for (var t of server.tools) {\n      if (typeof t === 'object' && t.name === 'dispatch_subagent') {\n        console.log('Server:', key);\n        console.log('Tool:', JSON.stringify(t, null, 2));\n      }\n    }\n  }\n}\nSCRIPT\nnode _tmp_find_dispatch.js": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T15:01:27.567Z",
+        "waivers_applied": []
+      },
+      "cat > _tmp_find_dispatch2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n__ Search for dispatch in any field\nvar str = JSON.stringify(obj);\nvar idx = 0;\nwhile (true) {\n  idx = str.indexOf('dispatch', idx);\n  if (idx === -1) break;\n  console.log('Found at char', idx, ':', str.substring(Math.max(0,idx-30), idx+50));\n  idx += 10;\n}\nSCRIPT\nnode _tmp_find_dispatch2.js": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T15:01:35.320Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_uc7ks-schema.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T15:35:40.697Z",
+        "waivers_applied": []
       }
     },
     "aggregate": {
       "total_violations": 0,
-      "dirty_modules": [
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_compliance-gate.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
-        "node -e \"JSON.parse(require('fs').readFileSync('.opencode_scripts_mcp-tools_compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode_scripts_mcp-tools_compliance-gate.ts",
-        "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts"
-      ],
+      "dirty_modules": [],
       "waived_modules": []
     }
   },
@@ -658,7 +671,11 @@
       "cat > /tmp/parse6.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('/tmp/pcfg.json', 'utf8');\nvar lines = json.split('\\n');\n\nfor (var i = 1; i <= lines.length; i++) {\n  var partial = lines.slice(0, i).join('\\n');\n  try {\n    JSON.parse(partial);\n  } catch(e) {\n    var msg = e.message;\n    if (msg.indexOf('Unexpected token') >= 0 || msg.indexOf('is not valid JSON') >= 0) {\n      console.log('FIRST ERROR at line', i, ':', msg.substring(0, 120));\n      console.log('  >>>', lines[i-1]);\n      if (i > 1) console.log('  prev:', lines[i-2]);\n      if (i > 2) console.log('  prev2:', lines[i-3]);\n      if (i < lines.length) console.log('  next:', lines[i]);\n      break;\n    }\n  }\n}\nSCRIPT\nnode /tmp/parse6.js",
       "cat > /tmp/find_trailing.js << 'SCRIPT'\nvar fs = require('fs');\nvar lines = fs.readFileSync('/tmp/pcfg.json', 'utf8').split('\\n');\nfor (var i = 0; i < lines.length; i++) {\n  var trimmed = lines[i].trim();\n  // Trailing comma before ] or }\n  if (trimmed.match(/,\\s*$/)) {\n    var nextTrimmed = lines[i+1] ? lines[i+1].trim() : '';\n    if (nextTrimmed === ']' || nextTrimmed === '}' || nextTrimmed === '},') {\n      console.log('Line', (i+1), ': TRAILING COMMA before', nextTrimmed);\n      console.log('  ', lines[i]);\n      console.log('  ', lines[i+1]);\n    }\n  }\n}\nSCRIPT\nnode /tmp/find_trailing.js",
       "cat > /tmp/verify.js << 'SCRIPT'\nvar fs = require('fs');\nvar path = '/home/zhaoge/workspace/opencode/work-one/.opencode/project.config.json';\nvar content = fs.readFileSync(path, 'utf8');\ntry {\n  var obj = JSON.parse(content);\n  console.log('JSON.parse: OK');\n  console.log('develop_enforcement_mode:', obj.template_resolution?.develop_enforcement_mode);\n  console.log('runtime_enforcement_mode:', obj.template_resolution?.runtime_enforcement_mode);\n} catch(e) {\n  console.log('JSON.parse: FAILED -', e.message);\n}\nSCRIPT\nnode /tmp/verify.js",
-      "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts"
+      "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts",
+      "cat > /tmp/find_dispatch.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Find dispatch_subagent tool registration\nvar tools = obj.mcpServers || {};\nfor (var key in tools) {\n  var server = tools[key];\n  if (server.tools && Array.isArray(server.tools)) {\n    for (var t of server.tools) {\n      if (typeof t === 'object' && t.name === 'dispatch_subagent') {\n        console.log('Server:', key);\n        console.log('Tool:', JSON.stringify(t, null, 2));\n      }\n    }\n  }\n}\nSCRIPT\nnode /tmp/find_dispatch.js",
+      "cat > /tmp/find_dispatch2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Search for dispatch in any field\nvar str = JSON.stringify(obj);\nvar idx = 0;\nwhile (true) {\n  idx = str.indexOf('dispatch', idx);\n  if (idx === -1) break;\n  console.log('Found at char', idx, ':', str.substring(Math.max(0,idx-30), idx+50));\n  idx += 10;\n}\nSCRIPT\nnode /tmp/find_dispatch2.js",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts"
     ],
     "incremental_errors": 0,
     "last_incremental_check": "2026-05-26T01:47:10.634Z",
@@ -1137,6 +1154,21 @@
         "file": "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts",
         "message": "pending depcruiser check",
         "severity": "info"
+      },
+      {
+        "file": "cat > /tmp/find_dispatch.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Find dispatch_subagent tool registration\nvar tools = obj.mcpServers || {};\nfor (var key in tools) {\n  var server = tools[key];\n  if (server.tools && Array.isArray(server.tools)) {\n    for (var t of server.tools) {\n      if (typeof t === 'object' && t.name === 'dispatch_subagent') {\n        console.log('Server:', key);\n        console.log('Tool:', JSON.stringify(t, null, 2));\n      }\n    }\n  }\n}\nSCRIPT\nnode /tmp/find_dispatch.js",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "cat > /tmp/find_dispatch2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Search for dispatch in any field\nvar str = JSON.stringify(obj);\nvar idx = 0;\nwhile (true) {\n  idx = str.indexOf('dispatch', idx);\n  if (idx === -1) break;\n  console.log('Found at char', idx, ':', str.substring(Math.max(0,idx-30), idx+50));\n  idx += 10;\n}\nSCRIPT\nnode /tmp/find_dispatch2.js",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
       }
     ],
     "forbidden_rules_applied": 137,
@@ -1195,7 +1227,11 @@
       "cat > /tmp/parse6.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('/tmp/pcfg.json', 'utf8');\nvar lines = json.split('\\n');\n\nfor (var i = 1; i <= lines.length; i++) {\n  var partial = lines.slice(0, i).join('\\n');\n  try {\n    JSON.parse(partial);\n  } catch(e) {\n    var msg = e.message;\n    if (msg.indexOf('Unexpected token') >= 0 || msg.indexOf('is not valid JSON') >= 0) {\n      console.log('FIRST ERROR at line', i, ':', msg.substring(0, 120));\n      console.log('  >>>', lines[i-1]);\n      if (i > 1) console.log('  prev:', lines[i-2]);\n      if (i > 2) console.log('  prev2:', lines[i-3]);\n      if (i < lines.length) console.log('  next:', lines[i]);\n      break;\n    }\n  }\n}\nSCRIPT\nnode /tmp/parse6.js",
       "cat > /tmp/find_trailing.js << 'SCRIPT'\nvar fs = require('fs');\nvar lines = fs.readFileSync('/tmp/pcfg.json', 'utf8').split('\\n');\nfor (var i = 0; i < lines.length; i++) {\n  var trimmed = lines[i].trim();\n  // Trailing comma before ] or }\n  if (trimmed.match(/,\\s*$/)) {\n    var nextTrimmed = lines[i+1] ? lines[i+1].trim() : '';\n    if (nextTrimmed === ']' || nextTrimmed === '}' || nextTrimmed === '},') {\n      console.log('Line', (i+1), ': TRAILING COMMA before', nextTrimmed);\n      console.log('  ', lines[i]);\n      console.log('  ', lines[i+1]);\n    }\n  }\n}\nSCRIPT\nnode /tmp/find_trailing.js",
       "cat > /tmp/verify.js << 'SCRIPT'\nvar fs = require('fs');\nvar path = '/home/zhaoge/workspace/opencode/work-one/.opencode/project.config.json';\nvar content = fs.readFileSync(path, 'utf8');\ntry {\n  var obj = JSON.parse(content);\n  console.log('JSON.parse: OK');\n  console.log('develop_enforcement_mode:', obj.template_resolution?.develop_enforcement_mode);\n  console.log('runtime_enforcement_mode:', obj.template_resolution?.runtime_enforcement_mode);\n} catch(e) {\n  console.log('JSON.parse: FAILED -', e.message);\n}\nSCRIPT\nnode /tmp/verify.js",
-      "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts"
+      "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts",
+      "cat > /tmp/find_dispatch.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Find dispatch_subagent tool registration\nvar tools = obj.mcpServers || {};\nfor (var key in tools) {\n  var server = tools[key];\n  if (server.tools && Array.isArray(server.tools)) {\n    for (var t of server.tools) {\n      if (typeof t === 'object' && t.name === 'dispatch_subagent') {\n        console.log('Server:', key);\n        console.log('Tool:', JSON.stringify(t, null, 2));\n      }\n    }\n  }\n}\nSCRIPT\nnode /tmp/find_dispatch.js",
+      "cat > /tmp/find_dispatch2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Search for dispatch in any field\nvar str = JSON.stringify(obj);\nvar idx = 0;\nwhile (true) {\n  idx = str.indexOf('dispatch', idx);\n  if (idx === -1) break;\n  console.log('Found at char', idx, ':', str.substring(Math.max(0,idx-30), idx+50));\n  idx += 10;\n}\nSCRIPT\nnode /tmp/find_dispatch2.js",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts"
     ],
     "last_run": "2026-05-23T12:00:00.000Z",
     "last_check": "2026-05-26T01:47:10.634Z",
@@ -1822,44 +1858,28 @@
         "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
         "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
         "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
-        "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts"
+        "node -e \"JSON.parse(require('fs').readFileSync('.opencode/scripts/mcp-tools/compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode/scripts/mcp-tools/compliance-gate.ts",
+        "cat > /tmp/find_dispatch.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Find dispatch_subagent tool registration\nvar tools = obj.mcpServers || {};\nfor (var key in tools) {\n  var server = tools[key];\n  if (server.tools && Array.isArray(server.tools)) {\n    for (var t of server.tools) {\n      if (typeof t === 'object' && t.name === 'dispatch_subagent') {\n        console.log('Server:', key);\n        console.log('Tool:', JSON.stringify(t, null, 2));\n      }\n    }\n  }\n}\nSCRIPT\nnode /tmp/find_dispatch.js",
+        "cat > /tmp/find_dispatch2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Search for dispatch in any field\nvar str = JSON.stringify(obj);\nvar idx = 0;\nwhile (true) {\n  idx = str.indexOf('dispatch', idx);\n  if (idx === -1) break;\n  console.log('Found at char', idx, ':', str.substring(Math.max(0,idx-30), idx+50));\n  idx += 10;\n}\nSCRIPT\nnode /tmp/find_dispatch2.js",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-utils.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts"
       ],
-      "checks_run": 616,
-      "checks_passed": 594,
+      "checks_run": 628,
+      "checks_passed": 606,
       "checks_failed": 22,
       "violations_found": 22,
       "violations_resolved": 0,
       "scope_violations_attempted": 7
     },
     "history": [
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.task_temp/_audit_test.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
-        "timestamp": "2026-06-10T17:51:16.437Z"
-      },
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
-        "timestamp": "2026-06-10T17:51:56.171Z"
-      },
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/cache-after.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
-        "timestamp": "2026-06-10T17:54:20.513Z"
-      },
-      {
-        "file": "bun -e \"\nconst fs=require('fs');\nconst script = \\`\nconst fs=require('fs');\nconst p='/home/zhaoge/workspace/opencode/work-one/docs/review/plugin-backlog/framework-enforcer-module-inventory.md';\nconst c=fs.readFileSync(p,'utf8');\nconst oldStart=c.indexOf('## 当前缺口');\nconst oldEnd=c.indexOf('## 模块统计');\nconst newSection='## 重构完成（2026-06-11）\\\\n\\\\n13/13 插件全部上线并通过运行时验证。plugins_loaded: 13。\\\\n\\\\n| 域名 | before | after | 状态 |\\\\n|------|--------|-------|:---:|\\\\n| session | session.ts | — | 通过 |\\\\n| scope | scope-before.ts | scope-after.ts | 通过 |\\\\n| uc7ks | uc7ks-before.ts | uc7ks-after.ts | 通过 |\\\\n| dispatch | dispatch-before.ts | dispatch-after.ts | 通过 |\\\\n| gate | gate-before.ts | gate-after.ts | 通过 |\\\\n| audit | audit-before.ts | audit-after.ts | 通过 |\\\\n| task | — | task-after.ts | 通过 |\\\\n| cache | — | cache-after.ts | 通过 |\\\\n';\nfs.writeFileSync(p,c.slice(0,oldStart)+newSection+c.slice(oldEnd),'utf8');\nconsole.log('DONE');\n\\`;\nfs.writeFileSync('/tmp/update_inv.js', script, 'utf8');\nconsole.log('written');\n\" && bun /tmp/update_inv.js",
-        "tool": "safe_shell",
-        "agent": "Super-Admin",
-        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
-        "timestamp": "2026-06-10T17:57:14.316Z"
-      },
       {
         "file": "/tmp/upd_inv.js",
         "tool": "safe_edit",
@@ -3182,6 +3202,83 @@
         "agent": "Super-Admin",
         "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
         "timestamp": "2026-06-11T14:57:53.265Z"
+      },
+      {
+        "file": "cat > /tmp/find_dispatch.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Find dispatch_subagent tool registration\nvar tools = obj.mcpServers || {};\nfor (var key in tools) {\n  var server = tools[key];\n  if (server.tools && Array.isArray(server.tools)) {\n    for (var t of server.tools) {\n      if (typeof t === 'object' && t.name === 'dispatch_subagent') {\n        console.log('Server:', key);\n        console.log('Tool:', JSON.stringify(t, null, 2));\n      }\n    }\n  }\n}\nSCRIPT\nnode /tmp/find_dispatch.js",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
+        "timestamp": "2026-06-11T15:01:27.597Z"
+      },
+      {
+        "file": "cat > /tmp/find_dispatch2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('/home/zhaoge/workspace/opencode/work-one/opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n// Search for dispatch in any field\nvar str = JSON.stringify(obj);\nvar idx = 0;\nwhile (true) {\n  idx = str.indexOf('dispatch', idx);\n  if (idx === -1) break;\n  console.log('Found at char', idx, ':', str.substring(Math.max(0,idx-30), idx+50));\n  idx += 10;\n}\nSCRIPT\nnode /tmp/find_dispatch2.js",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
+        "timestamp": "2026-06-11T15:01:35.352Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
+        "timestamp": "2026-06-11T15:22:38.338Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
+        "timestamp": "2026-06-11T15:22:54.863Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
+        "timestamp": "2026-06-11T15:23:19.903Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
+        "timestamp": "2026-06-11T15:23:58.056Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T15:35:40.710Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T15:36:14.472Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T15:36:26.764Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-utils.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T15:36:55.818Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T15:37:31.695Z"
       }
     ]
   },
@@ -3199,7 +3296,7 @@
           "last_tool_attempted": "webfetch"
         }
       },
-      "cache_hits": 2058,
+      "cache_hits": 2127,
       "cache_misses": 5
     },
     "pipeline_integrity": {
@@ -3209,12 +3306,12 @@
     },
     "session_access": {
       "Super-Admin": {
-        "declared_scope": "opencode_framework",
-        "declared_at": "2026-06-11T14:52:30.871Z",
+        "declared_scope": "state_management",
+        "declared_at": "2026-06-11T15:34:21.674Z",
         "cache_sufficiency": {
           "status": "sufficient",
           "missing_topics": [],
-          "declared_at": "2026-06-11T14:52:31.130Z",
+          "declared_at": "2026-06-11T15:34:26.203Z",
           "reason": "Found 22 matching cache entries for domain \"opencode_framework\": TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns; opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin",
           "files_read": [
             "opencode/mcp-typescript-bun/findings-summary.md",
@@ -3242,12 +3339,12 @@
           ],
           "content_summary": "22 entries covering 22 files: TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns | opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions"
         },
-        "last_read_at": "2026-06-11T14:52:31.130Z",
+        "last_read_at": "2026-06-11T15:34:26.203Z",
         "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
         "uc7_001_compliant": true,
-        "total_cache_reads": 149,
+        "total_cache_reads": 153,
         "last_read": "2026-06-10T17:42:24.738Z",
-        "pipeline_task_id": "SA-CG-LOG-ALIGN",
+        "pipeline_task_id": "SA-UC7KS-FIX-BATCH-A",
         "pipeline_status": "completed",
         "kc_dispatched": true,
         "kc_dispatched_at": "2026-06-10T22:36:01.723Z"
@@ -8372,8 +8469,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "4dba581d-6f26-48b0-8dce-3b9445dae7c8",
-    "last_transaction_at": "2026-06-10T18:36:51.925Z",
+    "last_operation_id": "9d1c6f6c-825e-4035-b4d5-a83d52bb93b8",
+    "last_transaction_at": "2026-06-11T15:26:56.852Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   },
