@@ -2346,6 +2346,68 @@ function checkSessionAccessAgentKeys(): void {
   } catch (e: any) { check(34, false, e.message); }
 }
 
+// F5 (2026-06-11): Check 35 — stale pre-HARDEN cache_sufficiency entries
+// Detects session_access entries where cache_sufficiency says "sufficient"
+// but evidence fields (reason, files_read, content_summary) are empty.
+// These were created by pre-HARDEN knowledge_cache_search before UC7-001c.
+function checkStaleInternalEvidence(): void {
+  try {
+    const mPath = path.join(OPENCODE_ROOT, ".opencode", "state", "machine.json");
+    if (!fs.existsSync(mPath)) {
+      check(35, true, "machine.json not found (skip)");
+      return;
+    }
+    const m = JSON.parse(fs.readFileSync(mPath, "utf-8"));
+    const sa = m?.knowledge_cache_state?.session_access;
+    if (!sa) {
+      check(35, true, "no session_access entries (skip)");
+      return;
+    }
+
+    const staleFlat: string[] = [];
+    const staleNested: string[] = [];
+
+    for (const agent of Object.keys(sa)) {
+      const entry = sa[agent];
+      // Check legacy flat
+      if (
+        entry.cache_sufficiency?.status === "sufficient" &&
+        (!entry.cache_sufficiency.reason ||
+         !Array.isArray(entry.cache_sufficiency.files_read) ||
+         entry.cache_sufficiency.files_read.length === 0 ||
+         !entry.cache_sufficiency.content_summary)
+      ) {
+        staleFlat.push(agent);
+      }
+      // Check nested tasks
+      if (entry.tasks) {
+        for (const tid of Object.keys(entry.tasks)) {
+          for (const domain of Object.keys(entry.tasks[tid].domains || {})) {
+            const cs = entry.tasks[tid].domains[domain].cache_sufficiency;
+            if (
+              cs?.status === "sufficient" &&
+              (!cs.reason ||
+               !Array.isArray(cs.files_read) ||
+               cs.files_read.length === 0 ||
+               !cs.content_summary)
+            ) {
+              staleNested.push(`${agent} / ${tid} / ${domain}`);
+            }
+          }
+        }
+      }
+    }
+
+    const total = staleFlat.length + staleNested.length;
+    check(35, total === 0,
+      total > 0
+        ? `${total} stale pre-HARDEN entries: flat=[${staleFlat.join(",")}], nested=[${staleNested.join(",")}]. Re-run knowledge_cache_search for these agents.`
+        : "all session_access entries have valid UC7-001c evidence");
+  } catch (e: any) {
+    check(35, false, e.message);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Main execution
 
@@ -2390,6 +2452,7 @@ checkAgentUC7KSSection();
 checkContext7ToolBlock();
 checkPendingJson();
 checkSessionAccessAgentKeys();
+checkStaleInternalEvidence();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");

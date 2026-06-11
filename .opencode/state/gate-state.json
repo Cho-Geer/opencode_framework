@@ -1,27 +1,11 @@
 {
   "formatVersion": "3.0",
-  "active_sessions": {
-    "cg_ses_1781191894594": {
-      "session_id": "cg_ses_1781191894594",
-      "created_at": "2026-06-11T15:31:34.600Z",
-      "gate_status": "checked",
-      "task_description": "Verify permission matrix alignment after KC dispatch fix in pre-execution-gate.ts. Check opencode.json permissions, project.config.json agent_dispatch_allowed_tools, agent config YAML mcp_tools, and UC7KS-PIPELINE-STANDARD.md requirements.",
-      "plan_summary": ""
-    },
-    "cg_ses_1781191942844": {
-      "session_id": "cg_ses_1781191942844",
-      "created_at": "2026-06-11T15:32:22.848Z",
-      "gate_status": "armed",
-      "confirmed_at": "2026-06-11T15:32:35.750Z",
-      "task_description": "Verify permission matrix alignment after KC dispatch fix in pre-execution-gate.ts. Check opencode.json permissions, project.config.json agent_dispatch_allowed_tools, agent config YAML mcp_tools, and UC7KS-PIPELINE-STANDARD.md requirements.",
-      "plan_summary": "Verify permission matrix alignment after KC dispatch bypass fix. Plan: (1) Read opencode.json MCP permissions and project.config.json agent_dispatch_allowed_tools; (2) Read all agent config YAML frontmatter (mcp_tools, allowed tools); (3) Cross-check against UC7KS-PIPELINE-STANDARD.md UC7-004/UC7-008/UC7-009 requirements; (4) Verify dispatch_subagent tool availability per agent; (5) Identify any misalignment (e.g., non-KC agents with external query tools, KC missing required tools, Super-Admin missing dispatch_subagent); (6) Propose or apply fixes to restore alignment. No business code changes."
-    }
-  },
+  "active_sessions": {},
   "recent_sessions": {},
   "meta": {
-    "total_sessions": 2,
-    "active_count": 2,
+    "total_sessions": 0,
+    "active_count": 0,
     "recent_count": 0,
-    "last_compacted": "2026-06-11T15:38:25.460Z"
+    "last_compacted": "2026-06-11T15:44:19.564Z"
   }
 }

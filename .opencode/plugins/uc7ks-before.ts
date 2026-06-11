@@ -32,11 +32,18 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
 
   const blockReason = checkUC7KS(input.tool, agent, mode);
   if (blockReason) {
+    // F6 (2026-06-11): Tag UC7-001c blocks with specific event type
+    // for log-based diagnostics. Distinguishes evidence-incomplete blocks
+    // from generic pipeline-not-started blocks.
+    const isEvidenceBlock = blockReason.indexOf("UC7-001c") !== -1;
+    const logEvent = isEvidenceBlock ? "UC7-001C-BLOCKED" : "TOOL-BEFORE";
+    const logLevel = isEvidenceBlock ? "WARN" : "ERROR";
+
     writeLog("uc7ks-before", "runtime", {
       sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-      level: "ERROR",
-      event: "TOOL-BEFORE",
-      detail: `BLOCKED | ${blockReason.substring(0, 100)}`,
+      level: logLevel,
+      event: logEvent,
+      detail: `BLOCKED | ${blockReason.substring(0, 200)}`,
     });
     if (mode === "strict" || mode === "locked") throw new Error(blockReason);
     return;

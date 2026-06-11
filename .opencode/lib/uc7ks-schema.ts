@@ -24,6 +24,20 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 // ════════════════════════════════════════════════════════════
+// CONFIGURATION KEYS (F7: parameterized per Templatization System)
+// ════════════════════════════════════════════════════════════
+
+/** template_resolution keys used by knowledge pipeline tools */
+export const CONFIG_KEYS = {
+  /** Controls log verbosity for debug/operational messages */
+  LOGS_LEVEL: "logs.level",
+  /** Log directory path */
+  LOGS_DIR: "logs.dir",
+  /** Log retention in days */
+  LOGS_RETENTION_DAYS: "logs.retention_days",
+} as const;
+
+// ════════════════════════════════════════════════════════════
 // TYPES
 // ════════════════════════════════════════════════════════════
 
