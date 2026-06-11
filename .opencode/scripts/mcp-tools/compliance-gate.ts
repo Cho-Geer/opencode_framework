@@ -63,6 +63,20 @@ function isEnforcementDebugEnabled(root?: string): boolean {
   return false;
 }
 
+/**
+ * Write non-fatal operational messages to stderr only when debug is enabled.
+ * Gated behind the same flags as isEnforcementDebugEnabled() to prevent
+ * TUI pollution from repeated informational messages (txn commits, purges, etc).
+ * Fatal/bootstrap errors skip this gate — they always write to stderr.
+ *
+ * @param msg - The message to write (with trailing newline if desired)
+ */
+function debugStderr(msg: string): void {
+  if (isEnforcementDebugEnabled(OPENCODE_ROOT)) {
+    process.stderr.write(msg);
+  }
+}
+
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
   ? path2.resolve(process.env.OPENCODE_ROOT)
   : path2.resolve(__dirname, "..", "..", "..");
@@ -174,7 +188,7 @@ function writeJson(p, data) {
     txn.prepare(content);
     txn.commit();
     // Log resolution so pre-commit hook Layer 3 can see it
-    process.stderr.write(
+    debugStderr(
       `[compliance-gate] ✓ txn ${txn.operationId} committed (rev ${txn.newRevision}) → ${path.relative(OPENCODE_ROOT, p)}\n`,
     );
   } catch (txnErr) {
@@ -208,7 +222,7 @@ function writeJsonWithContext(p, data, agent, taskId) {
     const txn = beginTransaction(p, agent, taskId);
     txn.prepare(content);
     txn.commit();
-    process.stderr.write(
+    debugStderr(
       `[compliance-gate] ✓ txn ${txn.operationId} committed (rev ${txn.newRevision}) → ${path.relative(OPENCODE_ROOT, p)}\n`,
     );
   } catch (txnErr) {
@@ -788,9 +802,9 @@ function runGateCheck(taskDescription, taskId) {
   if (purgeResult.purged > 0) {
     const msg = `Purged ${purgeResult.purged} stale session(s) (${purgeResult.remaining_total} remaining, ${purgeResult.remaining_active} active)`;
     if (enforcementMode === "advisory") {
-      process.stderr.write(`[ADVISORY] ${msg}\n`);
+      debugStderr(`[ADVISORY] ${msg}\n`);
     } else {
-      process.stderr.write(`[compliance-gate] ${msg}\n`);
+      debugStderr(`[compliance-gate] ${msg}\n`);
     }
   }
   // Also drain any remaining stale sessions
@@ -798,9 +812,9 @@ function runGateCheck(taskDescription, taskId) {
   if (drainResult.purged > 0) {
     const msg = `Drained ${drainResult.purged} stale session(s) (armed=${drainResult.drained_armed}, checked=${drainResult.drained_checked})`;
     if (enforcementMode === "advisory") {
-      process.stderr.write(`[ADVISORY] ${msg}\n`);
+      debugStderr(`[ADVISORY] ${msg}\n`);
     } else {
-      process.stderr.write(`[compliance-gate] ${msg}\n`);
+      debugStderr(`[compliance-gate] ${msg}\n`);
     }
   }
 
@@ -1241,7 +1255,7 @@ function runGateComplete(sessionId, executionSummary) {
   }
   // In advisory mode: log the dirty modules as a warning but proceed
   if (eslintFailed && enforcementMode === "advisory") {
-    process.stderr.write(
+    debugStderr(
       "[ADVISORY] ESLint dirty_modules found but ignored (advisory mode): " +
         dirtyModules.join(", ") +
         "\n",
@@ -1312,7 +1326,7 @@ function runGateComplete(sessionId, executionSummary) {
     };
   }
   if (missingArtifacts.length > 0 && enforcementMode === "advisory") {
-    process.stderr.write(
+    debugStderr(
       "[ADVISORY] Missing task artifacts (proceeding): " +
         missingArtifacts.join(", ") +
         "\n",

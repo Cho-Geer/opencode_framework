@@ -1,11 +1,27 @@
 {
-  "formatVersion": "3.0",
-  "active_sessions": {},
-  "recent_sessions": {},
-  "meta": {
-    "total_sessions": 0,
-    "active_count": 0,
-    "recent_count": 0,
-    "last_compacted": "2026-06-11T14:38:44.547Z"
-  }
+  "formatVersion": "2.0",
+  "sessions": {
+    "cg_ses_1781189536314": {
+      "session_id": "cg_ses_1781189536314",
+      "created_at": "2026-06-11T14:52:16.321Z",
+      "task_description": "Route compliance-gate.ts non-fatal stderr messages through log-manager or suppress when not DEBUG, keep fatal bootstrap errors on stderr",
+      "task_id": "SA-CG-LOG-ALIGN",
+      "enforcement_mode": "strict",
+      "gate_status": "completed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Align compliance-gate.ts non-fatal stderr writes with log-manager conventions: gate advisory/diagnostic writes behind DEBUG flag, keep fatal bootstrap errors on stderr, optionally route structured results through log-manager if feasible.",
+      "confirmed_at": "2026-06-11T14:52:46.172Z",
+      "consumed_at": "2026-06-11T14:58:48.033Z",
+      "audit": {
+        "completed_at": "2026-06-11T14:58:48.033Z",
+        "execution_summary": "Added debugStderr() helper to compliance-gate.ts, gating 8 non-fatal operational stderr writes behind isEnforcementDebugEnabled()."
+      },
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-12T14:52:46.172Z"
+    }
+  },
+  "active_sessions": [],
+  "last_updated": "2026-06-11T14:52:46.172Z"
 }
