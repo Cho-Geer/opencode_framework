@@ -12,7 +12,7 @@
  *  4. LRU eviction when total size exceeds max_total_size
  *  5. Generate size_report.json
  *
- * Usage: node .opencode/scripts/knowledge/janitor.js [--dry-run] [--force]
+ * Usage: bun .opencode/scripts/knowledge/janitor.ts [--dry-run] [--force]
  */
 
 const fs = require("fs");

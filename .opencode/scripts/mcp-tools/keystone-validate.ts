@@ -51,7 +51,7 @@ function findStateDir() {
 function runValidate(mode) {
   const stateDir = findStateDir();
   const innerRepo = path.resolve(stateDir, "..", "..");
-  const script = path.join(innerRepo, "scripts", "keystone-validate.js");
+  const script = path.join(innerRepo, ".opencode", "scripts", "mcp-tools", "keystone-validate.ts");
 
   if (!require("fs").existsSync(script)) {
     return {

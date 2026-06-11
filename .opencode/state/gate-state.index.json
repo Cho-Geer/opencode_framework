@@ -3119,6 +3119,524 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-06T04:25:52.676Z",
       "archive_ref": "gate-state.history/2026-06-06.jsonl#9"
+    },
+    "cg_ses_1780939141794": {
+      "session_id": "cg_ses_1780939141794",
+      "created_at": "2026-06-08T17:19:01.798Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-08T17:19:12.328Z",
+      "archive_ref": "gate-state.history/2026-06-08.jsonl#0"
+    },
+    "cg_ses_1780966324054": {
+      "session_id": "cg_ses_1780966324054",
+      "created_at": "2026-06-09T00:52:04.056Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T00:52:25.818Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#0"
+    },
+    "cg_ses_1780973489782": {
+      "session_id": "cg_ses_1780973489782",
+      "created_at": "2026-06-09T02:51:29.783Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T02:51:55.077Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#1"
+    },
+    "cg_ses_1780975323571": {
+      "session_id": "cg_ses_1780975323571",
+      "created_at": "2026-06-09T03:22:03.574Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T03:22:30.740Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#2"
+    },
+    "cg_ses_1780975550473": {
+      "session_id": "cg_ses_1780975550473",
+      "created_at": "2026-06-09T03:25:50.476Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T03:26:37.739Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#3"
+    },
+    "cg_ses_1780981477885": {
+      "session_id": "cg_ses_1780981477885",
+      "created_at": "2026-06-09T05:04:37.887Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T05:05:04.181Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#4"
+    },
+    "cg_ses_1780986327008": {
+      "session_id": "cg_ses_1780986327008",
+      "created_at": "2026-06-09T06:25:27.009Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T06:25:55.297Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#5"
+    },
+    "cg_ses_1781009933384": {
+      "session_id": "cg_ses_1781009933384",
+      "created_at": "2026-06-09T12:58:53.388Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T12:59:33.049Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#6"
+    },
+    "cg_ses_1781012046132": {
+      "session_id": "cg_ses_1781012046132",
+      "created_at": "2026-06-09T13:34:06.135Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T13:34:18.211Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#7"
+    },
+    "cg_ses_1781012297319": {
+      "session_id": "cg_ses_1781012297319",
+      "created_at": "2026-06-09T13:38:17.323Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T13:38:33.622Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#8"
+    },
+    "cg_ses_1781012354289": {
+      "session_id": "cg_ses_1781012354289",
+      "created_at": "2026-06-09T13:39:14.292Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T13:39:24.889Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#9"
+    },
+    "cg_ses_1781012702616": {
+      "session_id": "cg_ses_1781012702616",
+      "created_at": "2026-06-09T13:45:02.618Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T13:45:17.087Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#10"
+    },
+    "cg_ses_1781015652549": {
+      "session_id": "cg_ses_1781015652549",
+      "created_at": "2026-06-09T14:34:12.551Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-09T14:34:19.294Z",
+      "archive_ref": "gate-state.history/2026-06-09.jsonl#11"
+    },
+    "cg_ses_1781076279658": {
+      "session_id": "cg_ses_1781076279658",
+      "created_at": "2026-06-10T07:24:39.660Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T07:24:54.170Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#0"
+    },
+    "cg_ses_1781097136495": {
+      "session_id": "cg_ses_1781097136495",
+      "created_at": "2026-06-10T13:12:16.497Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T13:14:09.450Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#1"
+    },
+    "cg_ses_1781101562473": {
+      "session_id": "cg_ses_1781101562473",
+      "created_at": "2026-06-10T14:26:02.477Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T14:40:28.896Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#2"
+    },
+    "cg_ses_1781115100202": {
+      "session_id": "cg_ses_1781115100202",
+      "created_at": "2026-06-10T18:11:40.203Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T18:11:51.486Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#3"
+    },
+    "cg_ses_1781116446314": {
+      "session_id": "cg_ses_1781116446314",
+      "created_at": "2026-06-10T18:34:06.318Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T18:34:15.911Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#4"
+    },
+    "cg_ses_1781116590397": {
+      "session_id": "cg_ses_1781116590397",
+      "created_at": "2026-06-10T18:36:30.399Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T18:36:57.936Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#5"
+    },
+    "cg_ses_1781116819541": {
+      "session_id": "cg_ses_1781116819541",
+      "created_at": "2026-06-10T18:40:19.543Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T18:40:31.669Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#6"
+    },
+    "cg_ses_1781121497669": {
+      "session_id": "cg_ses_1781121497669",
+      "created_at": "2026-06-10T19:58:17.672Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T19:58:29.687Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#7"
+    },
+    "cg_ses_1781122418246": {
+      "session_id": "cg_ses_1781122418246",
+      "created_at": "2026-06-10T20:13:38.249Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T20:14:42.854Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#8"
+    },
+    "cg_ses_1781122801815": {
+      "session_id": "cg_ses_1781122801815",
+      "created_at": "2026-06-10T20:20:01.818Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T20:20:40.992Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#9"
+    },
+    "cg_ses_1781123761481": {
+      "session_id": "cg_ses_1781123761481",
+      "created_at": "2026-06-10T20:36:01.485Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T20:36:43.371Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#10"
+    },
+    "cg_ses_1781124641264": {
+      "session_id": "cg_ses_1781124641264",
+      "created_at": "2026-06-10T20:50:41.269Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T20:51:22.249Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#11"
+    },
+    "cg_ses_1781126157444": {
+      "session_id": "cg_ses_1781126157444",
+      "created_at": "2026-06-10T21:15:57.450Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T21:17:25.978Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#12"
+    },
+    "cg_ses_1781127460779": {
+      "session_id": "cg_ses_1781127460779",
+      "created_at": "2026-06-10T21:37:40.783Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T21:38:41.886Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#13"
+    },
+    "cg_ses_1781128592974": {
+      "session_id": "cg_ses_1781128592974",
+      "created_at": "2026-06-10T21:56:32.977Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T21:59:44.562Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#14"
+    },
+    "cg_ses_1781128873300": {
+      "session_id": "cg_ses_1781128873300",
+      "created_at": "2026-06-10T22:01:13.303Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T22:01:50.406Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#15"
+    },
+    "cg_ses_1781129224853": {
+      "session_id": "cg_ses_1781129224853",
+      "created_at": "2026-06-10T22:07:04.857Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T22:08:23.746Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#16"
+    },
+    "cg_ses_1781132302486": {
+      "session_id": "cg_ses_1781132302486",
+      "created_at": "2026-06-10T22:58:22.489Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:07:29.979Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#17"
+    },
+    "cg_ses_1781133263489": {
+      "session_id": "cg_ses_1781133263489",
+      "created_at": "2026-06-10T23:14:23.494Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:15:32.610Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#18"
+    },
+    "cg_ses_1781133468068": {
+      "session_id": "cg_ses_1781133468068",
+      "created_at": "2026-06-10T23:17:48.072Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:18:31.102Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#19"
+    },
+    "cg_ses_1781133547803": {
+      "session_id": "cg_ses_1781133547803",
+      "created_at": "2026-06-10T23:19:07.806Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:19:23.316Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#20"
+    },
+    "cg_ses_1781133626658": {
+      "session_id": "cg_ses_1781133626658",
+      "created_at": "2026-06-10T23:20:26.661Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:21:15.963Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#21"
+    },
+    "cg_ses_1781133924136": {
+      "session_id": "cg_ses_1781133924136",
+      "created_at": "2026-06-10T23:25:24.144Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:26:09.738Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#22"
+    },
+    "cg_ses_1781133993709": {
+      "session_id": "cg_ses_1781133993709",
+      "created_at": "2026-06-10T23:26:33.713Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:27:20.593Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#23"
+    },
+    "cg_ses_1781135227596": {
+      "session_id": "cg_ses_1781135227596",
+      "created_at": "2026-06-10T23:47:07.601Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-10T23:49:45.439Z",
+      "archive_ref": "gate-state.history/2026-06-10.jsonl#24"
+    },
+    "cg_ses_1781136731942": {
+      "session_id": "cg_ses_1781136731942",
+      "created_at": "2026-06-11T00:12:11.946Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T00:14:32.642Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#0"
+    },
+    "cg_ses_1781137316868": {
+      "session_id": "cg_ses_1781137316868",
+      "created_at": "2026-06-11T00:21:56.870Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T00:22:35.081Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#1"
+    },
+    "cg_ses_1781137540793": {
+      "session_id": "cg_ses_1781137540793",
+      "created_at": "2026-06-11T00:25:40.797Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T00:27:42.085Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#2"
+    },
+    "cg_ses_1781138219758": {
+      "session_id": "cg_ses_1781138219758",
+      "created_at": "2026-06-11T00:36:59.760Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T00:38:47.818Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#3"
+    },
+    "cg_ses_1781144055642": {
+      "session_id": "cg_ses_1781144055642",
+      "created_at": "2026-06-11T02:14:15.674Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T02:25:08.671Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#4"
+    },
+    "cg_ses_1781145678375": {
+      "session_id": "cg_ses_1781145678375",
+      "created_at": "2026-06-11T02:41:18.388Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T02:46:33.078Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#5"
+    },
+    "cg_ses_1781147232157": {
+      "session_id": "cg_ses_1781147232157",
+      "created_at": "2026-06-11T03:07:12.160Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T03:17:45.739Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#6"
+    },
+    "cg_ses_1781148977737": {
+      "session_id": "cg_ses_1781148977737",
+      "created_at": "2026-06-11T03:36:17.741Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T03:37:50.525Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#7"
+    },
+    "cg_ses_1781149249660": {
+      "session_id": "cg_ses_1781149249660",
+      "created_at": "2026-06-11T03:40:49.665Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T03:48:14.480Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#8"
+    },
+    "cg_ses_1781150221262": {
+      "session_id": "cg_ses_1781150221262",
+      "created_at": "2026-06-11T03:57:01.266Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T03:59:20.540Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#9"
+    },
+    "cg_ses_1781151802371": {
+      "session_id": "cg_ses_1781151802371",
+      "created_at": "2026-06-11T04:23:22.374Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:23:57.579Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#10"
+    },
+    "cg_ses_1781151903484": {
+      "session_id": "cg_ses_1781151903484",
+      "created_at": "2026-06-11T04:25:03.487Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:25:15.688Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#11"
+    },
+    "cg_ses_1781152009731": {
+      "session_id": "cg_ses_1781152009731",
+      "created_at": "2026-06-11T04:26:49.736Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:32:24.453Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#12"
+    },
+    "cg_ses_1781152627053": {
+      "session_id": "cg_ses_1781152627053",
+      "created_at": "2026-06-11T04:37:07.056Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:39:39.207Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#13"
+    },
+    "cg_ses_1781153071640": {
+      "session_id": "cg_ses_1781153071640",
+      "created_at": "2026-06-11T04:44:31.644Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:45:38.879Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#14"
+    },
+    "cg_ses_1781153158045": {
+      "session_id": "cg_ses_1781153158045",
+      "created_at": "2026-06-11T04:45:58.048Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:47:49.736Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#15"
+    },
+    "cg_ses_1781153295965": {
+      "session_id": "cg_ses_1781153295965",
+      "created_at": "2026-06-11T04:48:15.968Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:48:29.401Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#16"
+    },
+    "cg_ses_1781153450255": {
+      "session_id": "cg_ses_1781153450255",
+      "created_at": "2026-06-11T04:50:50.259Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T04:51:00.428Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#17"
+    },
+    "cg_ses_1781154991702": {
+      "session_id": "cg_ses_1781154991702",
+      "created_at": "2026-06-11T05:16:31.706Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T05:17:47.208Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#18"
+    },
+    "cg_ses_1781155748812": {
+      "session_id": "cg_ses_1781155748812",
+      "created_at": "2026-06-11T05:29:08.816Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T05:35:42.354Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#19"
+    },
+    "cg_ses_1781156823361": {
+      "session_id": "cg_ses_1781156823361",
+      "created_at": "2026-06-11T05:47:03.372Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T05:47:54.639Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#20"
+    },
+    "cg_ses_1781157638839": {
+      "session_id": "cg_ses_1781157638839",
+      "created_at": "2026-06-11T06:00:38.843Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T06:04:44.919Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#21"
+    },
+    "cg_ses_1781158240715": {
+      "session_id": "cg_ses_1781158240715",
+      "created_at": "2026-06-11T06:10:40.720Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T06:10:51.648Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#22"
+    },
+    "cg_ses_1781158354672": {
+      "session_id": "cg_ses_1781158354672",
+      "created_at": "2026-06-11T06:12:34.675Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T06:14:20.043Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#23"
+    },
+    "cg_ses_1781160879536": {
+      "session_id": "cg_ses_1781160879536",
+      "created_at": "2026-06-11T06:54:39.540Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T07:01:46.041Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#24"
+    },
+    "cg_ses_1781162355457": {
+      "session_id": "cg_ses_1781162355457",
+      "created_at": "2026-06-11T07:19:15.461Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T07:21:17.113Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#25"
+    },
+    "cg_ses_1781162896632": {
+      "session_id": "cg_ses_1781162896632",
+      "created_at": "2026-06-11T07:28:16.635Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T07:29:21.175Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#26"
+    },
+    "cg_ses_1781162970187": {
+      "session_id": "cg_ses_1781162970187",
+      "created_at": "2026-06-11T07:29:30.191Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T07:29:56.763Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#27"
+    },
+    "cg_ses_1781163138455": {
+      "session_id": "cg_ses_1781163138455",
+      "created_at": "2026-06-11T07:32:18.460Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T07:33:30.550Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#28"
+    },
+    "cg_ses_1781163353239": {
+      "session_id": "cg_ses_1781163353239",
+      "created_at": "2026-06-11T07:35:53.243Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T07:37:06.212Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#29"
+    },
+    "cg_ses_1781164026392": {
+      "session_id": "cg_ses_1781164026392",
+      "created_at": "2026-06-11T07:47:06.396Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T07:59:31.650Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#30"
+    },
+    "cg_ses_1781164923992": {
+      "session_id": "cg_ses_1781164923992",
+      "created_at": "2026-06-11T08:02:04.000Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T08:04:21.918Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#31"
+    },
+    "cg_ses_1781165359829": {
+      "session_id": "cg_ses_1781165359829",
+      "created_at": "2026-06-11T08:09:19.833Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T08:10:39.803Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#32"
+    },
+    "cg_ses_1781165602095": {
+      "session_id": "cg_ses_1781165602095",
+      "created_at": "2026-06-11T08:13:22.100Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T08:16:34.374Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#33"
+    },
+    "cg_ses_1781167145107": {
+      "session_id": "cg_ses_1781167145107",
+      "created_at": "2026-06-11T08:39:05.112Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T08:39:22.721Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#34"
+    },
+    "cg_ses_1781167436298": {
+      "session_id": "cg_ses_1781167436298",
+      "created_at": "2026-06-11T08:43:56.302Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-11T08:45:33.551Z",
+      "archive_ref": "gate-state.history/2026-06-11.jsonl#35"
     }
   }
 }

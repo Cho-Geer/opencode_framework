@@ -90,7 +90,12 @@ const RULE_REGISTRY_FILE = fs.existsSync(PRIMARY_RULE_REGISTRY)
 const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
 
 // Knowledge pipeline paths (UC7KS)
-const KNOWLEDGE_INDEX_FILE = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.json");
+const KNOWLEDGE_INDEX_FILE = path.join(
+  OPENCODE_ROOT,
+  "docs",
+  "official_docs",
+  "index.json",
+);
 const DISPATCH_OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -135,7 +140,10 @@ function getEnforcementMode() {
    */
   if (cfg.ok && cfg.data.template_resolution) {
     const tr = cfg.data.template_resolution;
-    const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode || tr.enforcement_mode;
+    const mode =
+      tr.develop_enforcement_mode ||
+      tr.runtime_enforcement_mode ||
+      tr.enforcement_mode;
     if (mode && ["advisory", "strict", "locked"].includes(mode)) {
       return mode;
     }
@@ -245,7 +253,9 @@ function printUsage() {
   console.error(
     "Performs 6 checks: DAG coverage, Gate lifecycle, Role violations,",
   );
-  console.error("Rule registry integrity, Config validity, and Knowledge pipeline.");
+  console.error(
+    "Rule registry integrity, Config validity, and Knowledge pipeline.",
+  );
   console.error("");
   console.error("Exit codes: 0=pass, 1=fail, 2=system error");
   process.exit(1);
@@ -254,10 +264,58 @@ function printUsage() {
 // ─── Check Implementations ────────────────────────────────────────────────
 
 /**
+ * Read agent identity from _dispatch_target.json (v4.0.0 replacement for FRAMEWORK_AGENT).
+ * Applies the same run_id staleness check as enforce.ts resolveAgent().
+ * @returns {string} agent name (e.g. "@Coder-BE") or empty string
+ */
+function readDispatchTargetAgent() {
+  try {
+    const p = require("path").join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch_target.json",
+    );
+    if (require("fs").existsSync(p)) {
+      const d = JSON.parse(require("fs").readFileSync(p, "utf8"));
+      const currentRunId = process.env.OPENCODE_RUN_ID || "";
+      if (currentRunId && (!d.run_id || d.run_id !== currentRunId)) {
+        try {
+          require("fs").unlinkSync(p);
+        } catch {}
+        return "";
+      }
+      return d.agent || "";
+    }
+  } catch {}
+  return "";
+}
+
+/**
  * Check 1 — DAG Coverage: task_id exists in Task.DAG.json with status=pending.
  * Failures: task not found, task not pending (e.g. completed).
+ *
+ * Bypass: @Meta-Planner and @Orchestrator are exempt from DAG coverage checks.
+ * These agents CREATE and MANAGE the DAG — blocking them because a task doesn't
+ * yet exist in the DAG creates an unresolvable chicken-and-egg deadlock
+ * (you need @Meta-Planner to create DAG tasks, but the DAG gate blocks
+ * @Meta-Planner because the task isn't in DAG yet).
+ *
+ * @since 2026-06-07 — FW-REPAIR-DAG-DEADLOCK: Added Meta-Planner/Orchestrator bypass
  */
 function checkDagCoverage(taskId) {
+  // ── DAG-creator bypass: @Meta-Planner and @Orchestrator manage the DAG ──
+  const agent = readDispatchTargetAgent() || process.env.AGENT || "";
+  const normalizedAgent = agent.replace(/^@/, ""); // strip @ prefix for comparison
+  if (
+    normalizedAgent === "Meta-Planner" ||
+    normalizedAgent === "Orchestrator"
+  ) {
+    console.error(
+      `    ⏭️  DAG Coverage SKIPPED — ${agent} is a DAG-creator/manager (task may not exist yet)`,
+    );
+    return true;
+  }
+
   const dag = readJSON(DAG_FILE);
   if (!dag.ok) {
     const blocked = emitError(
@@ -274,10 +332,11 @@ function checkDagCoverage(taskId) {
     const blocked = emitError(
       "DAG Coverage",
       `Task '${taskId}' not found in Task.DAG.json`,
-      `Available tasks: ${dag.data.tasks
-        .slice(0, 10)
-        .map((t) => t.id)
-        .join(", ")}${dag.data.tasks.length > 10 ? "..." : ""}`,
+      `To fix: dispatch @Meta-Planner to plan this task and add it to the DAG.\n` +
+        `  Available tasks: ${dag.data.tasks
+          .slice(0, 10)
+          .map((t) => t.id)
+          .join(", ")}${dag.data.tasks.length > 10 ? "..." : ""}`,
     );
     if (blocked) process.exit(1);
     return false;
@@ -574,18 +633,30 @@ function checkConfigValidity() {
  */
 function checkKnowledgeGate(taskId) {
   const KNOWLEDGE_KEYWORDS = [
-    "Knowledge-Curator", "knowledge", "context7", "docs lookup",
-    "external documentation", "fetch docs", "latest version",
-    "API reference", "library docs", "webfetch", "websearch"
+    "Knowledge-Curator",
+    "knowledge",
+    "context7",
+    "docs lookup",
+    "external documentation",
+    "fetch docs",
+    "latest version",
+    "API reference",
+    "library docs",
+    "webfetch",
+    "websearch",
   ];
 
   // Only activate when task or dispatch involves knowledge acquisition
   const taskLower = taskId.toLowerCase();
-  const isKnowledgeTask = KNOWLEDGE_KEYWORDS.some(kw => taskLower.includes(kw.toLowerCase()));
+  const isKnowledgeTask = KNOWLEDGE_KEYWORDS.some((kw) =>
+    taskLower.includes(kw.toLowerCase()),
+  );
 
   // Also check if Knowledge-Curator dispatch output exists
   const dispatchFiles = fs.existsSync(DISPATCH_OUTPUT_DIR)
-    ? fs.readdirSync(DISPATCH_OUTPUT_DIR).filter(f => f.startsWith("dispatch-Knowledge-Curator"))
+    ? fs
+        .readdirSync(DISPATCH_OUTPUT_DIR)
+        .filter((f) => f.startsWith("dispatch-Knowledge-Curator"))
     : [];
 
   const isKnowledgeDispatch = dispatchFiles.length > 0;
@@ -597,7 +668,7 @@ function checkKnowledgeGate(taskId) {
       const blocked = emitError(
         "Knowledge Pipeline",
         "Knowledge cache index (docs/official_docs/index.json) not found",
-        "The UC7KS pipeline requires this file. Run: touch docs/official_docs/index.json and initialize with valid JSON."
+        "The UC7KS pipeline requires this file. Run: touch docs/official_docs/index.json and initialize with valid JSON.",
       );
       if (blocked) process.exit(1);
       return false;
@@ -608,19 +679,24 @@ function checkKnowledgeGate(taskId) {
       let tokenFound = false;
       for (const f of dispatchFiles) {
         try {
-          const content = fs.readFileSync(path.join(DISPATCH_OUTPUT_DIR, f), "utf8");
+          const content = fs.readFileSync(
+            path.join(DISPATCH_OUTPUT_DIR, f),
+            "utf8",
+          );
           if (content.includes("//DISPATCH_TOKEN:")) {
             tokenFound = true;
             break;
           }
-        } catch { /* skip unreadable files */ }
+        } catch {
+          /* skip unreadable files */
+        }
       }
 
       if (!tokenFound) {
         const blocked = emitError(
           "Knowledge Pipeline",
           "Knowledge-Curator dispatch missing DISPATCH_TOKEN",
-          "All @Knowledge-Curator dispatches must go through @Orchestrator using the dispatch_subagent tool, which generates a cryptographic DISPATCH_TOKEN. Direct dispatch without this token violates the UC7KS pipeline."
+          "All @Knowledge-Curator dispatches must go through @Orchestrator (or @Super-Admin for UC7KS — FW-DISPATCH-BYPASS) using the dispatch_subagent tool, which generates a cryptographic DISPATCH_TOKEN. Direct dispatch without this token violates the UC7KS pipeline.",
         );
         if (blocked) process.exit(1);
         return false;
@@ -635,15 +711,15 @@ function checkKnowledgeGate(taskId) {
     const bypassAttempts = kcs.compliance?.total_bypass_attempts || 0;
 
     if (bypassAttempts > 0) {
-      const agent = process.env.FRAMEWORK_AGENT || "unknown";
+      const agent = readDispatchTargetAgent() || "unknown";
       const agentBypasses = kcs.compliance?.bypass_attempts_by_agent?.[agent];
       const agentCount = agentBypasses?.count || 0;
 
       if (agentCount > 0) {
         console.error(
           `    ⚠️  Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) recorded. ` +
-          `Last attempt: ${agentBypasses?.last_attempt_at || "unknown"} using "${agentBypasses?.last_tool_attempted || "unknown"}". ` +
-          `Total system bypasses: ${bypassAttempts}.`
+            `Last attempt: ${agentBypasses?.last_attempt_at || "unknown"} using "${agentBypasses?.last_tool_attempted || "unknown"}". ` +
+            `Total system bypasses: ${bypassAttempts}.`,
         );
 
         const mode = getEnforcementMode();
@@ -651,7 +727,7 @@ function checkKnowledgeGate(taskId) {
           const blocked = emitError(
             "Knowledge Pipeline",
             `Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) in LOCKED mode`,
-            "In LOCKED mode, all external documentation queries must go through @Knowledge-Curator. Bypass attempts are not tolerated. Remediation: clear bypass attempts via state-reconciliation --reset-knowledge-audit after verifying all cached docs are up to date."
+            "In LOCKED mode, all external documentation queries must go through @Knowledge-Curator. Bypass attempts are not tolerated. Remediation: clear bypass attempts via state-reconciliation --reset-knowledge-audit after verifying all cached docs are up to date.",
           );
           if (blocked) process.exit(1);
           return false;
@@ -691,25 +767,49 @@ function main() {
     }
   }
 
-  // Require task_id
+  // Require task_id — unless the agent is a DAG creator/manager
+  // @Meta-Planner and @Orchestrator CREATE and MANAGE the DAG — they
+  // cannot logically require a task_id to exist before they've created it.
+  // Without this bypass, dispatching @Meta-Planner to bootstrap a DAG creates
+  // an unresolvable chicken-and-egg deadlock.
+  //
+  // @since 2026-06-07 — FW-REPAIR-DAG-DEADLOCK: Added DAG-creator bypass
   if (!taskId) {
+    const agent = readDispatchTargetAgent() || "";
+    const normalizedAgent = agent.replace(/^@/, "");
+    if (
+      normalizedAgent === "Meta-Planner" ||
+      normalizedAgent === "Orchestrator"
+    ) {
+      console.log(
+        `[GATE] ${agent} detected — DAG creator bypass ` +
+          `(no task_id needed for DAG planning/management).`,
+      );
+      process.exit(0);
+    }
     printUsage();
   }
 
   // Special case: Super-Admin — emergency framework administrator
   // Bypasses DAG coverage and gate lifecycle checks (emergency repairs cannot wait for planning)
   // BUT: knowledge pipeline (UC7KS) checks still apply to prevent documentation bypass
-  const agent = process.env.FRAMEWORK_AGENT || "";
+  const agent = readDispatchTargetAgent() || "";
   if (agent === "Super-Admin" || agent === "@Super-Admin") {
-    console.log("[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance.");
+    console.log(
+      "[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance.",
+    );
     console.log("[GATE] Knowledge pipeline (UC7KS) checks still enforced.");
     if (!checkKnowledgeGate(taskId)) {
       const mode = getEnforcementMode();
       if (mode === "locked") {
-        console.error("[GATE][LOCKED] Knowledge pipeline check FAILED for Super-Admin — blocked.");
+        console.error(
+          "[GATE][LOCKED] Knowledge pipeline check FAILED for Super-Admin — blocked.",
+        );
         process.exit(1);
       }
-      console.error("[GATE] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory/strict).");
+      console.error(
+        "[GATE] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory/strict).",
+      );
     }
     process.exit(0);
   }

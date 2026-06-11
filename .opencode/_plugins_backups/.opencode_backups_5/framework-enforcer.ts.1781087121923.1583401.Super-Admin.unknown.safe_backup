@@ -1,0 +1,1934 @@
+// BUN-CACHE-VERSION: 2026-06-10-09:45 — PLUGIN-LOADED heartbeat at module level
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as crypto from "node:crypto";
+import { createRequire } from "node:module";
+
+// ═══════════════════════════════════════════════════════════════════
+// [PLUGIN-LOADED] Heartbeat — fires on every OpenCode restart.
+// Verify: grep 'PLUGIN-LOADED' .task_temp/_dispatch/chat_message_hook.log
+// ═══════════════════════════════════════════════════════════════════
+(function() {
+  const dp = path.join(process.env.OPENCODE_ROOT || ".", ".task_temp", "_dispatch", "chat_message_hook.log");
+  const dir = path.dirname(dp);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.appendFileSync(dp, `[${new Date().toISOString()}][INFO] [PLUGIN-LOADED] framework-enforcer.ts | pid=${process.pid} | cwd=${process.cwd()}\n`, "utf8");
+})();
+import {
+  readJsonFile,
+  getEnforcementMode,
+  findArmedSession,
+} from "../lib/gate-core";
+import { computeSHA256 } from "../lib/gate-core";
+import { STATE_PATHS, isSourceFile, getOpenCodeRoot } from "../lib/state-utils";
+import { writeAuditLogEntry, logAuditEntry } from "../lib/audit-log";
+import {
+  findTaskInDag,
+  isWriteAllowed,
+  checkStaleSessions,
+  autoDrainStaleSessions,
+  initDeps,
+} from "../lib/gate-checks";
+
+initDeps(readJsonFile, computeSHA256);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FW-DIAG-PLUGIN-LOADED (2026-06-10, @Super-Admin): Plugin load heartbeat.
+// Fires EVERY time the enforce.ts module is loaded by the Bun runtime.
+// Writes to BOTH stderr AND chat_message_hook.log so it survives the TUI.
+//
+// HOW TO VERIFY:
+//   1. Restart OpenCode
+//   2. Read .task_temp/_dispatch/chat_message_hook.log
+//   3. Search for: [PLUGIN-LOADED]
+//   4. If NOT found → plugin is NOT loading
+// ═══════════════════════════════════════════════════════════════════════════
+(function pluginLoadedHeartbeat() {
+  const msg =
+    `[PLUGIN-LOADED] framework-enforcer/enforce.ts | ` +
+    `BUN-CACHE-VERSION=2026-06-09-22:00 | ` +
+    `ts=${new Date().toISOString()} | ` +
+    `pid=${process.pid} | ` +
+    `cwd=${process.cwd()}\n`;
+  process.stderr.write(msg);
+  // Also write to demo log so it's visible after TUI takes over the terminal
+  try {
+    const dp = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      "chat_message_hook.log",
+    );
+    const dir = path.dirname(dp);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(dp, `[${new Date().toISOString()}][INFO] ${msg}`, "utf8");
+  } catch (_) {
+    /* can't use demoLog here — it might not be defined yet */
+  }
+})();
+let _agentResolved = false;
+let _cachedAgent = ""; // 模块级缓存，替代已废弃的 FRAMEWORK_AGENT env var
+
+// P0-FIX-BUG-13-IDEM (2026-06-09 @Super-Admin): Idempotency guard for LLM duplicate Task() calls.
+// When the LLM generates multiple Task() calls in a single response, the first consumes
+// the .pending.json entry, and subsequent calls hit MANDATORY-DISPATCH with empty queue.
+// This map records {sessionID → {agentType, timestamp}} so that when Block 1 finds no
+// matching entry, we check if the same session already dispatched the same agent type.
+// If yes → allow the duplicate through instead of blocking.
+const sessionLastDispatched = new Map<
+  string,
+  { agentType: string; ts: number }
+>();
+
+function resolveAgent(): string {
+  // ① 模块级缓存 — 替代已废弃的 FRAMEWORK_AGENT env var
+  if (_cachedAgent) return _cachedAgent;
+
+  // ② _dispatch_target.json — TASK-IDENTITY 或 dispatch_subagent 写入
+  // _agentResolved 确保每个进程只读一次
+  if (!_agentResolved) {
+    _agentResolved = true;
+    try {
+      const p = path.join(
+        process.env.OPENCODE_ROOT || ".",
+        ".task_temp",
+        "_dispatch_target.json",
+      );
+      if (fs.existsSync(p)) {
+        const d = JSON.parse(fs.readFileSync(p, "utf8"));
+        const currentRunId = process.env.OPENCODE_RUN_ID || "";
+        // Cross-session stale check: reject if run_id doesn't match current
+        // session, OR if run_id is missing (file written by old plugin version).
+        if (currentRunId && (!d.run_id || d.run_id !== currentRunId)) {
+          try {
+            fs.unlinkSync(p);
+          } catch {}
+          _cachedAgent = process.env.AGENT || "";
+          return _cachedAgent;
+        }
+        if (d.agent) {
+          _cachedAgent = d.agent;
+          return d.agent;
+        }
+      }
+    } catch {}
+  }
+  // ③④ AGENT env → 通常为 "1"；或空字符串兜底
+  _cachedAgent = process.env.AGENT || "";
+  return _cachedAgent;
+}
+
+/**
+ * FW-FIX-TASKID-02: Resolve task ID from multiple sources with priority.
+ * Priority: 1) FRAMEWORK_TASK_ID env var  2) _dispatch_target.json  3) ""
+ * _dispatch_target.json is written by dispatch-subagent.ts L122-126 before
+ * exit and persists across the env var save/restore in dispatch_subagent tool.
+ */
+function resolveTaskId(): string {
+  const envId = process.env.FRAMEWORK_TASK_ID || "";
+  if (envId) return envId;
+  try {
+    const p = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch_target.json",
+    );
+    if (fs.existsSync(p)) {
+      const d = JSON.parse(fs.readFileSync(p, "utf8"));
+      if (d.task_id) return d.task_id;
+    }
+  } catch {}
+  return "";
+}
+
+/**
+ * FW-ENFORCE-TOOLS-01: Unified modify-tool detection.
+ * Replaces hardcoded (write|edit|safe_edit) triplets scattered across enforce.ts.
+ * Includes all tools that can create, modify, or delete filesystem entries.
+ * safe_shell is included because cp/mv/rm commands can modify filesystem state.
+ *
+ * @since 2026-06-08 — @Super-Admin: Added safe_mkdir, safe_delete, safe_shell
+ */
+function isModifyTool(tool: string): boolean {
+  return (
+    tool === "write" ||
+    tool === "edit" ||
+    tool === "safe_edit" ||
+    tool === "safe_mkdir" ||
+    tool === "safe_delete" ||
+    tool === "safe_shell"
+  );
+}
+
+/**
+ * FW-ENFORCE-TOOLS-01: Unified file path extraction from modify tools.
+ * Different tools put the target path in different args fields:
+ *   write/edit/safe_edit/safe_delete  → args.filePath
+ *   safe_mkdir                         → args.dirPath
+ *   safe_shell                         → args.command
+ */
+function getModifyPath(args: Record<string, unknown>): string {
+  return (args?.filePath || args?.dirPath || args?.command || "") as string;
+}
+
+/**
+ * FW-ENFORCE-TOOLS-01: Check if a safe_shell command is file-modifying.
+ * Only cp, mv, rm commands are classified as file modifications.
+ * Other safe_shell commands (echo, cat, ls, etc.) are read-only.
+ */
+function isModifyShell(args: Record<string, unknown>): boolean {
+  const cmd = (args?.command || "") as string;
+  return /^(cp|mv|rm)\b/.test(cmd);
+}
+
+/**
+ * FW-DISPATCH-GATE-EXTERNALIZE: Read dispatch-allowed tools for an agent
+ * from project.config.json → agent_dispatch_allowed_tools.
+ *
+ * Special values:
+ *   - ["*"] → wildcard: agent may call any tool
+ *   - Agent entry absent → fallback minimum viable set
+ *
+ * Normalizes agent name (@Orchestrator ↔ Orchestrator) before lookup.
+ *
+ * @returns string[] of allowed tool names, or "*" for wildcard
+ * @since 2026-06-09 — @Super-Admin
+ */
+function readDispatchAllowedTools(agent: string): string[] | "*" {
+  const FALLBACK = [
+    "task",
+    "read",
+    "todowrite",
+    "compliance_gate_check",
+    "compliance_gate_confirm",
+    "compliance_gate_complete",
+    "dispatch_subagent",
+  ];
+  try {
+    const cfg = readJsonFile<any>(STATE_PATHS.projectConfig());
+    const tools = cfg?.agent_dispatch_allowed_tools;
+    if (!tools || typeof tools !== "object") return FALLBACK;
+
+    // Normalize: try @Agent and Agent forms
+    const atForm = agent.startsWith("@") ? agent : "@" + agent;
+    const plainForm = agent.replace(/^@/, "");
+    const entry = tools[atForm] || tools[plainForm];
+    if (!entry) return FALLBACK;
+
+    if (
+      entry === "*" ||
+      (Array.isArray(entry) && entry.length === 1 && entry[0] === "*")
+    ) {
+      return "*"; // wildcard — agent may call any tool
+    }
+    if (Array.isArray(entry)) return entry;
+    return FALLBACK;
+  } catch {
+    // Config read failure — use fallback to avoid blocking all operations
+    return FALLBACK;
+  }
+}
+
+/**
+ * FW-MCP-TOOLNAME-NORMALIZE (2026-06-09, @Super-Admin):
+ * Check if a tool is in the allowed list, normalizing MCP-prefixed names.
+ *
+ * OpenCode passes MCP tools to the plugin hook with the server prefix:
+ *   "compliance-gate_compliance_gate_check" (full name)
+ * But the allowed list uses short names:
+ *   "compliance_gate_check"
+ *
+ * This function tries both forms:
+ *   1. Exact match (handles built-in tools: safe_shell, read, task)
+ *   2. Short name match (strips "server-name_" prefix for MCP tools)
+ *   3. Full-name match with server prefix (for tools registered that way)
+ *
+ * MCP prefix pattern: {alphanumeric}{hyphen}{alphanumeric}_ → server-name_tool-name
+ */
+function isToolAllowed(allowedList: string[] | "*", tool: string): boolean {
+  if (allowedList === "*") return true;
+  if (!Array.isArray(allowedList)) return false;
+
+  // 1. Exact match
+  if (allowedList.includes(tool)) return true;
+
+  // 2. Strip MCP server prefix and try short name
+  // Pattern: "server-name_tool_name" → "tool_name"
+  // Server names like "compliance-gate", "eslint-audit", "context7" use hyphens
+  const mcpPrefixMatch = tool.match(/^([a-z][a-z0-9]*-[a-z][a-z0-9-]*)_(.+)$/);
+  if (mcpPrefixMatch) {
+    const shortName = mcpPrefixMatch[2]; // the part after "server-name_"
+    if (allowedList.includes(shortName)) return true;
+  }
+
+  // 3. Try matching with the full prefix (for wildcard or prefix-aware entries)
+  // e.g., allowedList has "compliance-gate_compliance_gate_check"
+  // Already tried in step 1.
+
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEMO: chat.message hook — sessionID → agent mapping
+// ═══════════════════════════════════════════════════════════════
+
+const SESSION_MAP_DIR = ".task_temp/_dispatch";
+const SESSION_MAP_FILE = ".session_map.json";
+const DEMO_LOG_FILE = ".task_temp/_dispatch/chat_message_hook.log";
+
+function getSessionMapPath(): string {
+  return path.join(
+    process.env.OPENCODE_ROOT || ".",
+    SESSION_MAP_DIR,
+    SESSION_MAP_FILE,
+  );
+}
+
+function getDemoLogPath(): string {
+  return path.join(process.env.OPENCODE_ROOT || ".", DEMO_LOG_FILE);
+}
+
+/**
+ * Write a timestamped log line to the demo log file.
+ * Avoids console.log/console.error to prevent TUI pollution.
+ */
+function demoLog(level: "INFO" | "ERROR", message: string): void {
+  try {
+    const lp = getDemoLogPath();
+    const dir = path.dirname(lp);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const line = `[${new Date().toISOString()}][${level}] ${message}\n`;
+    fs.appendFileSync(lp, line, "utf8");
+  } catch {
+    /* Silently drop if logging itself fails — avoid console to prevent TUI pollution */
+  }
+}
+
+export async function chatMessageHook(
+  input: {
+    sessionID: string;
+    agent?: string;
+    model?: any;
+    messageID?: string;
+    variant?: string;
+  },
+  _output: any,
+): Promise<void> {
+  const agent = input.agent || "";
+  const sid = input.sessionID || "";
+  demoLog("INFO", `sessionID=${sid} agent=${agent || "(empty)"}`);
+  if (!sid || !agent) return;
+  try {
+    const mp = getSessionMapPath();
+    const dir = path.dirname(mp);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    let map: Record<string, { agent: string; ts: string }> = {};
+    if (fs.existsSync(mp)) {
+      try {
+        map = JSON.parse(fs.readFileSync(mp, "utf8"));
+      } catch {}
+    }
+    map[sid] = { agent, ts: new Date().toISOString() };
+    const keys = Object.keys(map);
+    if (keys.length > 50) {
+      const sorted = keys.sort((a, b) =>
+        (map[b]?.ts || "").localeCompare(map[a]?.ts || ""),
+      );
+      for (const k of sorted.slice(50)) delete map[k];
+    }
+    fs.writeFileSync(mp, JSON.stringify(map, null, 2), "utf8");
+    demoLog("INFO", `wrote map: ${sid} → ${agent}`);
+  } catch (e: any) {
+    demoLog("ERROR", `error: ${e.message}`);
+  }
+}
+
+function resolveAgentFromSessionMap(sessionID: string): string {
+  if (!sessionID) return "";
+  try {
+    const mp = getSessionMapPath();
+    if (!fs.existsSync(mp)) return "";
+    const map = JSON.parse(fs.readFileSync(mp, "utf8"));
+    const entry = map?.[sessionID];
+    if (entry?.agent) {
+      demoLog("INFO", `session map hit: ${sessionID} → ${entry.agent}`);
+      return entry.agent;
+    }
+  } catch {}
+  return "";
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UC7KS Knowledge Pipeline Enforcement (merged from uc7ks-enforcer)
+// ═══════════════════════════════════════════════════════════════
+
+const INDEX_PATH = "docs/official_docs/index.json";
+
+interface IndexManifest {
+  manifest_version: string;
+  total_entries: number;
+  entries: any[];
+}
+
+function readCacheIndex(): IndexManifest | null {
+  try {
+    const p = path.join(process.env.OPENCODE_ROOT || ".", INDEX_PATH);
+    if (!fs.existsSync(p)) return null;
+    const c = JSON.parse(fs.readFileSync(p, "utf8"));
+    return c.manifest_version && Array.isArray(c.entries) ? c : null;
+  } catch {
+    return null;
+  }
+}
+
+function isLocalCacheAvailable(): boolean {
+  const idx = readCacheIndex();
+  return !!(idx && idx.total_entries > 0);
+}
+
+/**
+ * P0-FIX-UC7KS-HARDEN-18 (2026-06-09 @Super-Admin): Read UC7KS pipeline
+ * compliance state for an agent. Returns the session_access entry from
+ * machine.json.knowledge_cache_state, or null if not found/unreadable.
+ */
+function readCachedSessionAccess(agentKey: string): any {
+  try {
+    const mp = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".opencode",
+      "state",
+      "machine.json",
+    );
+    if (fs.existsSync(mp)) {
+      const m = JSON.parse(fs.readFileSync(mp, "utf8"));
+      return m?.knowledge_cache_state?.session_access?.[agentKey] || null;
+    }
+  } catch {}
+  return null;
+}
+
+function buildUC7KSError(
+  agent: string,
+  tool: string,
+  mode: string,
+  cacheAvail: boolean,
+  reason: string,
+): string {
+  return [
+    `╔══════════════════════════════════════════════════════════════╗`,
+    `║  UC7KS PIPELINE ENFORCEMENT — ${mode.toUpperCase()} MODE                      ║`,
+    `║  Tool: ${tool.padEnd(48)}║`,
+    `║  Agent: ${(agent || "unknown").padEnd(48)}║`,
+    `║  Reason: ${reason.padEnd(48)}║`,
+    `║  Cache: ${(cacheAvail ? "AVAILABLE" : "NOT INITIALIZED").padEnd(48)}║`,
+    `║  REMEDIATION: 1) read docs/official_docs/index.json         ║`,
+    `║  2) If insufficient: dispatch @Knowledge-Curator            ║`,
+    `║  3) Re-read cached docs → proceed with task                 ║`,
+    `╚══════════════════════════════════════════════════════════════╝`,
+  ].join("\n");
+}
+
+/**
+ * UC7-001/004/009: Block external doc queries that bypass the UC7KS pipeline.
+ * Merged from archived uc7ks-enforcer.ts — restores proactive cache-read
+ * verification that was lost when uc7ks-enforcer was deactivated.
+ *
+ * @returns true if the tool call should be BLOCKED
+ */
+function checkUC7KS(tool: string, agent: string, mode: string): string | null {
+  const EXTERNAL = new Set([
+    // Direct doc queries
+    "context7_resolve-library-id",
+    "context7_query-docs",
+    "context7",
+    "webfetch",
+    "websearch",
+    // GitHub content-fetching (P0-FIX-UC7KS-GITHUB-01: these can pull source/docs
+    // from any public repo — functionally equivalent to webfetch for raw.githubusercontent.com)
+    "github_get_file_contents",
+    "github_search_code",
+    "github_search_repositories",
+    "github_search_issues",
+    // Playwright browser (can navigate to any URL and extract content)
+    "playwright_browser_navigate",
+  ]);
+  if (!EXTERNAL.has(tool)) return null;
+
+  // @Knowledge-Curator is the designated doc fetcher — always allowed
+  if (agent === "@Knowledge-Curator" || agent === "Knowledge-Curator")
+    return null;
+
+  const cacheAvailable = isLocalCacheAvailable();
+
+  // UC7-001 HARD-BLOCK: verify agent read cache before external queries
+  let agentReadCache = false;
+  try {
+    const mp = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".opencode",
+      "state",
+      "machine.json",
+    );
+    if (fs.existsSync(mp)) {
+      const m = JSON.parse(fs.readFileSync(mp, "utf8"));
+      const acc = m?.knowledge_cache_state?.session_access?.[agent];
+      agentReadCache = !!acc?.uc7_001_compliant;
+    }
+  } catch {}
+
+  if (!agentReadCache && cacheAvailable) {
+    return buildUC7KSError(
+      agent,
+      tool,
+      mode,
+      true,
+      "UC7-001: Agent has not read local knowledge cache before external query.",
+    );
+  }
+
+  // UC7-001b: cache sufficiency must be declared (ALL modes hard constraint)
+  if (agentReadCache && cacheAvailable) {
+    try {
+      const mp = path.join(
+        process.env.OPENCODE_ROOT || ".",
+        ".opencode",
+        "state",
+        "machine.json",
+      );
+      if (fs.existsSync(mp)) {
+        const m = JSON.parse(fs.readFileSync(mp, "utf8"));
+        const status =
+          m?.knowledge_cache_state?.session_access?.[agent]?.cache_sufficiency
+            ?.status;
+        if (status !== "sufficient" && status !== "insufficient") {
+          return buildUC7KSError(
+            agent,
+            tool,
+            mode,
+            true,
+            `UC7-001b: Cache sufficiency not declared (status: ${status || "undeclared"}). See subagent-preamble.md Step 0c.`,
+          );
+        }
+      }
+    } catch {}
+  }
+
+  // Mode-based blocking (advisory + strict: block if cache available, allow first-time setup)
+  if (mode === "advisory" || mode === "strict") {
+    if (cacheAvailable) {
+      return buildUC7KSError(
+        agent,
+        tool,
+        mode,
+        true,
+        `Local cache exists. Agent must search cached docs before external queries (${mode} mode).`,
+      );
+    }
+    console.log(
+      `[UC7KS][${mode.toUpperCase()}] Cache not initialized — allowing first-time query "${tool}".`,
+    );
+    return null;
+  }
+
+  // locked: block ALL direct external queries
+  return buildUC7KSError(
+    agent,
+    tool,
+    "locked",
+    cacheAvailable,
+    "LOCKED mode: ALL direct external queries blocked. Must use @Knowledge-Curator.",
+  );
+}
+
+export async function toolExecuteBefore(
+  input: { tool: string; sessionID: string; callID: string },
+  output: { args: Record<string, unknown> },
+): Promise<void> {
+  const tool = input.tool;
+  const mode = getEnforcementMode();
+  const agent = resolveAgent();
+  // DEMO: fallback to session map when agent is unknown ("1" or "")
+  const resolvedAgent =
+    agent === "1" || agent === ""
+      ? resolveAgentFromSessionMap(input.sessionID) || agent
+      : agent;
+  const violations: string[] = [];
+
+  // DEMO: log session map resolution
+  if (resolvedAgent !== agent) {
+    demoLog(
+      "INFO",
+      `toolExecuteBefore agent resolved via session map: "${agent}" → "${resolvedAgent}" tool=${tool}`,
+    );
+  }
+
+  // ── P0: Orchestrator DAG modification block ──
+  if (
+    isModifyTool(tool) &&
+    (resolvedAgent === "@Orchestrator" || resolvedAgent === "Orchestrator")
+  ) {
+    const fp = getModifyPath(output.args as Record<string, unknown>);
+    if (fp.endsWith("Task.DAG.json"))
+      throw new Error(
+        "[FW-ENFORCE][LOCKED] Orchestrator modification of Task.DAG.json blocked.",
+      );
+  }
+
+  // ── P0: Orchestrator dispatch gate ──
+  /**
+   * FW-DISPATCH-GATE-EXTERNALIZE (2026-06-09, @Super-Admin):
+   * The dispatch gate ALLOWED tool list is now externalized to
+   * project.config.json → agent_dispatch_allowed_tools.
+   *
+   * Previously this was a hardcoded 7-tool list that contradicted
+   * opencode.json permissions and agent config mcp_tools declarations,
+   * causing [FW-ENFORCE][FATAL] blocks in strict mode for tools like
+   * safe_shell, question, safe_diff, skill, and compliance_gate_drain_stale.
+   *
+   * Fallback: if project.config.json is missing or the agent entry is
+   * absent, uses the minimum viable set for backward compatibility.
+   */
+  if (resolvedAgent === "@Orchestrator" || resolvedAgent === "Orchestrator") {
+    const ALLOWED = readDispatchAllowedTools(resolvedAgent);
+    if (ALLOWED === "*") {
+      // Wildcard — Super-Admin style full access (used in locked override)
+    } else if (!isToolAllowed(ALLOWED, tool)) {
+      throw new Error(
+        `[FW-ENFORCE][FATAL] Orchestrator DISPATCH GATE BLOCKED: "${tool}" not allowed. ` +
+          `Add to agent_dispatch_allowed_tools.@Orchestrator in project.config.json.`,
+      );
+    }
+  }
+
+  /**
+   * FW-PROMPT-HARDEN-04: Intercept Task() calls and validate prompt hash.
+   * When a primary agent calls Task(), the enforcer verifies that the prompt
+   * matches the hash stored in .task_temp/_dispatch/.pending.json (FIFO queue).
+   *
+   * If the prompt hash matches → consumes the entry (shifts queue).
+   * If mismatch → throws [FW-ENFORCE][TASK-PROMPT-MISMATCH].
+   *
+   * FW-PROMPT-HARDEN-04 RECOVERY MECHANISMS (2026-06-08, @Super-Admin):
+   * ① Staleness timeout: entries older than 30 min are auto-drained to .pending.json.failed
+   * ② Agent-type matching: non-matching agentType entries are SKIPPED (not blocked)
+   * ③ Force-drain: FW_PROMPT_QUEUE_DRAIN=true environment variable clears the queue
+   * ④ Queue depth guard: warns if queue exceeds MAX_QUEUE_SIZE (10)
+   *
+   * This prevents agents from bypassing or shortening the dispatch-generated
+   * prompt. They MUST pass the full wrapped prompt verbatim.
+   */
+  // P0-FIX-BUG-13 (2026-06-09 @Super-Admin): Hoist dispatchConsumed to outer scope
+  // so Block 2 (MANDATORY-DISPATCH at L852) can skip the gate when Block 1 (L439-L654)
+  // successfully consumed a .pending.json entry. Previously, Block 1 consumed the entry,
+  // wrote [] to disk, then Block 2 reread empty disk and self-contradicted.
+  let dispatchConsumed = false;
+  const TASK_TOOLS = new Set(["Task", "task"]);
+  const STALE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  const MAX_QUEUE_SIZE = 10;
+  if (TASK_TOOLS.has(tool)) {
+    const PENDING_FILE = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      ".pending.json",
+    );
+    // FW-PROMPT-HARDEN-04: Emergency drain via environment variable
+    if (process.env.FW_PROMPT_QUEUE_DRAIN === "true") {
+      try {
+        fs.writeFileSync(PENDING_FILE, "[]", "utf8");
+        logAuditEntry({
+          event: "task_prompt_queue_force_drain",
+          agent,
+          tool,
+          mode,
+          reason: "FW_PROMPT_QUEUE_DRAIN=true",
+        });
+      } catch {
+        /* best effort */
+      }
+    }
+    if (fs.existsSync(PENDING_FILE)) {
+      try {
+        let queue = JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
+        if (Array.isArray(queue) && queue.length > 0) {
+          // FW-DIAG-D3 (2026-06-10, @Super-Admin): Queue snapshot at Block 1 entry.
+          // Captures every entry's agentType, dagTaskId, and age in minutes so we can
+          // trace which entries were consumed vs left as ghosts after Task() execution.
+          const d3Snapshot = queue
+            .map(
+              (e: any) =>
+                `${e.agentType || "?"}/${e.dagTaskId || "?"}(${
+                  e.createdAt
+                    ? Math.round(
+                        (Date.now() - new Date(e.createdAt).getTime()) / 60000,
+                      )
+                    : "?"
+                }m)`,
+            )
+            .join(" | ");
+          demoLog(
+            "PEND-TRACE",
+            `DIAG-QUEUE-ENTRY | callID=${(input as any).callID || "?"} | ` +
+              `sessionID=${(input as any).sessionID || "?"} | ` +
+              `size=${queue.length} | entries=[${d3Snapshot}]`,
+          );
+          // ④ Queue depth guard
+          if (queue.length > MAX_QUEUE_SIZE) {
+            logAuditEntry({
+              event: "task_prompt_queue_depth_warning",
+              agent,
+              tool,
+              queueLength: queue.length,
+              maxSize: MAX_QUEUE_SIZE,
+            });
+          }
+          // ① Staleness timeout: drain entries older than STALE_TIMEOUT_MS
+          const now = Date.now();
+          const FAILED_FILE = path.join(
+            process.env.OPENCODE_ROOT || ".",
+            ".task_temp",
+            "_dispatch",
+            ".pending.json.failed",
+          );
+          const staleIndices: number[] = [];
+          const staleEntries: any[] = [];
+          for (let i = 0; i < queue.length; i++) {
+            const entry = queue[i];
+            if (entry.createdAt) {
+              const age = now - new Date(entry.createdAt).getTime();
+              if (age > STALE_TIMEOUT_MS) {
+                staleIndices.push(i);
+                staleEntries.push({
+                  ...entry,
+                  drainedAt: new Date().toISOString(),
+                  drainReason: `Stale (${Math.round(age / 60000)}min > ${STALE_TIMEOUT_MS / 60000}min)`,
+                });
+              }
+            }
+          }
+          if (staleIndices.length > 0) {
+            // Remove stale entries from queue (reverse order to preserve indices)
+            for (let i = staleIndices.length - 1; i >= 0; i--) {
+              queue.splice(staleIndices[i], 1);
+            }
+            fs.writeFileSync(
+              PENDING_FILE,
+              JSON.stringify(queue, null, 2),
+              "utf8",
+            );
+            // Archive to failed file
+            try {
+              const existing: any[] = fs.existsSync(FAILED_FILE)
+                ? JSON.parse(fs.readFileSync(FAILED_FILE, "utf8"))
+                : [];
+              existing.push(...staleEntries);
+              fs.writeFileSync(
+                FAILED_FILE,
+                JSON.stringify(existing, null, 2),
+                "utf8",
+              );
+            } catch {
+              /* best effort */
+            }
+            logAuditEntry({
+              event: "task_prompt_queue_stale_drain",
+              agent,
+              tool,
+              drained: staleIndices.length,
+              remaining: queue.length,
+            });
+          }
+          // Re-check queue after staleness drain
+          if (Array.isArray(queue) && queue.length > 0) {
+            const requestedSubagentType =
+              (output.args?.subagent_type as string) || "";
+            const reqTypeNorm = requestedSubagentType
+              .toLowerCase()
+              .replace(/^@/, "");
+
+            // ── ②-A Super-Admin chicken-and-egg bypass ──
+            // Super-Admin is the emergency repair agent. It MUST be dispatchable
+            // even when the queue is deadlocked. Without this bypass, an orphaned
+            // entry at the queue head blocks Super-Admin dispatch → system deadlock
+            // has no recovery path. This mirrors FW-DAG-BYPASS-01 (L211-214) which
+            // already bypasses the DAG gate for Super-Admin.
+            if (reqTypeNorm === "super-admin") {
+              // Clean any Super-Admin entries from queue (they'll never be consumed via hash check)
+              const beforeLen = queue.length;
+              queue = queue.filter((e: any) => {
+                const et = ((e.agentType || "") as string)
+                  .toLowerCase()
+                  .replace(/^@/, "");
+                return et !== "super-admin";
+              });
+              if (queue.length < beforeLen) {
+                fs.writeFileSync(
+                  PENDING_FILE,
+                  JSON.stringify(queue, null, 2),
+                  "utf8",
+                );
+              }
+              logAuditEntry({
+                event: "task_prompt_super_admin_bypass",
+                agent,
+                tool,
+                requestedSubagentType,
+                queueCleaned: beforeLen - queue.length,
+                remaining: queue.length,
+              });
+              // FW-SA-BYPASS-DISPATCHCONSUMED (2026-06-09, @Super-Admin):
+              // SA bypass cleans queue entries like Block 1 consumption, but
+              // was forgetting to set dispatchConsumed=true. This caused
+              // Block 2 (MANDATORY-DISPATCH) to read the now-empty queue
+              // and throw, identical to the original BL-05 pattern.
+              dispatchConsumed = true;
+              // Also register for idempotency guard (P0-FIX-BUG-13-IDEM)
+              sessionLastDispatched.set(input.sessionID, {
+                agentType: "super-admin",
+                ts: Date.now(),
+              });
+              // P0-FIX-BUG-17: Also register by callID for double-hook detection
+              sessionLastDispatched.set(input.callID, {
+                agentType: "super-admin",
+                ts: Date.now(),
+              });
+              // Proceed without hash check — Super-Admin is always dispatchable
+            }
+            // ── ②-B Agent-type matching with queue scan + retry ──
+            // Scan the queue for the FIRST entry matching the requested agent type.
+            // Old entries (no agentType) are skipped.
+            // CRITICAL: if the first match fails hash check, continue scanning for
+            // another match. This handles the case where duplicate entries for the
+            // same agent type accumulate (e.g., a crash-orphaned entry followed by
+            // a valid re-dispatch). Without retry, the orphan blocks the valid entry
+            // until staleness timeout (30 min).
+            else {
+              const promptParam =
+                (output.args?.prompt as string) ||
+                (output.args?.description as string) ||
+                "";
+              const actualHash = crypto
+                .createHash("sha256")
+                .update(promptParam, "utf8")
+                .digest("hex");
+              let consumed = false;
+              let lastFailedHash = "";
+              let lastFailedFile = "";
+
+              for (let i = 0; i < queue.length; i++) {
+                const entryAgentType = ((queue[i] as any).agentType ||
+                  "") as string;
+                if (!entryAgentType) continue; // skip old entries (no agentType)
+                const etNorm = entryAgentType.toLowerCase().replace(/^@/, "");
+                if (etNorm !== reqTypeNorm) continue; // skip non-matching agent types
+
+                // Found a matching entry — try hash check
+                const pending = queue[i];
+                if (actualHash === pending.promptHash) {
+                  // Hash match — consume the entry
+                  queue.splice(i, 1);
+                  fs.writeFileSync(
+                    PENDING_FILE,
+                    JSON.stringify(queue, null, 2),
+                    "utf8",
+                  );
+                  consumed = true;
+                  dispatchConsumed = true; // P0-FIX-BUG-13: signal Block 2 to skip MANDATORY-DISPATCH
+                  // P0-FIX-BUG-13-IDEM: Record successful dispatch for idempotency guard
+                  sessionLastDispatched.set(input.sessionID, {
+                    agentType: reqTypeNorm,
+                    ts: Date.now(),
+                  });
+                  // P0-FIX-BUG-17: Also register by callID for double-hook detection
+                  sessionLastDispatched.set(input.callID, {
+                    agentType: reqTypeNorm,
+                    ts: Date.now(),
+                  });
+                  // FW-DIAG-D4 (2026-06-10, @Super-Admin): Entry consumed log.
+                  // Confirms which entry was consumed with callID/sessionID/hash for
+                  // tracing whether double-hook caused duplicate consumption attempts.
+                  demoLog(
+                    "PEND-TRACE",
+                    `DIAG-CONSUMED | callID=${input.callID} | ` +
+                      `agentType=${reqTypeNorm} | ` +
+                      `dagTaskId=${pending.dagTaskId || "?"} | ` +
+                      `hash=${actualHash.substring(0, 12)} | ` +
+                      `remaining=${queue.length}`,
+                  );
+                  break;
+                }
+                // Hash mismatch on this entry — record and continue scanning
+                lastFailedHash = pending.promptHash;
+                lastFailedFile = pending.filePath;
+                // FW-DIAG-D5 (2026-06-10, @Super-Admin): Hash mismatch log.
+                // Captures expected vs actual hash, agentType, dagTaskId, and scan
+                // index when consumption fails — critical for diagnosing whether the
+                // Orchestrator passed a truncated prompt (producing wrong hash).
+                demoLog(
+                  "PEND-TRACE",
+                  `DIAG-HASH-MISMATCH | callID=${input.callID} | ` +
+                    `agentType=${etNorm} | ` +
+                    `dagTaskId=${pending.dagTaskId || "?"} | ` +
+                    `expected=${(pending.promptHash || "").substring(0, 12)} | ` +
+                    `actual=${actualHash.substring(0, 12)} | ` +
+                    `scanIndex=${i}`,
+                );
+              }
+
+              if (!consumed) {
+                if (lastFailedHash) {
+                  // Found matching agent type(s) but ALL failed hash check
+                  const msg =
+                    `[FW-ENFORCE][TASK-PROMPT-MISMATCH] Prompt hash mismatch! ` +
+                    `Expected ${lastFailedHash} but got ${actualHash}. ` +
+                    `Agent MUST pass the FULL prompt generated by dispatch_subagent. ` +
+                    `Read from: ${lastFailedFile}`;
+                  if (mode !== "advisory") throw new Error(msg);
+                  logAuditEntry({
+                    event: "task_prompt_mismatch_warning",
+                    agent,
+                    tool,
+                    expectedHash: lastFailedHash,
+                    actualHash,
+                    filePath: lastFailedFile,
+                    mode,
+                  });
+                } else {
+                  // P0-FIX-BUG-13-IDEM: Check if same session already dispatched same agent.
+                  // Prevents LLM duplicate Task() calls from MANDATORY-DISPATCH blocking.
+                  const sessionEntry = sessionLastDispatched.get(
+                    input.sessionID,
+                  );
+                  if (sessionEntry && sessionEntry.agentType === reqTypeNorm) {
+                    // This is a duplicate Task() call — the first one already succeeded.
+                    // Log the idempotency hit and allow through without blocking.
+                    logAuditEntry({
+                      event: "task_idempotency_duplicate_allowed",
+                      agent,
+                      tool,
+                      sessionID: input.sessionID,
+                      agentType: reqTypeNorm,
+                      originalDispatch: sessionEntry.ts,
+                    });
+                    // Update timestamp to prevent stale entries from clogging the map
+                    sessionLastDispatched.set(input.sessionID, {
+                      agentType: reqTypeNorm,
+                      ts: Date.now(),
+                    });
+                    sessionLastDispatched.set(input.callID, {
+                      agentType: reqTypeNorm,
+                      ts: Date.now(),
+                    });
+                  } else {
+                    // No matching entry found for this agent type at all
+                    logAuditEntry({
+                      event: "task_prompt_no_matching_entry",
+                      agent,
+                      tool,
+                      requestedSubagentType,
+                      queueLength: queue.length,
+                    });
+                  }
+                }
+              }
+            }
+          }
+        } catch (e: any) {
+        if (e.message?.includes("TASK-PROMPT-MISMATCH")) throw e;
+        // Queue read/write errors — log and continue
+      }
+    }
+  } // ── Gate armed check ──
+
+  // ═══════════════════════════════════════════════════════════════
+  // DEMO: FW-HARDEN-TASK-IDENTITY — Write _dispatch_target.json
+  // for ALL Task() dispatches from @Super-Admin & @Orchestrator.
+  //
+  // When a primary agent calls Task() to spawn a sub-agent, the
+  // sub-agent process starts with AGENT=1 (no identity info).
+  // By writing _dispatch_target.json BEFORE the Task() executes,
+  // the sub-agent's resolveAgent() can read it on startup.
+  //
+  // This fills the gap where direct Task() calls (without
+  // dispatch_subagent) leave sub-agents unidentified.
+  // ═══════════════════════════════════════════════════════════════
+  if (TASK_TOOLS.has(tool)) {
+    const targetAgent = (output.args?.subagent_type as string) || "";
+    const callingAgent = resolvedAgent || agent;
+    if (
+      targetAgent &&
+      (callingAgent === "@Super-Admin" ||
+        callingAgent === "Super-Admin" ||
+        callingAgent === "@Orchestrator" ||
+        callingAgent === "Orchestrator")
+    ) {
+      const identityFile = path.join(
+        process.env.OPENCODE_ROOT || ".",
+        ".task_temp",
+        "_dispatch_target.json",
+      );
+      try {
+        const idDir = path.dirname(identityFile);
+        if (!fs.existsSync(idDir)) fs.mkdirSync(idDir, { recursive: true });
+        fs.writeFileSync(
+          identityFile,
+          JSON.stringify({
+            agent: "@" + targetAgent.replace(/^@/, ""),
+            task_id: resolveTaskId() || null,
+            run_id: process.env.OPENCODE_RUN_ID || "",
+            timestamp: new Date().toISOString(),
+          }),
+          "utf8",
+        );
+        demoLog(
+          "INFO",
+          `TASK-IDENTITY: wrote _dispatch_target.json → @${targetAgent.replace(/^@/, "")} (caller: ${callingAgent})`,
+        );
+      } catch (e: any) {
+        demoLog(
+          "ERROR",
+          `TASK-IDENTITY: failed to write _dispatch_target.json: ${e.message}`,
+        );
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // FW-HARDEN-DISPATCH-SECURITY: Security gates for ALL Task() dispatches.
+  // Merged from dispatch_subagent.ts. Must run for EVERY Task() call,
+  // not just when dispatch_subagent is explicitly invoked.
+  // This ensures non-Orchestrator dispatch restriction, SA→KC pattern
+  // matching, and SA target repair validation are enforced universally.
+  // ═══════════════════════════════════════════════════════════════
+  if (TASK_TOOLS.has(tool)) {
+    const targetAgent = (output.args?.subagent_type as string) || "";
+    const taskDesc = (
+      (output.args?.description as string) ||
+      (output.args?.prompt as string) ||
+      ""
+    ).toLowerCase();
+    const callingAgent = resolvedAgent || agent;
+
+    // ── Gate 1: Dispatch authorization ──
+    const isOrchestrator =
+      callingAgent === "@Orchestrator" || callingAgent === "Orchestrator";
+    const isSuperAdmin =
+      callingAgent === "@Super-Admin" || callingAgent === "Super-Admin";
+    const isKC =
+      targetAgent === "Knowledge-Curator" ||
+      targetAgent === "@Knowledge-Curator";
+
+    if (!isOrchestrator) {
+      if (isSuperAdmin && isKC) {
+        // SA→KC: UC7KS knowledge pattern matching required
+        const kcPatterns = [
+          "knowledge",
+          "cache",
+          "docs",
+          "official",
+          "context7",
+          "uc7ks",
+          "fetch",
+          "curator",
+          "index",
+          "explore",
+          "source",
+          "repository",
+          "github",
+          "documentation",
+          "library",
+          "api reference",
+        ];
+        const matched = kcPatterns.filter((p) =>
+          taskDesc.includes(p.toLowerCase()),
+        );
+        if (matched.length === 0) {
+          const msg =
+            `[FW-ENFORCE][DISPATCH-GATE] Super-Admin→KC dispatch: task description ` +
+            `must match UC7KS knowledge patterns. Got: "${(args.task_description || taskDesc).slice(0, 80)}"`;
+          if (mode !== "advisory") throw new Error(msg);
+          logAuditEntry({
+            event: "dispatch_gate_kc_pattern_warning",
+            agent: resolvedAgent,
+            tool,
+          });
+        }
+      } else if (isSuperAdmin) {
+        const msg =
+          `[FW-ENFORCE][DISPATCH-GATE] Super-Admin dispatch restricted to @Knowledge-Curator. ` +
+          `Got: "${targetAgent}".`;
+        if (mode !== "advisory") throw new Error(msg);
+        logAuditEntry({
+          event: "dispatch_gate_sa_restricted_warning",
+          agent: resolvedAgent,
+          tool,
+        });
+      } else {
+        const msg =
+          `[FW-ENFORCE][DISPATCH-GATE] Non-Orchestrator agent "${callingAgent}" may not ` +
+          `dispatch sub-agents. Only @Orchestrator may dispatch general agents.`;
+        if (mode !== "advisory") throw new Error(msg);
+        logAuditEntry({
+          event: "dispatch_gate_non_orchestrator_warning",
+          agent: resolvedAgent,
+          tool,
+        });
+      }
+    }
+
+    // ── Gate 2: Super-Admin target repair pattern validation ──
+    const isSATarget =
+      targetAgent === "Super-Admin" || targetAgent === "@Super-Admin";
+    if (isSATarget) {
+      const repairPatterns = [
+        "repair",
+        "fix",
+        "restore",
+        "corrupt",
+        "broken",
+        "emergency",
+        "reset",
+        "drain",
+        "purge",
+        "reconcile",
+        "inconsistency",
+        "state",
+        "hook",
+        "plugin",
+        "integrity",
+        "machine.json",
+        "gate-state",
+        "compliance",
+        "validate",
+        "audit",
+        "test",
+        "baseline",
+      ];
+      const matched = repairPatterns.filter((p) =>
+        taskDesc.includes(p.toLowerCase()),
+      );
+
+      if (mode === "locked") {
+        const msg =
+          `[FW-ENFORCE][DISPATCH-GATE] Super-Admin dispatch DENIED in locked mode. ` +
+          `Super-Admin is human-only when enforcement mode is locked.`;
+        throw new Error(msg);
+      } else if (mode === "strict" && matched.length === 0) {
+        const msg =
+          `[FW-ENFORCE][DISPATCH-GATE] Super-Admin dispatch requires repair pattern match ` +
+          `in strict mode. Task: "${taskDesc.slice(0, 80)}"`;
+        throw new Error(msg);
+      }
+    }
+
+    // ── Gate 3: Audit log for all Task() dispatches ──
+    if (targetAgent) {
+      demoLog(
+        "INFO",
+        `DISPATCH-GATE: ${callingAgent} → ${targetAgent} (authorized: ${isOrchestrator || (isSuperAdmin && isKC)})`,
+      );
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // FW-HARDEN-MANDATORY-DISPATCH: All Task() must go through dispatch_subagent.
+  // The .pending.json queue proves dispatch_subagent was called.
+  // If queue doesn't exist or is empty → BLOCK (bypassed dispatch_subagent).
+  // Emergency override: FW_PROMPT_QUEUE_DRAIN=true
+  // P0-FIX-BUG-13: Skip MANDATORY-DISPATCH when Block 1 already consumed an entry
+  // (dispatchConsumed=true). Prevents intra-invocation self-contradiction.
+  // ═══════════════════════════════════════════════════════════════
+  if (
+    TASK_TOOLS.has(tool) &&
+    !dispatchConsumed &&
+    process.env.FW_PROMPT_QUEUE_DRAIN !== "true"
+  ) {
+    let queueExists = false;
+    let queueEmpty = true;
+    const pf = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      ".pending.json",
+    );
+    try {
+      if (fs.existsSync(pf)) {
+        queueExists = true;
+        const q = JSON.parse(fs.readFileSync(pf, "utf8"));
+        queueEmpty = !Array.isArray(q) || q.length === 0;
+      }
+    } catch {}
+    demoLog(
+      "INFO",
+      `MANDATORY-DISPATCH-DEBUG: pf=${pf} exists=${queueExists} empty=${queueEmpty} OPENCODE_ROOT=${process.env.OPENCODE_ROOT || "(empty)"} cwd=${process.cwd()}`,
+    );
+    if (!queueExists || queueEmpty) {
+      // P0-FIX-BUG-17 (BL-08, 2026-06-09, @Super-Admin): callID double-hook guard.
+      // OpenCode fires tool.execute.before TWICE per tool call (confirmed via callID
+      // evidence: same callID appears in two hook invocations). The first invocation
+      // successfully consumes the .pending.json entry. The second finds an empty queue
+      // and would throw MANDATORY-DISPATCH — killing a legitimately dispatched Task().
+      //
+      // This guard checks sessionLastDispatched by callID (not sessionID): if the same
+      // callID was already successfully processed (entry consumed via SA bypass or
+      // normal hash match), the second invocation is a double-hook no-op → allow through.
+      // sessionID-based check (P0-FIX-BUG-13-IDEM) handles LLM duplicate Task() calls
+      // separately — they have DIFFERENT callIDs.
+      const targetAgent = (output.args?.subagent_type as string) || "";
+      const targetNorm = targetAgent.toLowerCase().replace(/^@/, "");
+      const callIdEntry = sessionLastDispatched.get(input.callID);
+      if (callIdEntry && callIdEntry.agentType === targetNorm) {
+        demoLog(
+          "PEND-TRACE",
+          `BLOCK2-DOUBLE-HOOK | callID=${input.callID} | agent=${targetNorm} | ` +
+            `same callID already consumed — OpenCode double hook invocation → allowing through`,
+        );
+        // Don't throw — this is the second hook invocation, entry was already consumed
+      } else {
+        const msg =
+          `[FW-ENFORCE][MANDATORY-DISPATCH] All Task() dispatches must go through ` +
+          `dispatch_subagent. No pending dispatch entry found (.pending.json ${queueExists ? "is empty" : "does not exist"}). ` +
+          `Call dispatch_subagent(agent_type, task_description) first. ` +
+          `Emergency override: set FW_PROMPT_QUEUE_DRAIN=true.`;
+        throw new Error(msg);
+      }
+    } else {
+      // FW-DIAG-D6 (2026-06-10, @Super-Admin): Block 2 pass-through log.
+      // Queue is non-empty but dispatchConsumed is false — meaning Block 1 did NOT
+      // consume any entry (hash mismatch or no matching agentType). Task() proceeds
+      // successfully but .pending.json entries remain as ghosts.
+      // This is the diagnostic for Question 1: "subagent ran but entry stayed stale."
+      const d6Agent = ((output.args?.subagent_type as string) || "").toLowerCase().replace(/^@/, "");
+      demoLog(
+        "PEND-TRACE",
+        `DIAG-BLOCK2-PASS | callID=${input.callID} | ` +
+          `agent=${d6Agent || "?"} | ` +
+          `dispatchConsumed=${dispatchConsumed} | ` +
+          `queueStatus=non-empty | ` +
+          `reason=entry-not-consumed`,
+      );
+    }
+  } else if (TASK_TOOLS.has(tool) && dispatchConsumed) {
+    // PEND-LOG: Block 2 was SKIPPED because dispatchConsumed=true — first Task() succeeded
+    demoLog(
+      "PEND-TRACE",
+      `BLOCK2-SKIP | callID=${input.callID} | tool=${tool} | dispatchConsumed=true | Block 2 bypassed — entry was consumed by Block 1`,
+    );
+  }
+
+  const EXEC_TOOLS = ["write", "edit", "bash"];
+  const BOOT_TOOLS = [
+    "compliance_gate_check",
+    "compliance_gate_confirm",
+    "compliance_gate_complete",
+  ];
+  if (
+    EXEC_TOOLS.includes(tool) &&
+    !isToolAllowed(BOOT_TOOLS, tool) &&
+    mode !== "advisory"
+  ) {
+    const armed = findArmedSession();
+    if (!armed.found)
+      violations.push(
+        `[FW-ENFORCE] No armed compliance gate session (mode: ${mode}).`,
+      );
+  }
+
+  // ── Enforcement mode guard ──
+  if ((mode === "locked" || mode === "strict") && tool === "write") {
+    const fp = (output.args?.filePath as string) || "";
+    if (fp.includes(".opencode/project.config.json")) {
+      try {
+        const nc = JSON.parse((output.args?.content as string) || "{}");
+        const nm =
+          nc?.template_resolution?.develop_enforcement_mode ||
+          nc?.template_resolution?.runtime_enforcement_mode;
+        if (nm && nm !== mode)
+          violations.push(
+            `[FW-ENFORCE] Blocked enforcement mode change to "${nm}".`,
+          );
+      } catch {}
+    }
+  }
+
+  // ── UC7-008: @Knowledge-Curator scope isolation ──
+  if (
+    isModifyTool(tool) &&
+    (agent === "@Knowledge-Curator" || agent === "Knowledge-Curator")
+  ) {
+    const fp = getModifyPath(output.args as Record<string, unknown>);
+    if (
+      fp &&
+      !fp.includes("docs/official_docs/") &&
+      !fp.includes(".metadata/")
+    ) {
+      const m = `[FW-ENFORCE][UC7-008] @KC scope violation: "${fp}". KC may only write to docs/official_docs/ and .metadata/.`;
+      if (mode !== "advisory") throw new Error(m);
+      logAuditEntry({
+        event: "uc7ks_uc7_008_violation",
+        tool,
+        agent,
+        detail: fp,
+      });
+    }
+  }
+
+  // ── UC7-005: Knowledge cache file size cap (500KB) ──
+  if (isModifyTool(tool)) {
+    const fp = getModifyPath(output.args as Record<string, unknown>);
+    if (fp.includes("docs/official_docs/")) {
+      const content = (output.args?.content ||
+        output.args?.newString ||
+        "") as string;
+      const size = Buffer.byteLength(content, "utf8");
+      if (size > 524288) {
+        const m = `[FW-ENFORCE][UC7-005] Size cap exceeded: ${fp} is ${(size / 1024).toFixed(1)}KB (max 500KB).`;
+        if (mode !== "advisory") throw new Error(m);
+        logAuditEntry({
+          event: "uc7ks_uc7_005_violation",
+          tool,
+          agent,
+          detail: `${fp}: ${size} bytes`,
+        });
+      }
+    }
+  }
+
+  // ── TDD enforcement ──
+  /**
+   * FW-HARDEN-SAFE-EDIT-01: Include safe_edit in TDD enforcement.
+   * Previously safe_edit bypassed the TDD check because only "write" and "edit"
+   * were checked. This allowed Coder-BE/Coder-FE to write source files via
+   * safe_edit without triggering TDD validation. Now all write paths are covered.
+   * @see Issue: safe_edit bypasses TDD enforcement (T-VERIFY-BE-AUDIT finding)
+   */
+  if (
+    (tool === "write" || tool === "edit" || tool === "safe_edit") &&
+    (agent === "@Coder-BE" || agent === "@Coder-FE")
+  ) {
+    const fp = (output.args?.filePath as string) || "";
+    if (
+      fp &&
+      isSourceFile(fp) &&
+      !fp.includes("test/") &&
+      !fp.includes(".spec.") &&
+      !fp.includes(".test.")
+    ) {
+      const m = `[FW-ENFORCE] TDD violation: writing to "${fp}" without prior test changes`;
+      if (mode === "advisory")
+        logAuditEntry({ event: "tdd_violation_advisory", message: m });
+      else violations.push(m);
+    }
+  }
+
+  // ── UC7KS Knowledge Pipeline enforcement (BEFORE Super-Admin bypass) ──
+  // UC7-009: ALL agents including Super-Admin must follow UC7KS pipeline.
+  // Only @Knowledge-Curator is exempt (designated doc fetcher).
+  // This must run BEFORE FW-DAG-BYPASS-01 so Super-Admin is still subject to
+  // knowledge pipeline enforcement even while bypassing DAG gate.
+  const uc7ksBlock = checkUC7KS(tool, resolvedAgent, mode);
+  if (uc7ksBlock) {
+    if (mode !== "advisory") throw new Error(uc7ksBlock);
+    logAuditEntry({ event: "uc7ks_violation_advisory", agent, tool, mode });
+  }
+
+  // FW-DAG-BYPASS-01: Super-Admin bypass for emergency operations
+  // Note: UC7KS check above still applies to Super-Admin (UC7-009 compliance)
+  // DISPATCH-GATE violations are checked BEFORE the bypass (v4.2.0 fix)
+  if (resolvedAgent === "@Super-Admin" || resolvedAgent === "Super-Admin") {
+    return; // Skip DAG gate + ROUTE-MISMATCH + write scope for emergency repairs
+  }
+
+  // ── DAG coverage check ──
+  // DAG-creator bypass: @Meta-Planner creates DAG tasks, @Orchestrator manages
+  // them. Chicken-and-egg deadlock: these agents must operate without existing
+  // DAG coverage. Consistent with pre-execution-gate.ts L270-277.
+  //
+  // FW-FIX-DAG-SCOPE-01 (2026-06-08): DAG check now scoped to isModifyTool()
+  // only (write/edit/safe_edit/safe_mkdir/safe_delete/safe_shell). Read-only
+  // and meta tools (read, grep, todowrite, compliance_gate_*) are exempt.
+  // Previously ALL tools were checked, causing deadlock when _dispatch_target.json
+  // contained a non-DAG session ID — even read operations were blocked, making
+  // it impossible to diagnose or repair the issue.
+  const taskId = resolveTaskId();
+  const isDagCreator =
+    resolvedAgent === "@Orchestrator" ||
+    resolvedAgent === "Orchestrator" ||
+    resolvedAgent === "@Meta-Planner" ||
+    resolvedAgent === "Meta-Planner";
+  if (taskId && !isDagCreator && isModifyTool(tool)) {
+    const tc = findTaskInDag(taskId);
+    if (!tc.found)
+      violations.push(
+        `[FW-ENFORCE] Task "${taskId}" not found in Task.DAG.json`,
+      );
+    else if (tc.status !== "pending" && tc.status !== "in_progress")
+      violations.push(`[FW-ENFORCE] Task "${taskId}" status "${tc.status}"`);
+  }
+
+  /**
+   * FW-ROUTE-FIX-04: ROUTE-MISMATCH enforcement — physically block cross-scope
+   * write attempts at the framework-enforcer level.
+   *
+   * - @Architect touching .opencode/ → BLOCKED, must route to @Super-Admin
+   * - @Super-Admin touching business code → BLOCKED
+   * - @Orchestrator touching .opencode/ → BLOCKED, must route to @Super-Admin
+   *
+   * This check runs BEFORE the general write scope check (agent_write_scopes)
+   * to provide clear, specific routing error messages.
+   */
+
+  if (
+    isModifyTool(tool) &&
+    (resolvedAgent === "@Architect" ||
+      resolvedAgent === "Architect" ||
+      resolvedAgent === "@Orchestrator" ||
+      resolvedAgent === "Orchestrator")
+  ) {
+    const fp = getModifyPath(output.args as Record<string, unknown>);
+    if (
+      fp.includes(".opencode/") ||
+      fp === "opencode.json" ||
+      fp.includes("AGENTS.md")
+    ) {
+      const routeTarget = "@Super-Admin";
+      const msg =
+        `[FW-ENFORCE][ROUTE-MISMATCH] ${agent} has no authority to modify framework files (${fp}). ` +
+        `Framework infrastructure is administered by ${routeTarget}. ` +
+        `Auto-route this task to ${routeTarget}.`;
+      if (mode !== "advisory") throw new Error(msg);
+      logAuditEntry({
+        event: "route_mismatch_warning",
+        agent,
+        tool,
+        filePath: fp,
+        routeTarget,
+        mode,
+      });
+    }
+  }
+
+  if (
+    isModifyTool(tool) &&
+    (resolvedAgent === "@Super-Admin" || resolvedAgent === "Super-Admin")
+  ) {
+    const fp = getModifyPath(output.args as Record<string, unknown>);
+    const businessPaths = [
+      "booking_system_refactor/booking-backend/src/",
+      "booking_system_refactor/booking-frontend/src/",
+      "booking_system_refactor/booking-backend/prisma/schema.prisma",
+    ];
+    for (const bp of businessPaths) {
+      if (fp.includes(bp)) {
+        const msg =
+          `[FW-ENFORCE][ROUTE-MISMATCH] Super-Admin has no authority to modify business code (${fp}). ` +
+          `Business code modifications must be handled by @Coder-BE or @Coder-FE.`;
+        if (mode !== "advisory") throw new Error(msg);
+        logAuditEntry({
+          event: "route_mismatch_warning",
+          agent,
+          tool,
+          filePath: fp,
+          mode,
+        });
+      }
+    }
+  }
+  // ── UC7-001 HARDEN + Write Scope ──
+  const applyScope =
+    isModifyTool(tool) && tool !== "safe_shell"
+      ? true
+      : isModifyShell(output.args as Record<string, unknown>);
+
+  // P0-FIX-UC7KS-HARDEN-18: UC7KS Pipeline Gate
+  if (isModifyTool(tool) && applyScope && mode !== "advisory") {
+    const isSA =
+      resolvedAgent === "@Super-Admin" || resolvedAgent === "Super-Admin";
+    const cacheHealthy = isLocalCacheAvailable();
+    if (!(isSA && !cacheHealthy)) {
+      const sa = readCachedSessionAccess(
+        (resolvedAgent || agent).replace(/^@/, ""),
+      );
+      if (!sa?.declared_scope) {
+        violations.push(
+          `[FW-ENFORCE][UC7-001] Module scope not declared. ` +
+            `Call module_scope_declare(module, task_id). See Step 0a.`,
+        );
+      }
+      if (!sa?.uc7_001_compliant) {
+        violations.push(
+          `[FW-ENFORCE][UC7-001] Knowledge cache not searched. ` +
+            `Call knowledge_cache_search(domain, task_id). See Step 0b.`,
+        );
+      }
+    }
+  }
+
+  // Write scope check (reuses applyScope from above)
+  if (isModifyTool(tool) && applyScope) {
+    const fp = getModifyPath(output.args as Record<string, unknown>);
+    if (!agent || agent === "1" || agent === "human") {
+      // Unknown agent — BLOCK writes in strict/locked mode.
+      if (fp && (mode === "strict" || mode === "locked")) {
+        violations.push(
+          `[FW-ENFORCE] Agent identity unresolved — write to "${fp}" BLOCKED. ` +
+            `Agent="" (resolveAgent returned no identity). This indicates a dispatch ` +
+            `mechanism failure — the _dispatch_target.json was not found. ` +
+            `Use human dispatch (@Super-Admin) to repair or set FW_PROMPT_QUEUE_DRAIN=true.`,
+        );
+      }
+    } else if (
+      fp &&
+      !isWriteAllowed(agent, fp) &&
+      (mode === "strict" || mode === "locked")
+    ) {
+      violations.push(
+        `[FW-ENFORCE] Agent "${agent}" write to "${fp}" blocked by agent_write_scopes.`,
+      );
+    }
+  }
+  if (violations.length > 0) {
+    if (mode === "advisory") {
+      logAuditEntry({
+        event: "violations_advisory",
+        violations: violations.join("; "),
+      });
+      return;
+    }
+    throw new Error(
+      `Framework enforcement blocked "${tool}": ${violations.join("; ")}`,
+    );
+  }
+}
+
+/**
+ * FW-RESTORE-WRITE-AUDIT-06: Restore _executeWriteAuditCheck() from archived backup.
+ *
+ * Originally from _tool-execute.full.bak (L791-859), this function performs
+ * post-write audit checks:
+ *  1. Tracks files_written per session in write_audit_state
+ *  2. Validates agent write scope (isWriteAllowed) — blocks in strict/locked
+ *  3. Flags dirty modules in eslint_state for subsequent audit
+ *  4. Updates type_check_state, format_state, dependency_state
+ *  5. Optionally runs code-quality-lib.js for immediate quality checks
+ *
+ * This was previously removed during the framework-enforcer refactoring but
+ * is needed for complete write-audit coverage of all write paths.
+ */
+function _executeWriteAuditCheck(
+  files: string[],
+  agent: string,
+  taskId: string,
+): void {
+  const mode = getEnforcementMode();
+  const machinePath = STATE_PATHS.machine();
+  try {
+    const machine = readJsonFile<any>(machinePath);
+    if (!machine) return;
+
+    machine.write_audit_state = machine.write_audit_state || {
+      enabled: true,
+      current_session: null,
+      history: [],
+    };
+    machine.eslint_state = machine.eslint_state || {
+      aggregate: { dirty_modules: [], total_violations: 0, waived_modules: [] },
+    };
+    machine.type_check_state = machine.type_check_state || {
+      status: "clean",
+      dirty_files: [],
+      incremental_errors: 0,
+    };
+    machine.dependency_state = machine.dependency_state || {
+      status: "clean",
+      violations: [],
+    };
+    machine.format_state = machine.format_state || {
+      status: "clean",
+      unformatted_files: [],
+    };
+
+    const writeAudit = machine.write_audit_state;
+    writeAudit.current_session = writeAudit.current_session || {
+      agent,
+      task_id: taskId || "unknown",
+      files_written: [],
+      checks_run: 0,
+      checks_passed: 0,
+      checks_failed: 0,
+      violations_found: 0,
+      violations_resolved: 0,
+      scope_violations_attempted: 0,
+    };
+    const session = writeAudit.current_session;
+
+    for (const file of files) {
+      if (!/\.(ts|tsx|js|jsx|html|scss|prisma)$/.test(file)) continue;
+      if (/\.task_temp\//.test(file)) continue;
+      session.files_written.push(file);
+      session.checks_run++;
+
+      const scopeAllowed = isWriteAllowed(agent, file);
+      if (!scopeAllowed) {
+        session.scope_violations_attempted++;
+        session.checks_failed++;
+        session.violations_found++;
+        const msg = `[FW-ENFORCE] Write-Audit: Agent "${agent}" scope violation writing to "${file}"`;
+        if (mode === "strict" || mode === "locked") {
+          logAuditEntry({
+            event: "write_audit_scope_blocked",
+            agent,
+            file,
+            mode,
+          });
+          throw new Error(`${msg} (mode: ${mode}). Revert the change.`);
+        }
+        logAuditEntry({
+          event: "write_audit_scope_warning",
+          agent,
+          file,
+          mode,
+        });
+      } else {
+        session.checks_passed++;
+      }
+
+      const moduleMatch = file.match(/modules\/([^/]+)/);
+      const moduleName = moduleMatch
+        ? moduleMatch[1]
+        : file.replace(/\//g, "_");
+      if (!machine.eslint_state.modules) machine.eslint_state.modules = {};
+      if (!machine.eslint_state.modules[moduleName])
+        machine.eslint_state.modules[moduleName] = {
+          status: "dirty",
+          violations: [],
+          last_check: new Date().toISOString(),
+          waivers_applied: [],
+        };
+      if (!machine.eslint_state.aggregate.dirty_modules.includes(moduleName))
+        machine.eslint_state.aggregate.dirty_modules.push(moduleName);
+      machine.type_check_state.status = "dirty";
+      if (!machine.type_check_state.dirty_files.includes(file))
+        machine.type_check_state.dirty_files.push(file);
+      if (!machine.format_state.unformatted_files.includes(file)) {
+        machine.format_state.unformatted_files.push(file);
+        machine.format_state.status = "dirty";
+      }
+      if (
+        !machine.dependency_state.violations.some((v: any) => v.file === file)
+      )
+        machine.dependency_state.violations.push({
+          file,
+          message: "pending depcruiser check",
+          severity: "info",
+        });
+    }
+
+    fs.writeFileSync(machinePath, JSON.stringify(machine, null, 2));
+
+    // Attempt full quality checks via code-quality-lib
+    try {
+      const _require = createRequire(import.meta.url);
+      const cql = _require("../../scripts/mcp-tools/code-quality-lib.js");
+      const projectRoot = path.resolve(
+        getOpenCodeRoot(),
+        readJsonFile<any>(STATE_PATHS.projectConfig())?.project_root || ".",
+      );
+      const results = cql.runAllChecks(
+        files[files.length - 1],
+        projectRoot,
+        agent,
+        taskId,
+        { auto_fix: mode !== "locked", skip_checks: [] },
+      );
+      const updatedMachine = readJsonFile<any>(machinePath);
+      if (updatedMachine) {
+        updatedMachine.write_audit_state.current_session = session;
+        if (results.checks.eslint?.pass) {
+          const m = updatedMachine.eslint_state;
+          if (m?.aggregate?.dirty_modules) {
+            m.aggregate.dirty_modules = m.aggregate.dirty_modules.filter(
+              (d: string) => d !== moduleName,
+            );
+          }
+        }
+        fs.writeFileSync(machinePath, JSON.stringify(updatedMachine, null, 2));
+      }
+    } catch {
+      /* code-quality-lib not available */
+    }
+  } catch (err: any) {
+    if (err.message?.includes("scope violation")) throw err;
+    try {
+      logAuditEntry({
+        event: "write_audit_error",
+        error: err.message?.slice(0, 200),
+      });
+    } catch {
+      /* silent */
+    }
+  }
+}
+
+export async function toolExecuteAfter(
+  input: { tool: string; sessionID: string; callID: string; args: any },
+  output: { title: string; output: string; metadata: any; args: any },
+): Promise<void> {
+  const tool = input.tool;
+  const agent = resolveAgent();
+  const filePath = (input.args?.filePath as string) || "";
+
+  // ═══════════════════════════════════════════════════════════════
+  // DEMO: Clean up _dispatch_target.json after Task() completes.
+  // At this point the sub-agent has already finished, so deleting
+  // the file does not affect its agent resolution. This prevents
+  // stale dispatch targets from persisting between dispatches or
+  // leaking across sessions.
+  // ═══════════════════════════════════════════════════════════════
+  if (input.tool === "task" || input.tool === "Task") {
+    try {
+      const dtPath = path.join(
+        process.env.OPENCODE_ROOT || ".",
+        ".task_temp",
+        "_dispatch_target.json",
+      );
+      if (fs.existsSync(dtPath)) fs.unlinkSync(dtPath);
+    } catch {}
+  }
+
+  // (a) Audit
+  /**
+   * FW-HARDEN-SAFE-EDIT-04: Classify safe_edit as "modify" in audit log.
+   * Previously safe_edit was logged as "execute" while write/edit were "modify".
+   * This caused audit log inconsistency — safe_edit writes appeared as non-modifying.
+   *
+   * FW-HARDEN-SAFE-SHELL-05: Classify safe_shell file-modifying commands as "modify".
+   * safe_shell can be used for file manipulation (cp, mv, rm) which modifies the
+   * filesystem. These must be classified as "modify" to ensure audit log integrity
+   * and write-audit tracking. Only commands starting with cp, mv, or rm are
+   * FW-ENFORCE-TOOLS-01: safe_mkdir and safe_delete also classified as "modify".
+   */
+  const isModTool =
+    tool === "write" ||
+    tool === "edit" ||
+    tool === "safe_edit" ||
+    tool === "safe_mkdir" ||
+    tool === "safe_delete";
+  const isModShell =
+    tool === "safe_shell" &&
+    /^(cp|mv|rm)\b/.test((input.args?.command as string) || "");
+  writeAuditLogEntry({
+    timestamp: new Date().toISOString(),
+    tool,
+    agent,
+    sessionID: input.sessionID,
+    callID: input.callID,
+    filePath,
+    action: isModTool || isModShell ? "modify" : "execute",
+    result: "success",
+  });
+
+  // (b) Stale session detection
+  try {
+    const gate = readJsonFile<any>(STATE_PATHS.gateState());
+    if (gate?.sessions) {
+      for (const [sid, s] of Object.entries(gate.sessions) as any) {
+        if (
+          s?.confirmed_at &&
+          !s?.consumed_at &&
+          (Date.now() - new Date(s.confirmed_at).getTime()) / 3600000 > 24
+        ) {
+          logAuditEntry({
+            event: "stale_session_detected",
+            session_id: sid,
+            confirmed_at: s.confirmed_at,
+            hours_stale: (
+              (Date.now() - new Date(s.confirmed_at).getTime()) /
+              3600000
+            ).toFixed(1),
+          });
+        }
+      }
+    }
+  } catch {}
+
+  // (c) State reconciliation on write
+  /**
+   * FW-HARDEN-SAFE-EDIT-03: Include safe_edit in state reconciliation.
+   * Previously only "write" and "edit" triggered the dirty_modules flagging in
+   * machine.json.eslint_state. safe_edit writes to source files were invisible
+   * to the state reconciliation mechanism, leaving dirty state undetected.
+   * Now safe_edit writes correctly mark eslint_state as needing audit.
+   * FW-ENFORCE-TOOLS-01: safe_mkdir, safe_delete, and cp/mv/rm safe_shell also
+   * mark state dirty. Directory creation and file deletion are file modifications.
+   */
+  if (
+    isModifyTool(tool) &&
+    isSourceFile(filePath) &&
+    getEnforcementMode() !== "advisory"
+  ) {
+    try {
+      const mp = STATE_PATHS.machine();
+      const m = readJsonFile<any>(mp);
+      if (m) {
+        m.eslint_state = m.eslint_state || { aggregate: { dirty_modules: [] } };
+        m.eslint_state.aggregate.dirty_modules =
+          m.eslint_state.aggregate.dirty_modules || [];
+        fs.writeFileSync(mp, JSON.stringify(m, null, 2));
+      }
+    } catch {}
+
+    /**
+     * FW-RESTORE-WRITE-AUDIT-06: Invoke _executeWriteAuditCheck for write operations.
+     * Runs the full write-audit pipeline: scope validation, dirty module flagging,
+     * type_check_state/dependency_state/format_state updates, and optional
+     * code-quality-lib.js integration.
+     *
+     * FW-FIX-TASKID-01 (2026-06-08, @Super-Admin): Fixed ReferenceError — taskId
+     * was a local const in toolExecuteBefore (L268) and not accessible in
+     * toolExecuteAfter. Replaced with process.env.FRAMEWORK_TASK_ID which is set
+     * by dispatch-subagent.ts (L98) and available throughout the subagent process
+     * lifecycle, including plugin hooks.
+     *
+     * FW-FIX-SCOPE-PROPAGATE-01 (2026-06-08, @Super-Admin): The outer catch
+     * previously swallowed scope violations thrown by _executeWriteAuditCheck.
+     * Scope violations detected in strict/locked mode must propagate to the
+     * agent — the violation is already logged internally (L379), but the agent
+     * must also be notified so it can take corrective action. Non-scope errors
+     * (e.g., machine.json I/O failures) remain silently caught as best-effort.
+     */
+    // P0-FIX-QUAD-05: Gate _executeWriteAuditCheck on actual modify operations only.
+    // Previously safe_shell (even read-only commands like echo/cat) would trigger
+    // dirty module flagging because isModifyTool includes safe_shell. Now we only
+    // run the write-audit pipeline for tools that definitively modify filesystem content.
+    const didModify =
+      tool === "write" ||
+      tool === "edit" ||
+      tool === "safe_edit" ||
+      tool === "safe_mkdir" ||
+      tool === "safe_delete" ||
+      (tool === "safe_shell" &&
+        /^(cp|mv|rm)\b/.test((input.args?.command as string) || ""));
+    if (didModify) {
+      try {
+        _executeWriteAuditCheck([filePath], agent, resolveTaskId());
+      } catch (err: any) {
+        if (err.message?.includes("scope violation")) throw err;
+        // Non-scope write audit errors: best-effort, logged internally by _executeWriteAuditCheck
+      }
+    }
+  }
+
+  // (d) knowledge_state sync
+  if (
+    (tool === "write" || tool === "edit" || tool === "safe_edit") &&
+    filePath &&
+    filePath.includes("docs/official_docs/")
+  ) {
+    try {
+      const idx = path.join(
+        process.env.OPENCODE_ROOT || ".",
+        "docs",
+        "official_docs",
+        "index.json",
+      );
+      if (fs.existsSync(idx)) {
+        const m = JSON.parse(fs.readFileSync(idx, "utf8"));
+        const mp = STATE_PATHS.machine();
+        if (fs.existsSync(mp)) {
+          const mm = JSON.parse(fs.readFileSync(mp, "utf8"));
+          const n = (m.entries || []).length;
+          let s = 0;
+          for (const e of m.entries || [])
+            for (const f of e.files || []) s += f.size_bytes || 0;
+          const now = new Date().toISOString();
+          mm.knowledge_state = mm.knowledge_state || {};
+          mm.knowledge_state.total_docs_count = n;
+          mm.knowledge_state.total_size_bytes = s;
+          mm.knowledge_state.last_reconciliation = now;
+          mm.knowledge_cache_state = mm.knowledge_cache_state || {};
+          mm.knowledge_cache_state.total_entries = n;
+          mm.knowledge_cache_state.last_index_check = now;
+          fs.writeFileSync(mp, JSON.stringify(mm, null, 2));
+        }
+      }
+    } catch {}
+  }
+  /**
+   * FW-PROMPT-HARDEN-02b: Record failed Task() calls where prompt was consumed.
+   * When a Task() call fails, the pending entry may have already been consumed
+   * from .pending.json. This hook writes the consumed entry to .pending.json.failed
+   * for audit and recovery purposes.
+   *
+   * Also handles the case where a pending.json entry was consumed but Task()
+   * threw an error — records the failure context for post-mortem analysis.
+   */
+  if (tool === "Task" || tool === "task") {
+    const FAILED_FILE = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      ".pending.json.failed",
+    );
+    const failed = (input.output as string) || "";
+    const isError =
+      failed.includes("Error") ||
+      failed.includes("BLOCKED") ||
+      (input.args?.error as boolean) ||
+      false;
+    if (isError) {
+      try {
+        const entries: any[] = fs.existsSync(FAILED_FILE)
+          ? JSON.parse(fs.readFileSync(FAILED_FILE, "utf8"))
+          : [];
+        entries.push({
+          agent,
+          taskId: resolveTaskId(),
+          timestamp: new Date().toISOString(),
+          error: failed.slice(0, 500),
+        });
+        fs.mkdirSync(path.dirname(FAILED_FILE), { recursive: true });
+        fs.writeFileSync(FAILED_FILE, JSON.stringify(entries, null, 2), "utf8");
+      } catch {
+        /* best effort */
+      }
+    }
+
+    // (e) UC7-003: Post-write doc verification (merged from uc7ks-enforcer)
+    if (
+      (tool === "write" || tool === "edit" || tool === "safe_edit") &&
+      filePath &&
+      filePath.includes("docs/official_docs/")
+    ) {
+      try {
+        const absPath = path.resolve(
+          process.env.OPENCODE_ROOT || ".",
+          filePath,
+        );
+        if (fs.existsSync(absPath)) {
+          const stat = fs.statSync(absPath);
+          console.log(
+            `[UC7KS][UC7-003] Doc saved: ${filePath} (${(stat.size / 1024).toFixed(1)}KB). Verify index.json was updated.`,
+          );
+        } else {
+          console.warn(
+            `[UC7KS][UC7-003] WARNING: Doc file not found after write: ${filePath}`,
+          );
+        }
+      } catch {
+        /* best effort */
+      }
+    }
+  }
+}
+
+// FW-EXPORT-DEFAULT: Export default for plugin entry point (2026-06-10 @Super-Admin)
+// OpenCode's plugin loader requires exported hooks to be defined in the SAME module
+// as the export default. Imported function references cause silent load failure.
+export default (async (_ctx: any) => {
+  return {
+    "chat.message": chatMessageHook,
+    "tool.execute.before": toolExecuteBefore,
+    "tool.execute.after": toolExecuteAfter,
+  };
+}) as any;

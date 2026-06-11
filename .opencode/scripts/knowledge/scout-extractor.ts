@@ -11,8 +11,8 @@
  *  4. Return the file path for @Knowledge-Curator to register in index.json
  *
  * Usage:
- *   node .opencode/scripts/knowledge/scout-extractor.js <domain> <library> <topic> <scout_output_text>
- *   OR pipe Scout output via stdin: echo "..." | node .opencode/scripts/knowledge/scout-extractor.js backend nestjs "guard-execution-order"
+ *   bun .opencode/scripts/knowledge/scout-extractor.ts <domain> <library> <topic> <scout_output_text>
+ *   OR pipe Scout output via stdin: echo "..." | bun .opencode/scripts/knowledge/scout-extractor.ts backend nestjs "guard-execution-order"
  */
 
 const fs = require("fs");

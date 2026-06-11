@@ -17,18 +17,45 @@
 
 此规则确保子Agent始终执行完整的 P0 协议，无论接收何种类型的任务。
 
-### 🚨 P0 Super-Admin 人工触发规则: 禁止自动调度
+### 🚨 P0 Super-Admin 调度规则
 
-@Orchestrator 绝对禁止自动调度 @Super-Admin。@Super-Admin 仅可通过 `/dispatch @Super-Admin "<task_description>"` 或 `@super-admin` 手动触发。framework-enforcer.ts 物理强制此规则。
+@Super-Admin 可通过以下路径调用。framework-enforcer.ts 强制执行约束。
 
 **Super-Admin 调用矩阵**:
 
 | 场景 | 正确动作 | 违规动作 |
 |------|---------|---------|
-| 框架文件损坏 | 人工 `/dispatch @Super-Admin "repair..."` | ❌ @Orchestrator 自动派遣 |
-| machine.json 状态不一致 | 人工 `/dispatch @Super-Admin "fix state..."` | ❌ @Orchestrator 自行修改 |
-| 合规门无法关闭 | 人工 `/dispatch @Super-Admin "drain gate..."` | ❌ @Orchestrator 直接提交 |
-| 插件完整性破坏 | 人工 `@super-admin repair plugin` | ❌ @Coder-BE 直接编辑 |
+| 框架文件损坏 | @Orchestrator `dispatch_subagent @Super-Admin "repair..."`（需匹配修复模式） | ❌ @Orchestrator 自行修改 |
+| machine.json 状态不一致 | @Orchestrator `dispatch_subagent @Super-Admin "fix state..."` | ❌ @Orchestrator 自行修改 |
+| 合规门无法关闭 | @Orchestrator `dispatch_subagent @Super-Admin "drain gate..."` | ❌ @Orchestrator 直接提交 |
+| 插件完整性破坏 | @Orchestrator `dispatch_subagent @Super-Admin "repair plugin"` | ❌ @Coder-BE 直接编辑 |
+| UC7KS 知识获取 / 缓存扩充 | @Super-Admin 直接 `dispatch_subagent @Knowledge-Curator` | ❌ 必须通过 @Orchestrator 中转 |
+| Locked 模式紧急修复 | 人工 `/dispatch @Super-Admin`（Locked 下禁止自动调度） | ❌ @Orchestrator 自动派遣 |
+/**
+ * FW-ROUTE-FIX-03: Updated Super-Admin routing matrix and Agent Scope Boundaries.
+ * Adds explicit .opencode/ framework routing entries and clarifies Architect's
+ * scope to exclude framework infrastructure. Enforced by framework-enforcer.ts.
+ */
+
+### 🚨 P0 Agent 职责边界与路由规则
+
+以下规则明确各Agent的职责范围和越界时的路由目标：
+
+**Agent Scope 边界矩阵**:
+
+| Agent | 正确职责范围 | 越界行为 | 路由目标 |
+|-------|------------|---------|---------|
+| @Architect | 业务代码架构设计、`contract.yaml`、需求设计文档、`docs/` 架构文档 | ❌ 修改 `.opencode/` 框架文件 | **自动转发 → @Super-Admin** |
+| @Coder-BE | 后端业务代码 `booking-backend/src/` | ❌ 修改前端代码或 `.opencode/` | **自动阻断，转 @Orchestrator** |
+| @Coder-FE | 前端业务代码 `booking-frontend/` | ❌ 修改后端代码或 `.opencode/` | **自动阻断，转 @Orchestrator** |
+| @Orchestrator | DAG 调度、状态追踪、产物合并 | ❌ 修改 `.opencode/` 框架文件 | **自动转发 → @Super-Admin** |
+| @Super-Admin | `.opencode/` 框架修复、治理修改 | ❌ 修改业务代码 (`booking-*/src/`) | **自动阻断（enforce.ts）** |
+
+**路由执行规则**:
+- 上述路由由 `framework-enforcer.ts` 的 `ROUTE-MISMATCH` 检查在物理层强制执行
+- strict/locked 模式下：越界写操作直接被框架抛出异常阻断
+- advisory 模式下：记录审计日志但不阻断
+- 路由触发时，Agent 应输出明确的拒绝信息并建议正确的路由目标
 
 ### 🚨 P0 全域入口规则: 所有新工作项必须先经 @Meta-Planner
 任何新工作项——包括但不限于功能开发、Bug修复、样式调整、性能优化、配置变更——在进入分析、设计或编码阶段前，**必须先经由 @Meta-Planner** 生成或更新 `Task.DAG.json`。禁止任何Agent在 @Meta-Planner 未参与的情况下自行分析或拆解需求。

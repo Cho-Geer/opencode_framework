@@ -202,6 +202,137 @@ export function backupPath(
 }
 
 // ════════════════════════════════════════════════════════════
+// PUBLIC: cleanupStaleBackups — SA-IMPL-BACKUP-LIFECYCLE
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Clean up stale backup files from .opencode_backups/ directories.
+ *
+ * POLICY (configurable via project.config.json):
+ *   - TTL: Delete backups older than ttlMs (default: 7 days)
+ *   - CAP:  Keep at most maxPerDir backups per directory (default: 20)
+ *
+ * CONCURRENCY SAFETY:
+ *   - 7-day TTL isolates cleanup from active TOCTOU rollback (ms window)
+ *   - rmSync wrapped in ENOENT try/catch for double-cleanup safety
+ *   - Distributed .opencode_backups/ directories provide natural sharding
+ *
+ * @param rootDir   - Start directory for scan
+ * @param ttlMs     - Delete files with mtime < now - ttlMs
+ * @param maxPerDir - Keep at most this many files per directory
+ * @param fullScan  - If true, recursively walk all subdirectories
+ * @returns { scanned: number, deleted: number, dirs: number }
+ */
+export function cleanupStaleBackups(
+  rootDir: string,
+  ttlMs: number,
+  maxPerDir: number,
+  fullScan: boolean = false,
+): { scanned: number; deleted: number; dirs: number } {
+  const cutoff = Date.now() - ttlMs;
+  let scanned = 0;
+  let deleted = 0;
+  let dirs = 0;
+
+  const processDir = (dir: string): void => {
+    const backupDir = path.join(dir, ".opencode_backups");
+    if (!fs.existsSync(backupDir)) return;
+
+    let files: { name: string; fpath: string; mtimeMs: number }[];
+    try {
+      files = fs.readdirSync(backupDir)
+        .filter((f) => f.endsWith(".safe_backup"))
+        .map((f) => {
+          const fp = path.join(backupDir, f);
+          try {
+            return { name: f, fpath: fp, mtimeMs: fs.statSync(fp).mtimeMs };
+          } catch {
+            return null;
+          }
+        })
+        .filter((f): f is NonNullable<typeof f> => f !== null)
+        .sort((a, b) => b.mtimeMs - a.mtimeMs); // newest first
+    } catch {
+      return; // can't read directory — skip
+    }
+
+    if (files.length === 0) {
+      // Remove empty backup directory
+      try {
+        const remaining = fs.readdirSync(backupDir).filter((f) => !f.startsWith("."));
+        if (remaining.length === 0) fs.rmdirSync(backupDir);
+      } catch { /* non-critical */ }
+      return;
+    }
+
+    scanned += files.length;
+    dirs++;
+
+    // Phase 1: Delete by TTL
+    for (const f of files) {
+      if (f.mtimeMs < cutoff) {
+        try {
+          fs.rmSync(f.fpath);
+          deleted++;
+        } catch (e: any) {
+          if (e.code !== "ENOENT") throw e; // already deleted by peer
+        }
+      }
+    }
+
+    // Phase 2: Delete excess by count cap
+    const remaining = files.filter((f) => {
+      try { fs.accessSync(f.fpath); return true; } catch { return false; }
+    });
+    for (let i = maxPerDir; i < remaining.length; i++) {
+      try {
+        fs.rmSync(remaining[i].fpath);
+        deleted++;
+      } catch (e: any) {
+        if (e.code !== "ENOENT") throw e;
+      }
+    }
+
+    // Remove empty backup directory after cleanup
+    try {
+      const after = fs.readdirSync(backupDir).filter((f) => f.endsWith(".safe_backup"));
+      if (after.length === 0) {
+        // Check for any remaining non-backup files (e.g. .gitkeep)
+        const allRemaining = fs.readdirSync(backupDir).filter((f) => !f.startsWith("."));
+        if (allRemaining.length === 0) fs.rmdirSync(backupDir);
+      }
+    } catch { /* non-critical */ }
+  };
+
+  if (fullScan) {
+    const walk = (dir: string): void => {
+      if (!fs.existsSync(dir)) return;
+      processDir(dir);
+      let entries;
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (
+          entry.isDirectory() &&
+          !entry.name.startsWith(".") &&
+          entry.name !== "node_modules"
+        ) {
+          walk(path.join(dir, entry.name));
+        }
+      }
+    };
+    walk(rootDir);
+  } else {
+    processDir(rootDir);
+  }
+
+  return { scanned, deleted, dirs };
+}
+
+// ════════════════════════════════════════════════════════════
 // PUBLIC: validateEdit
 // ════════════════════════════════════════════════════════════
 
@@ -462,6 +593,15 @@ export function writeSafe(
     }
 
     // Phase 7: Success — registry and backup preserved
+    // SA-IMPL-BACKUP-LIFECYCLE: Opportunistic cleanup of stale backups
+    try {
+      cleanupStaleBackups(
+        path.dirname(resolvedPath),
+        7 * 24 * 60 * 60 * 1000,
+        20,
+        false,
+      );
+    } catch { /* non-critical */ }
     return { success: true, backupPath: backupPathStr };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -710,6 +850,16 @@ export function safeDelete(
     const trashPath = resolvedPath + ".trash." + Date.now();
     fs.renameSync(resolvedPath, trashPath);
     fs.unlinkSync(trashPath);
+
+    // SA-IMPL-BACKUP-LIFECYCLE: Opportunistic cleanup after successful delete
+    try {
+      cleanupStaleBackups(
+        path.dirname(resolvedPath),
+        7 * 24 * 60 * 60 * 1000,
+        20,
+        false,
+      );
+    } catch { /* non-critical */ }
 
     return { success: true, backupPath: backupPathStr };
   } catch (e: unknown) {

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/docs/official_docs/index.schema.json",
+  "title": "UC7KS Knowledge Cache Index",
+  "description": "JSON Schema for docs/official_docs/index.json — validates the knowledge cache manifest structure. See UC7KS-PIPELINE-STANDARD.md for pipeline details.",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "last_updated",
+    "total_entries",
+    "entries"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string",
+      "description": "Semantic version of the manifest format",
+      "examples": [
+        "1.3.0"
+      ]
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last manifest update"
+    },
+    "total_entries": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of entries in the cache"
+    },
+    "entries": {
+      "type": "array",
+      "description": "Knowledge cache entries",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": [
+        "library_id",
+        "query_topic",
+        "domain",
+        "tags",
+        "files"
+      ],
+      "properties": {
+        "library_id": {
+          "type": "string",
+          "description": "Context7 library ID or custom identifier"
+        },
+        "query_topic": {
+          "type": "string",
+          "description": "Human-readable topic description for this entry"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Knowledge domain classification",
+          "examples": [
+            "opencode",
+            "backend_api",
+            "frontend_ui"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "description": "Searchable tags for this entry",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "files": {
+          "type": "array",
+          "description": "Cached documentation files",
+          "items": {
+            "$ref": "#/$defs/file_entry"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "file_entry": {
+      "type": "object",
+      "required": [
+        "path",
+        "source",
+        "sha256",
+        "size_bytes",
+        "created_at",
+        "ttl_days",
+        "status"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Relative path to cached file within docs/official_docs/"
+        },
+        "source": {
+          "type": "string",
+          "description": "How the file was acquired",
+          "enum": [
+            "webfetch",
+            "curated",
+            "github-api",
+            "manual",
+            "mcp-fetch"
+          ]
+        },
+        "original_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Original source URL (optional for manual entries)"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "SHA-256 hash of file content with sha256: prefix"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 524288,
+          "description": "File size in bytes (max 512KB per UC7-005)"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when file was cached"
+        },
+        "ttl_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Time-to-live in days before expiration"
+        },
+        "access_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of times this file has been accessed"
+        },
+        "last_accessed": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of last access, or null"
+        },
+        "status": {
+          "type": "string",
+          "description": "Cache entry status",
+          "enum": [
+            "active",
+            "deprecated",
+            "expired",
+            "pending"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

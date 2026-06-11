@@ -37,10 +37,13 @@ PRE_EXEC_GATE="${SCRIPT_DIR}/pre-execution-gate.ts"
 # Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
 ENF_MODE="advisory"
 if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && { command -v bun &>/dev/null || command -v bun &>/dev/null; }; then
-  ENF_MODE=$(/home/zhaoge/.bun/bin/bun -e "
+  # CRIT-2a FIX: PATH-resolved bun (was /home/zhaoge/.bun/bin/bun)
+  # CRIT-2b FIX: JSON.parse(fs.readFileSync) replaces require() for safe JSON loading
+  # CRIT-2c FIX: Dual-key enforcement mode (develop_enforcement_mode || runtime_enforcement_mode)
+  ENF_MODE=$(bun -e "
     try {
-      const cfg = require('${PROJECT_ROOT}/.opencode/project.config.json');
-      const mode = cfg.template_resolution?.enforcement_mode;
+      const cfg = JSON.parse(require('fs').readFileSync('${PROJECT_ROOT}/.opencode/project.config.json', 'utf8'));
+      const mode = cfg.template_resolution?.develop_enforcement_mode || cfg.template_resolution?.runtime_enforcement_mode;
       console.log(mode && ['advisory','strict','locked'].includes(mode) ? mode : 'advisory');
     } catch(e) { console.log('advisory'); }
   " 2>/dev/null || echo "advisory")
@@ -251,32 +254,262 @@ else
   echo "  ℹ️  install-hooks.ts not found or node unavailable — skipping Stage 3."
 fi
 
-# ── Stage 4: UC7KS Knowledge Gate ──
+# ── Stage 4: UC7KS Knowledge Gate (FW-HARDEN-UC7KS-004) ──
+# Validates agent knowledge cache compliance before allowing execution.
+# Checks: (1) cache exists and is valid, (2) agent has UC7-001 compliance,
+# (3) agent has declared module scope (strict/locked only).
 echo ""
 echo "────────────────────────────────────────────────────"
 echo "  Stage 4: UC7KS Knowledge Gate"
 echo "────────────────────────────────────────────────────"
 INDEX_FILE="${PROJECT_ROOT}/docs/official_docs/index.json"
+MACHINE_FILE="${PROJECT_ROOT}/.opencode/state/machine.json"
 KNOWLEDGE_STATE="/tmp/uc7ks_knowledge_gate_$"
 FRAMEWORK_KC="${FRAMEWORK_AGENT:-}"
 
-# Check if agent has docs/official_docs/index.json as a known knowledge source
-if [ -f "$INDEX_FILE" ]; then
-  if bun -e "
-    const idx = require('$INDEX_FILE');
-    if (!idx.manifest_version || !Array.isArray(idx.entries)) process.exit(1);
-    console.log(JSON.stringify({version: idx.manifest_version, entries: idx.entries.length}));
-  " > "$KNOWLEDGE_STATE" 2>/dev/null; then
-    KC_VERSION=$(bun -e "console.log(require('$KNOWLEDGE_STATE').version)" 2>/dev/null || echo "unknown")
-    KC_ENTRIES=$(bun -e "console.log(require('$KNOWLEDGE_STATE').entries)" 2>/dev/null || echo "0")
-    echo "  ✅ UC7KS Knowledge Cache: v$KC_VERSION ($KC_ENTRIES entries)"
-    rm -f "$KNOWLEDGE_STATE"
+# UC7-009: Super-Admin conditional bypass (GAP-C1 remediation, 2026-06-06)
+# Super-Admin only bypasses the UC7KS gate when the knowledge cache is UNHEALTHY
+# (missing, empty, or corrupt index.json). When the cache is healthy, Super-Admin
+# follows the same UC7KS pipeline as all other agents per UC7-009.
+SUPER_ADMIN_BYPASS="false"
+if [ "${FRAMEWORK_AGENT:-}" = "Super-Admin" ] || [ "${FRAMEWORK_AGENT:-}" = "@Super-Admin" ]; then
+  if [ -f "$INDEX_FILE" ] && [ -s "$INDEX_FILE" ]; then
+    # Cache file exists and is non-empty — verify it's structurally valid
+    CACHE_HEALTHY=$(bun -e "
+      try {
+        const idx = JSON.parse(require('fs').readFileSync('${INDEX_FILE}', 'utf8'));
+        if (idx.manifest_version && Array.isArray(idx.entries) && idx.entries.length > 0) {
+          console.log('healthy');
+        } else {
+          console.log('unhealthy');
+        }
+      } catch(e) { console.log('unhealthy'); }
+    " 2>/dev/null || echo "unhealthy")
+    if [ "$CACHE_HEALTHY" = "healthy" ]; then
+      echo "  ℹ️  Knowledge cache healthy — Super-Admin follows UC7KS pipeline (UC7-009 enforced)"
+      # SUPER_ADMIN_BYPASS remains false — fall through to normal checks
+    else
+      SUPER_ADMIN_BYPASS="true"
+      echo "  ⚠️  UC7KS Gate emergency bypass — cache corrupted, Super-Admin emergency mode (UC7-009 conditional)"
+    fi
   else
-    echo "  ⚠️  UC7KS index.json is malformed — agents should rebuild via @Knowledge-Curator"
-    rm -f "$KNOWLEDGE_STATE"
+    SUPER_ADMIN_BYPASS="true"
+    echo "  ⚠️  UC7KS Gate emergency bypass — cache not initialized, Super-Admin emergency mode (UC7-009 conditional)"
   fi
+fi
+
+if [ "$SUPER_ADMIN_BYPASS" = "true" ]; then
+  echo "  ✅ UC7KS Gate bypassed — Super-Admin emergency maintenance mode"
 else
-  echo "  ℹ️  UC7KS knowledge cache not yet initialized (docs/official_docs/index.json not found)"
+  # Check 1: Cache existence and validity
+  if [ -f "$INDEX_FILE" ]; then
+    # CRIT-2b FIX: JSON.parse(fs.readFileSync) replaces require() for safe JSON loading
+    if bun -e "
+      const idx = JSON.parse(require('fs').readFileSync('$INDEX_FILE', 'utf8'));
+      if (!idx.manifest_version || !Array.isArray(idx.entries)) process.exit(1);
+      console.log(JSON.stringify({version: idx.manifest_version, entries: idx.entries.length}));
+    " > "$KNOWLEDGE_STATE" 2>/dev/null; then
+      KC_VERSION=$(bun -e "console.log(JSON.parse(require('fs').readFileSync('$KNOWLEDGE_STATE','utf8')).version)" 2>/dev/null || echo "unknown")
+      KC_ENTRIES=$(bun -e "console.log(JSON.parse(require('fs').readFileSync('$KNOWLEDGE_STATE','utf8')).entries)" 2>/dev/null || echo "0")
+      echo "  ✅ UC7KS Knowledge Cache: v$KC_VERSION ($KC_ENTRIES entries)"
+      rm -f "$KNOWLEDGE_STATE"
+    else
+      echo "  ⚠️  UC7KS index.json is malformed — agents should rebuild via @Knowledge-Curator"
+      rm -f "$KNOWLEDGE_STATE"
+    fi
+  else
+    echo "  ℹ️  UC7KS knowledge cache not yet initialized (docs/official_docs/index.json not found)"
+  fi
+
+  # Check 2: Agent UC7-001 compliance (strict/locked mode — FW-HARDEN-UC7KS-004)
+  if [ "$ENF_MODE" = "strict" ] || [ "$ENF_MODE" = "locked" ]; then
+    if [ -f "$MACHINE_FILE" ] && command -v bun &>/dev/null; then
+      AGENT_KEY="${FRAMEWORK_AGENT#@}"
+      UC7KS_CHECK=$(bun -e "
+        // CRIT-2b FIX: JSON.parse(fs.readFileSync) replaces require()
+        try {
+          const m = JSON.parse(require('fs').readFileSync('${MACHINE_FILE}', 'utf8'));
+          const kcs = m?.knowledge_cache_state;
+          const sa = kcs?.session_access || {};
+          const agentState = sa['${FRAMEWORK_AGENT:-}'] || sa['${AGENT_KEY:-}'];
+          if (!agentState) { console.log('NO_STATE'); process.exit(0); }
+          const compliant = agentState.uc7_001_compliant === true;
+          const scope = agentState.declared_scope || null;
+          console.log(JSON.stringify({ compliant, scope }));
+        } catch(e) { console.log('ERROR'); }
+      " 2>/dev/null || echo "ERROR")
+
+      if [ "$UC7KS_CHECK" = "ERROR" ] || [ "$UC7KS_CHECK" = "NO_STATE" ]; then
+        if [ "$UC7KS_CHECK" = "NO_STATE" ]; then
+          enf_exit "UC7KS Gate: Agent '${FRAMEWORK_AGENT:-unknown}' has no knowledge cache state. Must declare scope (Step 0a) and search cache (Step 0b) first."
+        else
+          echo "  ⚠️  Could not verify UC7KS compliance state (machine.json read error)"
+        fi
+      else
+        UC7KS_COMPLIANT=$(echo "$UC7KS_CHECK" | bun -e "console.log(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8').trim()).compliant)" 2>/dev/null || echo "false")
+        if [ "$UC7KS_COMPLIANT" != "true" ]; then
+          enf_exit "UC7KS Gate: Agent '${FRAMEWORK_AGENT:-unknown}' has not completed knowledge cache search (Step 0b). Must read docs/official_docs/index.json first."
+        else
+          echo "  ✅ UC7KS Gate passed — agent has completed cache search (uc7_001_compliant)"
+
+          # UC7-001c HARDEN: Verify cache sufficiency evidence completeness
+          # Three fields are REQUIRED: reason, files_read, content_summary.
+          # Any missing → treat as insufficient (BLOCK in strict/locked).
+          if [ -f "$MACHINE_FILE" ]; then
+            UC7KS_EVIDENCE=$(bun -e "
+              try {
+                const m = JSON.parse(require('fs').readFileSync('${MACHINE_FILE}', 'utf8'));
+                const sa = m?.knowledge_cache_state?.session_access || {};
+                const agentState = sa['${FRAMEWORK_AGENT:-unknown}'] || {};
+                const suff = agentState.cache_sufficiency || {};
+                const missing = [];
+                if (!suff.reason) missing.push('reason');
+                if (!suff.files_read || !Array.isArray(suff.files_read)) missing.push('files_read');
+                if (!suff.content_summary) missing.push('content_summary');
+                console.log(missing.length ? 'MISSING:' + missing.join(',') : 'COMPLETE');
+              } catch(e) { console.log('ERROR:' + e.message); }
+            " 2>/dev/null || echo "ERROR")
+
+            if [ "$UC7KS_EVIDENCE" = "COMPLETE" ]; then
+              echo "  ✅ UC7KS sufficiency evidence complete (reason, files_read, content_summary)"
+            else
+              enf_exit "UC7KS Gate: Cache sufficiency evidence incomplete (UC7-001c). Missing: ${UC7KS_EVIDENCE#MISSING:}. Must provide reason, files_read, and content_summary. Re-run knowledge_cache_search. See preamble Step 0."
+            fi
+          fi
+        fi
+      fi
+    else
+      echo "  ⚠️  machine.json not found — UC7KS Gate agent compliance check skipped"
+    fi
+  else
+    echo "  ⚠️  [ADVISORY] UC7KS agent compliance check skipped (non-blocking)"
+  fi
+
+  # Check 3: Janitor staleness & knowledge_state consistency (FW-REPAIR-UC7KS-KNOWLEDGE-STATE)
+  # Reads janitor_interval_hours from project.config.json (default 24h).
+  # If the janitor has never run (last_janitor_run is null) or the last run
+  # exceeds the configured interval, triggers a janitor cycle.
+  # Also detects knowledge_state drift (total_docs_count vs actual index.json entries).
+  # Non-blocking: janitor failures are caught and logged; drift > 2 entries is reported.
+  #
+  # @since 2026-06-06 — FW-REPAIR-UC7KS-KNOWLEDGE-STATE
+  # @see .task_temp/ARC-KNOWLEDGE-STATE/HANDOVER.md
+  if [ -f "$INDEX_FILE" ] && [ -f "$MACHINE_FILE" ] && command -v bun &>/dev/null; then
+    JANITOR_SCRIPT="${PROJECT_ROOT}/.opencode/scripts/knowledge/janitor.ts"
+    CFG_FILE="${PROJECT_ROOT}/.opencode/project.config.json"
+
+    # Read janitor_interval_hours from project.config.json (default 24h)
+    JANITOR_INTERVAL=$(bun -e "
+      try {
+        const cfg = JSON.parse(require('fs').readFileSync('${CFG_FILE}', 'utf8'));
+        const interval = cfg?.template_resolution?.['knowledge.janitor_interval_hours'];
+        console.log(interval || 24);
+      } catch(e) { console.log(24); }
+    " 2>/dev/null || echo "24")
+
+    # Check 3a: Janitor staleness
+    if [ -f "$JANITOR_SCRIPT" ]; then
+      LAST_JANITOR=$(bun -e "
+        try {
+          const m = JSON.parse(require('fs').readFileSync('${MACHINE_FILE}', 'utf8'));
+          const ks = m?.knowledge_state || {};
+          console.log(ks.last_janitor_run || 'null');
+        } catch(e) { console.log('error'); }
+      " 2>/dev/null || echo "error")
+
+      TRIGGER_JANITOR="false"
+      if [ "$LAST_JANITOR" = "null" ] || [ "$LAST_JANITOR" = "error" ]; then
+        echo "  ⚠️  Janitor has never run — triggering initial cycle"
+        TRIGGER_JANITOR="true"
+      else
+        HOURS_SINCE=$(bun -e "
+          const last = new Date('${LAST_JANITOR}').getTime();
+          const hours = (Date.now() - last) / 3600000;
+          console.log(Math.floor(hours));
+        " 2>/dev/null || echo "0")
+        if [ "$HOURS_SINCE" -gt "$JANITOR_INTERVAL" ] 2>/dev/null; then
+          echo "  ⚠️  Janitor stale (${HOURS_SINCE}h since last run, interval=${JANITOR_INTERVAL}h) — triggering cycle"
+          TRIGGER_JANITOR="true"
+        else
+          echo "  ✅ Janitor fresh — last run ${HOURS_SINCE}h ago (interval=${JANITOR_INTERVAL}h)"
+        fi
+      fi
+
+      if [ "$TRIGGER_JANITOR" = "true" ]; then
+        bun "$JANITOR_SCRIPT" 2>/dev/null && echo "  ✅ Janitor cycle completed" || echo "  ⚠️  Janitor cycle failed — check $JANITOR_SCRIPT"
+      fi
+    fi
+
+    # Check 3b: knowledge_state + knowledge_cache_state drift detection & auto-correction
+    # FW-REPAIR-UNIFY-KNOWLEDGE (2026-06-07): Extended to check BOTH knowledge_state
+    # AND knowledge_cache_state for drift against index.json. Previously only
+    # knowledge_state was checked and drift was reported but NOT auto-corrected.
+    # Now auto-corrects both fields when drift is detected, eliminating the
+    # "run reconciliation to fix" manual step.
+    DRIFT=$(bun -e "
+      try {
+        const fs = require('fs');
+        const m = JSON.parse(fs.readFileSync('${MACHINE_FILE}', 'utf8'));
+        const idx = JSON.parse(fs.readFileSync('${INDEX_FILE}', 'utf8'));
+        const ks = m.knowledge_state || {};
+        const kcs = m.knowledge_cache_state || {};
+        const actualCount = (idx.entries || []).length;
+
+        // Compute total_size_bytes from index.json
+        let totalSize = 0;
+        for (const entry of (idx.entries || [])) {
+          for (const file of (entry.files || [])) {
+            totalSize += file.size_bytes || 0;
+          }
+        }
+
+        const ksDrift = actualCount - (ks.total_docs_count || 0);
+        const kcsDrift = actualCount - (kcs.total_entries || 0);
+        const sizeDrift = totalSize - (ks.total_size_bytes || 0);
+
+        // Detect drift > 1 entry (tolerance of ±1 for transient states)
+        if (Math.abs(ksDrift) > 1 || Math.abs(kcsDrift) > 1 || Math.abs(sizeDrift) > 1024) {
+          // Auto-correct: update both knowledge_state and knowledge_cache_state
+          const now = new Date().toISOString();
+          m.knowledge_state = m.knowledge_state || {};
+          m.knowledge_state.total_docs_count = actualCount;
+          m.knowledge_state.total_size_bytes = totalSize;
+          m.knowledge_state.last_reconciliation = now;
+
+          m.knowledge_cache_state = m.knowledge_cache_state || {};
+          m.knowledge_cache_state.total_entries = actualCount;
+          if (!m.knowledge_cache_state.pipeline_integrity) {
+            m.knowledge_cache_state.pipeline_integrity = {};
+          }
+          m.knowledge_cache_state.pipeline_integrity.verified_count = actualCount;
+          m.knowledge_cache_state.pipeline_integrity.last_verification_at = now;
+          m.knowledge_cache_state.last_index_check = now;
+          m.knowledge_cache_state.cache_status = 'healthy';
+
+          // Atomic write
+          const tmp = '${MACHINE_FILE}.tmp.' + Date.now();
+          fs.writeFileSync(tmp, JSON.stringify(m, null, 2), 'utf8');
+          fs.renameSync(tmp, '${MACHINE_FILE}');
+          console.log('corrected:' + ksDrift + '/' + kcsDrift + '/' + sizeDrift +
+            ' (actual=' + actualCount + ', total_size=' + totalSize + ')');
+        } else {
+          console.log('ok');
+        }
+      } catch(e) { console.log('error:' + e.message); }
+    " 2>/dev/null || echo "error")
+
+    if echo "$DRIFT" | grep -q "^corrected:"; then
+      echo "  ✅ knowledge cache drift auto-corrected: $DRIFT"
+    elif [ "$DRIFT" = "ok" ]; then
+      # ok — drift within tolerance
+      :
+    elif echo "$DRIFT" | grep -q "^error:"; then
+      echo "  ⚠️  knowledge cache drift check failed — $DRIFT"
+    else
+      # Unexpected output — log but don't block
+      :
+    fi
+  fi
 fi
 
 exit 0

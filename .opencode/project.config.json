@@ -65,9 +65,51 @@
     "container": "Docker Compose v2"
   },
   "template_resolution": {
-    "develop_enforcement_mode": "advisory",
-    "runtime_enforcement_mode": "advisory",
+    "develop_enforcement_mode": "strict",
+    "runtime_enforcement_mode": "strict",
     "compatibility_profile": "native",
+    "super_admin_uc7ks_dispatch_patterns": [
+      "knowledge",
+      "cache",
+      "docs",
+      "official",
+      "context7",
+      "uc7ks",
+      "fetch",
+      "curator",
+      "index",
+      "explore",
+      "source code",
+      "repository",
+      "github",
+      "documentation",
+      "library",
+      "api reference"
+    ],
+    "super_admin_repair_patterns": [
+      "repair",
+      "fix",
+      "restore",
+      "corrupt",
+      "broken",
+      "emergency",
+      "reset",
+      "drain",
+      "purge",
+      "reconcile",
+      "inconsistency",
+      "state",
+      "hook",
+      "plugin",
+      "integrity",
+      "machine.json",
+      "gate-state",
+      "compliance",
+      "validate",
+      "audit",
+      "test",
+      "baseline"
+    ],
     "enforcement_config": {
       "advisory": {
         "description": "Warnings only, non-blocking. Suitable for local development.",
@@ -88,7 +130,7 @@
         "log_level": "error"
       },
       "locked": {
-        "description": "Prevents all changes without governance override. ALL external doc queries blocked — only @Knowledge-Curator may fetch docs. Suitable for production config branches.",
+        "description": "Prevents all changes without governance override. ALL external doc queries blocked \u2014 only @Knowledge-Curator may fetch docs. Suitable for production config branches.",
         "block_on": [
           "gate_armed",
           "keystone_hash",
@@ -141,6 +183,8 @@
     "knowledge.fallback_ttl": 14,
     "knowledge.opencode_ttl": 7,
     "knowledge.scout_ttl": 14,
+    "backup.ttl_days": 7,
+    "backup.max_per_dir": 20,
     "knowledge.janitor_interval_hours": 24,
     "knowledge.compression_threshold_kb": 200,
     "knowledge.fallback_url_nestjs": "https://docs.nestjs.com/{topic}",
@@ -153,7 +197,14 @@
     "knowledge.fallback_url_eslint": "https://eslint.org/docs/{topic}",
     "knowledge.fallback_url_docker": "https://docs.docker.com/{topic}",
     "knowledge.fallback_url_opencode": "https://opencode.ai/docs/{topic}",
-    "knowledge.fallback_url_git": "https://git-scm.com/docs/{topic}"
+    "knowledge.fallback_url_git": "https://git-scm.com/docs/{topic}",
+    "knowledge.fallback_url_state": "https://opencode.ai/docs/{topic}",
+    "knowledge.fallback_url_machine": ".opencode/rules/rule_detail/state-machine-standard.md",
+    "logs.dir": ".task_temp/_logs",
+    "logs.retention_days": 7,
+    "logs.delimiter": " | ",
+    "logs.buffer_size": 20,
+    "logs.flush_interval_ms": 5000
   },
   "context7_task_mapping": [
     {
@@ -263,79 +314,216 @@
     "domains": [
       {
         "domain_id": "backend_api",
-        "keywords": ["controller", "endpoint", "guard", "middleware", "swagger", "dto", "api", "service", "module", "interceptor", "pipe", "filter", "provider", "decorator"],
-        "context7_libraries": ["{backend.framework}"],
+        "keywords": [
+          "controller",
+          "endpoint",
+          "guard",
+          "middleware",
+          "swagger",
+          "dto",
+          "api",
+          "service",
+          "module",
+          "interceptor",
+          "pipe",
+          "filter",
+          "provider",
+          "decorator"
+        ],
+        "context7_libraries": [
+          "{backend.framework}"
+        ],
         "fallback_pattern": "https://docs.nestjs.com/{topic}",
         "save_path": "backend/nestjs/",
         "ttl_days": 30
       },
       {
         "domain_id": "persistence",
-        "keywords": ["database", "prisma", "schema", "migration", "transaction", "sql", "orm", "seed", "model", "relation"],
-        "context7_libraries": ["{db.orm}"],
+        "keywords": [
+          "database",
+          "prisma",
+          "schema",
+          "migration",
+          "transaction",
+          "sql",
+          "orm",
+          "seed",
+          "model",
+          "relation"
+        ],
+        "context7_libraries": [
+          "{db.orm}"
+        ],
         "fallback_pattern": "https://www.prisma.io/docs/{topic}",
         "save_path": "backend/prisma/",
         "ttl_days": 30
       },
       {
         "domain_id": "frontend_ui",
-        "keywords": ["component", "template", "signal", "store", "style", "css", "tailwind", "angular", "primeng", "routing", "lazy", "defer", "directive", "pipe"],
-        "context7_libraries": ["{frontend.framework}", "{frontend.ui_library}"],
+        "keywords": [
+          "component",
+          "template",
+          "signal",
+          "store",
+          "style",
+          "css",
+          "tailwind",
+          "angular",
+          "primeng",
+          "routing",
+          "lazy",
+          "defer",
+          "directive",
+          "pipe"
+        ],
+        "context7_libraries": [
+          "{frontend.framework}",
+          "{frontend.ui_library}"
+        ],
         "fallback_pattern": "https://angular.dev/{topic}",
         "save_path": "frontend/angular/",
         "ttl_days": 30
       },
       {
         "domain_id": "caching",
-        "keywords": ["cache", "redis", "ioredis", "ttl", "cache-aside", "cache-pattern"],
-        "context7_libraries": ["{cache.engine}"],
+        "keywords": [
+          "cache",
+          "redis",
+          "ioredis",
+          "ttl",
+          "cache-aside",
+          "cache-pattern"
+        ],
+        "context7_libraries": [
+          "{cache.engine}"
+        ],
         "fallback_pattern": "https://redis.io/docs/{topic}",
         "save_path": "database/redis/",
         "ttl_days": 30
       },
       {
         "domain_id": "queue",
-        "keywords": ["queue", "bullmq", "job", "worker", "scheduler", "message-queue"],
-        "context7_libraries": ["{queue.engine}"],
+        "keywords": [
+          "queue",
+          "bullmq",
+          "job",
+          "worker",
+          "scheduler",
+          "message-queue"
+        ],
+        "context7_libraries": [
+          "{queue.engine}"
+        ],
         "fallback_pattern": "https://docs.bullmq.io/{topic}",
         "save_path": "devops/bullmq/",
         "ttl_days": 30
       },
       {
         "domain_id": "testing",
-        "keywords": ["test", "jest", "spec", "coverage", "e2e", "playwright", "supertest", "mock", "stub", "spy", "assert"],
-        "context7_libraries": ["{testing.unit}", "{testing.e2e}"],
+        "keywords": [
+          "test",
+          "jest",
+          "spec",
+          "coverage",
+          "e2e",
+          "playwright",
+          "supertest",
+          "mock",
+          "stub",
+          "spy",
+          "assert"
+        ],
+        "context7_libraries": [
+          "{testing.unit}",
+          "{testing.e2e}"
+        ],
         "fallback_pattern": "https://jestjs.io/docs/{topic}",
         "save_path": "devops/testing/",
         "ttl_days": 30
       },
       {
         "domain_id": "auth_security",
-        "keywords": ["auth", "jwt", "passport", "oauth", "guard", "token", "refresh", "csrf", "rate-limit", "helmet", "roles"],
-        "context7_libraries": ["{auth.mechanism}"],
+        "keywords": [
+          "auth",
+          "jwt",
+          "passport",
+          "oauth",
+          "guard",
+          "token",
+          "refresh",
+          "csrf",
+          "rate-limit",
+          "helmet",
+          "roles"
+        ],
+        "context7_libraries": [
+          "{auth.mechanism}"
+        ],
         "fallback_pattern": "https://jwt.io/introduction",
         "save_path": "backend/auth/",
         "ttl_days": 30
       },
       {
         "domain_id": "framework_tools",
-        "keywords": ["eslint", "prettier", "typescript", "hook", "plugin", "config", "linter", "formatter", "tsc", "tsconfig"],
-        "context7_libraries": ["/eslint/eslint", "/typescript/typescript"],
+        "keywords": [
+          "eslint",
+          "prettier",
+          "typescript",
+          "hook",
+          "plugin",
+          "config",
+          "linter",
+          "formatter",
+          "tsc",
+          "tsconfig"
+        ],
+        "context7_libraries": [
+          "/eslint/eslint",
+          "/typescript/typescript"
+        ],
         "fallback_pattern": "https://eslint.org/docs/{topic}",
         "save_path": "framework/eslint/",
         "ttl_days": 30
       },
       {
         "domain_id": "devops_ci",
-        "keywords": ["docker", "compose", "github-actions", "ci", "cd", "pipeline", "deploy", "workflow", "container", "image"],
-        "context7_libraries": ["/docker/docker", "/github/github"],
+        "keywords": [
+          "docker",
+          "compose",
+          "github-actions",
+          "ci",
+          "cd",
+          "pipeline",
+          "deploy",
+          "workflow",
+          "container",
+          "image"
+        ],
+        "context7_libraries": [
+          "/docker/docker",
+          "/github/github"
+        ],
         "fallback_pattern": "https://docs.docker.com/{topic}",
         "save_path": "devops/docker/",
         "ttl_days": 30
       },
       {
         "domain_id": "opencode_framework",
-        "keywords": ["opencode", "agent", "skill", "mcp", "framework", "compliance", "gate", "orchestrator", "dispatch", "subagent", "permission", "plugin", "config"],
+        "keywords": [
+          "opencode",
+          "agent",
+          "skill",
+          "mcp",
+          "framework",
+          "compliance",
+          "gate",
+          "orchestrator",
+          "dispatch",
+          "subagent",
+          "permission",
+          "plugin",
+          "config"
+        ],
         "context7_libraries": [],
         "fallback_pattern": "https://opencode.ai/docs/{topic}",
         "save_path": "opencode/framework/",
@@ -343,11 +531,45 @@
       },
       {
         "domain_id": "infrastructure",
-        "keywords": ["git", "json-schema", "nodejs", "markdown", "yaml", "pandoc", "shell", "bash", "npm", "npx"],
-        "context7_libraries": ["/git/git"],
+        "keywords": [
+          "git",
+          "json-schema",
+          "nodejs",
+          "markdown",
+          "yaml",
+          "pandoc",
+          "shell",
+          "bash",
+          "npm",
+          "npx"
+        ],
+        "context7_libraries": [
+          "/git/git"
+        ],
         "fallback_pattern": "https://git-scm.com/docs/{topic}",
         "save_path": "framework/git/",
         "ttl_days": 30
+      },
+      {
+        "domain_id": "state_management",
+        "keywords": [
+          "machine.json",
+          "gate-state.json",
+          "state",
+          "keystone",
+          "hash",
+          "transition",
+          "lifecycle",
+          "enforcement",
+          "schema",
+          "revision",
+          "transaction",
+          "WAL"
+        ],
+        "context7_libraries": [],
+        "fallback_pattern": "{knowledge.fallback_url_opencode}",
+        "save_path": "opencode/framework/",
+        "ttl_days": 7
       }
     ]
   },
@@ -414,43 +636,43 @@
     "$description": "UC7KS knowledge pipeline tool permissions per agent. Controls which agents may use external documentation tools (webfetch, websearch, context7_*). Enforced by uc7ks-enforcer.ts plugin and framework-enforcer.ts. Values: 'allow' (direct access), 'via_curator' (must route through @Knowledge-Curator in strict+ modes), 'deny' (never allowed).",
     "@Knowledge-Curator": {
       "doc_tools": "allow",
-      "reason": "Designated knowledge curator — must fetch external docs to populate local cache"
+      "reason": "Designated knowledge curator \u2014 must fetch external docs to populate local cache"
     },
     "@Super-Admin": {
       "doc_tools": "via_curator",
-      "reason": "Emergency framework admin — should follow UC7KS pipeline; bypass only in advisory mode"
+      "reason": "Emergency framework admin \u2014 should follow UC7KS pipeline; bypass only in advisory mode"
     },
     "@Coder-BE": {
       "doc_tools": "via_curator",
-      "reason": "Backend developer — external docs must be cached by @Knowledge-Curator first"
+      "reason": "Backend developer \u2014 external docs must be cached by @Knowledge-Curator first"
     },
     "@Coder-FE": {
       "doc_tools": "via_curator",
-      "reason": "Frontend developer — external docs must be cached by @Knowledge-Curator first"
+      "reason": "Frontend developer \u2014 external docs must be cached by @Knowledge-Curator first"
     },
     "@Architect": {
       "doc_tools": "via_curator",
-      "reason": "System architect — external docs must be cached by @Knowledge-Curator first"
+      "reason": "System architect \u2014 external docs must be cached by @Knowledge-Curator first"
     },
     "@Meta-Planner": {
       "doc_tools": "via_curator",
-      "reason": "Project CTO — external docs must be cached by @Knowledge-Curator first"
+      "reason": "Project CTO \u2014 external docs must be cached by @Knowledge-Curator first"
     },
     "@Orchestrator": {
       "doc_tools": "via_curator",
-      "reason": "Project manager — should dispatch @Knowledge-Curator rather than query directly"
+      "reason": "Project manager \u2014 should dispatch @Knowledge-Curator rather than query directly"
     },
     "@Guardian": {
       "doc_tools": "deny",
-      "reason": "Quality gate — read-only; uses cached rules and standards only"
+      "reason": "Quality gate \u2014 read-only; uses cached rules and standards only"
     },
     "@Arbiter": {
       "doc_tools": "deny",
-      "reason": "Technical committee — reads cached rules and standards only"
+      "reason": "Technical committee \u2014 reads cached rules and standards only"
     },
     "@CI-CD-Agent": {
       "doc_tools": "via_curator",
-      "reason": "DevOps/SRE — deployment docs should be cached by @Knowledge-Curator first"
+      "reason": "DevOps/SRE \u2014 deployment docs should be cached by @Knowledge-Curator first"
     }
   },
   "agent_write_scopes": {
@@ -460,14 +682,7 @@
         "booking_system_refactor/booking-backend/test/**",
         "booking_system_refactor/booking-backend/prisma/**",
         "booking_system_refactor/booking-backend/*.{json,js,ts}",
-        ".opencode/scripts/__tests__/**",
-        ".task_temp/**",
-        "contract.yaml",
-        ".opencode/scripts/**",
-        ".opencode/plugins/**",
-        ".opencode/tools/**",
-        ".opencode/hooks/**",
-        ".opencode/hooks/pre-commit"
+        ".task_temp/**"
       ],
       "denied": [
         "booking_system_refactor/booking-frontend/**",
@@ -485,7 +700,6 @@
       "allowed": [
         "booking_system_refactor/booking-frontend/**",
         ".task_temp/**",
-        "contract.yaml"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/**",
@@ -505,6 +719,7 @@
         ".opencode/state/machine.json",
         ".opencode/context/**",
         ".task_temp/**",
+        "contract.yaml",
         "docs/**"
       ],
       "denied": [
@@ -526,7 +741,9 @@
       "allowed": [
         ".task_temp/**",
         "Task.DAG.json",
-        "Project.graph"
+        "Project.graph",
+        "TECH_DEBT_REGISTRY.md",
+        "WAIVE.md"
       ],
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
@@ -534,7 +751,6 @@
         ".opencode/tools/**",
         ".opencode/scripts/**",
         ".opencode/state/**",
-        "contract.yaml"
       ]
     },
     "@Orchestrator": {
@@ -545,7 +761,6 @@
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
-        "contract.yaml",
         ".opencode/tools/**",
         ".opencode/scripts/**"
       ]
@@ -560,7 +775,6 @@
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
-        "contract.yaml",
         ".opencode/**",
         "AGENTS.md",
         "PROJECT_REFERENCE.md"
@@ -575,7 +789,6 @@
       "denied": [
         "booking_system_refactor/booking-backend/src/**",
         "booking_system_refactor/booking-frontend/src/**",
-        "contract.yaml",
         ".opencode/tools/**",
         ".opencode/scripts/**"
       ]
@@ -606,11 +819,11 @@
         "opencode.json",
         "AGENTS.md",
         "PROJECT_REFERENCE.md",
-        "contract.yaml",
         "Task.DAG.json",
         "TECH_DEBT_REGISTRY.md",
         "WAIVE.md",
         ".task_temp/**",
+        "contract.yaml",
         "docs/**"
       ],
       "denied": [
@@ -621,6 +834,7 @@
     },
     "@Knowledge-Curator": {
       "allowed": [
+        ".task_temp/**",
         "docs/official_docs/**",
         "docs/official_docs/.metadata/**",
         "docs/official_docs/index.json"
@@ -633,36 +847,334 @@
         ".opencode/hooks/**",
         ".opencode/plugins/**",
         ".opencode/scripts/**",
-        "contract.yaml",
         "project.config.json",
         "opencode.json",
         "Task.DAG.json"
       ]
     }
   },
+  "agent_dispatch_allowed_tools": {
+    "$description": "Orchestrator dispatch gate tool allowlist. Replaces hardcoded 7-tool ALLOWED list in enforce.ts. Agent entries define allowed tools per agent. Special: ['*'] = wildcard for Super-Admin. Fallback: minimum viable set (task/read/todowrite/compliance_gate_check/confirm/complete/dispatch_subagent). Added FW-DISPATCH-GATE-EXTERNALIZE (2026-06-09 @Super-Admin).",
+    "@Orchestrator": [
+      "task",
+      "read",
+      "todowrite",
+      "compliance_gate_check",
+      "compliance_gate_confirm",
+      "compliance_gate_complete",
+      "compliance_gate_drain_stale",
+      "compliance_gate_purge",
+      "dispatch_subagent",
+      "question",
+      "skill",
+      "safe_diff",
+      "safe_shell",
+      "compliance_gate_retry_confirm"
+    ],
+    "@Super-Admin": [
+      "*"
+    ],
+    "@Architect": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_mkdir",
+      "safe_delete",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_check",
+      "compliance_gate_confirm",
+      "compliance_gate_complete",
+      "dispatch_subagent"
+    ],
+    "@Meta-Planner": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent"
+    ],
+    "@Coder-BE": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_test",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "docker",
+      "postgre_sql",
+      "eslint_audit",
+      "code_quality_gate"
+    ],
+    "@Coder-FE": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_test",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "playwright",
+      "eslint_audit",
+      "code_quality_gate"
+    ],
+    "@Guardian": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_test",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "eslint_audit",
+      "code_quality_gate"
+    ],
+    "@Arbiter": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent"
+    ],
+    "@CI-CD-Agent": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "docker",
+      "github"
+    ],
+    "@Knowledge-Curator": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "webfetch",
+      "websearch",
+      "context7",
+      "pandoc"
+    ]
+  },
   "safe_shell": {
     "$description": "Safe shell command allowlist and dangerous pattern configuration. Externalized from safe-bash-core.ts for runtime configurability. Added FW-UNIFY-TS-P3.",
     "default_allowlist": [
-      "npm run *", "npx jest *", "npx tsc *", "npx eslint *",
-      "node * --help", "node *.js", "node *.ts", "node *.js *", "node *.ts *", "node -e *",
-      "bun *.ts", "bun *.ts *", "bun -e *",
-      "git status", "git log *", "git diff", "git diff *", "git show *", "git branch *",
-      "docker --version", "docker-compose --version",
-      "echo *", "cat *", "ls *", "pwd", "grep *", "find *",
-      "head *", "tail *", "wc -l *", "sort *", "uniq *",
-      "cp * *", "mv * *", "touch *", "mkdir -p *",
-      "rm -rf .task_temp/*", "rm -rf .opencode/lib/*",
-      "whoami", "date", "uname *", "which *", "env | grep *"
+      "npm run *",
+      "npx jest *",
+      "npx tsc *",
+      "npx eslint *",
+      "node * --help",
+      "node *.js",
+      "node *.ts",
+      "node *.js *",
+      "node *.ts *",
+      "node -e *",
+      "bun *.ts",
+      "bun *.ts *",
+      "bun -e *",
+      "git status",
+      "git log *",
+      "git diff",
+      "git diff *",
+      "git show *",
+      "git branch *",
+      "docker --version",
+      "docker-compose --version",
+      "echo *",
+      "cat *",
+      "ls *",
+      "pwd",
+      "grep *",
+      "find *",
+      "head *",
+      "tail *",
+      "wc -l *",
+      "sort *",
+      "uniq *",
+      "cp * *",
+      "mv * *",
+      "touch *",
+      "mkdir -p *",
+      "rm -rf .task_temp/*",
+      "rm -rf .opencode/lib/*",
+      "whoami",
+      "date",
+      "uname *",
+      "which *",
+      "env | grep *"
     ],
     "agent_allowlists": {
-      "@Super-Admin": ["git *", "rm -rf .opencode/**", "mv .opencode/**", "chmod +x .opencode/**", "sed -i *", "for *", "find * -exec *", "/home/zhaoge/.bun/bin/bun *"],
-      "@CI-CD-Agent": ["docker build *", "docker push *", "docker pull *", "docker run *", "docker-compose up *", "docker-compose down *", "docker ps *", "docker images *", "docker logs *", "kubectl *", "helm *", "terraform *", "ansible-playbook *", "git *"],
-      "@Coder-BE": ["npx prisma *", "npm run db:*", "npm run test:*", "npm run build", "npm run lint", "npm run format", "curl *"],
-      "@Orchestrator": ["node *.js *", "node *.ts *", "node -e *"],
-      "@Architect": ["sed *"]
+      "@Super-Admin": [
+        "git *",
+        "rm -rf .opencode/**",
+        "mv .opencode/**",
+        "chmod +x .opencode/**",
+        "sed -i *",
+        "for *",
+        "find * -exec *",
+        "/home/zhaoge/.bun/bin/bun *",
+        "npx tsx *",
+        "tsx *",
+        "bunx tsx *",
+        "docker *",
+        "docker compose *",
+        "docker-compose *",
+        "opencode debug config",
+        "opencode mcp debug *"
+      ],
+      "@CI-CD-Agent": [
+        "docker build *",
+        "docker push *",
+        "docker pull *",
+        "docker run *",
+        "docker ps *",
+        "docker images *",
+        "docker logs *",
+        "docker inspect *",
+        "docker exec *",
+        "docker stop *",
+        "docker start *",
+        "docker restart *",
+        "docker rm *",
+        "docker network *",
+        "docker volume *",
+        "docker system *",
+        "docker info *",
+        "docker cp *",
+        "docker tag *",
+        "docker stats *",
+        "docker port *",
+        "docker compose *",
+        "docker-compose up *",
+        "docker-compose down *",
+        "docker-compose *",
+        "kubectl *",
+        "helm *",
+        "terraform *",
+        "ansible-playbook *",
+        "git *",
+        "opencode mcp auth *",
+        "opencode mcp list"
+      ],
+      "@Coder-BE": [
+        "npx prisma *",
+        "npm run db:*",
+        "npm run test:*",
+        "npm run build",
+        "npm run lint",
+        "npm run format",
+        "curl *"
+      ],
+      "@Orchestrator": [
+        "node *.js *",
+        "node *.ts *",
+        "node -e *"
+      ],
+      "@Guardian": [
+        "cat *",
+        "echo *",
+        "head *",
+        "tail *",
+        "wc *",
+        "find *",
+        "ls *",
+        "grep *",
+        "git log*",
+        "opencode mcp list"
+      ],
+      "@Architect": [
+        "mkdir *",
+        "ls *",
+        "cat *",
+        "echo *",
+        "head *",
+        "tail *",
+        "wc *",
+        "find *",
+        "grep *",
+        "sed *",
+        "git log*",
+        "git diff*",
+        "git show*",
+        "node *.js *",
+        "node *.ts *",
+        "node -e *",
+        "bun -e *"
+      ]
     },
     "agent_allowed_scripts": {
-      "@Super-Admin": ["rule-registry-verify.js", "state-reconciliation.js", "state-transaction.js"]
+      "@Super-Admin": [
+        "rule-registry-verify.js",
+        "state-reconciliation.js",
+        "state-transaction.js"
+      ]
     },
     "dangerous_patterns": [
       "rm .*\\.(json|yaml|yml|md|ts|js)\\b",
@@ -689,6 +1201,10 @@
       "fs\\.copyFileSync\\(",
       "fs\\.mkdirSync\\("
     ],
-    "allowed_script_paths": ["__tests__", ".opencode_backups", ".task_temp"]
+    "allowed_script_paths": [
+      "__tests__",
+      ".opencode_backups",
+      ".task_temp"
+    ]
   }
 }

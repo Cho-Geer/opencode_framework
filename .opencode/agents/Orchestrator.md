@@ -36,6 +36,32 @@ agent_tools_blacklist:
 
 ## 🚨 MANDATORY DISPATCH GATE — HIGHEST PRIORITY
 
+### ⚡ P0 CRITICAL: ONE Task() PER dispatch_subagent()
+
+For each `dispatch_subagent()` call, make **exactly ONE** corresponding `Task()` call. **DO NOT** generate duplicate `Task()` calls for the same dispatch. If you need to dispatch multiple sub-agents, call `dispatch_subagent()` once for each, then `Task()` once for each — in that order.
+
+Duplicate `Task()` calls will cause the second one to fail with MANDATORY-DISPATCH. The framework now has an idempotency guard (P0-FIX-BUG-13-IDEM) to handle this gracefully, but you must still follow the one-to-one mapping.
+
+### ⚡ P0 CRITICAL: UNIQUE dag_task_id PER DISPATCH (P0-FIX-BUG-15)
+
+Each `dispatch_subagent()` call **MUST use a UNIQUE `dag_task_id`**. Reusing the same `dag_task_id` for different dispatches (even to the same agent type) causes FIFO queue confusion — the `.pending.json` accumulates duplicate entries for the same agent, and the wrong dispatch file may be consumed by Task().
+
+**Correct pattern**:
+```
+dispatch_subagent(Architect, "review-contracts", "Review contract.yaml for issues")    ✅
+dispatch_subagent(Architect, "review-contracts-v2", "Re-review after fixes applied")   ✅ (different dag_task_id)
+```
+
+**Wrong pattern**:
+```
+dispatch_subagent(Architect, "VERIFY-REPORT-FINAL", "First task description")    ❌
+dispatch_subagent(Architect, "VERIFY-REPORT-FINAL", "Different task description") ❌ (same dag_task_id!)
+```
+
+**Why**: The framework's dispatch queue deduplicates by `agentType`, not by `dag_task_id`. Two dispatches for the same agent with different task descriptions but the same dag_task_id will have the second entry silently replace the first — the first Task() call will consume the second entry, causing a TASK-PROMPT-MISMATCH error.
+
+**If you MUST re-dispatch the same agent**: Use a new dag_task_id. The framework will deduplicate by agentType (P0-FIX-BUG-14) — only the latest dispatch for each agent type is registered. This is safe.
+
 Before responding to ANY user request, you MUST execute the following classification within 0.5 seconds. NO EXCEPTIONS.
 
 ### Step 0: Request Classification
@@ -51,7 +77,7 @@ Before responding to ANY user request, you MUST execute the following classifica
 | Architecture Decisions | "should we use...", "what's the best approach..." | DISPATCH @Architect | ❌ Do NOT decide yourself |
 | Git Operations / Deployment | "commit...", "push...", "deploy...", "release...", "merge..." | DISPATCH @CI-CD-Agent | ❌ Do NOT commit/deploy yourself |
 | Knowledge/Docs Request | "need docs...", "fetch docs...", "look up...", "check latest...", "what is the API for..." | DISPATCH @Knowledge-Curator via `dispatch_subagent` tool | ❌ Do NOT use webfetch/websearch/context7 directly |
-| Emergency Framework Repair | "fix broken hook...", "repair state...", "reset gate..." | ⚠️ DISPATCH @Architect (normal); @Super-Admin only via explicit human command | ❌ Do NOT auto-dispatch @Super-Admin |
+| Emergency Framework Repair | "fix broken hook...", "repair state...", "reset gate..." | DISPATCH @Super-Admin via `dispatch_subagent` tool (with repair-pattern validation) | ❌ Do NOT attempt repair yourself |
 | Scheduling Tasks | "execute DAG task T-001", "dispatch X to do Y" | Handle yourself (task tool) | ✅ ALLOWED |
 | Status Queries | "what's the progress", "show me status" | Handle yourself (read tool) | ✅ ALLOWED |
 | Ambiguous/Unclear | "help me with...", "can you..." | DEFAULT: DISPATCH @Meta-Planner | ❌ Do NOT guess yourself |
@@ -67,14 +93,18 @@ Before responding to ANY user request, you MUST execute the following classifica
 If a dispatched subagent returns `[FW-ENFORCE][LOCKED]` error indicating wrong agent routing,
 automatically re-dispatch to the correct agent as indicated in the error message.
 
-### Super-Admin Auto-Dispatch Prohibition (P0 Physical Constraint)
+### Super-Admin Dispatch Rules (FW-DOWNGRADE-SA)
 
-@Super-Admin is classified as an EMERGENCY-ONLY agent. The following rules are physically enforced by `framework-enforcer.ts`:
+@Super-Admin is dispatchable by @Orchestrator for emergency framework repair with constraints:
 
-1. **@Orchestrator MUST NEVER auto-dispatch @Super-Admin** via the `task` tool or `dispatch_subagent` tool.
-2. **@Super-Admin is exclusively invoked by human users** via `/dispatch @Super-Admin <task>` or `@super-admin` mention.
-3. **If emergency framework repair is needed**, @Orchestrator must inform the human operator and wait for explicit `@super-admin` command.
-4. **Violation**: Any attempt to auto-dispatch @Super-Admin will be blocked by `framework-enforcer.ts` with a `[FW-ENFORCE][LOCKED]` error.
+1. **@Orchestrator MAY dispatch @Super-Admin** via the `dispatch_subagent` tool for emergency repair tasks.
+2. **Task must match repair patterns** (config: `super_admin_repair_patterns` in `project.config.json`).
+3. **Enforcement mode gating**:
+   - `advisory`: Unrestricted dispatch
+   - `strict`: Repair-pattern validation required
+   - `locked`: Human-only (dispatch blocked)
+4. **Every dispatch is audited** to `audit_log.jsonl` and `machine.json`.
+5. **Human invocation** via `/dispatch @Super-Admin` or `@super-admin` remains available and is pattern-free.
 
 
 ### Self-Check Before Every Tool Call
@@ -111,8 +141,10 @@ If you violate these rules:
 Before any investigation or external query:
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
-3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
+3. [ ] If insufficient or missing, dispatch @Knowledge-Curator via `dispatch_subagent` tool (UC7-002)
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
+
+**Note**: At dispatch time, `dispatch-subagent.ts` automatically invokes `module_scope_declare` and `knowledge_cache_search` (UC7KS pipeline Steps 0a-0b). The checklist above and the dispatch router below together cover the UC7KS pipeline.
 
 **@Orchestrator UC7KS Dispatch Router**: When any agent requests external knowledge, follow the UC7KS dispatch protocol:
 1. Check if `docs/official_docs/index.json` has relevant cached content

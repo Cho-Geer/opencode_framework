@@ -1,0 +1,8 @@
+// demo.ts — Minimal OpenCode plugin to verify loading mechanism.
+// Verify: check /tmp/opencode-demo-loaded.txt exists after restart.
+import * as fs from "node:fs";
+
+export const DemoPlugin = async (_ctx: any) => {
+  fs.writeFileSync("/tmp/opencode-demo-loaded.txt", `loaded at ${new Date().toISOString()}\n`, "utf8");
+  return {};
+};

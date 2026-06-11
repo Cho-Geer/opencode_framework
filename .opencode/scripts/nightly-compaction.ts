@@ -117,6 +117,82 @@ async function archiveOldDAGTasks() {
   }
 }
 
+// SA-IMPL-BACKUP-LIFECYCLE: Nightly backup cleanup step.
+// Uses cleanupStaleBackups() from safe-edit-core.ts to remove backups older than
+// TTL (default 7 days) and enforce per-directory count caps (default 20).
+async function cleanupStaleBackupsStep() {
+  const stepName = 'backup-cleanup';
+  try {
+    const { cleanupStaleBackups } = await import('../lib/safe-edit-core.ts');
+    const ttlDays = 7;
+    const maxPerDir = 20;
+    const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
+
+    if (DRY_RUN) {
+      log(`[${stepName}] Would scan all .opencode_backups/ [TTL=${ttlDays}d, cap=${maxPerDir}] — DRY-RUN`);
+      return;
+    }
+
+    const result = cleanupStaleBackups(PROJECT_ROOT, ttlMs, maxPerDir, true);
+    log(`[${stepName}] Scanned ${result.dirs} dirs, ${result.scanned} files, deleted ${result.deleted}`);
+  } catch (err) {
+    log(`[${stepName}] ERROR: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+// SA-IMPL-SELF-CLEANUP (2026-06-11): Nightly cleanup of stale session_access entries.
+// Removes agent entries in knowledge_cache_state.session_access that have been
+// inactive for more than STALE_DAYS (default 30). Also removes invalid keys
+// like "unknown", "", "undefined". Strategy B: periodic global cleanup.
+async function cleanupStaleSessionAccessStep() {
+  const stepName = 'session-access-cleanup';
+  const STALE_DAYS = 30;
+  const INVALID_KEYS = ['unknown', '', 'undefined', 'null'];
+  try {
+    const { readFileSync, writeFileSync, existsSync } = await import('fs');
+    const { join } = await import('path');
+    const machinePath = join(PROJECT_ROOT, '.opencode', 'state', 'machine.json');
+    if (!existsSync(machinePath)) {
+      log(`[${stepName}] machine.json not found — skip`);
+      return;
+    }
+    const machine = JSON.parse(readFileSync(machinePath, 'utf-8'));
+    const sa = machine?.knowledge_cache_state?.session_access;
+    if (!sa || Object.keys(sa).length === 0) {
+      log(`[${stepName}] no session_access entries — skip`);
+      return;
+    }
+    const now = Date.now();
+    const staleMs = STALE_DAYS * 24 * 60 * 60 * 1000;
+    let removed = 0;
+
+    for (const key of Object.keys(sa)) {
+      let shouldRemove = false;
+      if (INVALID_KEYS.includes(key)) {
+        shouldRemove = true;
+      } else {
+        const lastRead = sa[key]?.last_read_at || sa[key]?.declared_at;
+        if (lastRead && (now - new Date(lastRead).getTime() > staleMs)) {
+          shouldRemove = true;
+        }
+      }
+      if (shouldRemove) {
+        delete sa[key];
+        removed++;
+      }
+    }
+
+    if (removed > 0) {
+      writeFileSync(machinePath, JSON.stringify(machine, null, 2), 'utf-8');
+      log(`[${stepName}] Cleaned ${removed} stale/invalid session_access entries. ${Object.keys(sa).length} remaining.`);
+    } else {
+      log(`[${stepName}] All ${Object.keys(sa).length} entries fresh — no cleanup needed.`);
+    }
+  } catch (err) {
+    log(`[${stepName}] ERROR: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 async function main() {
   log(`Nightly Compaction — ${TODAY} ${DRY_RUN ? '(DRY-RUN)' : ''}`);
   log('');
@@ -128,6 +204,14 @@ async function main() {
     await archiveOldDAGTasks();
     log('');
   }
+
+  // SA-IMPL-BACKUP-LIFECYCLE: Nightly cleanup of stale .opencode_backups/
+  await cleanupStaleBackupsStep();
+  log('');
+
+  // SA-IMPL-SELF-CLEANUP: Nightly cleanup of stale session_access entries
+  await cleanupStaleSessionAccessStep();
+  log('');
 
   log('Nightly compaction complete.');
   // Output metrics

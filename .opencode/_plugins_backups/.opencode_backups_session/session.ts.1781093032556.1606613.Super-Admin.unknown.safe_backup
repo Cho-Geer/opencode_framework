@@ -1,0 +1,99 @@
+// session-manager.ts — S3: + resolveAgent
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { demoLog } from "../lib/shared-infra";
+
+fs.writeFileSync("/tmp/session-manager-loaded.txt", `${new Date().toISOString()} loaded\n`, "utf8");
+
+const SESSION_MAP_DIR = ".task_temp/_dispatch";
+const SESSION_MAP_FILE = ".session_map.json";
+
+let _agentResolved = false;
+let _cachedAgent = "";
+
+function getSessionMapPath(): string {
+  return path.join(process.env.OPENCODE_ROOT || ".", SESSION_MAP_DIR, SESSION_MAP_FILE);
+}
+
+function resolveAgentFromSessionMap(sessionID: string): string {
+  fs.appendFileSync("/tmp/sm-resolveAgentFromSessionMap.log", `[${new Date().toISOString()}] enter | sessionID=${sessionID}\n`, "utf8");
+  if (!sessionID) { fs.appendFileSync("/tmp/sm-resolveAgentFromSessionMap.log", `[${new Date().toISOString()}] exit (no sessionID)\n`, "utf8"); return ""; }
+  try {
+    const mp = getSessionMapPath();
+    if (!fs.existsSync(mp)) { fs.appendFileSync("/tmp/sm-resolveAgentFromSessionMap.log", `[${new Date().toISOString()}] exit (no map file)\n`, "utf8"); return ""; }
+    const map = JSON.parse(fs.readFileSync(mp, "utf8"));
+    const entry = map?.[sessionID];
+    if (entry?.agent) {
+      demoLog("INFO", `session map hit: ${sessionID} → ${entry.agent}`);
+      fs.appendFileSync("/tmp/sm-resolveAgentFromSessionMap.log", `[${new Date().toISOString()}] exit (found) | agent=${entry.agent}\n`, "utf8");
+      return entry.agent;
+    }
+  } catch {}
+  fs.appendFileSync("/tmp/sm-resolveAgentFromSessionMap.log", `[${new Date().toISOString()}] exit (not found)\n`, "utf8");
+  return "";
+}
+
+function resolveAgent(): string {
+  fs.appendFileSync("/tmp/sm-resolveAgent.log", `[${new Date().toISOString()}] resolveAgent enter | cachedAgent=${_cachedAgent} | agentResolved=${_agentResolved}\n`, "utf8");
+  if (_cachedAgent) { fs.appendFileSync("/tmp/sm-resolveAgent.log", `[${new Date().toISOString()}] resolveAgent exit (cached) | result=${_cachedAgent}\n`, "utf8"); return _cachedAgent; }
+  if (!_agentResolved) {
+    _agentResolved = true;
+    try {
+      const p = path.join(process.env.OPENCODE_ROOT || ".", ".task_temp", "_dispatch_target.json");
+      if (fs.existsSync(p)) {
+        const d = JSON.parse(fs.readFileSync(p, "utf8"));
+        const currentRunId = process.env.OPENCODE_RUN_ID || "";
+        if (currentRunId && (!d.run_id || d.run_id !== currentRunId)) {
+          try { fs.unlinkSync(p); } catch {}
+          _cachedAgent = process.env.AGENT || "";
+          fs.appendFileSync("/tmp/sm-resolveAgent.log", `[${new Date().toISOString()}] resolveAgent exit (stale dispatch) | result=${_cachedAgent}\n`, "utf8");
+          return _cachedAgent;
+        }
+        if (d.agent) {
+          _cachedAgent = d.agent;
+          fs.appendFileSync("/tmp/sm-resolveAgent.log", `[${new Date().toISOString()}] resolveAgent exit (dispatch) | result=${_cachedAgent}\n`, "utf8");
+          return d.agent;
+        }
+      }
+    } catch {}
+  }
+  _cachedAgent = process.env.AGENT || "";
+  fs.appendFileSync("/tmp/sm-resolveAgent.log", `[${new Date().toISOString()}] resolveAgent exit (env fallback) | result=${_cachedAgent}\n`, "utf8");
+  return _cachedAgent;
+}
+
+async function chatMessageHook(
+  input: { sessionID: string; agent?: string; model?: any; messageID?: string; variant?: string },
+  _output: any,
+): Promise<void> {
+  const agent = input.agent || "";
+  const sid = input.sessionID || "";
+  demoLog("INFO", `[CHAT-HOOK] enter | sessionID=${sid} agent=${agent || "(empty)"}`);
+  if (!sid || !agent) { demoLog("INFO", `[CHAT-HOOK] exit (no sid/agent)`); return; }
+  try {
+    const mp = getSessionMapPath();
+    const dir = path.dirname(mp);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    let map: Record<string, { agent: string; ts: string }> = {};
+    if (fs.existsSync(mp)) {
+      try { map = JSON.parse(fs.readFileSync(mp, "utf8")); } catch {}
+    }
+    map[sid] = { agent, ts: new Date().toISOString() };
+    const keys = Object.keys(map);
+    if (keys.length > 50) {
+      const sorted = keys.sort((a, b) => (map[b]?.ts || "").localeCompare(map[a]?.ts || ""));
+      for (const k of sorted.slice(50)) delete map[k];
+    }
+    fs.writeFileSync(mp, JSON.stringify(map, null, 2), "utf8");
+    demoLog("INFO", `[CHAT-HOOK] exit (ok) | map size=${Object.keys(map).length}`);
+  } catch (e: any) {
+    demoLog("ERROR", `[CHAT-HOOK] exit (error) | ${e.message}`);
+  }
+}
+
+export default (async (_ctx: any) => {
+  fs.writeFileSync("/tmp/session-manager-hooks.txt", `${new Date().toISOString()} hooks registered\n`, "utf8");
+  return {
+    "chat.message": chatMessageHook,
+  };
+}) as any;

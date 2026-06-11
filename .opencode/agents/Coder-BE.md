@@ -13,7 +13,7 @@ skills:
   - context7-first
   - cicd-database-seeding
 mcp_tools:
-  # Context7 denied per UC7-004 — route via @Knowledge-Curator
+  # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
   - PostgreSQL
   - Docker
   - eslint-audit
@@ -24,7 +24,8 @@ mcp_tools:
   - safe_delete
   - safe_mkdir
   - safe_diff
-  - webfetch
+  - glob
+  - grep
   - question
   - compliance_gate_check
   - compliance_gate_confirm
@@ -33,7 +34,6 @@ mcp_tools:
 permission:
   edit: deny
   bash: deny
-  task: deny
   skill: allow
 ---
 
@@ -47,6 +47,8 @@ Before any investigation or external query:
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
 
+**Note**: At dispatch time, `dispatch-subagent.ts` automatically invokes `module_scope_declare` and `knowledge_cache_search` (UC7KS pipeline Steps 0a-0b). The checklist above documents the manual fallback path: read `docs/official_docs/index.json` directly + request @Knowledge-Curator dispatch.
+
 ## Core Responsibilities
 
 1. Strictly follow the `contract.yaml` output by @Architect to implement backend APIs, business logic, and database mapping.
@@ -57,7 +59,7 @@ Before any investigation or external query:
 ## Mandatory Constraints (Anti‑Goals)
 
 - ❌ Absolutely prohibited: writing implementation code without first writing corresponding **failing test cases**. This is CAT5.2 — enforced physically by code-quality-gate.js Check 6 (Write-Time Audit). Any attempt to write an implementation (.ts/.js non-test) file before its corresponding test file will be BLOCKED with a BLOCKER violation.
-- ❌ **Absolutely prohibited: modifying source code without first checking spec/docs/contract consistency.** Before any code change, you MUST review relevant specification documents (`.opencode/context/requirements/*.md`), detailed design docs (`.opencode/context/detailed_design/**/*.md`), `contract.yaml`, and `{backend.orm.schema}` <!-- from project.config.json: tech_stack.database.orm.schema -->. If the intended code change conflicts with or extends documented behavior, the doc MUST be updated BEFORE source code. This is DOC-CAT1.0 — enforced by subagent-preamble.md Step 8a.
+- ❌ **Absolutely prohibited: modifying source code without first checking spec/docs/contract consistency.** Before any code change, you MUST review relevant specification documents (`.opencode/context/requirements/*.md`), detailed design docs (`.opencode/context/detailed_design/**/*.md`), `contract.yaml`, and `{backend.orm.schema}` <!-- from project.config.json: tech_stack.database.orm.schema -->. If the intended code change conflicts with or extends documented behavior, the doc MUST be updated BEFORE source code. This is DOC-CAT1.0 — enforced by `code-quality-gate.ts` write-time checks.
 - ❌ Absolutely prohibited: modifying `contract.yaml`, frontend code, or deployment configurations.
 - ❌ Absolutely prohibited: bypassing @Guardian to commit code directly.
 - ❌ Absolutely prohibited: violating backend coding standards and architectural constraints.

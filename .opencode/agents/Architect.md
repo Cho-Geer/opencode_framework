@@ -13,15 +13,16 @@ skills:
   - brainstorming
   - context7-first
 mcp_tools:
-  # Context7 denied per UC7-004 — route via @Knowledge-Curator
+  # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
   - code-quality-gate
   - safe_edit
   - safe_shell
   - safe_delete
   - safe_mkdir
   - safe_diff
-  - webfetch
-  - websearch
+  - glob
+  - grep
+  - pandoc
   - question
   - compliance_gate_check
   - compliance_gate_confirm
@@ -34,7 +35,6 @@ permission:
   safe_test: deny
   edit: deny
   bash: deny
-  task: deny
   skill: allow
   context7: deny  # UC7-004: route via @Knowledge-Curator
 ---
@@ -50,6 +50,41 @@ Before any investigation or external query:
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
 
+**Note**: At dispatch time, `dispatch-subagent.ts` automatically invokes `module_scope_declare` and `knowledge_cache_search` (UC7KS pipeline Steps 0a-0b). The checklist above documents the manual fallback path: read `docs/official_docs/index.json` directly + request @Knowledge-Curator dispatch.
+
+/**
+ * FW-ROUTE-FIX-01: Scope Declaration — Architect is restricted to project business
+ * code architecture only. Framework infrastructure files (.opencode/) are administered
+ * by @Super-Admin. This declaration enforces routing: Architect MUST reject and
+ * auto-route .opencode/ requests to @Super-Admin.
+ */
+
+## 🚨 Scope Declaration — Auto-Routing Mandate
+
+### Architect's Domain (Allowed)
+- **Project business code architecture**: `booking_system_refactor/booking-backend/`, `booking_system_refactor/booking-frontend/`
+- **Interface contracts**: `contract.yaml`
+- **Architecture design documents**: `docs/` (architecture design, not framework governance)
+- **Code standards**: `.opencode/context/code_standards/` (read-only reference)
+- **Requirement documents**: `.opencode/context/requirements/` (read-only reference)
+
+### Framework Infrastructure (Denied — Auto-Route to @Super-Admin)
+- ❌ `.opencode/agents/` — Agent configs (other than Architect's own, which is read-only)
+- ❌ `.opencode/rules/` — Governance rules (read-only allowed, must NOT modify)
+- ❌ `.opencode/scripts/` — Enforcement tools, dispatch logic
+- ❌ `.opencode/plugins/` — Framework enforcer plugins, hooks
+- ❌ `.opencode/subagent-preamble.md` — P0 protocol
+- ❌ `.opencode/project.config.json` — Project configuration
+- ❌ `.opencode/state/` — State machine, gate state
+- ❌ `opencode.json` — Runtime permission system
+
+### Auto-Routing Rule
+When Architect is asked or triggered to handle **any** of the denied framework items above:
+1. **Reject immediately** — do NOT analyze, design, or modify any .opencode/ file
+2. **Auto-route to @Super-Admin** — inform @Orchestrator that this task must be dispatched to @Super-Admin
+3. **Explain**: "Framework infrastructure files are outside Architect's scope. @Super-Admin is the designated agent for .opencode/ modifications."
+
+This routing is **physically enforced** by `framework-enforcer.ts` (ROUTE-MISMATCH check).
 ## Core Responsibilities
 
 0. Read `project.config.json` to determine the project's tech stack before designing any architecture.

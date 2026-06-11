@@ -5,7 +5,7 @@
  * before saving new files. If content matches an existing file, the new query
  * topic is added as a tag alias rather than creating a duplicate file.
  *
- * Usage: node .opencode/scripts/knowledge/deduplicator.js <sha256>
+ * Usage: bun .opencode/scripts/knowledge/deduplicator.ts <sha256>
  * Returns: { is_duplicate: boolean, existing_path: string|null }
  */
 

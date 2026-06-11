@@ -6,7 +6,7 @@
  * Provides atomic read/update functions with SHA-256 dedup integration.
  * Enforces UC7-007: atomic index.json updates.
  *
- * Usage: node .opencode/scripts/knowledge/indexer.js [command]
+ * Usage: bun .opencode/scripts/knowledge/indexer.ts [command]
  *   add <path> <source> <sha256> <size_bytes> <library_id> <topic>
  *   search <keyword>
  *   stats

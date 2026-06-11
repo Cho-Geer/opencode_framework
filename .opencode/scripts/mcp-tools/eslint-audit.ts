@@ -147,7 +147,7 @@ function runESLint(projectRoot, targetFiles, scanBusinessCode) {
   ];
 
   try {
-    const filesArg =
+    let filesArg =
       targetFiles.length > 0
         ? targetFiles.join(" ")
         : `${projectRoot}/src/modules/**/*.spec.ts ${projectRoot}/test/**/*.spec.ts`;
@@ -388,11 +388,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   };
 });
 
-// Start server (only when run directly, not when require()d by tests)
-if (require.main === module) {
+/**
+ * Start the MCP server over stdio transport.
+ *
+ * FW-REPAIR-ESLINT-32000: Previously used `if (require.main === module)` guard
+ * with non-awaited `server.connect(transport)` — the unhandled Promise could
+ * race with process exit, causing "32000: Connection closed" errors.
+ *
+ * Now ALWAYS starts the server (matching compliance-gate.ts pattern) with proper
+ * async/await + error handling to ensure the transport is fully established
+ * before the event loop drains.
+ *
+ * @fix FW-REPAIR-ESLINT-32000 — 2026-06-06 @Super-Admin
+ */
+async function main() {
   const transport = new StdioServerTransport();
-  server.connect(transport);
+  await server.connect(transport);
+  process.stderr.write("[eslint-audit] started (SDK)\n");
 }
+
+main().catch((err: Error) => {
+  process.stderr.write(`[eslint-audit] Fatal error: ${err.message}\n`);
+  process.exit(1);
+});
 
 // Export internals for testing
 module.exports = { getProjectRoot, generateTierRules, runESLint };

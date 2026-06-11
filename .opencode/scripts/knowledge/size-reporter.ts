@@ -5,7 +5,7 @@
  * Generates .metadata/size_report.json with per-domain size breakdown.
  * Called by the Janitor after each cycle and can be run standalone.
  *
- * Usage: node .opencode/scripts/knowledge/size-reporter.js
+ * Usage: bun .opencode/scripts/knowledge/size-reporter.ts
  */
 
 const fs = require("fs");

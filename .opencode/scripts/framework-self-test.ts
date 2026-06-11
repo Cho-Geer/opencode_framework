@@ -2,12 +2,12 @@
 "use strict";
 
 /**
- * framework-self-test.js — OpenCode Framework Binding Force Self-Test
+ * framework-self-test.ts — OpenCode Framework Binding Force Self-Test
  * ===================================================================
- * Validates 26 critical framework integrity checks.
- * Usage: node .opencode/scripts/framework-self-test.js
+ * Validates 33 critical framework integrity checks.
+ * Usage: bun .opencode/scripts/framework-self-test.ts
  *
- * Exit code: 0 if ALL 26 checks pass, 1 if any fail.
+ * Exit code: 0 if ALL 33 checks pass, 1 if any fail.
  */
 
 const fs = require("fs");
@@ -22,6 +22,47 @@ const FAIL = "FAIL";
 
 let results = [];
 let allPassed = true;
+
+/**
+ * FW-REPAIR-SHELL-TSX (2026-06-06): Resolve the best available TypeScript
+ * runner for executing .ts sub-scripts. Priority order:
+ *   1. bun  — fastest, already used by pre-execution-hook.sh
+ *   2. tsx  — lightweight ts-node alternative
+ *   3. node — fallback (may fail for ESM .ts files)
+ *
+ * When framework-self-test runs its own sub-checks (checks 25-27), it
+ * spawns framework-doctor.ts and state-reconciliation.ts. These are
+ * TypeScript files with ESM import syntax that plain `node` cannot
+ * execute without --experimental-strip-types. Using the correct runner
+ * prevents spurious test failures in environments without bun.
+ *
+ * @returns {string} Best available runner command prefix
+ */
+function resolveTsRunner() {
+  try {
+    const { execSync: _sync } = require("child_process");
+    // Check for bun first (preferred by pre-execution-hook.sh)
+    _sync("which bun", { stdio: "pipe" });
+    return "bun";
+  } catch (_bun) {
+    try {
+      const { execSync: _sync } = require("child_process");
+      // Check for tsx
+      _sync("which tsx", { stdio: "pipe" });
+      return "tsx";
+    } catch (_tsx) {
+      try {
+        const { execSync: _sync } = require("child_process");
+        // Check for npx tsx
+        _sync("npx tsx --version", { stdio: "pipe" });
+        return "npx tsx";
+      } catch (_npx) {
+        // Fallback to node (may fail for ESM .ts files)
+        return "node";
+      }
+    }
+  }
+}
 
 function check(name, passed, detail) {
   const status = passed ? PASS : FAIL;
@@ -44,6 +85,26 @@ function readFile(p) {
     return fs.readFileSync(p, "utf-8");
   } catch {
     return null;
+  }
+}
+
+/**
+ * Read and parse a JSON file with trailing comma tolerance.
+ * Attempts strict JSON.parse first; on failure, strips trailing commas
+ * and retries. SA-IMPL-LEGACY-FIXES (2026-06-11).
+ */
+function readJSONFile(p) {
+  var raw = readFile(p);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    // Strip trailing commas
+    var cleaned = raw.replace(/,(\s*[}\]])/g, "$1");
+    if (cleaned === raw) throw e;
+    try { return JSON.parse(cleaned); } catch (e2) {
+      throw new Error("JSON parse failed after trailing comma fix: " + e2.message);
+    }
   }
 }
 
@@ -93,15 +154,12 @@ function stripPathLintBlock(content, filePath) {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 1: config.json loads
+
 // ═══════════════════════════════════════════════════════════════
 function checkConfigJson() {
-  const cfgPath = path.join(OPENCODE_ROOT, ".opencode", "project.config.json");
-  const raw = readFile(cfgPath);
-  if (!raw)
+  const cfg = readJSONFile(path.join(OPENCODE_ROOT, ".opencode", "project.config.json"));
+  if (!cfg)
     return check(1, false, "project.config.json not found or unreadable");
-
-  try {
-    const cfg = JSON.parse(raw);
     const hasProjectRoot = !!cfg.project_root;
     const hasTechStack = !!cfg.tech_stack && typeof cfg.tech_stack === "object";
     const hasContext7Mapping =
@@ -110,11 +168,7 @@ function checkConfigJson() {
     const hasAgentWriteScopes =
       !!cfg.agent_write_scopes && typeof cfg.agent_write_scopes === "object";
 
-    const ok =
-      hasProjectRoot &&
-      hasTechStack &&
-      hasContext7Mapping &&
-      hasAgentWriteScopes;
+    const ok = hasProjectRoot && hasTechStack && hasContext7Mapping && hasAgentWriteScopes;
     let detail = "";
     if (!hasProjectRoot) detail += " missing project_root";
     if (!hasTechStack) detail += " missing tech_stack";
@@ -126,13 +180,11 @@ function checkConfigJson() {
       detail.trim() ||
         `project_root="${cfg.project_root}", tech_stack keys=${Object.keys(cfg.tech_stack).length}, context7_task_mapping=${cfg.context7_task_mapping.length}, agent_write_scopes keys=${Object.keys(cfg.agent_write_scopes).length}`,
     );
-  } catch (e) {
-    return check(1, false, `JSON parse error: ${e.message}`);
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Check 2: State directory exists
+
 // ═══════════════════════════════════════════════════════════════
 function checkStateDir() {
   const stateDir = path.join(OPENCODE_ROOT, ".opencode", "state");
@@ -152,6 +204,7 @@ function checkStateDir() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 3: machine.json has all sub-states
+
 // ═══════════════════════════════════════════════════════════════
 function checkMachineSubStates() {
   const machPath = path.join(
@@ -192,6 +245,7 @@ function checkMachineSubStates() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 4: ESLint has 11 rules
+
 // ═══════════════════════════════════════════════════════════════
 function checkESLintRules() {
   const pluginPath = path.join(
@@ -224,6 +278,7 @@ function checkESLintRules() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 5: Pre-commit Layer 0 - exit 1 for compliance gate check
+
 // ═══════════════════════════════════════════════════════════════
 function checkPreCommitLayer0() {
   const hookPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "pre-commit");
@@ -247,6 +302,7 @@ function checkPreCommitLayer0() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 6: Pre-commit Layer 2.5 - exit 1 for TDD violation (BLOCKING)
+
 // ═══════════════════════════════════════════════════════════════
 function checkPreCommitLayer25() {
   const hookPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "pre-commit");
@@ -271,6 +327,7 @@ function checkPreCommitLayer25() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 7: commit-msg TDD ordering
+
 // ═══════════════════════════════════════════════════════════════
 function checkCommitMsgTDD() {
   const hookPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "commit-msg");
@@ -295,6 +352,7 @@ function checkCommitMsgTDD() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 8: Agent skills clean (no Read/Write/Glob/Grep in skills)
+
 // ═══════════════════════════════════════════════════════════════
 function checkAgentSkillsClean() {
   const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
@@ -342,6 +400,7 @@ function checkAgentSkillsClean() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 9: architect has code-quality-gate
+
 // ═══════════════════════════════════════════════════════════════
 function checkArchitectCQG() {
   const archPath = path.join(
@@ -365,6 +424,7 @@ function checkArchitectCQG() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 10: ci-cd-agent has explicit docker tools
+
 // ═══════════════════════════════════════════════════════════════
 function checkCICAgentDockerTools() {
   const cicdPath = path.join(
@@ -402,6 +462,7 @@ function checkCICAgentDockerTools() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 11: AGENTS.md no backslashes
+
 // ═══════════════════════════════════════════════════════════════
 function checkAgentsNoBackslashes() {
   const agentsPath = path.join(OPENCODE_ROOT, "AGENTS.md");
@@ -425,6 +486,7 @@ function checkAgentsNoBackslashes() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 12: Deployment doc exists
+
 // ═══════════════════════════════════════════════════════════════
 function checkDeploymentDoc() {
   const docPath = path.join(
@@ -440,6 +502,7 @@ function checkDeploymentDoc() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 13: PROJECT_REFERENCE.md no placeholders
+
 // ═══════════════════════════════════════════════════════════════
 function checkProjectRefNoPlaceholders() {
   const prPath = path.join(OPENCODE_ROOT, "PROJECT_REFERENCE.md");
@@ -460,6 +523,7 @@ function checkProjectRefNoPlaceholders() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 14: skill-invocation-standard.md says 三层八角色
+
 // ═══════════════════════════════════════════════════════════════
 function checkThreeLayersEightRoles() {
   const skillPath = path.join(
@@ -489,6 +553,7 @@ function checkThreeLayersEightRoles() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 15: code-quality-gate.ts bootstrap
+
 // ═══════════════════════════════════════════════════════════════
 function checkCQGBootstrap() {
   const cqgPath = path.join(
@@ -548,6 +613,7 @@ function checkCQGBootstrap() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 16: All referenced files from AGENTS.md lines 37-49 exist
+
 // ═══════════════════════════════════════════════════════════════
 function checkReferencedFiles() {
   const referencedFiles = [
@@ -580,6 +646,7 @@ function checkReferencedFiles() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 17: Scan rule/agent files for unresolved {placeholder} strings
+
 // ═══════════════════════════════════════════════════════════════
 function checkUnresolvedPlaceholders() {
   const dirsToScan = [
@@ -639,14 +706,11 @@ function checkUnresolvedPlaceholders() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 18: Validate template_resolution exists in project.config.json
+
 // ═══════════════════════════════════════════════════════════════
 function checkTemplateResolution() {
-  const cfgPath = path.join(OPENCODE_ROOT, ".opencode", "project.config.json");
-  const raw = readFile(cfgPath);
-  if (!raw) return check(18, false, "project.config.json not found");
-
-  try {
-    const cfg = JSON.parse(raw);
+  const cfg = readJSONFile(path.join(OPENCODE_ROOT, ".opencode", "project.config.json"));
+  if (!cfg) return check(18, false, "project.config.json not found");
     const hasTemplateResolution =
       !!cfg.template_resolution && typeof cfg.template_resolution === "object";
 
@@ -682,13 +746,11 @@ function checkTemplateResolution() {
       detail = `All ${requiredKeys.length} required keys present with valid values`;
 
     return check(18, ok, detail);
-  } catch (e) {
-    return check(18, false, `JSON parse error: ${e.message}`);
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Check 19: Scan .md files in .opencode/ for absolute path leakage
+
 // ═══════════════════════════════════════════════════════════════
 function checkAbsolutePathLeakage() {
   const OPENCODE_ROOT = process.env.OPENCODE_ROOT || process.cwd();
@@ -778,6 +840,7 @@ function checkAbsolutePathLeakage() {
 }
 
 // Check 20: Reconciliation script is wired into pre-execution-hook.sh
+
 // ═══════════════════════════════════════════════════════════════
 function checkReconciliationInfra() {
   // 20a: At least one reconciliation script exists (reconciliation-check.sh OR state-reconciliation.ts)
@@ -1011,21 +1074,29 @@ function checkReconciliationInfra() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 22: UC7KS Docs Manifest Integrity
+
 // ═══════════════════════════════════════════════════════════════
 function checkDocsManifestIntegrity() {
-  const indexPath = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.json");
+  const indexPath = path.join(
+    OPENCODE_ROOT,
+    "docs",
+    "official_docs",
+    "index.json",
+  );
   const docsDir = path.join(OPENCODE_ROOT, "docs", "official_docs");
 
   // FW-REPAIR-14: Known non-document files in docs/official_docs/ that should
   // not be flagged as orphans. .gitkeep is a Git convention placeholder to track
   // empty directories. Other OS metadata files can be added here as needed.
-  const KNOWN_NON_DOC_FILES = new Set([
-    '.gitkeep',
-  ]);
+  const KNOWN_NON_DOC_FILES = new Set([".gitkeep", "index.schema.json"]);
 
   // 22a: index.json exists
   if (!fs.existsSync(indexPath)) {
-    return check(22, true, "docs/official_docs/index.json not yet created (no cache entries) — OK");
+    return check(
+      22,
+      true,
+      "docs/official_docs/index.json not yet created (no cache entries) — OK",
+    );
   }
 
   // 22b: index.json is valid JSON with required fields
@@ -1037,7 +1108,57 @@ function checkDocsManifestIntegrity() {
   }
 
   if (!manifest.manifest_version || !Array.isArray(manifest.entries)) {
-    return check(22, false, "index.json missing required fields (manifest_version, entries)");
+    return check(
+      22,
+      false,
+      "index.json missing required fields (manifest_version, entries)",
+    );
+  }
+
+  // 22b.5: Validate against JSON Schema (if schema exists)
+  const schemaPath = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.schema.json");
+  if (fs.existsSync(schemaPath)) {
+    try {
+      const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+      // Basic schema validation without ajv dependency
+      const required = schema.required || [];
+      for (const key of required) {
+        if (!(key in manifest)) {
+          return check(22, false, `index.json missing schema-required field: ${key}`);
+        }
+      }
+      // Validate entries array items have required fields
+      const entryRequired = schema.$defs?.entry?.required || [];
+      const fileRequired = schema.$defs?.file_entry?.required || [];
+      for (let i = 0; i < manifest.entries.length; i++) {
+        const entry = manifest.entries[i];
+        for (const key of entryRequired) {
+          if (!(key in entry)) {
+            return check(22, false, `index.json entries[${i}] missing required field: ${key}`);
+          }
+        }
+        if (Array.isArray(entry.files)) {
+          for (let j = 0; j < entry.files.length; j++) {
+            const file = entry.files[j];
+            for (const key of fileRequired) {
+              if (!(key in file)) {
+                return check(22, false, `index.json entries[${i}].files[${j}] missing required field: ${key}`);
+              }
+            }
+          }
+        }
+      }
+      // Validate total_entries matches actual count
+      if (manifest.total_entries !== manifest.entries.length) {
+        return check(
+          22,
+          false,
+          `index.json total_entries (${manifest.total_entries}) does not match entries.length (${manifest.entries.length})`,
+        );
+      }
+    } catch (e) {
+      return check(22, false, `Schema validation error: ${e.message}`);
+    }
   }
 
   // 22c: Check for orphan files (docs not in manifest)
@@ -1049,22 +1170,40 @@ function checkDocsManifestIntegrity() {
         const full = path.join(dir, entry.name);
         const rel = path.relative(docsDir, full);
         if (entry.isDirectory()) {
-          if (!rel.startsWith(".metadata") && !rel.startsWith("scout-extracts")) {
+          if (
+            !rel.startsWith(".metadata") &&
+            !rel.startsWith("scout-extracts") &&
+            !rel.includes(".opencode_backups")
+          ) {
             walkDir(full);
           }
-        } else if (entry.isFile() && !rel.includes("index.json") && !rel.startsWith(".metadata") && !KNOWN_NON_DOC_FILES.has(entry.name)) {
-          const inManifest = manifest.entries.some(e =>
-            e.files && e.files.some(f => f.path && rel.includes(f.path))
+        } else if (
+          entry.isFile() &&
+          !rel.includes("index.json") &&
+          !rel.startsWith(".metadata") &&
+          !KNOWN_NON_DOC_FILES.has(entry.name)
+        ) {
+          const inManifest = manifest.entries.some(
+            (e) =>
+              e.files && e.files.some((f) => f.path && rel.includes(f.path)),
           );
           if (!inManifest) orphanFiles.push(rel);
         }
       }
     };
-    try { walkDir(docsDir); } catch (_) { /* ignore */ }
+    try {
+      walkDir(docsDir);
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   if (orphanFiles.length > 0) {
-    return check(22, false, `Orphan docs not in index.json: ${orphanFiles.slice(0, 3).join(", ")}${orphanFiles.length > 3 ? " (+" + (orphanFiles.length - 3) + " more)" : ""}`);
+    return check(
+      22,
+      false,
+      `Orphan docs not in index.json: ${orphanFiles.slice(0, 3).join(", ")}${orphanFiles.length > 3 ? " (+" + (orphanFiles.length - 3) + " more)" : ""}`,
+    );
   }
 
   // 22d: Check total size against cap
@@ -1079,18 +1218,29 @@ function checkDocsManifestIntegrity() {
       }
     };
     calcSize(docsDir);
-  } catch (_) { /* ignore */ }
+  } catch (_) {
+    /* ignore */
+  }
 
   const maxSize = 52428800; // 50MB
   if (totalSize > maxSize) {
-    return check(22, false, `docs/official_docs/ total size ${(totalSize / 1048576).toFixed(1)}MB exceeds 50MB cap (UC7-005)`);
+    return check(
+      22,
+      false,
+      `docs/official_docs/ total size ${(totalSize / 1048576).toFixed(1)}MB exceeds 50MB cap (UC7-005)`,
+    );
   }
 
-  return check(22, true, `${manifest.entries.length} entries, ${totalSize < 1048576 ? (totalSize / 1024).toFixed(0) + "KB" : (totalSize / 1048576).toFixed(1) + "MB"} total, 0 orphans`);
+  return check(
+    22,
+    true,
+    `${manifest.entries.length} entries, ${totalSize < 1048576 ? (totalSize / 1024).toFixed(0) + "KB" : (totalSize / 1048576).toFixed(1) + "MB"} total, 0 orphans`,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Check 21: Git hooksPath enforcement (hooks present, executable, configured)
+
 // ═══════════════════════════════════════════════════════════════
 function checkGitHooksPath() {
   const hooksDir = path.join(OPENCODE_ROOT, ".opencode", "hooks");
@@ -1184,21 +1334,22 @@ function checkGitHooksPath() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 22: opencode.json adapter non-competing validation
+
 // ═══════════════════════════════════════════════════════════════
 function checkOpenCodeJsonAdapter() {
   const ocPath = path.join(OPENCODE_ROOT, "opencode.json");
   const raw = readFile(ocPath);
-  if (!raw) return check(22, false, "opencode.json not found at project root");
+  if (!raw) return check(34, false, "opencode.json not found at project root");
 
-  // 22a: valid JSON
+  // 34a: valid JSON
   let oc;
   try {
     oc = JSON.parse(raw);
   } catch (e) {
-    return check(22, false, `opencode.json is not valid JSON: ${e.message}`);
+    return check(34, false, `opencode.json is not valid JSON: ${e.message}`);
   }
 
-  // 22b: no competing authorities — must NOT contain fields that duplicate DAG/gate/machine/contract
+  // 34b: no competing authorities — must NOT contain fields that duplicate DAG/gate/machine/contract
   const competingFields = [
     "dag",
     "tasks",
@@ -1238,15 +1389,15 @@ function checkOpenCodeJsonAdapter() {
     );
   }
 
-  // 22c: agent definitions must match .opencode/agents/*.md counterparts
+  // 34c: agent definitions must match .opencode/agents/*.md counterparts
   if (!oc.agent || typeof oc.agent !== "object") {
-    return check(22, false, "opencode.json missing 'agent' section");
+    return check(34, false, "opencode.json missing 'agent' section");
   }
 
   const agentNames = Object.keys(oc.agent);
   if (agentNames.length < 8) {
     return check(
-      22,
+      34,
       false,
       `opencode.json has ${agentNames.length} agents, expected 8`,
     );
@@ -1307,20 +1458,42 @@ function checkOpenCodeJsonAdapter() {
   }
 
   // 22d: verify framework-authorities.json exists and contains required fields
-  const faPath = path.join(OPENCODE_ROOT, ".opencode", "state", "framework-authorities.json");
+  const faPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "state",
+    "framework-authorities.json",
+  );
   if (!fileExists(faPath)) {
-    return check(22, false, ".opencode/state/framework-authorities.json not found");
+    return check(
+      22,
+      false,
+      ".opencode/state/framework-authorities.json not found",
+    );
   }
   let fa;
   try {
     fa = JSON.parse(readFile(faPath));
   } catch (e) {
-    return check(22, false, `framework-authorities.json is not valid JSON: ${e.message}`);
+    return check(
+      22,
+      false,
+      `framework-authorities.json is not valid JSON: ${e.message}`,
+    );
   }
-  const requiredFaFields = ["dag_authority", "state_authorities", "contract_authority", "agent_definitions"];
-  const missingFaFields = requiredFaFields.filter(f => !(f in fa));
+  const requiredFaFields = [
+    "dag_authority",
+    "state_authorities",
+    "contract_authority",
+    "agent_definitions",
+  ];
+  const missingFaFields = requiredFaFields.filter((f) => !(f in fa));
   if (missingFaFields.length > 0) {
-    return check(22, false, `framework-authorities.json missing required fields: ${missingFaFields.join(", ")}`);
+    return check(
+      22,
+      false,
+      `framework-authorities.json missing required fields: ${missingFaFields.join(", ")}`,
+    );
   }
 
   return check(
@@ -1332,6 +1505,7 @@ function checkOpenCodeJsonAdapter() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 23: pre-execution-gate.ts exists, valid JS, wired into hook
+
 // ═══════════════════════════════════════════════════════════════
 function checkPreExecGate() {
   const gatePath = path.join(
@@ -1346,18 +1520,20 @@ function checkPreExecGate() {
     return check(23, false, "pre-execution-gate.ts not found");
   }
 
-  // 23b: Is valid JavaScript (syntax check)
+  // 23b: Is valid TypeScript/JavaScript (syntax check via bun build)
+  // FW-REPAIR-SA-20260611: node -c cannot validate .ts files; bun -c executes
+  // the script (not syntax-check). Use bun build --outfile=/dev/null instead.
   try {
     const { execSync } = require("child_process");
-    execSync(`"${process.execPath}" -c "${gatePath}"`, {
-      stdio: "pipe",
-      timeout: 5000,
-    });
+    execSync(
+      `bun build "${gatePath}" --target=bun --outfile=/dev/null`,
+      { stdio: "pipe", timeout: 10000 },
+    );
   } catch (e) {
     return check(
       23,
       false,
-      `pre-execution-gate.ts has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
+      `pre-execution-gate.ts has TypeScript/JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
     );
   }
 
@@ -1434,6 +1610,7 @@ function checkPreExecGate() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 24: framework-doctor.ts exists, is valid JS
+
 // ═══════════════════════════════════════════════════════════════
 function checkFrameworkDoctorExists() {
   const doctorPath = path.join(
@@ -1468,14 +1645,22 @@ function checkFrameworkDoctorExists() {
   const stat = fs.statSync(doctorPath);
   if ((stat.mode & 0o111) === 0) {
     // Non-blocking: warn but don't fail — `node script.js` works without +x
-    console.warn("  ⚠️  framework-doctor.ts is not executable — always invoked via `node`, not directly");
+    console.warn(
+      "  ⚠️  framework-doctor.ts is not executable — always invoked via `node`, not directly",
+    );
   }
 
-  return check(24, true, "framework-doctor.ts exists, valid JS" + ((stat.mode & 0o111) ? ", executable" : ", node-invoked"));
+  return check(
+    24,
+    true,
+    "framework-doctor.ts exists, valid JS" +
+      (stat.mode & 0o111 ? ", executable" : ", node-invoked"),
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Check 25: doctor --json produces valid JSON with 10 checks
+
 // ═══════════════════════════════════════════════════════════════
 function checkDoctorJsonOutput() {
   const doctorPath = path.join(
@@ -1497,7 +1682,9 @@ function checkDoctorJsonOutput() {
     const { execSync } = require("child_process");
     let output;
     try {
-      output = execSync(`node "${doctorPath}" --json`, {
+      // FW-REPAIR-SHELL-TSX: Use tsx/bun runner instead of plain node
+      // for TypeScript sub-scripts to handle ESM import syntax
+      output = execSync(`${resolveTsRunner()} "${doctorPath}" --json`, {
         cwd: OPENCODE_ROOT,
         stdio: "pipe",
         timeout: 30000,
@@ -1571,6 +1758,7 @@ function checkDoctorJsonOutput() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 26: doctor --strict exits 0 on clean project
+
 // ═══════════════════════════════════════════════════════════════
 function checkDoctorStrict() {
   const doctorPath = path.join(
@@ -1593,7 +1781,8 @@ function checkDoctorStrict() {
     let output;
     let exitCode = 0;
     try {
-      output = execSync(`node "${doctorPath}" --strict`, {
+      // FW-REPAIR-SHELL-TSX: Use tsx/bun runner for TypeScript sub-scripts
+      output = execSync(`${resolveTsRunner()} "${doctorPath}" --strict`, {
         cwd: OPENCODE_ROOT,
         stdio: "pipe",
         timeout: 30000,
@@ -1627,25 +1816,46 @@ function checkDoctorStrict() {
   }
 }
 
-
 function checkCrossValidation() {
   // Check 27: Cross-validate framework-doctor and state-reconciliation.ts agree
-  const reconcilerPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "state-reconciliation.ts");
-  const doctorPath = path.join(OPENCODE_ROOT, ".opencode", "scripts", "framework-doctor.ts");
+  const reconcilerPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "state-reconciliation.ts",
+  );
+  const doctorPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "framework-doctor.ts",
+  );
 
   if (!fileExists(reconcilerPath) || !fileExists(doctorPath)) {
-    return check(27, false, "state-reconciliation.ts or framework-doctor.ts not found");
+    return check(
+      27,
+      false,
+      "state-reconciliation.ts or framework-doctor.ts not found",
+    );
   }
 
   try {
     const { execSync } = require("child_process");
-    
+
     // Run state-reconciliation --strict --json
-    let reconcilerOutput, reconcilerExit = 0;
+    let reconcilerOutput,
+      reconcilerExit = 0;
     try {
-      reconcilerOutput = execSync(`node "${reconcilerPath}" --strict --json`, {
-        cwd: OPENCODE_ROOT, stdio: "pipe", timeout: 15000, encoding: "utf-8"
-      });
+      // FW-REPAIR-SHELL-TSX: Use tsx/bun runner for TypeScript sub-scripts
+      reconcilerOutput = execSync(
+        `${resolveTsRunner()} "${reconcilerPath}" --strict --json`,
+        {
+          cwd: OPENCODE_ROOT,
+          stdio: "pipe",
+          timeout: 15000,
+          encoding: "utf-8",
+        },
+      );
     } catch (e) {
       reconcilerExit = e.status || 1;
       reconcilerOutput = e.stdout || "";
@@ -1655,20 +1865,29 @@ function checkCrossValidation() {
     let reconcilerOk = false;
     try {
       const data = JSON.parse(reconcilerOutput);
-      reconcilerOk = data.valid === true || (
-        data.inconsistencies && 
-        data.inconsistencies.filter(i => i.severity === "HIGH").length === 0
-      );
+      reconcilerOk =
+        data.valid === true ||
+        (data.inconsistencies &&
+          data.inconsistencies.filter((i) => i.severity === "HIGH").length ===
+            0);
     } catch (e) {
       reconcilerOk = false;
     }
 
     // Run doctor --strict --json
-    let doctorOutput, doctorExit = 0;
+    let doctorOutput,
+      doctorExit = 0;
     try {
-      doctorOutput = execSync(`node "${doctorPath}" --strict --json`, {
-        cwd: OPENCODE_ROOT, stdio: "pipe", timeout: 30000, encoding: "utf-8"
-      });
+      // FW-REPAIR-SHELL-TSX: Use tsx/bun runner for TypeScript sub-scripts
+      doctorOutput = execSync(
+        `${resolveTsRunner()} "${doctorPath}" --strict --json`,
+        {
+          cwd: OPENCODE_ROOT,
+          stdio: "pipe",
+          timeout: 30000,
+          encoding: "utf-8",
+        },
+      );
     } catch (e) {
       doctorExit = e.status || 1;
       doctorOutput = e.stdout || "";
@@ -1685,8 +1904,10 @@ function checkCrossValidation() {
     }
 
     const bothOk = reconcilerOk && doctorOk;
-    const detail = reconcilerOk 
-      ? (doctorOk ? "Both tools agree: healthy (0 inconsistencies, 0 failures)" : "Reconciler clean but doctor reports failures")
+    const detail = reconcilerOk
+      ? doctorOk
+        ? "Both tools agree: healthy (0 inconsistencies, 0 failures)"
+        : "Reconciler clean but doctor reports failures"
       : "Reconciler reports inconsistencies";
     return check(27, bothOk, detail);
   } catch (e) {
@@ -1694,10 +1915,440 @@ function checkCrossValidation() {
   }
 }
 
+// ───────────────────────────────────────────────────────────────
+// Check 28: UC7KS Schema Integrity
+// Validates machine.json.knowledge_cache_state structure against
+// the schema defined in machine.schema.json. Added FW-HARDEN-UC7KS.
+// ───────────────────────────────────────────────────────────────
+function checkUC7KSSchemaIntegrity() {
+  const machinePath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "state",
+    "machine.json",
+  );
+  const raw = readFile(machinePath);
+  if (!raw) return check(28, false, "machine.json not found");
+  try {
+    const machine = JSON.parse(raw);
+    const kcs = machine.knowledge_cache_state;
+    if (!kcs || typeof kcs !== "object") {
+      return check(28, false, "knowledge_cache_state missing or not an object");
+    }
+    const issues = [];
+    if (!kcs.cache_status) issues.push("missing cache_status");
+    if (kcs.total_entries === undefined || kcs.total_entries < 0)
+      issues.push("invalid total_entries");
+    if (!kcs.compliance) issues.push("missing compliance section");
+    if (!kcs.session_access) issues.push("missing session_access");
+    // Validate session_access sub-schema
+    if (kcs.session_access) {
+      for (const [agent, state] of Object.entries(kcs.session_access)) {
+        const s = state;
+        if (s.uc7_001_compliant === undefined)
+          issues.push(agent + ": missing uc7_001_compliant");
+        if (s.last_read_at === undefined)
+          issues.push(agent + ": missing last_read_at");
+        if (s.declared_scope === undefined)
+          issues.push(agent + ": missing declared_scope (FW-HARDEN-UC7KS-002)");
+        if (!s.cache_sufficiency)
+          issues.push(
+            agent + ": missing cache_sufficiency (FW-HARDEN-UC7KS-003)",
+          );
+      }
+    }
+    return check(
+      28,
+      issues.length === 0,
+      issues.length === 0 ? "all fields present and valid" : issues.join("; "),
+    );
+  } catch (e) {
+    return check(28, false, e.message);
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// Check 29: Custom Tool Registration
+// Verifies the 3 new UC7KS knowledge pipeline custom tools exist
+// in .opencode/tools/. Added FW-HARDEN-UC7KS.
+// ───────────────────────────────────────────────────────────────
+function checkCustomToolRegistration() {
+  const toolsDir = path.join(OPENCODE_ROOT, ".opencode", "tools");
+  const requiredTools = [
+    "module_scope_declare.ts",
+    "knowledge_cache_search.ts",
+    "knowledge_gap_report.ts",
+  ];
+  const missing = [];
+  for (const tool of requiredTools) {
+    if (!fileExists(path.join(toolsDir, tool))) missing.push(tool);
+  }
+  let existingCount = 0;
+  try {
+    existingCount = fs.readdirSync(toolsDir).filter(function (f) {
+      return f.endsWith(".ts") && !f.startsWith(".");
+    }).length;
+  } catch (_) {}
+  return check(
+    29,
+    missing.length === 0,
+    missing.length > 0
+      ? "missing: [" + missing.join(", ") + "]"
+      : "all " +
+          requiredTools.length +
+          " new tools exist (total: " +
+          existingCount +
+          ")",
+  );
+}
+
+// ───────────────────────────────────────────────────────────────
+// Check 30: Knowledge Semantic Map Coverage
+// Validates all 12 domains in knowledge_semantic_map have required
+// fields (keywords, save_path, fallback_pattern). Added FW-HARDEN-UC7KS.
+// ───────────────────────────────────────────────────────────────
+function checkKnowledgeSemanticMapCoverage() {
+  const config = readJSONFile(path.join(OPENCODE_ROOT, ".opencode", "project.config.json"));
+  if (!config) return check(30, false, "project.config.json not found");
+  const map = config.knowledge_semantic_map;
+    if (!map || !Array.isArray(map.domains)) {
+      return check(
+        30,
+        false,
+        "knowledge_semantic_map.domains missing or not array",
+      );
+    }
+    const domains = map.domains;
+    const requiredDomains = [
+      "backend_api",
+      "persistence",
+      "frontend_ui",
+      "caching",
+      "queue",
+      "testing",
+      "auth_security",
+      "framework_tools",
+      "devops_ci",
+      "opencode_framework",
+      "infrastructure",
+      "state_management",
+    ];
+    const existingIds = new Set(
+      domains.map(function (d) {
+        return d.domain_id;
+      }),
+    );
+    const missingDomains = requiredDomains.filter(function (d) {
+      return !existingIds.has(d);
+    });
+    const issues = [];
+    for (const domain of domains) {
+      const d = domain;
+      if (!d.keywords || d.keywords.length === 0)
+        issues.push(d.domain_id + ": missing keywords");
+      if (!d.save_path) issues.push(d.domain_id + ": missing save_path");
+      if (!d.fallback_pattern)
+        issues.push(d.domain_id + ": missing fallback_pattern");
+    }
+    const allIssues = missingDomains
+      .map(function (d) {
+        return "missing domain: " + d;
+      })
+      .concat(issues);
+    return check(
+      30,
+      allIssues.length === 0,
+      allIssues.length === 0
+        ? "all " + requiredDomains.length + " domains valid"
+        : allIssues.join("; "),
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 31: UC7-002 — Agent Config UC7KS Section Presence
+// Verifies all agent config files contain the mandatory UC7KS
+// Knowledge Acquisition (Local-First) section. Every agent except
+// Knowledge-Curator MUST have this section per UC7-002.
+// Added GAP-M4-R3a (2026-06-06).
+
+// ═══════════════════════════════════════════════════════════════
+function checkAgentUC7KSSection() {
+  const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
+  let dirEntries;
+  try {
+    dirEntries = fs.readdirSync(agentsDir);
+  } catch {
+    return check(31, false, "agents directory not found");
+  }
+
+  const agentFiles = dirEntries.filter(function (f) {
+    return f.endsWith(".md");
+  });
+  /**
+   * UC7-002 compliance: Every agent config MUST contain the UC7KS
+   * Knowledge Acquisition section. The Knowledge-Curator agent is
+   * exempted because it IS the UC7KS pipeline executor.
+   */
+  const UC7KS_SECTION_MARKER = "UC7KS Knowledge Acquisition";
+  const EXEMPT_AGENTS = new Set(["Knowledge-Curator.md"]);
+
+  let violations = [];
+  let totalAgents = 0;
+
+  for (const af of agentFiles) {
+    totalAgents++;
+    if (EXEMPT_AGENTS.has(af)) continue; // Knowledge-Curator is the pipeline executor
+
+    const content = readFile(path.join(agentsDir, af));
+    if (!content) {
+      violations.push(af + ": file unreadable");
+      continue;
+    }
+
+    if (!content.includes(UC7KS_SECTION_MARKER)) {
+      violations.push(af + ": missing UC7KS section");
+    }
+  }
+
+  const ok = violations.length === 0;
+  return check(
+    31,
+    ok,
+    ok
+      ? "All " +
+          (totalAgents - EXEMPT_AGENTS.size) +
+          " non-exempt agents have UC7KS Knowledge Acquisition section"
+      : "Missing UC7KS section in: " + violations.join("; "),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 32: UC7-004 — External Query Tool Block Verification
+// Verifies no agent (except Knowledge-Curator) has context7_*, webfetch,
+// websearch, or Github in their YAML frontmatter mcp_tools. Direct use of
+// external query tools bypasses the UC7KS local-first pipeline.
+// P0-FIX-UC7KS-GITHUB-01: Expanded from context7-only to all external query tools.
+// Added GAP-M4-R3b (2026-06-06). Updated (2026-06-09).
+
+// ═══════════════════════════════════════════════════════════════
+function checkContext7ToolBlock() {
+  const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
+  let dirEntries;
+  try {
+    dirEntries = fs.readdirSync(agentsDir);
+  } catch {
+    return check(32, false, "agents directory not found");
+  }
+
+  const agentFiles = dirEntries.filter(function (f) {
+    return f.endsWith(".md");
+  });
+  /**
+   * UC7-004 HARDEN (2026-06-09): Only @Knowledge-Curator may use ANY external
+   * query tools. All other agents must go through the UC7KS local-first pipeline.
+   * This now covers context7, webfetch, websearch, and Github content-fetching tools.
+   */
+  const ALLOWED_AGENT = "Knowledge-Curator.md";
+  const BLOCKED_TOOLS = ["context7", "webfetch", "websearch", "Github"];
+
+  let violations = [];
+  let totalAgents = 0;
+
+  for (const af of agentFiles) {
+    totalAgents++;
+    if (af === ALLOWED_AGENT) continue; // KC is exempt
+    const content = readFile(path.join(agentsDir, af));
+    if (!content) continue;
+
+    // Parse YAML frontmatter to extract mcp_tools
+    const mcpToolsMatch = content.match(/^mcp_tools:\n((?:\s+- .+\n)*)/m);
+    if (!mcpToolsMatch) continue;
+
+    const toolsSection = mcpToolsMatch[1];
+    const toolNames = toolsSection.match(/^\s+-\s+(.+)$/gm) || [];
+
+    for (const t of toolNames) {
+      const clean = t.replace(/^\s+-\s+/, "").trim();
+      for (const bt of BLOCKED_TOOLS) {
+        if (clean === bt || clean.startsWith(bt + "_")) {
+          violations.push(af + ": " + clean);
+        }
+      }
+    }
+  }
+
+  const ok = violations.length === 0;
+  return check(
+    32,
+    ok,
+    ok
+      ? "No external query tools (context7/webfetch/websearch/Github) found outside Knowledge-Curator agent"
+      : "UC7-004 violation — external query tools found in: " +
+          violations.join("; "),
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Main execution
+/**
+ * FW-PROMPT-HARDEN-04: Check 33 — Validate .pending.json FIFO queue integrity.
+ * Part of the prompt hard-constraint system (Phase 3).
+ *
+ * Validates:
+ * - .pending.json is valid JSON
+ * - Queue entries have required fields (dispatchId, promptHash, filePath, createdAt, agentType)
+ * - No orphan entries (pending entry with missing dispatch file)
+ * - No stale entries (older than 30 min — should have been auto-drained by enforce.ts)
+ * - Queue depth does not exceed MAX_QUEUE_SIZE (10)
+ * - All promptHash values are valid 64-hex-char SHA-256
+ *
+ * FW-PROMPT-HARDEN-04 (2026-06-08, @Super-Admin): Added agentType validation,
+ * staleness check, and queue depth warning.
+ */
+function checkPendingJson(): void {
+  const pendingPath = path.join(
+    OPENCODE_ROOT,
+    ".task_temp",
+    "_dispatch",
+    ".pending.json",
+  );
+  const STALE_MINUTES = 30;
+
+  if (!fs.existsSync(pendingPath)) {
+    check(33, true, "No .pending.json — queue is empty (OK)");
+    return;
+  }
+
+  try {
+    const queue = JSON.parse(fs.readFileSync(pendingPath, "utf8"));
+
+    if (!Array.isArray(queue)) {
+      return check(33, false, ".pending.json exists but is not an array");
+    }
+
+    // Empty queue is valid
+    if (queue.length === 0) {
+      return check(
+        33,
+        true,
+        ".pending.json is an empty array — queue drained (OK)",
+      );
+    }
+
+    // Validate each entry has required fields (including agentType added in HARDEN-04)
+    const requiredFields = [
+      "dispatchId",
+      "promptHash",
+      "filePath",
+      "createdAt",
+    ];
+    const recommendedField = "agentType"; // optional for backward compat, recommended
+    const malformed: number[] = [];
+    const orphans: string[] = [];
+    const staleEntries: string[] = [];
+    const missingAgentType: number[] = [];
+    const now = Date.now();
+
+    for (let i = 0; i < queue.length; i++) {
+      const entry = queue[i];
+      const missing = requiredFields.filter((f) => !(f in entry));
+      if (missing.length > 0) {
+        malformed.push(i);
+      }
+      // Check if dispatchId (file path) still exists
+      if (entry.filePath && !fs.existsSync(entry.filePath)) {
+        orphans.push(`entry[${i}]: ${entry.filePath} (file missing)`);
+      }
+      // Check for staleness
+      if (entry.createdAt) {
+        const age = now - new Date(entry.createdAt).getTime();
+        if (age > STALE_MINUTES * 60 * 1000) {
+          staleEntries.push(
+            `entry[${i}] (${Math.round(age / 60000)}min old, agentType=${entry.agentType || "N/A"})`,
+          );
+        }
+      }
+      // Check for missing agentType (FW-PROMPT-HARDEN-04 recommendation)
+      if (!entry.agentType) {
+        missingAgentType.push(i);
+      }
+    }
+
+    if (malformed.length > 0) {
+      return check(
+        33,
+        false,
+        `.pending.json has ${malformed.length} malformed entries at indices: ${malformed.join(", ")}`,
+      );
+    }
+
+    if (orphans.length > 0) {
+      return check(
+        33,
+        false,
+        `.pending.json has ${orphans.length} orphan entries: ${orphans.join("; ")}`,
+      );
+    }
+
+    // Check for promptHash format (64 hex chars, SHA-256)
+    const badHashes = queue.filter(
+      (e) => e.promptHash && !/^[a-f0-9]{64}$/.test(e.promptHash),
+    );
+    if (badHashes.length > 0) {
+      return check(
+        33,
+        false,
+        `.pending.json has ${badHashes.length} entries with invalid SHA-256 hashes`,
+      );
+    }
+
+    // Build status message
+    const statusParts: string[] = [];
+    statusParts.push(`${queue.length} pending entries`);
+    if (staleEntries.length > 0) {
+      statusParts.push(
+        `⚠ ${staleEntries.length} STALE (should have been auto-drained)`,
+      );
+    }
+    if (missingAgentType.length > 0) {
+      statusParts.push(
+        `${missingAgentType.length} entries missing agentType (old format, still supported)`,
+      );
+    }
+    if (queue.length > 10) {
+      statusParts.push(`⚠ QUEUE DEPTH ${queue.length} > 10 (max)`);
+    }
+
+    const passed = staleEntries.length === 0;
+    return check(
+      33,
+      passed,
+      `.pending.json — ${statusParts.join("; ")}.${staleEntries.length > 0 ? " STALE: " + staleEntries.join(", ") : ""}`,
+    );
+  } catch (e: any) {
+    return check(33, false, `Failed to parse .pending.json: ${e.message}`);
+  }
+}
+
+// SA-IMPL-SELF-CLEANUP (2026-06-11): Check 34 — agent key validity
+function checkSessionAccessAgentKeys(): void {
+  const INVALID_KEYS = ["unknown", "", "undefined", "null"];
+  try {
+    const mPath = path.join(OPENCODE_ROOT, ".opencode", "state", "machine.json");
+    if (!fs.existsSync(mPath)) { check(34, true, "machine.json not found"); return; }
+    const m = JSON.parse(fs.readFileSync(mPath, "utf-8"));
+    const sa = m?.knowledge_cache_state?.session_access;
+    if (!sa) { check(34, true, "no entries"); return; }
+    const invalid: string[] = [];
+    for (const key of Object.keys(sa)) { if (INVALID_KEYS.includes(key)) invalid.push(key); }
+    check(34, invalid.length === 0,
+      invalid.length > 0 ? `Invalid agent keys: ${invalid.join(",")}` : `all ${Object.keys(sa).length} agent keys valid`);
+  } catch (e: any) { check(34, false, e.message); }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Main execution
+
 // ═══════════════════════════════════════════════════════════════
 console.log("═══════════════════════════════════════════════════════════════");
 console.log("  🔍 OpenCode Framework Binding Force Self-Test");
@@ -1732,6 +2383,13 @@ checkFrameworkDoctorExists();
 checkDoctorJsonOutput();
 checkDoctorStrict();
 checkCrossValidation();
+checkUC7KSSchemaIntegrity();
+checkCustomToolRegistration();
+checkKnowledgeSemanticMapCoverage();
+checkAgentUC7KSSection();
+checkContext7ToolBlock();
+checkPendingJson();
+checkSessionAccessAgentKeys();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");

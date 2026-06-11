@@ -5,7 +5,7 @@
  * Uses pandoc for conversion when available; falls back to basic HTML-to-text stripping.
  * Original .html archived to .metadata/archives/ for 7 days.
  *
- * Usage: node .opencode/scripts/knowledge/compressor.js [filePath] [--all]
+ * Usage: bun .opencode/scripts/knowledge/compressor.ts [filePath] [--all]
  */
 
 const fs = require("fs");

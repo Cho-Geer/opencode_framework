@@ -4,7 +4,7 @@
  *
  * SINGLE SOURCE OF TRUTH for compliance gate state operations.
  * Currently duplicated across:
- *   - .opencode/scripts/mcp-tools/compliance-gate.js (1261 lines)
+ *   - .opencode/scripts/mcp-tools/compliance-gate.ts (1261 lines)
  *   - .opencode/plugins/lib/gate-lifecycle.ts (504 lines)
  *
  * Both will import from this file after consolidation.
@@ -23,9 +23,9 @@
  * @public — All exported functions are public API for framework consumers
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -638,8 +638,9 @@ export function completeSession(
     };
   }
 
-  // Task artifact validation
-  const missing = validateTaskArtifacts(session.task_id || null, root);
+  // Task artifact validation — @super-admin-handover-enforcement: pass
+  // sessionId as fallback so sessions without DAG task_id still get validated.
+  const missing = validateTaskArtifacts(session.task_id || null, root, sessionId);
   if (missing.length > 0 && mode !== 'advisory') {
     const now = new Date().toISOString();
     session.gate_status = 'failed';
@@ -805,19 +806,70 @@ export function drainStaleSessions(
 
 /**
  * Validate that HANDOVER.md and TASK_LOG.md exist for a given task.
+ *
+ * @super-admin-handover-enforcement: When taskId is null (common for
+ * @Super-Admin sessions that bypass the DAG), the sessionId is used as a
+ * fallback directory name under .task_temp/. This ensures @Super-Admin
+ * sessions receive the same HANDOVER.md enforcement as other agents,
+ * satisfying SUPER-ADMIN-HARDEN-01.
+ *
  * @public — Task artifact validation used by completeSession and external audits
+ * @param taskId - The task ID to validate (DAG task ID or dispatch session ID)
+ * @param root - Project root path
+ * @param sessionId - Fallback identifier when taskId is null (e.g., cg_ses_*)
+ * @since v1.2.0 — Added fallback subdirectory scan (SA-FIX-VALIDATE-PATH, @Super-Admin 2026-06-11)
  */
 export function validateTaskArtifacts(
   taskId: string | null,
   root?: string,
+  sessionId?: string | null,
 ): string[] {
-  if (!taskId) return [];
+  const resolvedId = taskId || sessionId;
+  if (!resolvedId) return [];
   const projectRoot = root || getProjectRoot();
-  const taskDir = path.join(projectRoot, '.task_temp', taskId);
+  const taskDir = path.join(projectRoot, '.task_temp', resolvedId);
   const missing: string[] = [];
-  if (!fileExists(path.join(taskDir, 'HANDOVER.md'))) missing.push('HANDOVER.md');
-  if (!fileExists(path.join(taskDir, 'TASK_LOG.md'))) missing.push('TASK_LOG.md');
+
+  // Check HANDOVER.md: primary path first, then fallback to immediate subdirectories.
+  // Dispatch sessions may nest artifacts under .task_temp/{taskId}/_dispatch/ or similar.
+  if (!fileExists(path.join(taskDir, 'HANDOVER.md'))) {
+    if (!scanSubdirForArtifact(taskDir, 'HANDOVER.md')) {
+      missing.push('HANDOVER.md');
+    }
+  }
+
+  // Check TASK_LOG.md: same primary+fallback strategy as HANDOVER.md.
+  if (!fileExists(path.join(taskDir, 'TASK_LOG.md'))) {
+    if (!scanSubdirForArtifact(taskDir, 'TASK_LOG.md')) {
+      missing.push('TASK_LOG.md');
+    }
+  }
+
   return missing;
+}
+
+/**
+ * Scan immediate subdirectories under a base directory for a specific artifact filename.
+ * Returns true if the artifact exists in any child directory.
+ *
+ * @internal — Fallback artifact discovery for dispatch sessions that create subdirectories
+ * @param baseDir - The base directory to scan (e.g., .task_temp/{taskId})
+ * @param artifact - The artifact filename to find (e.g., 'HANDOVER.md')
+ * @returns true if the artifact exists in any immediate subdirectory
+ * @since v1.2.0 — SA-FIX-VALIDATE-PATH, @Super-Admin 2026-06-11
+ */
+function scanSubdirForArtifact(baseDir: string, artifact: string): boolean {
+  try {
+    const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (fileExists(path.join(baseDir, entry.name, artifact))) return true;
+      }
+    }
+  } catch {
+    // Directory doesn't exist or is inaccessible — treat as not found
+  }
+  return false;
 }
 
 // ════════════════════════════════════════════════════════════

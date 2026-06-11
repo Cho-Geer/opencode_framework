@@ -1,0 +1,617 @@
+{
+  "formatVersion": "2.0",
+  "drained_sessions": {
+    "cg_ses_1780730911523": {
+      "session_id": "cg_ses_1780730911523",
+      "created_at": "2026-06-06T07:28:31.530Z",
+      "task_description": "Retrospective architectural approval for UC7KS Hard Constraint + Framework Optimization: review 14 implemented tasks (T-H01 through T-H14) against @Architect's CRIT-1~CRIT-4 findings, evaluate implementation handover for completeness, and issue ARBITER_APPROVAL.md or rejection with remediation steps.",
+      "enforcement_mode": "advisory",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Retrospective architectural approval: (1) Verify CRIT-1~4 resolution in implemented code, (2) Review HANDOVER.md for completeness, (3) Evaluate backward compatibility, (4) Check compliance/governance gaps, (5) Output ARBITER_APPROVAL.md or rejection.",
+      "confirmed_at": "2026-06-06T07:28:37.643Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "ARBITER-REVIEW-UC7KS",
+      "agent": "@Arbiter",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-07T07:28:37.643Z",
+      "drained_at": "2026-06-06T09:25:13.566Z",
+      "drain_reason": "armed for 1h without completion (threshold: 0.001h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1780749540367": {
+      "session_id": "cg_ses_1780749540367",
+      "created_at": "2026-06-06T12:39:00.369Z",
+      "task_description": "UC7KS pipeline compliance verification — final gate closure with task_id",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "UC7KS Compliance Verification complete. Artifacts at .task_temp/VERIFY-UC7KS-COMPLIANCE/. Closing gate.",
+      "confirmed_at": "2026-06-06T12:39:04.518Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "VERIFY-UC7KS-COMPLIANCE",
+      "agent": "Architect",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-07T12:39:04.518Z",
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "armed for 2h without completion (threshold: 0.001h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1780751550100": {
+      "session_id": "cg_ses_1780751550100",
+      "created_at": "2026-06-06T13:12:30.102Z",
+      "task_description": "创建 UC7KS-PIPELINE-STANDARD.md 独立文档——从现有文件（subagent-preamble.md, enforcement-modes-standard.md, TEMPLATE_VARIABLE_STANDARD.md, tool-execute.ts, uc7ks-enforcer.ts, pre-execution-hook.sh, framework-self-test.ts）中提取 UC7KS 知识获取管道规则，整合为一份独立标准文档保存到 .opencode/rules/rule_detail/UC7KS-PIPELINE-STANDARD.md。只读分析，不修改任何代码。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.5/sha256-4f27375694e7aa2b..., got sha256-e4cf83390dc4f81d...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 26 digests verified, 1 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "checked for 2h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780751916545": {
+      "session_id": "cg_ses_1780751916545",
+      "created_at": "2026-06-06T13:18:36.550Z",
+      "task_description": "解决以下问题：\n\n⚠️ Architect 被合规门阻断\n情况: @Architect 已准备好创建 UC7KS-PIPELINE-STANDARD.md，但在执行 compliance_gate_check 时被阻断：\n[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch\n— NO version change (expected v1.0.5/sha256-..., got sha256-...)\n— possible unauthorized modification\n根因: 上一个 @Super-Admin 会话修复 GAP-M2 时修改了 Orchestrator.md，但没有同步更新 .opencode/state/rule_registry.json 中的 SHA-256 摘要。\nArchitect 无法自行修复 — 因为 rule_registry.json 和 Orchestrator.md 都在 .opencode/** deny 范围内，Architect 没有写入权限。需要 @Super-Admin 解决。 \n\n根据.task_temp/VERIFY-UC7KS-COMPLIANCE/HANDOVER.md，分析并解决GAP-M3: 创建英文版 UC7KS-PIPELINE-STANDARD.md并更新相关既有文档的引用，确保框架的一致性。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.5/sha256-4f27375694e7aa2b..., got sha256-e4cf83390dc4f81d...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 26 digests verified, 1 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780754280815": {
+      "session_id": "cg_ses_1780754280815",
+      "created_at": "2026-06-06T13:58:00.817Z",
+      "task_description": "Run framework-self-test.ts and return complete results including all UC7KS-related checks (Check 17, 22, 28, 29, 30, 31, 32) PASS/FAIL status. Also verify rule_registry.json for digest mismatches.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_rules_rule_detail_UC7KS_PIPELINE_STANDARD_md",
+          "desc": "[Gate Preflight v2] .opencode/rules/rule_detail/UC7KS-PIPELINE-STANDARD.md: digest mismatch — NO version change (expected v1.0.0/sha256-a74415a3098b9f73..., got sha256-d3596bc3dc783665...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.3/sha256-6cec4582d5674ce1..., got sha256-74bb7ef06e790da0...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.5/sha256-9c40cc009b9df9b1..., got sha256-b2bd042d00cca6cc...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.5/sha256-a5c0e75b29d352b6..., got sha256-d9518708f586ac7d...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.6/sha256-e4cf83390dc4f81d..., got sha256-1fa7017407cd837f...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.3/sha256-065d05a79b31df78..., got sha256-543b2407328571ca...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Meta_Planner_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Meta-Planner.md: digest mismatch — NO version change (expected v1.0.0/sha256-901ec42567820304..., got sha256-b3606a8461098b6e...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Arbiter_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Arbiter.md: digest mismatch — NO version change (expected v1.0.0/sha256-d2a250b40503bc0a..., got sha256-6d209548d76c27dc...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: digest mismatch — NO version change (expected v1.0.1/sha256-23a73386bdd804ea..., got sha256-e678ca4c2ea63bb5...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 20 digests verified, 9 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780754451022": {
+      "session_id": "cg_ses_1780754451022",
+      "created_at": "2026-06-06T14:00:51.026Z",
+      "task_description": "Pre-test gate check: verify digest integrity and UC7KS cache status before subagent dispatch tests",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_rules_rule_detail_UC7KS_PIPELINE_STANDARD_md",
+          "desc": "[Gate Preflight v2] .opencode/rules/rule_detail/UC7KS-PIPELINE-STANDARD.md: digest mismatch — NO version change (expected v1.0.0/sha256-a74415a3098b9f73..., got sha256-d3596bc3dc783665...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.3/sha256-6cec4582d5674ce1..., got sha256-74bb7ef06e790da0...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.5/sha256-9c40cc009b9df9b1..., got sha256-b2bd042d00cca6cc...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.5/sha256-a5c0e75b29d352b6..., got sha256-d9518708f586ac7d...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.6/sha256-e4cf83390dc4f81d..., got sha256-1fa7017407cd837f...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.3/sha256-065d05a79b31df78..., got sha256-543b2407328571ca...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Meta_Planner_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Meta-Planner.md: digest mismatch — NO version change (expected v1.0.0/sha256-901ec42567820304..., got sha256-b3606a8461098b6e...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Arbiter_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Arbiter.md: digest mismatch — NO version change (expected v1.0.0/sha256-d2a250b40503bc0a..., got sha256-6d209548d76c27dc...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: digest mismatch — NO version change (expected v1.0.1/sha256-23a73386bdd804ea..., got sha256-e678ca4c2ea63bb5...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 20 digests verified, 9 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780754507482": {
+      "session_id": "cg_ses_1780754507482",
+      "created_at": "2026-06-06T14:01:47.483Z",
+      "task_description": "Fix 9 HIGH digest mismatches in rule_registry.json — recompute sha256 hashes for modified agent configs and rule files, update digests and bump minor versions",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_rules_rule_detail_UC7KS_PIPELINE_STANDARD_md",
+          "desc": "[Gate Preflight v2] .opencode/rules/rule_detail/UC7KS-PIPELINE-STANDARD.md: digest mismatch — NO version change (expected v1.0.0/sha256-a74415a3098b9f73..., got sha256-d3596bc3dc783665...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.3/sha256-6cec4582d5674ce1..., got sha256-74bb7ef06e790da0...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.5/sha256-9c40cc009b9df9b1..., got sha256-b2bd042d00cca6cc...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.5/sha256-a5c0e75b29d352b6..., got sha256-d9518708f586ac7d...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.6/sha256-e4cf83390dc4f81d..., got sha256-1fa7017407cd837f...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.3/sha256-065d05a79b31df78..., got sha256-543b2407328571ca...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Meta_Planner_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Meta-Planner.md: digest mismatch — NO version change (expected v1.0.0/sha256-901ec42567820304..., got sha256-b3606a8461098b6e...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Arbiter_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Arbiter.md: digest mismatch — NO version change (expected v1.0.0/sha256-d2a250b40503bc0a..., got sha256-6d209548d76c27dc...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: digest mismatch — NO version change (expected v1.0.1/sha256-23a73386bdd804ea..., got sha256-e678ca4c2ea63bb5...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 20 digests verified, 9 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780755950566": {
+      "session_id": "cg_ses_1780755950566",
+      "created_at": "2026-06-06T14:25:50.568Z",
+      "task_description": "验证compliance_gate_check修复：测试gate fix是否正常工作，确保passed状态正确反映仅HIGH/WARN级别违规阻断的语义",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 29 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780757021323": {
+      "session_id": "cg_ses_1780757021323",
+      "created_at": "2026-06-06T14:43:41.326Z",
+      "task_description": "根据.task_temp/ARC-KNOWLEDGE-STATE/HANDOVER.md，确认结论及方案是否准确",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 29 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-06T15:14:16.281Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780800428105": {
+      "session_id": "cg_ses_1780800428105",
+      "created_at": "2026-06-07T02:47:08.109Z",
+      "task_description": "thoroughly review whether the conclusion about tool-execute.ts lines 462/475 and framework-enforcer.ts line 1154 having a filePath bug (reading from input.args instead of output.args) is true, and if confirmed repair the bug. The claim is that the post-write hook function signature and filePath source are mismatched, causing UC7-003 (save-or-fail) to silently skip enforcement.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 29 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (13 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-07T13:36:58.097Z",
+      "drain_reason": "checked for 10h without confirmation (threshold: 0.01h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780805726307": {
+      "session_id": "cg_ses_1780805726307",
+      "created_at": "2026-06-07T04:15:26.308Z",
+      "task_description": "E2E verification: write-time audit after filePath fix",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "E2E write-time audit verification: read machine.json BEFORE, make tiny harmless edit, check machine.json AFTER for updated files_written and checks_run",
+      "confirmed_at": "2026-06-07T04:17:25.217Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": "E2E-WRITE-AUDIT",
+      "agent": "@Coder-BE",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-08T04:17:25.217Z",
+      "drained_at": "2026-06-07T13:36:58.097Z",
+      "drain_reason": "armed for 9h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1780830057543": {
+      "session_id": "cg_ses_1780830057543",
+      "created_at": "2026-06-07T11:00:57.546Z",
+      "task_description": "Close FW-DOWNGRADE-SA session — all changes already applied to 5 files. Artifacts at .task_temp/FW-DOWNGRADE-SA/",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: digest mismatch — NO version change (expected v1.0.7/sha256-1fa7017407cd837f..., got sha256-1af2d31d6a1ddaf3...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 28 digests verified, 1 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (16 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-07T13:36:58.097Z",
+      "drain_reason": "checked for 2h without confirmation (threshold: 0.01h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780836897550": {
+      "session_id": "cg_ses_1780836897550",
+      "created_at": "2026-06-07T12:54:57.551Z",
+      "task_description": "Super-Admin 修复 DAG 门禁问题：当前的 FRAMEWORK_TASK_ID 卡在旧值 VERIFY-FINAL-KC 上，导致调度类工具（dispatch_subagent、task、read）全部被 DAG 门禁阻止。修复策略：在 pre-execution-hook 中确认调度类工具不应检查 DAG，或绕过此限制。不破坏八大架构支柱。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (16 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-07T13:36:58.097Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.01h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780837314836": {
+      "session_id": "cg_ses_1780837314836",
+      "created_at": "2026-06-07T13:01:54.837Z",
+      "task_description": "Super-Admin 执行修复方案：在 enforce.ts 中将 DAG 检查限定到变异工具（write/edit/safe_edit/bash/safe_shell/safe_delete），同时添加 Super-Admin 绕过。详细方案见上一个 Super-Admin 会话输出。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (16 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-07T13:36:58.097Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.01h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1780838657156": {
+      "session_id": "cg_ses_1780838657156",
+      "created_at": "2026-06-07T13:24:17.157Z",
+      "task_description": "验证框架修复的 E2E 测试任务规划。需要Meta-Planner生成DAG，再按DAG调度Knowledge-Curator和Coder-BE验证钩子工作状态。",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "派遣Meta-Planner创建验证DAG任务，然后按DAG调度Knowledge-Curator（验证knowledge_state同步）和Coder-BE（验证Write-Time Audit和DAG/TDD门禁）",
+      "confirmed_at": "2026-06-07T13:24:23.158Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "@Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-08T13:24:23.158Z",
+      "drained_at": "2026-06-07T13:36:58.097Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1780839073641": {
+      "session_id": "cg_ses_1780839073641",
+      "created_at": "2026-06-07T13:31:13.642Z",
+      "task_description": "验证框架修复效果 - 按DAG流程：Meta-Planner创建验证DAG → Orchestrator调度Knowledge-Curator和Coder-BE验证",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "标准DAG流程：Meta-Planner创建3个验证DAG任务 → 按DAG调度Knowledge-Curator/Coder-BE验证钩子修复效果",
+      "confirmed_at": "2026-06-07T13:31:20.251Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "@Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-08T13:31:20.251Z",
+      "drained_at": "2026-06-07T13:36:58.097Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781137855457": {
+      "session_id": "cg_ses_1781137855457",
+      "created_at": "2026-06-11T00:30:55.461Z",
+      "task_description": "Run framework-self-test.ts --verbose, report all check results in a table, save to .task_temp/FW-SELF-TEST-FINAL/report.md",
+      "task_id": "FW-SELF-TEST-FINAL",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_agents_Architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: digest mismatch — NO version change (expected v1.0.6/sha256-1184d268b76ecdda..., got sha256-3576a56831c92adb...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: digest mismatch — NO version change (expected v1.0.7/sha256-d01c8da217386bfd..., got sha256-50cc516425080b16...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: digest mismatch — NO version change (expected v1.0.7/sha256-a614e1dcc11397ec..., got sha256-51f69604b420a8cf...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: digest mismatch — NO version change (expected v1.0.5/sha256-3c327d26886131a9..., got sha256-aab965e2214bbc6e...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Meta_Planner_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Meta-Planner.md: digest mismatch — NO version change (expected v1.0.3/sha256-72d0c09b5e674f4b..., got sha256-bc94077d0e08b2b3...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Arbiter_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Arbiter.md: digest mismatch — NO version change (expected v1.0.2/sha256-a642fa1b1b276031..., got sha256-b8b7761b3cb74150...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: digest mismatch — NO version change (expected v1.0.3/sha256-f5a5dceca106d873..., got sha256-955fb061c10fe898...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_digest_mismatch_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: digest mismatch — NO version change (expected v1.0.0/sha256-292fcd39775b935c..., got sha256-0efa1a3a34da08b5...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 22 digests verified, 8 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.3.0 (20 entries)",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_pipeline_not_started",
+          "desc": "[UC7KS] No agent has started the knowledge pipeline for task \"FW-SELF-TEST-FINAL\". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-11T00:33:04.988Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.01h)",
+      "drain_type": "STALE_CHECKED"
+    }
+  },
+  "last_drained": "2026-06-11T00:33:04.988Z",
+  "total_drained": 17
+}

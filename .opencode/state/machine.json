@@ -2,19 +2,19 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-06-01T09:55:56.472Z",
+    "lastUpdated": "2026-06-10T18:36:51.927Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 1027,
+    "revision": 1037,
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
-    "last_full_scan": "2026-06-01T09:55:56.466Z",
+    "last_full_scan": "2026-06-11T08:45:33.549Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-05-26T01:54:07.627Z",
+        "last_check": "2026-06-10T18:36:51.924Z",
         "waivers_applied": []
       },
       "unknown": {
@@ -28,17 +28,439 @@
         "violations": [],
         "last_check": "2026-05-21T01:27:15.995Z",
         "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_framework-enforcer_enforce.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T08:53:29.250Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_framework-enforcer_index.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T11:59:21.861Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_dispatch_subagent.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:05:48.959Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_command-tools_dispatch-subagent.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:06:00.294Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_pre-execution-gate.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:06:53.242Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_edit.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:08:47.796Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_shell.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:08:59.704Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_diff.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:09:10.951Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_restore.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:09:22.838Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_delete.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:09:34.731Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_knowledge_cache_search.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:09:45.557Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_module_scope_declare.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:09:57.117Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_compliance-gate.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:10:14.526Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_code-quality-lib.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:10:33.036Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_safe-bash-core.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T14:10:44.453Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_framework-enforcer_gate-checks.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T16:09:15.605Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-compliance-check.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T17:15:04.706Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-integrity-scan.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T17:15:47.260Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_gate-lifecycle-audit.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-08T17:15:58.972Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_booking_system_refactor_booking-backend_src_test_test-e2e-audit.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-09T00:59:50.418Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-reconciliation.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-09T02:18:51.658Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins__p1_cleanup_gate-checks.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-09T02:22:51.083Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins__p1_cleanup_checks_gate-checks.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-09T02:23:01.887Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-self-test.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-09T06:02:58.675Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_scope-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T16:18:30.529Z",
+        "waivers_applied": []
+      },
+      "head -3 _home_zhaoge_workspace_opencode_work-one_.opencode_lib_gate-checks.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T16:18:38.239Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_gate-checks.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T16:18:48.440Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_log-manager.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T16:46:59.968Z",
+        "waivers_applied": []
+      },
+      "bun _tmp_fix_note.js": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T16:52:36.960Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_scope-before.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:05:34.531Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_uc7ks-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:40:05.682Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_dispatch-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:43:06.586Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_gate-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:43:20.972Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_audit-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:46:17.891Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_task-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:46:30.457Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_cache-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:46:42.544Z",
+        "waivers_applied": []
+      },
+      "bun -e \"\nconst fs=require('fs');\nconst script = \\`\nconst fs=require('fs');\nconst p='_home_zhaoge_workspace_opencode_work-one_docs_review_plugin-backlog_framework-enforcer-module-inventory.md';\nconst c=fs.readFileSync(p,'utf8');\nconst oldStart=c.indexOf('## 当前缺口');\nconst oldEnd=c.indexOf('## 模块统计');\nconst newSection='## 重构完成（2026-06-11）\\\\n\\\\n13_13 插件全部上线并通过运行时验证。plugins_loaded: 13。\\\\n\\\\n| 域名 | before | after | 状态 |\\\\n|------|--------|-------|:---:|\\\\n| session | session.ts | — | 通过 |\\\\n| scope | scope-before.ts | scope-after.ts | 通过 |\\\\n| uc7ks | uc7ks-before.ts | uc7ks-after.ts | 通过 |\\\\n| dispatch | dispatch-before.ts | dispatch-after.ts | 通过 |\\\\n| gate | gate-before.ts | gate-after.ts | 通过 |\\\\n| audit | audit-before.ts | audit-after.ts | 通过 |\\\\n| task | — | task-after.ts | 通过 |\\\\n| cache | — | cache-after.ts | 通过 |\\\\n';\nfs.writeFileSync(p,c.slice(0,oldStart)+newSection+c.slice(oldEnd),'utf8');\nconsole.log('DONE');\n\\`;\nfs.writeFileSync('_tmp_update_inv.js', script, 'utf8');\nconsole.log('written');\n\" && bun _tmp_update_inv.js": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:57:14.246Z",
+        "waivers_applied": []
+      },
+      "_tmp_upd_inv.js": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:57:23.881Z",
+        "waivers_applied": []
+      },
+      "bun _tmp_upd_inv.js": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:57:29.267Z",
+        "waivers_applied": []
+      },
+      "ls -la _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_log-manager.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_shared-infra.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_agent-resolver.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_tool-scope.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_uc7ks-utils.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_write-audit-lib.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_gate-checks.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T17:59:48.203Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_gate-core.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T18:31:01.471Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib___tests___gate-core.test.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T18:31:51.690Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_state-utils.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T18:38:55.051Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_dispatch-before.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T20:51:04.315Z",
+        "waivers_applied": []
+      },
+      "grep -n 'should find artifacts via fallback\\|should use sessionId\\|subdirectory\\|SUBDIR' _home_zhaoge_workspace_opencode_work-one_.opencode_lib___tests___gate-core.test.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T21:38:14.451Z",
+        "waivers_applied": []
+      },
+      "cd _home_zhaoge_workspace_opencode_work-one && head -50 .opencode_lib_framework-enforcer.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T21:45:27.088Z",
+        "waivers_applied": []
+      },
+      "node .opencode_scripts_framework-self-test.js": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T22:07:34.209Z",
+        "waivers_applied": []
+      },
+      "npx tsx .opencode_scripts_framework-self-test.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T22:07:44.900Z",
+        "waivers_applied": []
+      },
+      "npx tsx .opencode_scripts_state-reconciliation.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T23:04:33.649Z",
+        "waivers_applied": []
+      },
+      "touch .opencode_scripts_mcp-tools_compliance-gate.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T23:22:37.414Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_safe-edit-core.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T23:48:11.970Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_nightly-compaction.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-10T23:48:48.320Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_code-quality-gate.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T00:06:16.494Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_keystone-validate.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T00:06:17.559Z",
+        "waivers_applied": []
+      },
+      "bun .opencode_scripts_framework-self-test.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T00:34:53.382Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_tdd-before.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T03:10:25.889Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_gate-before.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T03:11:04.017Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_tdd-after.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T03:43:05.030Z",
+        "waivers_applied": []
+      },
+      "test-tdd": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T03:53:27.150Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_uc7ks-utils.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T04:22:51.641Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_tolerant-json.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T06:55:07.948Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_json-validate.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T06:57:41.555Z",
+        "waivers_applied": []
+      },
+      "ls booking_system_refactor_booking-backend_prisma_schema.prisma 2>_dev_null && head -5 booking_system_refactor_booking-backend_prisma_schema.prisma": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T07:51:06.057Z",
+        "waivers_applied": []
+      },
+      "head -20 _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-self-test.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T07:57:11.787Z",
+        "waivers_applied": []
+      },
+      "wc -l _home_zhaoge_workspace_opencode_work-one_.opencode_lib_log-manager.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T08:03:33.884Z",
+        "waivers_applied": []
+      },
+      "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_code-quality-gate.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-11T09:03:29.440Z",
+        "waivers_applied": []
       }
     },
     "aggregate": {
       "total_violations": 0,
-      "dirty_modules": [],
+      "dirty_modules": [
+        "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_code-quality-gate.ts",
+        "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/code-quality-gate.ts"
+      ],
       "waived_modules": []
     }
   },
   "type_check_state": {
-    "status": "clean",
-    "dirty_files": [],
+    "status": "dirty",
+    "dirty_files": [
+      "node .opencode/scripts/framework-self-test.js",
+      "npx tsx .opencode/scripts/framework-self-test.ts",
+      "bun .opencode/scripts/framework-self-test.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-before.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-after.ts",
+      "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/modules/test-tdd/test.service.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-utils.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/tolerant-json.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/json-validate.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+      "ls booking_system_refactor/booking-backend/prisma/schema.prisma 2>/dev/null && head -5 booking_system_refactor/booking-backend/prisma/schema.prisma",
+      "head -20 /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+      "wc -l /home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+      "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/code-quality-gate.ts"
+    ],
     "incremental_errors": 0,
     "last_incremental_check": "2026-05-26T01:47:10.634Z",
     "last_full_check": "2026-05-26T10:43:06.251Z",
@@ -46,13 +468,367 @@
   },
   "dependency_state": {
     "last_check": "2026-05-26T01:47:10.634Z",
-    "violations": [],
+    "violations": [
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_edit.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_shell.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_diff.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_restore.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_delete.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/code-quality-lib.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-bash-core.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-compliance-check.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-integrity-scan.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/gate-lifecycle-audit.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/test/test-e2e-audit.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/_p1_cleanup/gate-checks.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/_p1_cleanup/checks/gate-checks.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "head -3 /home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "bun /tmp/fix_note.js",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-before.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/uc7ks-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/audit-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/cache-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "bun -e \"\nconst fs=require('fs');\nconst script = \\`\nconst fs=require('fs');\nconst p='/home/zhaoge/workspace/opencode/work-one/docs/review/plugin-backlog/framework-enforcer-module-inventory.md';\nconst c=fs.readFileSync(p,'utf8');\nconst oldStart=c.indexOf('## 当前缺口');\nconst oldEnd=c.indexOf('## 模块统计');\nconst newSection='## 重构完成（2026-06-11）\\\\n\\\\n13/13 插件全部上线并通过运行时验证。plugins_loaded: 13。\\\\n\\\\n| 域名 | before | after | 状态 |\\\\n|------|--------|-------|:---:|\\\\n| session | session.ts | — | 通过 |\\\\n| scope | scope-before.ts | scope-after.ts | 通过 |\\\\n| uc7ks | uc7ks-before.ts | uc7ks-after.ts | 通过 |\\\\n| dispatch | dispatch-before.ts | dispatch-after.ts | 通过 |\\\\n| gate | gate-before.ts | gate-after.ts | 通过 |\\\\n| audit | audit-before.ts | audit-after.ts | 通过 |\\\\n| task | — | task-after.ts | 通过 |\\\\n| cache | — | cache-after.ts | 通过 |\\\\n';\nfs.writeFileSync(p,c.slice(0,oldStart)+newSection+c.slice(oldEnd),'utf8');\nconsole.log('DONE');\n\\`;\nfs.writeFileSync('/tmp/update_inv.js', script, 'utf8');\nconsole.log('written');\n\" && bun /tmp/update_inv.js",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/tmp/upd_inv.js",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "bun /tmp/upd_inv.js",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "ls -la /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/log-manager.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/shared-infra.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/agent-resolver.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/tool-scope.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/uc7ks-utils.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/write-audit-lib.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/gate-checks.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-core.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/state-utils.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "grep -n 'should find artifacts via fallback\\|should use sessionId\\|subdirectory\\|SUBDIR' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "cd /home/zhaoge/workspace/opencode/work-one && head -50 .opencode/lib/framework-enforcer.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "node .opencode/scripts/framework-self-test.js",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/framework-self-test.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "touch .opencode/scripts/mcp-tools/compliance-gate.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-edit-core.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/code-quality-gate.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/keystone-validate.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "bun .opencode/scripts/framework-self-test.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-before.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-after.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/modules/test-tdd/test.service.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-utils.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/tolerant-json.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/json-validate.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "ls booking_system_refactor/booking-backend/prisma/schema.prisma 2>/dev/null && head -5 booking_system_refactor/booking-backend/prisma/schema.prisma",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "head -20 /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "wc -l /home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/code-quality-gate.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      }
+    ],
     "forbidden_rules_applied": 137,
     "status": "clean"
   },
   "format_state": {
-    "status": "clean",
-    "unformatted_files": [],
+    "status": "dirty",
+    "unformatted_files": [
+      "node .opencode/scripts/framework-self-test.js",
+      "npx tsx .opencode/scripts/framework-self-test.ts",
+      "bun .opencode/scripts/framework-self-test.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-before.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-after.ts",
+      "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/modules/test-tdd/test.service.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-utils.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/tolerant-json.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/json-validate.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+      "ls booking_system_refactor/booking-backend/prisma/schema.prisma 2>/dev/null && head -5 booking_system_refactor/booking-backend/prisma/schema.prisma",
+      "head -20 /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+      "wc -l /home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+      "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/code-quality-gate.ts"
+    ],
     "last_run": "2026-05-23T12:00:00.000Z",
     "last_check": "2026-05-26T01:47:10.634Z",
     "auto_fix_count": 51
@@ -176,32 +952,1354 @@
         ".task_temp/CI-HARDEN-003/bug-1706-report.md",
         ".opencode/scripts/pre-execution-hook.sh",
         ".opencode/scripts/gate-lifecycle-audit.js",
-        ".opencode/scripts/framework-compliance-check.js"
+        ".opencode/scripts/framework-compliance-check.js",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_edit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_edit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_shell.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_shell.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_diff.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_diff.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_restore.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_restore.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_delete.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/safe_delete.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/code-quality-lib.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/code-quality-lib.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-bash-core.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-bash-core.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-compliance-check.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-compliance-check.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-compliance-check.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-compliance-check.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-integrity-scan.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-integrity-scan.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/gate-lifecycle-audit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/gate-lifecycle-audit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/test/test-e2e-audit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/test/test-e2e-audit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/test/test-e2e-audit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/test/test-e2e-audit.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/_p1_cleanup/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/_p1_cleanup/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/_p1_cleanup/checks/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/_p1_cleanup/checks/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/enforce.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/framework-enforcer/index.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts",
+        "head -3 /home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+        "bun /tmp/fix_note.js",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/uc7ks-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/uc7ks-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/uc7ks-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/uc7ks-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/audit-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/cache-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/audit-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/cache-after.ts",
+        "bun -e \"\nconst fs=require('fs');\nconst script = \\`\nconst fs=require('fs');\nconst p='/home/zhaoge/workspace/opencode/work-one/docs/review/plugin-backlog/framework-enforcer-module-inventory.md';\nconst c=fs.readFileSync(p,'utf8');\nconst oldStart=c.indexOf('## 当前缺口');\nconst oldEnd=c.indexOf('## 模块统计');\nconst newSection='## 重构完成（2026-06-11）\\\\n\\\\n13/13 插件全部上线并通过运行时验证。plugins_loaded: 13。\\\\n\\\\n| 域名 | before | after | 状态 |\\\\n|------|--------|-------|:---:|\\\\n| session | session.ts | — | 通过 |\\\\n| scope | scope-before.ts | scope-after.ts | 通过 |\\\\n| uc7ks | uc7ks-before.ts | uc7ks-after.ts | 通过 |\\\\n| dispatch | dispatch-before.ts | dispatch-after.ts | 通过 |\\\\n| gate | gate-before.ts | gate-after.ts | 通过 |\\\\n| audit | audit-before.ts | audit-after.ts | 通过 |\\\\n| task | — | task-after.ts | 通过 |\\\\n| cache | — | cache-after.ts | 通过 |\\\\n';\nfs.writeFileSync(p,c.slice(0,oldStart)+newSection+c.slice(oldEnd),'utf8');\nconsole.log('DONE');\n\\`;\nfs.writeFileSync('/tmp/update_inv.js', script, 'utf8');\nconsole.log('written');\n\" && bun /tmp/update_inv.js",
+        "/tmp/upd_inv.js",
+        "bun /tmp/upd_inv.js",
+        "ls -la /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/log-manager.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/shared-infra.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/agent-resolver.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/tool-scope.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/uc7ks-utils.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/write-audit-lib.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/gate-checks.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-core.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/state-utils.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/state-utils.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "grep -n 'should find artifacts via fallback\\|should use sessionId\\|subdirectory\\|SUBDIR' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "cd /home/zhaoge/workspace/opencode/work-one && head -50 .opencode/lib/framework-enforcer.ts",
+        "node .opencode/scripts/framework-self-test.js",
+        "npx tsx .opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "node .opencode/scripts/framework-self-test.js",
+        "npx tsx .opencode/scripts/framework-self-test.ts",
+        "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "touch .opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-edit-core.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-edit-core.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-edit-core.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/code-quality-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/keystone-validate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "node .opencode/scripts/framework-self-test.js",
+        "npx tsx .opencode/scripts/framework-self-test.ts",
+        "bun .opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-after.ts",
+        "/home/zhaoge/workspace/opencode/work-one/booking_system_refactor/booking-backend/src/modules/test-tdd/test.service.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-utils.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/tolerant-json.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/json-validate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "bun .opencode/scripts/framework-self-test.ts",
+        "ls booking_system_refactor/booking-backend/prisma/schema.prisma 2>/dev/null && head -5 booking_system_refactor/booking-backend/prisma/schema.prisma",
+        "head -20 /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "wc -l /home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/code-quality-gate.ts"
       ],
-      "checks_run": 114,
-      "checks_passed": 92,
+      "checks_run": 546,
+      "checks_passed": 524,
       "checks_failed": 22,
       "violations_found": 22,
       "violations_resolved": 0,
       "scope_violations_attempted": 7
     },
-    "history": []
+    "history": [
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.task_temp/_audit_test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T17:51:16.437Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T17:51:56.171Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/cache-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T17:54:20.513Z"
+      },
+      {
+        "file": "bun -e \"\nconst fs=require('fs');\nconst script = \\`\nconst fs=require('fs');\nconst p='/home/zhaoge/workspace/opencode/work-one/docs/review/plugin-backlog/framework-enforcer-module-inventory.md';\nconst c=fs.readFileSync(p,'utf8');\nconst oldStart=c.indexOf('## 当前缺口');\nconst oldEnd=c.indexOf('## 模块统计');\nconst newSection='## 重构完成（2026-06-11）\\\\n\\\\n13/13 插件全部上线并通过运行时验证。plugins_loaded: 13。\\\\n\\\\n| 域名 | before | after | 状态 |\\\\n|------|--------|-------|:---:|\\\\n| session | session.ts | — | 通过 |\\\\n| scope | scope-before.ts | scope-after.ts | 通过 |\\\\n| uc7ks | uc7ks-before.ts | uc7ks-after.ts | 通过 |\\\\n| dispatch | dispatch-before.ts | dispatch-after.ts | 通过 |\\\\n| gate | gate-before.ts | gate-after.ts | 通过 |\\\\n| audit | audit-before.ts | audit-after.ts | 通过 |\\\\n| task | — | task-after.ts | 通过 |\\\\n| cache | — | cache-after.ts | 通过 |\\\\n';\nfs.writeFileSync(p,c.slice(0,oldStart)+newSection+c.slice(oldEnd),'utf8');\nconsole.log('DONE');\n\\`;\nfs.writeFileSync('/tmp/update_inv.js', script, 'utf8');\nconsole.log('written');\n\" && bun /tmp/update_inv.js",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T17:57:14.316Z"
+      },
+      {
+        "file": "/tmp/upd_inv.js",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T17:57:23.890Z"
+      },
+      {
+        "file": "ls -la /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/log-manager.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/shared-infra.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/agent-resolver.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/tool-scope.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/uc7ks-utils.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/write-audit-lib.ts /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/lib/gate-checks.ts",
+        "tool": "safe_shell",
+        "agent": "Orchestrator",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T17:59:48.215Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-core.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14d34a966ffeK63vOnRVxTJ9z0",
+        "timestamp": "2026-06-10T18:31:01.508Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14d34a966ffeK63vOnRVxTJ9z0",
+        "timestamp": "2026-06-10T18:31:27.746Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14d34a966ffeK63vOnRVxTJ9z0",
+        "timestamp": "2026-06-10T18:31:51.732Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14d34a966ffeK63vOnRVxTJ9z0",
+        "timestamp": "2026-06-10T18:32:12.478Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T18:38:32.956Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/state-utils.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T18:38:55.062Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/state-utils.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T18:39:01.184Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T18:45:47.373Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:55:14.158Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:55:39.572Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:55:45.552Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:55:51.648Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:56:09.418Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:56:17.005Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:56:44.559Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:56:49.842Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T19:57:14.040Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T20:14:13.795Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T20:51:04.328Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T21:16:18.614Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T21:16:24.858Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T21:16:34.447Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T21:16:40.734Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T21:16:48.732Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/dispatch_subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T21:17:07.316Z"
+      },
+      {
+        "file": "grep -n 'should find artifacts via fallback\\|should use sessionId\\|subdirectory\\|SUBDIR' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/__tests__/gate-core.test.ts",
+        "tool": "safe_shell",
+        "agent": "Orchestrator",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T21:38:14.463Z"
+      },
+      {
+        "file": "node .opencode/scripts/framework-self-test.js",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14c6dc814ffe77p0WhxNKHbcsn",
+        "timestamp": "2026-06-10T22:07:34.186Z"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/framework-self-test.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14c6dc814ffe77p0WhxNKHbcsn",
+        "timestamp": "2026-06-10T22:07:47.400Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T22:32:00.648Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_150de6ca7ffeQrdkA8Mw0762uQ",
+        "timestamp": "2026-06-10T22:35:18.984Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T22:59:32.509Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:01:25.146Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:01:35.040Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:02:06.865Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:02:19.130Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:02:27.558Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/task-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:02:38.088Z"
+      },
+      {
+        "file": "node .opencode/scripts/framework-self-test.js",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:03:26.592Z"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/framework-self-test.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:04:23.307Z"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:04:34.937Z"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:05:36.430Z"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:09:15.971Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:14:46.077Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:14:54.168Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:22:20.548Z"
+      },
+      {
+        "file": "touch .opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:22:37.423Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:23:13.706Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:23:26.625Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:23:38.451Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:23:43.350Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:23:47.455Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:26:51.140Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:47:26.687Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-edit-core.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:48:11.984Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-edit-core.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:48:24.371Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-edit-core.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:48:35.614Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:48:48.329Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:48:54.424Z"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:49:10.919Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-10T23:52:08.616Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T00:02:59.432Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/code-quality-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T00:06:16.543Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/keystone-validate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T00:06:17.569Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T00:06:18.575Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T00:06:22.908Z"
+      },
+      {
+        "file": "node .opencode/scripts/framework-self-test.js",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14beb3104ffeC5tvsXdbu3AuBc",
+        "timestamp": "2026-06-11T00:29:28.719Z"
+      },
+      {
+        "file": "npx tsx .opencode/scripts/framework-self-test.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14beb3104ffeC5tvsXdbu3AuBc",
+        "timestamp": "2026-06-11T00:29:40.591Z"
+      },
+      {
+        "file": "bun .opencode/scripts/framework-self-test.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14be66321ffeTSIZecZEG5moJa",
+        "timestamp": "2026-06-11T00:34:54.559Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14be3aedaffeCaHEltliI34Kvm",
+        "timestamp": "2026-06-11T00:38:11.979Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T03:10:25.902Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-before.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T03:11:04.057Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-after.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T03:43:05.071Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.task_temp/SA-FIX-PRECOMMIT-TDD/fix-precommit.js",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T03:57:50.852Z"
+      },
+      {
+        "file": "node .task_temp/SA-FIX-PRECOMMIT-TDD/fix-precommit.js",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T03:57:56.249Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.task_temp/SA-FIX-PRECOMMIT-TDD/fix-precommit.js",
+        "tool": "safe_delete",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T03:58:34.634Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:22:21.296Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-utils.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:22:51.702Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:23:00.626Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:37:29.386Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:37:39.648Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:38:13.643Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:38:25.671Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:38:32.776Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:47:33.399Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T04:47:40.444Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:30:03.477Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:30:57.262Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:31:07.997Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:31:29.235Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:31:51.002Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:33:06.587Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:33:14.926Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/nightly-compaction.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:33:41.833Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T05:34:31.654Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/tolerant-json.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:55:07.958Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:55:29.727Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:55:38.996Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:55:51.934Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:55:59.879Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:56:24.461Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:57:02.769Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:57:09.888Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:57:20.170Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/json-validate.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:57:41.564Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:58:00.134Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:58:58.419Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T06:59:46.397Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:00:17.360Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:00:32.777Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:01:07.957Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/command-tools/dispatch-subagent.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:19:35.341Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:20:01.575Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:20:09.919Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:20:18.932Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14f8e6ce5ffewcfS5xabOSZGoH",
+        "timestamp": "2026-06-11T07:20:26.575Z"
+      },
+      {
+        "file": "bun .opencode/scripts/framework-self-test.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a6459f1ffeCr2CU8qKyVwUq2",
+        "timestamp": "2026-06-11T07:36:26.493Z"
+      },
+      {
+        "file": "ls booking_system_refactor/booking-backend/prisma/schema.prisma 2>/dev/null && head -5 booking_system_refactor/booking-backend/prisma/schema.prisma",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T07:51:06.069Z"
+      },
+      {
+        "file": "head -20 /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T07:57:11.796Z"
+      },
+      {
+        "file": "wc -l /home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T08:03:33.901Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
+        "tool": "safe_edit",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a60b5e0ffe5P08apwV8ep37U",
+        "timestamp": "2026-06-11T08:44:36.673Z"
+      },
+      {
+        "file": "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode/scripts/mcp-tools/code-quality-gate.ts",
+        "tool": "safe_shell",
+        "agent": "Super-Admin",
+        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
+        "timestamp": "2026-06-11T09:03:29.450Z"
+      }
+    ]
   },
   "knowledge_cache_state": {
     "cache_status": "healthy",
-    "total_entries": 9,
-    "last_index_check": "2026-06-05T15:15:00.000Z",
+    "total_entries": 35,
+    "last_index_check": "2026-06-11T07:52:19.090Z",
     "last_fetch_at": "2026-06-05T15:05:00.000Z",
     "compliance": {
       "total_bypass_attempts": 1,
       "bypass_attempts_by_agent": {
-        "@Super-Admin": {
+        "Super-Admin": {
           "count": 1,
           "last_attempt_at": "2026-06-05T14:50:00.000Z",
           "last_tool_attempted": "webfetch"
         }
       },
-      "cache_hits": 2,
+      "cache_hits": 1971,
       "cache_misses": 5
     },
     "pipeline_integrity": {
@@ -210,13 +2308,274 @@
       "mismatch_count": 0
     },
     "session_access": {
-      "@Super-Admin": {
-        "last_read_at": "2026-06-06T01:07:00.000Z",
-        "last_file_read": "docs/official_docs/index.json",
+      "Super-Admin": {
+        "declared_scope": "opencode_framework",
+        "declared_at": "2026-06-11T09:18:05.252Z",
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-11T09:18:12.731Z",
+          "reason": "Found 21 matching cache entries for domain \"opencode_framework\": opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin",
+          "files_read": [
+            "opencode/framework/config.md",
+            "opencode/framework/skills.md",
+            "opencode/framework/cli.md",
+            "opencode/framework/index.md",
+            "opencode/framework/plugins.md",
+            "opencode/framework/tools.md",
+            "opencode/framework/custom-tools.md",
+            "opencode/framework/agents.md",
+            "opencode/source-analysis/agent-mode-values.md",
+            "opencode/framework/permissions.md",
+            "opencode/framework/mcp-servers.md",
+            "opencode/framework/policies.md",
+            "opencode/releases/v1.16.0-release-notes.md",
+            "opencode/mcp/mcp-servers-docs.md",
+            "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
+            "framework/mistake_precautions/plugin-debugging-precautions.md",
+            "opencode/source-analysis/agent-identity-plugin-hooks.md",
+            "framework/mistake_precautions/double-hook-trigger-prevention.md",
+            "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+            "framework/plugin-programming-conventions.md",
+            "opencode/releases/v1.17.2-release-notes.md"
+          ],
+          "content_summary": "21 entries covering 21 files: opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions | opencode cli commands reference environment variables"
+        },
+        "last_read_at": "2026-06-11T09:18:21.698Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/opencode/mcp/mcp-servers-docs.md",
         "uc7_001_compliant": true,
-        "total_cache_reads": 3
+        "total_cache_reads": 144,
+        "last_read": "2026-06-10T17:42:24.738Z",
+        "pipeline_task_id": "SA-UNIFY-005",
+        "pipeline_status": "completed",
+        "kc_dispatched": true,
+        "kc_dispatched_at": "2026-06-10T22:36:01.723Z"
+      },
+      "Arbiter": {
+        "declared_scope": "opencode_framework",
+        "declared_at": "2026-06-06T08:10:31.983Z",
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-06T08:10:31.983Z"
+        },
+        "last_read_at": "2026-06-06T08:10:36.011Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 1
+      },
+      "Orchestrator": {
+        "declared_scope": "infrastructure",
+        "declared_at": "2026-06-11T07:27:34.373Z",
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-11T07:27:40.127Z",
+          "reason": "Found 1 matching cache entries for domain \"infrastructure\": opencode built-in tools list permissions configuration",
+          "files_read": [
+            "opencode/framework/tools.md"
+          ],
+          "content_summary": "1 entries covering 1 files: opencode built-in tools list permissions configuration"
+        },
+        "last_read_at": "2026-06-11T07:27:40.127Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 21,
+        "pipeline_task_id": "LEGACY-VERIFY-V2-001",
+        "pipeline_status": "completed",
+        "kc_dispatched": true,
+        "kc_dispatched_at": "2026-06-11T07:28:09.549Z"
+      },
+      "Coder-BE": {
+        "last_read_at": "2026-06-11T00:21:59.687Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 9,
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-11T00:21:59.687Z"
+        },
+        "declared_scope": "opencode_framework",
+        "declared_at": "2026-06-11T00:21:59.420Z",
+        "pipeline_task_id": "CODER-KC-1",
+        "pipeline_status": "completed"
+      },
+      "Guardian": {
+        "declared_scope": "opencode_framework",
+        "declared_at": "2026-06-11T07:28:22.086Z",
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-11T07:28:26.882Z",
+          "reason": "Found 21 matching cache entries for domain \"opencode_framework\": opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin",
+          "files_read": [
+            "opencode/framework/config.md",
+            "opencode/framework/skills.md",
+            "opencode/framework/cli.md",
+            "opencode/framework/index.md",
+            "opencode/framework/plugins.md",
+            "opencode/framework/tools.md",
+            "opencode/framework/custom-tools.md",
+            "opencode/framework/agents.md",
+            "opencode/source-analysis/agent-mode-values.md",
+            "opencode/framework/permissions.md",
+            "opencode/framework/mcp-servers.md",
+            "opencode/framework/policies.md",
+            "opencode/releases/v1.16.0-release-notes.md",
+            "opencode/mcp/mcp-servers-docs.md",
+            "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
+            "framework/mistake_precautions/plugin-debugging-precautions.md",
+            "opencode/source-analysis/agent-identity-plugin-hooks.md",
+            "framework/mistake_precautions/double-hook-trigger-prevention.md",
+            "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+            "framework/plugin-programming-conventions.md",
+            "opencode/releases/v1.17.2-release-notes.md"
+          ],
+          "content_summary": "21 entries covering 21 files: opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions | opencode cli commands reference environment variables"
+        },
+        "last_read_at": "2026-06-11T07:28:26.882Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 3,
+        "pipeline_task_id": "T-Guardian-P1-1",
+        "pipeline_status": "completed"
+      },
+      "Architect": {
+        "declared_scope": "opencode_framework",
+        "declared_at": "2026-06-11T08:08:47.822Z",
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-11T08:08:52.635Z",
+          "reason": "Found 21 matching cache entries for domain \"opencode_framework\": opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin",
+          "files_read": [
+            "opencode/framework/config.md",
+            "opencode/framework/skills.md",
+            "opencode/framework/cli.md",
+            "opencode/framework/index.md",
+            "opencode/framework/plugins.md",
+            "opencode/framework/tools.md",
+            "opencode/framework/custom-tools.md",
+            "opencode/framework/agents.md",
+            "opencode/source-analysis/agent-mode-values.md",
+            "opencode/framework/permissions.md",
+            "opencode/framework/mcp-servers.md",
+            "opencode/framework/policies.md",
+            "opencode/releases/v1.16.0-release-notes.md",
+            "opencode/mcp/mcp-servers-docs.md",
+            "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
+            "framework/mistake_precautions/plugin-debugging-precautions.md",
+            "opencode/source-analysis/agent-identity-plugin-hooks.md",
+            "framework/mistake_precautions/double-hook-trigger-prevention.md",
+            "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+            "framework/plugin-programming-conventions.md",
+            "opencode/releases/v1.17.2-release-notes.md"
+          ],
+          "content_summary": "21 entries covering 21 files: opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions | opencode cli commands reference environment variables"
+        },
+        "last_read_at": "2026-06-11T08:08:52.635Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 8,
+        "pipeline_task_id": "framework-log-system-verify",
+        "pipeline_status": "completed"
+      },
+      "Knowledge-Curator": {
+        "last_read_at": "2026-06-11T07:28:37.653Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 34,
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-11T07:28:22.067Z",
+          "reason": "Found 21 matching cache entries for domain \"opencode_framework\": opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin",
+          "files_read": [
+            "opencode/framework/config.md",
+            "opencode/framework/skills.md",
+            "opencode/framework/cli.md",
+            "opencode/framework/index.md",
+            "opencode/framework/plugins.md",
+            "opencode/framework/tools.md",
+            "opencode/framework/custom-tools.md",
+            "opencode/framework/agents.md",
+            "opencode/source-analysis/agent-mode-values.md",
+            "opencode/framework/permissions.md",
+            "opencode/framework/mcp-servers.md",
+            "opencode/framework/policies.md",
+            "opencode/releases/v1.16.0-release-notes.md",
+            "opencode/mcp/mcp-servers-docs.md",
+            "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
+            "framework/mistake_precautions/plugin-debugging-precautions.md",
+            "opencode/source-analysis/agent-identity-plugin-hooks.md",
+            "framework/mistake_precautions/double-hook-trigger-prevention.md",
+            "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+            "framework/plugin-programming-conventions.md",
+            "opencode/releases/v1.17.2-release-notes.md"
+          ],
+          "content_summary": "21 entries covering 21 files: opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions | opencode cli commands reference environment variables"
+        },
+        "declared_scope": "opencode_framework",
+        "declared_at": "2026-06-11T07:28:17.258Z",
+        "pipeline_task_id": "KC-UC7KS-VERIFY-001",
+        "pipeline_status": "completed"
+      },
+      "Meta-Planner": {
+        "declared_scope": "infrastructure",
+        "declared_at": "2026-06-10T21:43:29.919Z",
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-10T21:43:30.245Z"
+        },
+        "uc7_001_compliant": true,
+        "last_read_at": "2026-06-10T21:43:30.245Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "total_cache_reads": 2,
+        "pipeline_task_id": "E2E-MASS-META-20260611",
+        "pipeline_status": "completed"
+      },
+      "general": {
+        "last_read_at": "2026-06-11T04:35:59.187Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 3,
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-09T03:28:57.876Z"
+        },
+        "declared_scope": "infrastructure",
+        "declared_at": "2026-06-11T00:00:00.000Z"
+      },
+      "CI-CD-Agent": {
+        "declared_scope": "devops_ci",
+        "declared_at": "2026-06-11T08:08:23.797Z",
+        "pipeline_task_id": "CI-CD-AGENT-P0-001-VERIFY",
+        "pipeline_status": "completed",
+        "cache_sufficiency": {
+          "status": "sufficient",
+          "missing_topics": [],
+          "declared_at": "2026-06-11T08:08:24.437Z",
+          "reason": "Found 4 matching cache entries for domain \"devops_ci\": GitHub Actions workflow syntax and best practices for CI/CD test pipelines; Docker Compose setup for test environments and CI/CD integration; CI test pipeline integration: running Jest, Playwright, and NestJS tests in GitHub Actions; Test reporting and coverage in GitHub Actions: artifacts, JUnit XML, PR comments, summaries",
+          "files_read": [
+            "devops/docker/github-actions-workflow-syntax.md",
+            "devops/docker/docker-compose-test-environments.md",
+            "devops/docker/github-actions/ci-test-pipeline-integration.md",
+            "devops/docker/github-actions/test-reporting-coverage.md"
+          ],
+          "content_summary": "4 entries covering 4 files: GitHub Actions workflow syntax and best practices for CI/CD test pipelines | Docker Compose setup for test environments and CI/CD integration | CI test pipeline integration: running Jest, Playwright, and NestJS tests in GitHub Actions"
+        },
+        "last_read_at": "2026-06-11T08:08:24.437Z",
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/index.json",
+        "uc7_001_compliant": true,
+        "total_cache_reads": 1
       }
-    }
+    },
+    "total_docs_count": 20,
+    "total_size_bytes": 135425,
+    "last_verified": "2026-06-10T21:58:30.556Z"
   },
   "compliance_records": {
     "role_violations": [
@@ -4389,7 +6748,663 @@
         "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-HARDEN-005\""
       }
     ],
-    "tdd_violations": []
+    "tdd_violations": [],
+    "super_admin_dispatch_bypasses": [
+      {
+        "timestamp": "2026-06-07T07:03:39.983Z",
+        "caller": "Super-Admin",
+        "target": "Knowledge-Curator",
+        "dag_task_id": "",
+        "patterns_matched": [
+          "official",
+          "explore",
+          "source code",
+          "repository",
+          "github",
+          "documentation"
+        ]
+      },
+      {
+        "timestamp": "2026-06-07T08:32:51.980Z",
+        "caller": "Super-Admin",
+        "target": "Knowledge-Curator",
+        "dag_task_id": "",
+        "patterns_matched": [
+          "cache",
+          "docs",
+          "official",
+          "index"
+        ]
+      },
+      {
+        "timestamp": "2026-06-07T09:03:20.537Z",
+        "caller": "Super-Admin",
+        "target": "Knowledge-Curator",
+        "dag_task_id": "",
+        "patterns_matched": [
+          "docs",
+          "official",
+          "index",
+          "explore",
+          "source code",
+          "repository",
+          "github"
+        ]
+      }
+    ],
+    "orchestrator_sa_dispatches": [
+      {
+        "timestamp": "2026-06-07T11:51:03.058Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-REVIEW-DIAGNOSIS",
+        "patterns_matched": [
+          "state",
+          "hook",
+          "plugin"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T04:59:57.214Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-DIAGNOSE-AGENT-ID",
+        "patterns_matched": [
+          "hook"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T05:19:10.874Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-INVESTIGATE-2Q",
+        "patterns_matched": [
+          "state",
+          "machine.json"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T05:28:08.962Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-IMPLEMENT-FIXES",
+        "patterns_matched": [
+          "fix",
+          "state"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T05:39:31.031Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-FIX-PATH-NORMALIZE",
+        "patterns_matched": [
+          "fix"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T05:40:03.638Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-FIX-PATH-NORMALIZE",
+        "patterns_matched": [
+          "fix"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T05:50:45.122Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-ROUTE-PROMPT-FIX",
+        "patterns_matched": [
+          "fix",
+          "state",
+          "hook",
+          "plugin"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T06:12:57.288Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-PROMPT-HASH-FIX",
+        "patterns_matched": [
+          "fix"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T06:51:23.316Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "",
+        "patterns_matched": [
+          "repair",
+          "emergency",
+          "reset"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:35:17.214Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-SUB-BASELINE",
+        "patterns_matched": [
+          "integrity",
+          "validate",
+          "test",
+          "baseline"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:35:38.626Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-SUB-AUDIT",
+        "patterns_matched": [
+          "compliance",
+          "validate",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:36:21.254Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-SUB-BASELINE",
+        "patterns_matched": [
+          "integrity",
+          "validate",
+          "test",
+          "baseline"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:36:28.257Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-SUB-AUDIT",
+        "patterns_matched": [
+          "compliance",
+          "validate",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:37:03.755Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-SUB-BASELINE",
+        "patterns_matched": [
+          "integrity",
+          "validate",
+          "test",
+          "baseline"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:44:41.441Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-SUB-BASELINE-DEBUG",
+        "patterns_matched": [
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:47:50.175Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "debug-sa-repair-01",
+        "patterns_matched": [
+          "repair",
+          "integrity",
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T16:54:03.896Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "debug-sa-repair-02",
+        "patterns_matched": [
+          "repair",
+          "integrity",
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T17:01:03.105Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "repair-crit-01",
+        "patterns_matched": [
+          "repair"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T17:03:52.716Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "repair-crit-02",
+        "patterns_matched": [
+          "repair",
+          "fix",
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-08T17:10:15.766Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "repair-crit-03",
+        "patterns_matched": [
+          "repair",
+          "compliance"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T00:46:49.525Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-SUB-BASE",
+        "patterns_matched": [
+          "compliance",
+          "validate",
+          "audit",
+          "test",
+          "baseline"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T03:01:19.189Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "INVESTIGATE-DRAIN",
+        "patterns_matched": [
+          "fix",
+          "drain"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T03:27:36.272Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VALIDATE-CONFIG-10",
+        "patterns_matched": [
+          "validate"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T03:31:16.141Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "PERSIST-CONFIG-REPORT",
+        "patterns_matched": [
+          "validate"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T08:51:12.559Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "WRITE-VERIFY-REPORT",
+        "patterns_matched": [
+          "repair"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T08:51:55.687Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "WRITE-VERIFY-REPORT",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T08:52:32.884Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "WRITE-VERIFY-REPORT",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T08:59:56.445Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-report-v3",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T09:02:37.413Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-report-v4",
+        "patterns_matched": [
+          "repair",
+          "compliance",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T09:03:12.551Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-v5",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T09:03:51.319Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-v6",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T09:56:19.971Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-v7",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T11:46:02.852Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-v8",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T11:58:03.825Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-v9",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T12:21:18.673Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-v10",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T12:51:55.795Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "write-verification-v11",
+        "patterns_matched": [
+          "repair",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T13:39:54.603Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "compile-uc7ks-verification-report",
+        "patterns_matched": [
+          "repair",
+          "state",
+          "hook",
+          "plugin",
+          "machine.json",
+          "audit",
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T14:02:38.420Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "investigate-gaps-uc7ks",
+        "patterns_matched": [
+          "repair",
+          "fix",
+          "state",
+          "hook",
+          "plugin",
+          "machine.json",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T14:02:45.800Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "investigate-gaps-uc7ks-v2",
+        "patterns_matched": [
+          "repair",
+          "fix",
+          "state",
+          "hook",
+          "plugin",
+          "machine.json",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-09T14:02:55.258Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "gap-investigation-2026-06-09-A",
+        "patterns_matched": [
+          "fix",
+          "state",
+          "hook",
+          "plugin",
+          "machine.json",
+          "compliance",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-10T07:32:34.555Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "test-dispatch-super-admin",
+        "patterns_matched": [
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-10T07:45:43.057Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "repair-verify-super-admin-20260610",
+        "patterns_matched": [
+          "repair",
+          "emergency"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-10T18:07:55.552Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "plugin-verify-superadmin-20260610",
+        "patterns_matched": [
+          "repair",
+          "emergency",
+          "hook",
+          "plugin",
+          "integrity"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-10T18:27:42.430Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "FIX-GATE-ARTIFACT-PATH-20260610",
+        "patterns_matched": [
+          "fix",
+          "validate"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-10T21:53:44.533Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-FIX-MCP-TOOLS-20260611",
+        "patterns_matched": [
+          "fix"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-10T22:05:37.874Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "SA-FIX-KC-PERM-20260611",
+        "patterns_matched": [
+          "fix",
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-11T04:35:18.855Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "KC-PERMISSION-AUDIT-001",
+        "patterns_matched": [
+          "state",
+          "plugin",
+          "compliance"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-11T04:46:12.512Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "KC-PERMISSION-FIX-001",
+        "patterns_matched": [
+          "repair",
+          "fix",
+          "state",
+          "compliance"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-11T05:04:10.879Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "CONFIG-ALIGNMENT-AUDIT-001",
+        "patterns_matched": [
+          "repair",
+          "state",
+          "plugin",
+          "compliance",
+          "audit"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-11T05:20:06.052Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "CONFIG-ALIGNMENT-FIX-002",
+        "patterns_matched": [
+          "repair",
+          "fix",
+          "state"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-11T07:32:34.496Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "RUN-SELFTEST-001",
+        "patterns_matched": [
+          "fix",
+          "state"
+        ],
+        "mode": "advisory"
+      },
+      {
+        "timestamp": "2026-06-11T08:12:49.432Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VERIFY-LOG-FILES-SA",
+        "patterns_matched": [
+          "state",
+          "hook",
+          "plugin"
+        ],
+        "mode": "advisory"
+      }
+    ]
   },
   "knowledge_audit_state": {
     "_description": "UC7KS Knowledge Pipeline audit state. Tracks knowledge acquisition activity and cache-hit compliance across all agents.",
@@ -4417,23 +7432,11 @@
   "tdd_enforcement_state": {
     "enabled": true,
     "current_session": {
-      "test_written": true,
+      "test_written": false,
       "impl_files_attempted": [],
       "blocked_attempts": [],
-      "test_files_written": [
-        ".opencode/scripts/__tests__/code-quality-gate.test.js",
-        ".opencode/scripts/__tests__/compliance-gate.test.js",
-        ".opencode/scripts/__tests__/framework-self-test.test.js",
-        ".opencode/scripts/__tests__/state-transaction.test.js",
-        ".opencode/scripts/__tests__/compliance-gate.test.js",
-        ".opencode/scripts/__tests__/framework-doctor.test.js",
-        ".opencode/scripts/__tests__/dispatch-subagent.test.js",
-        ".opencode/scripts/__tests__/dispatch-subagent.test.js",
-        ".opencode/scripts/__tests__/dispatch-subagent.test.js",
-        ".task_temp/CI-EMBED-002/safe-edit.test.js",
-        ".opencode/tools/__tests__/safe-test.test.ts"
-      ],
-      "initialized": true
+      "test_files_written": [],
+      "initialized": false
     },
     "violations": [],
     "history": []
@@ -4468,16 +7471,16 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "a8fd5438-1e8e-4ce7-9a01-4ee7f3deedb2",
-    "last_transaction_at": "2026-06-03T09:13:19.489Z",
+    "last_operation_id": "4dba581d-6f26-48b0-8dce-3b9445dae7c8",
+    "last_transaction_at": "2026-06-10T18:36:51.925Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   },
   "knowledge_state": {
-    "version": "1.2.0",
+    "version": "1.3.0",
     "index_manifest_sha256": null,
-    "total_docs_count": 9,
-    "total_size_bytes": 40689,
+    "total_docs_count": 35,
+    "total_size_bytes": 482073,
     "last_janitor_run": null,
     "active_queries": [],
     "query_stats": {
@@ -4491,6 +7494,9 @@
     },
     "ttl_violations": [],
     "size_violations": [],
-    "last_reconciliation": null
+    "last_reconciliation": "2026-06-10T21:58:51.111Z",
+    "last_calculated": "2026-06-10T23:04:45.495Z",
+    "last_verified": 1781151937414,
+    "last_updated": "2026-06-11T06:14:11.054Z"
   }
 }

@@ -1,11 +1,12 @@
 // safe_bash: allow-write
+// BUN-CACHE-VERSION: 2026-06-09-v5 — HARDENED: dag_task_id reuse → FATAL EXIT (not warning)
 /**
- * dispatch-subagent.js
+ * dispatch-subagent.ts
  * General-purpose sub-agent dispatcher with P0 protocol enforcement.
  *
  * Usage:
- *   node dispatch-subagent.js <agent_type> "<task_description>"
- *   node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"
+ *   bun dispatch-subagent.ts <agent_type> "<task_description>"
+ *   bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"
  *
  * When 1 positional param follows agent_type → treated as task_description.
  * When 2 positional params follow agent_type → first = task_id, second = task_description.
@@ -35,8 +36,9 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const OPENCODE_ROOT =
-  process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..", "..");
+const OPENCODE_ROOT = process.env.OPENCODE_ROOT
+  ? path.resolve(process.env.OPENCODE_ROOT)
+  : path.resolve(__dirname, "..", "..", "..");
 const AGENTS_DIR = path.join(OPENCODE_ROOT, ".opencode", "agents");
 const PREAMBLE_FILE = path.join(
   OPENCODE_ROOT,
@@ -51,7 +53,12 @@ const PROJECT_CONFIG = path.join(
 const OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
 
 // ── 日志重定向 ──
-const LOG_FILE = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch", "dispatch.log");
+const LOG_FILE = path.join(
+  OPENCODE_ROOT,
+  ".task_temp",
+  "_dispatch",
+  "dispatch.log",
+);
 
 function logInfo(msg) {
   const dir = path.dirname(LOG_FILE);
@@ -68,8 +75,8 @@ function logWarn(msg) {
 // 1. Parse CLI arguments
 // ──────────────────────────────────────────────
 // Support:
-//   node dispatch-subagent.js <agent_type> "<task_description>" [--task-id <id>]
-//   node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>" [--task-id <id>]
+//   bun dispatch-subagent.ts <agent_type> "<task_description>" [--task-id <id>]
+//   bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>" [--task-id <id>]
 //
 // Resolution priority (highest wins):
 //   1. Env vars: FRAMEWORK_TASK_ID, DISPATCH_TASK_DESC (set by dispatch_subagent.ts)
@@ -79,8 +86,8 @@ function logWarn(msg) {
 let taskId = process.env.FRAMEWORK_TASK_ID || null;
 
 // NEW: Detect 2+ positional params after agent_type for task_id+task_description
-// Pattern: node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"
-if (!taskId && process.argv.length >= 5 && !process.argv[3].startsWith('--')) {
+// Pattern: bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"
+if (!taskId && process.argv.length >= 5 && !process.argv[3].startsWith("--")) {
   taskId = process.argv[3];
   // Remove task_id from argv so process.argv[3] shifts to task_description
   process.argv.splice(3, 1);
@@ -99,23 +106,24 @@ process.env.FRAMEWORK_TASK_ID = taskId || "";
 process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
 const agentType = process.argv[2];
-process.env.FRAMEWORK_AGENT = '@' + agentType;
+
+// Identity propagated via TASK-IDENTITY in plugin toolExecuteBefore (v4.2.0)
 
 // task_description: env var > argv[4] (if task_id was spliced, argv[3] is now desc) > argv[3]
 const taskDescription = process.env.DISPATCH_TASK_DESC || process.argv[3] || "";
 
 if (!agentType) {
   console.error(
-    'Usage: node dispatch-subagent.js <agent_type> "<task_description>"',
+    'Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
   );
   console.error(
-    '       node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"',
+    '       bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"',
   );
   console.error(
-    'Example: node dispatch-subagent.js Architect "Validate architecture"',
+    'Example: bun dispatch-subagent.ts Architect "Validate architecture"',
   );
   console.error(
-    'Example: node dispatch-subagent.js Architect "dispatch-20260603" "Implement booking service"',
+    'Example: bun dispatch-subagent.ts Architect "dispatch-20260603" "Implement booking service"',
   );
   process.exit(1);
 }
@@ -123,10 +131,10 @@ if (!agentType) {
 if (!taskDescription) {
   console.error("ERROR: task_description is required");
   console.error(
-    'Usage: node dispatch-subagent.js <agent_type> "<task_description>"',
+    'Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
   );
   console.error(
-    '       node dispatch-subagent.js <agent_type> "<task_id>" "<task_description>"',
+    '       bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"',
   );
   process.exit(1);
 }
@@ -139,21 +147,28 @@ if (taskId) {
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
-    "pre-execution-gate.js",
+    "pre-execution-gate.ts",
   );
   if (fs.existsSync(gateScript)) {
-    logInfo(`Running pre-execution-gate.js for dispatch session '${taskId}' (--dispatch-session)...`);
+    logInfo(
+      `Running pre-execution-gate.ts for dispatch session '${taskId}' (--dispatch-session)...`,
+    );
     try {
       const { execSync } = require("child_process");
-      const gateResult = execSync(`"${process.execPath}" "${gateScript}" "${taskId}" --dispatch-session`, {
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 15000,
-        env: { ...process.env, OPENCODE_ROOT },
-      });
+      const gateResult = execSync(
+        `"${process.execPath}" "${gateScript}" "${taskId}" --dispatch-session`,
+        {
+          encoding: "utf8",
+          stdio: ["pipe", "pipe", "pipe"],
+          timeout: 15000,
+          env: { ...process.env, OPENCODE_ROOT },
+        },
+      );
       logInfo(`Pre-execution gate passed: ${gateResult.substring(0, 200)}`);
     } catch (e) {
-      logWarn(`Pre-execution gate failed: ${e.stderr?.toString() || e.message}`);
+      logWarn(
+        `Pre-execution gate failed: ${e.stderr?.toString() || e.message}`,
+      );
       console.error(
         `[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`,
       );
@@ -164,18 +179,33 @@ if (taskId) {
     }
   } else {
     console.error(
-      `[dispatch] ⚠️  pre-execution-gate.js not found — skipping gate check.`,
+      `[dispatch] ⚠️  pre-execution-gate.ts not found — skipping gate check.`,
     );
     console.error(
-      `[dispatch] ⚠️  Install with: node .opencode/scripts/install-hooks.js`,
+      `[dispatch] ⚠️  Install with: bun .opencode/scripts/install-hooks.ts`,
     );
   }
 }
 
 // ──────────────────────────────────────────────
-// 2. Read project config
+// 2. Read project config (with trailing comma tolerance)
 // ──────────────────────────────────────────────
-const projectConfig = JSON.parse(fs.readFileSync(PROJECT_CONFIG, "utf8"));
+/**
+ * Parse JSON with trailing comma tolerance.
+ * SA-FIX-P0-0-CRITICAL (2026-06-11): strict JSON.parse fails on
+ * project.config.json when safe_edit introduces trailing commas.
+ * This inline function mirrors lib/tolerant-json.ts::tolerantParse()
+ * and prevents dispatch-subagent from crashing — which would block
+ * ALL sub-agent dispatches.
+ */
+function tolerantParse(raw) {
+  try { return JSON.parse(raw); } catch (e) {
+    var cleaned = raw.replace(/,(\s*[}\]])/g, "$1");
+    if (cleaned === raw) throw e;
+    return JSON.parse(cleaned);
+  }
+}
+const projectConfig = tolerantParse(fs.readFileSync(PROJECT_CONFIG, "utf8"));
 const projectRoot = projectConfig.project_root || ".";
 const techStack = projectConfig.tech_stack || {};
 const taskMapping = projectConfig.context7_task_mapping || [];
@@ -348,7 +378,7 @@ function readRuntimePermissions(agentType) {
     const opencodeConfig = JSON.parse(raw);
     const agentDict = opencodeConfig.agent || {};
     const agentKey = Object.keys(agentDict).find(
-      (key) => key.toLowerCase() === agentType.toLowerCase()
+      (key) => key.toLowerCase() === agentType.toLowerCase(),
     );
     if (!agentKey) {
       logWarn(`Agent "${agentType}" not found in opencode.json`);
@@ -359,7 +389,7 @@ function readRuntimePermissions(agentType) {
     };
   } catch (e) {
     console.error(
-      `[dispatch] WARNING: Failed to parse opencode.json for ${agentType}: ${e.message}`
+      `[dispatch] WARNING: Failed to parse opencode.json for ${agentType}: ${e.message}`,
     );
     return null;
   }
@@ -462,17 +492,13 @@ function resolveTemplateVariables(content, templateMap, sourceLabel) {
     if (templateMap.hasOwnProperty(key)) {
       return templateMap[key];
     }
-    logWarn(
-      `Unresolvable placeholder '${match}' in ${sourceLabel}`,
-    );
+    logWarn(`Unresolvable placeholder '${match}' in ${sourceLabel}`);
     return `UNRESOLVED${match}`;
   });
 }
 
 const templateMap = buildTemplateResolutionMap(projectConfig);
-logInfo(
-  `Template resolution map: ${Object.keys(templateMap).length} keys`,
-);
+logInfo(`Template resolution map: ${Object.keys(templateMap).length} keys`);
 
 // Resolve placeholders in CLI task description
 const resolvedTaskDescription = resolveTemplateVariables(
@@ -563,14 +589,18 @@ const configPermSection = permission
       .join("\n")
   : "  - (no permission block declared in agent config)";
 
-const runtimePermSection = (runtimePerms && runtimePerms.permission)
-  ? Object.entries(runtimePerms.permission)
-      .map(([key, val]) => {
-        const valStr = typeof val === "object" ? JSON.stringify(val, null, 4).replace(/\n/g, "\n    ") : String(val);
-        return `  - ${key}: ${valStr}`;
-      })
-      .join("\n")
-  : "  - (not found in opencode.json — check your permissions manually)";
+const runtimePermSection =
+  runtimePerms && runtimePerms.permission
+    ? Object.entries(runtimePerms.permission)
+        .map(([key, val]) => {
+          const valStr =
+            typeof val === "object"
+              ? JSON.stringify(val, null, 4).replace(/\n/g, "\n    ")
+              : String(val);
+          return `  - ${key}: ${valStr}`;
+        })
+        .join("\n")
+    : "  - (not found in opencode.json — check your permissions manually)";
 
 const permissionsSection = `
 ## 🔑 Your Permissions
@@ -601,9 +631,11 @@ ${preamble}
  * Injects targeted guidance so code-producing agents (@Coder-BE, @Coder-FE)
  * know that Steps 5a/5b are mandatory; non-coding agents see them as informational.
  */
-${agentType === "Coder-BE" || agentType === "Coder-FE"
-  ? `> **Agent-type note**: As a code-producing agent (@${agentType}), Steps 5a (docs consistency) and 5b (write-time quality) in the P0 protocol above are **MANDATORY** for all source code changes.`
-  : `> **Agent-type note**: As a ${agentType}, Steps 5a and 5b in the P0 protocol above are informational — you may not be writing source code.`}
+${
+  agentType === "Coder-BE" || agentType === "Coder-FE"
+    ? `> **Agent-type note**: As a code-producing agent (@${agentType}), Steps 5a (docs consistency) and 5b (write-time quality) in the P0 protocol above are **MANDATORY** for all source code changes.`
+    : `> **Agent-type note**: As a ${agentType}, Steps 5a and 5b in the P0 protocol above are informational — you may not be writing source code.`
+}
 
 ---
 
@@ -664,6 +696,26 @@ Do NOT skip this section. It is required for audit trail compliance.
 **Agent**: ${agentName}
 **Description**: ${resolvedTaskDescription}
 
+
+/**
+ * FW-ROUTE-FIX-05: Agent scope routing declaration injected at dispatch.
+ * Physical enforcement by framework-enforcer.ts (ROUTE-MISMATCH).
+ */
+
+### 🚨 Scope Boundary — Enforced by Framework
+| Agent | Allowed Scope | Denied Scope | Violation Route |
+|-------|--------------|--------------|-----------------|
+| @Architect | contract.yaml, docs/, .opencode/context/ | .opencode/ framework files | @Super-Admin |
+| @Coder-BE | booking-backend/src/, booking-backend/test/ | booking-frontend/**, .opencode/ | @Orchestrator |
+| @Coder-FE | booking-frontend/ | booking-backend/**, .opencode/ | @Orchestrator |
+| @Orchestrator | Task.DAG.json, .task_temp/ | .opencode/ framework files | @Super-Admin |
+| @Super-Admin | .opencode/**, opencode.json, AGENTS.md | booking-*/src/ (business code) | @Coder-BE/FE |
+| @Guardian | .task_temp/**, .opencode/state/ | business code, contract.yaml | @Arbiter |
+| @Arbiter | WAIVE.md, TECH_DEBT_REGISTRY.md | business code, contract.yaml | @Meta-Planner |
+| @CI-CD-Agent | .github/, Dockerfile*, docker-compose* | business code (src/), .opencode/agents/ | @Orchestrator |
+
+**Violating these boundaries in strict/locked mode results in a thrown BLOCKED error from framework-enforcer.ts.**
+
 ### Execution Order
 1. Read your agent configuration above
 2. Execute all P0 protocol steps (skills → context7 → compliance gate → confirm)
@@ -698,10 +750,203 @@ const outputFile = path.join(
   `dispatch-${agentType}-${timestamp}.md`,
 );
 // Append DISPATCH_TOKEN for orchestrator enforcement verification
-const dispatchToken = crypto.createHash("sha256").update(resolvedPrompt, "utf8").digest("hex");
+// FW-TDZ-FIX-01: dispatchToken must hash resolvedPrompt (BEFORE DISPATCH_TOKEN line) to avoid TDZ circular reference
+const dispatchToken = crypto
+  .createHash("sha256")
+  .update(resolvedPrompt, "utf8")
+  .digest("hex");
 const tokenizedPrompt = resolvedPrompt + `\n//DISPATCH_TOKEN:${dispatchToken}`;
 fs.writeFileSync(outputFile, tokenizedPrompt, "utf8");
+/**
+ * FW-PROMPT-HARDEN-04: Maintain FIFO queue of pending dispatch prompts.
+ * Each dispatch saves an entry to .task_temp/_dispatch/.pending.json
+ * with the SHA-256 hash of the generated prompt. The framework-enforcer
+ * template literal consumes this entry when the primary agent calls Task().
+ *
+ * The primary agent MUST pass the full prompt verbatim to Task().
+ * Any modification will produce a different hash, which is detected
+ * by the enforcer's TASK-PROMPT-MISMATCH check.
+ *
+ * HASH SOURCE: tokenizedPrompt (includes DISPATCH_TOKEN line).
+ * Using resolvedPrompt (no DISPATCH_TOKEN) causes a permanent mismatch
+ * because enforce.ts computes actualHash from the full promptParam
+ * (which always includes the DISPATCH_TOKEN line as it was injected
+ * during dispatch-subagent generation).
+ * Fixed in FW-PROMPT-HARDEN-03 (SA-PROMPT-HASH-FIX).
+ *
+ * FW-PROMPT-HARDEN-04 (2026-06-08, @Super-Admin): Added agentType field for
+ * agent-type matching in enforce.ts; added MAX_QUEUE_SIZE guard; queue entry
+ * is only written AFTER the dispatch file is successfully saved (above).
+ *
+ * Queue format:
+ *   [{ dispatchId, promptHash, filePath, createdAt, agentType }]
+ */
+const promptHash = crypto
+  .createHash("sha256")
+  .update(tokenizedPrompt, "utf8")
+  .digest("hex");
+const PENDING_FILE = path.join(OUTPUT_DIR, ".pending.json");
+let queue = [];
+try {
+  if (fs.existsSync(PENDING_FILE)) {
+    queue = JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
+    if (!Array.isArray(queue)) queue = [];
+  }
+} catch {
+  queue = [];
+}
 
+/**
+ * P0-FIX-BUG-14 (2026-06-09, @Super-Admin): Three hardening layers for .pending.json writes.
+ *
+ * Layer 1 — Dedup by agentType: Remove existing entries for the same agentType
+ *   before appending the new one. Prevents stale-orphan accumulation when the
+ *   Orchestrator re-dispatches the same agent (e.g., double dispatch_subagent
+ *   with same dag_task_id). The latest dispatch always wins.
+ *
+ * Layer 2 — Retry + Fatal: Previously, write failures were silently logged
+ *   (logWarn) and the script continued — the dispatch file existed but the
+ *   .pending.json entry was absent. This caused TASK-PROMPT-MISMATCH errors
+ *   because enforce.ts found only stale entries in the queue. Now the write
+ *   is retried once, and if both attempts fail, the script exits with code 1
+ *   so the Orchestrator is alerted that the dispatch was not registered.
+ *
+ * Layer 3 — Read-back verification: After writing, immediately re-read the
+ *   file and verify the entry is present. If not, exit with an error message
+ *   identifying the missing entry.
+ */
+// Layer 1: Deduplicate — remove existing entries for the same agentType + dagTaskId
+// P0-FIX-BUG-15-L1 (2026-06-09): HARDENED dag_task_id reuse BLOCK.
+//   Same agentType + same dagTaskId + same promptHash → idempotent re-dispatch → silent dedup ✅
+//   Same agentType + same dagTaskId + different promptHash → dag_task_id REUSED → FATAL EXIT ❌
+//   Same agentType + DIFFERENT dagTaskId → parallel dispatch → entry KEPT ✅
+//   The Orchestrator MUST use a unique dag_task_id per dispatch. No warnings — block.
+// SA-FIX-PARALLEL-DISPATCH-20260611 (@Super-Admin): Clarified that dedup key is
+//   agentType+dagTaskId composite, NOT agentType alone. Parallel dispatches for the
+//   same agentType with different dagTaskIds are allowed and preserved in the queue.
+const beforeDedup = queue.length;
+const dedupedEntries: any[] = [];
+queue = queue.filter((e) => {
+  if (e.agentType === agentType && e.dagTaskId === taskId) {
+    // Same agent type AND same dag_task_id → deduplicate old entry
+    if (e.promptHash && e.promptHash !== promptHash) {
+      dedupedEntries.push(e);
+    }
+    return false;
+  }
+  return true;
+});
+if (dedupedEntries.length > 0) {
+  const dagTaskId = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
+  // HARDENED CONSTRAINT: same dag_task_id → different task = BLOCKED.
+  // This is NOT just a warning — the dispatch is PHYSICALLY REJECTED.
+  // The Orchestrator MUST use a unique dag_task_id per dispatch.
+  const fatalMsg =
+    `\n╔══════════════════════════════════════════════════════════════════╗\n` +
+    `║  HARDENED CONSTRAINT: DAG_TASK_ID REUSE BLOCKED                  ║\n` +
+    `║  dag_task_id: "${dagTaskId}"                                       \n` +
+    `║  This ID was already used for a different task dispatch.         ║\n` +
+    `║  Previous dispatch: ${dedupedEntries[0].dispatchId.split("/").pop()}\n` +
+    `║                                                                  ║\n` +
+    `║  CORRECT PRACTICE: Each dispatch MUST use a UNIQUE dag_task_id.  ║\n` +
+    `║  Like a database primary key — one ID = one task.                ║\n` +
+    `║                                                                  ║\n` +
+    `║  FIX: Re-run dispatch_subagent with a DIFFERENT dag_task_id.     ║\n` +
+    `║       e.g., "VERIFY-REPORT-FINAL" → "VERIFY-REPORT-FINAL-V2"     ║\n` +
+    `╚══════════════════════════════════════════════════════════════════╝\n`;
+  console.error(fatalMsg);
+  logWarn(`DAG-TASK-ID REUSE BLOCKED: ${dagTaskId} (agentType=${agentType})`);
+  // FW-DIAG-D1 (2026-06-10, @Super-Admin): Diagnostic log for dedup block tracing.
+  // Captures agentType, both dagTaskIds, and both promptHashes to verify
+  // whether stale .pending.json entries are blocking legitimate re-dispatches.
+  logInfo(
+    `DIAG-DEDUP-BLOCK | agentType=${agentType} | ` +
+    `blockedDagTaskId=${dedupedEntries[0].dagTaskId || '?'} | ` +
+    `newDagTaskId=${dagTaskId} | ` +
+    `prevHash=${(dedupedEntries[0].promptHash || '').substring(0, 12)} | ` +
+    `newHash=${promptHash.substring(0, 12)}`,
+  );
+  process.exit(1);
+}
+if (queue.length < beforeDedup) {
+  logInfo(
+    `Deduped ${beforeDedup - queue.length} stale .pending.json entries for agentType="${agentType}" dagTaskId="${taskId}"`,
+  );
+}
+
+queue.push({
+  dispatchId: outputFile,
+  promptHash,
+  filePath: outputFile,
+  createdAt: new Date().toISOString(),
+  agentType: agentType,
+  dagTaskId: process.env.FRAMEWORK_TASK_ID || taskId || null, // P0-FIX-BUG-15: audit trail
+});
+
+// FW-DIAG-D2 (2026-06-10, @Super-Admin): Diagnostic log for entry creation tracing.
+// Captures agentType, dagTaskId, hash prefix, and queue size so we can
+// track when entries are created and whether they're later consumed.
+logInfo(
+  `DIAG-ENTRY-CREATE | agentType=${agentType} | ` +
+  `dagTaskId=${process.env.FRAMEWORK_TASK_ID || taskId || 'null'} | ` +
+  `hash=${promptHash.substring(0, 12)} | ` +
+  `queueSize=${queue.length}`,
+);
+
+// Layer 2: Retry + fatal on write failure
+let writeOk = false;
+for (let attempt = 1; attempt <= 2; attempt++) {
+  try {
+    fs.writeFileSync(PENDING_FILE, JSON.stringify(queue, null, 2), "utf8");
+    writeOk = true;
+    break;
+  } catch (e) {
+    if (attempt === 1) {
+      logWarn(
+        `Failed to write .pending.json (attempt 1): ${e.message}. Retrying...`,
+      );
+    } else {
+      console.error(
+        `FATAL: Cannot write .pending.json after 2 attempts: ${e.message}`,
+      );
+      console.error(
+        `The dispatch file was created at ${outputFile} but the dispatch is NOT registered.`,
+      );
+      console.error(
+        `The Orchestrator MUST re-dispatch. Do NOT call Task() with this file.`,
+      );
+      process.exit(1);
+    }
+  }
+}
+
+// Layer 3: Read-back verification
+if (writeOk) {
+  try {
+    const verify = JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
+    const found =
+      Array.isArray(verify) &&
+      verify.some(
+        (e: any) => e.filePath === outputFile && e.promptHash === promptHash,
+      );
+    if (!found) {
+      console.error(
+        `FATAL: .pending.json written but entry not found on read-back.`,
+      );
+      console.error(`Dispatch file: ${outputFile}`);
+      console.error(`Expected hash: ${promptHash}`);
+      process.exit(1);
+    }
+    logInfo(
+      `.pending.json verified: entry for ${agentType} registered (queue size: ${verify.length})`,
+    );
+  } catch (e: any) {
+    console.error(
+      `FATAL: Cannot verify .pending.json after write: ${e.message}`,
+    );
+    process.exit(1);
+  }
+}
 logInfo(`Output: ${outputFile}`);
 
 // ──────────────────────────────────────────────

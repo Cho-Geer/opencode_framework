@@ -3,8 +3,8 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-06-06T01:15:54.693Z",
-    "last_regenerated": "2026-06-06",
+    "last_updated": "2026-06-11T06:13:32.670Z",
+    "last_regenerated": "2026-06-11",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
     "digest_algorithm": "sha256",
@@ -161,6 +161,22 @@
         }
       ]
     },
+    "rules/rule_detail/enforcement-modes-standard.md": {
+      "path": ".opencode/rules/rule_detail/enforcement-modes-standard.md",
+      "category": "rule",
+      "semver": "1.0.0",
+      "sha256": "2e6269cb80bd1eb445047c40207f9e885faa3b6551237e37f519c8b593f1c9c7",
+      "last_modified": "2026-06-06T02:30:00.000Z",
+      "description": "Enforcement Modes Standard — advisory/strict/locked mode definitions, behavior matrix, and mode transition rules. Updated with UC7KS-PIPELINE-STANDARD.md cross-reference.",
+      "digest_history": [
+        {
+          "sha256": "2e6269cb80bd1eb445047c40207f9e885faa3b6551237e37f519c8b593f1c9c7",
+          "timestamp": "2026-06-06T02:30:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration + UC7KS cross-reference update — Super-Admin cg_ses_1780751916545: GAP-M3 remediation"
+        }
+      ]
+    },
     "rules/rule_detail/dag-generation-standard.md": {
       "path": ".opencode/rules/rule_detail/dag-generation-standard.md",
       "category": "rule",
@@ -196,6 +212,28 @@
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        }
+      ]
+    },
+    "rules/rule_detail/UC7KS-PIPELINE-STANDARD.md": {
+      "path": ".opencode/rules/rule_detail/UC7KS-PIPELINE-STANDARD.md",
+      "category": "rule",
+      "semver": "1.0.1",
+      "sha256": "403e5e39372b70e2a6cac30d4a0dd88f1953b55c41b0c127383d128adb702e3a",
+      "last_modified": "2026-06-06T02:30:00.000Z",
+      "description": "UC7KS Knowledge Acquisition Pipeline Standard — standalone document defining UC7-001 through UC7-009 (GAP-M3 remediation). Extracted from subagent-preamble.md, enforcement-modes-standard.md, tool-execute.ts, uc7ks-enforcer.ts, framework-enforcer.ts, pre-execution-hook.sh, and framework-self-test.ts.",
+      "digest_history": [
+        {
+          "sha256": "a74415a3098b9f73f4933d564d3f4af1d1ba5d17a7476e751093f8dbb4ae132f",
+          "timestamp": "2026-06-06T02:30:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration — Super-Admin cg_ses_1780751916545: GAP-M3 remediation"
+        },
+        {
+          "sha256": "d3596bc3dc783665ae24a5b37a6021196b026208e9a830d9fbd5da424f1753d7",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.1",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after GAP-M2 Orchestrator.md fix and UC7KS notes additions to Super-Admin.md"
         }
       ]
     },
@@ -317,9 +355,9 @@
     "agents/Architect.md": {
       "path": ".opencode/agents/Architect.md",
       "category": "agent",
-      "semver": "1.0.3",
-      "sha256": "6cec4582d5674ce18fdb2a3936f7e4b34fb8067a4863c31fb944d8513054b9ab",
-      "last_modified": "2026-06-05T13:24:56.362Z",
+      "semver": "1.0.8",
+      "sha256": "3a82954566254f7e767f9463958b6012459f7f385e7e8086c1812ce22d1f9f61",
+      "last_modified": "2026-06-11T03:05:22.316Z",
       "description": "System Architect – technology selection, interface contracts, directory structure",
       "digest_history": [
         {
@@ -363,15 +401,39 @@
           "timestamp": "2026-06-05T13:24:56.362Z",
           "semver": "1.0.3",
           "change": "Super-Admin cg_ses_1780665456290: digest repair after content change"
+        },
+        {
+          "sha256": "74bb7ef06e790da03f484a6542d046500054591e61b69fe07b8e09843ddf324d",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.4",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "e6aaf7bafa00044a91949498c5a54c8aab34873346493726eb55c1aaaddc25ff",
+          "timestamp": "2026-06-08T17:07:22.393Z",
+          "semver": "1.0.5",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "3576a56831c92adbe0af9b285f09be64dd859e27cfc9af76f82271c74c469f26",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.7",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "3a82954566254f7e767f9463958b6012459f7f385e7e8086c1812ce22d1f9f61",
+          "timestamp": "2026-06-11T03:05:22.317Z",
+          "semver": "1.0.8",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Coder-BE.md": {
       "path": ".opencode/agents/Coder-BE.md",
       "category": "agent",
-      "semver": "1.0.5",
-      "sha256": "9c40cc009b9df9b127a4b52d948ae63c47f91325d4311b0cdeb6d0cd18ac1ca8",
-      "last_modified": "2026-06-06T01:15:54.690Z",
+      "semver": "1.0.9",
+      "sha256": "79e6be431dd87d205d6b134a8ca2ea5fa74af83e3cc7f5b1048d840d55f0ea58",
+      "last_modified": "2026-06-11T03:05:22.317Z",
       "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
         {
@@ -427,15 +489,33 @@
           "timestamp": "2026-06-06T01:15:54.690Z",
           "semver": "1.0.5",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "b2bd042d00cca6cc13ad2f2d4f339f8e923ade69e7e4d6cc916d8562e94de418",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.6",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "50cc516425080b162ac7c55f1fab6e83cec2b64f56ab07e458976e765593091e",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.8",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "79e6be431dd87d205d6b134a8ca2ea5fa74af83e3cc7f5b1048d840d55f0ea58",
+          "timestamp": "2026-06-11T03:05:22.317Z",
+          "semver": "1.0.9",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Coder-FE.md": {
       "path": ".opencode/agents/Coder-FE.md",
       "category": "agent",
-      "semver": "1.0.5",
-      "sha256": "a5c0e75b29d352b63a7adb56fb09a69e21e6381bab567fb2194e253514ce19c4",
-      "last_modified": "2026-06-06T01:15:54.690Z",
+      "semver": "1.0.9",
+      "sha256": "1132f0a2fb271660ceaec362e02d2a82c96f1f3abeedcbc4974405b064ce14bb",
+      "last_modified": "2026-06-11T03:05:22.317Z",
       "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
         {
@@ -491,19 +571,42 @@
           "timestamp": "2026-06-06T01:15:54.690Z",
           "semver": "1.0.5",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "d9518708f586ac7d99480f04d80ffcc81d30ef794aaaa94c09f8855e2d2bbb35",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.6",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "51f69604b420a8cf95da7813828e0fb2904dd881fc5ea3b36489ad3bbed06a77",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.8",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "1132f0a2fb271660ceaec362e02d2a82c96f1f3abeedcbc4974405b064ce14bb",
+          "timestamp": "2026-06-11T03:05:22.317Z",
+          "semver": "1.0.9",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Orchestrator.md": {
       "path": ".opencode/agents/Orchestrator.md",
       "category": "agent",
-      "semver": "1.0.5",
-      "sha256": "4f27375694e7aa2ba1465099627ab99f32e25388b5ee17712fd98e384fdfe5ac",
-      "last_modified": "2026-06-06T01:15:54.691Z",
-      "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch",
+      "semver": "1.0.10",
+      "sha256": "b2d5ec163a0d108ebf49278bf304f7a0169805aac9e55952c53d03e30861d278",
+      "last_modified": "2026-06-11T03:05:22.318Z",
+      "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch. FW-DOWNGRADE-SA: Super-Admin dispatch rules updated.",
       "digest_history": [
         {
-          "sha256": "9ebadf94732ea96b63ddab19784faae8e864f518584b94e822f858504be9aef8",
+          "sha256": "1fa7017407cd837fa883fc672f6f8ad30dbca3794517772f73a11c1f80f12beb",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.7",
+          "change": "Super-Admin dispatch rules updated (FW-DOWNGRADE-SA)"
+        },
+        {
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
@@ -555,15 +658,39 @@
           "timestamp": "2026-06-06T01:15:54.691Z",
           "semver": "1.0.5",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "e4cf83390dc4f81d6ce8bcbc000c7554a2b9d23c439f271d832a54848a936427",
+          "timestamp": "2026-06-06T02:30:00.000Z",
+          "semver": "1.0.6",
+          "change": "Super-Admin cg_ses_1780751916545: digest synced after GAP-M2 Orchestrator.md UC7KS instruction fix (self-referential text corrected at L114)"
+        },
+        {
+          "sha256": "1fa7017407cd837fa883fc672f6f8ad30dbca3794517772f73a11c1f80f12beb",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.7",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "ca5759e27ea02289d88c069b2ab8776b373cd252f3adc42ae031469bee72573a",
+          "timestamp": "2026-06-09T00:00:00.000Z",
+          "semver": "1.0.9",
+          "change": "Super-Admin cg_ses_1781009550988: digest repair — Orchestrator.md content changed after v1.0.8 registration"
+        },
+        {
+          "sha256": "b2d5ec163a0d108ebf49278bf304f7a0169805aac9e55952c53d03e30861d278",
+          "timestamp": "2026-06-11T03:05:22.318Z",
+          "semver": "1.0.10",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Guardian.md": {
       "path": ".opencode/agents/Guardian.md",
       "category": "agent",
-      "semver": "1.0.3",
-      "sha256": "065d05a79b31df78a8a57f54669ae2dd42138d9647ebecee53661d99c03a1c31",
-      "last_modified": "2026-06-06T01:15:54.691Z",
+      "semver": "1.0.7",
+      "sha256": "7436dec5b1ec2c28b55cfbc641877b9579a669961f7f48e070294bdf4a1b7bd0",
+      "last_modified": "2026-06-11T03:05:22.318Z",
       "description": "Quality Gate – code standards, security, architecture constraint review",
       "digest_history": [
         {
@@ -607,15 +734,33 @@
           "timestamp": "2026-06-06T01:15:54.691Z",
           "semver": "1.0.3",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "543b2407328571cac99ff6ea0fafc61bbd1cb5aef6bfa96a095274ce01aea22f",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.4",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "aab965e2214bbc6e0af4d5bbbfcec0038b0c4624e542caecae2e496d6ff2722b",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.6",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "7436dec5b1ec2c28b55cfbc641877b9579a669961f7f48e070294bdf4a1b7bd0",
+          "timestamp": "2026-06-11T03:05:22.318Z",
+          "semver": "1.0.7",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Meta-Planner.md": {
       "path": ".opencode/agents/Meta-Planner.md",
       "category": "agent",
-      "semver": "1.0.0",
-      "sha256": "901ec4256782030468ff14787612f2b16c4424c4124f35d45761c305cd3ebcdb",
-      "last_modified": "2026-06-05T13:24:56.362Z",
+      "semver": "1.0.5",
+      "sha256": "9e27e23786293c329390b1cd2b5741b1154c66f9207567cde12c1d2ee2c30a4c",
+      "last_modified": "2026-06-11T03:05:22.318Z",
       "description": "Project CTO – top-level requirement decomposition and DAG planning",
       "digest_history": [
         {
@@ -635,15 +780,39 @@
           "timestamp": "2026-06-05T13:24:56.362Z",
           "semver": "1.0.0",
           "change": "Super-Admin cg_ses_1780665456290: digest repair after content change"
+        },
+        {
+          "sha256": "b3606a8461098b6e28260428838a0c0fd00b3a88402fde1372a5d5da9504e888",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.1",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "372b45ea03b53c1a54381a750b2ad04a2683966efade26e6469872ddd7d2d0e0",
+          "timestamp": "2026-06-08T17:07:22.394Z",
+          "semver": "1.0.2",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "bc94077d0e08b2b390b6ec7f9667691a9cc284f78bd6b44878e7e351ddb92a5b",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.4",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "9e27e23786293c329390b1cd2b5741b1154c66f9207567cde12c1d2ee2c30a4c",
+          "timestamp": "2026-06-11T03:05:22.318Z",
+          "semver": "1.0.5",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Arbiter.md": {
       "path": ".opencode/agents/Arbiter.md",
       "category": "agent",
-      "semver": "1.0.0",
-      "sha256": "d2a250b40503bc0ada2488182b89cf776f2cad48b38f36d85903d58751e53a12",
-      "last_modified": "2026-06-05T13:24:56.362Z",
+      "semver": "1.0.4",
+      "sha256": "469f35276bfd54b3a4d53e07a7bceb1b7f3f627d1e87e3bfe49390ea7035fc95",
+      "last_modified": "2026-06-11T03:05:22.319Z",
       "description": "Technical Committee – conflict resolution and technical debt waiver approval",
       "digest_history": [
         {
@@ -663,15 +832,33 @@
           "timestamp": "2026-06-05T13:24:56.362Z",
           "semver": "1.0.0",
           "change": "Super-Admin cg_ses_1780665456290: digest repair after content change"
+        },
+        {
+          "sha256": "6d209548d76c27dc93e1c804201a9d78f5d86a97ab945b1ad80932abaf9215d2",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.1",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "b8b7761b3cb7415043af5b5b4545642377344350adc5c61363c2af93b0b295d0",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.3",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "469f35276bfd54b3a4d53e07a7bceb1b7f3f627d1e87e3bfe49390ea7035fc95",
+          "timestamp": "2026-06-11T03:05:22.319Z",
+          "semver": "1.0.4",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/CI-CD-Agent.md": {
       "path": ".opencode/agents/CI-CD-Agent.md",
       "category": "agent",
-      "semver": "1.0.1",
-      "sha256": "23a73386bdd804ea69774bff56d57cfa9e1cd16466d1334986c37ccdb8c90373",
-      "last_modified": "2026-06-06T01:15:54.691Z",
+      "semver": "1.0.5",
+      "sha256": "989d94d05b86009be46a7142eb8ca84c20ef7cf9e13906d755a528a0bc5c8d27",
+      "last_modified": "2026-06-11T03:05:22.319Z",
       "description": "DevOps/SRE – CI pipeline management, auto-deployment, git version management, production self-healing",
       "digest_history": [
         {
@@ -697,6 +884,58 @@
           "timestamp": "2026-06-06T01:15:54.691Z",
           "semver": "1.0.1",
           "change": "auto-repaired by rule-registry-verify.js --repair"
+        },
+        {
+          "sha256": "e678ca4c2ea63bb5d5e937541a31fb99aee8370cae498b56fecbdcfb1ba4ba44",
+          "timestamp": "2026-06-06T03:00:00.000Z",
+          "semver": "1.0.2",
+          "change": "Super-Admin cg_ses_1780754507482: digest repair — content changed after UC7KS notes addition"
+        },
+        {
+          "sha256": "955fb061c10fe898f40bfe4271033246134e89821bc37ea1485b0c9d5cb016b4",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.4",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "989d94d05b86009be46a7142eb8ca84c20ef7cf9e13906d755a528a0bc5c8d27",
+          "timestamp": "2026-06-11T03:05:22.319Z",
+          "semver": "1.0.5",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        }
+      ]
+    },
+    "agents/Knowledge-Curator.md": {
+      "path": ".opencode/agents/Knowledge-Curator.md",
+      "category": "agent",
+      "semver": "1.0.1",
+      "sha256": "0efa1a3a34da08b5db8b4aaec7e5e3d9bd69096a36097477535de3fe28638ce7",
+      "last_modified": "2026-06-11T00:34:45.563Z",
+      "description": "Knowledge Management Specialist – acquires, caches, and organizes technical documentation via UC7KS pipeline",
+      "digest_history": [
+        {
+          "sha256": "86823b062fea7a7f18a212131cca6b57f2d479ecc8d2a169df64eb1ce451f909",
+          "timestamp": "2026-06-11T00:00:00.000Z",
+          "semver": "1.0.0",
+          "change": "initial registration — Super-Admin cg_ses_1781128522129: mcp_tools consistency fix"
+        },
+        {
+          "sha256": "7ae0bb0fde2a7f8dd7bf24719ef1c6b07baf7bc5b634fc5035dfb401231a1e70",
+          "timestamp": "2026-06-11T06:00:00.000Z",
+          "semver": "1.0.0",
+          "change": "Super-Admin cg_ses_1781128522129: added permission block to Knowledge-Curator.md"
+        },
+        {
+          "sha256": "292fcd39775b935cc299b47112a59bf976e023326465636826ddfdbec28c467b",
+          "timestamp": "2026-06-11T12:00:00.000Z",
+          "semver": "1.0.0",
+          "change": "Super-Admin SA-FIX-PARALLEL-DISPATCH-20260611: digest sync after permission block addition"
+        },
+        {
+          "sha256": "0efa1a3a34da08b5db8b4aaec7e5e3d9bd69096a36097477535de3fe28638ce7",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.1",
+          "change": "Super-Admin: digest repair — content hash sync for all agent config files"
         }
       ]
     },
@@ -731,18 +970,45 @@
           "change": "initial registration"
         }
       ]
+    },
+    "agents/Super-Admin.md": {
+      "path": ".opencode/agents/Super-Admin.md",
+      "category": "agent",
+      "semver": "1.0.2",
+      "sha256": "0a0a724e054f78c9c6d5df8ed1215147a98b55eb203f5544ffb0772cf5a4d945",
+      "last_modified": "2026-06-11T06:13:32.670Z",
+      "description": "Privileged Meta-Layer – emergency framework repair, governance modifications, state machine surgery, agent lifecycle management",
+      "digest_history": [
+        {
+          "sha256": "1a6adb1cc427c4b7ab7e744cf0d297ba0db1aedcc71248b9f725e12042999bff",
+          "timestamp": "2026-06-11T00:34:45.563Z",
+          "semver": "1.0.0",
+          "change": "Super-Admin: initial registration — was missing from registry entirely"
+        },
+        {
+          "sha256": "a19e20bc551e00abf1151166139a86498dfe4640a06763098c791c808ba07b2a",
+          "timestamp": "2026-06-11T03:05:22.320Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "0a0a724e054f78c9c6d5df8ed1215147a98b55eb203f5544ffb0772cf5a4d945",
+          "timestamp": "2026-06-11T06:13:32.670Z",
+          "semver": "1.0.2",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        }
+      ]
     }
   },
   "integrity": {
-    "last_full_verification": "2026-06-05T13:24:56.362Z",
-    "last_regenerated": "2026-06-05",
-    "last_verified_digest": "sha256-27-repaired-by-super-admin",
-    "verified_count": 27,
+    "last_full_verification": "2026-06-11T00:34:45.563Z",
+    "last_verified_digest": "sha256-super-admin-digest-sync-all-agent-configs",
+    "verified_count": 31,
     "mismatch_count": 0,
     "warning_count": 0,
     "critical_mismatches": [],
     "status": "repaired",
-    "repair_notes": "Super-Admin cg_ses_1780665456290: repaired 10 digest mismatches (1 semver bump + 9 digest updates) after framework sync on work-one branch"
+    "repair_notes": "Super-Admin: repaired 8 digest mismatches + added Super-Admin.md entry — all 10 agent config files synced"
   },
   "verification_policy": {
     "critical_files": [

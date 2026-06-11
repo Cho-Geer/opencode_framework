@@ -19,10 +19,10 @@
  * @since 2026-06-03
  */
 
-import { tool } from "@opencode-ai/plugin"
-import * as fs from "node:fs"
-import * as path from "node:path"
-import { generateDiff } from "../lib"
+import { tool } from "@opencode-ai/plugin";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { generateDiff } from "../lib";
 
 export default tool({
   description:
@@ -34,80 +34,82 @@ export default tool({
   args: {
     backupPath: tool.schema
       .string()
-      .describe("Absolute path to the backup file (original version). Used in MODE 1 with targetPath."),
+      .describe(
+        "Absolute path to the backup file (original version). Used in MODE 1 with targetPath.",
+      ),
     targetPath: tool.schema
       .string()
-      .describe("Absolute path of the target file (modified version). Used in MODE 1 with backupPath."),
+      .describe(
+        "Absolute path of the target file (modified version). Used in MODE 1 with backupPath.",
+      ),
     fileA: tool.schema
       .string()
-      .describe("Absolute path of the target file. Used in MODE 2 with content."),
+      .describe(
+        "Absolute path of the target file. Used in MODE 2 with content.",
+      ),
     content: tool.schema
       .string()
-      .describe("Inline content string to diff against fileA. Used in MODE 2 with fileA. " +
-        "When provided alongside fileA, reads the existing file and generates a diff " +
-        "between its current content and the provided content string."),
+      .describe(
+        "Inline content string to diff against fileA. Used in MODE 2 with fileA. " +
+          "When provided alongside fileA, reads the existing file and generates a diff " +
+          "between its current content and the provided content string.",
+      ),
   },
   async execute(args, context) {
-    const agent = context.agent ?? process.env.FRAMEWORK_AGENT ?? "unknown"
+    const agent = context.agent ?? "unknown";
 
     // MODE 2: inline content diff (fileA + content)
     if (args.content !== undefined && args.fileA) {
-      const absFileA = path.resolve(args.fileA)
+      const absFileA = path.resolve(args.fileA);
 
       if (!fs.existsSync(absFileA)) {
-        throw new Error(
-          `[safe_diff] Target file not found: ${absFileA}`,
-        )
+        throw new Error(`[safe_diff] Target file not found: ${absFileA}`);
       }
 
-      const original = fs.readFileSync(absFileA, "utf-8")
-      const result = generateDiff(original, args.content)
+      const original = fs.readFileSync(absFileA, "utf-8");
+      const result = generateDiff(original, args.content);
 
       if (!result.hasChanges) {
-        return `[safe_diff] Content matches existing file ${absFileA} (agent: ${agent})`
+        return `[safe_diff] Content matches existing file ${absFileA} (agent: ${agent})`;
       }
 
       return [
         `[safe_diff] ${result.added} line(s) added, ${result.removed} line(s) removed (agent: ${agent})`,
         result.diff,
-      ].join("\n")
+      ].join("\n");
     }
 
     // MODE 1: two-file diff (backupPath + targetPath)
     if (args.backupPath && args.targetPath) {
-      const absBackup = path.resolve(args.backupPath)
-      const absTarget = path.resolve(args.targetPath)
+      const absBackup = path.resolve(args.backupPath);
+      const absTarget = path.resolve(args.targetPath);
 
       if (!fs.existsSync(absBackup)) {
-        throw new Error(
-          `[safe_diff] Backup file not found: ${absBackup}`,
-        )
+        throw new Error(`[safe_diff] Backup file not found: ${absBackup}`);
       }
       if (!fs.existsSync(absTarget)) {
-        throw new Error(
-          `[safe_diff] Target file not found: ${absTarget}`,
-        )
+        throw new Error(`[safe_diff] Target file not found: ${absTarget}`);
       }
 
-      const original = fs.readFileSync(absBackup, "utf-8")
-      const modified = fs.readFileSync(absTarget, "utf-8")
+      const original = fs.readFileSync(absBackup, "utf-8");
+      const modified = fs.readFileSync(absTarget, "utf-8");
 
-      const result = generateDiff(original, modified)
+      const result = generateDiff(original, modified);
 
       if (!result.hasChanges) {
-        return `[safe_diff] No differences between ${absBackup} and ${absTarget} (agent: ${agent})`
+        return `[safe_diff] No differences between ${absBackup} and ${absTarget} (agent: ${agent})`;
       }
 
       return [
         `[safe_diff] ${result.added} line(s) added, ${result.removed} line(s) removed (agent: ${agent})`,
         result.diff,
-      ].join("\n")
+      ].join("\n");
     }
 
     // Neither valid mode
     throw new Error(
       "[safe_diff] Invalid arguments. Provide either (backupPath + targetPath) for MODE 1 " +
-      "or (fileA + content) for MODE 2."
-    )
+        "or (fileA + content) for MODE 2.",
+    );
   },
-})
+});

@@ -255,10 +255,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Verify WAL transaction integrity
         run: |
-          echo "Running state-transaction.js verify..."
-          node .opencode/scripts/state-transaction.js verify
+          echo "Running state-transaction.ts verify..."
+          bun .opencode/scripts/state-transaction.ts verify
 
       - name: Export check result
         if: always()

@@ -293,8 +293,8 @@ async function main() {
 
   log('');
   log('Post-rollback steps:');
-  log('  1. Run: node .opencode/scripts/framework-self-test.js');
-  log('  2. Run: node .opencode/scripts/state-reconciliation.js --fix');
+  log('  1. Run: bun .opencode/scripts/framework-self-test.ts');
+  log('  2. Run: bun .opencode/scripts/state-reconciliation.ts --fix');
   log('  3. Verify: git diff --stat .opencode/state/ Task.DAG.json');
 }
 

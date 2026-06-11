@@ -1,0 +1,83 @@
+// session.ts — Plugin: session management + chat.message hook
+// ═══════════════════════════════════════════════════════════════
+// Logs session lifecycle and manages session-agent mapping.
+// Part of framework log system v2.0.
+//
+// Hook events:
+//   - chat.message: Track session → agent mapping
+//
+// @author @Super-Admin
+// @version 2.0.0
+// @since 2026-06-10
+// ═══════════════════════════════════════════════════════════════
+
+import {
+  writeLog,
+  updateIndex,
+  ensureLogDir,
+} from "../lib/log-manager";
+import * as path from "node:path";
+import * as fs from "node:fs";
+import { getSessionMapPath } from "../lib/agent-resolver";
+
+// ═══════════════════════════════════════════════════════════════
+// [PLUGIN-LOADED] Module top-level — triggered at import time
+// ═══════════════════════════════════════════════════════════════
+ensureLogDir();
+writeLog("session", "loaded", {
+  event: "PLUGIN-LOADED",
+  detail: "session.ts module loaded",
+});
+updateIndex("session", "PLUGIN-LOADED");
+
+// ═══════════════════════════════════════════════════════════════
+// [HOOK-REGISTERED] Inside export default function body
+// ═══════════════════════════════════════════════════════════════
+export default (async (_ctx: any) => {
+  writeLog("session", "hooks", {
+    event: "HOOK-REGISTERED",
+    detail: "chat.message",
+  });
+
+  return {
+    "chat.message": chatMessageHook,
+  };
+}) as any;
+
+// ═══════════════════════════════════════════════════════════════
+// [RUNTIME] Inside hook function body — triggered on event
+// ═══════════════════════════════════════════════════════════════
+async function chatMessageHook(input: any, _output: any) {
+  writeLog("session", "runtime", {
+    sessionID: input.sessionID,
+    agent: input.agent,
+    agentType: input.agent,
+    event: "CHAT-HOOK",
+    detail: "enter",
+  });
+
+  try {
+    // Session management logic placeholder
+    // In full implementation, this would:
+    // 1. Resolve agent from session map
+    // 2. Update session → agent mapping
+    // 3. Track dispatched tasks
+
+    writeLog("session", "runtime", {
+      sessionID: input.sessionID,
+      agent: input.agent,
+      agentType: input.agent,
+      event: "CHAT-HOOK",
+      detail: `exit (ok) agent=${input.agent || "—"}`,
+    });
+  } catch (err: any) {
+    writeLog("session", "runtime", {
+      sessionID: input.sessionID,
+      agent: input.agent,
+      agentType: input.agent,
+      level: "ERROR",
+      event: "CHAT-HOOK",
+      detail: `exit (error) ${err.message}`,
+    });
+  }
+}

@@ -39,7 +39,7 @@
  */
 
 // ═══ Library import (CI-EMBED-001) ═══
-const lib = require("./code-quality-lib.js");
+const lib = require("./code-quality-lib.ts");
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const {
@@ -317,8 +317,8 @@ function readJson(p) {
 // ─── Cross-Workspace Protection & Canonicalization (FW-REPAIR-09 + RVW-REVIEW-02) ──
 //
 // Path validation, sanitization, and canonicalization functions have been
-// extracted to ../state-canonicalize.js for reuse across the framework.
-// See: .opencode/scripts/state-canonicalize.js
+// extracted to ../state-canonicalize.ts for reuse across the framework.
+// See: .opencode/scripts/state-canonicalize.ts
 //
 // Available via: const stateCanon = require("../state-canonicalize");
 //   - stateCanon.isPathInWorkspace(filePath, workspaceRoot)

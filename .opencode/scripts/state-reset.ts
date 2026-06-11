@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * state-reset.js — Idempotent state machine bootstrap/reset script
+ * state-reset.ts — Idempotent state machine bootstrap/reset script
  *
  * Usage:
- *   node .opencode/scripts/state-reset.js              # interactive (asks confirmation)
- *   node .opencode/scripts/state-reset.js --force       # non-interactive, skips prompt
- *   node .opencode/scripts/state-reset.js --dry-run     # preview what would change, no write
+ *   bun .opencode/scripts/state-reset.ts              # interactive (asks confirmation)
+ *   bun .opencode/scripts/state-reset.ts --force       # non-interactive, skips prompt
+ *   bun .opencode/scripts/state-reset.ts --dry-run     # preview what would change, no write
  *
  * Actions:
  *   1. Reads machine.json from .opencode/state/

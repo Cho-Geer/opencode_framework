@@ -12,7 +12,7 @@
  *   - "source code", "implementation" → source inspection requests
  *   - "type narrowing", "generic" → type system internals
  *
- * Usage: node .opencode/scripts/knowledge/scout-trigger.js "<task description>"
+ * Usage: bun .opencode/scripts/knowledge/scout-trigger.ts "<task description>"
  * Returns: { should_escalate: boolean, matched_triggers: string[], confidence: "low"|"medium"|"high" }
  */
 

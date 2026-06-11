@@ -1,0 +1,14 @@
+// STEP 5h: static async function (not arrow) to match chatMessageHook's type.
+// Verify: cat /tmp/opencode-fw-step5h.txt
+import * as fs from "node:fs";
+import { chatMessageHook as _h } from "./enforce";
+
+const chatMessageHook = _h;
+
+export default (async (_ctx: any) => {
+  fs.writeFileSync("/tmp/opencode-fw-step5h.txt", `fw-step5h loaded at ${new Date().toISOString()}\n`, "utf8");
+  return {
+    "chat.message": async function(_i: any, _o: any) {},
+    "tool.execute.before": chatMessageHook,
+  };
+}) as any;

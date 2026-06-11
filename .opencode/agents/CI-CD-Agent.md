@@ -16,7 +16,7 @@ skills:
   - cross-directory-ci
   - context7-first
 mcp_tools:
-  # Context7 denied per UC7-004 — route via @Knowledge-Curator
+  # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
   - docker_list_containers
   - docker_run_container
   - docker_build_image
@@ -28,15 +28,13 @@ mcp_tools:
   - docker_recreate_container
   - docker_start_container
   - docker_stop_container
-  - Github
-  - safe_edit
   - safe_edit
   - safe_shell
   - safe_delete
   - safe_mkdir
   - safe_diff
-  - webfetch
-  - websearch
+  - glob
+  - grep
   - question
   - compliance_gate_check
   - compliance_gate_confirm
@@ -44,7 +42,6 @@ mcp_tools:
 permission:
   edit: deny
   bash: deny
-  task: deny
   safe_test: deny
   skill: allow
 ---
@@ -58,6 +55,8 @@ Before any investigation or external query:
 2. [ ] If found, read cached docs via `read` tool
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
+
+**Note**: At dispatch time, `dispatch-subagent.ts` automatically invokes `module_scope_declare` and `knowledge_cache_search` (UC7KS pipeline Steps 0a-0b). The checklist above documents the manual fallback path: read `docs/official_docs/index.json` directly + request @Knowledge-Curator dispatch.
 
 ## Core Responsibilities
 

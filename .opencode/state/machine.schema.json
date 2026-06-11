@@ -529,6 +529,25 @@
                   "items": { "type": "string" },
                   "description": "Test files written in this session."
                 },
+                "diff_evidence": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["file", "timestamp", "type", "hasChanges", "added", "removed", "diffSummary"],
+                    "properties": {
+                      "file": { "type": "string" },
+                      "timestamp": { "type": "string", "format": "date-time" },
+                      "type": { "type": "string", "enum": ["test", "impl"] },
+                      "hasChanges": { "type": "boolean" },
+                      "added": { "type": "integer", "minimum": 0 },
+                      "removed": { "type": "integer", "minimum": 0 },
+                      "diffSummary": { "type": "string" },
+                      "agent": { "type": "string" }
+                    },
+                    "additionalProperties": true
+                  },
+                  "description": "Diff evidence for test/impl files written in this session (populated by tdd-after.ts)."
+                },
                 "initialized": {
                   "type": "boolean",
                   "description": "Whether the TDD session has been initialized."
@@ -718,6 +737,52 @@
                 "type": "integer",
                 "minimum": 0,
                 "description": "Total number of times this agent has read cache files."
+              },
+              "declared_scope": {
+                "type": ["string", "null"],
+                "description": "Agent's declared module domain from knowledge_semantic_map (e.g., 'backend_api', 'persistence'). Set by module_scope_declare tool. FW-HARDEN-UC7KS-002."
+              },
+              "declared_at": {
+                "type": ["string", "null"],
+                "format": "date-time",
+                "description": "ISO 8601 timestamp when the agent declared its module scope."
+              },
+              "cache_sufficiency": {
+                "type": "object",
+                "description": "Agent's cache sufficiency declaration. Required before external queries in strict/locked mode. FW-HARDEN-UC7KS-003. UC7-001c HARDEN: reason, files_read, content_summary are REQUIRED evidence fields.",
+                "required": ["status", "reason", "files_read", "content_summary", "declared_at"],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["sufficient", "insufficient", "undeclared"],
+                    "description": "Whether the local cache covers the agent's knowledge needs."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "WHY the cache is sufficient or insufficient. Required by UC7-001c."
+                  },
+                  "files_read": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Cache file paths that were read (e.g., 'opencode/framework/plugins.md'). Required by UC7-001c."
+                  },
+                  "content_summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Brief summary of what was found in the cached files. Required by UC7-001c."
+                  },
+                  "missing_topics": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Specific topics the agent found missing in cache."
+                  },
+                  "declared_at": {
+                    "type": ["string", "null"],
+                    "format": "date-time",
+                    "description": "ISO 8601 timestamp when sufficiency was declared."
+                  }
+                }
               }
             }
           }
@@ -788,6 +853,44 @@
           }
         }
       }
+    },
+
+    "plugin_state": {
+      "type": "object",
+      "description": "Framework plugin load state tracking. Synchronized with .task_temp/_logs/index.json by state-reconciliation.",
+      "required": ["last_reconciliation", "plugins"],
+      "properties": {
+        "last_reconciliation": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of last reconciliation between machine.json and index.json."
+        },
+        "plugins": {
+          "type": "object",
+          "description": "Per-plugin state tracking keyed by plugin name (e.g., session, scope-before, uc7ks-before).",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["loaded", "hooks_registered", "last_seen"],
+            "properties": {
+              "loaded": {
+                "type": "boolean",
+                "description": "Whether the plugin module was successfully imported."
+              },
+              "hooks_registered": {
+                "type": "boolean",
+                "description": "Whether the plugin registered at least one hook event."
+              },
+              "last_seen": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp of last plugin activity (load or hook trigger)."
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true

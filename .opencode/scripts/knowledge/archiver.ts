@@ -5,7 +5,7 @@
  * Archives older than 7 days are permanently deleted.
  * Archives are organized by date: .metadata/archives/YYYY-MM-DD/
  *
- * Usage: node .opencode/scripts/knowledge/archiver.js [--prune] [--dry-run]
+ * Usage: bun .opencode/scripts/knowledge/archiver.ts [--prune] [--dry-run]
  */
 
 const fs = require("fs");

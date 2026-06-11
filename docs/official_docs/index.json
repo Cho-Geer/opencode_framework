@@ -1,169 +1,252 @@
 {
-  "manifest_version": "1.3.0",
-  "last_updated": "2026-06-05T23:45:00Z",
-  "total_entries": 9,
+  "manifest_version": "1.4.1",
+  "last_updated": "2026-06-11T07:30:00Z",
+  "total_entries": 35,
   "entries": [
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode json config schema reference all fields",
+      "domain": "opencode",
+      "tags": ["opencode", "config", "opencode.json", "schema", "server", "tui", "models", "providers", "permissions", "mcp", "plugins", "commands", "keybinds", "formatters", "lsp", "policies", "experimental"],
+      "files": [{"path": "opencode/framework/config.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/config/", "sha256": "sha256:28d9412d0cb7edf77a6140567b2d2b129ad6e830f975522d654b47ddaf1311b5", "size_bytes": 22548, "created_at": "2026-06-06T02:30:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode agent skills creation SKILL.md standard permissions",
+      "domain": "opencode",
+      "tags": ["opencode", "skills", "SKILL.md", "frontmatter", "name", "description", "discovery", "permissions", "agent-override", "skill-tool"],
+      "files": [{"path": "opencode/framework/skills.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/skills/", "sha256": "sha256:890b9667ac95790928d3c62b0ef7403eb70454282bf4979e2bcd9abe14cc5662", "size_bytes": 4592, "created_at": "2026-06-06T02:30:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode cli commands reference environment variables",
+      "domain": "opencode",
+      "tags": ["opencode", "cli", "commands", "run", "serve", "web", "tui", "agent", "auth", "mcp", "session", "stats", "export", "import", "flags", "env-vars", "experimental"],
+      "files": [{"path": "opencode/framework/cli.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/cli/", "sha256": "sha256:ddef0e72ac88765061941449f2b5a1f49665c7ef66cbc830bcfee542d2a4a8db", "size_bytes": 12311, "created_at": "2026-06-06T02:30:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode intro overview getting started install configure",
+      "domain": "opencode",
+      "tags": ["opencode", "intro", "overview", "getting-started", "install", "configure", "initialize", "usage", "share", "customize", "plan-mode", "build-mode"],
+      "files": [{"path": "opencode/framework/index.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/", "sha256": "sha256:0517325cca38886251c7a75e655e0ebd4ca365e9d0d8bc4eaaec2b50e9db2969", "size_bytes": 3625, "created_at": "2026-06-06T02:30:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode plugins system hook events create",
       "domain": "opencode",
       "tags": ["opencode", "plugins", "hooks", "events", "tool.execute.before", "tool.execute.after", "plugin-development"],
-      "files": [{
-        "path": "opencode/framework/plugins.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/plugins/",
-        "sha256": "sha256:5df79e28bbf7d66936c2dfa76d763300e5cc3733b0ff812c956de17fdfd37982",
-        "size_bytes": 5699,
-        "created_at": "2026-06-05T23:45:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/framework/plugins.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/plugins/", "sha256": "sha256:5df79e28bbf7d66936c2dfa76d763300e5cc3733b0ff812c956de17fdfd37982", "size_bytes": 5699, "created_at": "2026-06-05T23:45:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode built-in tools list permissions configuration",
       "domain": "opencode",
       "tags": ["opencode", "tools", "built-in", "bash", "edit", "write", "read", "grep", "glob", "webfetch", "websearch", "skill", "todowrite", "question", "lsp", "apply_patch", "permissions"],
-      "files": [{
-        "path": "opencode/framework/tools.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/tools/",
-        "sha256": "sha256:3e490c973d3d91f4ef28fee257b7a75981ba88c6552a75f5ef1ac4bc5b9eaee3",
-        "size_bytes": 2903,
-        "created_at": "2026-06-05T23:45:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/framework/tools.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/tools/", "sha256": "sha256:3e490c973d3d91f4ef28fee257b7a75981ba88c6552a75f5ef1ac4bc5b9eaee3", "size_bytes": 2903, "created_at": "2026-06-05T23:45:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode custom tools definition schema multiple exports",
       "domain": "opencode",
       "tags": ["opencode", "custom-tools", "tool()", "zod", "schema", "args", "execute", "context", "multiple-exports", "naming"],
-      "files": [{
-        "path": "opencode/framework/custom-tools.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/custom-tools/",
-        "sha256": "sha256:5fd3f780db5d91926d147b48f053bf63664b433a0e501263f5ea51d6acf86402",
-        "size_bytes": 2728,
-        "created_at": "2026-06-05T23:45:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/framework/custom-tools.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/custom-tools/", "sha256": "sha256:5fd3f780db5d91926d147b48f053bf63664b433a0e501263f5ea51d6acf86402", "size_bytes": 2728, "created_at": "2026-06-05T23:45:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode agents configuration permissions options markdown",
       "domain": "opencode",
       "tags": ["opencode", "agents", "primary", "subagent", "hidden", "build", "plan", "general", "explore", "scout", "permissions", "configure", "mode", "task-permissions", "markdown-config"],
-      "files": [{
-        "path": "opencode/framework/agents.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/agents/",
-        "sha256": "sha256:ec1454e169d3662ef1954f5fd0691d013d880122bef868015752d99d86529231",
-        "size_bytes": 4436,
-        "created_at": "2026-06-05T23:45:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/framework/agents.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/agents/", "sha256": "sha256:ec1454e169d3662ef1954f5fd0691d013d880122bef868015752d99d86529231", "size_bytes": 4436, "created_at": "2026-06-05T23:45:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode agent mode values source code analysis all subagent primary",
+      "domain": "opencode",
+      "tags": ["opencode", "agent", "mode", "primary", "subagent", "all", "task", "permissions", "source-analysis", "registry.ts", "agent.ts"],
+      "files": [{"path": "opencode/source-analysis/agent-mode-values.md", "source": "github-api", "original_url": "https://github.com/anomalyco/opencode", "sha256": "sha256:cd84295971749a0b72125d6111c53591c9924ed09e9e17ae767da64e2a96a3c9", "size_bytes": 10920, "created_at": "2026-06-11T07:30:00Z", "ttl_days": 90, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode permissions system complete key list agent override",
       "domain": "opencode",
       "tags": ["opencode", "permissions", "allow", "ask", "deny", "wildcard", "glob", "external-directory", "doom-loop", "agent-override", "granular-rules"],
-      "files": [{
-        "path": "opencode/framework/permissions.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/permissions/",
-        "sha256": "sha256:30d9920104faa22da2de700b86590e0f34c6d72a6a4cb033f57efc63f6e40c79",
-        "size_bytes": 4396,
-        "created_at": "2026-06-05T23:45:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/framework/permissions.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/permissions/", "sha256": "sha256:30d9920104faa22da2de700b86590e0f34c6d72a6a4cb033f57efc63f6e40c79", "size_bytes": 4396, "created_at": "2026-06-05T23:45:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode mcp servers configuration local remote oauth per-agent",
       "domain": "opencode",
       "tags": ["opencode", "mcp", "servers", "local", "remote", "oauth", "per-agent", "enable", "disable", "tool-naming", "glob"],
-      "files": [{
-        "path": "opencode/framework/mcp-servers.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/mcp-servers/",
-        "sha256": "sha256:50a72518fd8c3377a3a147d76de924bd7d9330c517a6e9640eb1c384c8ef76e2",
-        "size_bytes": 3719,
-        "created_at": "2026-06-05T23:45:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/framework/mcp-servers.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/mcp-servers/", "sha256": "sha256:50a72518fd8c3377a3a147d76de924bd7d9330c517a6e9640eb1c384c8ef76e2", "size_bytes": 3719, "created_at": "2026-06-05T23:45:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "opencode-framework",
       "query_topic": "opencode policies experimental provider control",
       "domain": "opencode",
       "tags": ["opencode", "policies", "experimental", "provider", "allow", "deny", "resource", "action", "provider.use", "global-override"],
-      "files": [{
-        "path": "opencode/framework/policies.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/policies/",
-        "sha256": "sha256:f0d097d5f50dd8c17f3f551873977ff1a52744399267bb33823cca517d20a392",
-        "size_bytes": 2841,
-        "created_at": "2026-06-05T23:45:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/framework/policies.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/policies/", "sha256": "sha256:f0d097d5f50dd8c17f3f551873977ff1a52744399267bb33823cca517d20a392", "size_bytes": 2841, "created_at": "2026-06-05T23:45:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "web-fallback",
       "query_topic": "opencode release notes latest version changes",
       "domain": "opencode",
       "tags": ["opencode", "release", "changelog", "v1.16.0", "version"],
-      "files": [{
-        "path": "opencode/releases/v1.16.0-release-notes.md",
-        "source": "webfetch",
-        "original_url": "https://github.com/anomalyco/opencode/releases",
-        "sha256": "sha256:3529e140569ffcded7bac1c50ad957aed14874dd57ad49278a12edb13f07b509",
-        "size_bytes": 2300,
-        "created_at": "2026-06-05T09:12:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/releases/v1.16.0-release-notes.md", "source": "webfetch", "original_url": "https://github.com/anomalyco/opencode/releases", "sha256": "sha256:3529e140569ffcded7bac1c50ad957aed14874dd57ad49278a12edb13f07b509", "size_bytes": 2300, "created_at": "2026-06-05T09:12:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
     },
     {
       "library_id": "web-fallback",
       "query_topic": "opencode mcp servers custom tool construction",
       "domain": "opencode",
       "tags": ["opencode", "mcp", "custom-tool", "server", "local", "remote", "oauth"],
-      "files": [{
-        "path": "opencode/mcp/mcp-servers-docs.md",
-        "source": "webfetch",
-        "original_url": "https://opencode.ai/docs/mcp-servers/",
-        "sha256": "sha256:d21ae6d0df6a26dcfb93bfdab72eab8bcd1c93bb2c45f125ab2cf90c6a5806aa",
-        "size_bytes": 1240,
-        "created_at": "2026-06-05T09:12:00Z",
-        "ttl_days": 7,
-        "access_count": 0,
-        "last_accessed": null,
-        "status": "active"
-      }]
+      "files": [{"path": "opencode/mcp/mcp-servers-docs.md", "source": "webfetch", "original_url": "https://opencode.ai/docs/mcp-servers/", "sha256": "sha256:d21ae6d0df6a26dcfb93bfdab72eab8bcd1c93bb2c45f125ab2cf90c6a5806aa", "size_bytes": 1240, "created_at": "2026-06-05T09:12:00Z", "ttl_days": 7, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope",
+      "domain": "opencode",
+      "tags": ["opencode", "plugins", "loader", "hooks", "tool.execute.before", "tool.execute.after", "shared.ts", "source-analysis", "plugin-loading", "mcp", "chaining", "directory-scan"],
+      "files": [{"path": "opencode/plugins/source-analysis/plugin-loading-mechanics.md", "source": "github-api", "original_url": "https://github.com/anomalyco/opencode", "sha256": "sha256:dd98f5a0fef708d8570dbe7ca108d0db7fd47697f4d42f5993b4a9367aa9ac26", "size_bytes": 9590, "created_at": "2026-06-07T07:30:00Z", "ttl_days": 14, "access_count": 1, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args",
+      "domain": "opencode",
+      "tags": ["opencode", "plugins", "debugging", "bun", "cache", "hook-chaining", "index-files", "mcp-tools", "syntax-traps", "import-resolution", "diagnostic-strategy"],
+      "files": [{"path": "framework/mistake_precautions/plugin-debugging-precautions.md", "source": "curated", "original_url": "https://github.com/anomalyco/opencode", "sha256": "sha256:618e2309438a3a2e0d6001481e43ecc191f63d3df45b27378f7514f69b9e9aee", "size_bytes": 19245, "created_at": "2026-06-07T08:35:30Z", "ttl_days": 90, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent",
+      "domain": "opencode",
+      "tags": ["opencode", "agent-identity", "FRAMEWORK_AGENT", "tool.execute.before", "tool.execute.after", "context.agent", "dispatch-subagent", "plugin-hooks", "env-vars", "AGENT", "source-analysis"],
+      "files": [{"path": "opencode/source-analysis/agent-identity-plugin-hooks.md", "source": "github-api", "original_url": "https://github.com/anomalyco/opencode", "sha256": "sha256:cd84295971749a0b72125d6111c53591c9924ed09e9e17ae767da64e2a96a3c9", "size_bytes": 6197, "created_at": "2026-06-07T09:10:00Z", "ttl_days": 90, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode double hook trigger prevention merge plugins hook chaining mitigation",
+      "domain": "opencode",
+      "tags": ["opencode", "plugins", "double-hook", "hook-chaining", "tool.execute.before", "tool.execute.after", "triggerFor", "plugin-merge", "precautions", "plugin-id", "deduplication", "mistake-prevention"],
+      "files": [{"path": "framework/mistake_precautions/double-hook-trigger-prevention.md", "source": "curated", "original_url": "https://github.com/anomalyco/opencode", "sha256": "sha256:317cf24bfa01515906c3356a0b7aa7f4a5bad9101b2e817f27b161db898b972d", "size_bytes": 13542, "created_at": "2026-06-09T14:32:00Z", "ttl_days": 90, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints",
+      "domain": "opencode",
+      "tags": ["opencode", "plugins", "plugin-loading", "bun-cache", "auto-discovery", "export-default", "export-const", "mistake-prevention", "framework-enforcer", "cache-invalidation"],
+      "files": [{"path": "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md", "source": "curated", "original_url": "https://github.com/anomalyco/opencode", "sha256": "sha256:8e99d59389e2a3b538185d37732d1791273be3959bed59e0267fc2b969dc0297", "size_bytes": 5227, "created_at": "2026-06-10T10:30:00Z", "ttl_days": 90, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode plugin programming conventions multiple plugins constraints export format hooks",
+      "domain": "opencode",
+      "tags": ["opencode", "plugins", "programming-convention", "export-default", "multi-plugin", "hook-chaining", "load-order", "constraints", "import-limitations", "best-practices"],
+      "files": [{"path": "framework/plugin-programming-conventions.md", "source": "curated", "original_url": "https://github.com/anomalyco/opencode", "sha256": "sha256:bc37b26b731aae11c55912dff4927a207a269b21b61f74b4cbe38cc4ed986fbc", "size_bytes": 5487, "created_at": "2026-06-10T11:10:00Z", "ttl_days": 90, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "opencode release notes v1.17.2 latest version changes after-hook plugin",
+      "domain": "opencode",
+      "tags": ["opencode", "release", "changelog", "v1.17.2", "v1.17.1", "v1.17.0", "v1.16.2", "version", "tool.execute.after", "plugin-hook"],
+      "files": [{"path": "opencode/releases/v1.17.2-release-notes.md", "source": "github-api", "original_url": "https://github.com/anomalyco/opencode/releases", "sha256": "sha256:c7005a4211c604a4b0a3cbbdec1b830015eb7a212875854fabb07a45428c9766", "size_bytes": 2799, "created_at": "2026-06-11T00:00:00Z", "ttl_days": 14, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "jest",
+      "query_topic": "Jest 29+ unit testing framework: describe/it/expect, mock functions, spyOn, coverage reporting, configuration",
+      "domain": "testing",
+      "tags": ["jest", "testing", "unit-test", "mock", "spy", "coverage", "tdd", "assertions"],
+      "files": [{"path": "devops/testing/jest-unit-testing.md", "source": "context7", "original_url": "https://github.com/jestjs/jest", "sha256": "sha256:94648dd257386e4271ce3894345354aa0a9b32c8e0309b3b61d9c6f21114cf1e", "size_bytes": 4101, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "playwright",
+      "query_topic": "Playwright E2E testing: browser automation, page object model, test fixtures, cross-browser testing",
+      "domain": "testing",
+      "tags": ["playwright", "e2e", "browser", "automation", "page-object", "fixtures", "testing"],
+      "files": [{"path": "devops/testing/playwright-e2e-testing.md", "source": "context7", "original_url": "https://github.com/microsoft/playwright", "sha256": "sha256:077a560211876102f427f4c4eadaddfd23e2b9f6f4eb20d74ee219f747df4cd3", "size_bytes": 3425, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "supertest",
+      "query_topic": "Supertest HTTP integration testing: request methods, response assertions, session handling",
+      "domain": "testing",
+      "tags": ["supertest", "http", "integration", "api", "testing", "assertions", "express", "nestjs"],
+      "files": [{"path": "devops/testing/supertest-integration-testing.md", "source": "context7", "original_url": "https://github.com/forwardemail/supertest", "sha256": "sha256:e2b664281c7f5587ad5867f621ed8a3885df8b86a3e3d2b51505bed1d20708d6", "size_bytes": 3142, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "nestjs",
+      "query_topic": "NestJS testing with @nestjs/testing: Test.createTestingModule, controller/service e2e, overrideProvider",
+      "domain": "testing",
+      "tags": ["nestjs", "testing", "unit-test", "e2e", "test-module", "mock", "dependency-injection"],
+      "files": [{"path": "devops/testing/nestjs-testing.md", "source": "context7", "original_url": "https://github.com/nestjs/nest", "sha256": "sha256:f374f98d46e110e578afb890c3999ae45363b52d76f51ee9329cc381cf37242f", "size_bytes": 3168, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "tdd-practices",
+      "query_topic": "TDD best practices: RED-GREEN-REFACTOR cycle, test-first development, coverage thresholds",
+      "domain": "testing",
+      "tags": ["tdd", "test-driven-development", "red-green-refactor", "best-practices", "coverage"],
+      "files": [{"path": "devops/testing/tdd-best-practices.md", "source": "webfetch", "original_url": "https://jestjs.io/docs/", "sha256": "sha256:f8fc12cb09a346aa54604be1f88c27fe927157676bb5c7c94468fda88f0298d8", "size_bytes": 3367, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "nestjs",
+      "query_topic": "NestJS controller, service, and module testing: overrideProvider, overrideGuard, useMocker patterns",
+      "domain": "backend_api",
+      "tags": ["nestjs", "controller", "service", "module", "testing", "mock", "override", "guard", "interceptor"],
+      "files": [{"path": "backend/nestjs/nestjs-controller-service-testing.md", "source": "context7", "original_url": "https://github.com/nestjs/nest", "sha256": "sha256:cd8c75ceddb459b2d771038cbda4ea34b2072778ca2ea69e95880164e7548dbb", "size_bytes": 5404, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "prisma",
+      "query_topic": "Prisma testing strategies: mocking client, SQLite test DB, transaction isolation, Testcontainers",
+      "domain": "backend_api",
+      "tags": ["prisma", "testing", "database", "mock", "transaction", "integration", "seed", "migration"],
+      "files": [{"path": "backend/nestjs/prisma-testing.md", "source": "context7", "original_url": "https://github.com/prisma/prisma", "sha256": "sha256:fc0da35bf972ee559d1eae40b1d524d78856fcce5ea6d2dcd48128e63fd44b0b", "size_bytes": 4403, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "angular",
+      "query_topic": "Angular component testing: TestBed, ComponentFixture, DOM assertions, By.css, async patterns",
+      "domain": "frontend_ui",
+      "tags": ["angular", "testing", "component", "testbed", "fixture", "dom", "debugElement", "by.css"],
+      "files": [{"path": "frontend/angular/angular-component-testing.md", "source": "context7", "original_url": "https://github.com/angular/angular", "sha256": "sha256:d4cc4adc06463f5ed88e57ad5df8fd40e1419e954c06975a4235aca3e7cd65c2", "size_bytes": 4932, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "angular",
+      "query_topic": "Angular HTTP service testing: HttpClientTestingModule, HttpTestingController, mocking API requests",
+      "domain": "frontend_ui",
+      "tags": ["angular", "http", "service", "testing", "httpclient", "mock", "interceptor", "api"],
+      "files": [{"path": "frontend/angular/angular-http-testing.md", "source": "context7", "original_url": "https://github.com/angular/angular", "sha256": "sha256:ea05e80ff2b96c426abe339258b4b290830245c01bd65158236a041d4dbf0cd3", "size_bytes": 4061, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "angular",
+      "query_topic": "Angular SignalStore testing: signal-based state testing, computed signals, rxMethod, HTTP integration",
+      "domain": "frontend_ui",
+      "tags": ["angular", "signal", "store", "ngrx", "signalstore", "testing", "state-management", "computed"],
+      "files": [{"path": "frontend/angular/angular-signal-store-testing.md", "source": "context7", "original_url": "https://github.com/angular/angular", "sha256": "sha256:9a666de6428a28f64de84c6cd50ea38373efa889a2e4908f7a49af1f3d178d4d", "size_bytes": 5474, "created_at": "2026-06-11T04:20:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "github-actions",
+      "query_topic": "GitHub Actions workflow syntax and best practices for CI/CD test pipelines",
+      "domain": "devops_ci",
+      "tags": ["github-actions", "ci", "cd", "workflow", "syntax", "test", "jest", "playwright", "nestjs", "matrix", "service-containers", "reusable-workflows"],
+      "files": [{"path": "devops/docker/github-actions-workflow-syntax.md", "source": "context7+webfetch", "original_url": "https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions", "sha256": "sha256:2e4d1099c2a31940a30e68542830f25a2d85ccbaa5e4e1e57312a1bcf68acbab", "size_bytes": 4977, "created_at": "2026-06-11T04:29:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "docker-compose",
+      "query_topic": "Docker Compose setup for test environments and CI/CD integration",
+      "domain": "devops_ci",
+      "tags": ["docker", "compose", "ci", "cd", "test-environment", "multi-stage", "healthcheck", "e2e", "profiles"],
+      "files": [{"path": "devops/docker/docker-compose-test-environments.md", "source": "context7+webfetch", "original_url": "https://docs.docker.com/compose/", "sha256": "sha256:ba00a50705f5f2777e31091de2e3378474afe70b48a6590aaaaf3ff9f9e6a005", "size_bytes": 6231, "created_at": "2026-06-11T04:29:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "ci-test-pipeline",
+      "query_topic": "CI test pipeline integration: running Jest, Playwright, and NestJS tests in GitHub Actions",
+      "domain": "devops_ci",
+      "tags": ["jest", "playwright", "nestjs", "ci", "cd", "test-pipeline", "github-actions", "e2e", "unit-tests", "integration-tests", "docker-compose"],
+      "files": [{"path": "devops/docker/github-actions/ci-test-pipeline-integration.md", "source": "context7+webfetch", "original_url": "https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs", "sha256": "sha256:16b5af9ede69162c4d32650946d9258b9d315ff79edb31d3ff412a38b140c51d", "size_bytes": 10741, "created_at": "2026-06-11T04:29:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
+    },
+    {
+      "library_id": "test-reporting",
+      "query_topic": "Test reporting and coverage in GitHub Actions: artifacts, JUnit XML, PR comments, summaries",
+      "domain": "devops_ci",
+      "tags": ["test-reporting", "coverage", "github-actions", "artifacts", "junit", "playwright-report", "jest-coverage", "pr-comments"],
+      "files": [{"path": "devops/docker/github-actions/test-reporting-coverage.md", "source": "context7+webfetch", "original_url": "https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts", "sha256": "sha256:fcf755aa1f1ffe0b8079886cb3395d0df4a6b45a3dc29c50952ad6594ab34072", "size_bytes": 9021, "created_at": "2026-06-11T04:29:00Z", "ttl_days": 30, "access_count": 0, "last_accessed": null, "status": "active"}]
     }
   ]
 }

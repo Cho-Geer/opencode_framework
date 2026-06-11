@@ -300,7 +300,7 @@ function migrate() {
   log(`  Hot file: ~${oldSize}KB → ~${newSize}KB`);
   log(`  Backup: ${BACKUP_DIR}`);
   log('\nNext steps:');
-  log('  1. Run: node .opencode/scripts/framework-self-test.js');
+  log('  1. Run: bun .opencode/scripts/framework-self-test.ts');
   log('  2. Test: compliance_gate_check still works');
   log('  3. Monitor for 48 hours');
 }

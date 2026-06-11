@@ -626,7 +626,6 @@ function runTddOrderCheck(filePath, workspaceRoot, tddState) {
   });
 }
 
-
 // ═══════════════════════════════════════════════════════════
 // CHECK 7: TDD Spec File Existence (CI-EMBED-006)
 // ═══════════════════════════════════════════════════════════
@@ -653,12 +652,7 @@ function runTddSpecCheck(filePath, existingFiles, tddState) {
     !fileName.endsWith(".d.ts");
 
   if (!isSourceFile) {
-    return makeResult(
-      true,
-      [],
-      `Skipped (not a source file): ${fileName}`,
-      "",
-    );
+    return makeResult(true, [], `Skipped (not a source file): ${fileName}`, "");
   }
 
   // Derive the base name (without extension) and directory
@@ -672,9 +666,7 @@ function runTddSpecCheck(filePath, existingFiles, tddState) {
   // Check if either exists in existingFiles
   const specExists =
     existingFiles &&
-    existingFiles.some(
-      (f) => f === expectedSpec || f === expectedTest,
-    );
+    existingFiles.some((f) => f === expectedSpec || f === expectedTest);
 
   if (!specExists) {
     const msg =
@@ -696,12 +688,7 @@ function runTddSpecCheck(filePath, existingFiles, tddState) {
     );
   }
 
-  return makeResult(
-    true,
-    [],
-    `Spec file found for: ${fileName}`,
-    "",
-  );
+  return makeResult(true, [], `Spec file found for: ${fileName}`, "");
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -929,7 +916,6 @@ function runFullScan(projectRoot, backendDir, frontendDir) {
   return results;
 }
 
-
 // ═══════════════════════════════════════════════════════════
 // CHECK 7: safeBash — Allowlist-Based Shell Execution
 // ═══════════════════════════════════════════════════════════
@@ -954,7 +940,7 @@ const DEFAULT_ALLOWLIST = [
  * If matched, the command is executed via execSync and results returned.
  *
  * Reads agent identity from process.env.FRAMEWORK_AGENT (propagated via
- * dispatch-subagent.js BUG-5894 fix).
+ * dispatch-subagent.ts BUG-5894 fix).
  *
  * @param {string} cmd - The shell command to execute
  * @param {object} [options] - Options
@@ -968,7 +954,7 @@ function safeBash(cmd, options) {
   const opts = options || {};
   const allowlist = opts.allowlist || DEFAULT_ALLOWLIST;
   const projectRoot = opts.projectRoot || process.cwd();
-  const agent = process.env.FRAMEWORK_AGENT || "unknown";
+  const agent = "unknown"; // v4.0.0: FRAMEWORK_AGENT deprecated; agent identity from _dispatch_target.json not needed here
 
   // Check command against allowlist
   let matched = false;

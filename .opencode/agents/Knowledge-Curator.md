@@ -6,6 +6,9 @@ hidden: true
 model: DeepSeek/deepseek-v4-flash
 temperature: 0.1
 color: "#06B6D4"
+permission:
+  edit: deny
+  bash: deny
 skills:
   - execution-preflight-check
   - context7-first
@@ -15,12 +18,13 @@ mcp_tools:
   - context7_query-docs
   - webfetch
   - websearch
-  - task
   - safe_edit
   - safe_shell
   - safe_mkdir
   - safe_delete
   - safe_diff
+  - glob
+  - grep
   - skill
   - question
   - todowrite

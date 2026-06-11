@@ -227,7 +227,11 @@ else
 fi
 
 # ── Layer 2.5: TDD Order Pre-Check (mode-aware) ──
-TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' || true)
+# WHY: Added framework-path exclusion to prevent false TDD violations on
+# .opencode/, docs/, .task_temp/, and root config files. The original grep
+# caught ALL .ts/.js files including framework infrastructure.
+# See tdd-integration.md §5 for analysis.
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -299,6 +303,1172 @@ if [ -f "$INDEX_FILE" ]; then
 else
   echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
 fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' \
+  | grep -v '^\.opencode/' \
+  | grep -v '^docs/' \
+  | grep -v '^\.task_temp/' \
+  | grep -v '^node_modules/' \
+  | grep -v '^opencode\.json
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '^AGENTS\.md
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '^contract\.yaml
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '^Task\.DAG\.json
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '^TECH_DEBT_REGISTRY\.md
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '^WAIVE\.md
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '^PROJECT_REFERENCE\.md
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  | grep -v '^Project\.graph
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
+
+# ── Layer 2: keystone-validate (mode-aware) ──
+echo ""
+echo "[Layer 2/4] Running keystone full validation..."
+
+if [ ! -f "$VALIDATOR" ]; then
+    echo "⚠️  [Keystone] keystone-validate.js not found at $VALIDATOR — skipping validation"
+else
+    if [ ! -f "$MACHINE" ]; then
+        echo "⚠️  [Keystone] machine.json not found at $MACHINE — no Keystone constraints active"
+    else
+        if /home/zhaoge/.bun/bin/bun "$VALIDATOR" --pre-commit; then
+            echo "  ✅ Keystone validation passed."
+        else
+            if [ "$ENF_MODE" = "advisory" ]; then
+                echo "  ⚠️  [ADVISORY] Keystone validation failed (non-blocking in advisory mode)."
+            else
+                echo ""
+                echo "═══════════════════════════════════════════════════════════════"
+                echo "  ❌ PRE-COMMIT REJECTED — Keystone validation failed"
+                echo "═══════════════════════════════════════════════════════════════"
+                echo ""
+                echo "Fix the violations above and re-stage the files:"
+                echo "  git add <fixed-files> && git commit"
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+echo ""
+echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+echo "  ✅ PRE-COMMIT PASSED — All checks clear"
+echo "═══════════════════════════════════════════════════════════════"
+ \
+  || true)
+TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
+if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
+    COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+    if ! echo "$COMMIT_MSG" | grep -qiE '\[(Red|Green|Refactor)\]'; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+            echo "⚠️  [ADVISORY] Implementation files staged without test files AND no TDD tag (non-blocking in advisory mode)."
+            echo "  Impl files: $TDD_IMPL_FILES"
+        else
+            echo "❌ [TDD] Implementation files staged without test files AND no TDD tag in commit message."
+            echo "  Impl files: $TDD_IMPL_FILES"
+            echo "  This is a TDD violation. Commit BLOCKED."
+            echo "  Fix: Add corresponding test files, or include [Red]/[Green]/[Refactor] in commit message."
+            exit 1
+        fi
+    fi
+fi
+
+# ── Layer 2.6: UC7KS Docs Consistency Check (mode-aware) ──
+echo ""
+echo "[Layer 2.6/4] Checking UC7KS docs consistency..."
+INDEX_FILE="$ROOT/docs/official_docs/index.json"
+DOCS_DIR="$ROOT/docs/official_docs/"
+if [ -f "$INDEX_FILE" ]; then
+  # Verify index.json is valid JSON and has required fields
+  INDEX_VALID=$(bun -e "
+    try {
+      const idx = require('$INDEX_FILE');
+      if (!idx.manifest_version || !idx.entries) { console.log('invalid'); process.exit(0); }
+      console.log('valid');
+    } catch(e) { console.log('invalid'); }
+  " 2>/dev/null || echo "invalid")
+
+  if [ "$INDEX_VALID" != "valid" ]; then
+    if [ "$ENF_MODE" = "advisory" ]; then
+      echo "  ⚠️  [ADVISORY] docs/official_docs/index.json is malformed — non-blocking in advisory mode"
+    else
+      echo "  ❌ [UC7KS] docs/official_docs/index.json is malformed — commit BLOCKED"
+      echo "     Fix: Run bun .opencode/scripts/framework-self-test.ts to validate"
+      exit 1
+    fi
+  else
+    # Check staged docs files are registered in index.json
+    STAGED_DOCS=$(git diff --cached --name-only | grep '^docs/official_docs/' | grep -v 'index\.json' | grep -v '\.metadata/' || true)
+    if [ -n "$STAGED_DOCS" ]; then
+      ORPHAN_DOCS=""
+      for doc in $STAGED_DOCS; do
+        IN_INDEX=$(bun -e "
+          const idx = require('$INDEX_FILE');
+          const found = idx.entries.some(e => e.files.some(f => '$doc'.includes(f.path)));
+          console.log(found ? 'yes' : 'no');
+        " 2>/dev/null || echo "no")
+        if [ "$IN_INDEX" = "no" ]; then
+          ORPHAN_DOCS="$ORPHAN_DOCS $doc"
+        fi
+      done
+      if [ -n "$ORPHAN_DOCS" ]; then
+        if [ "$ENF_MODE" = "advisory" ]; then
+          echo "  ⚠️  [ADVISORY] Staged docs not registered in index.json:$ORPHAN_DOCS"
+        else
+          echo "  ❌ [UC7KS] Staged docs not registered in index.json:$ORPHAN_DOCS"
+          exit 1
+        fi
+      else
+        echo "  ✅ Staged docs verified in index.json"
+      fi
+    fi
+    echo "  ✅ index.json manifest integrity verified"
+  fi
+else
+  echo "  ⚠️  docs/official_docs/index.json not found — skipping UC7KS check"
+fi
+
+# ── Layer 2.0: JSON Syntax Validation (all staged .json files) ──
+echo ""
+echo "[Layer 2.0/4] JSON syntax validation..."
+JSON_ERRORS=0
+for f in $(git diff --cached --name-only | grep .json$); do
+    if [ -f "$f" ]; then
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+            echo "  ❌ JSON parse error: $f"
+            JSON_ERRORS=$((JSON_ERRORS + 1))
+        }
+    fi
+done
+if [ "$JSON_ERRORS" -gt 0 ]; then
+    echo "  ❌ $JSON_ERRORS JSON file(s) have syntax errors — commit blocked"
+    exit 1
+fi
+echo "  ✅ All staged JSON files valid"
 
 # ── Layer 2: keystone-validate (mode-aware) ──
 echo ""
