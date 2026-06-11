@@ -1601,10 +1601,28 @@ function checkPreExecGate() {
     );
   }
 
+  // 23f: Required patch markers present (F2: prevents git checkout reversion)
+  // These markers correspond to patches applied by SA sessions that must not
+  // be lost. If a marker is missing, the file was likely reverted to a pre-fix
+  // version by `git checkout` or similar operation.
+  const REQUIRED_PATCH_MARKERS = [
+    "SA-ENFORCE-FIX-20250612", // KC bypass + dispatch session + KC fast-path
+  ];
+  const missingMarkers = REQUIRED_PATCH_MARKERS.filter(
+    (m) => !gateContent.includes(m),
+  );
+  if (missingMarkers.length > 0) {
+    return check(
+      23,
+      false,
+      `pre-execution-gate.ts missing required patch markers: ${missingMarkers.join(", ")}. File may have been reverted — restore from backup.`,
+    );
+  }
+
   return check(
     23,
     true,
-    "pre-execution-gate.ts exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate)",
+    "pre-execution-gate.ts exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate) + required patches verified",
   );
 }
 
@@ -2408,6 +2426,72 @@ function checkStaleInternalEvidence(): void {
   }
 }
 
+// F3 (2026-06-11): Check 36 — working-tree drift detection
+// Scans safe_edit backups newer than the last git commit. If a backup
+// has different content than the live file, it flags potential patch loss
+// from `git checkout` operations during concurrent session commit isolation.
+function checkWorkingTreeDrift(): void {
+  try {
+    const backupDir = path.join(OPENCODE_ROOT, ".opencode", "scripts", ".opencode_backups");
+    if (!fs.existsSync(backupDir)) {
+      check(36, true, "no backup directory exists (skip)");
+      return;
+    }
+
+    // Get last commit timestamp
+    let lastCommitTime = 0;
+    try {
+      const { execSync } = require("child_process");
+      lastCommitTime = parseInt(
+        execSync("git log -1 --format=%ct", {
+          cwd: OPENCODE_ROOT, stdio: "pipe", encoding: "utf8", timeout: 5000,
+        }).trim(),
+        10,
+      ) || 0;
+    } catch {
+      // git unavailable — skip drift check
+      check(36, true, "git unavailable (skip)");
+      return;
+    }
+
+    const driftWarnings: string[] = [];
+    const backupFiles = fs.readdirSync(backupDir).filter((f: string) => f.endsWith(".safe_backup"));
+
+    for (const f of backupFiles) {
+      // Parse: <basename>.<timestamp>.<pid>.<agent>.<unknown>.safe_backup
+      const match = f.match(/^(.+?)\.(\d{13})\./);
+      if (!match) continue;
+      const baseName = match[1];
+      const backupTime = parseInt(match[2], 10);
+
+      // Only check backups newer than last commit
+      if (backupTime < lastCommitTime * 1000) continue;
+
+      const livePath = path.join(OPENCODE_ROOT, ".opencode", "scripts", baseName);
+      const backupPath = path.join(backupDir, f);
+
+      if (!fs.existsSync(livePath)) continue;
+
+      const liveSize = fs.statSync(livePath).size;
+      const backupSize = fs.statSync(backupPath).size;
+
+      if (liveSize !== backupSize) {
+        const backupDate = new Date(backupTime).toISOString();
+        driftWarnings.push(
+          `${baseName}: backup ${backupDate} (${backupSize}b) ≠ live (${liveSize}b)`
+        );
+      }
+    }
+
+    check(36, driftWarnings.length === 0,
+      driftWarnings.length > 0
+        ? `${driftWarnings.length} uncommitted patch(es) detected: ${driftWarnings.join("; ")}. Run git diff on these files or restore from backup.`
+        : "no working-tree drift detected");
+  } catch (e: any) {
+    check(36, false, e.message);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Main execution
 
@@ -2453,6 +2537,7 @@ checkContext7ToolBlock();
 checkPendingJson();
 checkSessionAccessAgentKeys();
 checkStaleInternalEvidence();
+checkWorkingTreeDrift();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");

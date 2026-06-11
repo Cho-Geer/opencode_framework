@@ -13,6 +13,8 @@ skills:
 mcp_tools:
   # UC7-009 HARDEN: ALL external queries routed via @Knowledge-Curator.
   # webfetch/websearch/Github REMOVED — dispatch @Knowledge-Curator instead.
+  # FW-DISPATCH-BYPASS: Super-Admin may dispatch @Knowledge-Curator directly
+  - dispatch_subagent
   - code-quality-gate
   - compliance-gate
   - safe_edit

@@ -294,24 +294,25 @@ function readDispatchTargetAgent() {
  * Check 1 — DAG Coverage: task_id exists in Task.DAG.json with status=pending.
  * Failures: task not found, task not pending (e.g. completed).
  *
- * Bypass: @Meta-Planner and @Orchestrator are exempt from DAG coverage checks.
- * These agents CREATE and MANAGE the DAG — blocking them because a task doesn't
- * yet exist in the DAG creates an unresolvable chicken-and-egg deadlock
- * (you need @Meta-Planner to create DAG tasks, but the DAG gate blocks
- * @Meta-Planner because the task isn't in DAG yet).
+ * Bypass: @Meta-Planner, @Orchestrator, and @Knowledge-Curator are exempt from
+ * DAG coverage checks. @Meta-Planner and @Orchestrator CREATE and MANAGE the DAG.
+ * @Knowledge-Curator is dispatched for external knowledge fetching (UC7KS pipeline),
+ * not for executing DAG tasks — it has no task_id in the DAG by design.
  *
  * @since 2026-06-07 — FW-REPAIR-DAG-DEADLOCK: Added Meta-Planner/Orchestrator bypass
+ * @since 2026-06-12 — SA-ENFORCE-FIX-20250612: Added Knowledge-Curator bypass
  */
 function checkDagCoverage(taskId) {
-  // ── DAG-creator bypass: @Meta-Planner and @Orchestrator manage the DAG ──
+  // ── DAG-creator bypass: agents that don't execute DAG tasks ──
   const agent = readDispatchTargetAgent() || process.env.AGENT || "";
   const normalizedAgent = agent.replace(/^@/, ""); // strip @ prefix for comparison
   if (
     normalizedAgent === "Meta-Planner" ||
-    normalizedAgent === "Orchestrator"
+    normalizedAgent === "Orchestrator" ||
+    normalizedAgent === "Knowledge-Curator"
   ) {
     console.error(
-      `    ⏭️  DAG Coverage SKIPPED — ${agent} is a DAG-creator/manager (task may not exist yet)`,
+      `    ⏭️  DAG Coverage SKIPPED — ${agent} is a DAG-creator/manager/knowledge-pipeline (task may not exist yet)`,
     );
     return true;
   }
@@ -862,9 +863,14 @@ function main() {
     console.error(`    ✅ Task '${taskId}' found in DAG with status=pending`);
   }
 
-  // Check 2: Gate Lifecycle
+  // Check 2: Gate Lifecycle (SKIPPED for dispatch sessions — dispatch session IDs
+  // are OpenCode background sub-agent process identifiers, not DAG task IDs)
   console.error("  Check 3/6 — Gate Lifecycle...");
-  if (checkGateLifecycle(taskId)) {
+  if (isDispatchSession) {
+    console.error(
+      `    ⏭️  SKIPPED (--dispatch-session: gate lifecycle check not applicable to dispatch sessions)`,
+    );
+  } else if (checkGateLifecycle(taskId)) {
     console.error("    ✅ Armed gate session found");
   } else {
     allPassed = false;

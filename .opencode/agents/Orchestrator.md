@@ -11,6 +11,7 @@ skills:
   - new-asset-integrator
 mcp_tools:
   # Context7 denied per UC7-004 — route via @Knowledge-Curator
+  - dispatch_subagent
   - compliance_gate_*
   - safe_shell
   - safe_diff

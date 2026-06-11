@@ -14,6 +14,7 @@ skills:
   - context7-first
 mcp_tools:
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
+  - dispatch_subagent
   - safe_edit
   - safe_delete
   - safe_mkdir

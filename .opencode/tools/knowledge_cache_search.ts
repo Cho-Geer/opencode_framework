@@ -192,6 +192,7 @@ export default tool({
         kcs.session_access[agentRef].declared_scope = domainName;
         kcs.session_access[agentRef].pipeline_status = "completed";
         kcs.session_access[agentRef].cache_sufficiency = sufficiency;
+        kcs.session_access[agentRef].uc7_001_compliant = true;  // UC7-001 flag (read by uc7ks-utils.ts)
 
         // Cap management (F8: 50 agents)
         evictOldAgents(kcs.session_access);

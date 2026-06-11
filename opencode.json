@@ -716,7 +716,8 @@
           ".task_temp/**": "allow",
           "booking_system_refactor/booking-backend/src/**": "deny",
           "booking_system_refactor/booking-frontend/src/**": "deny"
-        }
+        },
+        "dispatch_subagent": "allow"
       }
     },
     "Knowledge-Curator": {
@@ -812,7 +813,9 @@
         "bun",
         "./.opencode/scripts/mcp-tools/compliance-gate.ts"
       ],
-      "environment": {"ENFORCEMENT_MODE": "strict"},
+      "environment": {
+        "ENFORCEMENT_MODE": "strict"
+      },
       "timeout": 60000,
       "enabled": true
     },

@@ -74,20 +74,25 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     return;
   }
 
-  // Validate the proposed new content
-  const newContent = output.args?.content || output.args?.newString || "";
-  if (!newContent) {
-    // Partial edit (oldString/newString patch mode) — validated by safe_edit itself
+  // Validate the proposed new content.
+  // Overwrite mode (has `content`) → validate full content as JSON.
+  // Patch mode (has `oldString`/`newString` but no `content`) →
+  //   SKIP: newString is a file fragment, not valid JSON.
+  //   safe_edit performs its own atomicity validation.
+  //   (SA-JSON-VALIDATE-FIX-20250612: previous guard used || newString which
+  //    was always truthy in patch mode, causing tolerantParse() to fail.)
+  const isOverwrite = output.args?.content !== undefined;
+  if (!isOverwrite) {
     writeLog("json-validate", "runtime", {
       sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
       event: "TOOL-BEFORE",
-      detail: `exit (skip) partial edit, safe_edit validates: ${fp}`,
+      detail: `exit (skip) patch mode, safe_edit validates: ${fp}`,
     });
     return;
   }
 
   try {
-    tolerantParse(newContent);
+    tolerantParse(output.args!.content);
     writeLog("json-validate", "runtime", {
       sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
       event: "TOOL-BEFORE",

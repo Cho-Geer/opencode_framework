@@ -355,9 +355,9 @@
     "agents/Architect.md": {
       "path": ".opencode/agents/Architect.md",
       "category": "agent",
-      "semver": "1.0.8",
-      "sha256": "3a82954566254f7e767f9463958b6012459f7f385e7e8086c1812ce22d1f9f61",
-      "last_modified": "2026-06-11T03:05:22.316Z",
+      "semver": "1.0.9",
+      "sha256": "71dc3a08f5c420dcae2834dd5e8d60a7d080a54248c5dddc114ecac319c8147f",
+      "last_modified": "2026-06-11T15:51:19.926Z",
       "description": "System Architect – technology selection, interface contracts, directory structure",
       "digest_history": [
         {
@@ -425,6 +425,12 @@
           "timestamp": "2026-06-11T03:05:22.317Z",
           "semver": "1.0.8",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "71dc3a08f5c420dcae2834dd5e8d60a7d080a54248c5dddc114ecac319c8147f",
+          "timestamp": "2026-06-11T15:51:19.926Z",
+          "semver": "1.0.9",
+          "change": "SA-PERMISSION-MATRIX-ALIGN-20250612: added dispatch_subagent to mcp_tools"
         }
       ]
     },
@@ -595,9 +601,9 @@
     "agents/Orchestrator.md": {
       "path": ".opencode/agents/Orchestrator.md",
       "category": "agent",
-      "semver": "1.0.10",
-      "sha256": "b2d5ec163a0d108ebf49278bf304f7a0169805aac9e55952c53d03e30861d278",
-      "last_modified": "2026-06-11T03:05:22.318Z",
+      "semver": "1.0.11",
+      "sha256": "87ea7413af80aa62e6b800a21c0ca518fab0af5c672e5fdf764ce8a04248af7d",
+      "last_modified": "2026-06-11T15:51:19.928Z",
       "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch. FW-DOWNGRADE-SA: Super-Admin dispatch rules updated.",
       "digest_history": [
         {
@@ -682,6 +688,12 @@
           "timestamp": "2026-06-11T03:05:22.318Z",
           "semver": "1.0.10",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "87ea7413af80aa62e6b800a21c0ca518fab0af5c672e5fdf764ce8a04248af7d",
+          "timestamp": "2026-06-11T15:51:19.928Z",
+          "semver": "1.0.11",
+          "change": "SA-PERMISSION-MATRIX-ALIGN-20250612: added dispatch_subagent to mcp_tools"
         }
       ]
     },
@@ -758,9 +770,9 @@
     "agents/Meta-Planner.md": {
       "path": ".opencode/agents/Meta-Planner.md",
       "category": "agent",
-      "semver": "1.0.5",
-      "sha256": "9e27e23786293c329390b1cd2b5741b1154c66f9207567cde12c1d2ee2c30a4c",
-      "last_modified": "2026-06-11T03:05:22.318Z",
+      "semver": "1.0.6",
+      "sha256": "4b652e4fac0f73424808bb13cf96ceb7314dd56db3aa77885db3ae5eb6d684ee",
+      "last_modified": "2026-06-11T15:51:19.928Z",
       "description": "Project CTO – top-level requirement decomposition and DAG planning",
       "digest_history": [
         {
@@ -804,6 +816,12 @@
           "timestamp": "2026-06-11T03:05:22.318Z",
           "semver": "1.0.5",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "4b652e4fac0f73424808bb13cf96ceb7314dd56db3aa77885db3ae5eb6d684ee",
+          "timestamp": "2026-06-11T15:51:19.928Z",
+          "semver": "1.0.6",
+          "change": "SA-PERMISSION-MATRIX-ALIGN-20250612: added dispatch_subagent to mcp_tools"
         }
       ]
     },
@@ -974,9 +992,9 @@
     "agents/Super-Admin.md": {
       "path": ".opencode/agents/Super-Admin.md",
       "category": "agent",
-      "semver": "1.0.2",
-      "sha256": "0a0a724e054f78c9c6d5df8ed1215147a98b55eb203f5544ffb0772cf5a4d945",
-      "last_modified": "2026-06-11T06:13:32.670Z",
+      "semver": "1.0.3",
+      "sha256": "9103c1b837c1dec1047ceb8a31dc13a98ddf909f9760726b044e449030934db4",
+      "last_modified": "2026-06-11T15:51:19.928Z",
       "description": "Privileged Meta-Layer – emergency framework repair, governance modifications, state machine surgery, agent lifecycle management",
       "digest_history": [
         {
@@ -996,6 +1014,12 @@
           "timestamp": "2026-06-11T06:13:32.670Z",
           "semver": "1.0.2",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "9103c1b837c1dec1047ceb8a31dc13a98ddf909f9760726b044e449030934db4",
+          "timestamp": "2026-06-11T15:51:19.928Z",
+          "semver": "1.0.3",
+          "change": "SA-PERMISSION-MATRIX-ALIGN-20250612: added dispatch_subagent to mcp_tools"
         }
       ]
     }
