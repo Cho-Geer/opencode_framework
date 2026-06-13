@@ -9,7 +9,7 @@
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
-    "last_full_scan": "2026-06-13T01:18:29.149Z",
+    "last_full_scan": "2026-06-13T02:37:06.046Z",
     "modules": {
       "all_modules": {
         "status": "clean",
@@ -866,45 +866,7 @@
     },
     "aggregate": {
       "total_violations": 0,
-      "dirty_modules": [
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-doctor.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-doctor.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/clean-machine-audit.ts",
-        "bun .task_temp/FW-IMPL-4FAIL-PLAN/clean-machine-audit.ts",
-        ".opencode_scripts_framework-self-test.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_uc7ks-schema.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_module_scope_declare.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/module_scope_declare.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_knowledge_cache_search.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_uc7ks-after.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/uc7ks-after.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_dispatch-before.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/clean-session-access.ts",
-        "bun .task_temp/FW-IMPL-4FAIL-PLAN/clean-session-access.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-self-test.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_safe-bash-core.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-bash-core.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_audit-before.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/audit-before.ts",
-        "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-reconciliation.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/cleanup-backups.ts",
-        "node .task_temp/FW-IMPL-4FAIL-PLAN/cleanup-backups.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/fix-precommit-json.ts",
-        "node .task_temp/FW-IMPL-4FAIL-PLAN/fix-precommit-json.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/fix-precommit-tdd.ts",
-        "node .task_temp/FW-IMPL-4FAIL-PLAN/fix-precommit-tdd.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/dedup-precommit.ts",
-        "node .task_temp/FW-IMPL-4FAIL-PLAN/dedup-precommit.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/clean-precommit-fragments.ts",
-        "node .task_temp/FW-IMPL-4FAIL-PLAN/clean-precommit-fragments.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.task_temp/FW-IMPL-4FAIL-PLAN/clean-precommit-fragments2.ts",
-        "node .task_temp/FW-IMPL-4FAIL-PLAN/clean-precommit-fragments2.ts"
-      ],
+      "dirty_modules": [],
       "waived_modules": []
     }
   },

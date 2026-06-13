@@ -1,56 +1,11 @@
 {
-  "formatVersion": "2.0",
-  "sessions": {
-    "cg_ses_1781313899120": {
-      "session_id": "cg_ses_1781313899120",
-      "created_at": "2026-06-13T01:24:59.128Z",
-      "task_description": "Read-only verification: read FRAMEWORK_TASK_ID and FRAMEWORK_AGENT environment variables and report their values. No file writes.",
-      "task_id": "AGENT_PROPAGATION_VERIFY",
-      "enforcement_mode": "strict",
-      "gate_status": "recoverable",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "Read FRAMEWORK_TASK_ID and FRAMEWORK_AGENT env vars, report values. Read-only, no file writes.",
-      "confirmed_at": "2026-06-13T01:25:02.984Z",
-      "consumed_at": null,
-      "audit": null,
-      "agent": "@CI-CD-Agent",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-06-14T01:25:02.984Z",
-      "retry_count": 1,
-      "fail_reason": "Missing required task artifacts: HANDOVER.md, TASK_LOG.md",
-      "missing_artifacts": [
-        "HANDOVER.md",
-        "TASK_LOG.md"
-      ],
-      "fail_history": [
-        {
-          "retry": 1,
-          "failed_at": "2026-06-13T01:25:21.324Z",
-          "reason": "Missing required task artifacts: HANDOVER.md, TASK_LOG.md"
-        }
-      ]
-    },
-    "cg_ses_1781315365798": {
-      "session_id": "cg_ses_1781315365798",
-      "created_at": "2026-06-13T01:49:25.816Z",
-      "task_description": "Implement framework self-test 4-failure fix plan: narrow doctor regex, clean machine.json audit state path leaks, normalize UC7KS session_access keys, and commit pending changes.",
-      "task_id": "FW-IMPL-4FAIL-PLAN",
-      "enforcement_mode": "strict",
-      "gate_status": "armed",
-      "last_check_passed": true,
-      "last_check_failed_items": [],
-      "plan_summary": "Implement self-test 4-failure fix plan: (1) narrow doctor regex to exclude JSON-escape false positives and clean stale shell-command audit keys from machine.json; (2) add normalizeAgentKey() to uc7ks-schema.ts, update module_scope_declare/knowledge_cache_search/uc7ks-after/dispatch-before tools to use canonical agent keys, merge/delete duplicate session_access entries in machine.json, and harden framework-self-test Check 28; (3) commit all pending changes to resolve working-tree drift; verify 37/37 self-test PASS.",
-      "confirmed_at": "2026-06-13T01:52:39.863Z",
-      "consumed_at": null,
-      "audit": null,
-      "agent": "@Super-Admin",
-      "worktree": "/home/zhaoge/workspace/opencode/work-one",
-      "expires_at": "2026-06-14T01:52:39.863Z"
-    }
-  },
-  "active_sessions": [
-    "cg_ses_1781315365798"
-  ],
-  "last_updated": "2026-06-13T01:52:39.863Z"
+  "formatVersion": "3.0",
+  "active_sessions": {},
+  "recent_sessions": {},
+  "meta": {
+    "total_sessions": 0,
+    "active_count": 0,
+    "recent_count": 0,
+    "last_compacted": "2026-06-13T02:41:48.174Z"
+  }
 }
