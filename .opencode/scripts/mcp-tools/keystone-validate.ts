@@ -150,7 +150,12 @@ function cliMain() {
     return;
   }
   // Default: start MCP server
-  main().catch(console.error);
+  /**
+   * FW-LOG-UNIFY-P2-A5 (2026-06-12, @Super-Admin): Replaced console.error with
+   * process.stderr.write — console.error writes to stdout in some Bun contexts,
+   * potentially polluting MCP protocol. process.stderr.write is the safe channel.
+   */
+  main().catch((err) => process.stderr.write(`[keystone-validate] Fatal error: ${err.message}\n`));
 }
 
 // Start (when run directly, not when require()d by tests)

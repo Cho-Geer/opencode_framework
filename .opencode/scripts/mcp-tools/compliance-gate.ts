@@ -33,6 +33,13 @@ const {
   ListToolsRequestSchema,
 } = require("@modelcontextprotocol/sdk/types.js");
 
+/**
+ * FW-LOG-UNIFY-P2-A1 (2026-06-12, @Super-Admin): Import log-manager for
+ * centralized log persistence. Bun transpiles ESM→CJS on-the-fly for require().
+ * Verified working: bun -e "require('./.opencode/lib/log-manager')" → function.
+ */
+const { writeLog } = require("../../lib/log-manager");
+
 const fs2 = require("fs");
 const path2 = require("path");
 
@@ -187,24 +194,37 @@ function writeJson(p, data) {
     const txn = beginTransaction(p, "@Architect", "compliance-gate");
     txn.prepare(content);
     txn.commit();
-    // Log resolution so pre-commit hook Layer 3 can see it
-    debugStderr(
-      `[compliance-gate] ✓ txn ${txn.operationId} committed (rev ${txn.newRevision}) → ${path.relative(OPENCODE_ROOT, p)}\n`,
-    );
+    /**
+     * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
+     * Transaction success is operational — no runtime error, persistence confirmed.
+     */
+    writeLog("mcp-compliance-gate", "INFO", {
+      event: "txn_committed",
+      operationId: txn.operationId,
+      newRevision: txn.newRevision,
+      file: path.relative(OPENCODE_ROOT, p),
+    });
   } catch (txnErr) {
-    // F6 Fix: Read enforcement mode before handling transaction failure
     const enfMode = getEnforcementMode();
     if (enfMode === "advisory") {
-      // Advisory: preserve existing fallback
       process.stderr.write(
         `[compliance-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write for ${path.relative(OPENCODE_ROOT, p)}\n`,
       );
+      // FW-LOG-UNIFY-P2-A1: DUAL-WRITE — persist failure to log-manager
+      writeLog("mcp-compliance-gate", "WARN", {
+        event: "txn_fallback", mode: enfMode, error: txnErr.message,
+        file: path.relative(OPENCODE_ROOT, p),
+      });
       fs.writeFileSync(p, content, "utf8");
     } else {
-      // Strict/locked: fail-closed — NO file written
       process.stderr.write(
         `[compliance-gate] ❌ Transaction failed (${txnErr.message}) for ${path.relative(OPENCODE_ROOT, p)} in ${enfMode} mode — file NOT written (fail-closed)\n`,
       );
+      // FW-LOG-UNIFY-P2-A1: DUAL-WRITE — log before throwing
+      writeLog("mcp-compliance-gate", "ERROR", {
+        event: "txn_fail_closed", mode: enfMode, error: txnErr.message,
+        file: path.relative(OPENCODE_ROOT, p),
+      });
       throw txnErr;
     }
   }
@@ -222,16 +242,26 @@ function writeJsonWithContext(p, data, agent, taskId) {
     const txn = beginTransaction(p, agent, taskId);
     txn.prepare(content);
     txn.commit();
-    debugStderr(
-      `[compliance-gate] ✓ txn ${txn.operationId} committed (rev ${txn.newRevision}) → ${path.relative(OPENCODE_ROOT, p)}\n`,
-    );
+    /**
+     * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
+     */
+    writeLog("mcp-compliance-gate", "INFO", {
+      event: "txn_committed_with_context",
+      operationId: txn.operationId,
+      newRevision: txn.newRevision,
+      agent, taskId,
+      file: path.relative(OPENCODE_ROOT, p),
+    });
   } catch (txnErr) {
-    // F6 Fix: Read enforcement mode before handling transaction failure
     const enfMode = getEnforcementMode();
     if (enfMode === "advisory") {
       process.stderr.write(
         `[compliance-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write for ${path.relative(OPENCODE_ROOT, p)}\n`,
       );
+      writeLog("mcp-compliance-gate", "WARN", {
+        event: "txn_fallback_with_context", mode: enfMode, error: txnErr.message,
+        agent, taskId, file: path.relative(OPENCODE_ROOT, p),
+      });
       fs.writeFileSync(p, content, "utf8");
     } else {
       process.stderr.write(
@@ -475,7 +505,17 @@ function getEnforcementMode() {
   // Gated to prevent UI flooding on every hook/tool call.
   if (isEnforcementDebugEnabled(OPENCODE_ROOT)) {
     try {
-      process.stderr.write(`[compliance-gate:getEnforcementMode] DIAGNOSTIC OPENCODE_ROOT=${OPENCODE_ROOT} cfgPath=${cfgPath} cfgExists=${fs2.existsSync(cfgPath)} ENFORCEMENT_MODE=${envMode || '(unset)'} configMode=${configMode} RESOLVED=${configMode}\n`);
+      /**
+       * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from process.stderr.write to writeLog.
+       * Enforcement mode diagnostic — gated by isEnforcementDebugEnabled().
+       */
+      writeLog("mcp-compliance-gate", "DEBUG", {
+        event: "enforcement_mode_diag",
+        OPENCODE_ROOT, cfgPath,
+        cfgExists: fs2.existsSync(cfgPath),
+        ENFORCEMENT_MODE: envMode || '(unset)',
+        configMode, resolvedMode: configMode,
+      });
     } catch (_diagErr) { /* non-blocking */ }
   }
 
@@ -782,17 +822,19 @@ function runGateCheck(taskDescription, taskId) {
       timeout: 5000,
     }).trim();
     if (hooksPath !== ".opencode/hooks") {
-      process.stderr.write(
-        `[compliance-gate] ⚠ Bootstrap: core.hooksPath is "${hooksPath}", expected ".opencode/hooks".\n` +
-          `  Run: git config core.hooksPath .opencode/hooks\n` +
-          `  Or: bash .opencode/scripts/setup.sh\n`,
-      );
+      /**
+       * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from process.stderr.write to writeLog.
+       * Bootstrap hooks config check — persisted to log-manager for audit trail.
+       */
+      writeLog("mcp-compliance-gate", "WARN", {
+        event: "bootstrap_hooks_path_mismatch",
+        found: hooksPath, expected: ".opencode/hooks",
+      });
     }
   } catch {
-    process.stderr.write(
-      `[compliance-gate] ⚠ Bootstrap: could not read core.hooksPath.\n` +
-        `  Run: bash .opencode/scripts/setup.sh\n`,
-    );
+    writeLog("mcp-compliance-gate", "WARN", {
+      event: "bootstrap_hooks_path_read_error",
+    });
   }
 
   // ── F5 Auto-purge stale sessions before creating new one ──
@@ -801,21 +843,27 @@ function runGateCheck(taskDescription, taskId) {
   const purgeResult = purgeStaleSessions();
   if (purgeResult.purged > 0) {
     const msg = `Purged ${purgeResult.purged} stale session(s) (${purgeResult.remaining_total} remaining, ${purgeResult.remaining_active} active)`;
-    if (enforcementMode === "advisory") {
-      debugStderr(`[ADVISORY] ${msg}\n`);
-    } else {
-      debugStderr(`[compliance-gate] ${msg}\n`);
-    }
+    /**
+     * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
+     */
+    writeLog("mcp-compliance-gate", "INFO", {
+      event: "purge_stale_sessions",
+      purged: purgeResult.purged,
+      remaining_total: purgeResult.remaining_total,
+      remaining_active: purgeResult.remaining_active,
+    });
   }
-  // Also drain any remaining stale sessions
   const drainResult = drainStaleSessions(24, 48);
   if (drainResult.purged > 0) {
-    const msg = `Drained ${drainResult.purged} stale session(s) (armed=${drainResult.drained_armed}, checked=${drainResult.drained_checked})`;
-    if (enforcementMode === "advisory") {
-      debugStderr(`[ADVISORY] ${msg}\n`);
-    } else {
-      debugStderr(`[compliance-gate] ${msg}\n`);
-    }
+    /**
+     * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
+     */
+    writeLog("mcp-compliance-gate", "INFO", {
+      event: "drain_stale_sessions",
+      purged: drainResult.purged,
+      drained_armed: drainResult.drained_armed,
+      drained_checked: drainResult.drained_checked,
+    });
   }
 
   const store = loadStore();
@@ -955,11 +1003,25 @@ function runGateCheck(taskDescription, taskId) {
       if (fs2.existsSync(p)) {
         const d = JSON.parse(fs2.readFileSync(p, "utf8"));
         const currentRunId = process.env.OPENCODE_RUN_ID || "";
-        if (currentRunId && (!d.run_id || d.run_id !== currentRunId)) {
-          try {
-            fs2.unlinkSync(p);
-          } catch {}
-          return "";
+        if (currentRunId) {
+          // P0-7: Use run_id comparison when OPENCODE_RUN_ID is available
+          if (!d.run_id || d.run_id !== currentRunId) {
+            try {
+              fs2.unlinkSync(p);
+            } catch {}
+            return "";
+          }
+        } else {
+          // P0-7 FALLBACK: Timestamp-based staleness when OPENCODE_RUN_ID
+          // is unset. _dispatch_target.json older than 30 min → stale.
+          const STALE_MS = 30 * 60 * 1000;
+          const mtime = fs2.statSync(p).mtimeMs;
+          if (Date.now() - mtime > STALE_MS) {
+            try {
+              fs2.unlinkSync(p);
+            } catch {}
+            return "";
+          }
         }
         return d.agent || "";
       }
@@ -1320,11 +1382,13 @@ function runGateComplete(sessionId, executionSummary) {
   }
   // In advisory mode: log the dirty modules as a warning but proceed
   if (eslintFailed && enforcementMode === "advisory") {
-    debugStderr(
-      "[ADVISORY] ESLint dirty_modules found but ignored (advisory mode): " +
-        dirtyModules.join(", ") +
-        "\n",
-    );
+    /**
+     * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
+     */
+    writeLog("mcp-compliance-gate", "WARN", {
+      event: "eslint_dirty_advisory",
+      dirty_modules: dirtyModules,
+    });
   }
 
   // ── CI-UNIFY-003: Validate HANDOVER.md and TASK_LOG.md exist ──
@@ -1391,11 +1455,13 @@ function runGateComplete(sessionId, executionSummary) {
     };
   }
   if (missingArtifacts.length > 0 && enforcementMode === "advisory") {
-    debugStderr(
-      "[ADVISORY] Missing task artifacts (proceeding): " +
-        missingArtifacts.join(", ") +
-        "\n",
-    );
+    /**
+     * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
+     */
+    writeLog("mcp-compliance-gate", "WARN", {
+      event: "missing_artifacts_advisory",
+      artifacts: missingArtifacts,
+    });
   }
 
   const now = new Date().toISOString();
@@ -1450,12 +1516,18 @@ function runGateComplete(sessionId, executionSummary) {
         process.stderr.write(
           "[state-compactor] Archival deferred: " + err.message + "\n",
         );
+        // FW-LOG-UNIFY-P2-A1: DUAL-WRITE — persist compactor errors
+        writeLog("mcp-compliance-gate", "WARN", {
+          event: "compactor_archival_deferred", error: err.message,
+        });
       });
   } catch (err) {
-    // Best-effort: require() or constructor may fail, don't block gate
     process.stderr.write(
       "[state-compactor] Module load failed: " + err.message + "\n",
     );
+    writeLog("mcp-compliance-gate", "WARN", {
+      event: "compactor_module_load_failed", error: err.message,
+    });
   }
 
   const audit = {
@@ -1710,17 +1782,30 @@ function validateTaskArtifacts(taskId, sessionId) {
 /**
  * Standalone agent identity resolver — mirrors the closure-scoped
  * resolveDispatchTargetAgent() but accessible from runGateRetryConfirm().
- * Reads FRAMEWORK_AGENT env var (primary) or _dispatch_target.json (fallback).
+ * Reads _dispatch_target.json with run_id staleness check.
+ * FW-FIX-AGENT-IDENTITY (2026-06-13): Removed deprecated FRAMEWORK_AGENT
+ * env var — it was never set by the runtime (dead code since v4.0.0).
  * @returns {string}
  */
 function resolveDispatchTargetAgentDirect() {
-  // Primary: FRAMEWORK_AGENT env var set by OpenCode runtime
-  if (process.env.FRAMEWORK_AGENT) return process.env.FRAMEWORK_AGENT;
-  // Fallback: _dispatch_target.json (set by dispatch-subagent.js)
+  // Read _dispatch_target.json (set by dispatch-before.ts P0-6)
   try {
     const p = path2.join(OPENCODE_ROOT, ".task_temp", "_dispatch_target.json");
     if (fs2.existsSync(p)) {
       const d = JSON.parse(fs2.readFileSync(p, "utf8"));
+      // P0-7 staleness: run_id check (mirrors agent-resolver.ts)
+      const currentRunId = process.env.OPENCODE_RUN_ID || "";
+      if (currentRunId && d.run_id && d.run_id !== currentRunId) {
+        try { fs2.unlinkSync(p); } catch {}
+        return "";
+      }
+      if (!currentRunId && d.timestamp) {
+        const age = Date.now() - new Date(d.timestamp).getTime();
+        if (age > 30 * 60 * 1000) {
+          try { fs2.unlinkSync(p); } catch {}
+          return "";
+        }
+      }
       return d.agent || "";
     }
   } catch {}
@@ -1738,11 +1823,21 @@ function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
   // The MCP handler only receives (request), NOT (context). context?.agent
   // is always undefined. Use session.agent (persisted by runGateConfirm)
   // as the primary fallback instead.
+  //
+  // FW-LOG-UNIFY-P2-BUGFIX (2026-06-12, @Super-Admin): FIXED TDZ bug — session
+  // was accessed at L1802 before its assignment at L1814 ("Cannot access 'session'
+  // before initialization"). Moved session load before agent resolution so
+  // session.agent is available for the ternary chain.
+
+  const store = loadStore();
+  const session = store.sessions[sessionId];
+  if (!session) return { status: "rejected", reason: `session ${sessionId} not found` };
+
   const ALLOWED_RETRY_AGENTS = ["@Super-Admin", "@Orchestrator", "Super-Admin", "Orchestrator"];
-  // Priority: passed agentId → session.agent (gate-state.json) → FRAMEWORK_AGENT → _dispatch_target.json
+  // FW-FIX-AGENT-IDENTITY (2026-06-13): Removed deprecated FRAMEWORK_AGENT from
+  // priority chain. 3 fallback levels remain: agentId → session.agent → _dispatch_target.json
   const resolvedAgent = (agentId
-    || session?.agent
-    || process.env.FRAMEWORK_AGENT
+    || (session && session.agent)
     || resolveDispatchTargetAgentDirect()
     || "").replace(/^@/, "");
   if (resolvedAgent && !ALLOWED_RETRY_AGENTS.includes(resolvedAgent) && !ALLOWED_RETRY_AGENTS.includes("@" + resolvedAgent)) {
@@ -1751,10 +1846,6 @@ function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
       reason: `compliance_gate_retry_confirm restricted to @Super-Admin/@Orchestrator. Current agent: ${resolvedAgent}. Use compliance_gate_check to open a new gate session.`,
     };
   }
-
-  const store = loadStore();
-  const session = store.sessions[sessionId];
-  if (!session) return { status: "rejected", reason: `session ${sessionId} not found` };
 
   // Only recoverable sessions can be retried
   if (session.gate_status === "recoverable") {

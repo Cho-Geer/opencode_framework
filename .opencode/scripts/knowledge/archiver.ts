@@ -10,6 +10,12 @@
 
 const fs = require("fs");
 const path = require("path");
+/**
+ * FW-LOG-UNIFY-P4 (2026-06-12, @Super-Admin): Migrate progress logs to
+ * centralized log-manager for persistence. CJS require of ESM log-manager
+ * works via Bun transpile.
+ */
+const { writeLog } = require("../../lib/log-manager");
 
 const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
 const ARCHIVE_DIR = path.join(PROJECT_ROOT, "docs", "official_docs", ".metadata", "archives");
@@ -18,7 +24,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 
 function run() {
   if (!fs.existsSync(ARCHIVE_DIR)) {
-    console.log("[Archiver] No archives directory found");
+    writeLog("script-knowledge-archiver", "INFO", { event: "no_archives_dir" });
     return { pruned: 0, remaining: 0 };
   }
 
@@ -37,6 +43,7 @@ function run() {
 
     if (stat.mtimeMs < cutoff) {
       console.log(`[Archiver] Pruning: ${entry.name}`);
+      writeLog("script-knowledge-archiver", "INFO", { event: "pruning", name: entry.name, dryRun: DRY_RUN });
       if (!DRY_RUN) {
         fs.rmSync(dirPath, { recursive: true, force: true });
       }
@@ -47,6 +54,7 @@ function run() {
   }
 
   console.log(`[Archiver] Complete: ${pruned} pruned, ${remainingDirs} remaining`);
+  writeLog("script-knowledge-archiver", "INFO", { event: "complete", pruned, remaining: remainingDirs });
   return { pruned, remaining: remainingDirs };
 }
 

@@ -94,7 +94,10 @@ export function isWriteAllowed(agentType: string, filePath: string): boolean {
   const scopes = config?.agent_write_scopes?.[agentType];
   if (!scopes) return true;
   // Normalize absolute paths to relative (strip OPENCODE_ROOT prefix)
-  const root = process.env.OPENCODE_ROOT || "";
+  // P0-3/4/5-FIX: Fallback to process.cwd() when OPENCODE_ROOT is unset.
+  // Previously used `|| ""` which made relPath==absolute path when unset,
+  // causing glob patterns like ".opencode/**" to never match absolute paths.
+  const root = process.env.OPENCODE_ROOT || process.cwd();
   const relPath =
     root && filePath.startsWith(root + "/")
       ? filePath.slice(root.length + 1)

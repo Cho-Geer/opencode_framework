@@ -53,6 +53,12 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
+/**
+ * FW-LOG-UNIFY-P2-A2 (2026-06-12, @Super-Admin): Import log-manager for
+ * centralized log persistence. Bun transpiles ESM→CJS for require().
+ */
+const { writeLog } = require("../../lib/log-manager");
+
 // ─── State Transaction Engine (RVW-REVIEW-01) ─────────────────────
 const {
   beginTransaction,
@@ -217,6 +223,10 @@ function getMachine() {
     const integrity = stateCanon.validateWorkspaceIntegrity(raw, OPENCODE_ROOT);
     if (integrity.warnings.length > 0) {
       process.stderr.write(integrity.warnings.join("\n") + "\n");
+      // FW-LOG-UNIFY-P2-A2: DUAL-WRITE integrity warnings
+      writeLog("mcp-code-quality-gate", "WARN", {
+        event: "workspace_integrity_warnings", warnings: integrity.warnings,
+      });
     }
     if (integrity.hasForeignPaths) {
       stateCanon.sanitizePathsInMachine(raw, OPENCODE_ROOT);
@@ -225,15 +235,20 @@ function getMachine() {
         `[code-quality-gate] ⚠ Cross-workspace paths detected and auto-cleaned. ` +
           `State has been sanitized for current workspace: ${OPENCODE_ROOT}\n`,
       );
+      // FW-LOG-UNIFY-P2-A2: DUAL-WRITE cross-workspace sanitization
+      writeLog("mcp-code-quality-gate", "WARN", {
+        event: "cross_workspace_sanitized", workspace: OPENCODE_ROOT,
+      });
     }
 
-    // ─── Canonicalization: Convert all absolute paths to relative (RVW-REVIEW-02) ───
     stateCanon.canonicalizePathsInMachine(raw, OPENCODE_ROOT);
 
-    // ─── JSON Schema Validation (FW-REPAIR-09) ───
     const schemaResult = validateMachineSchema(raw);
     if (schemaResult.warnings.length > 0) {
       process.stderr.write(schemaResult.warnings.join("\n") + "\n");
+      writeLog("mcp-code-quality-gate", "WARN", {
+        event: "schema_validation_warnings", warnings: schemaResult.warnings,
+      });
     }
     if (schemaResult.errors.length > 0) {
       process.stderr.write(
@@ -241,6 +256,9 @@ function getMachine() {
           schemaResult.errors.map((e) => `  - ${e}`).join("\n") +
           "\n",
       );
+      writeLog("mcp-code-quality-gate", "ERROR", {
+        event: "schema_validation_errors", errors: schemaResult.errors,
+      });
     }
 
     return raw;
@@ -251,6 +269,9 @@ function getMachine() {
     const schemaResult = validateMachineSchema(defaultMachine);
     if (schemaResult.warnings.length > 0) {
       process.stderr.write(schemaResult.warnings.join("\n") + "\n");
+      writeLog("mcp-code-quality-gate", "WARN", {
+        event: "default_schema_warnings", warnings: schemaResult.warnings,
+      });
     }
     if (schemaResult.errors.length > 0) {
       process.stderr.write(
@@ -258,6 +279,9 @@ function getMachine() {
           schemaResult.errors.map((e) => `  - ${e}`).join("\n") +
           "\n",
       );
+      writeLog("mcp-code-quality-gate", "ERROR", {
+        event: "default_schema_errors", errors: schemaResult.errors,
+      });
     }
 
     writeMachine(defaultMachine);
@@ -295,13 +319,20 @@ function writeMachine(machine) {
     const txn = beginTransaction(statePath, agent, taskId);
     txn.prepare(content);
     txn.commit();
-    process.stderr.write(
-      `[code-quality-gate] ✓ txn ${txn.operationId} committed (rev ${txn.newRevision}) → machine.json\n`,
-    );
+    /**
+     * FW-LOG-UNIFY-P2-A2 (2026-06-12): Migrated from process.stderr.write to writeLog.
+     */
+    writeLog("mcp-code-quality-gate", "INFO", {
+      event: "txn_committed", operationId: txn.operationId, newRevision: txn.newRevision,
+    });
   } catch (txnErr) {
     process.stderr.write(
       `[code-quality-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write\n`,
     );
+    // FW-LOG-UNIFY-P2-A2: DUAL-WRITE transaction failure
+    writeLog("mcp-code-quality-gate", "WARN", {
+      event: "txn_fallback", error: txnErr.message,
+    });
     fs.writeFileSync(statePath, content, "utf-8");
   }
 }
@@ -431,6 +462,10 @@ function updateStates(machine, results, agentType, taskId, file) {
       `[code-quality-gate] ⚠ Rejected foreign-workspace path from write audit: "${file}" ` +
         `(not within OPENCODE_ROOT: ${OPENCODE_ROOT})\n`,
     );
+    // FW-LOG-UNIFY-P2-A2: DUAL-WRITE foreign path rejection
+    writeLog("mcp-code-quality-gate", "WARN", {
+      event: "foreign_path_rejected", file, OPENCODE_ROOT,
+    });
   }
   session.checks_run++;
 
@@ -532,9 +567,12 @@ function runWriteCheck(params) {
   // The standalone run_write_check MCP tool is deprecated.
   // All audit logic has been extracted to code-quality-lib.js.
   // Use code-quality-lib.js functions directly for new integrations.
-  process.stderr.write(
-    '[DEPRECATED] run_write_check is deprecated. Use code-quality-lib.js functions directly. See CI-UNIFY-004.\n'
-  );
+  /**
+   * FW-LOG-UNIFY-P2-A2 (2026-06-12): Migrated from process.stderr.write to writeLog.
+   */
+  writeLog("mcp-code-quality-gate", "WARN", {
+    event: "deprecated_run_write_check",
+  });
   const { changed_file, agent_type, skip_checks, auto_fix, task_id } = params;
   const projectRoot = getProjectRoot();
   const machine = getMachine() || {};

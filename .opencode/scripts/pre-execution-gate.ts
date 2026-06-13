@@ -2,6 +2,29 @@
 "use strict";
 
 /**
+ * FW-LOG-UNIFY-P3-C2 (2026-06-12, @Super-Admin): Lazy-load writeLog from
+ * log-manager to avoid per-dispatch require() overhead. Only loaded on first
+ * log call, staying nil when no logging is needed (clean exit).
+ * 
+ * Rationale: This script runs on EVERY agent dispatch. Adding a synchronous
+ * require("../../lib/log-manager") at the top would add Bun transpile overhead
+ * to every dispatch. Lazy-loading defers the cost to the first log call.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try { _writeLog = require("../lib/log-manager").writeLog; }
+    catch (e) { /* keep null — no logging available */ }
+  }
+  return _writeLog;
+}
+/** Convenience: writeLog that silently no-ops if log-manager unavailable. */
+function gateLog(category, level, data) {
+  const wl = getWriteLog();
+  if (wl) wl("script-pre-execution-gate", level, { event: category, ...data });
+}
+
+/**
  * pre-execution-gate.ts — Node-First DAG/Gate Validation with Fail-Closed Semantics
  * ================================================================================
  * Replaces shell-first dispatch validation with Node-only path resolution.
@@ -206,19 +229,44 @@ function emitError(checkName, message, details) {
 
   const jsonErr = JSON.stringify(output, null, 2);
 
+  /**
+   * FW-LOG-UNIFY-P3-C2 (2026-06-12, @Super-Admin): DUAL-WRITE — persist
+   * enforcement gate failures to log-manager via lazy-load gateLog().
+   * These messages were previously DISCARDED on every dispatch.
+   */
+  gateLog("gate_check_failed", (mode !== "advisory" ? "ERROR" : "WARN"), {
+    check: checkName, mode, message, violation, details: details || null,
+  });
+
   if (mode === "advisory") {
     console.error(`⚠️  [ADVISORY] ${jsonErr}`);
     return false; // non-blocking in advisory
   } else {
     console.error(`❌ [${mode.toUpperCase()}] ${jsonErr}`);
-    console.error(`   ── Violation: ${violation || message}`);
-    console.error(`   ── Mode: ${mode.toUpperCase()}`);
-    console.error(`   ── Remediation:`);
-    for (const line of remediation.split("\n")) {
-      console.error(`      ${line}`);
-    }
     return true; // blocking in strict/locked
   }
+}
+
+/**
+ * UC7-009: Check if the knowledge cache is healthy.
+ * Used by Super-Admin emergency bypass gate — if the cache is corrupted,
+ * missing, or empty, Super-Admin gets an emergency bypass to prevent
+ * circular deadlock (Super-Admin dispatched to repair broken cache →
+ * blocked by cache health check → cannot repair → deadlock).
+ *
+ * @returns {boolean} true if index.json exists, is valid JSON, and has entries
+ */
+function isKnowledgeCacheHealthy() {
+  const index = readJSON(KNOWLEDGE_INDEX_FILE);
+  if (!index.ok) {
+    return false;
+  }
+  // Check that the index has entries (not just an empty skeleton)
+  const entries = index.data.entries;
+  if (!entries || !Array.isArray(entries) || entries.length === 0) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -314,6 +362,7 @@ function checkDagCoverage(taskId) {
     console.error(
       `    ⏭️  DAG Coverage SKIPPED — ${agent} is a DAG-creator/manager/knowledge-pipeline (task may not exist yet)`,
     );
+    gateLog("dag_skip", "INFO", { reason: "creator_agent", agent: normalizedAgent });
     return true;
   }
 
@@ -479,6 +528,7 @@ function checkRuleRegistry() {
     console.error(
       `  ℹ️  rule_registry.json not found — skipping registry check`,
     );
+    gateLog("rule_registry_missing", "INFO", {});
     return true;
   }
 
@@ -585,6 +635,7 @@ function checkRuleRegistry() {
     console.error(
       `  ⚠️  Rule Registry: ${warnCount} WARNING(s) (version bumps), ${passCount} pass`,
     );
+    gateLog("rule_registry_warnings", "WARN", { warnCount, passCount, failCount });
   }
 
   return true;
@@ -794,23 +845,57 @@ function main() {
   // Special case: Super-Admin — emergency framework administrator
   // Bypasses DAG coverage and gate lifecycle checks (emergency repairs cannot wait for planning)
   // BUT: knowledge pipeline (UC7KS) checks still apply to prevent documentation bypass
+  //
+  // UC7-009: Health-state gate — if knowledge cache is unhealthy, Super-Admin gets
+  // an emergency bypass. This prevents circular deadlock: Super-Admin dispatched to
+  // repair broken cache → blocked by cache health check → cannot repair → deadlock.
   const agent = readDispatchTargetAgent() || "";
   if (agent === "Super-Admin" || agent === "@Super-Admin") {
-    console.log(
+    console.error(
       "[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance.",
     );
-    console.log("[GATE] Knowledge pipeline (UC7KS) checks still enforced.");
-    if (!checkKnowledgeGate(taskId)) {
-      const mode = getEnforcementMode();
-      if (mode === "locked") {
+    gateLog("super_admin_bypass", "INFO", { agent, taskId });
+
+    if (isKnowledgeCacheHealthy()) {
+      // Cache HEALTHY → normal UC7KS enforcement applies
+      console.error("[GATE][UC7-009] Knowledge cache is HEALTHY — enforcing UC7KS pipeline.");
+      gateLog("uc7ks_cache_healthy", "INFO", { agent, taskId });
+      if (!checkKnowledgeGate(taskId)) {
+        const mode = getEnforcementMode();
+        if (mode === "locked" || mode === "strict") {
+          const blocked = emitError(
+            "Knowledge Pipeline",
+            "Knowledge pipeline check FAILED for Super-Admin — blocked in locked/strict mode.",
+            {
+              agent: "Super-Admin",
+              task_id: taskId,
+              cache_health: "healthy",
+              enforcement_mode: mode,
+            },
+          );
+          if (blocked) process.exit(1);
+        }
         console.error(
-          "[GATE][LOCKED] Knowledge pipeline check FAILED for Super-Admin — blocked.",
+          "[GATE][ADVISORY] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory mode).",
         );
-        process.exit(1);
+        gateLog("uc7ks_pipeline_warn", "WARN", { agent, taskId, mode: getEnforcementMode() });
       }
+    } else {
+      // Cache UNHEALTHY → UC7-009 emergency bypass
       console.error(
-        "[GATE] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory/strict).",
+        "[GATE][UC7-009] Knowledge cache is UNHEALTHY — activating emergency bypass.",
       );
+      const auditEntry = {
+        event: "uc7ks_super_admin_emergency_bypass",
+        agent: "Super-Admin",
+        task_id: taskId,
+        reason: "knowledge_cache_unhealthy",
+        cache_path: path.relative(OPENCODE_ROOT, KNOWLEDGE_INDEX_FILE),
+        timestamp: new Date().toISOString(),
+        enforcement_mode: getEnforcementMode(),
+      };
+      console.error(`[GATE][UC7-009] ${JSON.stringify(auditEntry)}`);
+      gateLog("uc7ks_emergency_bypass", "WARN", auditEntry);
     }
     process.exit(0);
   }
@@ -838,69 +923,48 @@ function main() {
 
   // ── Run checks in order ──
   let allPassed = true;
+  const checkResults = {};
 
-  // Check 0: Config validity (must pass first)
   console.error("  Check 1/6 — Config Validity...");
-  if (!checkConfigValidity()) {
-    allPassed = false;
-    // checkConfigValidity exits on failure in strict/locked
-    // In advisory mode, we continue
-  } else {
-    console.error("    ✅ Config files present and readable");
-  }
+  if (!checkConfigValidity()) { allPassed = false; }
+  else { console.error("    ✅ Config files present and readable"); checkResults.config = "pass"; }
 
-  // Check 1: DAG Coverage (SKIPPED for dispatch sessions — dispatch session IDs
-  // are OpenCode background sub-agent process identifiers, not DAG task IDs)
   console.error("  Check 2/6 — DAG Coverage...");
   if (isDispatchSession) {
-    console.error(
-      `    ⏭️  SKIPPED (--dispatch-session: task_id '${taskId}' is a dispatch session identifier, not a DAG task ID)`,
-    );
-  } else if (!checkDagCoverage(taskId)) {
-    allPassed = false;
-    // checkDagCoverage exits on failure in strict/locked
-  } else {
-    console.error(`    ✅ Task '${taskId}' found in DAG with status=pending`);
-  }
+    console.error(`    ⏭️  SKIPPED (--dispatch-session)`);
+    checkResults.dag = "skipped";
+  } else if (!checkDagCoverage(taskId)) { allPassed = false; }
+  else { console.error(`    ✅ Task '${taskId}' found in DAG with status=pending`); checkResults.dag = "pass"; }
 
-  // Check 2: Gate Lifecycle (SKIPPED for dispatch sessions — dispatch session IDs
-  // are OpenCode background sub-agent process identifiers, not DAG task IDs)
   console.error("  Check 3/6 — Gate Lifecycle...");
   if (isDispatchSession) {
-    console.error(
-      `    ⏭️  SKIPPED (--dispatch-session: gate lifecycle check not applicable to dispatch sessions)`,
-    );
-  } else if (checkGateLifecycle(taskId)) {
-    console.error("    ✅ Armed gate session found");
-  } else {
-    allPassed = false;
-  }
+    console.error(`    ⏭️  SKIPPED (--dispatch-session)`);
+    checkResults.gate = "skipped";
+  } else if (checkGateLifecycle(taskId)) { console.error("    ✅ Armed gate session found"); checkResults.gate = "pass"; }
+  else { allPassed = false; }
 
-  // Check 3: Role Violations
   console.error("  Check 4/6 — Role Violations...");
-  if (checkRoleViolations()) {
-    console.error("    ✅ No unresolved role violations");
-  } else {
-    allPassed = false;
-  }
+  if (checkRoleViolations()) { console.error("    ✅ No unresolved role violations"); checkResults.role = "pass"; }
+  else { allPassed = false; }
 
-  // Check 4: Rule Registry
   console.error("  Check 5/6 — Rule Registry...");
-  if (checkRuleRegistry()) {
-    console.error("    ✅ Rule registry integrity verified");
-  } else {
-    allPassed = false;
-  }
+  if (checkRuleRegistry()) { console.error("    ✅ Rule registry integrity verified"); checkResults.rule = "pass"; }
+  else { allPassed = false; }
 
-  // Check 6: Knowledge Pipeline Gate (UC7KS)
   console.error("  Check 6/6 — Knowledge Pipeline...");
-  if (checkKnowledgeGate(taskId)) {
-    console.error("    ✅ Knowledge pipeline compliance verified");
-  } else {
-    allPassed = false;
-  }
+  if (checkKnowledgeGate(taskId)) { console.error("    ✅ Knowledge pipeline compliance verified"); checkResults.knowledge = "pass"; }
+  else { allPassed = false; }
 
   console.error("");
+
+  /**
+   * FW-LOG-UNIFY-P3-C2 (2026-06-12): Persist gate check results to log-manager.
+   * Previously ALL console.error output from this script was DISCARDED on dispatch.
+   */
+  gateLog("gate_result", (allPassed ? "INFO" : "ERROR"), {
+    mode, taskId, isDispatchSession,
+    allPassed, checks: checkResults,
+  });
 
   // ── Summary ──
   if (allPassed) {
@@ -935,6 +999,7 @@ if (require.main === module) {
     getEnforcementMode,
     computeFileSHA256,
     emitError,
+    isKnowledgeCacheHealthy,
     checkDagCoverage,
     checkGateLifecycle,
     checkRoleViolations,

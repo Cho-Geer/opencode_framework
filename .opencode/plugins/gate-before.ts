@@ -4,8 +4,9 @@ import {
   updateIndex,
   ensureLogDir,
 } from "../lib/log-manager";
-import { resolveAgent } from "../lib/agent-resolver";
+import { resolveAgent, resolveTaskId } from "../lib/agent-resolver";
 import { getEnforcementMode, findArmedSession } from "../lib/gate-core";
+import { findTaskInDag } from "../lib/gate-checks";
 import { isModifyTool } from "../lib/tool-scope";
 
 ensureLogDir();
@@ -59,6 +60,68 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       event: "TOOL-BEFORE",
       detail: `gate armed | id=${session.sessionId}`,
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // P2-1: DAG Task Existence/Status Audit
+  // Migrated from enforce.ts L1331–1356
+  //
+  // Verifies that the current task ID exists in Task.DAG.json and
+  // has a valid status (pending or in_progress).
+  //
+  // Exempt: @Meta-Planner (creates DAG), @Orchestrator (manages DAG).
+  // Scoped: isModifyTool() only — read operations exempt per
+  // FW-FIX-DAG-SCOPE-01.
+  // ═══════════════════════════════════════════════════════════════
+  if (isModifyTool(input.tool)) {
+    const taskId = resolveTaskId();
+    const agentNorm = agent.toLowerCase().replace(/^@/, "");
+    /**
+     * P2-1 FIX (2026-06-12): Added "super-admin" to DAG exemption.
+     * @Super-Admin performs framework maintenance (docs/, rules, plugins)
+     * outside DAG coverage. Original enforce.ts L1327 exempted SA from
+     * ALL checks including DAG — removing the bypass for ROUTE-MISMATCH
+     * (P0-4) inadvertently removed the DAG exemption too.
+     */
+    const isDagCreator =
+      agentNorm === "orchestrator" || agentNorm === "meta-planner" || agentNorm === "super-admin";
+
+    if (taskId && !isDagCreator) {
+      const tc = findTaskInDag(taskId);
+      if (!tc.found) {
+        writeLog("gate-before", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          level: "WARN",
+          event: "TOOL-BEFORE",
+          detail: `BLOCKED | DAG-TASK-NOT-FOUND | task=${taskId}`,
+        });
+        if (mode === "strict" || mode === "locked") {
+          throw new Error(
+            `[FW-ENFORCE][DAG] Task "${taskId}" not found in Task.DAG.json. ` +
+            `Ensure @Meta-Planner has planned this task.`,
+          );
+        }
+      } else if (tc.status !== "pending" && tc.status !== "in_progress") {
+        writeLog("gate-before", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          level: "WARN",
+          event: "TOOL-BEFORE",
+          detail: `BLOCKED | DAG-TASK-STATUS | task=${taskId} status=${tc.status}`,
+        });
+        if (mode === "strict" || mode === "locked") {
+          throw new Error(
+            `[FW-ENFORCE][DAG] Task "${taskId}" status is "${tc.status}". ` +
+            `Expected "pending" or "in_progress".`,
+          );
+        }
+      } else {
+        writeLog("gate-before", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          event: "TOOL-BEFORE",
+          detail: `DAG task verified | task=${taskId} status=${tc.status}`,
+        });
+      }
+    }
   }
 
   writeLog("gate-before", "runtime", {

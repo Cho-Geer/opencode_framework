@@ -741,7 +741,7 @@ export async function toolExecuteBefore(
             // entry at the queue head blocks Super-Admin dispatch → system deadlock
             // has no recovery path. This mirrors FW-DAG-BYPASS-01 (L211-214) which
             // already bypasses the DAG gate for Super-Admin.
-            if (reqTypeNorm === "super-admin") {
+            if (reqTypeNorm.toLowerCase() === "super-admin") {
               // Clean any Super-Admin entries from queue (they'll never be consumed via hash check)
               const beforeLen = queue.length;
               queue = queue.filter((e: any) => {
@@ -773,7 +773,7 @@ export async function toolExecuteBefore(
               dispatchConsumed = true;
               // Also register for idempotency guard (P0-FIX-BUG-13-IDEM)
               sessionLastDispatched.set(input.sessionID, {
-                agentType: "super-admin",
+                agentType: "Super-Admin",
                 ts: Date.now(),
               });
               // P0-FIX-BUG-17: Also register by callID for double-hook detection

@@ -327,7 +327,17 @@ export function getEnforcementMode(root?: string): EnforcementMode {
       const resolvedMode = envMode && VALID_MODES.has(envMode)
         ? (configMode === 'locked' ? 'locked' : envMode)
         : configMode;
-      console.error(`[gate-core:getEnforcementMode] DIAGNOSTIC projectRoot=${projectRoot} cfgPath=${cfgPath} cfgExists=${cfgExists} ENFORCEMENT_MODE=${envMode || '(unset)'} develop_enforcement_mode=${devMode} runtime_enforcement_mode=${runMode} configMode=${configMode} RESOLVED=${resolvedMode}`);
+      /**
+       * FW-LOG-UNIFY-P1-D3 (2026-06-12, @Super-Admin): Migrated from
+       * console.error to direct appendFileSync to avoid circular import
+       * (log-manager imports gate-core, so gate-core cannot import log-manager).
+       */
+      const diagMsg = `[gate-core:getEnforcementMode] DIAGNOSTIC projectRoot=${projectRoot} cfgPath=${cfgPath} cfgExists=${cfgExists} ENFORCEMENT_MODE=${envMode || '(unset)'} develop_enforcement_mode=${devMode} runtime_enforcement_mode=${runMode} configMode=${configMode} RESOLVED=${resolvedMode}`;
+      try {
+        const diagDir = path.join(projectRoot, ".task_temp", "_logs");
+        if (!fs.existsSync(diagDir)) fs.mkdirSync(diagDir, { recursive: true });
+        fs.appendFileSync(path.join(diagDir, "lib-gate-core-runtime.log"), diagMsg + "\n", "utf8");
+      } catch { /* silent */ }
     } catch (_diagErr) {
       // Diagnostic failure is non-blocking
     }

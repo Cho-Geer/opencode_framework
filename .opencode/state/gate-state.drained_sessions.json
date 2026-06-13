@@ -610,8 +610,149 @@
       "drained_at": "2026-06-11T00:33:04.988Z",
       "drain_reason": "checked for 0h without confirmation (threshold: 0.01h)",
       "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781196743801": {
+      "session_id": "cg_ses_1781196743801",
+      "created_at": "2026-06-11T16:52:23.808Z",
+      "task_description": "执行 UC7KS 修复后验证计划：V1 自检扫描(@Guardian) + V2 状态对账(@Guardian) + V4 多域隔离(@Super-Admin) 并行，然后 V3 UC7KS 端到端(@Super-Admin)，最后 V5 合规门集成(@Super-Admin)",
+      "task_id": "VERIFY-UC7KS-FINAL",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "P1 并行：V1 @Guardian 自检扫描 + V2 @Guardian 状态对账 + V4 @Super-Admin 多域隔离 → P2 V3 @Super-Admin UC7KS端到端 → P3 V5 @Super-Admin 合规门集成",
+      "confirmed_at": "2026-06-11T17:07:50.436Z",
+      "consumed_at": null,
+      "audit": null,
+      "agent": "@Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-12T17:07:50.436Z",
+      "drained_at": "2026-06-11T17:13:10.541Z",
+      "drain_reason": "armed for 0h without completion (threshold: -1h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781197718846": {
+      "session_id": "cg_ses_1781197718846",
+      "created_at": "2026-06-11T17:08:38.851Z",
+      "task_description": "V1 自检扫描：运行 framework-self-test.ts 全部 37 项检查，返回完整结果（通过/失败项明细、失败原因、建议修复路径）",
+      "task_id": "guardian-v1-self-scan",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "V1 自检扫描：运行 framework-self-test.ts 全部 37 项检查，分析结果并生成报告",
+      "confirmed_at": "2026-06-11T17:08:44.243Z",
+      "consumed_at": null,
+      "audit": null,
+      "agent": "@Guardian",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-12T17:08:44.243Z",
+      "drained_at": "2026-06-11T17:13:10.541Z",
+      "drain_reason": "armed for 0h without completion (threshold: -1h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781307965089": {
+      "session_id": "cg_ses_1781307965089",
+      "created_at": "2026-06-12T23:46:05.095Z",
+      "task_description": "Verify P2-1 DAG task audit and P2-2 dispatch authorization by practical dispatch under current enforcement mode",
+      "task_id": "VERIFY-P2-1-2",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 31 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (42 entries)",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_pipeline_not_started",
+          "desc": "[UC7KS] No agent has started the knowledge pipeline for task \"VERIFY-P2-1-2\". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-13T00:27:06.582Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781308005102": {
+      "session_id": "cg_ses_1781308005102",
+      "created_at": "2026-06-12T23:46:45.108Z",
+      "task_description": "Practical dispatch verification of P2-1 DAG task audit and P2-2 dispatch authorization under strict mode. Test P2-1: dispatch with non-DAG task ID to verify block. Test P2-2: dispatch @Super-Admin without repair patterns to verify block.",
+      "task_id": "VERIFY-P2-1-2",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "P2-1/P2-2 practical verification: (1) P2-1: dispatch @Coder-BE with non-DAG task ID to verify [FW-ENFORCE][DAG] block; (2) P2-2: try dispatching @Super-Admin without repair patterns to verify [FW-ENFORCE][DISPATCH-GATE] block; (3) P2-2: verify Orchestrator can dispatch normally (pass).",
+      "confirmed_at": "2026-06-12T23:46:51.447Z",
+      "consumed_at": null,
+      "audit": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-13T23:46:51.447Z",
+      "drained_at": "2026-06-13T00:27:06.582Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.001h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781308453752": {
+      "session_id": "cg_ses_1781308453752",
+      "created_at": "2026-06-12T23:54:13.759Z",
+      "task_description": "Knowledge-Curator: List cache statistics — gather and report statistics on all cached documentation in docs/official_docs/",
+      "task_id": null,
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 31 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (42 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-13T00:27:06.582Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781310673033": {
+      "session_id": "cg_ses_1781310673033",
+      "created_at": "2026-06-13T00:31:13.040Z",
+      "task_description": "Comprehensive verification of all 14 constraint fixes (P0-1 through P2-2) via practical subagent dispatches",
+      "task_id": "VERIFY-ALL-14",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Comprehensive practical dispatch verification of all 14 constraint fixes across P0 (7 checks), P1 (5 checks), P2 (2 checks) using real subagent dispatches",
+      "confirmed_at": "2026-06-13T00:31:24.442Z",
+      "consumed_at": null,
+      "audit": null,
+      "agent": "@Orchestrator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-14T00:31:24.442Z",
+      "drained_at": "2026-06-13T00:39:29.288Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.001h)",
+      "drain_type": "STALE_ARMED"
     }
   },
-  "last_drained": "2026-06-11T00:33:04.988Z",
-  "total_drained": 17
+  "last_drained": "2026-06-13T00:39:29.288Z",
+  "total_drained": 23
 }

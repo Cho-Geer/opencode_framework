@@ -100,10 +100,10 @@ export function ensureAgentEntry(
   sa: SessionAccess,
   agent: string,
 ): AgentEntry {
-  const agentKey = agent.replace(/^@/, "");
-  // Merge any existing flat entry under either key
-  const existing = sa[agent] || sa[agentKey] || {};
-  sa[agent] = {
+  const agentKey = normalizeAgentKey(agent);
+  // Merge any existing flat entry under either the raw key or its normalized form
+  const existing = sa[agentKey] || sa[agent] || {};
+  sa[agentKey] = {
     last_read_at: existing.last_read_at || new Date().toISOString(),
     total_cache_reads: existing.total_cache_reads || 0,
     tasks: existing.tasks || {},
@@ -114,7 +114,7 @@ export function ensureAgentEntry(
     declared_at: existing.declared_at,
     cache_sufficiency: existing.cache_sufficiency,
   } as AgentEntry;
-  return sa[agent];
+  return sa[agentKey];
 }
 
 /** Get or create a domain entry for a specific task */
@@ -168,7 +168,8 @@ export function readCacheSufficiency(
   taskId: string,
   domain: string,
 ): CacheSufficiency | null {
-  const a = sa[agent] || sa[agent.replace(/^@/, "")];
+  const agentKey = normalizeAgentKey(agent);
+  const a = sa[agentKey] || sa[agent];
   if (!a) return null;
 
   // Try nested path
@@ -229,7 +230,8 @@ export function isPipelineCompleted(
   taskId: string,
   domain: string,
 ): boolean {
-  const a = sa[agent] || sa[agent.replace(/^@/, "")];
+  const agentKey = normalizeAgentKey(agent);
+  const a = sa[agentKey] || sa[agent];
   if (!a) return false;
   // Check nested
   if (a.tasks?.[taskId]?.domains?.[domain]?.pipeline_status === "completed") {
@@ -255,7 +257,8 @@ export function isPipelineDeclared(
   taskId: string,
   domain: string,
 ): boolean {
-  const a = sa[agent] || sa[agent.replace(/^@/, "")];
+  const agentKey = normalizeAgentKey(agent);
+  const a = sa[agentKey] || sa[agent];
   if (!a) return false;
   // Check nested
   if (a.tasks?.[taskId]?.domains?.[domain]?.pipeline_status === "declared") {
@@ -378,6 +381,39 @@ export function atomicWriteMachine(
 
 /** Max agent entries (F8: increased from 20 → 50 for multi-task expansion) */
 export const MAX_AGENTS = 50;
+
+/**
+ * Normalize an agent name to the canonical PascalCase key used in
+ * machine.json.knowledge_cache_state.session_access.
+ *
+ * Rules:
+ *   - Strip leading "@" prefix
+ *   - Map known lowercase/kebab aliases to canonical names
+ *   - Leave already-canonical names untouched
+ *
+ * Examples:
+ *   "@super-admin" → "Super-Admin"
+ *   "@Coder-BE"    → "Coder-BE"
+ *   "orchestrator" → "Orchestrator"
+ *   "Super-Admin"  → "Super-Admin"
+ */
+export function normalizeAgentKey(raw: string): string {
+  const stripped = (raw || "").replace(/^@/, "");
+  const map: Record<string, string> = {
+    "meta-planner": "Meta-Planner",
+    "orchestrator": "Orchestrator",
+    "architect": "Architect",
+    "coder-be": "Coder-BE",
+    "coder-fe": "Coder-FE",
+    "guardian": "Guardian",
+    "arbiter": "Arbiter",
+    "ci-cd-agent": "CI-CD-Agent",
+    "knowledge-curator": "Knowledge-Curator",
+    "super-admin": "Super-Admin",
+    "plan": "Meta-Planner", // legacy misnomer: "plan" scope was recorded as agent
+  };
+  return map[stripped.toLowerCase()] || stripped;
+}
 
 /** Evict oldest agent entries when cap exceeded */
 export function evictOldAgents(sa: SessionAccess): void {

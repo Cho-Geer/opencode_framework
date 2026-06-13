@@ -94,9 +94,20 @@
         "compliance_gate_retry_confirm": "allow",
         "dispatch_subagent": "allow",
         "safe_diff": "allow",
-        "safe_edit": "deny",
-        "safe_delete": "deny",
-        "safe_mkdir": "deny",
+        "safe_edit": {
+          ".task_temp/**": "allow",
+          "Task.DAG.json": "deny",
+          ".opencode/**": "deny",
+          "*": "deny"
+        },
+        "safe_delete": {
+          ".task_temp/**": "allow",
+          "*": "deny"
+        },
+        "safe_mkdir": {
+          ".task_temp/**": "allow",
+          "*": "deny"
+        },
         "safe_test": "deny",
         "webfetch": "deny",
         "websearch": "deny",

@@ -1961,8 +1961,29 @@ function checkUC7KSSchemaIntegrity() {
     if (!kcs.session_access) issues.push("missing session_access");
     // Validate session_access sub-schema
     if (kcs.session_access) {
+      // Load known agents from opencode.json so phantom entries don't fail
+      // field validation (they get their own dedicated error).
+      const knownAgents = (function () {
+        try {
+          const opencodePath = path.join(OPENCODE_ROOT, "opencode.json");
+          const raw = fs.readFileSync(opencodePath, "utf8");
+          const cfg = JSON.parse(raw);
+          return Object.keys(cfg.agent || {});
+        } catch (_) {
+          return [];
+        }
+      })();
+
       for (const [agent, state] of Object.entries(kcs.session_access)) {
-        const s = state;
+        const s = state as any;
+        const stripped = agent.replace(/^@/, "");
+        const isKnown = knownAgents.some(
+          (k) => k.toLowerCase() === stripped.toLowerCase(),
+        );
+        if (!isKnown) {
+          issues.push(`${agent}: phantom entry (not in opencode.json agent list)`);
+          continue;
+        }
         if (s.uc7_001_compliant === undefined)
           issues.push(agent + ": missing uc7_001_compliant");
         if (s.last_read_at === undefined)

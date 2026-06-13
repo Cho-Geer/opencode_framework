@@ -21,17 +21,50 @@ if [ -z "$TASK_ID" ]; then
   exit 1
 fi
 
-# Super-Admin bypass: emergency framework administrator
-if [ "${FRAMEWORK_AGENT:-}" = "Super-Admin" ] || [ "${FRAMEWORK_AGENT:-}" = "@Super-Admin" ]; then
-  echo "[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance."
-  exit 0
-fi
-
 # Resolve project root: .opencode/scripts/pre-execution-hook.sh → project_root/
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DAG_FILE="${PROJECT_ROOT}/Task.DAG.json"
 PRE_EXEC_GATE="${SCRIPT_DIR}/pre-execution-gate.ts"
+
+# ── FW-FIX-AGENT-IDENTITY (2026-06-13, @Super-Admin) ──
+# Replace deprecated FRAMEWORK_AGENT env var with _dispatch_target.json read.
+# FRAMEWORK_AGENT was never set by the runtime, causing:
+#   (1) Super-Admin bypass to never fire (dead code)
+#   (2) UC7KS Stage 4 gate to reject ALL agents as "unknown" in strict/locked
+#
+# Priority: _dispatch_target.json (with run_id staleness check) → empty
+# Mirrors readDispatchTargetAgent() from pre-execution-gate.ts L319-339.
+RESOLVED_AGENT=""
+_DT_PATH="${PROJECT_ROOT}/.task_temp/_dispatch_target.json"
+if [ -f "$_DT_PATH" ] && command -v bun &>/dev/null; then
+  RESOLVED_AGENT=$(bun -e "
+    try {
+      const fs = require('fs');
+      const d = JSON.parse(fs.readFileSync('${_DT_PATH}', 'utf8'));
+      const runId = process.env.OPENCODE_RUN_ID || '';
+      if (runId && d.run_id && d.run_id !== runId) {
+        try { fs.unlinkSync('${_DT_PATH}'); } catch {}
+        process.exit(0);
+      }
+      if (!runId && d.timestamp) {
+        const age = Date.now() - new Date(d.timestamp).getTime();
+        if (age > 30 * 60 * 1000) {
+          try { fs.unlinkSync('${_DT_PATH}'); } catch {}
+          process.exit(0);
+        }
+      }
+      process.stdout.write(d.agent || '');
+    } catch(e) { /* silent */ }
+  " 2>/dev/null || echo "")
+fi
+
+# Super-Admin bypass: emergency framework administrator
+_AGENT_NORM="${RESOLVED_AGENT#@}"
+if [ "$_AGENT_NORM" = "Super-Admin" ]; then
+  echo "[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance."
+  exit 0
+fi
 
 # ── Resolve Enforcement Mode ─────────────────────────────────────────
 # Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
@@ -265,14 +298,16 @@ echo "────────────────────────�
 INDEX_FILE="${PROJECT_ROOT}/docs/official_docs/index.json"
 MACHINE_FILE="${PROJECT_ROOT}/.opencode/state/machine.json"
 KNOWLEDGE_STATE="/tmp/uc7ks_knowledge_gate_$"
-FRAMEWORK_KC="${FRAMEWORK_AGENT:-}"
+# FW-FIX-AGENT-IDENTITY: Use RESOLVED_AGENT from _dispatch_target.json (not deprecated FRAMEWORK_AGENT)
+FRAMEWORK_KC="${RESOLVED_AGENT:-}"
 
 # UC7-009: Super-Admin conditional bypass (GAP-C1 remediation, 2026-06-06)
 # Super-Admin only bypasses the UC7KS gate when the knowledge cache is UNHEALTHY
 # (missing, empty, or corrupt index.json). When the cache is healthy, Super-Admin
 # follows the same UC7KS pipeline as all other agents per UC7-009.
 SUPER_ADMIN_BYPASS="false"
-if [ "${FRAMEWORK_AGENT:-}" = "Super-Admin" ] || [ "${FRAMEWORK_AGENT:-}" = "@Super-Admin" ]; then
+# FW-FIX-AGENT-IDENTITY: Use _AGENT_NORM (stripped of @) from _dispatch_target.json
+if [ "$_AGENT_NORM" = "Super-Admin" ]; then
   if [ -f "$INDEX_FILE" ] && [ -s "$INDEX_FILE" ]; then
     # Cache file exists and is non-empty — verify it's structurally valid
     CACHE_HEALTHY=$(bun -e "
@@ -324,14 +359,15 @@ else
   # Check 2: Agent UC7-001 compliance (strict/locked mode — FW-HARDEN-UC7KS-004)
   if [ "$ENF_MODE" = "strict" ] || [ "$ENF_MODE" = "locked" ]; then
     if [ -f "$MACHINE_FILE" ] && command -v bun &>/dev/null; then
-      AGENT_KEY="${FRAMEWORK_AGENT#@}"
+      # FW-FIX-AGENT-IDENTITY: Use RESOLVED_AGENT from _dispatch_target.json
+      AGENT_KEY="${RESOLVED_AGENT#@}"
       UC7KS_CHECK=$(bun -e "
         // CRIT-2b FIX: JSON.parse(fs.readFileSync) replaces require()
         try {
           const m = JSON.parse(require('fs').readFileSync('${MACHINE_FILE}', 'utf8'));
           const kcs = m?.knowledge_cache_state;
           const sa = kcs?.session_access || {};
-          const agentState = sa['${FRAMEWORK_AGENT:-}'] || sa['${AGENT_KEY:-}'];
+          const agentState = sa['${RESOLVED_AGENT:-}'] || sa['${AGENT_KEY:-}'];
           if (!agentState) { console.log('NO_STATE'); process.exit(0); }
           const compliant = agentState.uc7_001_compliant === true;
           const scope = agentState.declared_scope || null;
@@ -341,14 +377,14 @@ else
 
       if [ "$UC7KS_CHECK" = "ERROR" ] || [ "$UC7KS_CHECK" = "NO_STATE" ]; then
         if [ "$UC7KS_CHECK" = "NO_STATE" ]; then
-          enf_exit "UC7KS Gate: Agent '${FRAMEWORK_AGENT:-unknown}' has no knowledge cache state. Must declare scope (Step 0a) and search cache (Step 0b) first."
+          enf_exit "UC7KS Gate: Agent '${RESOLVED_AGENT:-unknown}' has no knowledge cache state. Must declare scope (Step 0a) and search cache (Step 0b) first."
         else
           echo "  ⚠️  Could not verify UC7KS compliance state (machine.json read error)"
         fi
       else
         UC7KS_COMPLIANT=$(echo "$UC7KS_CHECK" | bun -e "console.log(JSON.parse(require('fs').readFileSync('/dev/stdin','utf8').trim()).compliant)" 2>/dev/null || echo "false")
         if [ "$UC7KS_COMPLIANT" != "true" ]; then
-          enf_exit "UC7KS Gate: Agent '${FRAMEWORK_AGENT:-unknown}' has not completed knowledge cache search (Step 0b). Must read docs/official_docs/index.json first."
+          enf_exit "UC7KS Gate: Agent '${RESOLVED_AGENT:-unknown}' has not completed knowledge cache search (Step 0b). Must read docs/official_docs/index.json first."
         else
           echo "  ✅ UC7KS Gate passed — agent has completed cache search (uc7_001_compliant)"
 
@@ -360,7 +396,7 @@ else
               try {
                 const m = JSON.parse(require('fs').readFileSync('${MACHINE_FILE}', 'utf8'));
                 const sa = m?.knowledge_cache_state?.session_access || {};
-                const agentState = sa['${FRAMEWORK_AGENT:-unknown}'] || {};
+                const agentState = sa['${RESOLVED_AGENT:-unknown}'] || {};
                 const suff = agentState.cache_sufficiency || {};
                 const missing = [];
                 if (!suff.reason) missing.push('reason');

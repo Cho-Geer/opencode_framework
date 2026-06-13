@@ -679,6 +679,13 @@ function reconcile(options = {}) {
   );
   results.auto_fixable = hasStaleSessions || hasMetaMismatch;
 
+  // SA-IMPL-LEGACY-FIXES: Pre-check Check6 so --fix block can repair knowledge_state drift
+  // even when no stale sessions or meta mismatches exist.
+  const check6Pre = checkKnowledgeStateIntegrity(OPENCODE_ROOT);
+  if (!check6Pre.ok) {
+    results.auto_fixable = true;
+  }
+
   // ─── --fix flag: apply auto-repair ──────────────────────
 
   if (options.fix && results.auto_fixable) {
@@ -687,16 +694,33 @@ function reconcile(options = {}) {
     const indexPath = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.json");
 
     // Check6 fix: knowledge_state drift (SA-IMPL-LEGACY-FIXES)
-    if (!(check6 as any).passed && fs.existsSync(indexPath) && fs.existsSync(MACHINE_PATH)) {
+    if (!check6Pre.ok && fs.existsSync(indexPath) && fs.existsSync(MACHINE_PATH)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(indexPath, "utf8"));
         const machine = JSON.parse(fs.readFileSync(MACHINE_PATH, "utf8"));
         machine.knowledge_state = machine.knowledge_state || {};
         const oldCount = machine.knowledge_state.total_docs_count || 0;
+        const oldSize = machine.knowledge_state.total_size_bytes || 0;
         machine.knowledge_state.total_docs_count = manifest.entries.length;
+        // Recalculate total size from actual docs/official_docs files
+        let actualSize = 0;
+        const docsDir = path.join(OPENCODE_ROOT, "docs", "official_docs");
+        const walk = (dir: string) => {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const e of entries) {
+            const full = path.join(dir, e.name);
+            if (e.isDirectory()) {
+              walk(full);
+            } else {
+              actualSize += fs.statSync(full).size;
+            }
+          }
+        };
+        if (fs.existsSync(docsDir)) walk(docsDir);
+        machine.knowledge_state.total_size_bytes = actualSize;
         fs.writeFileSync(MACHINE_PATH, JSON.stringify(machine, null, 2), "utf8");
         console.error(
-          `[fix] check6: total_docs_count ${oldCount} → ${manifest.entries.length}`,
+          `[fix] check6: total_docs_count ${oldCount} → ${manifest.entries.length}, total_size_bytes ${oldSize} → ${actualSize}`,
         );
       } catch (e: any) {
         console.error(`[fix] check6: ${e.message}`);
@@ -882,7 +906,7 @@ function reconcile(options = {}) {
     });
   }
 
-  // SA-IMPL-LEGACY-FIXES: Check6 auto-fix
+  // SA-IMPL-LEGACY-FIXES: Check6 auto-fix (must be evaluated before --fix block)
   if (!check6.passed) {
     results.auto_fixable = true;
   }

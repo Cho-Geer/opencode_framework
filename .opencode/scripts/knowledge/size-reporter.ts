@@ -11,6 +11,11 @@
 const fs = require("fs");
 const path = require("path");
 const { getStats } = require("./indexer");
+/**
+ * FW-LOG-UNIFY-P4 (2026-06-12, @Super-Admin): Persist size reports to
+ * centralized log-manager for audit trail.
+ */
+const { writeLog } = require("../../lib/log-manager");
 
 const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
 const REPORT_PATH = path.join(PROJECT_ROOT, "docs", "official_docs", ".metadata", "size_report.json");
@@ -34,6 +39,9 @@ function generate() {
 
   fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2), "utf-8");
   console.log(`[SizeReporter] Report generated: ${(report.total_size_mb)}MB / 50MB (${report.total_files} files)`);
+  writeLog("script-knowledge-size-reporter", "INFO", {
+    event: "report_generated", total_mb: report.total_size_mb, files: report.total_files,
+  });
   return report;
 }
 

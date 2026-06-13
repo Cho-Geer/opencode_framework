@@ -44,13 +44,39 @@ If any domain is insufficient:
 3. `dispatch_subagent(agent_type: "Knowledge-Curator", dag_task_id: "<unique-id>", task_description: "<query>")`
 4. `Task({ subagent_type: "Knowledge-Curator", dag_task_id: "<same-unique-id>" })`
 
-## Step 5: Verify
+## Step 5: Report Evidence
 
-Re-run `knowledge_cache_search` for each previously-insufficient domain. Confirm:
-- `cache_sufficiency.status` = `"sufficient"`
-- `cache_sufficiency.reason` is non-empty (UC7-001c)
-- `cache_sufficiency.files_read` is non-empty (UC7-001c)
-- `cache_sufficiency.content_summary` is non-empty (UC7-001c)
+After completing the pipeline (re-running `knowledge_cache_search` for insufficient domains), **output a structured report** for each domain searched:
+
+### Evidence Report Format
+
+For each domain, output the following table:
+
+```markdown
+### Domain: {domain_name}
+
+| Field | Value |
+|-------|-------|
+| **状态 (Status)** | `sufficient` or `insufficient` |
+| **理由 (Reason)** | `{cache_sufficiency.reason}` |
+| **读取的文件名 (Files Read)** | `{cache_sufficiency.files_read}` (array of file paths) |
+| **读取的内容概要 (Content Summary)** | `{cache_sufficiency.content_summary}` |
+```
+
+**Example Output:**
+
+```markdown
+### Domain: opencode_framework
+
+| Field | Value |
+|-------|-------|
+| **状态 (Status)** | `sufficient` |
+| **理由 (Reason)** | Found 22 matching cache entries for domain "opencode_framework" |
+| **读取的文件名 (Files Read)** | `["opencode/mcp-typescript-bun/findings-summary.md", "opencode/framework/plugins.md", ...]` |
+| **读取的内容概要 (Content Summary)** | 22 entries covering 22 files: TypeScript MCP tools | Bun CJS/ESM patterns... |
+```
+
+This ensures the UC7-001c hardened evidence fields are explicitly reported and visible in the agent's response.
 
 ## Step 6: Execute
 

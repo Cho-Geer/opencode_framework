@@ -78,6 +78,15 @@ function _loadSafeShellConfig(): any {
   return _safeShellConfigCache;
 }
 
+
+/**
+ * FW-PERM-AUDIT-FIX: Reset the safe shell config cache.
+ * Call after modifying project.config.json to force reload on next safe_shell call.
+ */
+export function resetSafeShellConfigCache(): void {
+  _safeShellConfigLoaded = false;
+  _safeShellConfigCache = null;
+}
 function _getConfigList(key: string, fallback: string[]): string[] {
   const cfg = _loadSafeShellConfig();
   return cfg && Array.isArray(cfg[key]) ? cfg[key] : fallback;
@@ -89,6 +98,27 @@ function _getConfigMap(
 ): Record<string, string[]> {
   const cfg = _loadSafeShellConfig();
   return cfg && cfg[key] && typeof cfg[key] === "object" ? cfg[key] : fallback;
+}
+
+/**
+ * FW-REPAIR-BUN-CACHE-001 (2026-06-12): Agent-specific dangerous pattern bypass.
+ * Returns true if the agent has a bypass entry for this specific command,
+ * allowing the command to skip the global DANGEROUS_PATTERNS check.
+ *
+ * This is more surgical than modifying global dangerous_patterns — only
+ * explicitly listed agents can bypass for explicitly listed commands.
+ *
+ * @param agent - Agent name (with or without @ prefix)
+ * @param command - The shell command to check
+ * @returns true if the agent is allowed to bypass dangerous patterns for this command
+ */
+function _hasAgentDangerousBypass(agent: string, command: string): boolean {
+  const normalizedAgent = agent.startsWith("@") ? agent : "@" + agent;
+  const cfg = _loadSafeShellConfig();
+  if (!cfg || !cfg.agent_dangerous_bypass) return false;
+  const bypasses: string[] = cfg.agent_dangerous_bypass[normalizedAgent];
+  if (!Array.isArray(bypasses) || bypasses.length === 0) return false;
+  return bypasses.some((pattern) => matchGlob(command, pattern));
 }
 
 /**
@@ -295,18 +325,20 @@ export const AGENT_ALLOWED_SCRIPTS: Record<string, string[]> = {
     "rule-registry-verify.js",
     "state-reconciliation.js",
     "state-transaction.js",
+    "framework-self-test.js",
+    "framework-doctor.js",
   ],
 };
 
 /** File-write patterns to detect in scanned scripts */
 export const WRITE_PATTERNS: RegExp[] = [
-  /fs\.writeFileSync\s*\(/,
-  /fs\.writeFile\s*\(/,
-  /fs\.appendFileSync\s*\(/,
-  /fs\.createWriteStream\s*\(/,
-  /fs\.renameSync\s*\(/,
-  /fs\.copyFileSync\s*\(/,
-  /fs\.mkdirSync\s*\(/,
+  /.writeFileSync\s*\(/,
+  /.writeFile\s*\(/,
+  /.appendFileSync\s*\(/,
+  /.createWriteStream\s*\(/,
+  /.renameSync\s*\(/,
+  /.copyFileSync\s*\(/,
+  /.mkdirSync\s*\(/,
 ];
 
 // ════════════════════════════════════════════════════════════
@@ -491,8 +523,17 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
 
   const allowlist = getAllowlist(agent);
 
-  // 1. Check for dangerous patterns
-  if (isDangerous(command)) {
+  /**
+   * FW-REPAIR-BUN-CACHE-001 (2026-06-12): Agent-specific dangerous pattern bypass.
+   * Check if this agent has an explicit bypass for this command before the global
+   * DANGEROUS_PATTERNS check. This allows @Super-Admin and @Orchestrator to clear
+   * Bun's module cache (~/.cache/bun) — a necessary operation for plugin development
+   * and framework repair when stale Bun cache causes plugin loading failures.
+   */
+  const hasBypass = _hasAgentDangerousBypass(agent, command);
+
+  // 1. Check for dangerous patterns (skip if agent has explicit bypass)
+  if (!hasBypass && isDangerous(command)) {
     const result: SafeBashResult = {
       command,
       agent,
@@ -560,6 +601,118 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
           logAction(result);
           return result;
         }
+      }
+    }
+  }
+
+  /**
+   * FW-PERM-AUDIT-EXEC T3 (2026-06-12): Eval content scan.
+   *
+   * node -e / bun -e / tsx -e commands bypass the script content scan above
+   * because there is no script file to scan. These inline eval commands can
+   * contain arbitrary file-write operations (fs.writeFileSync, etc.) that
+   * would otherwise go undetected.
+   *
+   * This check extracts the eval argument string and scans it against the
+   * same WRITE_PATTERNS used for script file scanning. Also detects
+   * file-delete operations (fs.unlinkSync, fs.rmSync, fs.rmdirSync).
+   *
+   * Supported patterns: node -e, node --eval, bun -e, bun --eval,
+   * npx tsx -e, tsx -e, bunx tsx -e
+   *
+   * Bypass: agent_dangerous_bypass entries (safe_shell.agent_dangerous_bypass)
+   * allow specific agents to skip this check for specific commands.
+   */
+  const evalMatch = command.match(
+    /^(?:node|bun|npx\s+tsx|tsx|bunx\s+tsx)\s+(?:-e|--eval)\s+(.+)/i,
+  );
+  if (evalMatch && !hasBypass) {
+    const evalArg = evalMatch[1].trim();
+    const writePatterns = _getConfigList("write_patterns", []).map(
+      (p: string) => new RegExp(p, "i"),
+    );
+    const patterns =
+      writePatterns.length > 0 ? writePatterns : WRITE_PATTERNS;
+    // Extended patterns for eval context — includes delete operations
+    const evalPatterns = [
+      ...patterns,
+      /.unlinkSync\s*\(/,
+      /.rmSync\s*\(/,
+      /.rmdirSync\s*\(/,
+    ];
+
+    /**
+     * FW-PERM-AUDIT-EXEC T4 (2026-06-12): Orchestrator path-aware eval constraints.
+     *
+     * @Orchestrator dispatches sub-agents and manages the DAG. It needs `node -e`
+     * for status tracking, artifact validation, and .task_temp/ cleanup. However,
+     * allowing unrestricted file-write/delete access via `node -e` would violate
+     * the Orchestrator's write scope (only .task_temp/** and Task.DAG.json).
+     *
+     * This path-aware check allows @Orchestrator to use `node -e` with file-write
+     * and file-delete operations ONLY when the eval argument references `.task_temp/`
+     * paths. Read operations (readFileSync/readFile) are always allowed since they
+     * do not trigger write patterns.
+     *
+     * Blocked scenarios:
+     *   - node -e "writeFileSyncs*('/etc/hosts', ...)" — no .task_temp/ reference
+     *   - node -e "fs.unlinkSync('opencode.json')" — no .task_temp/ reference
+     * Allowed scenarios:
+     *   - node -e "writeFileSyncs*('.task_temp/T-001/status.json', ...)"
+     *   - node -e "fs.unlinkSync('.task_temp/T-001/old.txt')"
+     */
+    const normalizedAgent = agent.startsWith("@") ? agent : "@" + agent;
+    const isOrchestrator = normalizedAgent === "@Orchestrator";
+
+    for (const pattern of evalPatterns) {
+      if (pattern.test(evalArg)) {
+        // ── Orchestrator path-aware bypass ──
+        if (isOrchestrator) {
+          // Check if the eval argument references .task_temp/ paths.
+          // This is a heuristic: any write/delete targeting .task_temp/ is
+          // acceptable. Edge case: eval that writes to both .task_temp/ and
+          // other paths would pass — such complex scripts belong in proper
+          // script files, not inline eval.
+          if (/\.task_temp\//.test(evalArg)) {
+            // Contains .task_temp/ — writes are within Orchestrator's scope
+            break;
+          }
+          // Contains write/delete patterns but no .task_temp/ reference → block
+          const blockedResult: SafeBashResult = {
+            command,
+            agent,
+            allowed: false,
+            executed: false,
+            exitCode: null,
+            stdout: "",
+            stderr: "",
+            blockedReason: `EVAL_FILE_WRITE_SCOPE: Command "${command}" contains file-write/delete operations outside of Orchestrator's allowed scope (.task_temp/**). Blocked by eval content scan.`,
+            timestamp: new Date().toISOString(),
+          };
+          logAction(blockedResult);
+          return blockedResult;
+        }
+
+        // ── Non-Orchestrator: block all write/delete ──
+        const isDelete = /unlinkSync|rmSync|rmdirSync/.test(
+          pattern.source,
+        );
+        const reason = isDelete
+          ? `EVAL_FILE_DELETE: Command "${command}" contains file-delete operations (unlinkSync/rmSync/rmdirSync) in -e argument. Blocked by eval content scan.`
+          : `EVAL_FILE_WRITE: Command "${command}" contains file-write operations (writeFileSync/writeFile/etc) in -e argument. Blocked by eval content scan.`;
+        const result: SafeBashResult = {
+          command,
+          agent,
+          allowed: false,
+          executed: false,
+          exitCode: null,
+          stdout: "",
+          stderr: "",
+          blockedReason: reason,
+          timestamp: new Date().toISOString(),
+        };
+        logAction(result);
+        return result;
       }
     }
   }

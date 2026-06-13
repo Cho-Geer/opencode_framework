@@ -169,3 +169,47 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
 
   return buildUC7KSError(agent, tool, "locked", cacheAvailable, "LOCKED mode: ALL direct external queries blocked. Must use @Knowledge-Curator.");
 }
+
+/**
+ * P1-3: UC7-001 write-time block + UC7-009 SA compliance.
+ * Checks whether an agent has searched the knowledge cache before
+ * writing a source file. SA has emergency bypass when cache is unhealthy.
+ *
+ * @param agent  Resolved agent name (e.g., "@Coder-BE")
+ * @param mode   Enforcement mode ("advisory" | "strict" | "locked")
+ * @returns Error string if blocked, null if allowed
+ */
+export function checkUC7KSWrite(agent: string, mode: string): string | null {
+  // Advisory mode: no blocking
+  if (mode === "advisory") return null;
+
+  // KC exempt — writes to docs/official_docs/ are cache population
+  const agentNorm = (agent || "").toLowerCase().replace(/^@/, "");
+  if (agentNorm === "knowledge-curator") return null;
+
+  // Read cache health and agent compliance
+  const cacheHealthy = isLocalCacheAvailable();
+  const isSA = agentNorm === "super-admin";
+
+  // UC7-009: SA emergency bypass — cache unhealthy → allow writes
+  if (isSA && !cacheHealthy) {
+    return null; // bypass: SA repairing broken cache
+  }
+
+  // Check uc7_001_compliant in machine.json
+  const agentKey = agent.replace(/^@/, "");
+  const sa = readCachedSessionAccess(agentKey);
+  if (!sa?.uc7_001_compliant) {
+    const cacheMsg = cacheHealthy
+      ? "Local knowledge cache exists but has not been searched."
+      : "Knowledge cache not initialized.";
+    return [
+      `[FW-ENFORCE][UC7-001] Knowledge cache not searched before write.`,
+      `${cacheMsg}`,
+      `Call knowledge_cache_search(domain, task_id) before writing source files.`,
+      `Agent: ${agent}`,
+    ].join(" ");
+  }
+
+  return null; // pass
+}

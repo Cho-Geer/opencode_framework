@@ -43,7 +43,13 @@ import {
 import { join, basename, dirname } from 'node:path';
 import { createGzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
+/**
+ * FW-LOG-UNIFY-P1-D2 (2026-06-12, @Super-Admin): Added writeLog import
+ * for centralized log persistence. log-rotator → state-manager → gate-core
+ * import chain is safe (no circular dependency with log-manager).
+ */
 import { getFileSize, formatFileSize } from './state-manager';
+import { writeLog } from "./log-manager";
 
 // ============================================================================
 // Configuration
@@ -300,7 +306,11 @@ export class LogRotator {
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`[log-rotator] Failed to compress ${filePath}: ${message}`);
+        /**
+         * FW-LOG-UNIFY-P1-D2 (2026-06-12, @Super-Admin): Migrated from
+         * console.error to writeLog for centralized log persistence.
+         */
+        writeLog("lib-log-rotator", "ERROR", { event: "compress_failed", detail: `${filePath}: ${message}` });
         // Continue with next file
         continue;
       }

@@ -6,6 +6,7 @@ import {
 } from '../lib/log-manager';
 import { resolveAgent } from '../lib/agent-resolver';
 import { isSourceFile, isBusinessSourceFile } from '../lib/state-utils';
+import { getEnforcementMode } from '../lib/gate-core';
 const P = 'tdd-before';
 ensureLogDir();
 writeLog(P, 'loaded', { event: 'PLUGIN-LOADED', detail: P + '.ts' });
@@ -25,7 +26,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const filePath = (output.args?.filePath as string) || '';
   if (!filePath || !isBusinessSourceFile(filePath)) return;
   // Read machine.json tdd_enforcement_state
-  const mode = 'strict';
+  const mode = getEnforcementMode();
   let testWritten = false;
   try {
     const mp = (process.env.OPENCODE_ROOT || '.') + '/.opencode/state/machine.json';
@@ -52,6 +53,6 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     level: 'ERROR', event: 'TOOL-BEFORE',
     detail: 'BLOCKED | ' + msg,
   });
-  if (mode !== 'advisory') throw new Error(msg);
+  if (mode === 'strict' || mode === 'locked') throw new Error(msg);
 // end function
 }

@@ -20,6 +20,7 @@ import {
 import { resolveAgent } from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
 import { tolerantParse } from "../lib/tolerant-json";
+import { readFileSync } from "fs";
 
 // ── Constants ──
 
@@ -28,6 +29,12 @@ const CRITICAL_JSON_FILES = [
   ".opencode/project.config.json",
   "opencode.json",
 ];
+
+/** Enforcement modes ordered from weakest to strongest */
+const MODE_RANK: Record<string, number> = { advisory: 1, strict: 2, locked: 3 };
+
+/** Keys in project.config.json.template_resolution that control enforcement */
+const MODE_KEYS = ["develop_enforcement_mode", "runtime_enforcement_mode"];
 
 // ── Plugin boilerplate ──
 ensureLogDir();
@@ -98,6 +105,31 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       event: "TOOL-BEFORE",
       detail: `exit (pass) valid JSON: ${fp}`,
     });
+
+    // ── P1-5: Enforcement Mode Change Protection ──
+    // Migrated from priority.md P1-5 (W4)
+    //
+    // project.config.json controls advisory/strict/locked enforcement modes.
+    // Downgrading from strict or locked must require explicit governance
+    // action (state-machine-reset.sh or @Arbiter-signed unlock). Upgrades
+    // (advisory→strict, strict→locked) are allowed because they tighten
+    // enforcement.
+    if (normalized.endsWith(".opencode/project.config.json")) {
+      const modeDowngrade = detectModeDowngrade(output.args!.content, fp);
+      if (modeDowngrade) {
+        writeLog("json-validate", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          level: "ERROR",
+          event: "TOOL-BEFORE",
+          detail: `BLOCKED | ${fp} | ${modeDowngrade}`,
+        });
+        throw new Error(
+          `[FW-ENFORCE][ENFORCEMENT-MODE] ${modeDowngrade}. ` +
+          `Use state-machine-reset.sh --force for strict→advisory, ` +
+          `or @Arbiter-signed unlock for locked changes.`,
+        );
+      }
+    }
   } catch (e: any) {
     writeLog("json-validate", "runtime", {
       sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
@@ -105,9 +137,54 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       event: "TOOL-BEFORE",
       detail: `BLOCKED | ${fp} | ${e.message}`,
     });
+    // Preserve enforcement-mode errors without re-wrapping as JSON errors.
+    if (e.message?.startsWith("[FW-ENFORCE][ENFORCEMENT-MODE]")) throw e;
     throw new Error(
       `[FW-ENFORCE][JSON] Invalid JSON in ${fp}: ${e.message}. ` +
       `Fix trailing commas or syntax errors before writing.`,
     );
   }
+}
+
+// ── Enforcement mode helpers ──
+
+/**
+ * Detects unauthorized enforcement-mode downgrades in a proposed
+ * project.config.json content string.
+ *
+ * Missing keys are treated as "advisory" (the framework default).
+ * Only downgrades FROM strict or locked are blocked; upgrades are allowed.
+ *
+ * @returns A descriptive error string if a blocked downgrade is detected,
+ *          otherwise `null`.
+ */
+function detectModeDowngrade(newContent: string, filePath: string): string | null {
+  let currentContent: string;
+  try {
+    currentContent = readFileSync(filePath, "utf8");
+  } catch {
+    // File does not exist yet; nothing to downgrade from.
+    return null;
+  }
+
+  let current: any;
+  let next: any;
+  try {
+    current = tolerantParse(currentContent);
+    next = tolerantParse(newContent);
+  } catch {
+    // If current or proposed content fails to parse, the JSON syntax check
+    // will report the proposed content error. Skip the mode comparison.
+    return null;
+  }
+
+  for (const key of MODE_KEYS) {
+    const from = current?.template_resolution?.[key] || "advisory";
+    const to = next?.template_resolution?.[key] || "advisory";
+    if (from === to) continue;
+    if (MODE_RANK[to] < MODE_RANK[from] && (from === "strict" || from === "locked")) {
+      return `${key} downgrade: ${from} → ${to}`;
+    }
+  }
+  return null;
 }

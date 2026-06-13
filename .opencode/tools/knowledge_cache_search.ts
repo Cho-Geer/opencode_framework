@@ -12,6 +12,7 @@ import {
   evictOldAgents,
   MAX_AGENTS,
   type CacheSufficiency,
+  normalizeAgentKey,
 } from "../lib/uc7ks-schema";
 
 export default tool({
@@ -37,11 +38,11 @@ export default tool({
       if (fs.existsSync(machinePath)) {
         var preMachine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
         var preSA = (preMachine.knowledge_cache_state?.session_access || {}) as Record<string, any>;
-        var preAgent = agent.replace(/^@/, "");
+        var preAgent = normalizeAgentKey(agent);
         // Check nested domain declaration
         if (!isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)) {
           // Also check legacy flat for backward compat
-          var flat = preSA[agent] || preSA[preAgent] || {};
+          var flat = preSA[preAgent] || preSA[agent] || {};
           if (flat.pipeline_task_id !== args.task_id || flat.pipeline_status !== "declared") {
             pipelineValid = false;
           }
@@ -167,15 +168,15 @@ export default tool({
     try {
       var taskId = args.task_id || "unknown";
       var domainName = args.domain || "all";
-      var agentRef = agent;
+      var agentRef = normalizeAgentKey(agent);
 
       var writeOk = atomicWriteMachine(function (machine: any) {
         var kcs = machine.knowledge_cache_state = machine.knowledge_cache_state || { session_access: {}, compliance: {} };
         kcs.session_access = kcs.session_access || {};
 
         // Ensure agent entry
-        var agentKey = agentRef.replace(/^@/, "");
-        var existing = kcs.session_access[agentRef] || kcs.session_access[agentKey] || {};
+        var agentKey = agentRef;
+        var existing = kcs.session_access[agentRef] || {};
         kcs.session_access[agentRef] = existing;
 
         // Write to nested domain entry (F2)

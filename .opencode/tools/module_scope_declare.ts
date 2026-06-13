@@ -7,6 +7,7 @@ import {
   updateAgentRollups,
   atomicWriteMachine,
   evictOldAgents,
+  normalizeAgentKey,
 } from "../lib/uc7ks-schema";
 
 var VALID_MODULES = [
@@ -73,7 +74,7 @@ export default tool({
     try {
       var taskId = args.task_id || "unknown";
       var domainName = args.module;
-      var agentRef = agent;
+      var agentRef = normalizeAgentKey(agent);
 
       atomicWriteMachine(function (machine: any) {
         var kcs = machine.knowledge_cache_state = machine.knowledge_cache_state || { session_access: {}, compliance: {} };

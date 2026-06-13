@@ -39,6 +39,35 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   const isTask = input.tool === "Task" || input.tool === "task";
   if (!isTask) return;
 
+  // ═══════════════════════════════════════════════════════════════
+  // P0-7 TASK-IDENTITY CLEANUP: Delete _dispatch_target.json after
+  // Task() completes. At this point the sub-agent has finished, so
+  // deleting does not affect its agent resolution. Prevents stale
+  // dispatch targets from persisting between dispatches or leaking
+  // across sessions.
+  //
+  // Safety: all readers validate run_id against OPENCODE_RUN_ID, so
+  // even if cleanup is delayed, stale files are auto-rejected.
+  // ═══════════════════════════════════════════════════════════════
+  try {
+    const dtPath = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch_target.json",
+    );
+    if (fs.existsSync(dtPath)) fs.unlinkSync(dtPath);
+    writeLog("dispatch-after", "runtime", {
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent: resolveAgent(input.sessionID),
+      agentType: resolveAgent(input.sessionID),
+      event: "TOOL-AFTER",
+      detail: "TASK-IDENTITY: cleaned up _dispatch_target.json",
+    });
+  } catch {
+    /* non-fatal: stale file will be auto-rejected by run_id check */
+  }
+
   const agent = resolveAgent(input.sessionID);
   const taskId = resolveTaskId();
 

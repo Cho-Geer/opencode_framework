@@ -22,6 +22,11 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);
   const taskId = resolveTaskId();
   if (!isModifyTool(input.tool)) return;
+  // safe_shell commands are arbitrary shell strings, not file paths.
+  // Passing them to executeWriteAuditCheck causes false scope violations
+  // whenever a command happens to end with a source extension (e.g.
+  // "bun .opencode/scripts/framework-self-test.ts").
+  if (input.tool === "safe_shell") return;
   const filePath = getModifyPath(output.args || {});
   if (!filePath || !isSourceFile(filePath)) return;
   executeWriteAuditCheck([filePath], agent, taskId);

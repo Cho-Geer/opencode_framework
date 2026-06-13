@@ -310,7 +310,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -356,14 +356,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' \
-  | grep -v '^\.opencode/' \
-  | grep -v '^docs/' \
-  | grep -v '^\.task_temp/' \
-  | grep -v '^node_modules/' \
-  | grep -v '^opencode\.json
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -442,7 +435,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -488,9 +481,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '^AGENTS\.md
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -569,7 +560,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -615,9 +606,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '^contract\.yaml
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -696,7 +685,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -742,9 +731,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '^Task\.DAG\.json
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -823,7 +810,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -869,9 +856,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '^TECH_DEBT_REGISTRY\.md
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -950,7 +935,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -996,9 +981,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '^WAIVE\.md
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -1077,7 +1060,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -1123,9 +1106,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '^PROJECT_REFERENCE\.md
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -1204,7 +1185,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -1250,9 +1231,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  | grep -v '^Project\.graph
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -1331,7 +1310,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -1377,9 +1356,7 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"
- \
-  || true)
+TDD_IMPL_FILES=$(git diff --cached --name-only | grep -E '\.(ts|js)$' | grep -v '\.spec\.\|\.test\.\|/test/\|\.config\.' | grep -v '^\.opencode/' | grep -v '^docs/' | grep -v '^\.task_temp/' | grep -v '^node_modules/' | grep -v '^opencode\.json$' | grep -v '^AGENTS\.md$' | grep -v '^contract\.yaml$' | grep -v '^Task\.DAG\.json$' | grep -v '^TECH_DEBT_REGISTRY\.md$' | grep -v '^WAIVE\.md$' | grep -v '^PROJECT_REFERENCE\.md$' | grep -v '^Project\.graph$' || true)
 TDD_TEST_FILES=$(git diff --cached --name-only | grep -E '\.spec\.|\.test\.|/test/' || true)
 if [ -n "$TDD_IMPL_FILES" ] && [ -z "$TDD_TEST_FILES" ]; then
     COMMIT_MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
@@ -1458,7 +1435,7 @@ echo "[Layer 2.0/4] JSON syntax validation..."
 JSON_ERRORS=0
 for f in $(git diff --cached --name-only | grep .json$); do
     if [ -f "$f" ]; then
-        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require(fs).readFileSync(, utf8))" 2>/dev/null || {
+        /home/zhaoge/.bun/bin/bun -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))" 2>/dev/null || {
             echo "  ❌ JSON parse error: $f"
             JSON_ERRORS=$((JSON_ERRORS + 1))
         }
@@ -1504,4 +1481,3 @@ echo "[Layer 3/4] Commit message validation delegated to commit-msg hook"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "  ✅ PRE-COMMIT PASSED — All checks clear"
-echo "═══════════════════════════════════════════════════════════════"

@@ -6,6 +6,7 @@ import {
 } from "../lib/log-manager";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
+import { normalizeAgentKey } from "../lib/uc7ks-schema";
 import * as fs from "node:fs";
 
 ensureLogDir();
@@ -28,7 +29,8 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
   // Track knowledge cache reads — update machine.json.knowledge_cache_state
   if (input.tool === "read" && filePath && filePath.includes("docs/official_docs/")) {
-    const agent = resolveAgent(input.sessionID);
+    const rawAgent = resolveAgent(input.sessionID);
+    const agent = normalizeAgentKey(rawAgent);
     writeLog("uc7ks-after", "runtime", {
       sessionID: input.sessionID, callID: input.callID,
       event: "TOOL-AFTER",
