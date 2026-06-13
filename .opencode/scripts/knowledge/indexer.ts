@@ -12,11 +12,7 @@
  *   stats
  */
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
 
-const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
 const INDEX_PATH = path.join(PROJECT_ROOT, "docs", "official_docs", "index.json");
 
 function readManifest() {
@@ -117,38 +113,6 @@ function getStats() {
   };
 }
 
-// CLI
-if (require.main === module) {
-  const [,, cmd, ...args] = process.argv;
-  switch (cmd) {
-    case "add": {
-      const [filePath, source, sha256, sizeBytes, libId, topic] = args;
-      const result = addEntry({
-        library_id: libId || "web-fallback",
-        query_topic: topic || "unnamed",
-        file: {
-          path: filePath,
-          source: source || "webfetch",
-          sha256: sha256 || `sha256:${crypto.randomBytes(32).toString("hex")}`,
-          size_bytes: parseInt(sizeBytes) || 0,
-          ttl_days: 30,
-        },
-      });
-      console.log(JSON.stringify(result));
-      break;
-    }
-    case "search": {
-      const results = searchEntries(args[0] || "");
-      console.log(JSON.stringify(results, null, 2));
-      break;
-    }
-    case "stats": {
-      console.log(JSON.stringify(getStats(), null, 2));
-      break;
-    }
-    default:
-      console.log("UC7KS Indexer v1.0.0\nCommands: add, search, stats");
-  }
-}
+
 
 module.exports = { readManifest, writeManifest, addEntry, searchEntries, getStats, INDEX_PATH };

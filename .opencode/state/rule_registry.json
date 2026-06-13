@@ -3,7 +3,7 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-06-11T06:13:32.670Z",
+    "last_updated": "2026-06-13T13:03:18.261Z",
     "last_regenerated": "2026-06-11",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
@@ -94,9 +94,9 @@
     "rules/coding-standard-common.md": {
       "path": ".opencode/rules/coding-standard-common.md",
       "category": "rule",
-      "semver": "1.0.0",
+      "semver": "1.0.1",
       "sha256": "3015c3e4a9557762cf639546060d6a4475ca1e6589717bc50951ad2c3062bbce",
-      "last_modified": "2026-05-21T03:17:55.000Z",
+      "last_modified": "2026-06-13T13:03:18.256Z",
       "description": "Common coding standards shared across frontend and backend",
       "digest_history": [
         {
@@ -104,6 +104,12 @@
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "3015c3e4a9557762cf639546060d6a4475ca1e6589717bc50951ad2c3062bbce",
+          "timestamp": "2026-06-13T13:03:18.257Z",
+          "semver": "1.0.1",
+          "change": "Auto-repaired by rule_registry_repair tool"
         }
       ]
     },
@@ -256,9 +262,9 @@
     "rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md": {
       "path": ".opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md",
       "category": "rule",
-      "semver": "2.0.0",
-      "sha256": "9e9269e693594044c4c59e5e95a90a3dbd0885afbda49902003ec30aba5ae81f",
-      "last_modified": "2026-06-05T13:24:56.362Z",
+      "semver": "2.0.1",
+      "sha256": "cd495d946a97238bfc8ef872ac93bd8e65f88cd6c304e3f8fda9a9667bfe0f49",
+      "last_modified": "2026-06-13T12:50:23.397Z",
       "description": "Uppercase variant of template variable standard (legacy/unified)",
       "digest_history": [
         {
@@ -278,6 +284,12 @@
           "timestamp": "2026-06-05T13:24:56.362Z",
           "semver": "2.0.0",
           "change": "Super-Admin cg_ses_1780665456290: semver bump + digest repair after content change"
+        },
+        {
+          "sha256": "cd495d946a97238bfc8ef872ac93bd8e65f88cd6c304e3f8fda9a9667bfe0f49",
+          "timestamp": "2026-06-13T12:50:23.401Z",
+          "semver": "2.0.1",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Super-Admin)"
         }
       ]
     },

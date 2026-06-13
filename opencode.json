@@ -94,6 +94,7 @@
         "compliance_gate_retry_confirm": "allow",
         "dispatch_subagent": "allow",
         "safe_diff": "allow",
+        "rule_registry_repair": "allow",
         "safe_edit": {
           ".task_temp/**": "allow",
           "Task.DAG.json": "deny",
@@ -659,6 +660,7 @@
         "compliance_gate_complete": "allow",
         "code_quality_gate": "allow",
         "safe_diff": "allow",
+        "rule_registry_repair": "allow",
         "safe_restore": {
           ".opencode/**": "allow",
           "opencode.json": "allow",

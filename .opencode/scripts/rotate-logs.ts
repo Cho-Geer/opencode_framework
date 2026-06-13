@@ -37,6 +37,25 @@ const LOG_DIR = join(PROJECT_ROOT, '.opencode/logs');
 const ARCHIVE_DIR = join(PROJECT_ROOT, '.opencode/logs/archive');
 
 const DRY_RUN = process.argv.includes('--dry-run');
+
+/**
+ * FW-LOG-UNIFY-C7: Lazy-load writeLog for rotation audit trail.
+ * Uses dynamic import for ESM compatibility.
+ */
+let _writeLog: ((...args: any[]) => void) | null = null;
+function getWriteLog(): (...args: any[]) => void {
+  if (!_writeLog) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const lm = require(join(__dirname, '..', 'lib', 'log-manager'));
+      _writeLog = lm.writeLog;
+    } catch { _writeLog = () => {}; }
+  }
+  return _writeLog;
+}
+function srcLog(level: string, event: string, fields: Record<string, any>): void {
+  try { getWriteLog()("script-rotate-logs", level, { event, ...fields }); } catch {}
+}
 const MAX_SIZE = 100 * 1024;  // 100KB
 const MAX_ROTATED = 3;
 
@@ -209,15 +228,10 @@ async function rotate() {
   // 6. Consolidate archived files into monthly .tar.gz (FW-REPAIR-14)
   await consolidateMonthlyArchives();
 
-  // 7. Summary
-  const newSize = getFileSize(LOG_FILE);
-  log('\n=== Rotation Complete ===');
-  log('  Before: ' + formatSize(currentSize));
-  log('  After:  ' + formatSize(newSize));
-  log('  Reduction: ' + formatSize(currentSize - newSize) + ' (' + Math.round((1 - newSize / currentSize) * 100) + '%)');
-}
+  
 
 rotate().catch(err => {
   console.error('Rotation failed:', err.message);
+  srcLog("ERROR", "rotation_failed", { error: err.message });
   process.exit(1);
 });

@@ -149,6 +149,23 @@ These namespaces have values in `project.config.json` but no placeholders are cu
 
 Future rules/agents may add `{ci_cd.platform}` or `{container.runtime}` placeholders as needed.
 
+### §2.11 `{logs.*}` Placeholders
+
+Resolved from `project.config.json.template_resolution`.
+
+| #   | Placeholder                           | Resolves To                        | Source Field                                           | Example Value  |
+| --- | ------------------------------------- | ---------------------------------- | ------------------------------------------------------ | -------------- |
+| 39  | `{logs.dir}`                          | Log root directory                 | `template_resolution.logs.dir`                         | `.task_temp/_logs` |
+| 40  | `{logs.retention_days}`               | Archive retention (days)           | `template_resolution.logs.retention_days`              | `7`            |
+| 41  | `{logs.delimiter}`                    | Field separator                    | `template_resolution.logs.delimiter`                   | ` \| `         |
+| 42  | `{logs.buffer_size}`                  | Buffer flush threshold             | `template_resolution.logs.buffer_size`                 | `20`           |
+| 43  | `{logs.flush_interval_ms}`            | Periodic flush interval (ms)       | `template_resolution.logs.flush_interval_ms`           | `5000`         |
+| 44  | `{logs.level}`                        | Minimum log level override         | `template_resolution.logs.level`                       | `INFO`         |
+| 45  | `{logs.file_prefix}`                  | Log file name prefix               | `template_resolution.logs.file_prefix`                 | `plugin`       |
+| 46  | `{logs.source_types}`                 | Enabled source types               | `template_resolution.logs.source_types`                | `mcp,script,lib,plugin` |
+
+These placeholders are used in log-manager.ts and related logging infrastructure. They enable runtime configuration of logging behavior without code changes.
+
 ---
 
 ## §3 Extended Placeholders (In-Document Mapping)

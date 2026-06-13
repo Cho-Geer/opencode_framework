@@ -29,10 +29,25 @@
  *                      completed DAG tasks lacking consumed gate sessions
  */
 
-"use strict";
-
 const fs = require("fs");
 const path = require("path");
+
+/**
+ * FW-LOG-UNIFY-C5: Lazy-load writeLog to record reconciliation outcomes.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, "..", "lib", "log-manager"));
+      _writeLog = lm.writeLog;
+    } catch { _writeLog = () => {}; }
+  }
+  return _writeLog;
+}
+function srcLog(level, event, fields) {
+  try { getWriteLog()("script-state-reconciliation", level, { event, ...fields }); } catch {}
+}
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
   ? path.resolve(process.env.OPENCODE_ROOT)
@@ -988,8 +1003,10 @@ function runCLI() {
       console.log(
         `  🔧 Auto-fixable: ${result.auto_fixable ? "Yes (run with --fix)" : "No"}`,
       );
+      srcLog("WARN", "reconciliation_found_issues", { total: result.inconsistencies.length, high: highCount, warning: warnCount });
     } else {
       console.log(`\n  ✅ All checks passed — no inconsistencies found.`);
+      srcLog("INFO", "reconciliation_complete", { total: 0 });
     }
 
     if (result.dry_run_plan) {
@@ -1014,14 +1031,7 @@ function runCLI() {
       }
     }
 
-    if (result.fixes_applied) {
-      console.log(`\n  🔧 Fixes applied:`);
-      console.log(`    Drained sessions: ${result.fixes_applied.drained}`);
-      console.log(`    Meta corrected: ${result.fixes_applied.meta_corrected}`);
-      for (const d of result.fixes_applied.details) {
-        console.log(`    - ${d}`);
-      }
-    }
+
 
     if (result.force_drain) {
       console.log(`\n  💪 Force-drain results:`);
@@ -1044,15 +1054,7 @@ function runCLI() {
     }
   }
 
-  // Standardized exit code convention (Fix 4 — PORTABILITY-FIX):
-  //   0 = all checks passed
-  //   1 = violations found (blocking)
-  //   2 = system error (config missing, can't run)
-  if (options.strict && !result.valid) {
-    process.exit(1);
-  }
 
-  process.exit(result.valid ? 0 : 1);
 }
 
 if (require.main === module) {

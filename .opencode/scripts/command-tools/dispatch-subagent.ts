@@ -166,9 +166,25 @@ if (taskId) {
       );
       logInfo(`Pre-execution gate passed: ${gateResult.substring(0, 200)}`);
     } catch (e) {
-      logWarn(
-        `Pre-execution gate failed: ${e.stderr?.toString() || e.message}`,
-      );
+      const errMsg = e.stderr?.toString() || e.message || "";
+      logWarn(`Pre-execution gate failed: ${errMsg.substring(0, 300)}`);
+
+      // Smart detection: check if failure is ONLY due to rule_registry digest mismatch
+      const isRegistryMismatch = /digest mismatch|rule_registry/i.test(errMsg);
+      const hasOtherBlockers = /DAG.*missing|task.*not found|gate.*not armed|TDD.*violation/i.test(errMsg);
+
+      if (isRegistryMismatch && !hasOtherBlockers) {
+        console.error(
+          `[dispatch] 💡 HINT: Dispatch blocked by rule_registry digest mismatch.`,
+        );
+        console.error(
+          `[dispatch]    → Run the rule_registry_repair tool to recompute digests.`,
+        );
+        console.error(
+          `[dispatch]    → Then retry the dispatch.`,
+        );
+      }
+
       console.error(
         `[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`,
       );

@@ -29,6 +29,27 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * FW-LOG-UNIFY Phase 2: Lazy-load writeLog to avoid circular imports.
+ * reconciliation-validate.ts is a standalone CLI script, so we use
+ * lazy require to keep the import lightweight.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, '..', '..', 'lib', 'log-manager'));
+      _writeLog = lm.writeLog;
+    } catch {
+      _writeLog = () => {}; // Graceful degradation if log-manager unavailable
+    }
+  }
+  return _writeLog;
+}
+function srcLog(level, event, fields) {
+  try { getWriteLog()("mcp-reconciliation-validate", level, { event, ...fields }); } catch {}
+}
+
 // ─── Argument Parsing ──────────────────────────────────────────
 const args = process.argv.slice(2);
 const QUIET = args.includes('--quiet');
@@ -50,11 +71,13 @@ function logInconsistency(msg) {
   INCONSISTENCIES++;
   inconsistencyDetails.push(msg);
   if (!QUIET && !JSON_OUTPUT) console.log(`  ⚠️  ${msg}`);
+  srcLog("WARN", "inconsistency", { message: msg });
 }
 
 function logWarning(msg) {
   warningDetails.push(msg);
   if (!QUIET && !JSON_OUTPUT) console.log(`  ℹ️  ${msg}`);
+  srcLog("INFO", "warning", { message: msg });
 }
 
 // Verbose output helper — suppressed in both --quiet and --json modes
@@ -69,6 +92,7 @@ function loadJSON(filePath, label) {
     return JSON.parse(raw);
   } catch (err) {
     console.error(`❌ [Reconciliation] Failed to load ${label} from ${filePath}: ${err.message}`);
+    srcLog("ERROR", "load_failed", { label, filePath, error: err.message });
     return null;
   }
 }
@@ -298,6 +322,10 @@ if (JSON_OUTPUT) {
   if (INCONSISTENCIES === 0) {
     const statusLine = `✅ [Reconciliation] DAG(${dagTotal} tasks, ${dagPendingCount} pending) ↔ Gate(${sessionTotal} sessions, ${gateArmedCount} armed) ↔ Machine(${machineStatus}) — consistent`;
     console.log(statusLine);
+    srcLog("INFO", "reconciliation_complete", {
+      status: "consistent", dagTotal, dagPendingCount, dagCompletedCount,
+      sessionTotal, gateArmedCount, machineStatus, warnings: warningDetails.length,
+    });
     if (STRICT && warningDetails.length > 0) {
       console.log(`⚠️  [Reconciliation] Strict mode: ${warningDetails.length} warning(s) treated as errors.`);
       process.exit(1);
@@ -306,6 +334,10 @@ if (JSON_OUTPUT) {
   } else {
     const statusLine = `❌ [Reconciliation] DAG(${dagTotal} tasks) ↔ Gate(${sessionTotal} sessions) ↔ Machine(${machineStatus}) — ${INCONSISTENCIES} inconsistency(ies) found`;
     console.log(statusLine);
+    srcLog("ERROR", "reconciliation_failed", {
+      status: "inconsistent", dagTotal, sessionTotal, machineStatus,
+      inconsistencies: INCONSISTENCIES, warnings: warningDetails.length,
+    });
     if (!QUIET) {
       console.log('');
       console.log('Details:');

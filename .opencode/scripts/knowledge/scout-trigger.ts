@@ -16,7 +16,7 @@
  * Returns: { should_escalate: boolean, matched_triggers: string[], confidence: "low"|"medium"|"high" }
  */
 
-const TRIGGER_PATTERNS = [
+
   { keywords: ["internally", "under the hood", "how does it work"], category: "implementation_pipeline", weight: 3 },
   { keywords: ["why does", "unexpected", "surprising", "bug"], category: "potential_implementation_bug", weight: 2 },
   { keywords: ["edge case", "undocumented", "not documented", "missing docs"], category: "undocumented_behavior", weight: 3 },
@@ -52,9 +52,6 @@ function detect(taskDescription) {
   };
 }
 
-if (require.main === module) {
-  const taskDesc = process.argv[2] || "";
-  console.log(JSON.stringify(detect(taskDesc), null, 2));
-}
+
 
 module.exports = { detect };

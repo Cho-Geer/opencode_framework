@@ -1,44 +1,90 @@
-# Section 四: Implementation Plan — Log Unification (v4.0 — Remediated)
+# Section 四: Implementation Plan — Log Unification (v5.1 — Dispatch-Verified)
 
-**Date**: 2026-06-12
-**Author**: @Super-Admin (REMEDIATE-LOG-UNIFY-PLAN)
+**Date**: 2026-06-13
+**Author**: @Orchestrator (VERIFY-LOG-UNIFY practical dispatch)
 **Auditor**: @Super-Admin (AUDIT-LOG-UNIFY-PLAN, cg_ses_1781241724894)
-**Supersedes**: v3.0 (SA-LOG-UNIFY-PLAN)
+**Supersedes**: v5.0 (FW-REVIEW-LOG-UNIFY)
 **Target Report**: docs/review/log-backlog/log-fragmentation-report.md v2.1
 **Audit Reference**: `.task_temp/AUDIT-LOG-UNIFY-PLAN/HANDOVER.md`
 
 ---
 
-## 四.0 Remediation Summary (v4.0 Changes)
+### v5.1 Dispatch Verification Evidence (NEW)
 
-This version remediates 8 findings from the AUDIT-LOG-UNIFY-PLAN audit:
-
-| Finding | Severity | Remediation |
-|---------|----------|-------------|
-| **F1**: writeLog API mismatch — log levels used as category | 🔴 CRITICAL | Fixed all call patterns to `writeLog(name, "runtime", { level, event, detail })` |
-| **F2**: index.json missing non-plugin sources | 🔴 CRITICAL | Added §四.8 — LogIndex extension spec |
-| **F3**: File naming `plugin-` prefix hardcoded | 🟡 HIGH | Updated §四.6 — accept `plugin-` prefix for all sources |
-| **F4**: Missing agent identity in log entries | 🟡 HIGH | Added §四.9 — FRAMEWORK_AGENT capture spec |
-| **F5**: Concurrent write safety unaddressed | 🟡 HIGH | Added §四.10 — cross-process file locking spec |
-| **F6**: Plan status inaccurate | 🟠 MEDIUM | Updated all phase status markers with FW-LOG-UNIFY evidence |
-| **F7**: pre-execution-gate approach divergence | 🟠 MEDIUM | Updated C2 — DUAL-WRITE for failures only, keep stderr for progress |
-| **F8**: Templatization gaps | 🟠 MEDIUM | Added §四.11 — `{logs.*}` template variable registration |
+| Check | Method | Finding |
+|:------|:------:|:--------|
+| Log file names on disk | `ls .task_temp/_logs/2026-06-13/` | 51 files total; only 2 have level-based names (legacy pre-fix artifacts) |
+| F1 fix runtime behavior | Code inspection | `normalizeCategory()` at `log-manager.ts:116-120` correctly maps level strings to `"runtime"` |
+| `plugin-script-pre-execution-gate-runtime.log` | File existence | ✅ EXISTS — proves F1 fix routes writes correctly |
+| `plugin-lib-shared-infra-runtime.log` | File existence | ❌ Missing — shared-infra not flushed since fix |
+| O_APPEND in flushBuffer | Code inspection | `log-manager.ts:284` uses `fs.openSync(file, O_WRONLY \| O_CREAT \| O_APPEND, 0o644)` |
+| _error.log dated path | Code inspection | `log-manager.ts:581` uses `getLogDir()` (dated directory) |
+| `logs.level` in config | `grep project.config.json` | Present: `logs.level: INFO`, `logs.file_prefix: plugin`, `logs.source_types: mcp,script,lib,plugin` |
+| LogIndex `sources` section | `node -e` inspection | Not yet on disk (v2.0); code at `log-manager.ts:456` ready to auto-migrate |
+| framework-self-test | `node framework-self-test.ts` | **37/37 PASS** |
+| framework-doctor | `node framework-doctor.ts --strict` | **11/11 PASS** (including Check 8: Path portability) |
 
 ---
 
-## 四.0.1 Actual Implementation Status (as of 2026-06-12)
+## 四.0 Remediation Summary (v5.0 Changes — Source-Verified)
 
-**30 FW-LOG-UNIFY annotations found across 10 source files.** The original plan claimed "Planning Only" — this was inaccurate.
+This version cross-references v4.0 against actual source code and 9 OpenCode framework spec systems. It corrects 6 document-vs-source discrepancies (G1–G6) and documents 8 framework compliance gaps (B1–B8).
 
-| Phase | Target Files | Status | Evidence |
+### v5.0 Corrections (Document vs Source Code)
+
+| Gap | Severity | Description | Remediation |
+|-----|----------|-------------|-------------|
+| **G1**: A1 line numbers drifted | 🟡 MED | Plan referenced lines 198,213,223… but source shifted to 201,214,224… | Updated all line numbers to match current source |
+| **G2**: A2 count+line drift | 🟡 MED | Plan said "10 calls" at wrong lines; actual has 11 calls (10 writeLog + import) | Corrected count and line numbers |
+| **G3**: C2 gateLog count wrong | 🔴 HIGH | Plan claimed "3 gateLog calls" but actual has **9+ gateLog calls** | Corrected to 9+ calls with full call inventory |
+| **G4**: D2 log-rotator contradiction | 🔴 HIGH | §四.2.D said "DONE, CORRECT ✅" but immediately said "needs fix" | Resolved: marked as NEEDS API FIX (F1 pattern) |
+| **G5**: C9 knowledge file count | 🟡 MED | Plan said "5 remaining files untouched" but actual has **6 files** | Corrected to 6 files with full inventory |
+| **G6**: Missing `logs.level` config | 🟡 MED | log-manager.ts:145 reads `logs.level` from template_resolution but it's **not defined** in project.config.json | ✅ **FIXED** in v3.0.0 — `project.config.json` now has `logs.level`, `logs.file_prefix`, `logs.source_types` |
+
+### v5.0 Framework Compliance Gaps (9-System Analysis)
+
+| Gap | System | Severity | Description | Status (v5.1) |
+|-----|--------|----------|-------------|:--------------:|
+| **B1**: gate-core non-dated path | Layout Architecture | 🟡 HIGH | `gate-core.ts:339` writes to `.task_temp/_logs/lib-gate-core-runtime.log` (root) — violates dated-directory convention | ✅ **N/A** (gate-core now delegates to log-manager, no direct writes) |
+| **B2**: _error.log non-dated path | Layout Architecture | 🟡 MED | `logSelfError` writes `_error.log` to non-dated root | ✅ **FIXED** in v3.0.0 — `log-manager.ts:581` uses `getLogDir()` (dated); comment: `FW-LOG-UNIFY B2` |
+| **B3**: Plugin vs client.app.log | Log Central Management | 🟡 MED | Official spec says plugins use `client.app.log()`. Framework plugins use project-specific `writeLog()` — rationale undocumented | 📋 Documented (§四.13.B3 design rationale) |
+| **B4**: Concurrent write precision | Concurrent Session/Dispatch | 🟡 MED | `appendFileSync` may do multiple internal writes; POSIX `O_APPEND` atomicity is per `write()` syscall | ✅ **FIXED** in v3.0.0 — `log-manager.ts:284`: `fs.openSync(file, O_WRONLY \| O_CREAT \| O_APPEND, 0o644)` + 64KB chunked writes |
+| **B5**: {logs.*} template vars | Templatization | 🟡 LOW | Placeholders not registered in `TEMPLATE_VARIABLE_STANDARD.md` §2 catalog format | ⚠️ Config keys present in project.config.json; §四.11 catalog entries not yet added to standard doc |
+| **B6**: LogIndex regex gap | Log Central Management | 🟡 MED | §四.8 regex `^plugin-(mcp|script|lib)-` won't match `lib-gate-core-runtime.log` (no `plugin-` prefix) | ⚠️ `scanSources()` code in place (`log-manager.ts:489`); needs activation cycle |
+| **B7**: logSelfError audit gap | Hardened Enforcement | 🟢 LOW | `_error.log` not tracked by `machine.json.write_audit_state` | 📋 Documented as future enhancement |
+| **B8**: Compliance records correlation | Central State Management | 🟢 LOW | Log entries don't cross-reference `machine.json.compliance_records` | 📋 Documented as future enhancement |
+
+---
+
+## 四.0.1 Actual Implementation Status (v5.1 — Dispatch-Verified 2026-06-13)
+
+**38 writeLog calls across 10 source files.** log-manager.ts v3.0.0 deployed with F1 Option A fix (normalizeCategory), B2 (_error.log dated), B4 (O_APPEND flush), G6 (logs.level config).
+
+### Infrastructure Fixes (Phase 0)
+
+| Fix | Status | Evidence |
+|:----|:------:|:---------|
+| **F1 Option A**: LogCategory extended | ✅ **APPLIED** | `log-manager.ts:39`: `type LogCategory = "loaded" \| "hooks" \| "runtime" \| LogLevel;` |
+| **F1**: normalizeCategory() | ✅ **APPLIED** | `log-manager.ts:116-120`: maps level strings → `"runtime"` |
+| **F1**: flushBuffer uses normalized category | ✅ **APPLIED** | `log-manager.ts:265`: `const normCat = normalizeCategory(category);` |
+| **B2**: _error.log dated path | ✅ **FIXED** | `log-manager.ts:581`: `logSelfError()` uses `getLogDir()` (dated) |
+| **B4**: O_APPEND atomic flush | ✅ **FIXED** | `log-manager.ts:284`: `fs.openSync(file, O_WRONLY \| O_CREAT \| O_APPEND, 0o644)` + 64KB chunks |
+| **G6**: logs.level in config | ✅ **FIXED** | `project.config.json`: `logs.level`, `logs.file_prefix`, `logs.source_types` all present |
+| **F2**: LogIndex sources section | ⚠️ **CODE IN PLACE** | `log-manager.ts:456`: `scanSources()` populates sources; disk `index.json` still v2.0 (needs next plugin load cycle) |
+| **B1**: gate-core dated path | ✅ **N/A** | gate-core.ts no longer has direct `appendFileSync` logging |
+
+### Phase Status
+
+| Phase | Target Files | Status | Evidence (v5.1 dispatch-verified) |
 |-------|-------------|:------:|----------|
-| **Phase 1**: Lib Foundation | 3 files, 3 sites | ✅ **DONE** | `FW-LOG-UNIFY-P1-D1` (shared-infra), `P1-D2` (log-rotator), `P1-D3` (gate-core) |
-| **Phase 2**: MCP Tools | 6 files, ~60 sites | ⚠️ **MOSTLY DONE** | `P2-A1` (compliance-gate: 14 calls), `P2-A2` (code-quality-gate: 10 calls), `P2-A5` (keystone-validate: bugfix). **BUT all calls use wrong API (F1)** |
-| **Phase 3**: Scripts (High Priority) | 9+ files, ~180 sites | ⚠️ **PARTIAL** | `P3-C2` (pre-execution-gate: 3 gateLog calls). CLI scripts (C3-C8) untouched |
-| **Phase 4**: Knowledge Subsystem | 7 files, ~28 sites | ⚠️ **PARTIAL** | `P4` (archiver: 3 calls, size-reporter: 1 call). 5 files untouched |
-| **Phase 5**: Verification | All files | ❌ **NOT DONE** | No framework-self-test run, no smoke tests |
+| **Phase 0**: Infrastructure | log-manager.ts, project.config.json | ✅ **DONE** | F1 Option A, B2, B4, G6 all applied in v3.0.0 |
+| **Phase 1**: Lib Foundation | 3 files, 3 sites | ✅ **DONE** | `FW-LOG-UNIFY-P1-D1` (shared-infra:1 call), `P1-D2` (log-rotator:1 call), `P1-D3` (gate-core:delegates) |
+| **Phase 2**: MCP Tools | 6 files, ~60 sites | ⚠️ **MOSTLY DONE** | `P2-A1` (compliance-gate: 14 calls), `P2-A2` (code-quality-gate: 10 calls), `P2-A5` (keystone-validate). F1 Option A makes existing calls work correctly |
+| **Phase 3**: Scripts (High Priority) | 9+ files, ~180 sites | ⚠️ **PARTIAL** | `P3-C2` (pre-execution-gate: 9+ gateLog calls). CLI scripts (C3-C8) untouched |
+| **Phase 4**: Knowledge Subsystem | 8 files, ~28 sites | ⚠️ **PARTIAL** | `P4` (archiver: 3 calls, size-reporter: 1 call). 6 files untouched |
+| **Phase 5**: Verification | All files | ⚠️ **PARTIAL** | Dispatch test done (2/51 level-based files = legacy artifacts). Framework-self-test: 37/37 PASS |
 
-**⚠️ CRITICAL**: All 28 writeLog calls in Phases 1-4 use the WRONG API signature (F1). They must be retroactively fixed before Phase 5 verification.
+**ℹ️ F1 Status Update**: With Option A applied, the existing 38 writeLog calls that use level strings (e.g. `writeLog("mcp-compliance-gate", "INFO", {...})`) now produce correct file names via `normalizeCategory()`. No retroactive fix needed — the calls work as-is. Legacy level-based files (`plugin-lib-shared-infra-INFO.log`, `plugin-script-pre-execution-gate-INFO.log`) remain as pre-fix artifacts and will not be updated further.
 
 ---
 
@@ -135,7 +181,7 @@ All MCP tools communicate via JSON-RPC over stdin/stdout. `console.log()` is **a
 #### A1. compliance-gate.ts — STATUS: ⚠️ 14 calls migrated (P2-A1), NEEDS API FIX
 
 **File**: `.opencode/scripts/mcp-tools/compliance-gate.ts`
-**FW-LOG-UNIFY annotations**: 14 (lines 198, 213, 223, 246, 509, 826, 847, 859, 1372, 1445, 1505, 1514, 1800 + import L37)
+**FW-LOG-UNIFY annotations**: 14 (v5.0 source-verified line numbers)
 
 **Retroactive fix required** — change all 14 calls from v3.0 pattern to v4.0:
 
@@ -151,19 +197,19 @@ All MCP tools communicate via JSON-RPC over stdin/stdout. `console.log()` is **a
 | 835 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
 | 849 | `writeLog("mcp-compliance-gate", "INFO", ...)` | Same fix |
 | 861 | `writeLog("mcp-compliance-gate", "INFO", ...)` | Same fix |
-| 1374 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
-| 1447 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
-| 1506 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
-| 1514 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
+| 1388 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
+| 1461 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
+| 1520 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
+| 1528 | `writeLog("mcp-compliance-gate", "WARN", ...)` | Same fix |
 
 **Recommended**: Replace with convenience wrapper `srcLog()` to avoid repeating 14 similar fixes.
 
 #### A2. code-quality-gate.ts — STATUS: ⚠️ 10 calls migrated (P2-A2), NEEDS API FIX
 
 **File**: `.opencode/scripts/mcp-tools/code-quality-gate.ts`
-**FW-LOG-UNIFY annotations**: 10 (lines 57, 226, 238, 323, 332, 465, 571 + DUAL-WRITE comments)
+**FW-LOG-UNIFY annotations**: 10 writeLog calls at lines 227, 239, 249, 259, 272, 282, 325, 333, 466, 573 (+ import L60)
 
-Same fix pattern as A1: change `"WARN"` → `"runtime"` + `{level:"WARN", ...}`.
+Same fix pattern as A1: change `"WARN"` / `"INFO"` / `"ERROR"` → `"runtime"` + `{level:"WARN", ...}`.
 
 #### A3. code-quality-lib.ts — STATUS: ✅ NO CHANGES NEEDED
 
@@ -195,18 +241,30 @@ All 5 custom tools (.opencode/tools/) have zero log calls or delegate to persist
 
 ~23 console.error sites form the ERROR PROTOCOL consumed by dispatch_subagent ESM tool via execFileSync. **DO NOT MIGRATE.**
 
-#### C2. pre-execution-gate.ts — STATUS: ⚠️ PARTIAL (3 gateLog calls), CORRECT APPROACH
+#### C2. pre-execution-gate.ts — STATUS: ⚠️ PARTIAL (9+ gateLog calls), CORRECT APPROACH
 
 **File**: `.opencode/scripts/pre-execution-gate.ts`
-**FW-LOG-UNIFY annotations**: 3 (lines 5, 233, 961)
+**FW-LOG-UNIFY annotations**: 9+ gateLog call sites (v5.0 source-verified)
+
+**v5.0 correction**: v4.0 claimed "3 gateLog calls" (G3 discrepancy). Actual inventory:
+
+| Line | Event Category | Level | Purpose |
+|:----:|---------------|-------|---------|
+| 237 | `gate_check_failed` | ERROR/WARN | Critical — gate check failure audit |
+| 365 | `dag_skip` | INFO | Creator-agent DAG skip |
+| 531 | `rule_registry_missing` | INFO | Registry not found |
+| 638 | `rule_registry_warnings` | WARN | Registry validation warnings |
+| 857 | `super_admin_bypass` | INFO | SA emergency bypass audit |
+| 862 | `uc7ks_cache_healthy` | INFO | UC7KS cache health check |
+| 881 | `uc7ks_pipeline_warn` | WARN | UC7KS pipeline warning |
+| 898 | `uc7ks_emergency_bypass` | WARN | UC7KS emergency bypass audit |
+| 964 | `gate_result` | INFO/ERROR | Final gate outcome |
 
 **v4.0 approach update** (correcting F7): The original plan said "migrate ALL 48 console.error". The actual implementation correctly chose a **selective approach**:
 
 | Site Type | Count | Action | Rationale |
 |-----------|:-----:|--------|-----------|
-| Gate failures (blockGate) | 1 | ✅ DUAL-WRITE via gateLog() | Critical audit — must persist |
-| Gate results (main) | 1 | ✅ DUAL-WRITE via gateLog() | Final outcome — must persist |
-| UC7-009 SA bypass | 1 | ✅ DUAL-WRITE via gateLog() | Emergency audit — must persist |
+| Gate audit events (9 gateLog calls above) | 9 | ✅ DUAL-WRITE via gateLog() | Critical audit — must persist |
 | Progress indicators (Check 1/6...) | ~15 | KEEP stderr only | Real-time terminal visibility, low audit value |
 | Check results (✅/❌ per check) | ~12 | KEEP stderr only | Visible in terminal, gateLog captures summary |
 | Bootstrap/fatal | ~5 | KEEP stderr only | Startup diagnostics |
@@ -237,26 +295,38 @@ function gateLog(category, level, data) {
 framework-self-test, framework-doctor, state-reconciliation, rule-registry-verify, rotate-logs, monitoring-status.
 Pattern: KEEP console.log for user-facing CLI output. ADD writeLog for failure events only.
 
-#### C9. Knowledge Subsystem Scripts — STATUS: ⚠️ PARTIAL (2 of 7 done)
+#### C9. Knowledge Subsystem Scripts — STATUS: ⚠️ PARTIAL (2 of 8 done)
 
 - ✅ archiver.ts (3 writeLog calls, P4) — **NEEDS API FIX**
 - ✅ size-reporter.ts (1 writeLog call, P4) — **NEEDS API FIX**
-- ❌ 5 remaining files untouched
+- ❌ 6 remaining files untouched (v5.0 correction — was 5):
+  - janitor.ts — 10+ console.log/error sites, high audit value (purge/archive/eviction events)
+  - compressor.ts — 4 console.log sites
+  - deduplicator.ts — 2 console.log sites
+  - indexer.ts — 4 console.log sites
+  - scout-extractor.ts — 3 console.log sites
+  - scout-trigger.ts — 1 console.log site
 
 ---
 
 ## 四.2.D Lib Files — STATUS: ✅ ALL DONE (NEEDS API FIX for D1)
 
-#### D1. shared-infra.ts — DONE, NEEDS API FIX
+#### D1. shared-infra.ts — DONE, NEEDS API FIX ⚠️
 ```typescript
-// Current (WRONG):
+// Current (WRONG — passes level as category, same F1 bug):
 writeLog("lib-shared-infra", level, { event: "demo", detail: message });
 // Fix to:
 writeLog("lib-shared-infra", "runtime", { level, event: "demo", detail: message, agent: process.env.FRAMEWORK_AGENT || "unknown" });
 ```
 
-#### D2. log-rotator.ts — DONE, CORRECT ✅
-Uses `"ERROR"` as category → needs fix to `"runtime"` + `{level:"ERROR"}`.
+#### D2. log-rotator.ts — DONE, NEEDS API FIX ⚠️
+```typescript
+// Current (WRONG — same F1 pattern):
+writeLog("lib-log-rotator", "ERROR", { event: "compress_failed", detail: `${filePath}: ${message}` });
+// Fix to:
+writeLog("lib-log-rotator", "runtime", { level: "ERROR", event: "compress_failed", detail: `${filePath}: ${message}`, agent: process.env.FRAMEWORK_AGENT || "unknown" });
+```
+(v5.0 correction: v4.0 said "DONE, CORRECT ✅" but the call uses `"ERROR"` as category — this IS the F1 bug.)
 
 #### D3. gate-core.ts — DONE, CORRECT ✅ (direct appendFileSync)
 Avoids circular import by using direct `fs.appendFileSync` to `lib-gate-core-runtime.log`. This is the correct approach per §四.3.2.
@@ -349,14 +419,14 @@ interface SourceIndexEntry {
 }
 ```
 
-### Phase 0.5: Retroactive Fix Migrated Files (P0, 1 hr)
+### Phase 0.5: Retroactive Fix Migrated Files (P0, 1.5 hrs)
 
-After Phase 0, fix all 28 existing writeLog calls across 10 files:
+After Phase 0, fix all 38 existing writeLog calls across 10 files (v5.0 source-verified count):
 - shared-infra.ts: 1 call
-- log-rotator.ts: 1 call
+- log-rotator.ts: 1 call (v5.0: was incorrectly marked "CORRECT" in v4.0)
 - compliance-gate.ts: 14 calls
 - code-quality-gate.ts: 10 calls
-- pre-execution-gate.ts: 1 gateLog wrapper + 3 calls
+- pre-execution-gate.ts: 1 gateLog wrapper + 9 call sites (v5.0: was 3 in v4.0)
 - archiver.ts: 3 calls
 - size-reporter.ts: 1 call
 
@@ -384,10 +454,10 @@ Remaining work:
 - C8: monitoring-status.ts — NO CHANGE needed
 - C2: pre-execution-gate.ts — fix gateLog wrapper API (Phase 0.5)
 
-### Phase 4: Knowledge Subsystem — ⚠️ PARTIAL (complete 5 remaining)
+### Phase 4: Knowledge Subsystem — ⚠️ PARTIAL (complete 6 remaining)
 
 Remaining work:
-- 5 scripts in `.opencode/scripts/knowledge/` need writeLog migration
+- 6 scripts in `.opencode/scripts/knowledge/` need writeLog migration (v5.0: janitor, compressor, deduplicator, indexer, scout-extractor, scout-trigger)
 - Fix existing 4 calls in archiver.ts + size-reporter.ts (Phase 0.5)
 
 ### Phase 5: Verification (1 hr)
@@ -463,7 +533,7 @@ export function updateIndex(plugin: string, event: string): void {
   if (fs.existsSync(logDir)) {
     for (const f of fs.readdirSync(logDir)) {
       // Match plugin-{source_type}-{name}-{category}.log
-      const m = f.match(/^plugin-(mcp|script|lib)-(.+)-(runtime)\.log$/);
+      const m = f.match(/^plugin-(mcp|script|lib)-(.+)-(runtime|loaded|hooks)\.log$/);
       if (m) {
         const key = `${m[1]}-${m[2]}`;
         if (!sources[key]) {
@@ -478,8 +548,51 @@ export function updateIndex(plugin: string, event: string): void {
         sources[key].total_logs++;
         sources[key].last_logged = new Date().toISOString();
       }
+
+      // v5.0 (B6): Also match direct-write files without plugin- prefix
+      // e.g., lib-gate-core-runtime.log (gate-core.ts avoids circular import)
+      const direct = f.match(/^(lib)-(.+)-(runtime)\.log$/);
+      if (direct) {
+        const key = `${direct[1]}-${direct[2]}`;
+        if (!sources[key]) {
+          sources[key] = {
+            source_type: "lib" as const,
+            first_logged: new Date().toISOString(),
+            last_logged: new Date().toISOString(),
+            total_logs: 0,
+            status: "active",
+          };
+        }
+        sources[key].total_logs++;
+        sources[key].last_logged = new Date().toISOString();
+      }
     }
   }
+
+  // v5.0 (B1): Also scan root-level logs for non-dated direct writes
+  const rootDir = getLogRoot();
+  if (fs.existsSync(rootDir)) {
+    for (const f of fs.readdirSync(rootDir)) {
+      if (f === "_archive" || f === "index.json" || f === "_error.log") continue;
+      if (fs.statSync(path.join(rootDir, f)).isDirectory()) continue;
+      // Direct-write files at root: lib-gate-core-runtime.log
+      const direct = f.match(/^(lib)-(.+)-(runtime)\.log$/);
+      if (direct) {
+        const key = `${direct[1]}-${direct[2]}`;
+        if (!sources[key]) {
+          sources[key] = {
+            source_type: "lib" as const,
+            first_logged: new Date().toISOString(),
+            last_logged: new Date().toISOString(),
+            total_logs: 0,
+            status: "active",
+          };
+        }
+        sources[key].total_logs++;
+      }
+    }
+  }
+
   idx.sources = sources;
   // ... atomic write ...
 }
@@ -550,9 +663,9 @@ function srcLog(level, event, detail) {
 ### Problem
 Multiple Bun processes (from concurrent agent dispatches) write to the same log file via `fs.appendFileSync`. POSIX guarantees atomicity only for writes < PIPE_BUF (4096 bytes on Linux). Log lines are typically < 500 bytes, so individual lines are safe, but buffer flushes (multiple lines joined) may exceed 4096 bytes.
 
-### Solution: Chunk Buffer Flush
+### Solution: Chunk Buffer Flush with O_APPEND
 
-In `flushBuffer()`, split large buffers into chunks < 4096 bytes:
+In `flushBuffer()`, split large buffers into chunks < 4096 bytes and use `fs.openSync` with `O_APPEND` flag for true per-write atomicity:
 
 ```typescript
 export function flushBuffer(plugin: string, category: LogCategory): void {
@@ -564,18 +677,23 @@ export function flushBuffer(plugin: string, category: LogCategory): void {
     ensureLogDir();
     const file = path.join(getLogDir(), `plugin-${plugin}-${category}.log`);
 
-    // Chunk to stay under PIPE_BUF (4096 bytes) for atomic append
-    const MAX_CHUNK = 4000;
+    // v5.0 (B4): Use O_APPEND for POSIX per-write atomicity guarantee.
+    // fs.appendFileSync may do multiple internal write() syscalls,
+    // which can interleave with concurrent processes.
+    const fd = fs.openSync(file, fs.constants.O_WRONLY | fs.constants.O_APPEND | fs.constants.O_CREAT, 0o644);
+
+    const MAX_CHUNK = 4000; // Stay under PIPE_BUF (4096 bytes)
     let chunk = "";
     for (const line of lines) {
       if (chunk.length + line.length > MAX_CHUNK) {
-        fs.appendFileSync(file, chunk, "utf8");
+        fs.writeSync(fd, chunk);
         chunk = line;
       } else {
         chunk += line;
       }
     }
-    if (chunk) fs.appendFileSync(file, chunk, "utf8");
+    if (chunk) fs.writeSync(fd, chunk);
+    fs.closeSync(fd);
 
     buffer.set(key, []);
   } catch (err: any) {
@@ -598,37 +716,104 @@ export function flushBuffer(plugin: string, category: LogCategory): void {
 
 ### Current State
 log-manager.ts already reads these from `project.config.json.template_resolution`:
-- `logs.dir` → log root directory (default: `.task_temp/_logs`)
-- `logs.retention_days` → archive after N days (default: 7)
-- `logs.delimiter` → field separator (default: ` | `)
-- `logs.buffer_size` → flush threshold (default: 20)
-- `logs.flush_interval_ms` → periodic flush interval (default: 5000)
-- `logs.level` → minimum log level override
+- `logs.dir` → log root directory (default: `.task_temp/_logs`) ✅ present in config
+- `logs.retention_days` → archive after N days (default: 7) ✅ present in config
+- `logs.delimiter` → field separator (default: ` | `) ✅ present in config
+- `logs.buffer_size` → flush threshold (default: 20) ✅ present in config
+- `logs.flush_interval_ms` → periodic flush interval (default: 5000) ✅ present in config
+- `logs.level` → minimum log level override ❌ **MISSING from project.config.json** (G6)
 
-### Missing Parameters (to register in TEMPLATE_VARIABLE_STANDARD.md)
+### v5.0 (G6): Add `logs.level` to project.config.json
 
-| Placeholder | Resolves To | Source Field | Example Value |
-|-------------|-------------|--------------|---------------|
-| `{logs.file_prefix}` | Log file name prefix | `template_resolution.logs.file_prefix` | `plugin` |
-| `{logs.source_types}` | Enabled source types | `template_resolution.logs.source_types` | `plugin,mcp,script,lib` |
+```json
+{
+  "template_resolution": {
+    "logs.dir": ".task_temp/_logs",
+    "logs.retention_days": 7,
+    "logs.delimiter": " | ",
+    "logs.buffer_size": 20,
+    "logs.flush_interval_ms": 5000,
+    "logs.level": "INFO"
+  }
+}
+```
+
+### Missing Parameters (to register in TEMPLATE_VARIABLE_STANDARD.md §2)
+
+| # | Placeholder | Resolves To | Source Field | Example Value |
+|---|-------------|-------------|--------------|---------------|
+| 39 | `{logs.dir}` | Log root directory | `template_resolution.logs.dir` | `.task_temp/_logs` |
+| 40 | `{logs.retention_days}` | Archive retention (days) | `template_resolution.logs.retention_days` | `7` |
+| 41 | `{logs.delimiter}` | Field separator | `template_resolution.logs.delimiter` | `" \| "` |
+| 42 | `{logs.buffer_size}` | Buffer flush threshold | `template_resolution.logs.buffer_size` | `20` |
+| 43 | `{logs.flush_interval_ms}` | Periodic flush interval (ms) | `template_resolution.logs.flush_interval_ms` | `5000` |
+| 44 | `{logs.level}` | Minimum log level override | `template_resolution.logs.level` | `INFO` |
+| 45 | `{logs.file_prefix}` | Log file name prefix | `template_resolution.logs.file_prefix` | `plugin` |
+| 46 | `{logs.source_types}` | Enabled source types | `template_resolution.logs.source_types` | `plugin,mcp,script,lib` |
 
 ### Registration Steps
-1. Add `logs.file_prefix` and `logs.source_types` to `project.config.json.template_resolution`
-2. Add to `dispatch-subagent.js` `buildTemplateResolutionMap()`
-3. Add to `TEMPLATE_VARIABLE_STANDARD.md` §2 as new `{logs.*}` section
+1. Add `logs.level`, `logs.file_prefix`, `logs.source_types` to `project.config.json.template_resolution`
+2. Add `{logs.*}` namespace resolution to `dispatch-subagent.js` `buildTemplateResolutionMap()`
+3. Add to `TEMPLATE_VARIABLE_STANDARD.md` §2 as new `{logs.*}` section (entries #39–#46)
 4. Run `framework-self-test.js` Check 17/18 to verify
 
 ---
 
 ## 四.12 Estimated Effort (Revised)
 
-| Phase | Files | Sites | Difficulty | Est. Time | Status |
+| Phase | Files | Sites | Difficulty | Est. Time | Status (v5.1) |
 |-------|-------|:-----:|:----------:|:---------:|:------:|
-| **0**: Fix Infrastructure (F1, F2) | 1 (log-manager.ts) | ~10 | High | 2 hrs | ❌ TODO |
-| **0.5**: Retroactive Fix | 10 files | 28 | Medium | 1 hr | ❌ TODO |
+| **0**: Fix Infrastructure (F1, F2) | 1 (log-manager.ts) | ~10 | High | 2 hrs | ✅ **DONE** (Option A applied in v3.0.0) |
+| **0.5**: Retroactive Fix | 10 files | 38 | Medium | 1 hr | ✅ **OBSOLETE** (Option A eliminates need for retroactive fixes) |
 | **1**: Lib Foundation | 3 | 3 | Low | 30 min | ✅ DONE |
 | **2**: MCP Tools (remaining) | 1 (A6 only) | ~3 | Low | 30 min | ⚠️ PARTIAL |
 | **3**: Scripts (C3-C8) | 5 | ~40 | Medium | 2 hrs | ❌ TODO |
-| **4**: Knowledge (remaining 5) | 5 | ~20 | Low | 1 hr | ⚠️ PARTIAL |
-| **5**: Verification | All | — | Medium | 1 hr | ❌ TODO |
-| **Total** | **25+** | **~104** | | **~8.5 hrs** | **~30% done** |
+| **4**: Knowledge (remaining **6**) | **6** | ~25 | Low | 1.5 hrs | ⚠️ PARTIAL |
+| **5**: Verification | All | — | Medium | 1 hr | ⚠️ **PARTIAL** (dispatch test done; framework-self-test 37/37) |
+| **B1-B2**: Fix non-dated paths | 1 (log-manager.ts) | 1 | Low | 30 min | ✅ **DONE** (B2 fixed; B1 N/A) |
+| **B4**: O_APPEND flush | 1 (log-manager.ts) | 1 | Low | 30 min | ✅ **DONE** in v3.0.0 |
+| **G6**: Config registration | 1 (project.config.json) | 3 keys | Low | 15 min | ✅ **DONE** in v3.0.0 |
+| **Total remaining** | **12** | **~68** | | **~4.5 hrs** | **~65% done** |
+
+---
+
+## 四.13 Framework Spec Compliance Gaps (NEW — v5.0)
+
+8 gaps identified cross-referencing against 9 OpenCode framework spec systems.
+
+### B1: gate-core.ts Non-Dated Log Path (Layout Architecture) — ✅ N/A
+gate-core.ts no longer has direct `appendFileSync` logging. It delegates to `log-manager.ts` which uses `getLogDir()` (dated directories). The original concern about `lib-gate-core-runtime.log` in root is no longer applicable.
+
+### B2: _error.log Non-Dated Path (Layout Architecture) — ✅ FIXED in v3.0.0
+`logSelfError()` in `log-manager.ts:579-594` now writes to `getLogDir()` (dated directory) instead of `getLogRoot()`. Comment at line 577: `FW-LOG-UNIFY B2: Uses dated directory instead of log root.`
+
+### B3: Plugin vs client.app.log (Log Central Management) — 📋 Documented
+Official spec: MCP→stderr, Plugins→client.app.log(), Debug→appendFileSync. writeLog() maps to #3 (debug file logging). Framework plugins use it correctly. No code change needed.
+
+### B4: Concurrent Write POSIX (Concurrent Session/Dispatch) — ✅ FIXED in v3.0.0
+POSIX O_APPEND atomicity is per write() syscall. Updated §四.10 to use `fs.openSync(O_APPEND)` + `fs.writeSync(fd, chunk)` for true per-write atomicity.
+
+
+### B5: {logs.*} Template Vars (Templatization) — ⚠️ PARTIALLY FIXED
+Config keys (`logs.level`, `logs.file_prefix`, `logs.source_types`) are present in `project.config.json`. §四.11 provides catalog entries #39–#46, but these have not yet been added to `TEMPLATE_VARIABLE_STANDARD.md` §2.
+
+### B6: LogIndex Regex Gap (Log Central Management) — ⚠️ CODE IN PLACE
+`scanSources()` in `log-manager.ts:489` matches `^{prefix}-(.+)-(loaded|hooks|runtime).log$`. Code is correct but `index.json` on disk is still v2.0 (no `sources` section). The v3.0 `updateIndex()` will auto-migrate on next plugin load cycle. Verified: 49 of 51 log files match the regex pattern; the 2 non-matching are legacy F1-bug files.
+
+### B7: logSelfError Audit Gap (Hardened Enforcement, 🟢 LOW)
+`_error.log` not tracked by `machine.json.write_audit_state`. Documented as future enhancement.
+
+### B8: Compliance Records Correlation (Central State Management, 🟢 LOW)
+Log entries do not cross-reference `machine.json.compliance_records`. Documented as future enhancement.
+
+---
+
+## Related Documents
+
+| Document | Purpose |
+|----------|---------|
+| [log-unification-remaining-implementation-plan.md](./log-unification-remaining-implementation-plan.md) | **v1.0** — Detailed implementation plan for remaining 35% (Tasks 1-11, ~4.5 hrs, 9-system compliance matrix) |
+| [log-fragmentation-report.md](./log-fragmentation-report.md) | Original fragmentation audit report |
+| [framework-log-system-design.md](./framework-log-system-design.md) | Log system design specification |
+| [../../official_docs/opencode/findings/01-log-central-management.md](../../official_docs/opencode/findings/01-log-central-management.md) | Official OpenCode logging conventions |
+| [../../official_docs/opencode/findings/02-harness-system.md](../../official_docs/opencode/findings/02-harness-system.md) | Official OpenCode plugin/harness system spec |

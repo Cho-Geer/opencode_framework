@@ -15,11 +15,7 @@
  *   OR pipe Scout output via stdin: echo "..." | bun .opencode/scripts/knowledge/scout-extractor.ts backend nestjs "guard-execution-order"
  */
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
 
-const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs", "official_docs");
 
 function extract({ domain, library, topic, scoutOutput, repoUrl, question }) {
@@ -75,18 +71,6 @@ and may become stale with new library releases. Re-analyze after TTL expiry (14 
   };
 }
 
-if (require.main === module) {
-  const args = process.argv.slice(2);
-  if (args.length < 3) {
-    console.log("Usage: scout-extractor.js <domain> <library> <topic> [scout_output]");
-    console.log("  or pipe: echo 'scout output' | scout-extractor.js <domain> <library> <topic>");
-    process.exit(1);
-  }
 
-  const [domain, library, topic, ...rest] = args;
-  const scoutOutput = rest.length > 0 ? rest.join(" ") : fs.readFileSync("/dev/stdin", "utf-8").trim();
-  const result = extract({ domain, library, topic, scoutOutput });
-  console.log(JSON.stringify(result, null, 2));
-}
 
 module.exports = { extract };

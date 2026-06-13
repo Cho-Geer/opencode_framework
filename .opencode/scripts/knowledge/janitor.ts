@@ -17,9 +17,26 @@
 
 const fs = require("fs");
 const path = require("path");
-const { readManifest, writeManifest, INDEX_PATH } = require("./indexer");
 
-const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
+const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
+
+/**
+ * FW-LOG-UNIFY-C9a: Lazy-load writeLog for janitor audit trail.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, "..", "..", "lib", "log-manager"));
+      _writeLog = lm.writeLog;
+    } catch { _writeLog = () => {}; }
+  }
+  return _writeLog;
+}
+function srcLog(level, event, fields) {
+  try { getWriteLog()("script-knowledge-janitor", level, { event, ...fields }); } catch {}
+}
+
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs", "official_docs");
 const ARCHIVE_DIR = path.join(DOCS_DIR, ".metadata", "archives");
 const SIZE_REPORT_PATH = path.join(DOCS_DIR, ".metadata", "size_report.json");
@@ -41,6 +58,7 @@ function daysSince(isoDate) {
  */
 function run() {
   console.log(`[Janitor] Starting cycle at ${now()}${DRY_RUN ? " (DRY RUN)" : ""}`);
+  srcLog("INFO", "cycle_start", { dryRun: DRY_RUN, timestamp: now() });
   const manifest = readManifest();
   let purged = 0, archived = 0, lruEvicted = 0;
   let totalSizeBefore = 0;
@@ -58,20 +76,22 @@ function run() {
         // Double TTL: permanent deletion
         const isScout = file.source === "scout";
         console.log(`[Janitor] PURGE${isScout ? " [Scout]" : ""}: ${file.path} (age: ${age.toFixed(0)}d, TTL: ${ttl}d, double-TTL: ${ttl * 2}d${isScout ? ", source: scout" : ""})`);
+        srcLog("INFO", "file_purged", { path: file.path, ageDays: Math.floor(age), ttlDays: ttl });
         if (!DRY_RUN) {
           const absPath = path.join(DOCS_DIR, file.path);
-          try { if (fs.existsSync(absPath)) fs.unlinkSync(absPath); } catch (e) { console.error(`  Failed: ${e.message}`); }
+          try { if (fs.existsSync(absPath)) fs.unlinkSync(absPath); } catch (e) { console.error(`  Failed: ${e.message}`); srcLog("ERROR", "purge_failed", { path: file.path, error: e.message }); }
         }
         purged++;
       } else if (age > ttl) {
         // TTL expired: archive
         console.log(`[Janitor] ARCHIVE: ${file.path} (age: ${age.toFixed(0)}d, TTL: ${ttl}d)`);
+        srcLog("INFO", "file_archived", { path: file.path, ageDays: Math.floor(age), ttlDays: ttl });
         if (!DRY_RUN) {
           const dateDir = path.join(ARCHIVE_DIR, new Date().toISOString().slice(0, 10));
           fs.mkdirSync(dateDir, { recursive: true });
           const absPath = path.join(DOCS_DIR, file.path);
           const archivePath = path.join(dateDir, path.basename(file.path));
-          try { if (fs.existsSync(absPath)) fs.renameSync(absPath, archivePath); } catch (e) { console.error(`  Failed: ${e.message}`); }
+          try { if (fs.existsSync(absPath)) fs.renameSync(absPath, archivePath); } catch (e) { console.error(`  Failed: ${e.message}`); srcLog("ERROR", "archive_failed", { path: file.path, error: e.message }); }
           file.status = "archived";
         }
         archived++;
@@ -90,6 +110,7 @@ function run() {
   let totalSizeAfter = activeEntries.reduce((sum, e) => sum + (e.files || []).reduce((s, f) => s + (f.size_bytes || 0), 0), 0);
   if (totalSizeAfter > MAX_TOTAL_SIZE) {
     console.log(`[Janitor] Size cap exceeded: ${(totalSizeAfter / 1048576).toFixed(1)}MB > 50MB. Starting LRU eviction...`);
+    srcLog("WARN", "size_cap_exceeded", { totalSizeMB: (totalSizeAfter / 1048576).toFixed(1) });
     // Sort all files by last_accessed (oldest first)
     const allFiles = [];
     for (const entry of activeEntries) {
@@ -102,6 +123,7 @@ function run() {
     while (totalSizeAfter > MAX_TOTAL_SIZE && allFiles.length > 0) {
       const { file } = allFiles.shift();
       console.log(`[Janitor] LRU EVICT: ${file.path}`);
+      srcLog("INFO", "lru_evicted", { path: file.path });
       if (!DRY_RUN) {
         const absPath = path.join(DOCS_DIR, file.path);
         try { if (fs.existsSync(absPath)) fs.unlinkSync(absPath); } catch (_) {}
@@ -140,15 +162,7 @@ function run() {
     }, null, 2), "utf-8");
   }
 
-  const result = {
-    purged, archived, lru_evicted: lruEvicted,
-    total_size_before_mb: (totalSizeBefore / 1048576).toFixed(1),
-    total_size_after_mb: (totalSizeAfter / 1048576).toFixed(1),
-    entries_remaining: manifest.entries.length,
-    dry_run: DRY_RUN,
-  };
-  console.log(`[Janitor] Cycle complete: ${JSON.stringify(result)}`);
-  return result;
+  
 }
 
 if (require.main === module) {

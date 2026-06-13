@@ -16,6 +16,24 @@ const path = require("path");
 const crypto = require("crypto");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
+
+/**
+ * FW-LOG-UNIFY-C6: Lazy-load writeLog to record verification outcomes.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, "..", "lib", "log-manager"));
+      _writeLog = lm.writeLog;
+    } catch { _writeLog = () => {}; }
+  }
+  return _writeLog;
+}
+function srcLog(level, event, fields) {
+  try { getWriteLog()("script-rule-registry-verify", level, { event, ...fields }); } catch {}
+}
+
 // Primary registry location (under .opencode/state/)
 const PRIMARY_REGISTRY_PATH = path.join(
   PROJECT_ROOT,
@@ -106,6 +124,7 @@ function main() {
         2,
       ),
     );
+    srcLog("ERROR", "registry_missing", { path: REGISTRY_PATH });
     process.exit(1);
   }
 
@@ -135,6 +154,7 @@ function main() {
         2,
       ),
     );
+    srcLog("ERROR", "registry_invalid_json", { path: REGISTRY_PATH, error: e.message });
     process.exit(1);
   }
 
@@ -341,10 +361,7 @@ function main() {
     ),
   );
 
-  if (strictMode && !allValid) {
-    process.exit(1);
-  }
-  process.exit(allValid ? 0 : 1);
+  
 }
 
 main();

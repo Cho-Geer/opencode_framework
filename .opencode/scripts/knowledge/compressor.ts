@@ -11,9 +11,26 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
-const { readManifest, writeManifest, INDEX_PATH } = require("./indexer");
 
-const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
+const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
+
+/**
+ * FW-LOG-UNIFY-C9b: Lazy-load writeLog for compressor audit trail.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, "..", "..", "lib", "log-manager"));
+      _writeLog = lm.writeLog;
+    } catch { _writeLog = () => {}; }
+  }
+  return _writeLog;
+}
+function srcLog(level, event, fields) {
+  try { getWriteLog()("script-knowledge-compressor", level, { event, ...fields }); } catch {}
+}
+
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs", "official_docs");
 const COMPRESSION_THRESHOLD_KB = 200; // From template_resolution.knowledge.compression_threshold_kb
 
@@ -32,6 +49,7 @@ function compressFile(relPath) {
     // Try pandoc first
     execSync(`pandoc "${absPath}" -f html -t markdown -o "${mdPath}" --strip-comments`, { timeout: 30000, stdio: "pipe" });
     console.log(`[Compressor] pandoc: ${relPath} → ${path.basename(mdPath)}`);
+    srcLog("INFO", "file_compressed", { path: relPath, method: "pandoc", output: path.basename(mdPath) });
   } catch {
     // Fallback: basic HTML strip
     let html = fs.readFileSync(absPath, "utf-8");
@@ -46,6 +64,7 @@ function compressFile(relPath) {
                .trim();
     fs.writeFileSync(mdPath, html, "utf-8");
     console.log(`[Compressor] fallback: ${relPath} → ${path.basename(mdPath)}`);
+    srcLog("INFO", "file_compressed", { path: relPath, method: "fallback", output: path.basename(mdPath) });
   }
 
   // Archive original
@@ -82,15 +101,6 @@ function compressAll() {
   return results;
 }
 
-if (require.main === module) {
-  const target = process.argv[2];
-  if (target === "--all") {
-    console.log(JSON.stringify(compressAll(), null, 2));
-  } else if (target) {
-    console.log(JSON.stringify(compressFile(target), null, 2));
-  } else {
-    console.log("UC7KS Compressor v1.0.0\nUsage: compressor.js <filePath> | --all");
-  }
-}
+
 
 module.exports = { compressFile, compressAll };

@@ -751,8 +751,46 @@
       "drained_at": "2026-06-13T00:39:29.288Z",
       "drain_reason": "armed for 0h without completion (threshold: 0.001h)",
       "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781342928982": {
+      "session_id": "cg_ses_1781342928982",
+      "created_at": "2026-06-13T09:28:48.996Z",
+      "task_description": "Verify log unification implementation by practical dispatch - check srcLog calls produce correct -runtime.log files",
+      "task_id": "VERIFY-LOG-UNIFICATION",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_digest_mismatch_rules_rule_detail_TEMPLATE_VARIABLE_STANDARD_md",
+          "desc": "[Gate Preflight v2] .opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md: digest mismatch — NO version change (expected v2.0.0/sha256-9e9269e693594044..., got sha256-cd495d946a97238b...) — possible unauthorized modification",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 30 digests verified, 1 mismatches (HIGH), 0 warnings",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (42 entries)",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_pipeline_not_started",
+          "desc": "[UC7KS] No agent has started the knowledge pipeline for task \"VERIFY-LOG-UNIFICATION\". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null,
+      "drained_at": "2026-06-13T09:29:42.441Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.001h)",
+      "drain_type": "STALE_CHECKED"
     }
   },
-  "last_drained": "2026-06-13T00:39:29.288Z",
-  "total_drained": 23
+  "last_drained": "2026-06-13T09:29:42.441Z",
+  "total_drained": 24
 }

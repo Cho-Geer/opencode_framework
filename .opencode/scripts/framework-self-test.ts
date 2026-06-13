@@ -13,6 +13,23 @@
 const fs = require("fs");
 const path = require("path");
 
+/**
+ * FW-LOG-UNIFY Phase 3: Lazy-load writeLog to record self-test outcomes.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, "..", "lib", "log-manager"));
+      _writeLog = lm.writeLog;
+    } catch { _writeLog = () => {}; }
+  }
+  return _writeLog;
+}
+function srcLog(level, event, fields) {
+  try { getWriteLog()("script-framework-self-test", level, { event, ...fields }); } catch {}
+}
+
 // ─── Constants ────────────────────────────────────────────────
 const OPENCODE_ROOT = path.resolve(__dirname, "..", "..");
 const PROJECT_ROOT = OPENCODE_ROOT; // project_root is "."
@@ -66,7 +83,11 @@ function resolveTsRunner() {
 
 function check(name, passed, detail) {
   const status = passed ? PASS : FAIL;
-  if (!passed) allPassed = false;
+  if (!passed) {
+    allPassed = false;
+    // FW-LOG-UNIFY-C3: Log check failures for persistent audit trail
+    srcLog("ERROR", "check_failed", { check: name, detail: detail || "" });
+  }
   const line = `[${status}] ${name}${detail ? " — " + detail : ""}`;
   results.push(line);
   console.log(line);
@@ -2566,10 +2587,16 @@ console.log("══════════════════════�
 const passedCount = results.filter((r) => r.startsWith("[PASS]")).length;
 const failedCount = results.filter((r) => r.startsWith("[FAIL]")).length;
 
+// FW-LOG-UNIFY-C3: Log summary for persistent audit trail
+srcLog(allPassed ? "INFO" : "ERROR", "self_test_complete", {
+  totalChecks: results.length, passed: passedCount, failed: failedCount,
+  allPassed,
+});
+
 if (allPassed) {
-  console.log(`  ✅ ALL ${results.length} CHECKS PASSED`);
+  console.log(`  ✅ ALL ${passedCount} CHECKS PASSED`);
   process.exit(0);
 } else {
-  console.log(`  ❌ ${failedCount}/${results.length} CHECKS FAILED`);
+  console.log(`  ❌ ${failedCount} of ${results.length} CHECKS FAILED`);
   process.exit(1);
 }

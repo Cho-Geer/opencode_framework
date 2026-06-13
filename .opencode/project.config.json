@@ -204,7 +204,10 @@
     "logs.retention_days": 7,
     "logs.delimiter": " | ",
     "logs.buffer_size": 20,
-    "logs.flush_interval_ms": 5000
+    "logs.flush_interval_ms": 5000,
+    "logs.level": "INFO",
+    "logs.file_prefix": "plugin",
+    "logs.source_types": "mcp,script,lib,plugin"
   },
   "context7_task_mapping": [
     {

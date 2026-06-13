@@ -32,6 +32,23 @@ const AGENTS_DIR = path.join(OPENCODE_DIR, "agents");
 const RULES_DIR = path.join(OPENCODE_DIR, "rules");
 const SKILLS_DIR = path.join(OPENCODE_DIR, "skills");
 
+/**
+ * FW-LOG-UNIFY-C4: Lazy-load writeLog to record doctor outcomes.
+ */
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, "..", "lib", "log-manager"));
+      _writeLog = lm.writeLog;
+    } catch { _writeLog = () => {}; }
+  }
+  return _writeLog;
+}
+function srcLog(level, event, fields) {
+  try { getWriteLog()("script-framework-doctor", level, { event, ...fields }); } catch {}
+}
+
 const REPORT_DIR = path.join(PROJECT_ROOT, ".task_temp", "_global");
 const REPORT_PATH = path.join(REPORT_DIR, "doctor-report.json");
 
@@ -1238,10 +1255,12 @@ function printHuman(results) {
 
   if (failedCount === 0) {
     console.log(`  ✅ ALL ${results.length} CHECKS PASSED`);
+    srcLog("INFO", "doctor_complete", { total: results.length, passed: passedCount, failed: 0 });
   } else {
     console.log(
       `  ⚠️  ${passedCount}/${results.length} passed, ${failedCount} failed`,
     );
+    srcLog("WARN", "doctor_complete", { total: results.length, passed: passedCount, failed: failedCount });
   }
   console.log("");
 }

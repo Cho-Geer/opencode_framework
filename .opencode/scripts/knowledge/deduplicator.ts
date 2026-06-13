@@ -9,7 +9,7 @@
  * Returns: { is_duplicate: boolean, existing_path: string|null }
  */
 
-const { readManifest } = require("./indexer");
+
 
 function checkDuplicate(sha256) {
   const manifest = readManifest();
@@ -39,13 +39,6 @@ function computeHash(filePath) {
   return `sha256:${hash.digest("hex")}`;
 }
 
-if (require.main === module) {
-  const sha = process.argv[2];
-  if (!sha) {
-    console.log("UC7KS Deduplicator v1.0.0\nUsage: deduplicator.js <sha256>");
-    process.exit(1);
-  }
-  console.log(JSON.stringify(checkDuplicate(sha), null, 2));
-}
+
 
 module.exports = { checkDuplicate, computeHash };
