@@ -2,7 +2,7 @@
 # ==============================================================================
 # pre-execution-hook.sh — Multi-Stage Pre-Execution Validation Hook
 # ==============================================================================
-# Stage 1 — Node-first DAG/Gate/Registry Validation (pre-execution-gate.ts)
+# Stage 1 — Bun-first DAG/Gate/Registry Validation (pre-execution-gate.ts)
 # Stage 2 — Rule Registry Integrity Verification (rule-registry-verify.ts)
 # Stage 3 — Git Hooks Installation & Verification (install-hooks.ts)
 #
@@ -127,7 +127,7 @@ if [ -f "$PRE_EXEC_GATE" ] && command -v bun &>/dev/null; then
     fi
   fi
 else
-  echo "  ℹ️  pre-execution-gate.ts not found or node unavailable — skipping Stage 1."
+  echo "  ℹ️  pre-execution-gate.ts not found or bun unavailable — skipping Stage 1."
   echo "  ⚠️  Full DAG/gate/registry validation not performed."
 fi
 
@@ -145,7 +145,18 @@ if [ ! -f "$PRE_EXEC_GATE" ] || ! command -v bun &>/dev/null; then
   # Check if task exists with status "pending"
   # Use jq for robust JSON querying
   if command -v jq &> /dev/null; then
-    TASK_EXISTS=$(jq --arg id "$TASK_ID" '.tasks[] | select(.id == $id)' "$DAG_FILE" 2>/dev/null || echo "")
+    # FW-FIX-P2-EXECUTION-ORDER (2026-06-14, @Super-Admin):
+    # Extend DAG fallback to check dag.execution_order (flat arrays and nested
+    # objects) alongside dag.tasks. When dag.tasks is empty (archived/phase
+    # DAGs), tasks may only be defined in execution_order.<phase> arrays.
+    TASK_EXISTS=$(jq --arg id "$TASK_ID" '
+      (.tasks[]? | select(.id == $id)) as $task_obj
+      | if $task_obj then $task_obj
+      elif ([.execution_order // {} | to_entries[]?.value[]? | select(. == $id)] | length) > 0
+      then {"id": $id, "status": "pending"}
+      else empty
+      end
+    ' "$DAG_FILE" 2>/dev/null || echo "")
     if [ -z "$TASK_EXISTS" ]; then
       enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
     fi
@@ -156,12 +167,23 @@ if [ ! -f "$PRE_EXEC_GATE" ] || ! command -v bun &>/dev/null; then
     fi
   elif command -v python3 &> /dev/null; then
     # Fallback: use python3 for JSON parsing if jq is not available
+    # FW-FIX-P2-EXECUTION-ORDER (2026-06-14, @Super-Admin):
+    # Also check dag.execution_order for flat or phase-nested task ID arrays.
     PYTHON_CHECK=$(python3 -c "
 import json, sys
 try:
     with open('$DAG_FILE', 'r') as f:
         dag = json.load(f)
     task = next((t for t in dag.get('tasks', []) if t.get('id') == '$TASK_ID'), None)
+    if task is None:
+        eo = dag.get('execution_order', {})
+        if isinstance(eo, dict):
+            for phase_ids in eo.values():
+                if isinstance(phase_ids, list) and '$TASK_ID' in phase_ids:
+                    task = {'id': '$TASK_ID', 'status': 'pending'}
+                    break
+        elif isinstance(eo, list) and '$TASK_ID' in eo:
+            task = {'id': '$TASK_ID', 'status': 'pending'}
     if task is None:
         print('NOT_FOUND')
     else:
@@ -176,37 +198,43 @@ except Exception as e:
       enf_exit "工作项 '${TASK_ID}' 的状态为 '${PYTHON_CHECK}'，非 'pending'。请检查 DAG 状态。"
     fi
   else
-    # Fallback: use node for JSON parsing if neither jq nor python3 is available.
-    # Cross-platform node discovery: Unix (node) → Windows (node.exe) → legacy (which/type)
-    NODE_CMD=""
+    # Fallback: use bun for JSON parsing if neither jq nor python3 is available.
+    # FW-PLAN-JS-TO-TS: Bun runs TypeScript directly; node fallback removed.
     if command -v bun &> /dev/null; then
-      NODE_CMD="node"
-    elif command -v bun.exe &> /dev/null; then
-      NODE_CMD="node.exe"
-    elif which node &> /dev/null 2>&1 || type node &> /dev/null 2>&1; then
-      NODE_CMD="node"
-    fi
-
-    if [ -n "$NODE_CMD" ]; then
-      NODE_CHECK=$("$NODE_CMD" -e "
+      # FW-FIX-P2-EXECUTION-ORDER (2026-06-14, @Super-Admin):
+      # Also check dag.execution_order for flat or phase-nested task ID arrays.
+      BUN_CHECK=$(bun -e "
       const fs = require('fs');
       const dag = JSON.parse(fs.readFileSync('$DAG_FILE', 'utf8'));
-      const task = dag.tasks.find(t => t.id === '$TASK_ID');
+      let task = dag.tasks?.find(t => t.id === '$TASK_ID');
+      if (!task) {
+        const eo = dag.execution_order || {};
+        if (Array.isArray(eo)) {
+          if (eo.includes('$TASK_ID')) task = { id: '$TASK_ID', status: 'pending' };
+        } else {
+          for (const phaseIds of Object.values(eo)) {
+            if (Array.isArray(phaseIds) && phaseIds.includes('$TASK_ID')) {
+              task = { id: '$TASK_ID', status: 'pending' };
+              break;
+            }
+          }
+        }
+      }
       if (!task) {
         console.log('NOT_FOUND');
         process.exit(0);
       }
         console.log(task.status);
       " 2>/dev/null)
-      if [ "$NODE_CHECK" = "NOT_FOUND" ]; then
+      if [ "$BUN_CHECK" = "NOT_FOUND" ]; then
         enf_exit "工作项 '${TASK_ID}' 不在 Task.DAG.json 中。必须先用 /dispatch @Meta-Planner 生成 DAG。"
       fi
-      if [ "$NODE_CHECK" != "pending" ]; then
-        enf_exit "工作项 '${TASK_ID}' 的状态为 '${NODE_CHECK}'，非 'pending'。请检查 DAG 状态。"
+      if [ "$BUN_CHECK" != "pending" ]; then
+        enf_exit "工作项 '${TASK_ID}' 的状态为 '${BUN_CHECK}'，非 'pending'。请检查 DAG 状态。"
       fi
     else
       # No JSON parser available — fail-closed in strict/locked, warning in advisory
-      enf_exit "缺少 JSON 解析器 (jq/python3/node/node.exe)。在 strict/locked 模式下无法验证 DAG。请安装 jq/python3 或 node。"
+      enf_exit "缺少 JSON 解析器 (jq/python3/bun)。在 strict/locked 模式下无法验证 DAG。请安装 jq/python3 或 bun。"
     fi
   fi
 
@@ -234,7 +262,7 @@ if [ -f "$RULE_VERIFY_SCRIPT" ] && command -v bun &>/dev/null; then
     fi
   fi
 else
-  echo "  ℹ️  rule-registry-verify.ts not found or node unavailable — skipping Stage 2."
+  echo "  ℹ️  rule-registry-verify.ts not found or bun unavailable — skipping Stage 2."
 fi
 
 # ─── Stage 2.5: State Reconciliation (DAG ↔ Gate ↔ Machine consistency) ──
@@ -259,7 +287,7 @@ if [ -f "$STATE_RECONCILE_SCRIPT" ] && command -v bun &>/dev/null; then
     fi
   fi
 else
-  echo "  ℹ️  state-reconciliation.ts not found or node unavailable — skipping Stage 2.5."
+  echo "  ℹ️  state-reconciliation.ts not found or bun unavailable — skipping Stage 2.5."
 fi
 
 # ─── Stage 3: Git Hooks Installation & Verification ────────────
@@ -284,7 +312,7 @@ if [ -f "$INSTALL_HOOKS_SCRIPT" ] && command -v bun &>/dev/null; then
     fi
   fi
 else
-  echo "  ℹ️  install-hooks.ts not found or node unavailable — skipping Stage 3."
+  echo "  ℹ️  install-hooks.ts not found or bun unavailable — skipping Stage 3."
 fi
 
 # ── Stage 4: UC7KS Knowledge Gate (FW-HARDEN-UC7KS-004) ──

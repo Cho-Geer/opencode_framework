@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -39,15 +39,17 @@ function gateLog(category, level, data) {
  *   1 — Validation failure or usage error
  *   2 — System error (config missing, file unreadable, etc.)
  *
- * Checks:
- *   Check 1 — DAG Coverage: task_id exists in Task.DAG.json with status=pending
+ * Checks (in execution order):
+ *   Check 1 — Config Validity: required config files are readable.
+ *             Runs first to validate that all prerequisite files exist before
+ *             checks that depend on them (DAG, Gate, Role, Registry, Knowledge).
+ *   Check 2 — DAG Coverage: task_id exists in Task.DAG.json with status=pending
  *              (SKIPPED when --dispatch-session flag is set — dispatch session
  *               IDs are OpenCode background sub-agent process identifiers,
  *               NOT DAG task IDs)
- *   Check 2 — Gate Lifecycle: matching armed gate session exists in gate-state.json
- *   Check 3 — Role Violations: no unresolved role violations in machine.json
- *   Check 4 — Rule Registry: no HIGH severity mismatches (or all mismatches waived)
- *   Check 5 — Config Validity: required config files are readable
+ *   Check 3 — Gate Lifecycle: matching armed gate session exists in gate-state.json
+ *   Check 4 — Role Violations: no unresolved role violations in machine.json
+ *   Check 5 — Rule Registry: no HIGH severity mismatches (or all mismatches waived)
  *   Check 6 — Knowledge Pipeline (NEW): when Knowledge-Curator is dispatched,
  *             verifies DISPATCH_TOKEN presence and UC7KS cache-first compliance
  */
@@ -377,16 +379,45 @@ function checkDagCoverage(taskId) {
     return true; // advisory: pass through
   }
 
-  const task = dag.data.tasks.find((t) => t.id === taskId);
+  let task = dag.data.tasks.find((t) => t.id === taskId);
+
+  /**
+   * FW-REPAIR-021 (2026-06-14, @Super-Admin): Also scan execution_order for
+   * task IDs not present in the flat tasks array. execution_order organizes
+   * tasks into logical groups (e.g. { "validate_configs_all": ["T001", ...] });
+   * tasks may appear ONLY in execution_order and not in the tasks array
+   * (e.g. when tasks are archived/pruned). Without this fallback search,
+   * checkDagCoverage incorrectly reports "not found" for valid scheduled tasks.
+   */
+  const executionOrderIds = new Set();
+  if (dag.data.execution_order && typeof dag.data.execution_order === "object") {
+    for (const group of Object.values(dag.data.execution_order)) {
+      if (Array.isArray(group)) {
+        group.forEach((id) => executionOrderIds.add(id));
+      }
+    }
+  }
+
   if (!task) {
+    // Task not in tasks array — check execution_order
+    if (executionOrderIds.has(taskId)) {
+      // Task found in execution_order: accept as valid (status defaults
+      // to "included" — the task is scheduled for execution)
+      return true;
+    }
+
+    const availableInTasks = dag.data.tasks
+      .slice(0, 10)
+      .map((t) => t.id);
+    const availableInExecOrder = [...executionOrderIds].slice(0, 10);
+    const allAvailable = [...new Set([...availableInTasks, ...availableInExecOrder])];
     const blocked = emitError(
       "DAG Coverage",
-      `Task '${taskId}' not found in Task.DAG.json`,
+      `Task '${taskId}' not found in Task.DAG.json (checked both tasks[] and execution_order)`,
       `To fix: dispatch @Meta-Planner to plan this task and add it to the DAG.\n` +
-        `  Available tasks: ${dag.data.tasks
-          .slice(0, 10)
-          .map((t) => t.id)
-          .join(", ")}${dag.data.tasks.length > 10 ? "..." : ""}`,
+        `  Tasks in DAG (tasks[]): ${availableInTasks.join(", ") || "(none)"}${dag.data.tasks.length > 10 ? "..." : ""}\n` +
+        `  Tasks in DAG (execution_order): ${availableInExecOrder.join(", ") || "(none)"}${executionOrderIds.size > 10 ? "..." : ""}\n` +
+        `  Combined unique IDs: ${allAvailable.length}`,
     );
     if (blocked) process.exit(1);
     return false;

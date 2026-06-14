@@ -65,17 +65,79 @@ export function checkPluginIntegrity(): { valid: boolean; detail: string } {
   return { valid: true, detail: "Plugin integrity verified" };
 }
 
+/**
+ * Search Task.DAG.json for a task ID.
+ *
+ * Two-phase lookup:
+ *   1. dag.tasks[] — traditional structure with per-task status objects
+ *   2. dag.execution_order — fallback for DAGs where tasks only exist as
+ *      string IDs in group arrays; status is inferred as "pending" since
+ *      execution_order groups do not carry per-task status metadata.
+ *
+ * @param taskId — DAG task ID to search for (e.g. "T-014", "FW-REPAIR-01")
+ * @returns { found: boolean, status: string, source: "tasks" | "execution_order" | "unknown" }
+ *   - source "tasks": found in dag.tasks[] with real status
+ *   - source "execution_order": found in execution_order groups; status assumed "pending"
+ *   - source "unknown": not found in either location
+ *
+ * @since FW-FIX-EXECORDER-01 (2026-06-14): Added source tracking + audit logging
+ *        for execution_order fallback matches.
+ */
 export function findTaskInDag(taskId: string): {
   found: boolean;
   status: string;
+  source: "tasks" | "execution_order" | "unknown";
 } {
   const dag = readJsonFile<any>(STATE_PATHS.dag());
-  if (!dag || !Array.isArray(dag.tasks))
-    return { found: false, status: "unknown" };
-  const task = dag.tasks.find((t: any) => t.id === taskId);
-  return task
-    ? { found: true, status: task.status }
-    : { found: false, status: "unknown" };
+  if (!dag) return { found: false, status: "unknown", source: "unknown" };
+
+  // 1) Search tasks array first (traditional DAG structure with per-task status)
+  if (Array.isArray(dag.tasks)) {
+    const task = dag.tasks.find((t: any) => t.id === taskId);
+    if (task) return { found: true, status: task.status, source: "tasks" };
+  }
+
+  // 2) Fallback: scan execution_order groups (flat arrays + nested objects)
+  // P2-FIX (2026-06-14): When dag.tasks is empty, tasks are organized in
+  // execution_order groups. Each group value can be:
+  //   - A flat array: "group_name": ["T001", "T002"]
+  //   - A nested object: "group_name": { "sub1": ["T003"], "sub2": ["T004"] }
+  //
+  // FW-FIX-EXECORDER-01 (2026-06-14): Status is INFERRED as "pending" because
+  // execution_order groups only store task ID strings — there is no per-task
+  // status metadata. Audit logging added for transparency.
+  const eo = dag.execution_order as Record<string, unknown> | undefined;
+  if (eo) {
+    for (const [groupName, group] of Object.entries(eo)) {
+      if (Array.isArray(group)) {
+        // Flat array group — check each entry
+        if (group.includes(taskId)) {
+          writeAuditLogEntry({
+            event: "DAG-TASK-FOUND",
+            detail: `findTaskInDag: "${taskId}" found in execution_order["${groupName}"] (flat array); status inferred as "pending"`,
+            agent: "gate-checks",
+            level: "INFO",
+          });
+          return { found: true, status: "pending", source: "execution_order" };
+        }
+      } else if (group && typeof group === "object") {
+        // Nested object group — recurse into each subgroup array
+        for (const [subName, subgroup] of Object.entries(group as Record<string, unknown>)) {
+          if (Array.isArray(subgroup) && subgroup.includes(taskId)) {
+            writeAuditLogEntry({
+              event: "DAG-TASK-FOUND",
+              detail: `findTaskInDag: "${taskId}" found in execution_order["${groupName}"]["${subName}"] (nested); status inferred as "pending"`,
+              agent: "gate-checks",
+              level: "INFO",
+            });
+            return { found: true, status: "pending", source: "execution_order" };
+          }
+        }
+      }
+    }
+  }
+
+  return { found: false, status: "unknown", source: "unknown" };
 }
 
 function matchGlob(filePath: string, pattern: string): boolean {
