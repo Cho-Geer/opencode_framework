@@ -3,8 +3,8 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-06-13T13:03:18.261Z",
-    "last_regenerated": "2026-06-11",
+    "last_updated": "2026-06-15T00:10:12.877Z",
+    "last_regenerated": "2026-06-14",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
     "digest_algorithm": "sha256",
@@ -170,9 +170,9 @@
     "rules/rule_detail/enforcement-modes-standard.md": {
       "path": ".opencode/rules/rule_detail/enforcement-modes-standard.md",
       "category": "rule",
-      "semver": "1.0.0",
-      "sha256": "2e6269cb80bd1eb445047c40207f9e885faa3b6551237e37f519c8b593f1c9c7",
-      "last_modified": "2026-06-06T02:30:00.000Z",
+      "semver": "1.0.1",
+      "sha256": "ffff0ea25bb0099271ffcc24c39d6952a40a440dd8ba2eb9be67c18649f649f7",
+      "last_modified": "2026-06-14T01:50:02.110Z",
       "description": "Enforcement Modes Standard — advisory/strict/locked mode definitions, behavior matrix, and mode transition rules. Updated with UC7KS-PIPELINE-STANDARD.md cross-reference.",
       "digest_history": [
         {
@@ -180,6 +180,12 @@
           "timestamp": "2026-06-06T02:30:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration + UC7KS cross-reference update — Super-Admin cg_ses_1780751916545: GAP-M3 remediation"
+        },
+        {
+          "sha256": "ffff0ea25bb0099271ffcc24c39d6952a40a440dd8ba2eb9be67c18649f649f7",
+          "timestamp": "2026-06-14T01:50:02.110Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
@@ -208,9 +214,9 @@
     "rules/rule_detail/state-machine-standard.md": {
       "path": ".opencode/rules/rule_detail/state-machine-standard.md",
       "category": "rule",
-      "semver": "1.0.0",
-      "sha256": "b9fd8d9ebece1a48653334d5087473d29e35c245a92700a003627962556010c2",
-      "last_modified": "2026-05-21T23:32:26.000Z",
+      "semver": "1.0.1",
+      "sha256": "4246abbe30390fc771202e789f3c0cab592c17bcc54b14cebf6ee848d5cf009d",
+      "last_modified": "2026-06-14T07:09:46.040Z",
       "description": "State machine (machine.json) structural standard and operation procedures",
       "digest_history": [
         {
@@ -218,6 +224,12 @@
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "4246abbe30390fc771202e789f3c0cab592c17bcc54b14cebf6ee848d5cf009d",
+          "timestamp": "2026-06-14T07:09:46.040Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
@@ -246,9 +258,9 @@
     "rules/rule_detail/template-variable-standard.md": {
       "path": ".opencode/rules/rule_detail/template-variable-standard.md",
       "category": "rule",
-      "semver": "1.0.0",
-      "sha256": "a225041b90311083d2d22302da393d88bf67f10fc1685aa473942b2eee930f1b",
-      "last_modified": "2026-05-21T15:45:14.000Z",
+      "semver": "1.0.1",
+      "sha256": "e73ad58b51f8204535974f37b105842ecac06a23f213676b509ca9c42f724043",
+      "last_modified": "2026-06-14T01:50:02.110Z",
       "description": "Template variable standardization for cross-project compatibility",
       "digest_history": [
         {
@@ -256,15 +268,21 @@
           "timestamp": "2026-05-22T01:27:00.000Z",
           "semver": "1.0.0",
           "change": "initial registration"
+        },
+        {
+          "sha256": "e73ad58b51f8204535974f37b105842ecac06a23f213676b509ca9c42f724043",
+          "timestamp": "2026-06-14T01:50:02.110Z",
+          "semver": "1.0.1",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md": {
       "path": ".opencode/rules/rule_detail/TEMPLATE_VARIABLE_STANDARD.md",
       "category": "rule",
-      "semver": "2.0.1",
-      "sha256": "cd495d946a97238bfc8ef872ac93bd8e65f88cd6c304e3f8fda9a9667bfe0f49",
-      "last_modified": "2026-06-13T12:50:23.397Z",
+      "semver": "2.0.0",
+      "sha256": "a264b56f69d1e8088fb2f3182eb29aedb90927c0e1b183fdc44f6107b7ca1a05",
+      "last_modified": "2026-06-14T14:07:55.376Z",
       "description": "Uppercase variant of template variable standard (legacy/unified)",
       "digest_history": [
         {
@@ -290,6 +308,24 @@
           "timestamp": "2026-06-13T12:50:23.401Z",
           "semver": "2.0.1",
           "change": "Auto-repaired by rule_registry_repair tool (agent: Super-Admin)"
+        },
+        {
+          "sha256": "02c8314b8dc196277d864a6d1561b7fa283f7193732144de06b8d0e1b822c4cc",
+          "timestamp": "2026-06-14T01:50:02.111Z",
+          "semver": "2.0.0",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "7326c0b58113e9fba771461e625f49cb7880bec28165baed83456c6c5773074d",
+          "timestamp": "2026-06-14T07:09:46.040Z",
+          "semver": "2.0.1",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "a264b56f69d1e8088fb2f3182eb29aedb90927c0e1b183fdc44f6107b7ca1a05",
+          "timestamp": "2026-06-14T14:07:55.376Z",
+          "semver": "2.0.0",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
@@ -449,9 +485,9 @@
     "agents/Coder-BE.md": {
       "path": ".opencode/agents/Coder-BE.md",
       "category": "agent",
-      "semver": "1.0.9",
-      "sha256": "79e6be431dd87d205d6b134a8ca2ea5fa74af83e3cc7f5b1048d840d55f0ea58",
-      "last_modified": "2026-06-11T03:05:22.317Z",
+      "semver": "1.0.10",
+      "sha256": "23fe124ceea2ee74af06cfcee0e78570a1533279157497a8f04eb6241a3723c3",
+      "last_modified": "2026-06-14T07:09:46.041Z",
       "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
         {
@@ -525,15 +561,21 @@
           "timestamp": "2026-06-11T03:05:22.317Z",
           "semver": "1.0.9",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "23fe124ceea2ee74af06cfcee0e78570a1533279157497a8f04eb6241a3723c3",
+          "timestamp": "2026-06-14T07:09:46.041Z",
+          "semver": "1.0.10",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Coder-FE.md": {
       "path": ".opencode/agents/Coder-FE.md",
       "category": "agent",
-      "semver": "1.0.9",
-      "sha256": "1132f0a2fb271660ceaec362e02d2a82c96f1f3abeedcbc4974405b064ce14bb",
-      "last_modified": "2026-06-11T03:05:22.317Z",
+      "semver": "1.0.10",
+      "sha256": "010986b27331f91cdc1099841d7cca9645fb498a729410ffb307b7e0a05e8473",
+      "last_modified": "2026-06-14T07:09:46.041Z",
       "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
         {
@@ -607,15 +649,21 @@
           "timestamp": "2026-06-11T03:05:22.317Z",
           "semver": "1.0.9",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "010986b27331f91cdc1099841d7cca9645fb498a729410ffb307b7e0a05e8473",
+          "timestamp": "2026-06-14T07:09:46.041Z",
+          "semver": "1.0.10",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
     "agents/Orchestrator.md": {
       "path": ".opencode/agents/Orchestrator.md",
       "category": "agent",
-      "semver": "1.0.11",
-      "sha256": "87ea7413af80aa62e6b800a21c0ca518fab0af5c672e5fdf764ce8a04248af7d",
-      "last_modified": "2026-06-11T15:51:19.928Z",
+      "semver": "1.0.13",
+      "sha256": "dc9a67c4f877a77f366e5789d6e55b9f02799333f04593878848738fa42f32f0",
+      "last_modified": "2026-06-15T00:10:12.877Z",
       "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch. FW-DOWNGRADE-SA: Super-Admin dispatch rules updated.",
       "digest_history": [
         {
@@ -706,6 +754,18 @@
           "timestamp": "2026-06-11T15:51:19.928Z",
           "semver": "1.0.11",
           "change": "SA-PERMISSION-MATRIX-ALIGN-20250612: added dispatch_subagent to mcp_tools"
+        },
+        {
+          "sha256": "6539829a10ceab1be7f9864bff37fa025bef0fddb64f0c4e51b4d6d681561290",
+          "timestamp": "2026-06-14T14:07:55.377Z",
+          "semver": "1.0.12",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "dc9a67c4f877a77f366e5789d6e55b9f02799333f04593878848738fa42f32f0",
+          "timestamp": "2026-06-15T00:10:12.877Z",
+          "semver": "1.0.13",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     },
@@ -886,9 +946,9 @@
     "agents/CI-CD-Agent.md": {
       "path": ".opencode/agents/CI-CD-Agent.md",
       "category": "agent",
-      "semver": "1.0.5",
-      "sha256": "989d94d05b86009be46a7142eb8ca84c20ef7cf9e13906d755a528a0bc5c8d27",
-      "last_modified": "2026-06-11T03:05:22.319Z",
+      "semver": "1.0.6",
+      "sha256": "1e3228325426d8f1be134657b08c5a00e9606f901b1a5b5343f6488cdfd3584f",
+      "last_modified": "2026-06-14T23:46:21.090Z",
       "description": "DevOps/SRE – CI pipeline management, auto-deployment, git version management, production self-healing",
       "digest_history": [
         {
@@ -932,15 +992,21 @@
           "timestamp": "2026-06-11T03:05:22.319Z",
           "semver": "1.0.5",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "1e3228325426d8f1be134657b08c5a00e9606f901b1a5b5343f6488cdfd3584f",
+          "timestamp": "2026-06-14T23:46:21.090Z",
+          "semver": "1.0.6",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     },
     "agents/Knowledge-Curator.md": {
       "path": ".opencode/agents/Knowledge-Curator.md",
       "category": "agent",
-      "semver": "1.0.1",
-      "sha256": "0efa1a3a34da08b5db8b4aaec7e5e3d9bd69096a36097477535de3fe28638ce7",
-      "last_modified": "2026-06-11T00:34:45.563Z",
+      "semver": "1.0.2",
+      "sha256": "75dcf7932e048d6e5420771b1ec3e9bb6788dcbb92f6ddeaf89a0fb3995a6cfd",
+      "last_modified": "2026-06-14T01:50:02.112Z",
       "description": "Knowledge Management Specialist – acquires, caches, and organizes technical documentation via UC7KS pipeline",
       "digest_history": [
         {
@@ -966,6 +1032,12 @@
           "timestamp": "2026-06-11T00:34:45.563Z",
           "semver": "1.0.1",
           "change": "Super-Admin: digest repair — content hash sync for all agent config files"
+        },
+        {
+          "sha256": "75dcf7932e048d6e5420771b1ec3e9bb6788dcbb92f6ddeaf89a0fb3995a6cfd",
+          "timestamp": "2026-06-14T01:50:02.112Z",
+          "semver": "1.0.2",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
         }
       ]
     },
@@ -1004,9 +1076,9 @@
     "agents/Super-Admin.md": {
       "path": ".opencode/agents/Super-Admin.md",
       "category": "agent",
-      "semver": "1.0.3",
-      "sha256": "9103c1b837c1dec1047ceb8a31dc13a98ddf909f9760726b044e449030934db4",
-      "last_modified": "2026-06-11T15:51:19.928Z",
+      "semver": "1.0.8",
+      "sha256": "dfbe3250cea8da32c1132d566889b3586e6cf028a2a9121d8e59c2adce0cb600",
+      "last_modified": "2026-06-15T00:10:12.877Z",
       "description": "Privileged Meta-Layer – emergency framework repair, governance modifications, state machine surgery, agent lifecycle management",
       "digest_history": [
         {
@@ -1032,6 +1104,36 @@
           "timestamp": "2026-06-11T15:51:19.928Z",
           "semver": "1.0.3",
           "change": "SA-PERMISSION-MATRIX-ALIGN-20250612: added dispatch_subagent to mcp_tools"
+        },
+        {
+          "sha256": "d8d720021bc1e32416958bb423a8e9fd71bbe2e6ba7af4595ebc504330f76279",
+          "timestamp": "2026-06-14T01:50:02.113Z",
+          "semver": "1.0.4",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "cbfe1b4d34b74ed0d8ed3a4618774bed908c6a971cb399b27b1cb595b603ce11",
+          "timestamp": "2026-06-14T07:09:46.043Z",
+          "semver": "1.0.5",
+          "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "c0329e4e8fa5a9f8bcd0c3b109bfb490770542ed1031d720c891b8645e6d6c13",
+          "timestamp": "2026-06-14T15:03:22.099Z",
+          "semver": "1.0.6",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
+        },
+        {
+          "sha256": "77a2672c79294f5bc6b63d25dd0559945aebe76c01a75536c6f4379498235b95",
+          "timestamp": "2026-06-14T15:09:42.054Z",
+          "semver": "1.0.7",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
+        },
+        {
+          "sha256": "dfbe3250cea8da32c1132d566889b3586e6cf028a2a9121d8e59c2adce0cb600",
+          "timestamp": "2026-06-15T00:10:12.877Z",
+          "semver": "1.0.8",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     }

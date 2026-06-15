@@ -789,8 +789,48 @@
       "drained_at": "2026-06-13T09:29:42.441Z",
       "drain_reason": "checked for 0h without confirmation (threshold: 0.001h)",
       "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781449543459": {
+      "session_id": "cg_ses_1781449543459",
+      "created_at": "2026-06-14T15:05:43.466Z",
+      "task_description": "Dispatch Super-Admin to repair state reconciliation and drain stale pending entry",
+      "task_id": "SA-STATE-REPAIR-001",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Dispatch Super-Admin SA-STATE-REPAIR-001 to fix state reconciliation (Checks 26-27) and drain stale CI-CD-Agent pending entry (Check 33)",
+      "confirmed_at": "2026-06-14T15:05:53.325Z",
+      "consumed_at": null,
+      "audit": null,
+      "agent": "Super-Admin",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-15T15:05:53.325Z",
+      "drained_at": "2026-06-14T15:12:42.981Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781449807602": {
+      "session_id": "cg_ses_1781449807602",
+      "created_at": "2026-06-14T15:10:07.608Z",
+      "task_description": "Fix state reconciliation inconsistencies (Checks 26-27) in machine.json and gate-state.json",
+      "task_id": "GUARDIAN-STATE-REPAIR-002",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Identify discrepancies between machine.json and gate-state.json: (1) Duplicate meta timestamps in machine.json, (2) 3 stale recoverable sessions in gate-state.json, (3) Outdated write_audit_state.current_session. Fix: Deduplicate timestamps, drain stale sessions, update metadata.",
+      "confirmed_at": "2026-06-14T15:10:42.545Z",
+      "consumed_at": null,
+      "audit": null,
+      "agent": "@Guardian",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-15T15:10:42.545Z",
+      "drained_at": "2026-06-14T15:12:42.981Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED"
     }
   },
-  "last_drained": "2026-06-13T09:29:42.441Z",
-  "total_drained": 24
+  "last_drained": "2026-06-14T15:12:42.981Z",
+  "total_drained": 26
 }
