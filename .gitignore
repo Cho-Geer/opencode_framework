@@ -129,3 +129,6 @@ docs/handover/
 
 !docs/review/rule-registry/
 !docs/review/state-management/.opencode/logs/safe-bash.log*
+
+# Backup artifacts (stray .bak files from framework edits)
+*.bak
