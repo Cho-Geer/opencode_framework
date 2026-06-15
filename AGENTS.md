@@ -86,6 +86,43 @@
 
 @Orchestrator 的专属输出产物仅限于：调度状态报告、任务进度追踪、最终产物合并。**禁止 @Orchestrator 产出任何分析性文档（Project.graph、根因分析等）**，这些是 @Meta-Planner 或 @Architect 的职责。
 
+### 🚨 P0 PLAN-FIRST 调度约束 (FW-PLAN-FIRST, 2026-06-14)
+
+@Orchestrator 派遣任何 **非 DAG-exempt** 子 Agent 前,`Task.DAG.json`
+必须已经存在对应 `dag_task_id` 的任务条目(由 @Meta-Planner 规划)。
+框架在三个独立层次强制执行此约束:
+
+| 层次 | 文件 | 行为 |
+|---|---|---|
+| Layer 1 | `plugins/dispatch-before.ts` | 策略驱动;在工具运行前拒绝不合规派遣 |
+| Layer 2 | `tools/dispatch_subagent.ts` | 无条件代码;直接调用 `findTaskInDag()`;若启用 `auto_plan=true` 则触发自愈 |
+| Layer 3 | `plugins/gate-before.ts` P2-1 | 修改工具调用时的防御纵深审计 |
+
+**DAG-exempt agents**(无需 DAG 条目即可派遣):
+@Meta-Planner、@Orchestrator、@Super-Admin、@Knowledge-Curator。
+规范列表在 `.opencode/lib/dag-policy.ts`,其他文件不得重新定义。
+
+**自愈机制** `auto_plan=true`:当 @Orchestrator 需要派遣非 exempt
+子 Agent 但任务尚未规划时,设置 `auto_plan: true`,框架将自动派遣
+@Meta-Planner 生成规划,轮询 `Task.DAG.json` 直到条目出现,然后
+继续原派遣。受 `dispatch_policy` 约束:
+- `auto_plan_enabled: true` 才允许(默认 rollout 阶段为 `false`)
+- `auto_plan_max_per_session: 5`(每会话次数上限)
+- `auto_plan_timeout_ms: 120000`(每次超时)
+- **locked 模式下强制为 `false`**(必须人工介入)
+- 所有尝试记入 `machine.json.auto_plan_history`
+
+**@Orchestrator 不能绕过**:
+- 无法修改 `dispatch_subagent.ts` 或 `dispatch-before.ts`
+  (其 `safe_edit` 权限禁止 `.opencode/**`)
+- 无法修改 `project.config.json.dispatch_policy`(同上,加上
+  `framework-enforcer.ts` 的 `DISPATCH-POLICY-TAMPER` 检查)
+- 无法通过 @Super-Admin 绕过(@Super-Admin 派遣需匹配修复模式,
+  编辑 `dispatch_policy` 不是修复模式)
+- 无法跳过 `dag_task_id`(严格模式下 Layer 1/2 直接拒绝)
+
+参考:`docs/review/cicd-dag-block/plan-first-redesign.md`。
+
 ## 一、体系总览
 
 本项目采用**三层九角色**全生命周期自治多智能体架构，覆盖从需求规划、开发实现、质量验证到运维部署的完整链路，严格遵循项目规则。

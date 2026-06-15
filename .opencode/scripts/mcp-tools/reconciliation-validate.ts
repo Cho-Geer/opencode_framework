@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // ==============================================================================
-// reconciliation-validate.js — State Reconciliation Validator (Node.js)
+// reconciliation-validate.ts — State Reconciliation Validator (Bun)
 // ==============================================================================
 // Purpose: Cross-references three state planes:
 //           1. Task.DAG.json          — task planning/execution state
@@ -16,7 +16,7 @@
 //   Check 3 (DAG ↔ Machine): Completed tasks must have write audit history.
 //                             Pending tasks must NOT have write audit entries.
 //
-// Usage:   node reconciliation-validate.js [--quiet] [--strict] [--json]
+// Usage:   bun reconciliation-validate.ts [--quiet] [--strict] [--json]
 //          --quiet  : suppress per-check detail, only print summary line
 //          --strict : treat warnings as errors (exit 1 on any inconsistency)
 //          --json   : output results as JSON (for programmatic consumption)
@@ -347,4 +347,17 @@ if (JSON_OUTPUT) {
     }
     process.exit(1);
   }
+}
+
+// ── Exports for Testability (P4 — FW-PLAN-JS-TO-TS) ──
+// Guard pattern: only export when running under Bun's CJS-compatible mode,
+// not when invoked directly as a CLI script. This matches the pattern used
+// by compliance-gate.ts, eslint-audit.ts, code-quality-gate.ts,
+// keystone-validate.ts, and code-quality-lib.ts.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    loadJSON,
+    findDagTasksForSession,
+    anySessionReferencesTask,
+  };
 }

@@ -1,6 +1,6 @@
 import { tool } from "@opencode-ai/plugin"
 import * as path from "node:path"
-import { safeMkdir } from "../lib"
+import { safeMkdir, withInterruptGuard } from "../lib"
 
 export default tool({
   description:
@@ -11,16 +11,18 @@ export default tool({
     dryRun: tool.schema.boolean().optional().describe("Validate without executing"),
   },
   async execute(args) {
-    const absPath = path.resolve(args.dirPath)
+    return withInterruptGuard("safe_mkdir", async () => {
+      const absPath = path.resolve(args.dirPath)
 
-    if (args.dryRun) {
-      return `Validated mkdir for: ${absPath}`
-    }
+      if (args.dryRun) {
+        return `Validated mkdir for: ${absPath}`
+      }
 
-    const result = safeMkdir(absPath, { recursive: args.recursive })
-    if (!result.success) {
-      throw new Error(`safe_mkdir failed: ${result.error}`)
-    }
-    return `Directory created: ${result.path}`
+      const result = safeMkdir(absPath, { recursive: args.recursive })
+      if (!result.success) {
+        throw new Error(`safe_mkdir failed: ${result.error}`)
+      }
+      return `Directory created: ${result.path}`
+    })
   },
 })

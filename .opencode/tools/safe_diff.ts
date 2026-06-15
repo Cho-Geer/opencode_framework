@@ -22,7 +22,7 @@
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { generateDiff } from "../lib";
+import { generateDiff, withInterruptGuard } from "../lib";
 
 export default tool({
   description:
@@ -56,60 +56,62 @@ export default tool({
       ),
   },
   async execute(args, context) {
-    const agent = context.agent ?? "unknown";
+    return withInterruptGuard("safe_diff", async () => {
+      const agent = context.agent ?? "unknown";
 
-    // MODE 2: inline content diff (fileA + content)
-    if (args.content !== undefined && args.fileA) {
-      const absFileA = path.resolve(args.fileA);
+      // MODE 2: inline content diff (fileA + content)
+      if (args.content !== undefined && args.fileA) {
+        const absFileA = path.resolve(args.fileA);
 
-      if (!fs.existsSync(absFileA)) {
-        throw new Error(`[safe_diff] Target file not found: ${absFileA}`);
+        if (!fs.existsSync(absFileA)) {
+          throw new Error(`[safe_diff] Target file not found: ${absFileA}`);
+        }
+
+        const original = fs.readFileSync(absFileA, "utf-8");
+        const result = generateDiff(original, args.content);
+
+        if (!result.hasChanges) {
+          return `[safe_diff] Content matches existing file ${absFileA} (agent: ${agent})`;
+        }
+
+        return [
+          `[safe_diff] ${result.added} line(s) added, ${result.removed} line(s) removed (agent: ${agent})`,
+          result.diff,
+        ].join("\n");
       }
 
-      const original = fs.readFileSync(absFileA, "utf-8");
-      const result = generateDiff(original, args.content);
+      // MODE 1: two-file diff (backupPath + targetPath)
+      if (args.backupPath && args.targetPath) {
+        const absBackup = path.resolve(args.backupPath);
+        const absTarget = path.resolve(args.targetPath);
 
-      if (!result.hasChanges) {
-        return `[safe_diff] Content matches existing file ${absFileA} (agent: ${agent})`;
+        if (!fs.existsSync(absBackup)) {
+          throw new Error(`[safe_diff] Backup file not found: ${absBackup}`);
+        }
+        if (!fs.existsSync(absTarget)) {
+          throw new Error(`[safe_diff] Target file not found: ${absTarget}`);
+        }
+
+        const original = fs.readFileSync(absBackup, "utf-8");
+        const modified = fs.readFileSync(absTarget, "utf-8");
+
+        const result = generateDiff(original, modified);
+
+        if (!result.hasChanges) {
+          return `[safe_diff] No differences between ${absBackup} and ${absTarget} (agent: ${agent})`;
+        }
+
+        return [
+          `[safe_diff] ${result.added} line(s) added, ${result.removed} line(s) removed (agent: ${agent})`,
+          result.diff,
+        ].join("\n");
       }
 
-      return [
-        `[safe_diff] ${result.added} line(s) added, ${result.removed} line(s) removed (agent: ${agent})`,
-        result.diff,
-      ].join("\n");
-    }
-
-    // MODE 1: two-file diff (backupPath + targetPath)
-    if (args.backupPath && args.targetPath) {
-      const absBackup = path.resolve(args.backupPath);
-      const absTarget = path.resolve(args.targetPath);
-
-      if (!fs.existsSync(absBackup)) {
-        throw new Error(`[safe_diff] Backup file not found: ${absBackup}`);
-      }
-      if (!fs.existsSync(absTarget)) {
-        throw new Error(`[safe_diff] Target file not found: ${absTarget}`);
-      }
-
-      const original = fs.readFileSync(absBackup, "utf-8");
-      const modified = fs.readFileSync(absTarget, "utf-8");
-
-      const result = generateDiff(original, modified);
-
-      if (!result.hasChanges) {
-        return `[safe_diff] No differences between ${absBackup} and ${absTarget} (agent: ${agent})`;
-      }
-
-      return [
-        `[safe_diff] ${result.added} line(s) added, ${result.removed} line(s) removed (agent: ${agent})`,
-        result.diff,
-      ].join("\n");
-    }
-
-    // Neither valid mode
-    throw new Error(
-      "[safe_diff] Invalid arguments. Provide either (backupPath + targetPath) for MODE 1 " +
-        "or (fileA + content) for MODE 2.",
-    );
+      // Neither valid mode
+      throw new Error(
+        "[safe_diff] Invalid arguments. Provide either (backupPath + targetPath) for MODE 1 " +
+          "or (fileA + content) for MODE 2.",
+      );
+    });
   },
 });

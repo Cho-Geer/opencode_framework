@@ -108,6 +108,56 @@ function normalizeGateV3(gate) {
   return gate;
 }
 
+/**
+ * Build a unified task ID → pseudo-task map from BOTH dag.tasks[] and
+ * dag.execution_order groups (flat arrays and nested object groups).
+ *
+ * WHY: Many DAGs organize tasks in execution_order groups rather than a
+ * flat tasks[] array (e.g. after hot-file compaction). Previously the
+ * three reconciliation checks only scanned dag.tasks[], producing false
+ * "armed_session_orphan_task" HIGH findings for any armed session whose
+ * task_id lived in execution_order only.
+ *
+ * Tasks from tasks[] retain their real status and owner fields. Tasks
+ * found only in execution_order have status inferred as "pending"
+ * (scheduled for execution) and owner "" — there is no per-task
+ * metadata in execution_order groups.
+ *
+ * @since FW-REPAIR-STATE-RECON-EXECORDER (2026-06-14)
+ */
+function buildTaskMap(dag) {
+  const taskMap = {};
+  // 1) tasks[] takes precedence — real per-task metadata
+  const tasks = dag.tasks || [];
+  for (const t of tasks) {
+    if (t && t.id) taskMap[t.id] = t;
+  }
+  // 2) execution_order groups — flat arrays and nested object groups
+  const eo = dag.execution_order;
+  if (eo && typeof eo === "object") {
+    for (const group of Object.values(eo)) {
+      if (Array.isArray(group)) {
+        for (const id of group) {
+          if (typeof id === "string" && !taskMap[id]) {
+            taskMap[id] = { id, status: "pending", owner: "", source: "execution_order" };
+          }
+        }
+      } else if (group && typeof group === "object") {
+        for (const subgroup of Object.values(group)) {
+          if (Array.isArray(subgroup)) {
+            for (const id of subgroup) {
+              if (typeof id === "string" && !taskMap[id]) {
+                taskMap[id] = { id, status: "pending", owner: "", source: "execution_order" };
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return taskMap;
+}
+
 // ─── Check #1: Completed DAG tasks have consumed gate sessions ──
 function checkCompletedDagHasGateSession(dag, gate, machine) {
   const inconsistencies = [];
@@ -186,10 +236,7 @@ function checkArmedSessionDagReference(dag, gate) {
   const activeSessions = Array.isArray(rawActive)
     ? rawActive
     : Object.keys(rawActive);
-  const taskMap = {};
-  for (const t of tasks) {
-    taskMap[t.id] = t;
-  }
+  const taskMap = buildTaskMap(dag);
 
   for (const sid of activeSessions) {
     const session = sessions[sid];
@@ -267,10 +314,7 @@ function checkOrphanedSessions(dag, gate) {
   const inconsistencies = [];
   const tasks = dag.tasks || [];
   const sessions = gate.sessions || {};
-  const taskMap = {};
-  for (const t of tasks) {
-    taskMap[t.id] = t;
-  }
+  const taskMap = buildTaskMap(dag);
 
   const STALE_MS = 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -436,10 +480,7 @@ function fixDrainOrphanedSessions(gate) {
 // ─── Fix: force-drain orphaned sessions regardless of age ──
 function fixForceDrainOrphanedSessions(gate, dag) {
   const tasks = dag.tasks || [];
-  const taskMap = {};
-  for (const t of tasks) {
-    taskMap[t.id] = t;
-  }
+  const taskMap = buildTaskMap(dag);
 
   const testArtifactPatterns = [
     /^test for /i,

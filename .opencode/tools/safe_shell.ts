@@ -1,5 +1,5 @@
 import { tool } from "@opencode-ai/plugin";
-import { safeBashTool } from "../lib";
+import { safeBashTool, withInterruptGuard } from "../lib";
 
 export default tool({
   description:
@@ -17,36 +17,38 @@ export default tool({
       .describe("Validate without executing"),
   },
   async execute(args, context) {
-    const agent = context.agent ?? "unknown";
-    const result = safeBashTool({
-      command: args.command,
-      timeout: args.timeout,
-      dryRun: args.dryRun,
-      agent,
-    });
+    return withInterruptGuard("safe_shell", async () => {
+      const agent = context.agent ?? "unknown";
+      const result = safeBashTool({
+        command: args.command,
+        timeout: args.timeout,
+        dryRun: args.dryRun,
+        agent,
+      });
 
-    if (!result.allowed) {
-      throw new Error(
-        `safe_shell blocked: ${result.blockedReason} (command: ${args.command})`,
-      );
-    }
+      if (!result.allowed) {
+        throw new Error(
+          `safe_shell blocked: ${result.blockedReason} (command: ${args.command})`,
+        );
+      }
 
-    if (args.dryRun) {
-      return `Command validated and allowed: ${args.command}`;
-    }
+      if (args.dryRun) {
+        return `Command validated and allowed: ${args.command}`;
+      }
 
-    return JSON.stringify(
-      {
-        output: result.stdout || "",
-        metadata: {
-          exitCode: result.exitCode,
-          stderr: result.stderr,
-          executed: result.executed,
-          agent: result.agent,
+      return JSON.stringify(
+        {
+          output: result.stdout || "",
+          metadata: {
+            exitCode: result.exitCode,
+            stderr: result.stderr,
+            executed: result.executed,
+            agent: result.agent,
+          },
         },
-      },
-      null,
-      2,
-    );
+        null,
+        2,
+      );
+    });
   },
 });

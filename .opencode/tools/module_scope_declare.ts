@@ -9,6 +9,7 @@ import {
   evictOldAgents,
   normalizeAgentKey,
 } from "../lib/uc7ks-schema";
+import { withInterruptGuard } from "../lib";
 
 var VALID_MODULES = [
   "backend_api",
@@ -37,9 +38,10 @@ export default tool({
     task_id: tool.schema.string().describe("DAG task ID for session tracking"),
   },
   async execute(args, context) {
-    var agent = (context && context.agent) || "unknown";
-    var projectRoot = process.env.OPENCODE_ROOT || process.cwd();
-    var configPath = path.resolve(projectRoot, ".opencode", "project.config.json");
+    return withInterruptGuard("module_scope_declare", async () => {
+      var agent = (context && context.agent) || "unknown";
+      var projectRoot = process.env.OPENCODE_ROOT || process.cwd();
+      var configPath = path.resolve(projectRoot, ".opencode", "project.config.json");
 
     if (VALID_MODULES.indexOf(args.module) === -1) {
       return JSON.stringify({
@@ -117,6 +119,7 @@ export default tool({
       context7_libraries: domain.context7_libraries,
       fallback_url: domain.fallback_pattern,
       next_step: "Read docs/official_docs/index.json",
+    });
     });
   },
 });

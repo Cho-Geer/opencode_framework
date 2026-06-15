@@ -7,6 +7,7 @@ import {
 import { resolveAgent, resolveTaskId } from "../lib/agent-resolver";
 import { getEnforcementMode, findArmedSession } from "../lib/gate-core";
 import { findTaskInDag } from "../lib/gate-checks";
+import { isDagExempt } from "../lib/dag-policy";
 import { isModifyTool } from "../lib/tool-scope";
 
 ensureLogDir();
@@ -75,30 +76,30 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // ═══════════════════════════════════════════════════════════════
   if (isModifyTool(input.tool)) {
     const taskId = resolveTaskId();
-    const agentNorm = agent.toLowerCase().replace(/^@/, "");
-    /**
-     * P2-1 FIX (2026-06-12): Added "super-admin" to DAG exemption.
-     * @Super-Admin performs framework maintenance (docs/, rules, plugins)
-     * outside DAG coverage. Original enforce.ts L1327 exempted SA from
-     * ALL checks including DAG — removing the bypass for ROUTE-MISMATCH
-     * (P0-4) inadvertently removed the DAG exemption too.
-     */
-    const isDagCreator =
-      agentNorm === "orchestrator" || agentNorm === "meta-planner" || agentNorm === "super-admin";
+    // FW-PLAN-FIRST (2026-06-14): Canonical DAG-exempt list in lib/dag-policy.ts.
+    // Members: meta-planner, orchestrator, super-admin, knowledge-curator.
+    const isExempt = isDagExempt(agent);
 
-    if (taskId && !isDagCreator) {
+    if (taskId && !isExempt) {
       const tc = findTaskInDag(taskId);
       if (!tc.found) {
         writeLog("gate-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
           level: "WARN",
           event: "TOOL-BEFORE",
-          detail: `BLOCKED | DAG-TASK-NOT-FOUND | task=${taskId}`,
+          detail: `BLOCKED | DAG-TASK-NOT-FOUND | task=${taskId} (searched both dag.tasks[] and dag.execution_order)`,
         });
         if (mode === "strict" || mode === "locked") {
           throw new Error(
-            `[FW-ENFORCE][DAG] Task "${taskId}" not found in Task.DAG.json. ` +
-            `Ensure @Meta-Planner has planned this task.`,
+            `[FW-ENFORCE][DAG] Task "${taskId}" not found in Task.DAG.json ` +
+              `(checked both dag.tasks[] and dag.execution_order — neither contains this ID). ` +
+              `The FRAMEWORK_TASK_ID passed to dispatch_subagent is treated as a DAG task ID by this audit. ` +
+              `Remediation — pick ONE:\n` +
+              `  1. Have @Meta-Planner add "${taskId}" to Task.DAG.json (tasks[] or execution_order group).\n` +
+              `  2. If this is a pure dispatch-session ID (not a real DAG task), re-dispatch without setting dag_task_id, ` +
+              `or choose a value that does not collide with a non-existent DAG task.\n` +
+              `  3. Use a DAG-exempt agent (@Orchestrator / @Meta-Planner / @Super-Admin) for this dispatch.\n` +
+              `See docs/review/cicd-dag-block/diagnosis.md for the full analysis.`,
           );
         }
       } else if (tc.status !== "pending" && tc.status !== "in_progress") {
@@ -106,7 +107,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
           level: "WARN",
           event: "TOOL-BEFORE",
-          detail: `BLOCKED | DAG-TASK-STATUS | task=${taskId} status=${tc.status}`,
+          detail: `BLOCKED | DAG-TASK-STATUS | task=${taskId} status=${tc.status} source=${tc.source}`,
         });
         if (mode === "strict" || mode === "locked") {
           throw new Error(
@@ -118,7 +119,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
         writeLog("gate-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
           event: "TOOL-BEFORE",
-          detail: `DAG task verified | task=${taskId} status=${tc.status}`,
+          detail: `DAG task verified | task=${taskId} status=${tc.status} source=${tc.source}`,
         });
       }
     }

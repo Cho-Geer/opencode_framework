@@ -12,7 +12,7 @@
 
 ### §1.1 Purpose
 
-The OpenCode Framework uses a **template variable placeholder system** to keep agent configurations, rule documents, and skill files **project-agnostic**. Instead of hardcoding project-specific paths (e.g., `prisma/schema.prisma` or `src/environments/environment.ts`), documents use curly-brace placeholders (`{namespace.key}`) that are resolved at **dispatch time** by `dispatch-subagent.js`.
+The OpenCode Framework uses a **template variable placeholder system** to keep agent configurations, rule documents, and skill files **project-agnostic**. Instead of hardcoding project-specific paths (e.g., `prisma/schema.prisma` or `src/environments/environment.ts`), documents use curly-brace placeholders (`{namespace.key}`) that are resolved at **dispatch time** by `dispatch-subagent.ts`.
 
 ### §1.2 Design Philosophy
 
@@ -21,7 +21,7 @@ The OpenCode Framework uses a **template variable placeholder system** to keep a
 | **Portability**            | The same `.opencode/` framework directory can be copied to any project and work after updating only `project.config.json`                    |
 | **Single Source of Truth** | All placeholder values originate from `project.config.json` — no duplication or drift                                                        |
 | **Fail-Safe**              | Unresolvable placeholders produce visible `UNRESOLVED{...}` markers (never silently ignored)                                                 |
-| **Two-Tier Resolution**    | Simple key-value placeholders are resolved by `dispatch-subagent.js`; domain-specific "extended" placeholders use in-document mapping tables |
+| **Two-Tier Resolution**    | Simple key-value placeholders are resolved by `dispatch-subagent.ts`; domain-specific "extended" placeholders use in-document mapping tables |
 
 ### §1.3 Placeholder Syntax
 
@@ -46,7 +46,7 @@ Resolved from `project.config.json` root-level project fields and `template_reso
 | 1   | `{project.name}`                  | Project name                     | `project.name`                              | `booking-system`                                                             |
 | 2   | `{project.version}`               | Project version                  | `project.version`                           | `1.0.0`                                                                      |
 | 3   | `{project_root}`                  | Project root relative path       | `project_root`                              | `.`                                                                          |
-| 4   | `{project.contract_hash_command}` | Command to compute keystone hash | `template_resolution.contract_hash_command` | `node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml` |
+| 4   | `{project.contract_hash_command}` | Command to compute keystone hash | `template_resolution.contract_hash_command` | `bun .opencode/scripts/mcp-tools/keystone-validate.ts --hash contract.yaml` |
 
 ### §2.2 `{backend.*}` Placeholders
 
@@ -138,6 +138,46 @@ Resolved from `project.config.json.template_resolution` using keys with `knowled
 | 37  | `{knowledge.janitor_interval_hours}` | Janitor run interval (hours)      | `template_resolution.knowledge.janitor_interval_hours` | `24` |
 | 38  | `{knowledge.compression_threshold_kb}` | Compression threshold (KB)      | `template_resolution.knowledge.compression_threshold_kb` | `200` |
 
+### §2.12 `dispatch_policy` Block (FW-PLAN-FIRST)
+
+The `project.config.json` top-level `dispatch_policy` block configures
+the **PLAN-FIRST dispatch constraint** — a hardened enforcement rule that
+requires @Orchestrator to plan a task via @Meta-Planner before dispatching
+any non-DAG-exempt subagent (Architect, Coder-BE, Coder-FE, Guardian,
+Arbiter, CI-CD-Agent). See `docs/review/cicd-dag-block/plan-first-redesign.md`.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `require_dag_entry` | boolean | `false` | Master switch. When `true`, dispatches to non-DAG-exempt agents require `dag_task_id` to exist in `Task.DAG.json`. Flipped to `true` in strict mode after a rollout observation window. |
+| `auto_plan_enabled` | boolean | `false` | Self-healing: when `true` and a dispatch would block on a missing DAG entry, the framework auto-dispatches @Meta-Planner to plan the task first. Opt-in per call via `dispatch_subagent(auto_plan=true)`. **Forced to `false` in locked mode.** |
+| `auto_plan_max_per_session` | integer ≥ 0 | `5` | Per-session rate limit on auto-plan attempts. Prevents runaway loops. |
+| `auto_plan_timeout_ms` | integer > 0 | `120000` | Per-attempt timeout (ms). Bounds the planning sub-agent execution time. |
+
+**Hardening**:
+
+- Orchestrator cannot modify this block — its `safe_edit` permission
+  matrix denies `.opencode/**`, and `framework-enforcer.ts`
+  `DISPATCH-POLICY-TAMPER` rejects edits from non-@Super-Admin sessions.
+- Values may reference `{env:VAR_NAME}` substitutions to override per
+  environment (e.g. `auto_plan_enabled: false` in CI, `true` in local
+  dev).
+- `framework-doctor.ts` Check 12 verifies the block is internally
+  consistent with the current enforcement mode (locked mode cannot have
+  `auto_plan_enabled=true`).
+
+**Audit trail**: every auto-plan attempt is recorded in
+`machine.json.auto_plan_history` (schema defined in
+`.opencode/state/machine.schema.json`). Every successful dispatch that
+passed the PLAN-FIRST pre-flight is recorded in
+`machine.json.dispatch_history`.
+
+**Consumers**:
+
+- `lib/dag-policy.ts` — reads the block; exports `readDispatchPolicy()`.
+- `plugins/dispatch-before.ts` (Layer 1) — policy-driven pre-dispatch gate.
+- `tools/dispatch_subagent.ts` (Layer 2) — unconditional pre-flight +
+  `autoPlan()` self-healing.
+
 ### §2.10 Available but Not Currently Used
 
 These namespaces have values in `project.config.json` but no placeholders are currently used in any file:
@@ -172,7 +212,7 @@ These placeholders are used in log-manager.ts and related logging infrastructure
 
 ### §3.1 Concept
 
-Some placeholder categories represent **domain-specific conventions** rather than simple key-value lookups. These are **not resolved by `dispatch-subagent.js`** at dispatch time. Instead, each document that uses them includes an **internal resolution table** mapping the placeholder to a concrete description or implementation reference.
+Some placeholder categories represent **domain-specific conventions** rather than simple key-value lookups. These are **not resolved by `dispatch-subagent.ts`** at dispatch time. Instead, each document that uses them includes an **internal resolution table** mapping the placeholder to a concrete description or implementation reference.
 
 These placeholders will appear as `UNRESOLVED{...}` in the raw prompt passed to the agent. The agent is expected to interpret them using the document's own resolution table.
 
@@ -204,24 +244,24 @@ Used in: `.opencode/rules/frontend-coding-standard.md`
 
 ### §3.4 Extended Placeholder Escalation
 
-Since extended placeholders are NOT resolved by `dispatch-subagent.js`, they will appear as `UNRESOLVED{backend.orm.transaction}` in the agent's prompt. This is **expected behavior** — not a bug. The agent must consult the document's own resolution table.
+Since extended placeholders are NOT resolved by `dispatch-subagent.ts`, they will appear as `UNRESOLVED{backend.orm.transaction}` in the agent's prompt. This is **expected behavior** — not a bug. The agent must consult the document's own resolution table.
 
 If you need a placeholder to be machine-resolvable:
 
 1. Add it to `project.config.json.template_resolution` with a concrete value
-2. Add the corresponding key to `dispatch-subagent.js` `buildTemplateResolutionMap()` function
+2. Add the corresponding key to `dispatch-subagent.ts` `buildTemplateResolutionMap()` function
 3. Update §2 of this document to register it as a dispatch-resolvable placeholder
-4. Run `framework-self-test.js` to verify
+4. Run `framework-self-test.ts` to verify
 
 ---
 
 ## §4 Resolution Mechanism
 
-### §4.1 Resolver: `dispatch-subagent.js`
+### §4.1 Resolver: `dispatch-subagent.ts`
 
-Template resolution is performed by `.opencode/scripts/command-tools/dispatch-subagent.js` in the prompt assembly phase (between agent config parsing and final prompt generation).
+Template resolution is performed by `.opencode/scripts/command-tools/dispatch-subagent.ts` in the prompt assembly phase (between agent config parsing and final prompt generation).
 
-**Source file**: `.opencode/scripts/command-tools/dispatch-subagent.js`  
+**Source file**: `.opencode/scripts/command-tools/dispatch-subagent.ts`  
 **Key functions**:
 
 - `buildTemplateResolutionMap(projectConfig)` — Lines 186–251: builds the key→value map from `project.config.json`
@@ -275,7 +315,7 @@ Later layers **override** earlier layers. For example, if both `tech_stack.backe
 ### §4.4 Resolution Code Path
 
 ```javascript
-// From dispatch-subagent.js lines 256-268:
+// From dispatch-subagent.ts lines 256-268:
 function resolveTemplateVariables(content, templateMap, sourceLabel) {
   if (!content || Object.keys(templateMap).length === 0) return content;
   return content.replace(/\{([a-z_]+\.[a-z_.]+)\}/g, (match, key) => {
@@ -296,7 +336,7 @@ When a `{template_key}` cannot be resolved:
 
 1. It is replaced with the string `UNRESOLVED{template_key}` in the agent's prompt
 2. A warning is logged to stderr: `[dispatch] WARNING: Unresolvable placeholder '{unknown.var}' in <agent config path>`
-3. `framework-self-test.js` Check 17 scans all `.opencode/` files for `UNRESOLVED{` strings and fails if any are found
+3. `framework-self-test.ts` Check 17 scans all `.opencode/` files for `UNRESOLVED{` strings and fails if any are found
 4. Extended placeholders (§3) naturally appear as `UNRESOLVED{...}` — this is expected and should be documented in the Check 17 exemption list
 
 ---
@@ -310,14 +350,14 @@ When a `{template_key}` cannot be resolved:
 | **Agent Configs** | `.opencode/agents/Architect.md`, `Coder-BE.md`, `Coder-FE.md`               | At dispatch, before prompt assembly                                                                                                |
 | **Rule Files**    | `.opencode/rules/backend-coding-standard.md`, `frontend-coding-standard.md` | These are injected into prompts; extended placeholders remain as `UNRESOLVED{...}` and are interpreted via internal mapping tables |
 | **Skill Files**   | `.opencode/skills/*/SKILL.md`                                               | At dispatch, when skill content is injected                                                                                        |
-| **Preamble**      | `.opencode/subagent-preamble.md`                                            | At dispatch, line 299-304 of `dispatch-subagent.js` resolves preamble placeholders                                                 |
+| **Preamble**      | `.opencode/subagent-preamble.md`                                            | At dispatch, line 299-304 of `dispatch-subagent.ts` resolves preamble placeholders                                                 |
 
 ### §5.2 Explicitly Prohibited Locations
 
 | Location                                                          | Reason                                                                |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `project.config.json` itself                                      | No self-referencing — this would create circular resolution           |
-| `dispatch-subagent.js`                                            | The resolver cannot resolve itself                                    |
+| `dispatch-subagent.ts`                                            | The resolver cannot resolve itself                                    |
 | State machine files (`machine.json`, `gate-state.json`)           | Must be concrete JSON — no template expansion during state operations |
 | Source code (`booking-backend/src/**`, `booking-frontend/src/**`) | Placeholders are framework-level, not application-level               |
 | `contract.yaml`                                                   | Contract must contain concrete, verifiable values                     |
@@ -353,7 +393,7 @@ The following files are scanned for `{template_key}` patterns during dispatch:
 ```markdown
 1. **Contract file change check**: If the current change involves
    `contract.yaml` or requirement documents:
-   - Run `node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml` to automatically compute
+   - Run `bun .opencode/scripts/mcp-tools/keystone-validate.ts --hash contract.yaml` to automatically compute
      and update the hash value.
 ```
 
@@ -520,8 +560,8 @@ Always verify the exact key spelling against §2 of this document and the corres
 | **1** | Verify the placeholder exists in §2 of this document                                                                                        | `TEMPLATE_VARIABLE_STANDARD.md`                                         |
 | **2** | Check that the corresponding key exists in `project.config.json`                                                                            | `.opencode/project.config.json` → `template_resolution` or `tech_stack` |
 | **3** | If the key is missing, add it to `project.config.json.template_resolution`                                                                  | Edit `project.config.json`                                              |
-| **4** | If the placeholder is a new category (not `project`, `backend`, `frontend`, `cache`, `queue`, `db`, `auth`, `testing`), update the resolver | Edit `dispatch-subagent.js` → `buildTemplateResolutionMap()`            |
-| **5** | Run `framework-self-test.js` to verify resolution                                                                                           | `node .opencode/scripts/framework-self-test.js`                         |
+| **4** | If the placeholder is a new category (not `project`, `backend`, `frontend`, `cache`, `queue`, `db`, `auth`, `testing`), update the resolver | Edit `dispatch-subagent.ts` → `buildTemplateResolutionMap()`            |
+| **5** | Run `framework-self-test.ts` to verify resolution                                                                                           | `bun .opencode/scripts/framework-self-test.ts`                          |
 | **6** | Check Check 17 output for `UNRESOLVED{` strings                                                                                             | Framework self-test report                                              |
 | **7** | Check stderr logs for `[dispatch] WARNING: Unresolvable placeholder`                                                                        | Dispatch output                                                         |
 
@@ -533,7 +573,7 @@ Always verify the exact key spelling against §2 of this document and the corres
 | `UNRESOLVED{project.contract_hash_command}`           | `template_resolution.contract_hash_command` missing from `project.config.json` | Add the key-value pair                                                    |
 | `UNRESOLVED{frontend.dto_path}`                       | `frontend.dto_path` missing from `template_resolution`                         | Add `"frontend.dto_path": "src/app/shared/dto/"` to `template_resolution` |
 | All placeholders unresolved                           | `project.config.json` not found or malformed                                   | Verify `OPENCODE_ROOT` env var and file existence                         |
-| `framework-self-test.js` Check 17 fails               | New unregistered placeholder or missing template_resolution key                | Follow §8.2 steps                                                         |
+| `framework-self-test.ts` Check 17 fails               | New unregistered placeholder or missing template_resolution key                | Follow §8.2 steps                                                         |
 
 ---
 
@@ -545,10 +585,10 @@ Always verify the exact key spelling against §2 of this document and the corres
 1. Determine the category (dispatch-resolvable vs extended)
 2. Add the key-value pair to project.config.json.template_resolution
    (if dispatch-resolvable)
-3. Add the corresponding mapping in dispatch-subagent.js
+3. Add the corresponding mapping in dispatch-subagent.ts
    buildTemplateResolutionMap() (if dispatch-resolvable)
 4. Add an entry to §2 (or §3 if extended) of this document
-5. Run framework-self-test.js Check 17 + Check 18
+5. Run framework-self-test.ts Check 17 + Check 18
 6. Update all files that should use the new placeholder
 ```
 
@@ -556,11 +596,11 @@ Always verify the exact key spelling against §2 of this document and the corres
 
 ```
 1. Remove the key from project.config.json.template_resolution
-2. Remove the corresponding mapping from dispatch-subagent.js
+2. Remove the corresponding mapping from dispatch-subagent.ts
 3. Update §2 or §3 to mark the placeholder as deprecated
 4. Search for all usages with: grep -r "{template_key}" .opencode/
 5. Replace or remove all usages
-6. Run framework-self-test.js to verify no UNRESOLVED{...} remain
+6. Run framework-self-test.ts to verify no UNRESOLVED{...} remain
 ```
 
 ### §9.3 Modifying a Placeholder Value
@@ -568,8 +608,8 @@ Always verify the exact key spelling against §2 of this document and the corres
 ```
 1. Update the value in project.config.json (for dispatch-resolvable)
    OR update the resolution table in the document (for extended)
-2. No code changes needed in dispatch-subagent.js (keys unchanged)
-3. Run framework-self-test.js to verify
+2. No code changes needed in dispatch-subagent.ts (keys unchanged)
+3. Run framework-self-test.ts to verify
 ```
 
 ### §9.4 Adding a New Namespace
@@ -578,9 +618,9 @@ Always verify the exact key spelling against §2 of this document and the corres
 1. Decide if it should be dispatch-resolvable or extended
 2. If dispatch-resolvable:
    a. Add the value to project.config.json (tech_stack or template_resolution)
-   b. Add resolution logic to dispatch-subagent.js buildTemplateResolutionMap()
+   b. Add resolution logic to dispatch-subagent.ts buildTemplateResolutionMap()
 3. Add a new subsection to §2 (or §3) of this document
-4. Register the namespace in framework-self-test.js Check 18 validation
+4. Register the namespace in framework-self-test.ts Check 18 validation
 5. Run full framework self-test
 ```
 
@@ -588,10 +628,10 @@ Always verify the exact key spelling against §2 of this document and the corres
 
 ```bash
 # Check for unresolved placeholders across the framework
-node .opencode/scripts/framework-self-test.js
+bun .opencode/scripts/framework-self-test.ts
 
 # Check a specific agent config resolution (manual)
-node .opencode/scripts/command-tools/dispatch-subagent.js Architect "test" 2>&1 | grep UNRESOLVED
+bun .opencode/scripts/command-tools/dispatch-subagent.ts Architect "test" 2>&1 | grep UNRESOLVED
 
 # Scan all .opencode files for placeholder patterns
 grep -r '\{[a-z_]*\.[a-z_.]*\}' .opencode/ --include="*.md" | grep -v 'UNRESOLVED\|template-variable-standard\|TEMPLATE_VARIABLE_STANDARD\|node_modules'
@@ -604,8 +644,8 @@ grep -r '\{[a-z_]*\.[a-z_.]*\}' .opencode/ --include="*.md" | grep -v 'UNRESOLVE
 | Document                                               | Relationship                                                                                                    |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | `.opencode/project.config.json`                        | **Source of truth** for all placeholder values (`template_resolution` + `tech_stack` sections)                  |
-| `.opencode/scripts/command-tools/dispatch-subagent.js` | Resolver implementation (`buildTemplateResolutionMap` + `resolveTemplateVariables`)                             |
-| `.opencode/scripts/framework-self-test.js`             | Check 17 verifies no orphaned `UNRESOLVED{...}` strings; Check 18 verifies `template_resolution` section exists |
+| `.opencode/scripts/command-tools/dispatch-subagent.ts` | Resolver implementation (`buildTemplateResolutionMap` + `resolveTemplateVariables`)                             |
+| `.opencode/scripts/framework-self-test.ts`             | Check 17 verifies no orphaned `UNRESOLVED{...}` strings; Check 18 verifies `template_resolution` section exists |
 | `.opencode/subagent-preamble.md`                       | Consumer of template variables; all `{template_key}` references resolved before prompt injection                |
 | `.opencode/rules/backend-coding-standard.md`           | Consumer of 7 extended `{backend.*}` placeholders (§3.2); contains internal resolution table                    |
 | `.opencode/rules/frontend-coding-standard.md`          | Consumer of 5 extended `{frontend.*}` placeholders (§3.3); contains internal resolution table                   |
@@ -629,11 +669,11 @@ grep -r '\{[a-z_]*\.[a-z_.]*\}' .opencode/ --include="*.md" | grep -v 'UNRESOLVE
 │ 12 extended  │ {backend.*} ×7   {frontend.*} ×5             │
 │              │ (resolved by in-document mapping tables)      │
 ├──────────────┼──────────────────────────────────────────────┤
-│ Resolver     │ dispatch-subagent.js                         │
+│ Resolver     │ dispatch-subagent.ts                         │
 │              │ → buildTemplateResolutionMap()                │
 │              │ → resolveTemplateVariables()                  │
 ├──────────────┼──────────────────────────────────────────────┤
-│ Validator    │ framework-self-test.js Check 17 + Check 18   │
+│ Validator    │ framework-self-test.ts Check 17 + Check 18   │
 ├──────────────┼──────────────────────────────────────────────┤
 │ Source of    │ project.config.json                          │
 │ Truth        │ → template_resolution section                │

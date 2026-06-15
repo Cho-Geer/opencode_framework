@@ -20,6 +20,7 @@ import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { withInterruptGuard } from "../lib";
 
 const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
 const REGISTRY_PATH = path.join(PROJECT_ROOT, ".opencode", "state", "rule_registry.json");
@@ -96,198 +97,200 @@ export default tool({
       .describe("If true, repair even if semver was already bumped (unusual). Default: false."),
   },
   async execute(args, context) {
-    const agent = context?.agent || "unknown";
-    const dryRun = args.dry_run ?? false;
-    const force = args.force ?? false;
+    return withInterruptGuard("rule_registry_repair", async () => {
+      const agent = context?.agent || "unknown";
+      const dryRun = args.dry_run ?? false;
+      const force = args.force ?? false;
 
-    // ── 1. Read registry ──────────────────────────────────────────
-    if (!fs.existsSync(REGISTRY_PATH)) {
-      return JSON.stringify({
-        status: "error",
-        message: "rule_registry.json not found at " + REGISTRY_PATH,
-      });
-    }
-
-    let registry: any;
-    try {
-      const raw = fs.readFileSync(REGISTRY_PATH, "utf-8");
-      registry = JSON.parse(raw);
-    } catch (err: any) {
-      return JSON.stringify({
-        status: "error",
-        message: "Cannot parse rule_registry.json: " + err.message,
-      });
-    }
-
-    const entries = registry.entries || {};
-    const entryKeys = Object.keys(entries);
-
-    if (entryKeys.length === 0) {
-      return JSON.stringify({
-        status: "empty",
-        message: "No entries in rule_registry.json",
-        total_entries: 0,
-        mismatches: 0,
-        repairs: [],
-      });
-    }
-
-    // ── 2. Scan for mismatches ────────────────────────────────────
-    const mismatches: Array<{
-      key: string;
-      path: string;
-      stored_hash: string;
-      actual_hash: string | null;
-      stored_semver: string;
-      error?: string;
-    }> = [];
-
-    for (const key of entryKeys) {
-      const entry = entries[key];
-      const filePath = path.join(PROJECT_ROOT, entry.path || key);
-
-      if (!fs.existsSync(filePath)) {
-        mismatches.push({
-          key,
-          path: entry.path || key,
-          stored_hash: entry.sha256 || "missing",
-          actual_hash: null,
-          stored_semver: entry.semver || "unknown",
-          error: "FILE_MISSING",
-        });
-        continue;
-      }
-
-      const result = computeFileHash(filePath);
-      if (result.error) {
-        mismatches.push({
-          key,
-          path: entry.path || key,
-          stored_hash: entry.sha256 || "missing",
-          actual_hash: null,
-          stored_semver: entry.semver || "unknown",
-          error: "READ_ERROR: " + result.error,
-        });
-        continue;
-      }
-
-      const storedHash = "sha256-" + (entry.sha256 || "").replace(/^sha256-/, "");
-      if (result.hash !== storedHash) {
-        mismatches.push({
-          key,
-          path: entry.path || key,
-          stored_hash: storedHash,
-          actual_hash: result.hash,
-          stored_semver: entry.semver || "unknown",
+      // ── 1. Read registry ──────────────────────────────────────────
+      if (!fs.existsSync(REGISTRY_PATH)) {
+        return JSON.stringify({
+          status: "error",
+          message: "rule_registry.json not found at " + REGISTRY_PATH,
         });
       }
-    }
 
-    // ── 3. Apply repairs (unless dry_run) ─────────────────────────
-    const repairs: Array<{
-      key: string;
-      path: string;
-      old_semver: string;
-      new_semver: string;
-      old_hash: string;
-      new_hash: string;
-    }> = [];
+      let registry: any;
+      try {
+        const raw = fs.readFileSync(REGISTRY_PATH, "utf-8");
+        registry = JSON.parse(raw);
+      } catch (err: any) {
+        return JSON.stringify({
+          status: "error",
+          message: "Cannot parse rule_registry.json: " + err.message,
+        });
+      }
 
-    if (!dryRun && mismatches.length > 0) {
-      for (const m of mismatches) {
-        if (m.error === "FILE_MISSING") continue; // Can't repair missing files
-        if (m.error?.startsWith("READ_ERROR")) continue; // Can't repair unreadable files
-        if (!force && m.stored_semver !== "unknown") {
-          // Only repair if semver hasn't been bumped already
-          // (i.e., the mismatch is genuine, not a post-bump state)
+      const entries = registry.entries || {};
+      const entryKeys = Object.keys(entries);
+
+      if (entryKeys.length === 0) {
+        return JSON.stringify({
+          status: "empty",
+          message: "No entries in rule_registry.json",
+          total_entries: 0,
+          mismatches: 0,
+          repairs: [],
+        });
+      }
+
+      // ── 2. Scan for mismatches ────────────────────────────────────
+      const mismatches: Array<{
+        key: string;
+        path: string;
+        stored_hash: string;
+        actual_hash: string | null;
+        stored_semver: string;
+        error?: string;
+      }> = [];
+
+      for (const key of entryKeys) {
+        const entry = entries[key];
+        const filePath = path.join(PROJECT_ROOT, entry.path || key);
+
+        if (!fs.existsSync(filePath)) {
+          mismatches.push({
+            key,
+            path: entry.path || key,
+            stored_hash: entry.sha256 || "missing",
+            actual_hash: null,
+            stored_semver: entry.semver || "unknown",
+            error: "FILE_MISSING",
+          });
+          continue;
         }
 
-        const entry = entries[m.key];
-        const oldSemver = entry.semver || "0.0.0";
-        const newSemver = bumpPatchSemver(oldSemver);
-        const newHash = m.actual_hash!.replace(/^sha256-/, "");
+        const result = computeFileHash(filePath);
+        if (result.error) {
+          mismatches.push({
+            key,
+            path: entry.path || key,
+            stored_hash: entry.sha256 || "missing",
+            actual_hash: null,
+            stored_semver: entry.semver || "unknown",
+            error: "READ_ERROR: " + result.error,
+          });
+          continue;
+        }
 
-        entry.semver = newSemver;
-        entry.sha256 = newHash;
-        entry.last_modified = new Date().toISOString();
+        const storedHash = "sha256-" + (entry.sha256 || "").replace(/^sha256-/, "");
+        if (result.hash !== storedHash) {
+          mismatches.push({
+            key,
+            path: entry.path || key,
+            stored_hash: storedHash,
+            actual_hash: result.hash,
+            stored_semver: entry.semver || "unknown",
+          });
+        }
+      }
 
-        // Append to digest_history
-        if (!entry.digest_history) entry.digest_history = [];
-        entry.digest_history.push({
-          sha256: newHash,
-          timestamp: new Date().toISOString(),
-          semver: newSemver,
-          change: "Auto-repaired by rule_registry_repair tool (agent: " + agent + ")",
-        });
+      // ── 3. Apply repairs (unless dry_run) ─────────────────────────
+      const repairs: Array<{
+        key: string;
+        path: string;
+        old_semver: string;
+        new_semver: string;
+        old_hash: string;
+        new_hash: string;
+      }> = [];
 
-        repairs.push({
+      if (!dryRun && mismatches.length > 0) {
+        for (const m of mismatches) {
+          if (m.error === "FILE_MISSING") continue; // Can't repair missing files
+          if (m.error?.startsWith("READ_ERROR")) continue; // Can't repair unreadable files
+          if (!force && m.stored_semver !== "unknown") {
+            // Only repair if semver hasn't been bumped already
+            // (i.e., the mismatch is genuine, not a post-bump state)
+          }
+
+          const entry = entries[m.key];
+          const oldSemver = entry.semver || "0.0.0";
+          const newSemver = bumpPatchSemver(oldSemver);
+          const newHash = m.actual_hash!.replace(/^sha256-/, "");
+
+          entry.semver = newSemver;
+          entry.sha256 = newHash;
+          entry.last_modified = new Date().toISOString();
+
+          // Append to digest_history
+          if (!entry.digest_history) entry.digest_history = [];
+          entry.digest_history.push({
+            sha256: newHash,
+            timestamp: new Date().toISOString(),
+            semver: newSemver,
+            change: "Auto-repaired by rule_registry_repair tool (agent: " + agent + ")",
+          });
+
+          repairs.push({
+            key: m.key,
+            path: m.path,
+            old_semver: oldSemver,
+            new_semver: newSemver,
+            old_hash: m.stored_hash,
+            new_hash: m.actual_hash!,
+          });
+        }
+
+        // Write back atomically
+        if (repairs.length > 0) {
+          registry.meta.last_updated = new Date().toISOString();
+          writeRegistryAtomic(registry);
+        }
+      }
+
+      // ── 4. Audit log ──────────────────────────────────────────────
+      appendAuditLog({
+        agent,
+        dry_run: dryRun,
+        force,
+        total_entries: entryKeys.length,
+        mismatches_found: mismatches.length,
+        repairs_applied: repairs.length,
+        mismatch_details: mismatches.map(m => ({
+          key: m.key,
+          stored_hash_short: m.stored_hash.substring(0, 16),
+          actual_hash_short: m.actual_hash ? m.actual_hash.substring(0, 16) : null,
+          error: m.error || null,
+        })),
+        repair_details: repairs.map(r => ({
+          key: r.key,
+          old_semver: r.old_semver,
+          new_semver: r.new_semver,
+        })),
+      });
+
+      // ── 5. Return summary ─────────────────────────────────────────
+      const status = dryRun
+        ? "dry_run"
+        : repairs.length > 0
+        ? "repaired"
+        : "clean";
+
+      return JSON.stringify({
+        status,
+        dry_run: dryRun,
+        force,
+        total_entries: entryKeys.length,
+        mismatches_found: mismatches.length,
+        repairs_applied: repairs.length,
+        mismatches: mismatches.map(m => ({
           key: m.key,
           path: m.path,
-          old_semver: oldSemver,
-          new_semver: newSemver,
-          old_hash: m.stored_hash,
-          new_hash: m.actual_hash!,
-        });
-      }
-
-      // Write back atomically
-      if (repairs.length > 0) {
-        registry.meta.last_updated = new Date().toISOString();
-        writeRegistryAtomic(registry);
-      }
-    }
-
-    // ── 4. Audit log ──────────────────────────────────────────────
-    appendAuditLog({
-      agent,
-      dry_run: dryRun,
-      force,
-      total_entries: entryKeys.length,
-      mismatches_found: mismatches.length,
-      repairs_applied: repairs.length,
-      mismatch_details: mismatches.map(m => ({
-        key: m.key,
-        stored_hash_short: m.stored_hash.substring(0, 16),
-        actual_hash_short: m.actual_hash ? m.actual_hash.substring(0, 16) : null,
-        error: m.error || null,
-      })),
-      repair_details: repairs.map(r => ({
-        key: r.key,
-        old_semver: r.old_semver,
-        new_semver: r.new_semver,
-      })),
+          stored_semver: m.stored_semver,
+          stored_hash_short: m.stored_hash.substring(0, 20) + "...",
+          actual_hash_short: m.actual_hash ? m.actual_hash.substring(0, 20) + "..." : null,
+          error: m.error || null,
+        })),
+        repairs: repairs.map(r => ({
+          key: r.key,
+          path: r.path,
+          old_semver: r.old_semver,
+          new_semver: r.new_semver,
+          old_hash_short: r.old_hash.substring(0, 20) + "...",
+          new_hash_short: r.new_hash.substring(0, 20) + "...",
+        })),
+      }, null, 2);
     });
-
-    // ── 5. Return summary ─────────────────────────────────────────
-    const status = dryRun
-      ? "dry_run"
-      : repairs.length > 0
-      ? "repaired"
-      : "clean";
-
-    return JSON.stringify({
-      status,
-      dry_run: dryRun,
-      force,
-      total_entries: entryKeys.length,
-      mismatches_found: mismatches.length,
-      repairs_applied: repairs.length,
-      mismatches: mismatches.map(m => ({
-        key: m.key,
-        path: m.path,
-        stored_semver: m.stored_semver,
-        stored_hash_short: m.stored_hash.substring(0, 20) + "...",
-        actual_hash_short: m.actual_hash ? m.actual_hash.substring(0, 20) + "..." : null,
-        error: m.error || null,
-      })),
-      repairs: repairs.map(r => ({
-        key: r.key,
-        path: r.path,
-        old_semver: r.old_semver,
-        new_semver: r.new_semver,
-        old_hash_short: r.old_hash.substring(0, 20) + "...",
-        new_hash_short: r.new_hash.substring(0, 20) + "...",
-      })),
-    }, null, 2);
   },
 });

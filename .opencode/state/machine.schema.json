@@ -60,16 +60,23 @@
       },
       "additionalProperties": true
     },
-
     "eslint_state": {
       "type": "object",
       "description": "ESLint mock-audit state tracking per-module and aggregate.",
-      "required": ["modules", "aggregate"],
+      "required": [
+        "modules",
+        "aggregate"
+      ],
       "properties": {
         "last_full_scan": {
           "oneOf": [
-            { "type": "string", "format": "date-time" },
-            { "type": "null" }
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "ISO 8601 timestamp of last full scan, or null."
         },
@@ -87,12 +94,18 @@
             "properties": {
               "status": {
                 "type": "string",
-                "enum": ["clean", "dirty", "waived"],
+                "enum": [
+                  "clean",
+                  "dirty",
+                  "waived"
+                ],
                 "description": "Current audit status for this module."
               },
               "violations": {
                 "type": "array",
-                "items": { "type": "object" },
+                "items": {
+                  "type": "object"
+                },
                 "description": "List of ESLint violation objects."
               },
               "last_check": {
@@ -102,7 +115,9 @@
               },
               "waivers_applied": {
                 "type": "array",
-                "items": { "type": "string" },
+                "items": {
+                  "type": "string"
+                },
                 "description": "Waiver IDs applied to this module."
               }
             },
@@ -112,7 +127,11 @@
         "aggregate": {
           "type": "object",
           "description": "Aggregate ESLint state across all modules.",
-          "required": ["total_violations", "dirty_modules", "waived_modules"],
+          "required": [
+            "total_violations",
+            "dirty_modules",
+            "waived_modules"
+          ],
           "properties": {
             "total_violations": {
               "type": "integer",
@@ -121,12 +140,16 @@
             },
             "dirty_modules": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "List of module names currently in dirty status."
             },
             "waived_modules": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "List of module names with active waivers."
             }
           },
@@ -135,20 +158,28 @@
       },
       "additionalProperties": true
     },
-
     "type_check_state": {
       "type": "object",
       "description": "TypeScript incremental type-check state.",
-      "required": ["status", "dirty_files", "incremental_errors"],
+      "required": [
+        "status",
+        "dirty_files",
+        "incremental_errors"
+      ],
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["clean", "dirty"],
+          "enum": [
+            "clean",
+            "dirty"
+          ],
           "description": "Current type-check status."
         },
         "dirty_files": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Files with unresolved type errors."
         },
         "incremental_errors": {
@@ -163,22 +194,31 @@
         },
         "last_full_check": {
           "oneOf": [
-            { "type": "string", "format": "date-time" },
-            { "type": "null" }
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "ISO 8601 timestamp of last full type check, or null."
         },
         "last_incremental_check": {
           "oneOf": [
-            { "type": "string", "format": "date-time" },
-            { "type": "null" }
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "ISO 8601 timestamp of last incremental type check, or null."
         }
       },
       "additionalProperties": true
     },
-
     "dependency_state": {
       "type": "object",
       "description": "Dependency-cruiser module boundary state.",
@@ -191,14 +231,21 @@
       "properties": {
         "last_check": {
           "oneOf": [
-            { "type": "string", "format": "date-time" },
-            { "type": "null" }
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "ISO 8601 timestamp of last check, or null."
         },
         "violations": {
           "type": "array",
-          "items": { "type": "object" },
+          "items": {
+            "type": "object"
+          },
           "description": "Dependency violation objects."
         },
         "forbidden_rules_applied": {
@@ -208,39 +255,60 @@
         },
         "status": {
           "type": "string",
-          "enum": ["clean", "dirty"],
+          "enum": [
+            "clean",
+            "dirty"
+          ],
           "description": "Current dependency audit status."
         }
       },
       "additionalProperties": true
     },
-
     "format_state": {
       "type": "object",
       "description": "Prettier format check state.",
-      "required": ["status", "unformatted_files", "last_check"],
+      "required": [
+        "status",
+        "unformatted_files",
+        "last_check"
+      ],
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["clean", "dirty"],
+          "enum": [
+            "clean",
+            "dirty"
+          ],
           "description": "Current formatting status."
         },
         "unformatted_files": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Files not conforming to Prettier."
         },
         "last_check": {
           "oneOf": [
-            { "type": "string", "format": "date-time" },
-            { "type": "null" }
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "ISO 8601 timestamp of last format check, or null."
         },
         "last_run": {
           "oneOf": [
-            { "type": "string", "format": "date-time" },
-            { "type": "null" }
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "ISO 8601 timestamp of last format run, or null."
         },
@@ -252,11 +320,14 @@
       },
       "additionalProperties": true
     },
-
     "write_audit_state": {
       "type": "object",
       "description": "Write-time audit tracking for every file change.",
-      "required": ["enabled", "current_session", "history"],
+      "required": [
+        "enabled",
+        "current_session",
+        "history"
+      ],
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -289,7 +360,9 @@
                 },
                 "files_written": {
                   "type": "array",
-                  "items": { "type": "string" },
+                  "items": {
+                    "type": "string"
+                  },
                   "description": "Paths of files written in this session."
                 },
                 "checks_run": {
@@ -325,7 +398,9 @@
               },
               "additionalProperties": true
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ],
           "description": "Active write-audit session object, or null when idle."
         },
@@ -333,7 +408,12 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["session", "files", "timestamp", "result"],
+            "required": [
+              "session",
+              "files",
+              "timestamp",
+              "result"
+            ],
             "properties": {
               "session": {
                 "type": "string",
@@ -341,7 +421,9 @@
               },
               "files": {
                 "type": "array",
-                "items": { "type": "string" },
+                "items": {
+                  "type": "string"
+                },
                 "description": "Files changed in this session."
               },
               "timestamp": {
@@ -351,7 +433,10 @@
               },
               "result": {
                 "type": "string",
-                "enum": ["pass", "fail"],
+                "enum": [
+                  "pass",
+                  "fail"
+                ],
                 "description": "Session audit result."
               }
             },
@@ -362,11 +447,14 @@
       },
       "additionalProperties": true
     },
-
     "compliance_records": {
       "type": "object",
       "description": "Compliance violation records across role, gate, and TDD enforcement.",
-      "required": ["role_violations", "gate_violations", "tdd_violations"],
+      "required": [
+        "role_violations",
+        "gate_violations",
+        "tdd_violations"
+      ],
       "properties": {
         "role_violations": {
           "type": "array",
@@ -395,12 +483,21 @@
               },
               "status": {
                 "type": "string",
-                "enum": ["unresolved", "resolved", "waived"],
+                "enum": [
+                  "unresolved",
+                  "resolved",
+                  "waived"
+                ],
                 "description": "Resolution status."
               },
               "severity": {
                 "type": "string",
-                "enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"],
+                "enum": [
+                  "BLOCKER",
+                  "HIGH",
+                  "MEDIUM",
+                  "LOW"
+                ],
                 "description": "Violation severity level."
               },
               "denied_by": {
@@ -422,68 +519,124 @@
         },
         "gate_violations": {
           "type": "array",
-          "items": { "type": "object" },
+          "items": {
+            "type": "object"
+          },
           "description": "Compliance gate violation records."
         },
         "tdd_violations": {
           "type": "array",
-          "items": { "type": "object" },
+          "items": {
+            "type": "object"
+          },
           "description": "TDD enforcement violation records."
         }
       },
       "additionalProperties": true
     },
-
     "knowledge_audit_state": {
       "type": "object",
       "description": "UC7KS Knowledge Pipeline audit state. Tracks knowledge acquisition activity across all agents.",
-      "required": ["enabled"],
+      "required": [
+        "enabled"
+      ],
       "properties": {
         "enabled": {
           "type": "boolean",
           "description": "Whether knowledge pipeline auditing is enabled."
         },
         "last_cache_check": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "ISO 8601 timestamp of last cache check."
         },
         "last_knowledge_acquisition": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "ISO 8601 timestamp of last external knowledge acquisition."
         },
         "current_session": {
           "type": "object",
           "description": "Per-session knowledge audit state.",
           "properties": {
-            "agent": { "type": ["string", "null"] },
-            "cache_checked": { "type": "boolean" },
-            "cache_hits": { "type": "array", "items": { "type": "string" } },
-            "cache_misses": { "type": "array", "items": { "type": "string" } },
-            "knowledge_curator_dispatched": { "type": "boolean" },
-            "dispatch_token_validated": { "type": "boolean" },
-            "files_acquired": { "type": "array", "items": { "type": "string" } }
+            "agent": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cache_checked": {
+              "type": "boolean"
+            },
+            "cache_hits": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "cache_misses": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "knowledge_curator_dispatched": {
+              "type": "boolean"
+            },
+            "dispatch_token_validated": {
+              "type": "boolean"
+            },
+            "files_acquired": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "aggregate": {
           "type": "object",
           "description": "Aggregated knowledge pipeline statistics.",
           "properties": {
-            "total_cache_checks": { "type": "integer" },
-            "total_cache_hits": { "type": "integer" },
-            "total_cache_misses": { "type": "integer" },
-            "total_curator_dispatches": { "type": "integer" },
-            "total_external_fetches": { "type": "integer" },
-            "cat_know_violations": { "type": "array", "items": { "type": "object" } }
+            "total_cache_checks": {
+              "type": "integer"
+            },
+            "total_cache_hits": {
+              "type": "integer"
+            },
+            "total_cache_misses": {
+              "type": "integer"
+            },
+            "total_curator_dispatches": {
+              "type": "integer"
+            },
+            "total_external_fetches": {
+              "type": "integer"
+            },
+            "cat_know_violations": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
           }
         }
       },
       "additionalProperties": true
     },
-
     "tdd_enforcement_state": {
       "type": "object",
       "description": "TDD enforcement tracking state.",
-      "required": ["enabled", "current_session", "violations", "history"],
+      "required": [
+        "enabled",
+        "current_session",
+        "violations",
+        "history"
+      ],
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -508,17 +661,27 @@
                 },
                 "impl_files_attempted": {
                   "type": "array",
-                  "items": { "type": "string" },
+                  "items": {
+                    "type": "string"
+                  },
                   "description": "Implementation files attempted before test was written."
                 },
                 "blocked_attempts": {
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": ["file", "timestamp"],
+                    "required": [
+                      "file",
+                      "timestamp"
+                    ],
                     "properties": {
-                      "file": { "type": "string" },
-                      "timestamp": { "type": "string", "format": "date-time" }
+                      "file": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
                     },
                     "additionalProperties": true
                   },
@@ -526,23 +689,56 @@
                 },
                 "test_files_written": {
                   "type": "array",
-                  "items": { "type": "string" },
+                  "items": {
+                    "type": "string"
+                  },
                   "description": "Test files written in this session."
                 },
                 "diff_evidence": {
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": ["file", "timestamp", "type", "hasChanges", "added", "removed", "diffSummary"],
+                    "required": [
+                      "file",
+                      "timestamp",
+                      "type",
+                      "hasChanges",
+                      "added",
+                      "removed",
+                      "diffSummary"
+                    ],
                     "properties": {
-                      "file": { "type": "string" },
-                      "timestamp": { "type": "string", "format": "date-time" },
-                      "type": { "type": "string", "enum": ["test", "impl"] },
-                      "hasChanges": { "type": "boolean" },
-                      "added": { "type": "integer", "minimum": 0 },
-                      "removed": { "type": "integer", "minimum": 0 },
-                      "diffSummary": { "type": "string" },
-                      "agent": { "type": "string" }
+                      "file": {
+                        "type": "string"
+                      },
+                      "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "test",
+                          "impl"
+                        ]
+                      },
+                      "hasChanges": {
+                        "type": "boolean"
+                      },
+                      "added": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "removed": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "diffSummary": {
+                        "type": "string"
+                      },
+                      "agent": {
+                        "type": "string"
+                      }
                     },
                     "additionalProperties": true
                   },
@@ -555,7 +751,9 @@
               },
               "additionalProperties": true
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ],
           "description": "Active TDD enforcement session object, or null when idle."
         },
@@ -563,12 +761,26 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["timestamp", "file", "code", "message"],
+            "required": [
+              "timestamp",
+              "file",
+              "code",
+              "message"
+            ],
             "properties": {
-              "timestamp": { "type": "string", "format": "date-time" },
-              "file": { "type": "string" },
-              "code": { "type": "string" },
-              "message": { "type": "string" }
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "file": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
             },
             "additionalProperties": true
           },
@@ -576,13 +788,14 @@
         },
         "history": {
           "type": "array",
-          "items": { "type": "object" },
+          "items": {
+            "type": "object"
+          },
           "description": "TDD enforcement history."
         }
       },
       "additionalProperties": true
     },
-
     "contracts": {
       "type": "array",
       "description": "List of contract files tracked by keystone hash.",
@@ -591,7 +804,6 @@
         "description": "Relative path to a contract file."
       }
     },
-
     "keystone_hashes": {
       "type": "object",
       "description": "SHA-256 hashes of contract files for integrity verification.",
@@ -601,7 +813,6 @@
         "description": "SHA-256 hash with sha256- prefix."
       }
     },
-
     "transaction_state": {
       "type": "object",
       "description": "Unified State Transaction Envelope metadata (RVW-REVIEW-01).",
@@ -612,19 +823,33 @@
       ],
       "properties": {
         "last_operation_id": {
-          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "description": "UUID v4 of the last committed transaction operation."
         },
         "last_transaction_at": {
           "oneOf": [
-            { "type": "string", "format": "date-time" },
-            { "type": "null" }
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
           ],
           "description": "ISO 8601 timestamp of the last committed transaction."
         },
         "pending_operations": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Operation IDs currently in prepared (uncommitted) state."
         },
         "transaction_log_path": {
@@ -634,15 +859,24 @@
       },
       "additionalProperties": true
     },
-
     "knowledge_cache_state": {
       "type": "object",
       "description": "UC7KS knowledge cache state — tracks cache health, agent compliance, and pipeline bypass attempts. Added Phase 4 hardening (FW-HARDEN-UC7KS).",
-      "required": ["cache_status", "total_entries", "last_index_check", "compliance"],
+      "required": [
+        "cache_status",
+        "total_entries",
+        "last_index_check",
+        "compliance"
+      ],
       "properties": {
         "cache_status": {
           "type": "string",
-          "enum": ["healthy", "stale", "empty", "corrupt"],
+          "enum": [
+            "healthy",
+            "stale",
+            "empty",
+            "corrupt"
+          ],
           "description": "Overall health status of the local knowledge cache."
         },
         "total_entries": {
@@ -675,9 +909,17 @@
               "additionalProperties": {
                 "type": "object",
                 "properties": {
-                  "count": { "type": "integer", "minimum": 0 },
-                  "last_attempt_at": { "type": "string", "format": "date-time" },
-                  "last_tool_attempted": { "type": "string" }
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "last_attempt_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "last_tool_attempted": {
+                    "type": "string"
+                  }
                 }
               }
             },
@@ -718,7 +960,10 @@
           "description": "UC7-001 per-agent cache access tracking. Records when each agent type last read docs/official_docs/index.json. Used by compliance_gate_check and uc7ks-enforcer to enforce the 'local-first' mandate. Keyed by agent type (e.g. '@Super-Admin', '@Coder-BE'). Added FW-HARDEN-UC7KS-001.",
           "additionalProperties": {
             "type": "object",
-            "required": ["last_read_at", "uc7_001_compliant"],
+            "required": [
+              "last_read_at",
+              "uc7_001_compliant"
+            ],
             "properties": {
               "last_read_at": {
                 "type": "string",
@@ -739,22 +984,38 @@
                 "description": "Total number of times this agent has read cache files."
               },
               "declared_scope": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "description": "Agent's declared module domain from knowledge_semantic_map (e.g., 'backend_api', 'persistence'). Set by module_scope_declare tool. FW-HARDEN-UC7KS-002."
               },
               "declared_at": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "date-time",
                 "description": "ISO 8601 timestamp when the agent declared its module scope."
               },
               "cache_sufficiency": {
                 "type": "object",
                 "description": "Agent's cache sufficiency declaration. Required before external queries in strict/locked mode. FW-HARDEN-UC7KS-003. UC7-001c HARDEN: reason, files_read, content_summary are REQUIRED evidence fields.",
-                "required": ["status", "reason", "files_read", "content_summary", "declared_at"],
+                "required": [
+                  "status",
+                  "reason",
+                  "files_read",
+                  "content_summary",
+                  "declared_at"
+                ],
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": ["sufficient", "insufficient", "undeclared"],
+                    "enum": [
+                      "sufficient",
+                      "insufficient",
+                      "undeclared"
+                    ],
                     "description": "Whether the local cache covers the agent's knowledge needs."
                   },
                   "reason": {
@@ -764,7 +1025,9 @@
                   },
                   "files_read": {
                     "type": "array",
-                    "items": { "type": "string" },
+                    "items": {
+                      "type": "string"
+                    },
                     "description": "Cache file paths that were read (e.g., 'opencode/framework/plugins.md'). Required by UC7-001c."
                   },
                   "content_summary": {
@@ -774,11 +1037,16 @@
                   },
                   "missing_topics": {
                     "type": "array",
-                    "items": { "type": "string" },
+                    "items": {
+                      "type": "string"
+                    },
                     "description": "Specific topics the agent found missing in cache."
                   },
                   "declared_at": {
-                    "type": ["string", "null"],
+                    "type": [
+                      "string",
+                      "null"
+                    ],
                     "format": "date-time",
                     "description": "ISO 8601 timestamp when sufficiency was declared."
                   }
@@ -790,75 +1058,115 @@
       },
       "additionalProperties": true
     },
-
     "state_segments": {
       "type": "object",
       "description": "Phase 1-2 hierarchical state segments introduced by state management refactoring. Validates that supplemental state files exist with correct format versions.",
       "properties": {
         "gate_state_format": {
           "type": "string",
-          "enum": ["2.0", "3.0"],
+          "enum": [
+            "2.0",
+            "3.0"
+          ],
           "description": "Active gate-state.json format version. '3.0' indicates hierarchical storage is active."
         },
         "gate_state_index": {
           "type": "object",
           "description": "Metadata for gate-state.index.json",
           "properties": {
-            "path": { "type": "string", "const": ".opencode/state/gate-state.index.json" },
-            "formatVersion": { "type": "string", "const": "3.0" }
+            "path": {
+              "type": "string",
+              "const": ".opencode/state/gate-state.index.json"
+            },
+            "formatVersion": {
+              "type": "string",
+              "const": "3.0"
+            }
           }
         },
         "gate_state_archive": {
           "type": "object",
           "description": "Metadata for gate-state.archive.json",
           "properties": {
-            "path": { "type": "string", "const": ".opencode/state/gate-state.archive.json" },
-            "formatVersion": { "type": "string", "const": "3.0" }
+            "path": {
+              "type": "string",
+              "const": ".opencode/state/gate-state.archive.json"
+            },
+            "formatVersion": {
+              "type": "string",
+              "const": "3.0"
+            }
           }
         },
         "gate_state_history": {
           "type": "object",
           "description": "Metadata for gate-state.history/ directory",
           "properties": {
-            "path": { "type": "string", "const": ".opencode/state/gate-state.history/" },
-            "type": { "type": "string", "const": "jsonl_directory" }
+            "path": {
+              "type": "string",
+              "const": ".opencode/state/gate-state.history/"
+            },
+            "type": {
+              "type": "string",
+              "const": "jsonl_directory"
+            }
           }
         },
         "dag_format": {
           "type": "string",
-          "enum": ["1.0", "2.0"],
+          "enum": [
+            "1.0",
+            "2.0"
+          ],
           "description": "Active Task.DAG.json format version. '2.0' indicates hierarchical storage with external changelog."
         },
         "dag_changelog": {
           "type": "object",
           "description": "Metadata for Task.DAG.changelog.md",
           "properties": {
-            "path": { "type": "string", "const": "Task.DAG.changelog.md" }
+            "path": {
+              "type": "string",
+              "const": "Task.DAG.changelog.md"
+            }
           }
         },
         "dag_index": {
           "type": "object",
           "description": "Metadata for Task.DAG.index.json",
           "properties": {
-            "path": { "type": "string", "const": "Task.DAG.index.json" },
-            "formatVersion": { "type": "string", "const": "2.0" }
+            "path": {
+              "type": "string",
+              "const": "Task.DAG.index.json"
+            },
+            "formatVersion": {
+              "type": "string",
+              "const": "2.0"
+            }
           }
         },
         "dag_versions": {
           "type": "object",
           "description": "Metadata for Task.DAG.versions/ directory",
           "properties": {
-            "path": { "type": "string", "const": "Task.DAG.versions/" },
-            "type": { "type": "string", "const": "version_snapshots_directory" }
+            "path": {
+              "type": "string",
+              "const": "Task.DAG.versions/"
+            },
+            "type": {
+              "type": "string",
+              "const": "version_snapshots_directory"
+            }
           }
         }
       }
     },
-
     "plugin_state": {
       "type": "object",
       "description": "Framework plugin load state tracking. Synchronized with .task_temp/_logs/index.json by state-reconciliation.",
-      "required": ["last_reconciliation", "plugins"],
+      "required": [
+        "last_reconciliation",
+        "plugins"
+      ],
       "properties": {
         "last_reconciliation": {
           "type": "string",
@@ -870,7 +1178,11 @@
           "description": "Per-plugin state tracking keyed by plugin name (e.g., session, scope-before, uc7ks-before).",
           "additionalProperties": {
             "type": "object",
-            "required": ["loaded", "hooks_registered", "last_seen"],
+            "required": [
+              "loaded",
+              "hooks_registered",
+              "last_seen"
+            ],
             "properties": {
               "loaded": {
                 "type": "boolean",
@@ -891,6 +1203,101 @@
         }
       },
       "additionalProperties": true
+    },
+    "auto_plan_history": {
+      "type": "array",
+      "description": "FW-PLAN-FIRST (2026-06-14): Audit trail of autonomous @Meta-Planner dispatches triggered by dispatch_subagent auto_plan. Each record captures caller session, target agent, dag_task_id, planning_dispatch_id, status, and elapsed_ms. Capped at 200 entries by dag-policy.ts.",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "caller_session",
+          "caller_agent",
+          "target_agent",
+          "dag_task_id",
+          "planning_dispatch_id",
+          "status"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "caller_session": {
+            "type": "string"
+          },
+          "caller_agent": {
+            "type": "string"
+          },
+          "target_agent": {
+            "type": "string"
+          },
+          "dag_task_id": {
+            "type": "string"
+          },
+          "planning_dispatch_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "attempt",
+              "success",
+              "timeout",
+              "rate_limited",
+              "failure"
+            ]
+          },
+          "elapsed_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dispatch_history": {
+      "type": "array",
+      "description": "FW-PLAN-FIRST (2026-06-14): Audit trail of dispatch_subagent invocations that passed the PLAN-FIRST pre-flight. Each record captures caller agent, target agent, dag_task_id, dag_entry_source (tasks or execution_order), and whether auto_plan was used.",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "caller_agent",
+          "target_agent",
+          "dag_task_id"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "caller_agent": {
+            "type": "string"
+          },
+          "target_agent": {
+            "type": "string"
+          },
+          "dag_task_id": {
+            "type": "string"
+          },
+          "dag_entry_source": {
+            "type": "string",
+            "enum": [
+              "tasks",
+              "execution_order"
+            ]
+          },
+          "dag_entry_status": {
+            "type": "string"
+          },
+          "auto_plan_used": {
+            "type": "boolean"
+          }
+        }
+      }
     }
   },
   "additionalProperties": true

@@ -1,7 +1,7 @@
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { safeEdit, writeSafeFull } from "../lib";
+import { safeEdit, writeSafeFull, withInterruptGuard } from "../lib";
 
 export default tool({
   description:
@@ -34,77 +34,79 @@ export default tool({
       .describe("Validate without executing"),
   },
   async execute(args, context) {
-    const absPath = path.resolve(args.filePath);
-    const mode = args.mode ?? "patch";
-    const agent = context.agent ?? "unknown";
+    return withInterruptGuard("safe_edit", async () => {
+      const absPath = path.resolve(args.filePath);
+      const mode = args.mode ?? "patch";
+      const agent = context.agent ?? "unknown";
 
-    // ── overwrite mode ──
-    if (mode === "overwrite") {
-      if (!args.content) {
+      // ── overwrite mode ──
+      if (mode === "overwrite") {
+        if (!args.content) {
+          throw new Error(
+            "safe_edit failed: content parameter is required for overwrite mode",
+          );
+        }
+        if (args.dryRun) {
+          return `Validated overwrite mode for: ${absPath}`;
+        }
+        let result = writeSafeFull(absPath, args.content, { agentType: agent });
+        if (
+          !result.success &&
+          result.error?.includes("first call establishes baseline")
+        ) {
+          result = writeSafeFull(absPath, args.content, { agentType: agent });
+        }
+        if (!result.success) {
+          throw new Error(`safe_edit failed: ${result.error}`);
+        }
+        return `File overwritten successfully (backup: ${result.backupPath || "none"})`;
+      }
+
+      // ── patch mode (default) ──
+      if (!args.oldString) {
+        throw new Error("safe_edit failed: oldString is required for patch mode");
+      }
+
+      let fileContent: string;
+      try {
+        fileContent = fs.readFileSync(absPath, "utf-8");
+      } catch {
+        throw new Error(`safe_edit failed: cannot read file at ${args.filePath}`);
+      }
+
+      if (!fileContent.includes(args.oldString)) {
         throw new Error(
-          "safe_edit failed: content parameter is required for overwrite mode",
+          `safe_edit failed: oldString not found in ${args.filePath}`,
         );
       }
-      if (args.dryRun) {
-        return `Validated overwrite mode for: ${absPath}`;
+
+      const occurrences = fileContent.split(args.oldString).length - 1;
+      if (occurrences > 1) {
+        throw new Error(
+          `safe_edit failed: oldString found ${occurrences} times in ${args.filePath}, must be unique`,
+        );
       }
-      let result = writeSafeFull(absPath, args.content, { agentType: agent });
+
+      const newContent = fileContent.replace(
+        args.oldString,
+        args.newString ?? "",
+      );
+
+      if (args.dryRun) {
+        return `Validated patch mode for: ${absPath}`;
+      }
+
+      let result = safeEdit(absPath, newContent, { agentType: agent });
       if (
         !result.success &&
         result.error?.includes("first call establishes baseline")
       ) {
-        result = writeSafeFull(absPath, args.content, { agentType: agent });
+        result = safeEdit(absPath, newContent, { agentType: agent });
       }
       if (!result.success) {
         throw new Error(`safe_edit failed: ${result.error}`);
       }
-      return `File overwritten successfully (backup: ${result.backupPath || "none"})`;
-    }
-
-    // ── patch mode (default) ──
-    if (!args.oldString) {
-      throw new Error("safe_edit failed: oldString is required for patch mode");
-    }
-
-    let fileContent: string;
-    try {
-      fileContent = fs.readFileSync(absPath, "utf-8");
-    } catch {
-      throw new Error(`safe_edit failed: cannot read file at ${args.filePath}`);
-    }
-
-    if (!fileContent.includes(args.oldString)) {
-      throw new Error(
-        `safe_edit failed: oldString not found in ${args.filePath}`,
-      );
-    }
-
-    const occurrences = fileContent.split(args.oldString).length - 1;
-    if (occurrences > 1) {
-      throw new Error(
-        `safe_edit failed: oldString found ${occurrences} times in ${args.filePath}, must be unique`,
-      );
-    }
-
-    const newContent = fileContent.replace(
-      args.oldString,
-      args.newString ?? "",
-    );
-
-    if (args.dryRun) {
-      return `Validated patch mode for: ${absPath}`;
-    }
-
-    let result = safeEdit(absPath, newContent, { agentType: agent });
-    if (
-      !result.success &&
-      result.error?.includes("first call establishes baseline")
-    ) {
-      result = safeEdit(absPath, newContent, { agentType: agent });
-    }
-    if (!result.success) {
-      throw new Error(`safe_edit failed: ${result.error}`);
-    }
-    return `File edited successfully (backup: ${result.backupPath || "none"})`;
+      return `File edited successfully (backup: ${result.backupPath || "none"})`;
+    });
   },
 });

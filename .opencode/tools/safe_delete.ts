@@ -1,6 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
 import * as path from "node:path";
-import { safeDelete } from "../lib";
+import { safeDelete, withInterruptGuard } from "../lib";
 
 export default tool({
   description:
@@ -15,20 +15,22 @@ export default tool({
       .describe("Validate without executing"),
   },
   async execute(args, context) {
-    const absPath = path.resolve(args.filePath);
-    const agent = context.agent ?? "unknown";
+    return withInterruptGuard("safe_delete", async () => {
+      const absPath = path.resolve(args.filePath);
+      const agent = context.agent ?? "unknown";
 
-    if (args.dryRun) {
-      return `Validated delete for: ${absPath}`;
-    }
+      if (args.dryRun) {
+        return `Validated delete for: ${absPath}`;
+      }
 
-    let result = safeDelete(absPath, { agentType: agent });
-    if (!result.success && result.error?.includes("first call")) {
-      result = safeDelete(absPath, { agentType: agent });
-    }
-    if (!result.success) {
-      throw new Error(`safe_delete failed: ${result.error}`);
-    }
-    return `File deleted (backup: ${result.backupPath || "none"})`;
+      let result = safeDelete(absPath, { agentType: agent });
+      if (!result.success && result.error?.includes("first call")) {
+        result = safeDelete(absPath, { agentType: agent });
+      }
+      if (!result.success) {
+        throw new Error(`safe_delete failed: ${result.error}`);
+      }
+      return `File deleted (backup: ${result.backupPath || "none"})`;
+    });
   },
 });

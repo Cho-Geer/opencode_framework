@@ -1,14 +1,14 @@
-#!/usr/bin/env node
-// state-integrity-scan.js — P4-002
+#!/usr/bin/env bun
+// state-integrity-scan.ts — P4-002
 // Scans gate-state.json, machine.json, project.config.json, rule_registry.json,
 // and Task.DAG.json for JSON validity, required fields, and orphaned references.
 // --fix flag auto-fixes invalid JSON and orphaned sessions.
-// FW-ENHANCE-A2-A5-EXTRAS: migrated to gate-core.ts (dist/gate-core.js)
+// FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; imports gate-core.ts source directly.
 const {
   readJsonFile,
   fileExists,
   resolveFrameworkPaths,
-} = require("../lib/dist/gate-core.js");
+} = require("../lib/gate-core.ts");
 
 const paths = resolveFrameworkPaths();
 
@@ -195,8 +195,37 @@ function main() {
   }
 
   // ── Orphaned reference checks ──
-  if (gateState && gateState.sessions && dag && dag.tasks) {
-    const taskIds = new Set(dag.tasks.map((t) => t.id));
+  // FW-REPAIR-STATE-INTEGRITY-EXECORDER (2026-06-14): Build the task ID set
+  // from BOTH dag.tasks[] AND dag.execution_order groups. Many DAGs organize
+  // tasks in execution_order groups (flat arrays + nested object groups)
+  // rather than a flat tasks[] array; the previous tasks[]-only scan produced
+  // false "orphaned_task_ref" warnings for any gate-state session whose
+  // task_id lived in execution_order only.
+  if (gateState && gateState.sessions && dag) {
+    const taskIds = new Set();
+    if (Array.isArray(dag.tasks)) {
+      for (const t of dag.tasks) {
+        if (t && t.id) taskIds.add(t.id);
+      }
+    }
+    const eo = dag.execution_order;
+    if (eo && typeof eo === "object") {
+      for (const group of Object.values(eo)) {
+        if (Array.isArray(group)) {
+          for (const id of group) {
+            if (typeof id === "string") taskIds.add(id);
+          }
+        } else if (group && typeof group === "object") {
+          for (const subgroup of Object.values(group as Record<string, unknown>)) {
+            if (Array.isArray(subgroup)) {
+              for (const id of subgroup) {
+                if (typeof id === "string") taskIds.add(id);
+              }
+            }
+          }
+        }
+      }
+    }
     for (const [sid, session] of Object.entries(gateState.sessions)) {
       if (typeof session !== "object" || session === null) continue;
       if (session.task_id && !taskIds.has(session.task_id)) {
@@ -229,6 +258,39 @@ function main() {
             detail: `Would move session '${sid}' to drained_sessions (--fix --dry-run)`,
           });
         }
+      }
+    }
+  }
+
+
+  // ── FW-PLAN-FIRST (2026-06-14): auto_plan_history cross-check ──
+  // Every successful auto-plan attempt must have a matching DAG entry.
+  // A "success" record whose dag_task_id is no longer in the DAG indicates
+  // a past plan that was pruned without updating history.
+  if (machine && Array.isArray(machine.auto_plan_history)) {
+    const taskIds = new Set();
+    if (dag && Array.isArray(dag.tasks)) {
+      for (const t of dag.tasks) if (t && t.id) taskIds.add(t.id);
+    }
+    if (dag && dag.execution_order && typeof dag.execution_order === "object") {
+      for (const group of Object.values(dag.execution_order)) {
+        if (Array.isArray(group)) {
+          for (const id of group) if (typeof id === "string") taskIds.add(id);
+        } else if (group && typeof group === "object") {
+          for (const sg of Object.values(group)) {
+            if (Array.isArray(sg)) for (const id of sg) if (typeof id === "string") taskIds.add(id);
+          }
+        }
+      }
+    }
+    for (const rec of machine.auto_plan_history) {
+      if (rec && rec.status === "success" && rec.dag_task_id && !taskIds.has(rec.dag_task_id)) {
+        inconsistencies.push({
+          severity: "WARNING",
+          file: "machine.json",
+          issue: "auto_plan_orphan",
+          detail: `auto_plan_history entry "${rec.dag_task_id}" (success at ${rec.timestamp}) no longer in Task.DAG.json`,
+        });
       }
     }
   }

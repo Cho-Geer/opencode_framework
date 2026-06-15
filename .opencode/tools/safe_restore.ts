@@ -22,7 +22,7 @@
 
 import { tool } from "@opencode-ai/plugin";
 import * as path from "node:path";
-import { restore } from "../lib";
+import { restore, withInterruptGuard } from "../lib";
 
 export default tool({
   description:
@@ -38,18 +38,20 @@ export default tool({
       .describe("Absolute path of the target file to restore to"),
   },
   async execute(args, context) {
-    const absBackup = path.resolve(args.backupPath);
-    const absTarget = path.resolve(args.targetPath);
-    const agent = context.agent ?? "unknown";
+    return withInterruptGuard("safe_restore", async () => {
+      const absBackup = path.resolve(args.backupPath);
+      const absTarget = path.resolve(args.targetPath);
+      const agent = context.agent ?? "unknown";
 
-    const result = restore(absBackup, absTarget);
+      const result = restore(absBackup, absTarget);
 
-    if (!result.success) {
-      throw new Error(
-        `[safe_restore] Restore failed for agent ${agent}: ${result.error}`,
-      );
-    }
+      if (!result.success) {
+        throw new Error(
+          `[safe_restore] Restore failed for agent ${agent}: ${result.error}`,
+        );
+      }
 
-    return `Restored ${absTarget} from backup ${absBackup} (agent: ${agent})`;
+      return `Restored ${absTarget} from backup ${absBackup} (agent: ${agent})`;
+    });
   },
 });

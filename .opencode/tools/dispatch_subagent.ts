@@ -4,6 +4,13 @@ import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { withInterruptGuard } from "../lib";
+import {
+  isDagExempt,
+  readDispatchPolicy,
+  autoPlan,
+} from "../lib/dag-policy";
+import { findTaskInDag } from "../lib/gate-checks";
 
 // ── UC7KS Dispatch Bypass Helpers (FW-DISPATCH-BYPASS) ──
 
@@ -197,243 +204,347 @@ export default tool({
       .string()
       .optional()
       .describe(
-        "Dispatch session identifier — an ID assigned to the background sub-agent " +
-          "process/delegation in OpenCode. Used for output path namespacing " +
-          "(.task_temp/{dag_task_id}/) and session tracking. " +
-          "Passed internally as FRAMEWORK_TASK_ID env var. " +
-          "NOTE: This is NOT a DAG task ID — it is a dispatch session identifier " +
-          "for OpenCode's sub-agent background process. Pre-execution gate skips " +
-          "DAG coverage checks when this is set (--dispatch-session flag).",
+        "Dispatch session identifier with DUAL semantics — read carefully before use.\n" +
+          "(a) Output/audit: used for .task_temp/{dag_task_id}/ path namespacing and passed as FRAMEWORK_TASK_ID env var. The pre-execution gate (pre-execution-gate.ts) skips DAG coverage when --dispatch-session is set.\n" +
+          "(b) DAG audit: the gate-before plugin (P2-1 DAG Task Existence Audit) treats FRAMEWORK_TASK_ID as a DAG task ID and REQUIRES this ID to exist in Task.DAG.json — either in the top-level tasks[] array or inside an execution_order group. If it does not exist, modify tools (safe_shell/safe_edit/safe_mkdir/safe_delete) are blocked with [FW-ENFORCE][DAG] 'Task \"…\" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order)'.\n" +
+          "Callers MUST ensure ONE of: (1) the ID already exists in Task.DAG.json; (2) dispatch @Meta-Planner first to add it (Meta-Planner/Orchestrator/Super-Admin/Knowledge-Curator are DAG-exempt); (3) the subagent itself is DAG-exempt. See docs/review/cicd-dag-block/plan-first-redesign.md for the PLAN-FIRST design.",
+      ),
+    auto_plan: tool.schema
+      .boolean()
+      .optional()
+      .describe(
+        "PLAN-FIRST self-healing (opt-in, default false). " +
+          "When true and dispatch_policy.auto_plan_enabled is true in project.config.json, " +
+          "and the target agent is NOT DAG-exempt, and dag_task_id is not yet in Task.DAG.json, " +
+          "the framework auto-dispatches @Meta-Planner to plan the task, polls Task.DAG.json " +
+          "until the entry appears (bounded by dispatch_policy.auto_plan_timeout_ms), and " +
+          "then proceeds with the original dispatch. Rate-limited to " +
+          "dispatch_policy.auto_plan_max_per_session attempts per caller session. " +
+          "Forced to false in locked enforcement mode (human-in-the-loop). " +
+          "Every invocation is recorded in machine.json.auto_plan_history.",
       ),
   },
   async execute(args, context) {
-    // ── P0-1: Agent identity propagated via _dispatch_target.json (v4.0.0: FRAMEWORK_AGENT deprecated) ──
-    // ── FW-REPAIR-DAG-DEADLOCK (2026-06-07): Save/restore FRAMEWORK_TASK_ID ──
-    // Setting process.env.FRAMEWORK_TASK_ID globally on the parent process pollutes the
-    // environment — the stale value persists after the dispatch completes, causing subsequent
-    // tool calls to be blocked by the pre-execution DAG gate (checkDagCoverage fails because
-    // dispatch session IDs are not DAG task IDs).
-    //
-    // Fix: save the original value, set the dispatch session ID, then restore after the
-    // dispatch-subagent.ts child process (execFileSync) completes. The sub-agent spawned by
-    // Task() inherits FRAMEWORK_AGENT/DISPATCH_CONTEXT from the parent (still correct),
-    // while FRAMEWORK_TASK_ID is cleared to prevent pollution. @Meta-Planner/@Orchestrator
-    // sub-agents bypass the DAG gate entirely (pre-execution-gate.ts FW-REPAIR-DAG-DEADLOCK).
-    const savedTaskId = process.env.FRAMEWORK_TASK_ID;
-    process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
-    if (args.dag_task_id) process.env.FRAMEWORK_TASK_ID = args.dag_task_id;
+    return withInterruptGuard("dispatch_subagent", async () => {
+      // ── P0-1: Agent identity propagated via _dispatch_target.json (v4.0.0: FRAMEWORK_AGENT deprecated) ──
+      // ── FW-REPAIR-DAG-DEADLOCK (2026-06-07): Save/restore FRAMEWORK_TASK_ID ──
+      // Setting process.env.FRAMEWORK_TASK_ID globally on the parent process pollutes the
+      // environment — the stale value persists after the dispatch completes, causing subsequent
+      // tool calls to be blocked by the pre-execution DAG gate (checkDagCoverage fails because
+      // dispatch session IDs are not DAG task IDs).
+      //
+      // Fix: save the original value, set the dispatch session ID, then restore after the
+      // dispatch-subagent.ts child process (execFileSync) completes. The sub-agent spawned by
+      // Task() inherits FRAMEWORK_AGENT/DISPATCH_CONTEXT from the parent (still correct),
+      // while FRAMEWORK_TASK_ID is cleared to prevent pollution. @Meta-Planner/@Orchestrator
+      // sub-agents bypass the DAG gate entirely (pre-execution-gate.ts FW-REPAIR-DAG-DEADLOCK).
+      const savedTaskId = process.env.FRAMEWORK_TASK_ID;
+      process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
+      if (args.dag_task_id) process.env.FRAMEWORK_TASK_ID = args.dag_task_id;
 
-    // ── Security: Orchestrator + Super-Admin/UC7KS gate ──
-    const caller = context.agent || "";
-    const isOrchestrator =
-      caller === "Orchestrator" || caller === "@Orchestrator";
-    const isSuperAdmin = caller === "Super-Admin" || caller === "@Super-Admin";
-    const isKC =
-      args.agent_type === "Knowledge-Curator" ||
-      args.agent_type === "@Knowledge-Curator";
+      // ── FW-PLAN-FIRST LAYER 2 (2026-06-14): Pre-flight DAG-existence check ──
+      // Runs BEFORE spawning dispatch-subagent.ts. Defense-in-depth on top of
+      // Layer 1 (dispatch-before.ts plugin) and Layer 3 (gate-before.ts P2-1).
+      // For non-DAG-exempt targets, requires dag_task_id to exist in Task.DAG.json
+      // unless auto_plan=true is set and the policy allows it — in which case
+      // the framework plans the task via @Meta-Planner first.
+      const targetAgent = args.agent_type || "";
+      const dagTaskId = args.dag_task_id || "";
+      const policy = readDispatchPolicy();
+      const callerAgent = context.agent || "";
 
-    if (!isOrchestrator) {
-      // ── Any agent may dispatch Knowledge-Curator for UC7KS pipeline ──
-      if (isKC) {
-        // Allow: any agent can dispatch KC for knowledge acquisition
-        // No pattern check needed for non-Super-Admin agents
-      } else if (isSuperAdmin && isKC) {
-        // Super-Admin UC7KS bypass (pattern check)
-        const taskDesc = (args.task_description || "").toLowerCase();
-        const patterns = loadUC7KSDispatchPatterns(
-          context.worktree || process.cwd(),
-        );
-        const matched = patterns.filter((p) =>
-          taskDesc.includes(p.toLowerCase()),
-        );
-        if (matched.length === 0) {
+      if (!isDagExempt(targetAgent) && policy.require_dag_entry) {
+        if (!dagTaskId) {
           throw new Error(
-            `[FW-ENFORCE][LOCKED] Super-Admin dispatch bypass DENIED: ` +
-              `task_description must match UC7KS knowledge acquisition patterns. ` +
-              `Got: "${(args.task_description || "").slice(0, 100)}". ` +
-              `Required patterns: [${patterns.slice(0, 8).join(", ")}...]`,
+            `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dispatch_subagent to ${targetAgent} ` +
+              `requires a dag_task_id that exists in Task.DAG.json (dispatch_policy.require_dag_entry=true). ` +
+              `Either provide a planned DAG ID, or set auto_plan=true to let the framework plan automatically, ` +
+              `or dispatch @Meta-Planner first to plan the task.`
           );
         }
-        logSuperAdminDispatchBypass({
-          caller,
-          target: args.agent_type,
-          task_description: args.task_description,
-          dag_task_id: args.dag_task_id || "",
-          patterns_matched: matched,
-        });
-      } else if (isSuperAdmin) {
-        throw new Error(
-          `[FW-ENFORCE][LOCKED] Super-Admin dispatch bypass DENIED: ` +
-            `may only target @Knowledge-Curator. Got: "${args.agent_type}".`,
-        );
-      } else {
-        throw new Error(
-          `[FW-ENFORCE][LOCKED] dispatch_subagent restricted to @Orchestrator. ` +
-            `Caller '${caller}' denied. (Only @Orchestrator may dispatch general agents; ` +
-            `@Super-Admin may only dispatch @Knowledge-Curator for UC7KS.)`,
-        );
-      }
-    }
-
-    // ── Super-Admin target: repair-pattern validation (FW-DOWNGRADE-SA) ──
-    // @Orchestrator may dispatch @Super-Admin for emergency framework repair.
-    // Task must match repair patterns. Enforcement mode gating:
-    //   advisory: unrestricted, strict: repair patterns required, locked: human-only
-    const isSATarget =
-      args.agent_type === "Super-Admin" || args.agent_type === "@Super-Admin";
-    if (isSATarget) {
-      const repairPatterns = loadSARepairPatterns(
-        context.worktree || process.cwd(),
-      );
-      const taskDesc = (args.task_description || "").toLowerCase();
-      const matched = repairPatterns.filter((p) =>
-        taskDesc.includes(p.toLowerCase()),
-      );
-
-      // Locked mode: Super-Admin is human-only
-      const mode = (() => {
-        try {
-          const cp = path.join(
-            context.worktree || process.cwd(),
-            ".opencode",
-            "project.config.json",
-          );
-          if (existsSync(cp)) {
-            const c = JSON.parse(readFileSync(cp, "utf8"));
-            return (
-              c?.template_resolution?.develop_enforcement_mode || "advisory"
+        let tc = findTaskInDag(dagTaskId);
+        if (!tc.found) {
+          if (args.auto_plan === true && policy.auto_plan_enabled) {
+            // Autonomous self-healing: dispatch @Meta-Planner to plan the task,
+            // then re-verify.
+            const planned = await autoPlan({
+              dagTaskId,
+              targetAgent,
+              taskDescription: args.task_description || "",
+              timeoutMs: policy.auto_plan_timeout_ms,
+              callerSession: context.sessionID || "",
+              callerAgent,
+              dispatchMetaPlanner: async (planningPrompt, planningDagId) => {
+                // Recursive call to the same tool, but targeting @Meta-Planner.
+                // Meta-Planner is DAG-exempt, so this nested dispatch bypasses
+                // the pre-flight check. We use execFileSync(bun, dispatch-subagent.ts)
+                // directly rather than re-entering the tool, to avoid recursion limits
+                // and to keep the planning dispatch independent of the outer FRAMEWORK_TASK_ID.
+                const worktree = context.worktree || process.cwd();
+                const scriptPath = require("path").join(
+                  worktree, ".opencode", "scripts", "command-tools", "dispatch-subagent.ts"
+                );
+                require("child_process").execFileSync(
+                  "bun",
+                  ["--no-cache", scriptPath, "Meta-Planner", planningDagId, planningPrompt],
+                  {
+                    encoding: "utf8",
+                    timeout: policy.auto_plan_timeout_ms,
+                    stdio: ["pipe", "pipe", "pipe"],
+                    env: {
+                      ...process.env,
+                      DISPATCH_TASK_DESC: planningPrompt,
+                      FRAMEWORK_TASK_ID: planningDagId,
+                    },
+                  }
+                );
+                return planningDagId;
+              },
+            });
+            if (!planned) {
+              throw new Error(
+                `[FW-ENFORCE][PLAN-FIRST][LAYER-2] auto_plan failed for dag_task_id ` +
+                  `"${dagTaskId}" within ${policy.auto_plan_timeout_ms}ms. ` +
+                  `Dispatch @Meta-Planner manually to plan the task, then retry.`
+              );
+            }
+            tc = findTaskInDag(dagTaskId);  // re-verify
+          }
+          if (!tc.found) {
+            throw new Error(
+              `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dag_task_id "${dagTaskId}" not in ` +
+                `Task.DAG.json (checked both dag.tasks[] and dag.execution_order). ` +
+                `Dispatch @Meta-Planner first, or set auto_plan=true.`
             );
           }
-        } catch {}
-        return "advisory";
-      })();
-
-      if (mode === "locked") {
-        throw new Error(
-          `[FW-ENFORCE][LOCKED] Super-Admin dispatch DENIED in locked mode. ` +
-            `Super-Admin is human-only when enforcement mode is locked.`,
-        );
+        }
+        // Status gate: only pending / in_progress may be dispatched.
+        if (tc.status !== "pending" && tc.status !== "in_progress") {
+          throw new Error(
+            `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dag_task_id "${dagTaskId}" has ` +
+              `status "${tc.status}"; expected "pending" or "in_progress".`
+          );
+        }
       }
 
-      if (mode === "strict" && matched.length === 0) {
-        throw new Error(
-          `[FW-ENFORCE][STRICT] Super-Admin dispatch DENIED: ` +
-            `task_description must match emergency repair patterns. ` +
-            `Got: "${(args.task_description || "").slice(0, 100)}". ` +
-            `Required patterns: [${repairPatterns.slice(0, 8).join(", ")}...]`,
+      // Wrap the rest in a try/finally so FRAMEWORK_TASK_ID is restored even on interrupt.
+      try {
+        // ── Security: Orchestrator + Super-Admin/UC7KS gate ──
+        const caller = context.agent || "";
+        const isOrchestrator =
+          caller === "Orchestrator" || caller === "@Orchestrator";
+        const isSuperAdmin = caller === "Super-Admin" || caller === "@Super-Admin";
+        const isKC =
+          args.agent_type === "Knowledge-Curator" ||
+          args.agent_type === "@Knowledge-Curator";
+
+        if (!isOrchestrator) {
+          // ── Any agent may dispatch Knowledge-Curator for UC7KS pipeline ──
+          if (isKC) {
+            // Allow: any agent can dispatch KC for knowledge acquisition
+            // No pattern check needed for non-Super-Admin agents
+          } else if (isSuperAdmin && isKC) {
+            // Super-Admin UC7KS bypass (pattern check)
+            const taskDesc = (args.task_description || "").toLowerCase();
+            const patterns = loadUC7KSDispatchPatterns(
+              context.worktree || process.cwd(),
+            );
+            const matched = patterns.filter((p) =>
+              taskDesc.includes(p.toLowerCase()),
+            );
+            if (matched.length === 0) {
+              throw new Error(
+                `[FW-ENFORCE][LOCKED] Super-Admin dispatch bypass DENIED: ` +
+                  `task_description must match UC7KS knowledge acquisition patterns. ` +
+                  `Got: "${(args.task_description || "").slice(0, 100)}". ` +
+                  `Required patterns: [${patterns.slice(0, 8).join(", ")}...]`,
+              );
+            }
+            logSuperAdminDispatchBypass({
+              caller,
+              target: args.agent_type,
+              task_description: args.task_description,
+              dag_task_id: args.dag_task_id || "",
+              patterns_matched: matched,
+            });
+          } else if (isSuperAdmin) {
+            throw new Error(
+              `[FW-ENFORCE][LOCKED] Super-Admin dispatch bypass DENIED: ` +
+                `may only target @Knowledge-Curator. Got: "${args.agent_type}".`,
+            );
+          } else {
+            throw new Error(
+              `[FW-ENFORCE][LOCKED] dispatch_subagent restricted to @Orchestrator. ` +
+                `Caller '${caller}' denied. (Only @Orchestrator may dispatch general agents; ` +
+                `@Super-Admin may only dispatch @Knowledge-Curator for UC7KS.)`,
+            );
+          }
+        }
+
+        // ── Super-Admin target: repair-pattern validation (FW-DOWNGRADE-SA) ──
+        // @Orchestrator may dispatch @Super-Admin for emergency framework repair.
+        // Task must match repair patterns. Enforcement mode gating:
+        //   advisory: unrestricted, strict: repair patterns required, locked: human-only
+        const isSATarget =
+          args.agent_type === "Super-Admin" || args.agent_type === "@Super-Admin";
+        if (isSATarget) {
+          const repairPatterns = loadSARepairPatterns(
+            context.worktree || process.cwd(),
+          );
+          const taskDesc = (args.task_description || "").toLowerCase();
+          const matched = repairPatterns.filter((p) =>
+            taskDesc.includes(p.toLowerCase()),
+          );
+
+          // Locked mode: Super-Admin is human-only
+          const mode = (() => {
+            try {
+              const cp = path.join(
+                context.worktree || process.cwd(),
+                ".opencode",
+                "project.config.json",
+              );
+              if (existsSync(cp)) {
+                const c = JSON.parse(readFileSync(cp, "utf8"));
+                return (
+                  c?.template_resolution?.develop_enforcement_mode || "advisory"
+                );
+              }
+            } catch {}
+            return "advisory";
+          })();
+
+          if (mode === "locked") {
+            throw new Error(
+              `[FW-ENFORCE][LOCKED] Super-Admin dispatch DENIED in locked mode. ` +
+                `Super-Admin is human-only when enforcement mode is locked.`,
+            );
+          }
+
+          if (mode === "strict" && matched.length === 0) {
+            throw new Error(
+              `[FW-ENFORCE][STRICT] Super-Admin dispatch DENIED: ` +
+                `task_description must match emergency repair patterns. ` +
+                `Got: "${(args.task_description || "").slice(0, 100)}". ` +
+                `Required patterns: [${repairPatterns.slice(0, 8).join(", ")}...]`,
+            );
+          }
+
+          // ── Audit the dispatch ──
+          logOrchestratorSADispatch({
+            caller,
+            target: args.agent_type,
+            task_description: args.task_description,
+            dag_task_id: args.dag_task_id || "",
+            patterns_matched: matched,
+            mode,
+          });
+        }
+
+        const worktree = context.worktree || process.cwd();
+        const dagTaskId = args.dag_task_id || "";
+
+        // ── Execute dispatch-subagent.js ──
+        // Use execFileSync to bypass shell, preventing injection/misparsing of
+        // special characters (newlines, backticks, CJK) in task_description.
+        // task_description and dag_task_id passed via env vars (authoritative) AND
+        // positional args (for CLI/test compatibility with the new 2-param pattern).
+        const scriptPath = path.join(
+          /**
+           * FW-HOTFIX-001: Changed .js→.ts to match actual file extension.
+           * The source file was renamed from .js to .ts but this reference wasn't updated,
+           * causing a "file not found" error when dispatch_subagent tool tries to execute it.
+           */
+          worktree,
+          ".opencode",
+          "scripts",
+          "command-tools",
+          "dispatch-subagent.ts",
         );
+
+        // Build argv: [scriptPath, agent_type, dag_task_id?, task_description?]
+        // dag_task_id is passed as 2nd positional param so dispatch-subagent.js
+        // can extract it when called with the 2-param pattern.
+        const scriptArgs = [args.agent_type];
+        if (dagTaskId) {
+          scriptArgs.push(dagTaskId);
+        }
+        scriptArgs.push(args.task_description);
+
+        let outputFilePath: string;
+        try {
+          /**
+           * FW-HOTFIX-001: Changed node→bun to match project runtime.
+           * The project uses bun as its JavaScript/TypeScript runtime; invoking with "node"
+           * would fail since bun-specific APIs (Bun.file(), etc.) are used in the script.
+           *
+           * P0-FIX-BUG-12 (2026-06-09 @Super-Admin): Added --no-cache flag to bypass
+           * Bun's compiled module cache. Without this, after an OpenCode restart Bun may
+           * serve a stale cached version of dispatch-subagent.ts that lacks the
+           * .pending.json write code (FW-PROMPT-HARDEN-04). This causes dispatch_subagent
+           * to produce prompt files without populating the FIFO queue, which breaks the
+           * MANDATORY-DISPATCH gate in enforce.ts.
+           */
+          const stdout = execFileSync(
+            "bun",
+            ["--no-cache", scriptPath, ...scriptArgs],
+            {
+              encoding: "utf8",
+              timeout: 60000,
+              stdio: ["pipe", "pipe", "pipe"],
+              env: {
+                ...process.env,
+                DISPATCH_TASK_DESC: args.task_description,
+                ...(dagTaskId ? { FRAMEWORK_TASK_ID: dagTaskId } : {}),
+              },
+            },
+          );
+          outputFilePath = stdout.trim();
+        } catch (error) {
+          const err = error as any;
+          throw new Error(
+            `dispatch_subagent: dispatch-subagent.js failed (exit ${err.status || 1}): ` +
+              `${err.stderr?.toString() || err.message}`,
+          );
+        }
+
+        const wrappedPrompt = await readFile(outputFilePath, "utf8");
+
+        // ── Build structured response ──
+        const header = [
+          `/// DISPATCH RESULT`,
+          `/// agent_type: ${args.agent_type}`,
+          `/// dag_task_id: ${dagTaskId || "(none)"}`,
+          `/// output_file: ${outputFilePath}`,
+          `///`,
+          `/// ⚠️  dag_task_id has DUAL semantics (see tool description):`,
+          `///   (a) output path namespace + FRAMEWORK_TASK_ID env var`,
+          `///   (b) MUST exist in Task.DAG.json (tasks[] or execution_order)`,
+          `///       or gate-before P2-1 will block modify tools with`,
+          `///       [FW-ENFORCE][DAG] "Task … not found in Task.DAG.json`,
+          `///       (checked both dag.tasks[] and dag.execution_order)"`,
+          `///`,
+          `/// 🆕 Call Task() to dispatch (always new session):`,
+          `///   Task({`,
+          `///     subagent_type: "${args.agent_type}",`,
+          `///     description: "<short description>",`,
+          `///     prompt: <PROMPT BELOW>`,
+          `///   })`,
+          `///`,
+          `/// 💡 Context between dispatches is carried via HANDOVER.md`,
+          `///    (written by sub-agents to .task_temp/{dag_task_id}/HANDOVER.md)`,
+          `///`,
+        ];
+
+        return [...header, ``, wrappedPrompt].join("\n");
+      } finally {
+        // ── FW-REPAIR-DAG-DEADLOCK: Restore FRAMEWORK_TASK_ID after dispatch ──
+        if (savedTaskId === undefined) {
+          delete process.env.FRAMEWORK_TASK_ID;
+        } else {
+          process.env.FRAMEWORK_TASK_ID = savedTaskId;
+        }
       }
-
-      // ── Audit the dispatch ──
-      logOrchestratorSADispatch({
-        caller,
-        target: args.agent_type,
-        task_description: args.task_description,
-        dag_task_id: args.dag_task_id || "",
-        patterns_matched: matched,
-        mode,
-      });
-    }
-
-    const worktree = context.worktree || process.cwd();
-    const dagTaskId = args.dag_task_id || "";
-
-    // ── Execute dispatch-subagent.js ──
-    // Use execFileSync to bypass shell, preventing injection/misparsing of
-    // special characters (newlines, backticks, CJK) in task_description.
-    // task_description and dag_task_id passed via env vars (authoritative) AND
-    // positional args (for CLI/test compatibility with the new 2-param pattern).
-    const scriptPath = path.join(
-      /**
-       * FW-HOTFIX-001: Changed .js→.ts to match actual file extension.
-       * The source file was renamed from .js to .ts but this reference wasn't updated,
-       * causing a "file not found" error when dispatch_subagent tool tries to execute it.
-       */
-      worktree,
-      ".opencode",
-      "scripts",
-      "command-tools",
-      "dispatch-subagent.ts",
-    );
-
-    // Build argv: [scriptPath, agent_type, dag_task_id?, task_description?]
-    // dag_task_id is passed as 2nd positional param so dispatch-subagent.js
-    // can extract it when called with the 2-param pattern.
-    const scriptArgs = [args.agent_type];
-    if (dagTaskId) {
-      scriptArgs.push(dagTaskId);
-    }
-    scriptArgs.push(args.task_description);
-
-    let outputFilePath: string;
-    try {
-      /**
-       * FW-HOTFIX-001: Changed node→bun to match project runtime.
-       * The project uses bun as its JavaScript/TypeScript runtime; invoking with "node"
-       * would fail since bun-specific APIs (Bun.file(), etc.) are used in the script.
-       *
-       * P0-FIX-BUG-12 (2026-06-09 @Super-Admin): Added --no-cache flag to bypass
-       * Bun's compiled module cache. Without this, after an OpenCode restart Bun may
-       * serve a stale cached version of dispatch-subagent.ts that lacks the
-       * .pending.json write code (FW-PROMPT-HARDEN-04). This causes dispatch_subagent
-       * to produce prompt files without populating the FIFO queue, which breaks the
-       * MANDATORY-DISPATCH gate in enforce.ts.
-       */
-      const stdout = execFileSync(
-        "bun",
-        ["--no-cache", scriptPath, ...scriptArgs],
-        {
-          encoding: "utf8",
-          timeout: 60000,
-          stdio: ["pipe", "pipe", "pipe"],
-          env: {
-            ...process.env,
-            DISPATCH_TASK_DESC: args.task_description,
-            ...(dagTaskId ? { FRAMEWORK_TASK_ID: dagTaskId } : {}),
-          },
-        },
-      );
-      outputFilePath = stdout.trim();
-    } catch (error) {
-      const err = error as any;
-      throw new Error(
-        `dispatch_subagent: dispatch-subagent.js failed (exit ${err.status || 1}): ` +
-          `${err.stderr?.toString() || err.message}`,
-      );
-    }
-
-    // ── FW-REPAIR-DAG-DEADLOCK: Restore FRAMEWORK_TASK_ID after dispatch ──
-    // The dispatch-subagent.ts child process has completed. Restore the original
-    // FRAMEWORK_TASK_ID (or clear it if none was set) to prevent the dispatch
-    // session ID from leaking into subsequent tool calls and triggering false
-    // DAG coverage failures.
-    if (savedTaskId === undefined) {
-      delete process.env.FRAMEWORK_TASK_ID;
-    } else {
-      process.env.FRAMEWORK_TASK_ID = savedTaskId;
-    }
-
-    const wrappedPrompt = await readFile(outputFilePath, "utf8");
-
-    // ── Build structured response ──
-    const header = [
-      `/// DISPATCH RESULT`,
-      `/// agent_type: ${args.agent_type}`,
-      `/// dag_task_id: ${dagTaskId || "(none)"}`,
-      `/// output_file: ${outputFilePath}`,
-      `///`,
-      `/// 🆕 Call Task() to dispatch (always new session):`,
-      `///   Task({`,
-      `///     subagent_type: "${args.agent_type}",`,
-      `///     description: "<short description>",`,
-      `///     prompt: <PROMPT BELOW>`,
-      `///   })`,
-      `///`,
-      `/// 💡 Context between dispatches is carried via HANDOVER.md`,
-      `///    (written by sub-agents to .task_temp/{dag_task_id}/HANDOVER.md)`,
-      `///`,
-    ];
-
-    return [...header, ``, wrappedPrompt].join("\n");
+    });
   },
 });

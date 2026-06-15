@@ -7,7 +7,7 @@
  *
  * framework-doctor.ts — OpenCode Framework Health Diagnostic
  * ==========================================================
- * Runs 11 health checks against the OpenCode framework installation.
+ * Runs 12 health checks against the OpenCode framework installation.
  *
  * Usage:
  *   node .opencode/scripts/framework-doctor.ts          # human-readable output
@@ -1124,6 +1124,75 @@ function checkFrameworkCompliance() {
   }
 }
 
+
+// ─── Check 12: Dispatch-policy consistency (FW-PLAN-FIRST) ─────────
+// Verifies that project.config.json.dispatch_policy is internally
+// consistent and aligned with the current enforcement mode:
+//   - required fields present and well-typed
+//   - auto_plan_enabled=false when enforcement mode is locked
+//     (locked = human-in-the-loop, auto-plan forbidden)
+//   - auto_plan_max_per_session > 0 when auto_plan_enabled=true
+//   - auto_plan_timeout_ms > 0 when auto_plan_enabled=true
+function checkDispatchPolicy() {
+  const pcPath = path.join(PROJECT_ROOT, ".opencode", "project.config.json");
+  if (!fileExists(pcPath)) {
+    return {
+      id: 12,
+      name: "Dispatch-policy consistency",
+      status: FAIL,
+      detail: "project.config.json not found",
+    };
+  }
+  try {
+    const pc = JSON.parse(fs.readFileSync(pcPath, "utf8"));
+    const dp = pc.dispatch_policy;
+    if (!dp || typeof dp !== "object") {
+      return {
+        id: 12,
+        name: "Dispatch-policy consistency",
+        status: FAIL,
+        detail: "dispatch_policy block missing or not an object",
+      };
+    }
+    const issues = [];
+    if (typeof dp.require_dag_entry !== "boolean") issues.push("require_dag_entry must be boolean");
+    if (typeof dp.auto_plan_enabled !== "boolean") issues.push("auto_plan_enabled must be boolean");
+    if (typeof dp.auto_plan_max_per_session !== "number" || dp.auto_plan_max_per_session < 0)
+      issues.push("auto_plan_max_per_session must be non-negative number");
+    if (typeof dp.auto_plan_timeout_ms !== "number" || dp.auto_plan_timeout_ms <= 0)
+      issues.push("auto_plan_timeout_ms must be positive number");
+
+    // Locked-mode consistency: auto_plan must be disabled.
+    const tr = pc.template_resolution || {};
+    const mode =
+      tr.develop_enforcement_mode || tr.runtime_enforcement_mode || tr.enforcement_mode;
+    if (mode === "locked" && dp.auto_plan_enabled === true) {
+      issues.push("auto_plan_enabled=true is forbidden when enforcement mode is locked");
+    }
+    // If auto_plan_enabled, rate-limit and timeout must be reasonable.
+    if (dp.auto_plan_enabled === true) {
+      if (dp.auto_plan_max_per_session === 0) issues.push("auto_plan_enabled=true but max_per_session=0 (unreachable)");
+      if (dp.auto_plan_timeout_ms < 1000) issues.push("auto_plan_timeout_ms<1000ms is too short for @Meta-Planner planning");
+    }
+
+    return {
+      id: 12,
+      name: "Dispatch-policy consistency",
+      status: issues.length === 0 ? PASS : FAIL,
+      detail: issues.length === 0
+        ? "dispatch_policy consistent with enforcement mode (" + (mode || "unknown") + ")"
+        : issues.join("; "),
+    };
+  } catch (e) {
+    return {
+      id: 12,
+      name: "Dispatch-policy consistency",
+      status: FAIL,
+      detail: "project.config.json parse failed: " + e.message,
+    };
+  }
+}
+
 // ─── Check Registry ───────────────────────────────────────────
 const CHECKS = [
   checkOpenCodeJson,
@@ -1137,6 +1206,7 @@ const CHECKS = [
   checkEncoding,
   checkRolePermissionSync,
   checkFrameworkCompliance,
+  checkDispatchPolicy,
 ];
 
 // ─── Run Checks ───────────────────────────────────────────────

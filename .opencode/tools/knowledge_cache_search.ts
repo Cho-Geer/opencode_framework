@@ -14,6 +14,7 @@ import {
   type CacheSufficiency,
   normalizeAgentKey,
 } from "../lib/uc7ks-schema";
+import { withInterruptGuard } from "../lib";
 
 export default tool({
   description:
@@ -25,216 +26,218 @@ export default tool({
     task_id: tool.schema.string().describe("DAG task ID for session tracking"),
   },
   async execute(args, context) {
-    var agent = (context && context.agent) || "unknown";
-    var projectRoot = process.env.OPENCODE_ROOT || process.cwd();
+    return withInterruptGuard("knowledge_cache_search", async () => {
+      var agent = (context && context.agent) || "unknown";
+      var projectRoot = process.env.OPENCODE_ROOT || process.cwd();
 
-    // ── Pipeline chain validation (F2: per-domain check) ──
-    // Now checks whether THIS domain has been declared for THIS task,
-    // not a global agent-level "declared" flag. Multiple domains can
-    // coexist for the same task without clobbering each other.
-    var pipelineValid = true;
-    try {
-      var machinePath = getMachinePath();
-      if (fs.existsSync(machinePath)) {
-        var preMachine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
-        var preSA = (preMachine.knowledge_cache_state?.session_access || {}) as Record<string, any>;
-        var preAgent = normalizeAgentKey(agent);
-        // Check nested domain declaration
-        if (!isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)) {
-          // Also check legacy flat for backward compat
-          var flat = preSA[preAgent] || preSA[agent] || {};
-          if (flat.pipeline_task_id !== args.task_id || flat.pipeline_status !== "declared") {
-            pipelineValid = false;
+      // ── Pipeline chain validation (F2: per-domain check) ──
+      // Now checks whether THIS domain has been declared for THIS task,
+      // not a global agent-level "declared" flag. Multiple domains can
+      // coexist for the same task without clobbering each other.
+      var pipelineValid = true;
+      try {
+        var machinePath = getMachinePath();
+        if (fs.existsSync(machinePath)) {
+          var preMachine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
+          var preSA = (preMachine.knowledge_cache_state?.session_access || {}) as Record<string, any>;
+          var preAgent = normalizeAgentKey(agent);
+          // Check nested domain declaration
+          if (!isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)) {
+            // Also check legacy flat for backward compat
+            var flat = preSA[preAgent] || preSA[agent] || {};
+            if (flat.pipeline_task_id !== args.task_id || flat.pipeline_status !== "declared") {
+              pipelineValid = false;
+            }
           }
         }
+      } catch (e) { /* non-fatal */ }
+
+      if (!pipelineValid && args.task_id) {
+        return JSON.stringify({
+          cache_available: true,
+          error: "Pipeline chain broken: module_scope_declare must be called first with same task_id (" + args.task_id + ") and domain (" + args.domain + ").",
+          next_step: "Call module_scope_declare(module: \"" + args.domain + "\", task_id: \"" + args.task_id + "\") first.",
+        });
       }
-    } catch (e) { /* non-fatal */ }
 
-    if (!pipelineValid && args.task_id) {
-      return JSON.stringify({
-        cache_available: true,
-        error: "Pipeline chain broken: module_scope_declare must be called first with same task_id (" + args.task_id + ") and domain (" + args.domain + ").",
-        next_step: "Call module_scope_declare(module: \"" + args.domain + "\", task_id: \"" + args.task_id + "\") first.",
-      });
-    }
+      var indexPath = path.resolve(projectRoot, "docs", "official_docs", "index.json");
+      var configPath = path.resolve(projectRoot, ".opencode", "project.config.json");
 
-    var indexPath = path.resolve(projectRoot, "docs", "official_docs", "index.json");
-    var configPath = path.resolve(projectRoot, ".opencode", "project.config.json");
-
-    if (!fs.existsSync(indexPath)) {
-      return JSON.stringify({
-        cache_available: false,
-        hits: 0,
-        next_step: "Cache not initialized. Request @Knowledge-Curator.",
-      });
-    }
-
-    var index;
-    try {
-      index = JSON.parse(fs.readFileSync(indexPath, "utf8"));
-      if (!index.manifest_version || !Array.isArray(index.entries)) {
+      if (!fs.existsSync(indexPath)) {
         return JSON.stringify({
           cache_available: false,
           hits: 0,
-          error: "Malformed index.json",
-          next_step: "Rebuild via @Knowledge-Curator.",
+          next_step: "Cache not initialized. Request @Knowledge-Curator.",
         });
       }
-    } catch (e) {
-      return JSON.stringify({
-        cache_available: false,
-        hits: 0,
-        error: "Read error",
-        next_step: "Cannot read index.json.",
-      });
-    }
 
-    var entries = index.entries || [];
-    var domainKeywords: string[] = [];
-    try {
-      if (fs.existsSync(configPath)) {
-        var config = tolerantParse(fs.readFileSync(configPath, "utf8"));
-        var domains = (config.knowledge_semantic_map && config.knowledge_semantic_map.domains) || [];
-        for (var i = 0; i < domains.length; i++) {
-          if (domains[i].domain_id === args.domain) {
-            domainKeywords = domains[i].keywords || [];
-            break;
-          }
-        }
-      }
-    } catch (e) { /* non-fatal */ }
-
-    var hitEntries: Array<{
-      library_id: string;
-      topic: string;
-      tags: string[];
-      cached_files: string[];
-    }> = [];
-    for (var i = 0; i < entries.length; i++) {
-      var entry = entries[i];
-      var tags = entry.tags || [];
-      var matched = !args.domain;
-      if (args.domain) {
-        for (var j = 0; j < tags.length; j++) {
-          if (domainKeywords.indexOf(tags[j]) !== -1) {
-            matched = true;
-            break;
-          }
-        }
-      }
-      if (matched) {
-        hitEntries.push({
-          library_id: entry.library_id,
-          topic: entry.query_topic,
-          tags: tags,
-          cached_files: (entry.files || []).map(function (f: any) {
-            return f.path;
-          }),
-        });
-      }
-    }
-
-    // ── Build cache_sufficiency (F1: included in response) ──
-    var filesRead: string[] = [];
-    var topicsFound: string[] = [];
-    for (var k = 0; k < hitEntries.length; k++) {
-      topicsFound.push(hitEntries[k].topic);
-      var ef = hitEntries[k].cached_files || [];
-      for (var m = 0; m < ef.length; m++) {
-        filesRead.push(ef[m]);
-      }
-    }
-
-    var cacheSufficient = hitEntries.length > 0;
-    var sufficiency: CacheSufficiency = {
-      status: cacheSufficient ? "sufficient" : "insufficient",
-      missing_topics: cacheSufficient
-        ? []
-        : (domainKeywords.length > 0
-            ? domainKeywords.slice(0, 5)
-            : ["No domain keywords found for: " + (args.domain || "unknown")]),
-      declared_at: new Date().toISOString(),
-      reason: cacheSufficient
-        ? "Found " + hitEntries.length + " matching cache entries for domain \"" + (args.domain || "all") + "\": " + topicsFound.join("; ")
-        : "No matching cache entries for domain \"" + (args.domain || "all") + "\". Cache has " + entries.length + " total entries.",
-      files_read: filesRead,
-      content_summary: cacheSufficient
-        ? hitEntries.length + " entries covering " + filesRead.length + " files: " + topicsFound.slice(0, 3).join(" | ")
-        : "No cached content for domain \"" + (args.domain || "all") + "\". Cache has " + entries.length + " total entries.",
-    };
-
-    // ── Write to machine.json via CAS (F2: nested schema + F4: atomic) ──
-    var uc7Recorded = false;
-    try {
-      var taskId = args.task_id || "unknown";
-      var domainName = args.domain || "all";
-      var agentRef = normalizeAgentKey(agent);
-
-      var writeOk = atomicWriteMachine(function (machine: any) {
-        var kcs = machine.knowledge_cache_state = machine.knowledge_cache_state || { session_access: {}, compliance: {} };
-        kcs.session_access = kcs.session_access || {};
-
-        // Ensure agent entry
-        var agentKey = agentRef;
-        var existing = kcs.session_access[agentRef] || {};
-        kcs.session_access[agentRef] = existing;
-
-        // Write to nested domain entry (F2)
-        var domainEntry = getDomainEntry(kcs.session_access, agentRef, taskId, domainName);
-        domainEntry.pipeline_status = "completed";
-        domainEntry.declared_at = new Date().toISOString();
-        domainEntry.cache_sufficiency = sufficiency;
-
-        // Update agent rollups (legacy + new)
-        updateAgentRollups(kcs.session_access, agentRef);
-
-        // Legacy flat fields (backward compat bridge)
-        kcs.session_access[agentRef].pipeline_task_id = taskId;
-        kcs.session_access[agentRef].declared_scope = domainName;
-        kcs.session_access[agentRef].pipeline_status = "completed";
-        kcs.session_access[agentRef].cache_sufficiency = sufficiency;
-        kcs.session_access[agentRef].uc7_001_compliant = true;  // UC7-001 flag (read by uc7ks-utils.ts)
-
-        // Cap management (F8: 50 agents)
-        evictOldAgents(kcs.session_access);
-
-        // Compliance rollup
-        kcs.compliance = kcs.compliance || {};
-        kcs.compliance.cache_hits = (kcs.compliance.cache_hits || 0) + hitEntries.length;
-      });
-
-      uc7Recorded = writeOk;
-
-      // Knowledge_state sync (CAS pattern)
-      if (writeOk) {
-        try {
-          atomicWriteMachine(function (machine: any) {
-            machine.knowledge_state = machine.knowledge_state || {};
-            var newCount = entries.length;
-            var oldCount = machine.knowledge_state.total_docs_count || 0;
-            if (oldCount < newCount) {
-              machine.knowledge_state.total_docs_count = newCount;
-            }
+      var index;
+      try {
+        index = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+        if (!index.manifest_version || !Array.isArray(index.entries)) {
+          return JSON.stringify({
+            cache_available: false,
+            hits: 0,
+            error: "Malformed index.json",
+            next_step: "Rebuild via @Knowledge-Curator.",
           });
-        } catch (_syncErr) { /* non-critical */ }
+        }
+      } catch (e) {
+        return JSON.stringify({
+          cache_available: false,
+          hits: 0,
+          error: "Read error",
+          next_step: "Cannot read index.json.",
+        });
       }
-    } catch (e) {
-      /* non-fatal */
-    }
 
-    // ── F1: Response includes cache_sufficiency evidence ──
-    return JSON.stringify({
-      cache_available: true,
-      total_entries: entries.length,
-      search_domain: args.domain || "all",
-      hits: hitEntries.length,
-      hit_entries: hitEntries,
-      cache_sufficiency: sufficiency,
-      uc7_001_recorded: uc7Recorded,
-      next_step:
-        hitEntries.length > 0
-          ? "Cache sufficient. Proceed to compliance_gate_check."
-          : "Cache insufficient. Proceed to Step 0c.",
+      var entries = index.entries || [];
+      var domainKeywords: string[] = [];
+      try {
+        if (fs.existsSync(configPath)) {
+          var config = tolerantParse(fs.readFileSync(configPath, "utf8"));
+          var domains = (config.knowledge_semantic_map && config.knowledge_semantic_map.domains) || [];
+          for (var i = 0; i < domains.length; i++) {
+            if (domains[i].domain_id === args.domain) {
+              domainKeywords = domains[i].keywords || [];
+              break;
+            }
+          }
+        }
+      } catch (e) { /* non-fatal */ }
+
+      var hitEntries: Array<{
+        library_id: string;
+        topic: string;
+        tags: string[];
+        cached_files: string[];
+      }> = [];
+      for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        var tags = entry.tags || [];
+        var matched = !args.domain;
+        if (args.domain) {
+          for (var j = 0; j < tags.length; j++) {
+            if (domainKeywords.indexOf(tags[j]) !== -1) {
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (matched) {
+          hitEntries.push({
+            library_id: entry.library_id,
+            topic: entry.query_topic,
+            tags: tags,
+            cached_files: (entry.files || []).map(function (f: any) {
+              return f.path;
+            }),
+          });
+        }
+      }
+
+      // ── Build cache_sufficiency (F1: included in response) ──
+      var filesRead: string[] = [];
+      var topicsFound: string[] = [];
+      for (var k = 0; k < hitEntries.length; k++) {
+        topicsFound.push(hitEntries[k].topic);
+        var ef = hitEntries[k].cached_files || [];
+        for (var m = 0; m < ef.length; m++) {
+          filesRead.push(ef[m]);
+        }
+      }
+
+      var cacheSufficient = hitEntries.length > 0;
+      var sufficiency: CacheSufficiency = {
+        status: cacheSufficient ? "sufficient" : "insufficient",
+        missing_topics: cacheSufficient
+          ? []
+          : (domainKeywords.length > 0
+              ? domainKeywords.slice(0, 5)
+              : ["No domain keywords found for: " + (args.domain || "unknown")]),
+        declared_at: new Date().toISOString(),
+        reason: cacheSufficient
+          ? "Found " + hitEntries.length + " matching cache entries for domain \"" + (args.domain || "all") + "\": " + topicsFound.join("; ")
+          : "No matching cache entries for domain \"" + (args.domain || "all") + "\". Cache has " + entries.length + " total entries.",
+        files_read: filesRead,
+        content_summary: cacheSufficient
+          ? hitEntries.length + " entries covering " + filesRead.length + " files: " + topicsFound.slice(0, 3).join(" | ")
+          : "No cached content for domain \"" + (args.domain || "all") + "\". Cache has " + entries.length + " total entries.",
+      };
+
+      // ── Write to machine.json via CAS (F2: nested schema + F4: atomic) ──
+      var uc7Recorded = false;
+      try {
+        var taskId = args.task_id || "unknown";
+        var domainName = args.domain || "all";
+        var agentRef = normalizeAgentKey(agent);
+
+        var writeOk = atomicWriteMachine(function (machine: any) {
+          var kcs = machine.knowledge_cache_state = machine.knowledge_cache_state || { session_access: {}, compliance: {} };
+          kcs.session_access = kcs.session_access || {};
+
+          // Ensure agent entry
+          var agentKey = agentRef;
+          var existing = kcs.session_access[agentRef] || {};
+          kcs.session_access[agentRef] = existing;
+
+          // Write to nested domain entry (F2)
+          var domainEntry = getDomainEntry(kcs.session_access, agentRef, taskId, domainName);
+          domainEntry.pipeline_status = "completed";
+          domainEntry.declared_at = new Date().toISOString();
+          domainEntry.cache_sufficiency = sufficiency;
+
+          // Update agent rollups (legacy + new)
+          updateAgentRollups(kcs.session_access, agentRef);
+
+          // Legacy flat fields (backward compat bridge)
+          kcs.session_access[agentRef].pipeline_task_id = taskId;
+          kcs.session_access[agentRef].declared_scope = domainName;
+          kcs.session_access[agentRef].pipeline_status = "completed";
+          kcs.session_access[agentRef].cache_sufficiency = sufficiency;
+          kcs.session_access[agentRef].uc7_001_compliant = true;  // UC7-001 flag (read by uc7ks-utils.ts)
+
+          // Cap management (F8: 50 agents)
+          evictOldAgents(kcs.session_access);
+
+          // Compliance rollup
+          kcs.compliance = kcs.compliance || {};
+          kcs.compliance.cache_hits = (kcs.compliance.cache_hits || 0) + hitEntries.length;
+        });
+
+        uc7Recorded = writeOk;
+
+        // Knowledge_state sync (CAS pattern)
+        if (writeOk) {
+          try {
+            atomicWriteMachine(function (machine: any) {
+              machine.knowledge_state = machine.knowledge_state || {};
+              var newCount = entries.length;
+              var oldCount = machine.knowledge_state.total_docs_count || 0;
+              if (oldCount < newCount) {
+                machine.knowledge_state.total_docs_count = newCount;
+              }
+            });
+          } catch (_syncErr) { /* non-critical */ }
+        }
+      } catch (e) {
+        /* non-fatal */
+      }
+
+      // ── F1: Response includes cache_sufficiency evidence ──
+      return JSON.stringify({
+        cache_available: true,
+        total_entries: entries.length,
+        search_domain: args.domain || "all",
+        hits: hitEntries.length,
+        hit_entries: hitEntries,
+        cache_sufficiency: sufficiency,
+        uc7_001_recorded: uc7Recorded,
+        next_step:
+          hitEntries.length > 0
+            ? "Cache sufficient. Proceed to compliance_gate_check."
+            : "Cache insufficient. Proceed to Step 0c.",
+      });
     });
   },
 });

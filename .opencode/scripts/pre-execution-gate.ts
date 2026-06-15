@@ -25,6 +25,28 @@ function gateLog(category, level, data) {
 }
 
 /**
+ * FW-PLAN-FIRST (2026-06-14): Lazy-loaded canonical DAG-exempt predicate.
+ * Replaces the inline exempt list (Meta-Planner/Orchestrator/Knowledge-Curator)
+ * that previously lived in checkDagCoverage(). Lazy-loaded to keep per-dispatch
+ * overhead minimal — same pattern as getWriteLog() above.
+ */
+let _isDagExempt = null;
+function getIsDagExempt() {
+  if (!_isDagExempt) {
+    try { _isDagExempt = require("../lib/dag-policy").isDagExempt; }
+    catch (e) {
+      // Fallback: inline the canonical list so the gate still works if
+      // dag-policy is unreadable. Should never happen in practice.
+      _isDagExempt = (agent) => {
+        const n = String(agent || "").toLowerCase().replace(/^@/, "");
+        return ["meta-planner", "orchestrator", "super-admin", "knowledge-curator"].includes(n);
+      };
+    }
+  }
+  return _isDagExempt;
+}
+
+/**
  * pre-execution-gate.ts — Node-First DAG/Gate Validation with Fail-Closed Semantics
  * ================================================================================
  * Replaces shell-first dispatch validation with Node-only path resolution.
@@ -353,18 +375,15 @@ function readDispatchTargetAgent() {
  * @since 2026-06-12 — SA-ENFORCE-FIX-20250612: Added Knowledge-Curator bypass
  */
 function checkDagCoverage(taskId) {
-  // ── DAG-creator bypass: agents that don't execute DAG tasks ──
+  // ── DAG-exempt bypass: canonical list in lib/dag-policy.ts ──
+  // FW-PLAN-FIRST (2026-06-14): Consolidated exempt set:
+  //   meta-planner, orchestrator, super-admin, knowledge-curator.
   const agent = readDispatchTargetAgent() || process.env.AGENT || "";
-  const normalizedAgent = agent.replace(/^@/, ""); // strip @ prefix for comparison
-  if (
-    normalizedAgent === "Meta-Planner" ||
-    normalizedAgent === "Orchestrator" ||
-    normalizedAgent === "Knowledge-Curator"
-  ) {
+  if (getIsDagExempt()(agent)) {
     console.error(
-      `    ⏭️  DAG Coverage SKIPPED — ${agent} is a DAG-creator/manager/knowledge-pipeline (task may not exist yet)`,
+      `    ⏭️  DAG Coverage SKIPPED — ${agent || "(unknown)"} is DAG-exempt (task may not exist yet)`,
     );
-    gateLog("dag_skip", "INFO", { reason: "creator_agent", agent: normalizedAgent });
+    gateLog("dag_skip", "INFO", { reason: "exempt_agent", agent });
     return true;
   }
 

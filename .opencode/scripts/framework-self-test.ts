@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -1758,11 +1758,11 @@ function checkDoctorJsonOutput() {
       return check(25, false, "JSON missing 'checks' array");
     }
 
-    if (parsed.checks.length !== 11) {
+    if (parsed.checks.length !== 12) {
       return check(
         25,
         false,
-        `Expected 11 checks but found ${parsed.checks.length}`,
+        `Expected 12 checks but found ${parsed.checks.length}`,
       );
     }
 
@@ -2580,6 +2580,7 @@ checkPendingJson();
 checkSessionAccessAgentKeys();
 checkStaleInternalEvidence();
 checkWorkingTreeDrift();
+checkPlanFirstConsistency();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
@@ -2600,3 +2601,87 @@ if (allPassed) {
   console.log(`  ❌ ${failedCount} of ${results.length} CHECKS FAILED`);
   process.exit(1);
 }
+
+// ─── Check 37: PLAN-FIRST consistency (FW-PLAN-FIRST, 2026-06-14) ───
+// Verifies the 3-layer enforcement stack is intact and consistent:
+//   (a) lib/dag-policy.ts exists and exports the canonical exempt set
+//       including knowledge-curator.
+//   (b) plugins/dispatch-before.ts (Layer 1) exists and imports isDagExempt.
+//   (c) tools/dispatch_subagent.ts (Layer 2) imports readDispatchPolicy +
+//       isDagExempt + autoPlan.
+//   (d) plugins/gate-before.ts (Layer 3) imports isDagExempt from
+//       dag-policy.ts (not an inline list).
+//   (e) project.config.json.dispatch_policy block is present and valid.
+function checkPlanFirstConsistency() {
+  const root = process.env.OPENCODE_ROOT || process.cwd();
+  const pathJoin = require("path").join;
+  const issues = [];
+
+  // (a) dag-policy.ts
+  const dagPolicyPath = pathJoin(root, ".opencode", "lib", "dag-policy.ts");
+  if (!fs.existsSync(dagPolicyPath)) {
+    issues.push("lib/dag-policy.ts missing");
+  } else {
+    const src = fs.readFileSync(dagPolicyPath, "utf8");
+    if (!src.includes("knowledge-curator")) issues.push("dag-policy.ts: knowledge-curator not in DAG_EXEMPT_AGENTS");
+    if (!src.includes("meta-planner")) issues.push("dag-policy.ts: meta-planner not in DAG_EXEMPT_AGENTS");
+    if (!src.includes("autoPlan")) issues.push("dag-policy.ts: autoPlan function missing");
+    if (!src.includes("readDispatchPolicy")) issues.push("dag-policy.ts: readDispatchPolicy function missing");
+  }
+
+  // (b) Layer 1 plugin
+  const layer1Path = pathJoin(root, ".opencode", "plugins", "dispatch-before.ts");
+  if (!fs.existsSync(layer1Path)) {
+    issues.push("plugins/dispatch-before.ts (Layer 1) missing");
+  } else {
+    const src = fs.readFileSync(layer1Path, "utf8");
+    if (!src.includes("isDagExempt")) issues.push("dispatch-before.ts: does not import isDagExempt");
+    if (!src.includes("readDispatchPolicy")) issues.push("dispatch-before.ts: does not import readDispatchPolicy");
+    if (!src.includes("PLAN-FIRST")) issues.push("dispatch-before.ts: PLAN-FIRST marker missing");
+  }
+
+  // (c) Layer 2 tool
+  const layer2Path = pathJoin(root, ".opencode", "tools", "dispatch_subagent.ts");
+  if (fs.existsSync(layer2Path)) {
+    const src = fs.readFileSync(layer2Path, "utf8");
+    if (!src.includes("readDispatchPolicy")) issues.push("dispatch_subagent.ts (Layer 2): does not import readDispatchPolicy");
+    if (!src.includes("isDagExempt")) issues.push("dispatch_subagent.ts (Layer 2): does not import isDagExempt");
+    if (!src.includes("auto_plan:")) issues.push("dispatch_subagent.ts (Layer 2): auto_plan parameter missing");
+    if (!src.includes("PLAN-FIRST LAYER 2")) issues.push("dispatch_subagent.ts (Layer 2): PLAN-FIRST LAYER 2 marker missing");
+  }
+
+  // (d) Layer 3 plugin
+  const layer3Path = pathJoin(root, ".opencode", "plugins", "gate-before.ts");
+  if (fs.existsSync(layer3Path)) {
+    const src = fs.readFileSync(layer3Path, "utf8");
+    if (!src.includes("isDagExempt")) issues.push("gate-before.ts (Layer 3): does not import isDagExempt");
+    if (!/import.*isDagExempt.*from.*dag-policy/.test(src)) issues.push("gate-before.ts (Layer 3): isDagExempt not imported from dag-policy.ts");
+    // No inline list should remain
+    if (src.includes("agentNorm === \"orchestrator\"")) issues.push("gate-before.ts (Layer 3): still has inline exempt list");
+  }
+
+  // (e) project.config.json.dispatch_policy block
+  const pcPath = pathJoin(root, ".opencode", "project.config.json");
+  if (fs.existsSync(pcPath)) {
+    try {
+      const pc = JSON.parse(fs.readFileSync(pcPath, "utf8"));
+      const dp = pc.dispatch_policy;
+      if (!dp) {
+        issues.push("project.config.json: dispatch_policy block missing");
+      } else {
+        if (typeof dp.require_dag_entry !== "boolean") issues.push("dispatch_policy.require_dag_entry not a boolean");
+        if (typeof dp.auto_plan_enabled !== "boolean") issues.push("dispatch_policy.auto_plan_enabled not a boolean");
+        if (typeof dp.auto_plan_max_per_session !== "number") issues.push("dispatch_policy.auto_plan_max_per_session not a number");
+        if (typeof dp.auto_plan_timeout_ms !== "number") issues.push("dispatch_policy.auto_plan_timeout_ms not a number");
+      }
+    } catch (e) {
+      issues.push("project.config.json: parse failed: " + e.message);
+    }
+  }
+
+  check(37, issues.length === 0,
+    issues.length === 0
+      ? "PLAN-FIRST 3-layer stack consistent (dag-policy, dispatch-before, dispatch_subagent, gate-before, project.config)"
+      : issues.length + " issue(s): " + issues.join("; "));
+}
+
