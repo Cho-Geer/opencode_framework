@@ -139,7 +139,7 @@ If user confirms:
 ### Step 8: Layer 3 Scout Escalation
 
 **Only when documentation-tier sources are insufficient** and trigger keywords are present.
-Use `node .opencode/scripts/knowledge/scout-trigger.js "<task_description>"` to detect triggers programmatically:
+Use `bun .opencode/scripts/knowledge/scout-trigger.ts "<task_description>"` to detect triggers programmatically:
 - "internally", "under the hood", "how does X work internally" → implementation pipeline
 - "why does X behave", "unexpected" → potential bugs
 - "edge case", "undocumented" → undocumented behavior
@@ -149,7 +149,7 @@ Escalation protocol:
 ```
 1. Present Scout escalation to user: "Docs insufficient. Dispatch Scout to inspect [repo] source?"
 2. If confirmed → task({ subagent_type: "scout", prompt: "..." })
-3. Receive Scout analysis → run `node .opencode/scripts/knowledge/scout-extractor.js <domain> <library> "<topic>" "$SCOUT_OUTPUT"` to convert to .md
+3. Receive Scout analysis → run `bun .opencode/scripts/knowledge/scout-extractor.ts <domain> <library> "<topic>" "$SCOUT_OUTPUT"` to convert to .md
 4. Save to docs/official_docs/{domain}/{library}/source-analysis/{topic}.md
 5. Update index.json with source: "scout", ttl_days: 14
 6. Return findings path
@@ -193,7 +193,7 @@ docs/official_docs/
 ## Pre-Commit Mandatory Actions
 
 1. **`index.json` change check**: If `docs/official_docs/index.json` is modified:
-   - Run `node .opencode/scripts/framework-self-test.js` to verify manifest integrity (Check 19)
+   - Run `bun .opencode/scripts/framework-self-test.ts` to verify manifest integrity (Check 19)
    - Verify no orphan files (docs not in index.json)
 2. **Doc file change check**: If any file under `docs/official_docs/` is modified:
    - Verify the file is registered in `index.json` with matching SHA-256

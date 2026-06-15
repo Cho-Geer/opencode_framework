@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -401,11 +401,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
  *
  * @fix FW-REPAIR-ESLINT-32000 — 2026-06-06 @Super-Admin
  */
+let _activeTransport: StdioServerTransport | null = null;
 async function main() {
   const transport = new StdioServerTransport();
+  _activeTransport = transport;
   await server.connect(transport);
   process.stderr.write("[eslint-audit] started (SDK)\n");
 }
+
+// ── FW-INTERRUPT-GUARD (2026-06-14): Graceful SIGINT shutdown ──
+// When the parent OpenCode process forwards a cooperative cancel, close the
+// MCP transport cleanly so the TUI never sees a raw "Unexpected {interrupt}"
+// template propagated from this server.
+process.on("SIGINT", async () => {
+  try {
+    process.stderr.write("[eslint-audit] SIGINT — shutting down\n");
+    if (_activeTransport) {
+      try { await _activeTransport.close(); } catch { /* best-effort */ }
+    }
+    try { await server.close(); } catch { /* best-effort */ }
+  } catch {
+    /* ignore */
+  }
+  process.exit(0);
+});
 
 main().catch((err: Error) => {
   process.stderr.write(`[eslint-audit] Fatal error: ${err.message}\n`);

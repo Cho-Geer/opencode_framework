@@ -25,7 +25,7 @@ Resolved from `project.config.json` root-level project fields.
 | `{project.name}`                  | Project name                     | `project.name`                              | `booking-system`                                                             |
 | `{project.version}`               | Project version                  | `project.version`                           | `1.0.0`                                                                      |
 | `{project_root}`                  | Project root relative path       | `project_root`                              | `.`                                                                          |
-| `{project.contract_hash_command}` | Command to compute keystone hash | `template_resolution.contract_hash_command` | `node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml` |
+| `{project.contract_hash_command}` | Command to compute keystone hash | `template_resolution.contract_hash_command` | `bun .opencode/scripts/mcp-tools/keystone-validate.ts --hash contract.yaml` |
 
 ### §2.2 `{backend.*}` Placeholders
 

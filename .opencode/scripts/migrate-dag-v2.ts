@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Migration: Task.DAG.json v1 → v2 (Hierarchical)
  *

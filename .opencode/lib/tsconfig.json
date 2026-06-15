@@ -1,29 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
-    "outDir": "./dist",
-    "rootDir": ".",
-    "declaration": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "declaration": false,
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node10",
     "resolveJsonModule": true,
-    "ignoreDeprecations": "6.0",
-    "types": ["node"]
+    "allowImportingTsExtensions": true,
+    "types": ["node", "bun-types"]
   },
-  "include": [
-    "state-manager.ts",
-    "state-compactor.ts",
-    "log-rotator.ts",
-    "dag-version-manager.ts",
-    "gate-core.ts"
-  ],
-  "exclude": [
-    "dist",
-    "__tests__",
-    "node_modules"
-  ]
+  "include": ["**/*.ts"],
+  "exclude": [".opencode_backups", "__tests__", "node_modules", "scripts", "hooks"]
 }

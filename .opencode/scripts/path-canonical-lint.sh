@@ -2,8 +2,9 @@
 #
 # path-canonical-lint.sh — Absolute Path Leakage Scanner
 # =====================================================
-# Scans all .md, .yaml/.yml, .json, .sh, .js, .ts files
-# in .opencode/ and project root for absolute paths that
+# Scans all .md, .yaml/.yml, .json, .sh, .ts files (and any
+# configured .js files for compatibility) in .opencode/ and
+# project root for absolute paths that
 # leak machine-specific or environment-specific information.
 #
 # Usage:
@@ -87,7 +88,7 @@ SKIP_DIRS=(".opencode/state" ".task_temp" "node_modules" ".git" "dist" "build" "
 # ──────────────────────────────────────────────
 CONFIG_FILE="${PROJECT_ROOT}/.opencode/project.config.json"
 if [[ -f "$CONFIG_FILE" ]]; then
-  # Try to extract path_lint config using python3 or node
+  # Try to extract path_lint config using python3 or bun
   if command -v python3 &>/dev/null; then
     # python3 is preferred for JSON parsing in bash
     _PL_JSON="$(python3 -c "
@@ -99,8 +100,8 @@ try:
     print(json.dumps(pl))
 except: pass
 " 2>/dev/null || echo "{}")"
-  elif command -v node &>/dev/null; then
-    _PL_JSON="$(node -e "
+  elif command -v bun &>/dev/null; then
+    _PL_JSON="$(bun -e "
 try {
     const cfg=require('${PROJECT_ROOT}/.opencode/project.config.json');
     console.log(JSON.stringify(cfg.path_lint||{}));

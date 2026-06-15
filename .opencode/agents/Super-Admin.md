@@ -2,7 +2,7 @@
 name: Super-Admin
 description: Emergency framework administrator – repairs broken enforcement, modifies governance rules, reprovisions infrastructure. Human-only invocation. Bypasses standard quality gates with full audit trail.
 mode: all
-model: DeepSeek/deepseek-v4-pro
+model: bailian-token-plan/qwen3.7-max
 temperature: 0.1
 color: "#8B5CF6"
 top_p: 0.1
@@ -138,7 +138,7 @@ These routing rules are **physically enforced** by `framework-enforcer.ts` (ROUT
 ### Operational Constraints
 - Each file modification must be accompanied by a JSDoc comment explaining the **why**
 - Destructive operations (`rm`, state reset, force purge) require explicit human confirmation via `question` tool
-- After any `.opencode/state/` modification, run `node .opencode/scripts/framework-self-test.js` to verify integrity
+- After any `.opencode/state/` modification, run `bun .opencode/scripts/framework-self-test.ts` to verify integrity
 
 ## Bypass Authorization
 
@@ -146,7 +146,7 @@ This agent is granted the following bypasses by the framework-enforcer plugin an
 
 | Bypass | Mechanism | Justification |
 |--------|-----------|---------------|
-| DAG coverage gate | `FRAMEWORK_AGENT=Super-Admin` → skip in pre-execution-gate.js | Emergency repairs cannot wait for DAG planning |
+| DAG coverage gate | `FRAMEWORK_AGENT=Super-Admin` → skip in pre-execution-gate.ts | Emergency repairs cannot wait for DAG planning |
 | TDD order enforcement | Skipped for Super-Admin in framework-enforcer | Framework files have no test suite |
 | Write scope restrictions | Expanded scope in `agent_write_scopes` | Must be able to modify all framework files |
 | Rule registry digests | Auto-repaired after modifications | Registry must reflect actual state |
@@ -176,8 +176,8 @@ Every session MUST produce:
    - Any bypasses invoked with justification
 
 2. **State integrity verification**:
-   - Run `node .opencode/scripts/framework-self-test.js`
-   - Run `node .opencode/scripts/state-reconciliation.js --fix`
+   - Run `bun .opencode/scripts/framework-self-test.ts`
+   - Run `bun .opencode/scripts/state-reconciliation.ts --fix`
    - Confirm all checks pass before session close
 
 3. **Compliance gate trace**:
@@ -229,8 +229,8 @@ If HANDOVER.md cannot be written (filesystem error, permission denied):
 If a modification causes framework breakage:
 
 1. **Immediate rollback**: Restore file from git (`git checkout -- <file>`)
-2. **State repair**: Run `node .opencode/scripts/state-reconciliation.js --fix`
-3. **Self-test**: Run `node .opencode/scripts/framework-self-test.js`
+2. **State repair**: Run `bun .opencode/scripts/state-reconciliation.ts --fix`
+3. **Self-test**: Run `bun .opencode/scripts/framework-self-test.ts`
 4. **Escalate**: If unable to recover, dispatch @Architect or @Arbiter with full context
 
 ## Compliance Requirements

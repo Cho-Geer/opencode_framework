@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * state-transaction.js — Unified State Transaction Engine
  * =======================================================
@@ -24,7 +24,7 @@
  *   // or txn.rollback('reason');
  *
  * Usage (CLI):
- *   node state-transaction.js <command> [args...]
+ *   bun state-transaction.ts <command> [args...]
  *   Commands: verify, recover, log-tail
  */
 
@@ -952,7 +952,7 @@ function runCLI() {
 
     // ═══ Internal: prepare+commit in one step (for scripted use) ═══
     case "atomic-write": {
-      // Usage: node state-transaction.js atomic-write <filePath> <agent> <taskId>
+      // Usage: bun state-transaction.ts atomic-write <filePath> <agent> <taskId>
       // Content is read from stdin
       const filePath = args[0];
       const agent = args[1] || "unknown";
@@ -978,7 +978,7 @@ function runCLI() {
     }
 
     default: {
-      console.error("Usage: node state-transaction.js <command> [args...]");
+      console.error("Usage: bun state-transaction.ts <command> [args...]");
       console.error("Commands:");
       console.error("  verify          Verify transaction log integrity");
       console.error("  recover         Run crash recovery scan");

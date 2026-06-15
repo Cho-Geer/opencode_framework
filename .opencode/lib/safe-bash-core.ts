@@ -47,6 +47,14 @@ export interface SafeBashOptions {
   timeout?: number;
   dryRun?: boolean;
   agent?: string;
+  /**
+   * FW-INTERRUPT-GUARD (2026-06-14): Optional AbortSignal forwarded from the
+   * OpenCode execution context. When the user cancels mid-flight (Ctrl+C),
+   * this signal fires and execSync aborts the spawned child, returning a
+   * clean SafeBashResult with exitCode=130 instead of propagating the raw
+   * "Unexpected {interrupt}" template error to the TUI.
+   */
+  signal?: AbortSignal;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -519,6 +527,7 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
     timeout = 300000,
     dryRun = false,
     agent = "unknown", // v4.0.0: FRAMEWORK_AGENT deprecated; allowlist agent resolution uses caller-supplied value
+    signal,
   } = options;
 
   const allowlist = getAllowlist(agent);
@@ -666,18 +675,16 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
 
     for (const pattern of evalPatterns) {
       if (pattern.test(evalArg)) {
-        // ── Orchestrator path-aware bypass ──
+        // ── Orchestrator path-aware bypass (FW-PERM-FIX-ORCH-DOCS-REPAIR) ──
+        // Extended to also allow docs/review/ alongside .task_temp/.
+        // Any write/delete targeting these paths is acceptable for @Orchestrator.
+        // Non-Orchestrator agents fall through to the block-all branch below.
         if (isOrchestrator) {
-          // Check if the eval argument references .task_temp/ paths.
-          // This is a heuristic: any write/delete targeting .task_temp/ is
-          // acceptable. Edge case: eval that writes to both .task_temp/ and
-          // other paths would pass — such complex scripts belong in proper
-          // script files, not inline eval.
-          if (/\.task_temp\//.test(evalArg)) {
-            // Contains .task_temp/ — writes are within Orchestrator's scope
+          if (/\.task_temp\//.test(evalArg) || /docs\/review\//.test(evalArg)) {
+            // Contains .task_temp/ or docs/review/ — writes are within Orchestrator's scope
             break;
           }
-          // Contains write/delete patterns but no .task_temp/ reference → block
+          // Contains write/delete patterns but no allowed path reference → block
           const blockedResult: SafeBashResult = {
             command,
             agent,
@@ -686,7 +693,7 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
             exitCode: null,
             stdout: "",
             stderr: "",
-            blockedReason: `EVAL_FILE_WRITE_SCOPE: Command "${command}" contains file-write/delete operations outside of Orchestrator's allowed scope (.task_temp/**). Blocked by eval content scan.`,
+            blockedReason: `EVAL_FILE_WRITE_SCOPE: Command "${command}" contains file-write/delete operations outside of Orchestrator's allowed scope (.task_temp/**, docs/review/**). Blocked by eval content scan.`,
             timestamp: new Date().toISOString(),
           };
           logAction(blockedResult);
@@ -735,12 +742,38 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
   }
 
   // 5. Execute command
+  // ── FW-INTERRUPT-GUARD (2026-06-14): pre-flight abort check ──
+  // If the caller's AbortSignal is already aborted, do not spawn — return a
+  // clean interrupted result immediately. This prevents the upstream TUI
+  // from ever seeing a raw "Unexpected {interrupt}" template text.
+  if (signal?.aborted) {
+    const interrupted: SafeBashResult = {
+      command,
+      agent,
+      allowed: true,
+      executed: false,
+      exitCode: 130,
+      stdout: "",
+      stderr: "interrupted",
+      blockedReason: null,
+      timestamp: new Date().toISOString(),
+    };
+    logAction(interrupted);
+    return interrupted;
+  }
+
   try {
-    const stdout = execSync(command, {
+    const execOptions: Parameters<typeof execSync>[1] = {
       timeout,
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
-    });
+    };
+    if (signal) {
+      // Node 17+ / Bun: AbortSignal aborts the spawned child with SIGTERM,
+      // causing execSync to throw with stderr containing "SIGTERM".
+      (execOptions as any).signal = signal;
+    }
+    const stdout = execSync(command, execOptions);
     const result: SafeBashResult = {
       command,
       agent,

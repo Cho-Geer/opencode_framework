@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * rollback-state-migration.mjs — Reverse state migration v3 → v2
  *

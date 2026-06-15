@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.4.1",
-  "last_updated": "2026-06-11T18:30:00Z",
-  "total_entries": 42,
+  "last_updated": "2026-06-14T05:14:52.789Z",
+  "total_entries": 45,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -1321,6 +1321,87 @@
           "size_bytes": 8841,
           "created_at": "2026-06-11T18:30:00Z",
           "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "bun",
+      "query_topic": "Bun overview and installation: all-in-one JavaScript runtime, bundler, test runner, package manager, JavaScriptCore engine",
+      "domain": "infrastructure",
+      "tags": [
+        "bun",
+        "typescript",
+        "module",
+        "runtime",
+        "commonjs",
+        "esm"
+      ],
+      "files": [
+        {
+          "path": "bun/bun-overview.md",
+          "source": "curated",
+          "original_url": "https://bun.sh/docs",
+          "sha256": "sha256:c302fb1e816158c27fa782089c7cc695ffa525a78cfde7eaa0a2ea6874eaaf5c",
+          "size_bytes": 3567,
+          "created_at": "2026-06-14T05:15:00Z",
+          "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "bun",
+      "query_topic": "Bun TypeScript native support: require(.ts) works natively without transpilation, type-stripping, tsconfig paths",
+      "domain": "infrastructure",
+      "tags": [
+        "bun",
+        "typescript",
+        "module",
+        "runtime",
+        "commonjs",
+        "esm"
+      ],
+      "files": [
+        {
+          "path": "bun/bun-typescript-support.md",
+          "source": "curated",
+          "original_url": "https://bun.sh/docs/typescript",
+          "sha256": "sha256:f5564febb904cebd67887ecece89e6ceb3767ecb2cdaa52090df132dab8a6b4d",
+          "size_bytes": 4618,
+          "created_at": "2026-06-14T05:15:00Z",
+          "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "bun",
+      "query_topic": "Bun module resolution: CJS/ESM freely mixable, require and import both supported, Node.js-compatible resolution algorithm",
+      "domain": "infrastructure",
+      "tags": [
+        "bun",
+        "typescript",
+        "module",
+        "runtime",
+        "commonjs",
+        "esm"
+      ],
+      "files": [
+        {
+          "path": "bun/bun-module-resolution.md",
+          "source": "curated",
+          "original_url": "https://bun.sh/docs/runtime/modules",
+          "sha256": "sha256:7bf54ca6931117d476d533f6c86165fdaef8d10f63f07555428d8749be39ada5",
+          "size_bytes": 6950,
+          "created_at": "2026-06-14T05:15:00Z",
+          "ttl_days": 90,
           "access_count": 0,
           "last_accessed": null,
           "status": "active"

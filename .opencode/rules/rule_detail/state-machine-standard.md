@@ -32,14 +32,14 @@
 | 文件            | 路径                                          | 用途                                                                                                                                                                                                                                                                                                            |
 | :-------------- | :-------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **项目配置**    | `{project_root}/.opencode/state/machine.json` | 定义契约哈希、任务生命周期转换规则、证据要求。`project_root` 由 `project.config.json` 定义（如 `booking_system_refactor`）；若未定义则回退至 `.opencode/state/machine.json`。                                                                                                                                   |
-| **Schema 校验** | `.opencode/state/machine.schema.json`         | 校验 `machine.json` 格式正确性。该 Schema 在 code-quality-gate.js bootstrap 阶段加载验证，确保所有 9 个子状态段（meta, eslint_state, type_check_state, dependency_state, format_state, write_audit_state, compliance_records, tdd_enforcement_state, contracts, keystone_hashes）的字段类型和必需字段符合规范。 |
+| **Schema 校验** | `.opencode/state/machine.schema.json`         | 校验 `machine.json` 格式正确性。该 Schema 在 code-quality-gate.ts bootstrap 阶段加载验证，确保所有 9 个子状态段（meta, eslint_state, type_check_state, dependency_state, format_state, write_audit_state, compliance_records, tdd_enforcement_state, contracts, keystone_hashes）的字段类型和必需字段符合规范。 |
 | **执行器**      | `.opencode/hooks/pre-commit`                  | Git Hook，读取 `machine.json` 并执行校验                                                                                                                                                                                                                                                                        |
 
 ### 3.1 Schema 验证机制
 
 `machine.schema.json` 基于 JSON Schema Draft 2020-12，在以下时机执行验证：
 
-1. **Bootstrap 阶段**：`code-quality-gate.js` 的 `getMachine()` 函数在读取 `machine.json` 时自动加载 schema 进行格式验证，验证失败时输出警告但不会阻止启动（向后兼容）。
+1. **Bootstrap 阶段**：`code-quality-gate.ts` 的 `getMachine()` 函数在读取 `machine.json` 时自动加载 schema 进行格式验证，验证失败时输出警告但不会阻止启动（向后兼容）。
 2. **Write-Time Audit**：每次 `run_write_check` 执行后，`updateStates()` 写入的 `machine.json` 必须符合 schema 定义，否则后续 bootstrap 验证会报警。
 3. **Pre-Commit Hook**：Git Hook 在校验 `machine.json` 哈希同步性之前，可选择性地执行 schema 验证以确保文件结构完整。
 

@@ -45,9 +45,9 @@ MACHINE_FILE="${PROJECT_ROOT}/.opencode/state/machine.json"
 
 
 # ─── JS Delegation (preferred) ──────────────────────────
-RECON_JS="${SCRIPT_DIR}/mcp-tools/reconciliation-validate.js"
-if [[ -f "$RECON_JS" ]] && command -v node &> /dev/null; then
-  exec node "$RECON_JS" "$@"
+RECON_JS="${SCRIPT_DIR}/mcp-tools/reconciliation-validate.ts"
+if [[ -f "$RECON_JS" ]] && command -v bun &> /dev/null; then
+  exec bun "$RECON_JS" "$@"
 fi
 # Fallback: embedded bash implementation below
 # ─── State Tracking ────────────────────────────────────────────
@@ -99,8 +99,8 @@ with open('$DAG_FILE', 'r') as f:
     dag = json.load(f)
 $filter
 " 2>/dev/null || echo ""
-  elif command -v node &> /dev/null; then
-    node -e "
+  elif command -v bun &> /dev/null; then
+    bun -e "
 const dag = JSON.parse(require('fs').readFileSync('$DAG_FILE', 'utf8'));
 $filter
 " 2>/dev/null || echo ""
@@ -120,8 +120,8 @@ with open('$GATE_FILE', 'r') as f:
     gate = json.load(f)
 $filter
 " 2>/dev/null || echo ""
-  elif command -v node &> /dev/null; then
-    node -e "
+  elif command -v bun &> /dev/null; then
+    bun -e "
 const gate = JSON.parse(require('fs').readFileSync('$GATE_FILE', 'utf8'));
 $filter
 " 2>/dev/null || echo ""
@@ -141,8 +141,8 @@ with open('$MACHINE_FILE', 'r') as f:
     machine = json.load(f)
 $filter
 " 2>/dev/null || echo ""
-  elif command -v node &> /dev/null; then
-    node -e "
+  elif command -v bun &> /dev/null; then
+    bun -e "
 const machine = JSON.parse(require('fs').readFileSync('$MACHINE_FILE', 'utf8'));
 $filter
 " 2>/dev/null || echo ""
@@ -193,7 +193,7 @@ if [ -n "$DAG_IN_PROGRESS" ]; then
         HAS_MATCH=true
       fi
     else
-      # For python3/node fallback, check if task_id appears in any session
+      # For python3/bun fallback, check if task_id appears in any session
       MATCH=$(_json_query_gate "for sid, s in gate['sessions'].items():
     td = s.get('task_description', '')
     if '$task_id' in td:

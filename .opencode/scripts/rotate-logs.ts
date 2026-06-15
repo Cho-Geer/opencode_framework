@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Log Rotation Script — safe-bash.log Compaction
  *

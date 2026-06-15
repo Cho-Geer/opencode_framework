@@ -1,5 +1,5 @@
 /**
- * scout-trigger.js — UC7KS Scout Trigger Condition Detector v1.0.0
+ * scout-trigger.ts — UC7KS Scout Trigger Condition Detector v1.0.0
  *
  * Analyzes task descriptions for trigger keywords that indicate
  * documentation-tier sources are insufficient and Scout source-code

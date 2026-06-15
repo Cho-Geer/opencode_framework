@@ -1,21 +1,22 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
- * nightly-compaction.mjs — Trigger nightly state archival
+ * nightly-compaction.ts — Trigger nightly state archival
  *
  * Runs nightly compaction for gate-state (compress old history files into archive)
  * and optionally DAG archival (archive completed tasks >14 days old).
  *
  * USAGE:
- *   node .opencode/scripts/nightly-compaction.mjs              # gate-state only
- *   node .opencode/scripts/nightly-compaction.mjs --dag        # gate + DAG
- *   node .opencode/scripts/nightly-compaction.mjs --dry-run
- *   node .opencode/scripts/nightly-compaction.mjs --today YYYY-MM-DD  # override date
+ *   bun .opencode/scripts/nightly-compaction.ts              # gate-state only
+ *   bun .opencode/scripts/nightly-compaction.ts --dag        # gate + DAG
+ *   bun .opencode/scripts/nightly-compaction.ts --dry-run
+ *   bun .opencode/scripts/nightly-compaction.ts --today YYYY-MM-DD  # override date
  *
  * TRIGGERS:
  *   - @CI-CD-Agent scheduled task (cron: 0 2 * * *)
- *   - Manual: node .opencode/scripts/nightly-compaction.mjs
+ *   - Manual: bun .opencode/scripts/nightly-compaction.ts
  *   - Future: session.compacted event in framework-enforcer.ts
  *
+ * FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; removed dist/ fallback.
  * @since Wave 4.1 (R7)
  * @author @Super-Admin
  */
@@ -28,30 +29,11 @@ const PROJECT_ROOT = join(__dirname, '../..');
 const STATE_DIR = join(PROJECT_ROOT, '.opencode/state');
 
 /**
- * Load StateCompactor — prefers tsx source import, falls back to compiled dist/.
- * FW-REPAIR-14: Eliminates brittle dist/ dependency; uses top-level await for .mjs ESM.
- *
- * When invoked via `npx tsx`, dynamic import of .ts source works natively.
- * When invoked via plain `node`, falls back to require() of pre-compiled dist/ JS.
+ * Load StateCompactor and DAGVersionManager from TypeScript source.
+ * FW-PLAN-JS-TO-TS: Bun executes .ts directly; no compilation or dist/ fallback needed.
  */
-let StateCompactor, DAGVersionManager;
-try {
-  const srcModule = await import('../lib/state-compactor.ts');
-  StateCompactor = srcModule.StateCompactor;
-} catch {
-  // Fallback: compiled dist/ (plain node without tsx)
-  const { createRequire } = await import('node:module');
-  const require = createRequire(import.meta.url);
-  StateCompactor = require(join(PROJECT_ROOT, '.opencode/lib/dist/state-compactor')).StateCompactor;
-}
-try {
-  const dagModule = await import('../lib/dag-version-manager.ts');
-  DAGVersionManager = dagModule.DAGVersionManager;
-} catch {
-  const { createRequire } = await import('node:module');
-  const require = createRequire(import.meta.url);
-  DAGVersionManager = require(join(PROJECT_ROOT, '.opencode/lib/dist/dag-version-manager')).DAGVersionManager;
-}
+const { StateCompactor } = await import('../lib/state-compactor.ts');
+const { DAGVersionManager } = await import('../lib/dag-version-manager.ts');
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');

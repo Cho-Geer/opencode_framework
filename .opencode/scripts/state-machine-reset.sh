@@ -291,6 +291,6 @@ echo "  ✅ Sections reset: ${CHANGED_SECTIONS[*]}" >&2
 echo "  ✅ machine.json reset to clean baseline." >&2
 echo "  ✅ Meta section preserved: version=$(echo "$META_SECTION" | jq -r '.version'), project=$(echo "$META_SECTION" | jq -r '.project')" >&2
 echo "  ✅ keystone_hashes preserved: $(echo "$KEYSTONE_HASHES" | jq -c '.')" >&2
-echo "  ℹ️  To repopulate keystone hashes, run: node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml" >&2
+echo "  ℹ️  To repopulate keystone hashes, run: bun .opencode/scripts/mcp-tools/keystone-validate.ts --hash contract.yaml" >&2
 
 exit 0

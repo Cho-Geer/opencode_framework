@@ -1,5 +1,5 @@
 /**
- * compressor.js — UC7KS Knowledge Compressor v1.0.0
+ * compressor.ts — UC7KS Knowledge Compressor v1.0.0
  *
  * Converts large .html files to .md when they exceed compression_threshold_kb (default 200KB).
  * Uses pandoc for conversion when available; falls back to basic HTML-to-text stripping.

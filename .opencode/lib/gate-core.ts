@@ -1063,6 +1063,19 @@ export interface DagExistsResult {
  * @param verbose - Whether to log diagnostic info (default false)
  * @returns { found, taskCount }
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ *
+ * @deprecated (2026-06-14, FW-DEPRECATE-DEAD-DAG-HELPERS)
+ *   ZERO live callers in the framework. Only scans `dag.tasks[]` — does NOT scan
+ *   `dag.execution_order`, which is where most tasks now live after the
+ *   FW-FIX-EXECORDER-01 reorganization. Using this function gives a misleading
+ *   picture of DAG state and was a contributing factor in the mis-diagnosis
+ *   documented in docs/review/cicd-dag-block/diagnosis.md.
+ *
+ *   Live replacement:
+ *     - Existence check → `fs.existsSync(STATE_PATHS.dag())`
+ *     - Task count     → `readJsonFile(STATE_PATHS.dag()).tasks.length`
+ *     - Task lookup    → `findTaskInDag(taskId)` in ./gate-checks.ts (scans
+ *                        BOTH `dag.tasks[]` and `dag.execution_order`).
  */
 export function checkDagExists(dagPath?: string, verbose?: boolean): DagExistsResult {
   const fp = dagPath ? { dag: dagPath } : resolveFrameworkPaths();
@@ -1088,6 +1101,13 @@ export interface TaskInDagResult {
  * @param taskId - Task ID to search for
  * @returns { found, status, owner }
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ *
+ * @deprecated (2026-06-14, FW-DEPRECATE-DEAD-DAG-HELPERS)
+ *   ZERO live callers in the framework. Only scans `dag.tasks[]` — does NOT scan
+ *   `dag.execution_order`. Live replacement: `findTaskInDag(taskId)` in
+ *   ./gate-checks.ts (scans BOTH `dag.tasks[]` and `dag.execution_order`,
+ *   returns `{ found, status, source }` where source distinguishes which
+ *   structure the match came from).
  */
 export function checkTaskInDag(dag: { tasks?: Array<{ id: string; status: string; owner?: string }> }, taskId: string): TaskInDagResult {
   if (!dag || !Array.isArray(dag.tasks)) {
@@ -1112,6 +1132,13 @@ export interface DagProgressResult {
  * @param dag - The parsed DAG object
  * @returns Progress statistics
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ *
+ * @deprecated (2026-06-14, FW-DEPRECATE-DEAD-DAG-HELPERS)
+ *   ZERO live callers in the framework. Only counts tasks in `dag.tasks[]` —
+ *   ignores tasks that live exclusively in `dag.execution_order` groups, so
+ *   the returned `progressPercent` is misleading for DAGs organized that way.
+ *   No direct replacement (progress reporting belongs in framework-doctor.ts
+ *   and state-integrity-scan.ts, which both handle both DAG layouts).
  */
 export function checkDagProgress(dag: { tasks?: Array<{ status: string }> }): DagProgressResult {
   if (!dag || !Array.isArray(dag.tasks)) {

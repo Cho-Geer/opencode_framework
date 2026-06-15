@@ -9,8 +9,8 @@
 #   4. rule-registry-verify.ts --strict
 #
 # SA-FIX-HEALTH-CHECK-JS (@Super-Admin): All 4 scripts are TypeScript (.ts),
-# not JavaScript (.js). Fixed extension + runner (npx tsx). Also removed
-# || true masking so failures are visible.
+# not JavaScript (.js). Runner is `bun` (Bun executes TypeScript natively).
+# Also removed || true masking so failures are visible.
 #
 # Usage:
 #   bash .opencode/scripts/framework-health-check.sh
@@ -50,16 +50,16 @@ run_step() {
 }
 
 # Step 1: framework-doctor --strict
-run_step "framework-doctor" npx tsx .opencode/scripts/framework-doctor.ts --strict || true
+run_step "framework-doctor" bun .opencode/scripts/framework-doctor.ts --strict || true
 
 # Step 2: framework-self-test
-run_step "framework-self-test" npx tsx .opencode/scripts/framework-self-test.ts || true
+run_step "framework-self-test" bun .opencode/scripts/framework-self-test.ts || true
 
 # Step 3: state-reconciliation --strict
-run_step "state-reconciliation" npx tsx .opencode/scripts/state-reconciliation.ts --strict || true
+run_step "state-reconciliation" bun .opencode/scripts/state-reconciliation.ts --strict || true
 
 # Step 4: rule-registry-verify --strict
-run_step "rule-registry-verify" npx tsx .opencode/scripts/rule-registry-verify.ts --strict || true
+run_step "rule-registry-verify" bun .opencode/scripts/rule-registry-verify.ts --strict || true
 
 # ── Output ──────────────────────────────────────────────────────
 if [ -z "$FAILED_STEPS" ]; then

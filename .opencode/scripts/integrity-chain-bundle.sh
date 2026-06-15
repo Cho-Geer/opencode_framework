@@ -20,7 +20,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-VALIDATOR="$ROOT/scripts/keystone-validate.js"
+VALIDATOR="$ROOT/.opencode/scripts/mcp-tools/keystone-validate.ts"
 MACHINE="$ROOT/.opencode/state/machine.json"
 VERIFY_ONLY=false
 
@@ -30,7 +30,7 @@ if [ "${1:-}" = "--verify" ] || [ "${1:-}" = "--dry-run" ]; then
 fi
 
 if [ ! -f "$VALIDATOR" ]; then
-    echo "[integrity-chain-bundle] ERROR: keystone-validate.js not found at $VALIDATOR" >&2
+    echo "[integrity-chain-bundle] ERROR: keystone-validate.ts not found at $VALIDATOR" >&2
     exit 1
 fi
 
@@ -44,8 +44,8 @@ export ROOT="$ROOT"
 export MACHINE_PATH="$MACHINE"
 export VALIDATOR="$VALIDATOR"
 
-# ── Delegate all heavy lifting to Node.js ──────────────────────
-node --input-type=module -e '
+# ── Delegate all heavy lifting to Bun ──────────────────────
+bun -e '
 import { readFileSync, writeFileSync, readdirSync, existsSync } from "fs";
 import { resolve } from "path";
 import { execSync } from "child_process";
@@ -62,7 +62,7 @@ function computeHash(relPath) {
     return "MISSING";
   }
   try {
-    const out = execSync("node " + JSON.stringify(VALIDATOR) + " --hash " + JSON.stringify(relPath), {
+    const out = execSync("bun " + JSON.stringify(VALIDATOR) + " --hash " + JSON.stringify(relPath), {
       cwd: ROOT, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"],
     });
     const h = out.trim();
@@ -155,7 +155,7 @@ console.log("  ✅  machine.json.keystone_hashes updated");
 console.log("  Revision: " + machine.meta.revision);
 console.log("  Entries:  " + total);
 console.log("");
-console.log("  Next: node scripts/keystone-validate.js --bundle");
+console.log("  Next: bun .opencode/scripts/mcp-tools/keystone-validate.ts --bundle");
 console.log("═══════════════════════════════════════════════════════════════");
 ' 2>&1
 

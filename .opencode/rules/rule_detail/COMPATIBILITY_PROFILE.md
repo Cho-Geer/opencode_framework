@@ -344,7 +344,7 @@ In `project.config.json` → `context7_task_mapping`, update the `@Coder-FE` ent
 #### Step 4: Verify with Framework Self-Test
 
 ```bash
-node .opencode/scripts/framework-self-test.js
+bun .opencode/scripts/framework-self-test.ts
 ```
 
 Ensure Check 17 (no UNRESOLVED placeholders) and Check 18 (template_resolution section exists) pass.
@@ -446,7 +446,7 @@ Add a new entry to `project.config.json` → `context7_task_mapping` for the new
 #### Step 8: Verify
 
 ```bash
-node .opencode/scripts/framework-self-test.js
+bun .opencode/scripts/framework-self-test.ts
 grep -r 'UNRESOLVED{' .opencode/agents/ .opencode/rules/ .opencode/skills/ .opencode/subagent-preamble.md
 ```
 
@@ -519,10 +519,10 @@ When migrating the OpenCode Framework to a new tech stack, use this checklist:
 
 ### §6.8 Validation
 
-- [ ] Run `node .opencode/scripts/framework-self-test.js` — all checks must pass
+- [ ] Run `bun .opencode/scripts/framework-self-test.ts` — all checks must pass
 - [ ] Run `grep -r 'UNRESOLVED{' .opencode/agents/ .opencode/rules/ .opencode/skills/ .opencode/subagent-preamble.md` — should only show expected extended placeholders
 - [ ] Run `{project.contract_hash_command}` to update `machine.json` keystone hashes
-- [ ] Test dispatch resolution: `node .opencode/scripts/command-tools/dispatch-subagent.js Architect "test" 2>&1 | head -100`
+- [ ] Test dispatch resolution: `bun .opencode/scripts/command-tools/dispatch-subagent.ts Architect "test" 2>&1 | head -100`
 - [ ] Verify no hardcoded paths remain in agent configs
 
 ### §6.9 Documentation

@@ -226,7 +226,7 @@ advisory ──→ strict ──→ locked
 |------|----------|----------|
 | 所有提交被阻断，但预期为 advisory | `ENFORCEMENT_MODE=strict` 已被设置 | `unset ENFORCEMENT_MODE` 或检查 `project.config.json` |
 | Locked 模式无法提交紧急修复 | 模式降级被禁止 | 执行 `state-machine-reset.sh --force --unlock` + @Arbiter 令牌 |
-| 模式转换后 audit 日志未更新 | `compliance_records` 未刷新 | 手动运行 `node .opencode/scripts/mcp-tools/compliance-gate.js` 或等待下一个 gate 操作 |
+| 模式转换后 audit 日志未更新 | `compliance_records` 未刷新 | 手动运行 `bun .opencode/scripts/mcp-tools/compliance-gate.ts` 或等待下一个 gate 操作 |
 | 环境变量不生效 | `locked` 模式激活中 | locked 模式下环境变量覆盖被禁用；检查 `enforcement_config.locked.allow_downgrade` |
 
 ---

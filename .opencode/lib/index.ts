@@ -30,3 +30,13 @@ export {
   ALLOWED_SCRIPT_PATHS,
   WRITE_PATTERNS,
 } from './safe-bash-core';
+
+// FW-INTERRUPT-GUARD (2026-06-14): Cooperative interrupt trap.
+// Prevents the upstream TUI from rendering raw "Unexpected {interrupt}"
+// template text when local tools are cancelled mid-flight.
+export {
+  withInterruptGuard,
+  installSigintCleanup,
+  isInterruptError,
+} from './interrupt-guard';
+export type { InterruptTrapPayload } from './interrupt-guard';

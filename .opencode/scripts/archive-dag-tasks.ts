@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
- * DAG Archival Script — archive-dag-tasks.mjs
+ * DAG Archival Script — archive-dag-tasks.ts
  *
  * Archives completed tasks older than 14 days from Task.DAG.json
  * to Task.DAG.versions/ snapshots using DAGVersionManager.
@@ -8,9 +8,10 @@
  * Intended for @CI-CD-Agent nightly cron or manual compaction.
  *
  * USAGE:
- *   node .opencode/scripts/archive-dag-tasks.mjs
- *   node .opencode/scripts/archive-dag-tasks.mjs --dry-run
+ *   bun .opencode/scripts/archive-dag-tasks.ts
+ *   bun .opencode/scripts/archive-dag-tasks.ts --dry-run
  *
+ * FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; removed dist/ dependency.
  * @since P0-3
  */
 
@@ -25,7 +26,7 @@ const PROJECT_ROOT = join(__dirname, '../..');
 const DAG_HOT = join(PROJECT_ROOT, 'Task.DAG.json');
 const DRY_RUN = process.argv.includes('--dry-run');
 const RECENT_DAYS = 14;
-const { DAGVersionManager } = require(join(PROJECT_ROOT, '.opencode/lib/dist/dag-version-manager'));
+const { DAGVersionManager } = require(join(PROJECT_ROOT, '.opencode/lib/dag-version-manager.ts'));
 
 function log(msg) { console.log((DRY_RUN ? '[DRY-RUN] ' : '') + msg); }
 

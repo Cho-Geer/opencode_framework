@@ -1,27 +1,19 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 // ── Delegate to .opencode/lib/gate-core.ts (single source of truth) ──
-// SA-UNIFY-005 (2026-06-11): Prefer compiled dist/gate-core.js to avoid
-// Bun CJS→ESM transpilation fragility. Falls back to .ts source if dist unavailable.
+// FW-PLAN-JS-TO-TS (2026-06-14): Bun executes TypeScript natively — no compiled
+// JS fallback needed. The dist/ directory was removed in Phase 5 of the JS-to-TS
+// migration. Source-first require is sufficient and avoids the ~5ms overhead
+// of the previous two-tier fallback pattern.
 let _gateCore = null;
 try {
   const rootDir = process.env.OPENCODE_ROOT ||
     require("path").resolve(__dirname, "..", "..", "..");
-  // Try compiled JS first (reliable CJS require), then TypeScript source
-  const distPath = require("path").join(rootDir, ".opencode", "lib", "dist", "gate-core.js");
   const tsPath = require("path").join(rootDir, ".opencode", "lib", "gate-core");
-  try {
-    _gateCore = require(distPath);
-  } catch (_distErr) {
-    try {
-      _gateCore = require(tsPath);
-    } catch (_tsErr) {
-      process.stderr.write("[compliance-gate] gate-core load failed (dist+source). dist=" + _distErr.message + " source=" + _tsErr.message + "\n");
-    }
-  }
+  _gateCore = require(tsPath);
 } catch (_e) {
-  process.stderr.write("[compliance-gate] gate-core path resolution failed: " + _e.message + "\n");
+  process.stderr.write("[compliance-gate] gate-core load failed: " + _e.message + "\n");
 }
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
@@ -1501,7 +1493,8 @@ function runGateComplete(sessionId, executionSummary) {
   // Arches completed session to gate-state.history/YYYY-MM-DD.jsonl
   // and updates gate-state.index.json. Best-effort — never blocks gate completion.
   try {
-    const { StateCompactor } = require("../../lib/dist/state-compactor");
+    // FW-PLAN-JS-TO-TS: import StateCompactor from TypeScript source via Bun.
+    const { StateCompactor } = require("../../lib/state-compactor.ts");
     const compactor = new StateCompactor();
     compactor
       .onGateComplete(sessionId, {
@@ -2060,11 +2053,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // 启动 stdio 传输
+let _activeTransport: StdioServerTransport | null = null;
 async function main() {
   const transport = new StdioServerTransport();
+  _activeTransport = transport;
   await server.connect(transport);
   process.stderr.write("[compliance-gate] started (SDK)\n");
 }
+
+// ── FW-INTERRUPT-GUARD (2026-06-14): Graceful SIGINT shutdown ──
+// When the parent OpenCode process forwards a cooperative cancel, close the
+// MCP transport cleanly so gate-state.json locks are released and the TUI
+// never sees a raw "Unexpected {interrupt}" template from this server.
+process.on("SIGINT", async () => {
+  try {
+    process.stderr.write("[compliance-gate] SIGINT — shutting down\n");
+    if (_activeTransport) {
+      try { await _activeTransport.close(); } catch { /* best-effort */ }
+    }
+    try { await server.close(); } catch { /* best-effort */ }
+  } catch {
+    /* ignore */
+  }
+  process.exit(0);
+});
 
 main().catch((err) => {
   process.stderr.write(`Fatal error: ${err.message}\n`);

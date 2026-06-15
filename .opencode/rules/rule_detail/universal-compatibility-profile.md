@@ -95,8 +95,8 @@ The OpenCode multi-agent system comprises **8 agent roles**, **40 template varia
 | :-- | :--------------------------------------------- | :----: | :--------: | :-----: | :-----: | :-------------------------------------------------------------------------------------------------------------- |
 | TV1 | 28 dispatch-resolvable placeholders            |   ✅   |     ✅     |   ✅    |   ✅    | All resolve from project.config.json                                                                            |
 | TV2 | 12 extended placeholders (in-document mapping) |   ✅   |     🔧     |   🔧    |   ⚠️    | **Compatible/Partial**: mapping table entries needed for new frameworks; **Minimal**: use generic fallback text |
-| TV3 | dispatch-subagent.js resolver engine           |   ✅   |     ✅     |   ✅    |   ✅    | Node.js universal; resolves all `{key}` patterns                                                                |
-| TV4 | framework-self-test.js Check 17/18             |   ✅   |     ✅     |   ✅    |   ✅    | Validates placeholder resolution; language-agnostic                                                             |
+| TV3 | dispatch-subagent.ts resolver engine           |   ✅   |     ✅     |   ✅    |   ✅    | Node.js universal; resolves all `{key}` patterns                                                                |
+| TV4 | framework-self-test.ts Check 17/18             |   ✅   |     ✅     |   ✅    |   ✅    | Validates placeholder resolution; language-agnostic                                                             |
 
 ---
 
@@ -228,7 +228,7 @@ None.
 - All Core Workflow features (WF1–WF10): AGENTS.md, DAG, contract.yaml, compliance gates, enforcement modes
 - Agent roles: @Meta-Planner, @Orchestrator, @Architect, @Arbiter (AG1–AG5)
 - All 28 dispatch-resolvable placeholders (TV1, TV3, TV4)
-- Template resolver engine (dispatch-subagent.js)
+- Template resolver engine (dispatch-subagent.ts)
 - coding-standard-common.md Tier 1 rules (CS1)
 - Guardian Layer A Auto Gate + Layer B universal checks (GR1, GR2, GR5–GR8)
 - State machine & keystone hash validation (SM1–SM3)
@@ -345,7 +345,7 @@ At the Minimal level, **everything** below the meta-workflow layer needs to be b
 | Docker Compose            | Configure services for target stack                                       | Native version as template                                                         |
 | Skills                    | Add stack-specific skill files if needed                                  | Existing skills as template                                                        |
 | Context7                  | Map target stack libraries; may have no Context7 coverage                 | context7_task_mapping                                                              |
-| Quality gates             | Configure ESLint-alternative, formatter, type checker for target language | code-quality-gate.js                                                               |
+| Quality gates             | Configure ESLint-alternative, formatter, type checker for target language | code-quality-gate.ts                                                               |
 
 #### Unavailable (❌) — all implementation-layer features
 
@@ -549,10 +549,10 @@ These tasks modified framework infrastructure in a way that benefits any stack:
 | :-------- | :------------------------------------------------------------ | :---------------------------------------------------------- | :--------------------------------------------- |
 | UNIV-P0-E | Make coding-standard-common.md framework-agnostic             | Replaced NestJS/Angular-specific text with generic patterns | Compatible, Partial, Minimal all use this file |
 | UNIV-P2-J | Remove "(含Salesforce)" from AGENTS.md                        | Vendor-agnostic text cleanup                                | All levels use AGENTS.md                       |
-| UNIV-P5-K | Add placeholder compliance checks to framework-self-test.js   | Validates any project's template_resolution                 | All levels use framework-self-test.js          |
+| UNIV-P5-K | Add placeholder compliance checks to framework-self-test.ts   | Validates any project's template_resolution                 | All levels use framework-self-test.ts          |
 | UNIV-P5-L | Improve compliance-audit.sh pattern matching                  | Audits any agent, not stack-specific                        | All levels use compliance-audit.sh             |
 | UNIV-P5-M | Add python3 fallback to pre-execution-hook.sh                 | OS-level improvement for minimal systems                    | All levels use pre-execution-hook.sh           |
-| UNIV-P5-N | Support OPENCODE_ROOT env var                                 | Container/CI environment support                            | All levels use dispatch-subagent.js            |
+| UNIV-P5-N | Support OPENCODE_ROOT env var                                 | Container/CI environment support                            | All levels use dispatch-subagent.ts            |
 | UNIV-P6-O | Update TECH_DEBT_REGISTRY.md and skill-invocation-standard.md | Registry maintenance; skill deprecation                     | All levels reference these files               |
 
 ### §5.2 Partially Applicable Tasks (carry over but need stack-specific extensions)
@@ -641,7 +641,7 @@ These tasks produced output that is fundamentally tied to the Angular/NestJS/Nod
 | [dag-generation-standard.md](./dag-generation-standard.md)       | DAG planning rules (stack-agnostic)                           |
 | `project.config.json`                                            | **Source of truth** for current compatibility profile setting |
 | `.opencode/agents/Guardian.md`                                   | Per-framework review checklists                               |
-| `.opencode/scripts/framework-self-test.js`                       | Checks 17/18 for placeholder validation                       |
+| `.opencode/scripts/framework-self-test.ts`                       | Checks 17/18 for placeholder validation                       |
 
 ---
 

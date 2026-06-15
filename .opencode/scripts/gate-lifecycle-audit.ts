@@ -1,12 +1,12 @@
-#!/usr/bin/env node
-// gate-lifecycle-audit.js — P4-003
+#!/usr/bin/env bun
+// gate-lifecycle-audit.ts — P4-003
 // Audits gate-state.json for lifecycle compliance.
 // --auto-drain flag moves stale sessions (>24h armed) to drained_sessions.
-// FW-ENHANCE-A2-A5-EXTRAS: migrated to gate-core.ts (dist/gate-core.js)
+// FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; imports gate-core.ts source directly.
 const {
   readJsonFile,
   resolveFrameworkPaths,
-} = require("../lib/dist/gate-core.js");
+} = require("../lib/gate-core.ts");
 
 const paths = resolveFrameworkPaths();
 const GATE_STATE_PATH = paths.gateState;

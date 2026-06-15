@@ -1,11 +1,11 @@
-#!/usr/bin/env node
-// framework-compliance-check.js — P4-001
+#!/usr/bin/env bun
+// framework-compliance-check.ts — P4-001
 // Validates: DAG coverage, gate lifecycle, and state consistency across
 // Task.DAG.json, gate-state.json, and machine.json.
 // Exit 0 if clean, 1 if violations found.
 //
-// FW-REPAIR-gate-core-js: gate-core.ts recompiled (2026-06-09).
-// resolveFrameworkPaths now exported from compiled gate-core.js.
+// FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; imports gate-core.ts source directly.
+// resolveFrameworkPaths exported from gate-core.ts.
 // Inline paths retained for additional keys (gateIndex, gateArchive, transactionLog).
 // V3 gate-state format compatibility (active_sessions as object) retained.
 
@@ -13,7 +13,7 @@ const path = require("path");
 const {
   readJsonFile,
   resolveFrameworkPaths,
-} = require("../lib/dist/gate-core.js");
+} = require("../lib/gate-core.ts");
 
 // ════════════════════════════════════════════════════════════
 // FW-REPAIR-13: Inline framework path resolution

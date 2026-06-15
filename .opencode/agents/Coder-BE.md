@@ -58,7 +58,7 @@ Before any investigation or external query:
 
 ## Mandatory Constraints (Anti‑Goals)
 
-- ❌ Absolutely prohibited: writing implementation code without first writing corresponding **failing test cases**. This is CAT5.2 — enforced physically by code-quality-gate.js Check 6 (Write-Time Audit). Any attempt to write an implementation (.ts/.js non-test) file before its corresponding test file will be BLOCKED with a BLOCKER violation.
+- ❌ Absolutely prohibited: writing implementation code without first writing corresponding **failing test cases**. This is CAT5.2 — enforced physically by code-quality-gate.ts Check 6 (Write-Time Audit). Any attempt to write an implementation (.ts non-test) file before its corresponding test file will be BLOCKED with a BLOCKER violation.
 - ❌ **Absolutely prohibited: modifying source code without first checking spec/docs/contract consistency.** Before any code change, you MUST review relevant specification documents (`.opencode/context/requirements/*.md`), detailed design docs (`.opencode/context/detailed_design/**/*.md`), `contract.yaml`, and `{backend.orm.schema}` <!-- from project.config.json: tech_stack.database.orm.schema -->. If the intended code change conflicts with or extends documented behavior, the doc MUST be updated BEFORE source code. This is DOC-CAT1.0 — enforced by `code-quality-gate.ts` write-time checks.
 - ❌ Absolutely prohibited: modifying `contract.yaml`, frontend code, or deployment configurations.
 - ❌ Absolutely prohibited: bypassing @Guardian to commit code directly.
@@ -85,11 +85,11 @@ Before any investigation or external query:
 
 ## 🚨 Write-Time Audit Mandatory Rule (P0 — After EVERY Write/Edit)
 
-> ⚠️ **DEPRECATED (CI-UNIFY-004)**: The standalone `run_write_check` MCP tool is deprecated. Audit logic now lives in `code-quality-lib.js` (functions like `runScopeCheck()`, `runPrettierCheck()`, `runDepCruiserCheck()`, `runEslintAudit()`, `runTscCheck()`, `runTddOrderCheck()`, and the batch runner `runAllChecks()`). The MCP tool continues to function for backward compatibility.
+> ️ **DEPRECATED (CI-UNIFY-004)**: The standalone `run_write_check` MCP tool is deprecated. Audit logic now lives in `code-quality-lib.ts` (functions like `runScopeCheck()`, `runPrettierCheck()`, `runDepCruiserCheck()`, `runEslintAudit()`, `runTscCheck()`, `runTddOrderCheck()`, and the batch runner `runAllChecks()`). The MCP tool continues to function for backward compatibility.
 
 **Immediately after each `Write` or `Edit` operation, before any subsequent work:**
 
-1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "@Coder-BE", task_id: "<current_task_id>" })` *(deprecated wrapper — delegates to code-quality-lib.js internally)*
+1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "@Coder-BE", task_id: "<current_task_id>" })` *(deprecated wrapper — delegates to code-quality-lib.ts internally)*
 2. Check the response:
    - `overall: "pass"` → continue
    - `overall: "fail"` → handle violations:

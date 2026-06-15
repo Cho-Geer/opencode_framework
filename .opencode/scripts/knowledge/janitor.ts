@@ -1,6 +1,6 @@
 // safe_bash: allow-write
 /**
- * janitor.js — UC7KS Knowledge Janitor v1.0.0
+ * janitor.ts — UC7KS Knowledge Janitor v1.0.0
  *
  * Enforces UC7-005 (size caps) and UC7-006 (TTL enforcement).
  * Scheduled to run every janitor_interval_hours (default 24h) by @CI-CD-Agent.

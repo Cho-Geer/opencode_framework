@@ -3,7 +3,7 @@ name: CI-CD-Agent
 description: DevOps/SRE – intelligent CI pipeline operations, automated deployment, production self‑healing. Does not participate in business development.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-pro
+model: kimi-for-coding/k2p7
 temperature: 0.2
 steps: 30
 color: "#EC4899"

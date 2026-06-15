@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 "use strict";
 
 /**
@@ -22,7 +22,7 @@
  *   } = require('./state-canonicalize');
  *
  * CLI usage:
- *   node state-canonicalize.js [--dry-run] [--state-path <path>]
+ *   bun state-canonicalize.ts [--dry-run] [--state-path <path>]
  *
  * Covered state sections:
  *   - write_audit_state.current_session.files_written
@@ -678,7 +678,7 @@ function runCLI() {
         break;
       case "--help":
       case "-h":
-        console.log("Usage: node state-canonicalize.js [--dry-run] [--state-path <path>]");
+        console.log("Usage: bun state-canonicalize.ts [--dry-run] [--state-path <path>]");
         console.log("");
         console.log("  --dry-run       Report foreign/absolute paths without modifying files");
         console.log("  --state-path    Path to machine.json (default: .opencode/state/machine.json)");

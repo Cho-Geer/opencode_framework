@@ -25,7 +25,7 @@ Execute the emergency framework repair described above.
 4. Execute the repair with minimal, focused changes
 5. Call `compliance_gate_complete(session_id="<sid>", execution_summary="<what was done>")`
 6. Write `HANDOVER.md` to `.task_temp/{taskId}/` with full change documentation
-7. Run `node .opencode/scripts/framework-self-test.js` to verify integrity
+7. Run `bun .opencode/scripts/framework-self-test.ts` to verify integrity
 
 ## Reminders
 

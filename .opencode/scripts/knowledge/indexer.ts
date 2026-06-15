@@ -1,6 +1,6 @@
 // safe_bash: allow-write
 /**
- * indexer.js — UC7KS Knowledge Indexer v1.0.0
+ * indexer.ts — UC7KS Knowledge Indexer v1.0.0
  *
  * Maintains docs/official_docs/index.json as a searchable manifest.
  * Provides atomic read/update functions with SHA-256 dedup integration.

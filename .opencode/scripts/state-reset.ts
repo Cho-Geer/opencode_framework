@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * state-reset.ts — Idempotent state machine bootstrap/reset script
  *

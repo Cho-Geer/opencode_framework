@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // install-hooks.ts — P6-002
 // Ensures git config core.hooksPath = .opencode/hooks.
 // Validates hook scripts exist and are executable.

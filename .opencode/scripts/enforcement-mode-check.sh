@@ -29,8 +29,8 @@ VALID_MODES=("advisory" "strict" "locked")
 # ── Helper: read mode from project.config.json ─────────────────────────
 read_config_mode() {
   if [ -f "$CONFIG_FILE" ]; then
-    if command -v node &>/dev/null; then
-      node -e "
+    if command -v bun &>/dev/null; then
+      bun -e "
         try {
           const cfg = require('$CONFIG_FILE');
           // FW-REPAIR-12: Dual-key resolution per enforcement-modes-standard.md §4.1
@@ -72,8 +72,8 @@ except:
 # ── Helper: read full enforcement_config from project.config.json ──────
 read_full_config() {
   if [ -f "$CONFIG_FILE" ]; then
-    if command -v node &>/dev/null; then
-      node -e "
+    if command -v bun &>/dev/null; then
+      bun -e "
         try {
           const cfg = require('$CONFIG_FILE');
           const ec = cfg.template_resolution?.enforcement_config || {};
@@ -110,9 +110,9 @@ is_blocking() {
   fi
 
   # strict mode: check against block_on list
-  if [ -f "$CONFIG_FILE" ] && command -v node &>/dev/null; then
+  if [ -f "$CONFIG_FILE" ] && command -v bun &>/dev/null; then
     local blocks
-    blocks=$(node -e "
+    blocks=$(bun -e "
       try {
         const cfg = require('$CONFIG_FILE');
         const blockOn = cfg.template_resolution?.enforcement_config?.strict?.block_on || [];
@@ -197,8 +197,8 @@ case "${1:-}" in
     current_mode=$(resolve_mode)
     echo "ENFORCEMENT_MODE=$current_mode"
     echo "Config file: $CONFIG_FILE"
-    if [ -f "$MACHINE_FILE" ] && command -v node &>/dev/null; then
-      node -e "
+    if [ -f "$MACHINE_FILE" ] && command -v bun &>/dev/null; then
+      bun -e "
         try {
           const machine = require('$MACHINE_FILE');
           const transitions = machine.compliance_records?.enforcement_transitions || [];
