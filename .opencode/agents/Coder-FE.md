@@ -3,7 +3,7 @@ name: Coder-FE
 description: Frontend Development Engineer – page/component/interaction/state management implementation, following interface contracts.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-flash
+model: kimi-for-coding/k2p7
 temperature: 0.6
 steps: 50
 color: "#34D399"

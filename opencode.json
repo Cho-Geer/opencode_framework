@@ -78,7 +78,7 @@
     },
     "Orchestrator": {
       "mode": "primary",
-      "model": "bailian-token-plan/qwen3.7-plus",
+      "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Orchestrator.md",
       "permission": {
         "task": "allow",
@@ -271,7 +271,7 @@
     },
     "Coder-BE": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "kimi-for-coding/k2p7",
       "prompt": ".opencode/agents/Coder-BE.md",
       "hidden": true,
       "permission": {
@@ -357,7 +357,7 @@
     },
     "Coder-FE": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "kimi-for-coding/k2p7",
       "prompt": ".opencode/agents/Coder-FE.md",
       "hidden": true,
       "permission": {
@@ -427,7 +427,7 @@
     },
     "Guardian": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "kimi-for-coding/k2p6",
       "prompt": ".opencode/agents/Guardian.md",
       "hidden": true,
       "permission": {
@@ -640,7 +640,7 @@
     },
     "Super-Admin": {
       "mode": "all",
-      "model": "bailian-token-plan/qwen3.7-max",
+      "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Super-Admin.md",
       "permission": {
         "task": "allow",
@@ -739,7 +739,7 @@
     "Knowledge-Curator": {
       "mode": "subagent",
       "hidden": true,
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "bailian-token-plan/qwen3.7-plus",
       "prompt": ".opencode/agents/Knowledge-Curator.md",
       "permission": {
         "task": {
@@ -833,7 +833,7 @@
         "ENFORCEMENT_MODE": "strict"
       },
       "timeout": 60000,
-      "enabled": true
+      "enabled": false
     },
     "eslint-audit": {
       "type": "local",
@@ -842,7 +842,7 @@
         "./.opencode/scripts/mcp-tools/eslint-audit.ts"
       ],
       "timeout": 60000,
-      "enabled": true
+      "enabled": false
     },
     "context7": {
       "type": "local",
@@ -878,7 +878,7 @@
     },
     "postgre_sql": {
       "type": "local",
-      "enabled": true,
+      "enabled": false,
       "command": [
         "npx",
         "-y",

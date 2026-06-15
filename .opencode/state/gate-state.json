@@ -1,19 +1,51 @@
 {
-  "formatVersion": "3.0",
-  "active_sessions": {
-    "cg_ses_1781483348640": {
-      "session_id": "cg_ses_1781483348640",
-      "created_at": "2026-06-15T00:29:08.649Z",
+  "formatVersion": "2.0",
+  "sessions": {
+    "cg_ses_1781514460065": {
+      "session_id": "cg_ses_1781514460065",
+      "created_at": "2026-06-15T09:07:40.072Z",
+      "task_description": "URGENT FIX: Repair regex bug in .opencode/lib/hook-layers.ts line 166-167 where FRAMEWORK_EXCLUDES pattern is missing `|` alternation operators between the first four exclude prefixes.",
+      "task_id": null,
+      "enforcement_mode": "strict",
       "gate_status": "checked",
-      "task_description": "Untrack 4 stray .bak files from git tracking and add *.bak to root .gitignore",
-      "plan_summary": ""
+      "last_check_passed": true,
+      "last_check_failed_items": [
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 31 digests verified, 0 mismatches (HIGH), 0 warnings",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "audit": null
+    },
+    "cg_ses_1781522178903": {
+      "session_id": "cg_ses_1781522178903",
+      "created_at": "2026-06-15T11:16:18.903Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Auto-armed by gate-before plugin on OpenCode startup",
+      "confirmed_at": "2026-06-15T11:16:18.906Z",
+      "consumed_at": null,
+      "audit": null,
+      "task_id": null,
+      "agent": "framework",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "expires_at": "2026-06-16T11:16:18.906Z"
     }
   },
-  "recent_sessions": {},
-  "meta": {
-    "total_sessions": 1,
-    "active_count": 1,
-    "recent_count": 0,
-    "last_compacted": "2026-06-15T00:33:54.792Z"
-  }
+  "active_sessions": [
+    "cg_ses_1781522178903"
+  ],
+  "last_updated": "2026-06-15T11:16:18.906Z"
 }

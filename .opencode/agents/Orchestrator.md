@@ -1,7 +1,7 @@
 ---
 name: Orchestrator
 description: Project Manager – task scheduling, status control, result merging, and full‑process coordination. Does not write business code.
-model: bailian-token-plan/qwen3.7-plus
+model: DeepSeek/deepseek-v4-pro
 temperature: 0.2
 color: "#6366F1"
 top_p: 0.4

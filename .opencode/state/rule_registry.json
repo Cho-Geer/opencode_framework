@@ -3,7 +3,7 @@
   "meta": {
     "version": "1.0.0",
     "created": "2026-05-22T01:27:00.000Z",
-    "last_updated": "2026-06-15T00:10:12.877Z",
+    "last_updated": "2026-06-15T08:58:30.797Z",
     "last_regenerated": "2026-06-14",
     "project": "booking-system",
     "description": "Semantic version and content digest registry for all rule, skill, requirement, code standard, and agent configuration documents. Used by compliance-gate.js for preflight semantic version verification.",
@@ -485,9 +485,9 @@
     "agents/Coder-BE.md": {
       "path": ".opencode/agents/Coder-BE.md",
       "category": "agent",
-      "semver": "1.0.10",
-      "sha256": "23fe124ceea2ee74af06cfcee0e78570a1533279157497a8f04eb6241a3723c3",
-      "last_modified": "2026-06-14T07:09:46.041Z",
+      "semver": "1.0.11",
+      "sha256": "03872d4ab8eb539411ad10470099e488aaaf1bdd0768725d391aaa1e4926a6dd",
+      "last_modified": "2026-06-15T02:50:53.962Z",
       "description": "Backend Development Engineer – API implementation, business logic",
       "digest_history": [
         {
@@ -567,15 +567,21 @@
           "timestamp": "2026-06-14T07:09:46.041Z",
           "semver": "1.0.10",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "03872d4ab8eb539411ad10470099e488aaaf1bdd0768725d391aaa1e4926a6dd",
+          "timestamp": "2026-06-15T02:50:53.962Z",
+          "semver": "1.0.11",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     },
     "agents/Coder-FE.md": {
       "path": ".opencode/agents/Coder-FE.md",
       "category": "agent",
-      "semver": "1.0.10",
-      "sha256": "010986b27331f91cdc1099841d7cca9645fb498a729410ffb307b7e0a05e8473",
-      "last_modified": "2026-06-14T07:09:46.041Z",
+      "semver": "1.0.11",
+      "sha256": "5d555fde99508395d2f0367077b062e177fbc2203ffaa1c02e788c00e5bc88fc",
+      "last_modified": "2026-06-15T02:50:53.962Z",
       "description": "Frontend Development Engineer – page/component/interaction implementation",
       "digest_history": [
         {
@@ -655,15 +661,21 @@
           "timestamp": "2026-06-14T07:09:46.041Z",
           "semver": "1.0.10",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "5d555fde99508395d2f0367077b062e177fbc2203ffaa1c02e788c00e5bc88fc",
+          "timestamp": "2026-06-15T02:50:53.962Z",
+          "semver": "1.0.11",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     },
     "agents/Orchestrator.md": {
       "path": ".opencode/agents/Orchestrator.md",
       "category": "agent",
-      "semver": "1.0.13",
-      "sha256": "dc9a67c4f877a77f366e5789d6e55b9f02799333f04593878848738fa42f32f0",
-      "last_modified": "2026-06-15T00:10:12.877Z",
+      "semver": "1.0.14",
+      "sha256": "ff598a5c9fa4ce685b483f68f25ec480d88b00f55b6a3f7f4dcc13402cae7929",
+      "last_modified": "2026-06-15T02:50:53.962Z",
       "description": "Project Manager – dedicated scheduling and state control, DAG-driven dispatch. FW-DOWNGRADE-SA: Super-Admin dispatch rules updated.",
       "digest_history": [
         {
@@ -766,15 +778,21 @@
           "timestamp": "2026-06-15T00:10:12.877Z",
           "semver": "1.0.13",
           "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
+        },
+        {
+          "sha256": "ff598a5c9fa4ce685b483f68f25ec480d88b00f55b6a3f7f4dcc13402cae7929",
+          "timestamp": "2026-06-15T02:50:53.962Z",
+          "semver": "1.0.14",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     },
     "agents/Guardian.md": {
       "path": ".opencode/agents/Guardian.md",
       "category": "agent",
-      "semver": "1.0.7",
-      "sha256": "7436dec5b1ec2c28b55cfbc641877b9579a669961f7f48e070294bdf4a1b7bd0",
-      "last_modified": "2026-06-11T03:05:22.318Z",
+      "semver": "1.0.8",
+      "sha256": "aff3868d691be109b4b43270aa02294ad8fbb73f8aa4db6446eab9612a8fd25b",
+      "last_modified": "2026-06-15T02:50:53.962Z",
       "description": "Quality Gate – code standards, security, architecture constraint review",
       "digest_history": [
         {
@@ -836,6 +854,12 @@
           "timestamp": "2026-06-11T03:05:22.318Z",
           "semver": "1.0.7",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "aff3868d691be109b4b43270aa02294ad8fbb73f8aa4db6446eab9612a8fd25b",
+          "timestamp": "2026-06-15T02:50:53.962Z",
+          "semver": "1.0.8",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     },
@@ -1004,9 +1028,9 @@
     "agents/Knowledge-Curator.md": {
       "path": ".opencode/agents/Knowledge-Curator.md",
       "category": "agent",
-      "semver": "1.0.2",
-      "sha256": "75dcf7932e048d6e5420771b1ec3e9bb6788dcbb92f6ddeaf89a0fb3995a6cfd",
-      "last_modified": "2026-06-14T01:50:02.112Z",
+      "semver": "1.0.3",
+      "sha256": "7dce4133fcbe75e1d62c0068edbb050d5cad7819714b31a3ef2410294f6a9267",
+      "last_modified": "2026-06-15T02:50:53.962Z",
       "description": "Knowledge Management Specialist – acquires, caches, and organizes technical documentation via UC7KS pipeline",
       "digest_history": [
         {
@@ -1038,6 +1062,12 @@
           "timestamp": "2026-06-14T01:50:02.112Z",
           "semver": "1.0.2",
           "change": "auto-repaired by rule-registry-verify.ts --repair"
+        },
+        {
+          "sha256": "7dce4133fcbe75e1d62c0068edbb050d5cad7819714b31a3ef2410294f6a9267",
+          "timestamp": "2026-06-15T02:50:53.962Z",
+          "semver": "1.0.3",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
         }
       ]
     },
@@ -1076,9 +1106,9 @@
     "agents/Super-Admin.md": {
       "path": ".opencode/agents/Super-Admin.md",
       "category": "agent",
-      "semver": "1.0.8",
-      "sha256": "dfbe3250cea8da32c1132d566889b3586e6cf028a2a9121d8e59c2adce0cb600",
-      "last_modified": "2026-06-15T00:10:12.877Z",
+      "semver": "1.0.9",
+      "sha256": "77a2672c79294f5bc6b63d25dd0559945aebe76c01a75536c6f4379498235b95",
+      "last_modified": "2026-06-15T08:58:30.797Z",
       "description": "Privileged Meta-Layer – emergency framework repair, governance modifications, state machine surgery, agent lifecycle management",
       "digest_history": [
         {
@@ -1134,6 +1164,12 @@
           "timestamp": "2026-06-15T00:10:12.877Z",
           "semver": "1.0.8",
           "change": "Auto-repaired by rule_registry_repair tool (agent: Orchestrator)"
+        },
+        {
+          "sha256": "77a2672c79294f5bc6b63d25dd0559945aebe76c01a75536c6f4379498235b95",
+          "timestamp": "2026-06-15T08:58:30.797Z",
+          "semver": "1.0.9",
+          "change": "Auto-repaired by rule_registry_repair tool (agent: Super-Admin)"
         }
       ]
     }

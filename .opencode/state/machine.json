@@ -2,19 +2,19 @@
   "meta": {
     "version": "1.0.0",
     "createdAt": "2026-05-18T07:30:00.000Z",
-    "lastUpdated": "2026-06-15T00:33:20.274Z",
+    "lastUpdated": "2026-06-15T08:15:32.782Z",
     "project": "booking-system",
     "framework": "opencode-v3",
-    "revision": 1513,
+    "revision": 1522,
     "last_updated": "2026-05-25T21:01:39Z"
   },
   "eslint_state": {
-    "last_full_scan": "2026-06-15T00:33:27.329Z",
+    "last_full_scan": "2026-06-15T09:03:21.450Z",
     "modules": {
       "all_modules": {
         "status": "clean",
         "violations": [],
-        "last_check": "2026-06-15T00:33:20.268Z",
+        "last_check": "2026-06-15T08:15:32.773Z",
         "waivers_applied": []
       },
       "unknown": {
@@ -1042,11 +1042,37 @@
         "violations": [],
         "last_check": "2026-06-14T01:42:24.302Z",
         "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_hook-critical-files.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-15T09:00:50.755Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_hook-layers.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-15T09:01:55.038Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_hook-commit-msg.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-15T09:02:21.787Z",
+        "waivers_applied": []
+      },
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_index.ts": {
+        "status": "dirty",
+        "violations": [],
+        "last_check": "2026-06-15T09:02:36.462Z",
+        "waivers_applied": []
       }
     },
     "aggregate": {
       "total_violations": 0,
-      "dirty_modules": [],
+      "dirty_modules": [
+        "bun /tmp/fix-regex.ts"
+      ],
       "waived_modules": []
     }
   },
@@ -1191,7 +1217,11 @@
       "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/dist/state-compactor.js",
       "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/dist/state-manager.d.ts",
       "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/dist/state-manager.js",
-      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts"
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-critical-files.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-layers.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-commit-msg.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/index.ts"
     ],
     "incremental_errors": 0,
     "last_incremental_check": "2026-05-26T01:47:10.634Z",
@@ -1535,6 +1565,26 @@
         "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-before.ts",
         "message": "pending depcruiser check",
         "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-critical-files.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-layers.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-commit-msg.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/index.ts",
+        "message": "pending depcruiser check",
+        "severity": "info"
       }
     ],
     "forbidden_rules_applied": 137,
@@ -1681,7 +1731,11 @@
       "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/dist/state-compactor.js",
       "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/dist/state-manager.d.ts",
       "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/dist/state-manager.js",
-      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts"
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-critical-files.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-layers.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-commit-msg.ts",
+      "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/index.ts"
     ],
     "last_run": "2026-05-23T12:00:00.000Z",
     "last_check": "2026-05-26T01:47:10.634Z",
@@ -2572,65 +2626,20 @@
         "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/gate-checks.ts",
         "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/gate-before.ts",
         "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
-        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts"
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/scripts/pre-execution-gate.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-critical-files.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-layers.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-commit-msg.ts",
+        "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/index.ts"
       ],
-      "checks_run": 880,
-      "checks_passed": 858,
+      "checks_run": 884,
+      "checks_passed": 862,
       "checks_failed": 22,
       "violations_found": 22,
       "violations_resolved": 0,
       "scope_violations_attempted": 7
     },
     "history": [
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-bash-core.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_145c4b472ffe4oyGFLR9b5mZhz",
-        "timestamp": "2026-06-12T05:09:04.428Z"
-      },
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-bash-core.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_145c4b472ffe4oyGFLR9b5mZhz",
-        "timestamp": "2026-06-12T05:09:05.360Z"
-      },
-      {
-        "file": "git diff /home/zhaoge/workspace/opencode/work-one/.opencode/lib/safe-bash-core.ts",
-        "tool": "safe_shell",
-        "agent": "Super-Admin",
-        "sessionID": "ses_145c4b472ffe4oyGFLR9b5mZhz",
-        "timestamp": "2026-06-12T05:09:21.614Z"
-      },
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
-        "timestamp": "2026-06-12T07:54:51.142Z"
-      },
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
-        "timestamp": "2026-06-12T07:54:55.296Z"
-      },
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-before.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
-        "timestamp": "2026-06-12T07:54:58.803Z"
-      },
-      {
-        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-before.ts",
-        "tool": "safe_edit",
-        "agent": "Super-Admin",
-        "sessionID": "ses_14a557002ffejwU4SUD6U4A84c",
-        "timestamp": "2026-06-12T08:21:11.789Z"
-      },
       {
         "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/plugins/dispatch-after.ts",
         "tool": "safe_edit",
@@ -3981,6 +3990,55 @@
         "agent": "@Super-Admin",
         "sessionID": "ses_13760ee99ffeqUgHevlCVCZBUG",
         "timestamp": "2026-06-15T00:15:04.968Z"
+      },
+      {
+        "file": "bun .opencode/scripts/framework-self-test.ts",
+        "tool": "safe_shell",
+        "agent": "@Orchestrator",
+        "sessionID": "ses_136c1ae1dffe574w4wKPeA9tO2",
+        "timestamp": "2026-06-15T03:06:23.867Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-critical-files.ts",
+        "tool": "safe_edit",
+        "agent": "@Super-Admin",
+        "sessionID": "ses_1357dfa3cffe9zLjI5w9qGlPoF",
+        "timestamp": "2026-06-15T09:00:50.773Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-layers.ts",
+        "tool": "safe_edit",
+        "agent": "@Super-Admin",
+        "sessionID": "ses_1357dfa3cffe9zLjI5w9qGlPoF",
+        "timestamp": "2026-06-15T09:01:55.054Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/hook-commit-msg.ts",
+        "tool": "safe_edit",
+        "agent": "@Super-Admin",
+        "sessionID": "ses_1357dfa3cffe9zLjI5w9qGlPoF",
+        "timestamp": "2026-06-15T09:02:21.802Z"
+      },
+      {
+        "file": "/home/zhaoge/workspace/opencode/work-one/.opencode/lib/index.ts",
+        "tool": "safe_edit",
+        "agent": "@Super-Admin",
+        "sessionID": "ses_1357dfa3cffe9zLjI5w9qGlPoF",
+        "timestamp": "2026-06-15T09:02:36.479Z"
+      },
+      {
+        "file": "bun .opencode/lib/hook-layers.ts",
+        "tool": "safe_shell",
+        "agent": "@Super-Admin",
+        "sessionID": "ses_1357dfa3cffe9zLjI5w9qGlPoF",
+        "timestamp": "2026-06-15T09:02:42.534Z"
+      },
+      {
+        "file": "bun /tmp/fix-regex.ts",
+        "tool": "safe_shell",
+        "agent": "@Orchestrator",
+        "sessionID": "ses_136c1ae1dffe574w4wKPeA9tO2",
+        "timestamp": "2026-06-15T09:09:28.732Z"
       }
     ]
   },
@@ -3998,7 +4056,7 @@
           "last_tool_attempted": "webfetch"
         }
       },
-      "cache_hits": 5332,
+      "cache_hits": 5388,
       "cache_misses": 5
     },
     "pipeline_integrity": {
@@ -4008,8 +4066,8 @@
     },
     "session_access": {
       "Super-Admin": {
-        "last_read_at": "2026-06-15T00:30:09.164Z",
-        "total_cache_reads": 546,
+        "last_read_at": "2026-06-15T08:58:20.364Z",
+        "total_cache_reads": 551,
         "tasks": {
           "SA-JSON-VALIDATE-FIX-20250612": {
             "domains": {
@@ -6847,21 +6905,155 @@
                 }
               }
             }
+          },
+          "VERIFY-PRECOMMIT-CLAIMS-001": {
+            "domains": {
+              "opencode_framework": {
+                "declared_at": "2026-06-15T08:05:07.280Z",
+                "pipeline_status": "completed",
+                "kc_dispatched": false,
+                "cache_sufficiency": {
+                  "status": "sufficient",
+                  "missing_topics": [],
+                  "declared_at": "2026-06-15T08:05:07.278Z",
+                  "reason": "Found 28 matching cache entries for domain \"opencode_framework\": TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns; opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin; OpenCode Log Central Management — MCP logging, plugin logging, file-based debug logging patterns and CJS/ESM constraints; OpenCode Harness System — Plugin hooks, loading mechanics, Bun cache behavior, export format constraints, hook chaining; OpenCode Permission Matrix — Complete schema, 15 permission keys, granular rules, agent-override mechanism, task permissions; OpenCode Layout Architecture — .opencode directory structure, config loading precedence, agent/tool/plugin/skill loading order; OpenCode Central State Management — machine.json schema, gate-state.json, enforcement modes, keystone hash validation, write audit, TDD enforcement; OpenCode Multi-Agent System — Agent modes (primary/subagent/all), dispatch protocol, FRAMEWORK_AGENT env var, built-in agents, task permissions",
+                  "files_read": [
+                    "opencode/mcp-typescript-bun/findings-summary.md",
+                    "opencode/framework/config.md",
+                    "opencode/framework/skills.md",
+                    "opencode/framework/cli.md",
+                    "opencode/framework/index.md",
+                    "opencode/framework/plugins.md",
+                    "opencode/framework/tools.md",
+                    "opencode/framework/custom-tools.md",
+                    "opencode/framework/agents.md",
+                    "opencode/source-analysis/agent-mode-values.md",
+                    "opencode/framework/permissions.md",
+                    "opencode/framework/mcp-servers.md",
+                    "opencode/framework/policies.md",
+                    "opencode/releases/v1.16.0-release-notes.md",
+                    "opencode/mcp/mcp-servers-docs.md",
+                    "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
+                    "framework/mistake_precautions/plugin-debugging-precautions.md",
+                    "opencode/source-analysis/agent-identity-plugin-hooks.md",
+                    "framework/mistake_precautions/double-hook-trigger-prevention.md",
+                    "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+                    "framework/plugin-programming-conventions.md",
+                    "opencode/releases/v1.17.2-release-notes.md",
+                    "opencode/findings/01-log-central-management.md",
+                    "opencode/findings/02-harness-system.md",
+                    "opencode/findings/03-permission-matrix.md",
+                    "opencode/findings/04-layout-architecture.md",
+                    "opencode/findings/05-central-state-management.md",
+                    "opencode/findings/06-multi-agent-system.md"
+                  ],
+                  "content_summary": "28 entries covering 28 files: TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns | opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions"
+                }
+              }
+            }
+          },
+          "SA-PRECOMMIT-MIGRATION-001": {
+            "domains": {
+              "opencode_framework": {
+                "declared_at": "2026-06-15T08:58:20.364Z",
+                "pipeline_status": "completed",
+                "kc_dispatched": false,
+                "cache_sufficiency": {
+                  "status": "sufficient",
+                  "missing_topics": [],
+                  "declared_at": "2026-06-15T08:58:20.359Z",
+                  "reason": "Found 28 matching cache entries for domain \"opencode_framework\": TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns; opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin; OpenCode Log Central Management — MCP logging, plugin logging, file-based debug logging patterns and CJS/ESM constraints; OpenCode Harness System — Plugin hooks, loading mechanics, Bun cache behavior, export format constraints, hook chaining; OpenCode Permission Matrix — Complete schema, 15 permission keys, granular rules, agent-override mechanism, task permissions; OpenCode Layout Architecture — .opencode directory structure, config loading precedence, agent/tool/plugin/skill loading order; OpenCode Central State Management — machine.json schema, gate-state.json, enforcement modes, keystone hash validation, write audit, TDD enforcement; OpenCode Multi-Agent System — Agent modes (primary/subagent/all), dispatch protocol, FRAMEWORK_AGENT env var, built-in agents, task permissions",
+                  "files_read": [
+                    "opencode/mcp-typescript-bun/findings-summary.md",
+                    "opencode/framework/config.md",
+                    "opencode/framework/skills.md",
+                    "opencode/framework/cli.md",
+                    "opencode/framework/index.md",
+                    "opencode/framework/plugins.md",
+                    "opencode/framework/tools.md",
+                    "opencode/framework/custom-tools.md",
+                    "opencode/framework/agents.md",
+                    "opencode/source-analysis/agent-mode-values.md",
+                    "opencode/framework/permissions.md",
+                    "opencode/framework/mcp-servers.md",
+                    "opencode/framework/policies.md",
+                    "opencode/releases/v1.16.0-release-notes.md",
+                    "opencode/mcp/mcp-servers-docs.md",
+                    "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
+                    "framework/mistake_precautions/plugin-debugging-precautions.md",
+                    "opencode/source-analysis/agent-identity-plugin-hooks.md",
+                    "framework/mistake_precautions/double-hook-trigger-prevention.md",
+                    "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+                    "framework/plugin-programming-conventions.md",
+                    "opencode/releases/v1.17.2-release-notes.md",
+                    "opencode/findings/01-log-central-management.md",
+                    "opencode/findings/02-harness-system.md",
+                    "opencode/findings/03-permission-matrix.md",
+                    "opencode/findings/04-layout-architecture.md",
+                    "opencode/findings/05-central-state-management.md",
+                    "opencode/findings/06-multi-agent-system.md"
+                  ],
+                  "content_summary": "28 entries covering 28 files: TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns | opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions"
+                }
+              },
+              "opencode": {
+                "declared_at": "2026-06-15T08:55:19.047Z",
+                "pipeline_status": "completed",
+                "kc_dispatched": false,
+                "cache_sufficiency": {
+                  "status": "insufficient",
+                  "missing_topics": [
+                    "No domain keywords found for: opencode"
+                  ],
+                  "declared_at": "2026-06-15T08:55:19.046Z",
+                  "reason": "No matching cache entries for domain \"opencode\". Cache has 45 total entries.",
+                  "files_read": [],
+                  "content_summary": "No cached content for domain \"opencode\". Cache has 45 total entries."
+                }
+              }
+            }
           }
         },
-        "pipeline_task_id": "SA-BAK-CLEANUP-003",
-        "declared_scope": "infrastructure",
+        "pipeline_task_id": "SA-PRECOMMIT-MIGRATION-001",
+        "declared_scope": "opencode_framework",
         "pipeline_status": "completed",
         "declared_at": "2026-06-11T15:50:10.555Z",
         "cache_sufficiency": {
           "status": "sufficient",
           "missing_topics": [],
-          "declared_at": "2026-06-15T00:30:09.162Z",
-          "reason": "Found 1 matching cache entries for domain \"infrastructure\": opencode built-in tools list permissions configuration",
+          "declared_at": "2026-06-15T08:58:20.359Z",
+          "reason": "Found 28 matching cache entries for domain \"opencode_framework\": TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns; opencode json config schema reference all fields; opencode agent skills creation SKILL.md standard permissions; opencode cli commands reference environment variables; opencode intro overview getting started install configure; opencode plugins system hook events create; opencode built-in tools list permissions configuration; opencode custom tools definition schema multiple exports; opencode agents configuration permissions options markdown; opencode agent mode values source code analysis all subagent primary; opencode permissions system complete key list agent override; opencode mcp servers configuration local remote oauth per-agent; opencode policies experimental provider control; opencode release notes latest version changes; opencode mcp servers custom tool construction; opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope; OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args; OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent; OpenCode double hook trigger prevention merge plugins hook chaining mitigation; OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints; OpenCode plugin programming conventions multiple plugins constraints export format hooks; opencode release notes v1.17.2 latest version changes after-hook plugin; OpenCode Log Central Management — MCP logging, plugin logging, file-based debug logging patterns and CJS/ESM constraints; OpenCode Harness System — Plugin hooks, loading mechanics, Bun cache behavior, export format constraints, hook chaining; OpenCode Permission Matrix — Complete schema, 15 permission keys, granular rules, agent-override mechanism, task permissions; OpenCode Layout Architecture — .opencode directory structure, config loading precedence, agent/tool/plugin/skill loading order; OpenCode Central State Management — machine.json schema, gate-state.json, enforcement modes, keystone hash validation, write audit, TDD enforcement; OpenCode Multi-Agent System — Agent modes (primary/subagent/all), dispatch protocol, FRAMEWORK_AGENT env var, built-in agents, task permissions",
           "files_read": [
-            "opencode/framework/tools.md"
+            "opencode/mcp-typescript-bun/findings-summary.md",
+            "opencode/framework/config.md",
+            "opencode/framework/skills.md",
+            "opencode/framework/cli.md",
+            "opencode/framework/index.md",
+            "opencode/framework/plugins.md",
+            "opencode/framework/tools.md",
+            "opencode/framework/custom-tools.md",
+            "opencode/framework/agents.md",
+            "opencode/source-analysis/agent-mode-values.md",
+            "opencode/framework/permissions.md",
+            "opencode/framework/mcp-servers.md",
+            "opencode/framework/policies.md",
+            "opencode/releases/v1.16.0-release-notes.md",
+            "opencode/mcp/mcp-servers-docs.md",
+            "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
+            "framework/mistake_precautions/plugin-debugging-precautions.md",
+            "opencode/source-analysis/agent-identity-plugin-hooks.md",
+            "framework/mistake_precautions/double-hook-trigger-prevention.md",
+            "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+            "framework/plugin-programming-conventions.md",
+            "opencode/releases/v1.17.2-release-notes.md",
+            "opencode/findings/01-log-central-management.md",
+            "opencode/findings/02-harness-system.md",
+            "opencode/findings/03-permission-matrix.md",
+            "opencode/findings/04-layout-architecture.md",
+            "opencode/findings/05-central-state-management.md",
+            "opencode/findings/06-multi-agent-system.md"
           ],
-          "content_summary": "1 entries covering 1 files: opencode built-in tools list permissions configuration"
+          "content_summary": "28 entries covering 28 files: TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns | opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions"
         },
         "uc7_001_compliant": true
       },
@@ -6882,8 +7074,8 @@
         "total_cache_reads": 1
       },
       "Orchestrator": {
-        "last_read_at": "2026-06-14T23:59:23.516Z",
-        "total_cache_reads": 96,
+        "last_read_at": "2026-06-15T09:12:27.825Z",
+        "total_cache_reads": 102,
         "tasks": {
           "SA-VERIFICATION-CLOSE-20250612": {
             "domains": {
@@ -7904,7 +8096,8 @@
           ],
           "content_summary": "28 entries covering 28 files: TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns | opencode json config schema reference all fields | opencode agent skills creation SKILL.md standard permissions"
         },
-        "uc7_001_compliant": true
+        "uc7_001_compliant": true,
+        "last_file_read": "/home/zhaoge/workspace/opencode/work-one/docs/official_docs/opencode/framework/agents.md"
       },
       "Coder-BE": {
         "last_read_at": "2026-06-14T02:10:40.490Z",
@@ -13857,43 +14050,6 @@
     ],
     "orchestrator_sa_dispatches": [
       {
-        "timestamp": "2026-06-08T06:51:23.316Z",
-        "caller": "Orchestrator",
-        "target": "Super-Admin",
-        "dag_task_id": "",
-        "patterns_matched": [
-          "repair",
-          "emergency",
-          "reset"
-        ],
-        "mode": "strict"
-      },
-      {
-        "timestamp": "2026-06-08T16:35:17.214Z",
-        "caller": "Orchestrator",
-        "target": "Super-Admin",
-        "dag_task_id": "VALIDATE-SUB-BASELINE",
-        "patterns_matched": [
-          "integrity",
-          "validate",
-          "test",
-          "baseline"
-        ],
-        "mode": "strict"
-      },
-      {
-        "timestamp": "2026-06-08T16:35:38.626Z",
-        "caller": "Orchestrator",
-        "target": "Super-Admin",
-        "dag_task_id": "VALIDATE-SUB-AUDIT",
-        "patterns_matched": [
-          "compliance",
-          "validate",
-          "audit"
-        ],
-        "mode": "strict"
-      },
-      {
         "timestamp": "2026-06-08T16:36:21.254Z",
         "caller": "Orchestrator",
         "target": "Super-Admin",
@@ -15061,6 +15217,39 @@
           "audit"
         ],
         "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-15T08:02:51.019Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "VERIFY-PRECOMMIT-CLAIMS-001",
+        "patterns_matched": [
+          "hook"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-15T08:51:59.218Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "PRECOMMIT-HOOK-TS-MIGRATION",
+        "patterns_matched": [
+          "fix",
+          "hook",
+          "test"
+        ],
+        "mode": "strict"
+      },
+      {
+        "timestamp": "2026-06-15T09:08:36.031Z",
+        "caller": "Orchestrator",
+        "target": "Super-Admin",
+        "dag_task_id": "FIX-REGEX-ALTERNATION",
+        "patterns_matched": [
+          "fix",
+          "hook"
+        ],
+        "mode": "strict"
       }
     ]
   },
@@ -15129,8 +15318,8 @@
     "PROJECT_REFERENCE.md": "sha256-dce1a3e05b6677b5e77b614c1d8a6cde398c7e84d2fd3bd92659cc4c96dd01a1"
   },
   "transaction_state": {
-    "last_operation_id": "cdf9a2ec-f462-4591-989e-57bacfdef545",
-    "last_transaction_at": "2026-06-15T00:33:20.269Z",
+    "last_operation_id": "313a6b84-70a4-40c2-b007-490248f90caf",
+    "last_transaction_at": "2026-06-15T08:15:32.776Z",
     "pending_operations": [],
     "transaction_log_path": ".opencode/state/.transaction-log"
   },
