@@ -118,9 +118,14 @@ docs/handover/
 !.opencode/logs/archive/.gitkeep
 .opencode/state/.transaction-log*
 
-# Deprecated backups
-.opencode/state/.backups/legacy/
+# Plugin refactor backups (stale backup directory from 2026-06-10)
+.opencode/_plugins_backups/
 
-.docs/review/
+# Runtime task artifacts (temp reports, logs, working memory)
+.task_temp/
+
+# Deprecated backups
+.opencode/state/.backups/
+
 !docs/review/rule-registry/
 !docs/review/state-management/.opencode/logs/safe-bash.log*

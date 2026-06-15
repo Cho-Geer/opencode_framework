@@ -1,9 +1,0 @@
-// tool-scope-guard.ts — S1: skeleton
-import * as fs from "node:fs";
-
-fs.writeFileSync("/tmp/tool-scope-loaded.txt", `${new Date().toISOString()} loaded\n`, "utf8");
-
-export default (async (_ctx: any) => {
-  fs.writeFileSync("/tmp/tool-scope-hooks.txt", `${new Date().toISOString()} hooks registered\n`, "utf8");
-  return {};
-}) as any;
