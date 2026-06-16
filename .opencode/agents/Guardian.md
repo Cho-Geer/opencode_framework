@@ -3,7 +3,7 @@ name: Guardian
 description: Quality Gate – code standards, security vulnerability, and architectural constraint review, plus test execution evidence verification (DoD mandatory check). Read‑only permission.
 mode: subagent
 hidden: true
-model: kimi-for-coding/k2p6
+model: bailian-token-plan/qwen3.7-plus
 temperature: 0.1
 steps: 25
 color: "#F59E0B"

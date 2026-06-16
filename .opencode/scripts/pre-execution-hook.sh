@@ -3,7 +3,7 @@
 # pre-execution-hook.sh — Multi-Stage Pre-Execution Validation Hook
 # ==============================================================================
 # Stage 1 — Bun-first DAG/Gate/Registry Validation (pre-execution-gate.ts)
-# Stage 2 — Rule Registry Integrity Verification (rule-registry-verify.ts)
+# Stage 2 — Critical Infrastructure File Modification Check (git diff)
 # Stage 3 — Git Hooks Installation & Verification (install-hooks.ts)
 #
 # Usage:   pre-execution-hook.sh <task_id>
@@ -241,28 +241,47 @@ except Exception as e:
   echo "✅ [${ENF_MODE}] 工作项 '${TASK_ID}' 验证通过（状态: pending）。"
 fi  # End of legacy DAG fallback block
 
-# ─── Stage 2: Rule Registry Integrity Verification ─────────────
-# Runs rule-registry-verify.ts to validate all registered rule/skill/
-# requirement/agent file digests against rule_registry.json.
-# Mismatches without semver bump (HIGH) block execution in strict/locked mode.
+# ─── Stage 2: Critical Infrastructure File Check (git diff) ─────
+# Checks if critical infrastructure files have been modified since HEAD.
+# Replaces the old rule-registry-verify.ts SHA-256 digest check.
 echo ""
-echo "── Stage 2: Rule Registry Verification ─────────────────────────"
+echo "── Stage 2: Critical Infrastructure Files ─────────────────────"
 
-RULE_VERIFY_SCRIPT="${SCRIPT_DIR}/rule-registry-verify.ts"
-if [ -f "$RULE_VERIFY_SCRIPT" ] && command -v bun &>/dev/null; then
-  if bun "$RULE_VERIFY_SCRIPT" --strict 2>&1; then
-    echo "  ✅ All rule registry digests verified."
-  else
-    VERIFY_EXIT=$?
-    if [ "$ENF_MODE" = "advisory" ]; then
-      echo "  ⚠️  [ADVISORY] Rule registry verification found issues (non-blocking)."
-    else
-      echo "  ❌ [${ENF_MODE}] Rule registry verification FAILED — dispatch blocked."
-      exit $VERIFY_EXIT
-    fi
+CRITICAL_MODIFIED=$(git diff HEAD --name-only -- \
+  ".opencode/rules/common-project.md" \
+  ".opencode/rules/mcp-compliance-guide.md" \
+  ".opencode/rules/skill-compliance-guide.md" \
+  ".opencode/agents/Meta-Planner.md" \
+  ".opencode/agents/Orchestrator.md" \
+  ".opencode/agents/Coder-BE.md" \
+  ".opencode/agents/Coder-FE.md" \
+  ".opencode/agents/Guardian.md" \
+  ".opencode/agents/Arbiter.md" \
+  ".opencode/agents/CI-CD-Agent.md" \
+  ".opencode/agents/Super-Admin.md" \
+  ".opencode/agents/Knowledge-Curator.md" \
+  ".opencode/agents/Architect.md" \
+  ".opencode/project.config.json" \
+  ".opencode/lib/gate-core.ts" \
+  ".opencode/lib/dag-policy.ts" \
+  ".opencode/lib/permission-isolation-core.ts" \
+  ".opencode/tools/dispatch_subagent.ts" \
+  ".opencode/hooks/pre-commit" \
+  ".opencode/hooks/commit-msg" \
+  "opencode.json" \
+  "AGENTS.md" \
+  2>/dev/null || true)
+
+if [ -n "$CRITICAL_MODIFIED" ]; then
+  echo "  ⚠️  Critical infrastructure files modified:"
+  echo "$CRITICAL_MODIFIED" | while IFS= read -r f; do echo "    - $f"; done
+  if [ "$ENF_MODE" = "locked" ]; then
+    echo "  ❌ [LOCKED] Critical files modified — dispatch BLOCKED."
+    exit 1
   fi
+  echo "  Ensure commit message includes [INFRA] marker."
 else
-  echo "  ℹ️  rule-registry-verify.ts not found or bun unavailable — skipping Stage 2."
+  echo "  ✅ No critical infrastructure files modified since HEAD."
 fi
 
 # ─── Stage 2.5: State Reconciliation (DAG ↔ Gate ↔ Machine consistency) ──

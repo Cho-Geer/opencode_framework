@@ -1,11 +1,119 @@
 {
-  "version": "5.7.0",
+  "version": "5.8.0",
   "project": "booking-system",
-  "feature": "FW-PLAN-JS-TO-TS: JS-to-TS unification verification plan — 4 practical dispatch verification tasks for validating the removal of .opencode/lib/dist/ and node→bun migration.",
-  "description": "JS-to-TS unification verification DAG: FW-VERIFY-JS-TS-ARCH (@Architect architecture audit), FW-VERIFY-JS-TS-DISPATCH (@Coder-BE practical dispatch test), FW-VERIFY-JS-TS-AUDIT (@Guardian residue audit), FW-VERIFY-JS-TS-INTEGRATION (@CI-CD-Agent pre-execution-hook E2E). 261 total tasks (archived).",
+  "feature": "FW-PLAN-PLUGIN-FIX-VERIFY: Plugin system fix verification plan — 4 verification tasks for Fix A-I (capFailedEntries, TDD constants, isBusinessSourceFile, safe_shell strategy, hook-lifecycle, atomicWriteMachine, findLatestBackup, machine.json path, barrel export).",
+  "description": "Plugin system fix verification DAG: PLUGIN-VFY-LOAD (@Coder-BE framework-self-test), PLUGIN-VFY-ISBUSINESS (@Coder-BE isBusinessSourceFile consistency), PLUGIN-VFY-ATOMIC (@Coder-BE atomicWriteMachine integrity), PLUGIN-VFY-SHELL (@Coder-BE safe_shell strategy unification). 265 total tasks (archived).",
   "generated_by": "@Meta-Planner",
   "generated_at": "2026-05-30T23:59:00.000Z",
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "PLUGIN-VFY-LOAD",
+      "name": "Plugin Load Verification — framework-self-test",
+      "description": "Run bun .opencode/scripts/framework-self-test.ts to verify all 16 plugins still load correctly without import errors after Fix A-I migrations: capFailedEntries extraction (Fix A), TDD constants unification (Fix B+C), isBusinessSourceFile unification (Fix D), safe_shell strategy unification (Fix E), hook-lifecycle.ts HOF adoption (Fix F), atomicWriteMachine migration (Fix G), findLatestBackup extraction (Fix H), machine.json path unification (Fix I), barrel export update.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/PLUGIN-VFY-LOAD/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/plugin-system-fix-plan.md",
+        "section": "三、实施顺序 > 验证方法",
+        "clause": "验证步骤 1: bun .opencode/scripts/framework-self-test.ts — 确保所有插件仍可加载"
+      },
+      "target_files": [
+        ".opencode/scripts/framework-self-test.ts",
+        ".opencode/lib/state-utils.ts",
+        ".opencode/lib/tool-scope.ts",
+        ".opencode/lib/hook-lifecycle.ts",
+        ".opencode/lib/safe-edit-core.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [".task_temp/PLUGIN-VFY-LOAD/test_report.json"],
+        "logic_complete": "framework-self-test.ts executes without import errors; all plugin loading checks pass; no UNRESOLVED placeholders; all 9 sub-state segments valid",
+        "tests_pass": "framework-self-test.ts all checks pass (0 failures, 0 import errors)",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PLUGIN-VFY-ISBUSINESS",
+      "name": "isBusinessSourceFile Behavior Consistency Verification",
+      "description": "Verify the unified isBusinessSourceFile function (regex implementation from tdd-after.ts, deployed to state-utils.ts per Fix D) returns identical results to the old includes()-based implementation on 4 canonical test paths. Also verify tdd-after.ts correctly imports from lib instead of using local copy.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/plugin-system-fix-plan.md",
+        "section": "三、实施顺序 > 验证方法",
+        "clause": "验证步骤 2: 验证 isBusinessSourceFile 行为一致 — 对 4 个测试路径新旧实现应返回相同结果"
+      },
+      "target_files": [
+        ".opencode/lib/state-utils.ts",
+        ".opencode/plugins/tdd-after.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"],
+        "logic_complete": "For all 4 test paths (booking-backend/src/main.ts→true, .opencode/lib/gate-core.ts→false, src/app.spec.ts→false, booking-frontend/src/app.ts→true), the unified regex implementation returns results identical to the old includes() implementation",
+        "tests_pass": "4/4 test paths produce identical true/false results between old and new implementations",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PLUGIN-VFY-ATOMIC",
+      "name": "atomicWriteMachine Integrity Verification",
+      "description": "Verify that after migrating 6 plugins (audit-after, cache-after, scope-after, tdd-after, uc7ks-after, session.ts) from fs.writeFileSync to atomicWriteMachine() per Fix G, the machine.json file has zero structural changes. Run git diff .opencode/state/machine.json and confirm no differences.",
+      "agent": "@Coder-BE",
+      "dependencies": ["PLUGIN-VFY-LOAD"],
+      "outputs": [".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/plugin-system-fix-plan.md",
+        "section": "三、实施顺序 > 验证方法",
+        "clause": "验证步骤 3: git diff .opencode/state/machine.json 应无差异"
+      },
+      "target_files": [
+        ".opencode/state/machine.json",
+        ".opencode/plugins/audit-after.ts",
+        ".opencode/plugins/cache-after.ts",
+        ".opencode/plugins/scope-after.ts",
+        ".opencode/plugins/tdd-after.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"],
+        "logic_complete": "git diff .opencode/state/machine.json produces empty output; machine.json structure unchanged after atomicWriteMachine migration",
+        "tests_pass": "0 lines changed in machine.json; atomicWriteMachine CAS-on-revision functions correctly",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PLUGIN-VFY-SHELL",
+      "name": "safe_shell Strategy Unification Verification",
+      "description": "Verify that scope-before.ts and audit-before.ts produce identical path-scope decisions after both adopting getEffectivePathScopeFilePath() from tool-scope.ts per Fix E. Test with 3 canonical shell commands: 'cp file.ts /tmp/' (should accept path check), 'bun .opencode/scripts/test.ts' (should skip), 'cat .opencode/state/machine.json' (should skip).",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/PLUGIN-VFY-SHELL/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/plugin-system-fix-plan.md",
+        "section": "三、实施顺序 > 验证方法",
+        "clause": "验证步骤 4: scope-before 和 audit-before 对 3 个命令应行为一致"
+      },
+      "target_files": [
+        ".opencode/lib/tool-scope.ts",
+        ".opencode/plugins/scope-before.ts",
+        ".opencode/plugins/audit-before.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [".task_temp/PLUGIN-VFY-SHELL/test_report.json"],
+        "logic_complete": "For all 3 test commands, scope-before.ts and audit-before.ts produce identical path-scope decisions; both use getEffectivePathScopeFilePath() from tool-scope.ts",
+        "tests_pass": "3/3 test commands produce identical scope decisions across both plugins",
+        "guardian_approved": false
+      }
+    }
+  ],
   "execution_order": {
     "validate_baseline_parallel": [
       "VALIDATE-SUB-BASELINE",
@@ -385,15 +493,33 @@
     ],
     "fw_fix_commit_execorder": [
       "COMMIT-EXECORDER-FIX-001"
+    ],
+    "plugin_fix_verify_parallel": [
+      "PLUGIN-VFY-LOAD",
+      "PLUGIN-VFY-ISBUSINESS",
+      "PLUGIN-VFY-SHELL"
+    ],
+    "plugin_fix_verify_atomic": [
+      "PLUGIN-VFY-ATOMIC"
     ]
   },
   "meta": {
-    "version": "5.7.0",
+    "version": "5.8.0",
     "project": "booking-system",
     "generated_by": "@Meta-Planner",
-    "generated_at": "2026-06-14T02:00:00.000Z",
-    "description": "FW-PLAN-JS-TO-TS: Appended 4 practical dispatch verification tasks for JS-to-TS unification validation (Architect architecture audit, Coder-BE dispatch test, Guardian residue audit, CI-CD-Agent integration E2E)",
+    "generated_at": "2026-06-15T23:15:00.000Z",
+    "description": "FW-PLAN-PLUGIN-FIX-VERIFY: Appended 4 plugin system fix verification tasks based on plugin-system-fix-plan.md §三 verification steps (framework-self-test plugin load, isBusinessSourceFile consistency, atomicWriteMachine integrity, safe_shell strategy unification)",
     "changelog": [
+      {
+        "version": "5.8.0",
+        "date": "2026-06-15T23:15:00.000Z",
+        "changes": [
+          "Appended 4 plugin system fix verification tasks: PLUGIN-VFY-LOAD (@Coder-BE framework-self-test plugin load), PLUGIN-VFY-ISBUSINESS (@Coder-BE isBusinessSourceFile consistency on 4 test paths), PLUGIN-VFY-ATOMIC (@Coder-BE atomicWriteMachine machine.json integrity), PLUGIN-VFY-SHELL (@Coder-BE safe_shell strategy unification on 3 commands)",
+          "Added execution_order groups: plugin_fix_verify_parallel (LOAD + ISBUSINESS + SHELL) and plugin_fix_verify_atomic (ATOMIC depends on LOAD)",
+          "Source: docs/review/framework-refactor/plugin-system-fix-plan.md, Fix A-I verification methods (§三)",
+          "Tech-debt scan: 8 items within ≤7 days (WV-2026-002 overdue, WV-2026-007/008, TD-2026-008/009/011/013/014). Existing VALIDATE-SUB-TD-* tasks cover these. Recommend @Orchestrator prioritize tech-debt validation group."
+        ]
+      },
       {
         "version": "5.7.0",
         "date": "2026-06-14T02:00:00.000Z",
@@ -438,12 +564,12 @@
         ]
       }
     ],
-    "total_tasks": 0,
+    "total_tasks": 4,
     "completed_tasks": 0,
-    "pending_tasks": 0,
-    "coverage_target": "100% framework governance + 100% agent verification coverage",
+    "pending_tasks": 4,
+    "coverage_target": "100% plugin system fix verification coverage (4/4 verification steps per plugin-system-fix-plan.md §三)",
     "progress": "0%",
-    "last_updated": "2026-06-14T02:00:00.000Z",
+    "last_updated": "2026-06-15T23:15:00.000Z",
     "recent_completed": 0,
     "archived_completed": 189,
     "last_compacted": "2026-06-04T09:04:52.630Z"

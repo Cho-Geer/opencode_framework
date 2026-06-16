@@ -1,22 +1,12 @@
 // gate-after.ts — "tool.execute.after" plugin: compliance gate lifecycle
 import * as fs from "node:fs";
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { autoDrainStaleSessions } from "../lib/gate-checks";
 import { STATE_PATHS } from "../lib/state-utils";
 
-ensureLogDir();
-writeLog("gate-after", "loaded", { event: "PLUGIN-LOADED", detail: "gate-after.ts" });
-updateIndex("gate-after", "PLUGIN-LOADED");
-
-export default (async (_ctx: any) => {
-  writeLog("gate-after", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.after" });
-  return { "tool.execute.after": toolExecuteAfter };
-}) as any;
+export default withPluginLifecycle("gate-after", { "tool.execute.after": toolExecuteAfter });
 
 async function toolExecuteAfter(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);

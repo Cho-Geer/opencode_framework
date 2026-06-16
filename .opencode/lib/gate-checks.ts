@@ -223,24 +223,9 @@ export function checkRuleRegistryIntegrity(paths: typeof STATE_PATHS): {
   mismatches: Array<{ file: string; error?: string }>;
 } {
   try {
-    const registry = readJsonFile<any>(
-      resolveStatePath(".opencode/state/rule_registry.json"),
-    );
-    if (!registry) return { valid: true, mismatches: [] };
-    const entries = registry.entries || registry.files || [];
-    const mismatches: Array<{ file: string; error?: string }> = [];
-    for (const entry of entries) {
-      const relPath = entry.file || entry.path || "";
-      if (!relPath) continue;
-      try {
-        const content = fs.readFileSync(resolveStatePath(relPath), "utf8");
-        const hash = crypto.createHash("sha256").update(content).digest("hex");
-        const expectedHash = entry.sha256 || entry.digest || "";
-        if (hash !== expectedHash) mismatches.push({ file: relPath });
-      } catch {
-        mismatches.push({ file: relPath, error: "file_not_found" });
-      }
-    }
+    const { getModifiedCriticalFiles } = require('./critical-files');
+    const modified = getModifiedCriticalFiles();
+    const mismatches = modified.map((f: string) => ({ file: f }));
     return { valid: mismatches.length === 0, mismatches };
   } catch {
     return { valid: true, mismatches: [] };

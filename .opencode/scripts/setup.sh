@@ -34,16 +34,30 @@ else
   echo "  ⚠ install-hooks.ts not found (non-fatal — hooksPath already set)"
 fi
 
-# Step 4: Verify rule registry (if available)
+# Step 4: Check critical infrastructure files (git diff)
 echo ""
-echo "[Optional] Verifying rule registry..."
-if [ -f "$OPENCODE_ROOT/.opencode/scripts/rule-registry-verify.ts" ]; then
-  bun "$OPENCODE_ROOT/.opencode/scripts/rule-registry-verify.ts" --strict || {
-    echo "  ⚠ Rule registry has issues — run with --repair to fix"
-  }
-  echo "  ✓ rule-registry-verify.ts executed"
+echo "[Optional] Checking critical infrastructure files..."
+CRITICAL_MODIFIED=$(git diff HEAD --name-only -- \
+  ".opencode/rules/common-project.md" \
+  ".opencode/rules/mcp-compliance-guide.md" \
+  ".opencode/rules/skill-compliance-guide.md" \
+  ".opencode/agents/"*.md \
+  ".opencode/project.config.json" \
+  ".opencode/lib/gate-core.ts" \
+  ".opencode/lib/dag-policy.ts" \
+  ".opencode/lib/permission-isolation-core.ts" \
+  ".opencode/tools/dispatch_subagent.ts" \
+  ".opencode/hooks/pre-commit" \
+  ".opencode/hooks/commit-msg" \
+  "opencode.json" \
+  "AGENTS.md" \
+  2>/dev/null || true)
+if [ -n "$CRITICAL_MODIFIED" ]; then
+  echo "  ⚠ Critical infrastructure files modified:"
+  echo "$CRITICAL_MODIFIED" | while IFS= read -r f; do echo "    - $f"; done
+  echo "  Ensure commit message includes [INFRA] marker."
 else
-  echo "  ⚠ rule-registry-verify.ts not found (skipped)"
+  echo "  ✓ No critical infrastructure files modified"
 fi
 
 echo ""

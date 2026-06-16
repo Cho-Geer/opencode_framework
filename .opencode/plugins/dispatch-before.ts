@@ -18,11 +18,8 @@
 // @author @Super-Admin (framework architect)
 // @since 2026-06-14
 
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
 import {
@@ -31,20 +28,7 @@ import {
 } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
 
-ensureLogDir();
-writeLog("dispatch-before", "loaded", {
-  event: "PLUGIN-LOADED",
-  detail: "dispatch-before.ts (PLAN-FIRST Layer 1)",
-});
-updateIndex("dispatch-before", "PLUGIN-LOADED");
-
-export default (async (_ctx: any) => {
-  writeLog("dispatch-before", "hooks", {
-    event: "HOOK-REGISTERED",
-    detail: "tool.execute.before (dispatch_subagent) — PLAN-FIRST Layer 1",
-  });
-  return { "tool.execute.before": dispatchExecuteBefore };
-}) as any;
+export default withPluginLifecycle("dispatch-before", { "tool.execute.before": dispatchExecuteBefore });
 
 async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
   if (input.tool !== "dispatch_subagent") return;

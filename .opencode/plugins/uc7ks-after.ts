@@ -1,22 +1,12 @@
 // uc7ks-after.ts — "tool.execute.after" plugin: knowledge pipeline compliance
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
 import { normalizeAgentKey } from "../lib/uc7ks-schema";
-import * as fs from "node:fs";
+import { atomicWriteMachine } from "../lib/uc7ks-schema";
 
-ensureLogDir();
-writeLog("uc7ks-after", "loaded", { event: "PLUGIN-LOADED", detail: "uc7ks-after.ts" });
-updateIndex("uc7ks-after", "PLUGIN-LOADED");
-
-export default (async (_ctx: any) => {
-  writeLog("uc7ks-after", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.after" });
-  return { "tool.execute.after": toolExecuteAfter };
-}) as any;
+export default withPluginLifecycle("uc7ks-after", { "tool.execute.after": toolExecuteAfter });
 
 /**
  * after-hook: validate knowledge pipeline compliance
@@ -38,9 +28,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     });
     // Update machine.json knowledge_cache_state
     try {
-      const mp = ".opencode/state/machine.json";
-      if (fs.existsSync(mp)) {
-        const m = JSON.parse(fs.readFileSync(mp, "utf8"));
+      atomicWriteMachine((m) => {
         m.knowledge_cache_state = m.knowledge_cache_state || { session_access: {} };
         m.knowledge_cache_state.session_access = m.knowledge_cache_state.session_access || {};
         m.knowledge_cache_state.session_access[agent] = m.knowledge_cache_state.session_access[agent] || {};
@@ -49,8 +37,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         m.knowledge_cache_state.session_access[agent].last_file_read = filePath;
         m.knowledge_cache_state.session_access[agent].total_cache_reads =
           (m.knowledge_cache_state.session_access[agent].total_cache_reads || 0) + 1;
-        fs.writeFileSync(mp, JSON.stringify(m, null, 2), "utf8");
-      }
+      });
     } catch (err: any) {
       writeLog("uc7ks-after", "runtime", {
         sessionID: input.sessionID, callID: input.callID,

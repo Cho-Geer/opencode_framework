@@ -1186,7 +1186,6 @@
     },
     "agent_allowed_scripts": {
       "@Super-Admin": [
-        "rule-registry-verify.ts",
         "state-reconciliation.ts",
         "state-transaction.ts"
       ]

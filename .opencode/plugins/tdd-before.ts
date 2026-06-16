@@ -1,35 +1,29 @@
 // tdd-before.ts — 'tool.execute.before' plugin: TDD per-write enforcement
 // Ensures @Coder-BE/@Coder-FE write test files before implementation code
 import * as fs from 'node:fs';
-import {
-  writeLog, updateIndex, ensureLogDir,
-} from '../lib/log-manager';
+import { writeLog } from '../lib/log-manager';
+import { withPluginLifecycle } from '../lib/hook-lifecycle';
 import { resolveAgent } from '../lib/agent-resolver';
-import { isSourceFile, isBusinessSourceFile } from '../lib/state-utils';
+import { isBusinessSourceFile, STATE_PATHS, isTddAgent, isTddTool } from '../lib/state-utils';
 import { getEnforcementMode } from '../lib/gate-core';
+
 const P = 'tdd-before';
-ensureLogDir();
-writeLog(P, 'loaded', { event: 'PLUGIN-LOADED', detail: P + '.ts' });
-updateIndex(P, 'PLUGIN-LOADED');
-export default (async (_ctx: any) => {
-  writeLog(P, 'hooks', { event: 'HOOK-REGISTERED', detail: 'tool.execute.before' });
-  return { 'tool.execute.before': toolExecuteBefore };
-}) as any;
+
+export default withPluginLifecycle(P, { 'tool.execute.before': toolExecuteBefore });
+
 async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // Only enforce for Coder-BE and Coder-FE
   const agent = resolveAgent(input.sessionID);
-  const isCoder = agent === '@Coder-BE' || agent === '@Coder-FE' || agent === 'Coder-BE' || agent === 'Coder-FE';
-  if (!isCoder) return;
+  if (!isTddAgent(agent)) return;
   // Only enforce on write/edit/safe_edit (not safe_mkdir/safe_delete/safe_shell)
-  const TOOLS: Record<string, boolean> = { write: true, edit: true, safe_edit: true };
-  if (!TOOLS[input.tool]) return;
+  if (!isTddTool(input.tool)) return;
   const filePath = (output.args?.filePath as string) || '';
   if (!filePath || !isBusinessSourceFile(filePath)) return;
   // Read machine.json tdd_enforcement_state
   const mode = getEnforcementMode();
   let testWritten = false;
   try {
-    const mp = (process.env.OPENCODE_ROOT || '.') + '/.opencode/state/machine.json';
+    const mp = STATE_PATHS.machine();
     if (fs.existsSync(mp)) {
       const m = JSON.parse(fs.readFileSync(mp, 'utf8'));
       const tdd = m.tdd_enforcement_state;
@@ -54,5 +48,4 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     detail: 'BLOCKED | ' + msg,
   });
   if (mode === 'strict' || mode === 'locked') throw new Error(msg);
-// end function
 }

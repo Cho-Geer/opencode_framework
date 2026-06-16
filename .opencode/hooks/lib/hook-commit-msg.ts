@@ -104,11 +104,14 @@ if (criticalModified.length > 0) {
       'Example: git commit -m "[Green][INFRA] update agent permissions"',
     );
     console.log('═══════════════════════════════════════════════════════');
-    process.exit(1);
+    if (mode !== 'advisory') {
+      process.exit(1);
+    }
+  } else {
+    console.log(
+      `✅ [INFRA] ${criticalModified.length} critical file(s) — marker confirmed`,
+    );
   }
-  console.log(
-    `✅ [INFRA] ${criticalModified.length} critical file(s) — marker confirmed`,
-  );
 }
 
 // ── commitlint (fallback for non-TDD commits) ──

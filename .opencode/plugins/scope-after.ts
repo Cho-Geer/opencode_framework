@@ -1,21 +1,11 @@
 // scope-after.ts — "tool.execute.after" plugin: post-write state tracking
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isModifyTool, getModifyPath } from "../lib/tool-scope";
-import { isSourceFile, STATE_PATHS } from "../lib/state-utils";
-import * as fs from "node:fs";
+import { isSourceFile } from "../lib/state-utils";
+import { atomicWriteMachine } from "../lib/uc7ks-schema";
 
-ensureLogDir();
-writeLog("scope-after", "loaded", { event: "PLUGIN-LOADED", detail: "scope-after.ts" });
-updateIndex("scope-after", "PLUGIN-LOADED");
-
-export default (async (_ctx: any) => {
-  writeLog("scope-after", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.after" });
-  return { "tool.execute.after": toolExecuteAfter };
-}) as any;
+export default withPluginLifecycle("scope-after", { "tool.execute.after": toolExecuteAfter });
 
 /**
  * after-hook: args live in input.args (before-hook uses output.args)
@@ -36,16 +26,13 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
   // Update machine.json eslint_state dirty_modules
   try {
-    const mp = STATE_PATHS.machine();
-    if (!fs.existsSync(mp)) return;
-    const raw = fs.readFileSync(mp, "utf8");
-    const m = JSON.parse(raw);
-    m.eslint_state = m.eslint_state || { aggregate: { dirty_modules: [] } };
-    m.eslint_state.aggregate = m.eslint_state.aggregate || { dirty_modules: [] };
-    if (!m.eslint_state.aggregate.dirty_modules.includes(filePath)) {
-      m.eslint_state.aggregate.dirty_modules.push(filePath);
-      fs.writeFileSync(mp, JSON.stringify(m, null, 2), "utf8");
-    }
+    atomicWriteMachine((m) => {
+      m.eslint_state = m.eslint_state || { aggregate: { dirty_modules: [] } };
+      m.eslint_state.aggregate = m.eslint_state.aggregate || { dirty_modules: [] };
+      if (!m.eslint_state.aggregate.dirty_modules.includes(filePath)) {
+        m.eslint_state.aggregate.dirty_modules.push(filePath);
+      }
+    });
   } catch (err: any) {
     writeLog("scope-after", "runtime", {
       sessionID: input.sessionID,

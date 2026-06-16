@@ -15,6 +15,19 @@ export function isModifyShell(args: Record<string, unknown>): boolean {
   return /^(cp|mv|rm)\b/.test((args?.command || "") as string);
 }
 
+/**
+ * Get the effective file path for path-scope checks, handling safe_shell
+ * specially: only cp/mv/rm commands have a meaningful file path; other
+ * shell commands return null (their args.command is an arbitrary string,
+ * not a file path).
+ */
+export function getEffectivePathScopeFilePath(
+  tool: string, args: Record<string, any>
+): string | null {
+  if (tool === "safe_shell") return isModifyShell(args) ? getModifyPath(args) : null;
+  return getModifyPath(args);
+}
+
 export function readDispatchAllowedTools(agent: string): string[] | "*" {
   const FALLBACK = ["task","read","todowrite","compliance_gate_check","compliance_gate_confirm","compliance_gate_complete","dispatch_subagent"];
   try {

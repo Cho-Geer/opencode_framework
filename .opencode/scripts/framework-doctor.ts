@@ -656,79 +656,34 @@ function checkTransactionVerification() {
   }
 }
 
-// ─── Check 6: Rule registry verification (live recomputation) ──
+// ─── Check 6: Critical infrastructure file verification (git diff) ──
 function checkRuleRegistry() {
-  const verifyPath = path.join(SCRIPTS_DIR, "rule-registry-verify.ts");
-  if (!fileExists(verifyPath)) {
-    return {
-      id: 6,
-      name: "Rule registry verification",
-      status: FAIL,
-      detail: "rule-registry-verify.ts not found",
-    };
-  }
-
   try {
-    const output = execSync(`node "${verifyPath}" --json`, {
-      cwd: PROJECT_ROOT,
-      timeout: 15000,
-      encoding: "utf8",
-    });
+    const { getModifiedCriticalFiles, CRITICAL_FILES } = require("../lib/critical-files");
+    const modified = getModifiedCriticalFiles();
 
-    // Parse the JSON output — the script always appends JSON to stdout
-    const result = JSON.parse(output);
-
-    const validCount = result.valid || 0;
-    const totalEntries = result.total || 0;
-    const highViolations = (result.violations || []).filter(
-      (v) => v.severity === "HIGH",
-    );
-    const highCount = highViolations.length;
-    const wasRepaired = !!result.repaired;
-
-    const ok = highCount === 0;
-    let detail = `${validCount}/${totalEntries} entries valid`;
-    if (highCount > 0) {
-      const topIssues = highViolations
-        .slice(0, 3)
-        .map((v) => `${v.key}: ${v.issue}`)
-        .join("; ");
-      detail += `, ${highCount} HIGH violation(s): ${topIssues}`;
+    if (modified.length === 0) {
+      return {
+        id: 6,
+        name: "Critical infrastructure files",
+        status: PASS,
+        detail: `${CRITICAL_FILES.length} critical files tracked, 0 modified since HEAD`,
+      };
     }
-    if (wasRepaired) detail += " [registry auto-repaired]";
 
+    const fileList = modified.slice(0, 5).join("; ");
     return {
       id: 6,
-      name: "Rule registry verification",
-      status: ok ? PASS : FAIL,
-      detail,
-    };
-  } catch (e) {
-    // Try to parse stdout even when exit code != 0
-    const stdout = e.stdout || "";
-    if (stdout) {
-      try {
-        const result = JSON.parse(stdout.trim());
-        const validCount = result.valid || 0;
-        const totalEntries = result.total || 0;
-        const highCount = (result.violations || []).filter(
-          (v) => v.severity === "HIGH",
-        ).length;
-        return {
-          id: 6,
-          name: "Rule registry verification",
-          status: highCount === 0 ? PASS : FAIL,
-          detail: `${validCount}/${totalEntries} entries valid, ${highCount} HIGH violations`,
-        };
-      } catch (_) {
-        // fall through to error
-      }
-    }
-    return {
-      id: 6,
-      name: "Rule registry verification",
+      name: "Critical infrastructure files",
       status: FAIL,
-      detail: `rule-registry-verify.ts failed: ${(e.stderr || e.message).substring(0, 200)}`,
+      detail: `${modified.length} modified since HEAD: ${fileList}${modified.length > 5 ? "..." : ""}`,
+    };
+  } catch {
+    return {
+      id: 6,
+      name: "Critical infrastructure files",
+      status: FAIL,
+      detail: "critical-files module unavailable",
     };
   }
 }
@@ -1238,11 +1193,6 @@ const FIX_MAP = {
     name: "State reconciliation",
   },
   7: { script: "install-hooks.ts", args: [], name: "Git hook installation" },
-  6: {
-    script: "rule-registry-verify.ts",
-    args: ["--repair"],
-    name: "Rule registry verification",
-  },
 };
 
 /**

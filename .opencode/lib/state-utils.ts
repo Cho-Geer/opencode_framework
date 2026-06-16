@@ -85,23 +85,22 @@ export function isSourceFile(filePath: string): boolean {
   if (!filePath) return false;
   return /\.(ts|tsx|js|jsx|html|scss|prisma)$/.test(filePath);
 }
-export function isBusinessSourceFile(filePath: string): boolean {
-  if (!filePath) return false;
-  // Only business code in booking-*/src/ is subject to TDD enforcement
-  if (filePath.includes(".opencode/") ||
-      filePath.includes("docs/") ||
-      filePath.includes(".task_temp/") ||
-      filePath.includes("node_modules/") ||
-      filePath.includes("/test/") ||
-      filePath.includes(".spec.") ||
-      filePath.includes(".test.") ||
-      filePath.endsWith("opencode.json") ||
-      filePath.endsWith("contract.yaml") ||
-      filePath.endsWith("Task.DAG.json") ||
-      filePath.endsWith("AGENTS.md")) return false;
-  return /\.(ts|tsx|js|jsx|html|scss|prisma)$/.test(filePath);
-}
 
+// Fix D: Unified isBusinessSourceFile — uses regex+prefix approach from tdd-after.ts
+const FRAMEWORK_PATH_PREFIXES = [".opencode/", "docs/", ".task_temp/", "node_modules/"];
+const FRAMEWORK_ROOT_FILES = new Set([
+  "opencode.json", "AGENTS.md", "contract.yaml", "Task.DAG.json",
+  "TECH_DEBT_REGISTRY.md", "WAIVE.md", "PROJECT_REFERENCE.md", "Project.graph",
+]);
+const TDD_EXCLUDE_PATTERNS = [/\.spec\./, /\.test\./, /\/test\//, /\.config\./, /__tests__\//];
+
+export function isBusinessSourceFile(fp: string): boolean {
+  if (!fp || !isSourceFile(fp)) return false;
+  for (const prefix of FRAMEWORK_PATH_PREFIXES) { if (fp.startsWith(prefix)) return false; }
+  if (FRAMEWORK_ROOT_FILES.has(fp)) return false;
+  for (const pat of TDD_EXCLUDE_PATTERNS) { if (pat.test(fp)) return false; }
+  return true;
+}
 
 export function isCriticalFrameworkFile(filePath: string): boolean {
   const normalized = filePath.replace(/\\/g, "/");
@@ -129,4 +128,37 @@ export function filePathMatches(args: Record<string, unknown>, pattern: string):
   if (!args) return false;
   const fp = ((args.filePath || args.path || "") as string).replace(/\\/g, "/");
   return fp.includes(pattern);
+}
+
+// ── Failed Entry TTL Cap ──
+
+export const FAILED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const FAILED_MAX_ENTRIES = 100;
+
+export function capFailedEntries(entries: any[]): any[] {
+  const cutoff = Date.now() - FAILED_TTL_MS;
+  const capped = entries.filter((e) => {
+    const ts = e.failedAt || e.timestamp;
+    return ts && new Date(ts).getTime() > cutoff;
+  });
+  return capped.length > FAILED_MAX_ENTRIES
+    ? capped.slice(-FAILED_MAX_ENTRIES) : capped;
+}
+
+// ── TDD Constants ──
+
+export const TDD_AGENTS = new Set(["@Coder-BE", "@Coder-FE", "Coder-BE", "Coder-FE"]);
+export const TDD_MODIFY_TOOLS = new Set(["write", "edit", "safe_edit"]);
+
+export function isTddAgent(agent: string): boolean { return TDD_AGENTS.has(agent); }
+export function isTddTool(tool: string): boolean { return TDD_MODIFY_TOOLS.has(tool); }
+
+// ── Atomic JSON Write ──
+
+export function atomicWriteJson(filePath: string, data: any): void {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmp = filePath + ".tmp." + process.pid;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
+  fs.renameSync(tmp, filePath);
 }

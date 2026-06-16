@@ -3,7 +3,7 @@ name: Coder-BE
 description: Backend/server‑side development engineer – API implementation, business logic, database mapping, following interface contracts.
 mode: subagent
 hidden: true
-model: kimi-for-coding/k2p7
+model: bailian-token-plan/qwen3.7-plus
 temperature: 0.6
 steps: 50
 color: "#059669"

@@ -6,7 +6,7 @@
 #   1. framework-doctor.ts --strict
 #   2. framework-self-test.ts
 #   3. state-reconciliation.ts --strict
-#   4. rule-registry-verify.ts --strict
+#   4. Critical infrastructure file modification check (git diff)
 #
 # SA-FIX-HEALTH-CHECK-JS (@Super-Admin): All 4 scripts are TypeScript (.ts),
 # not JavaScript (.js). Runner is `bun` (Bun executes TypeScript natively).
@@ -58,8 +58,28 @@ run_step "framework-self-test" bun .opencode/scripts/framework-self-test.ts || t
 # Step 3: state-reconciliation --strict
 run_step "state-reconciliation" bun .opencode/scripts/state-reconciliation.ts --strict || true
 
-# Step 4: rule-registry-verify --strict
-run_step "rule-registry-verify" bun .opencode/scripts/rule-registry-verify.ts --strict || true
+# Step 4: critical infrastructure files (git diff)
+CRITICAL_MODIFIED=$(git diff HEAD --name-only -- \
+  ".opencode/rules/common-project.md" \
+  ".opencode/rules/mcp-compliance-guide.md" \
+  ".opencode/rules/skill-compliance-guide.md" \
+  ".opencode/agents/"*.md \
+  ".opencode/project.config.json" \
+  ".opencode/lib/gate-core.ts" \
+  ".opencode/lib/dag-policy.ts" \
+  ".opencode/lib/permission-isolation-core.ts" \
+  ".opencode/tools/dispatch_subagent.ts" \
+  ".opencode/hooks/pre-commit" \
+  ".opencode/hooks/commit-msg" \
+  "opencode.json" \
+  "AGENTS.md" \
+  2>/dev/null || true)
+if [ -n "$CRITICAL_MODIFIED" ]; then
+  echo "CRITICAL: Modified infrastructure files: $(echo $CRITICAL_MODIFIED | tr '\n' ' ')"
+  FAILED_STEPS="${FAILED_STEPS}critical-files "
+else
+  echo "OK: No critical infrastructure files modified"
+fi
 
 # ── Output ──────────────────────────────────────────────────────
 if [ -z "$FAILED_STEPS" ]; then

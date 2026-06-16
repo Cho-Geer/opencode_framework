@@ -11,6 +11,7 @@
  *   - FileLock (mkdir-based mutex)
  *   - FileStateRegistry (TOCTOU detection)
  *   - BackupHelper (atomic backup/restore)
+ *   - findLatestBackup(filePath): string | null
  *
  * @author @Architect
  * @version 1.0.0
@@ -199,6 +200,35 @@ export function backupPath(
   const agent = agentType.replace(/[^a-zA-Z0-9_-]/g, '_');
   const task = taskId.replace(/[^a-zA-Z0-9_-]/g, '_');
   return path.join(dir, `${base}.${ts}.${pid}.${agent}.${task}.safe_backup`);
+}
+
+// ════════════════════════════════════════════════════════════
+// PUBLIC: findLatestBackup
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Find the most recent atomic backup for a given file in its sibling
+ * .opencode_backups/ directory. Backup filenames embed timestamps;
+ * lexical sort of full name works because timestamp is left-padded
+ * and appears early in the name.
+ */
+export function findLatestBackup(filePath: string): string | null {
+  try {
+    const dir = path.join(path.dirname(filePath), ".opencode_backups");
+    if (!fs.existsSync(dir)) return null;
+
+    const base = path.basename(filePath);
+    const candidates = fs
+      .readdirSync(dir)
+      .filter((f) => f.startsWith(base + ".") && f.endsWith(".safe_backup"));
+
+    if (candidates.length === 0) return null;
+
+    candidates.sort();
+    return path.join(dir, candidates[candidates.length - 1]);
+  } catch {
+    return null;
+  }
 }
 
 // ════════════════════════════════════════════════════════════

@@ -15,12 +15,10 @@
 // @since 2026-06-14  FW-INTERRUPT-GUARD — added session.error / compacted / idle
 // ═══════════════════════════════════════════════════════════════
 
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isInterruptError } from "../lib/interrupt-guard";
+import { atomicWriteJson } from "../lib/state-utils";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { getSessionMapPath } from "../lib/agent-resolver";
@@ -36,32 +34,12 @@ const INTERRUPT_SENTINEL_PATH = path.join(
 // In-memory session map — reset on session.compacted to avoid stale scope.
 let _sessionMap: Record<string, { agent: string; ts: string }> = {};
 
-// ═══════════════════════════════════════════════════════════════
-// [PLUGIN-LOADED] Module top-level — triggered at import time
-// ═══════════════════════════════════════════════════════════════
-ensureLogDir();
-writeLog("session", "loaded", {
-  event: "PLUGIN-LOADED",
-  detail: "session.ts module loaded",
+export default withPluginLifecycle("session", {
+  "chat.message": chatMessageHook,
+  "session.error": sessionErrorHook,
+  "session.compacted": sessionCompactedHook,
+  "session.idle": sessionIdleHook,
 });
-updateIndex("session", "PLUGIN-LOADED");
-
-// ═══════════════════════════════════════════════════════════════
-// [HOOK-REGISTERED] Inside export default function body
-// ═══════════════════════════════════════════════════════════════
-export default (async (_ctx: any) => {
-  writeLog("session", "hooks", {
-    event: "HOOK-REGISTERED",
-    detail: "chat.message,session.error,session.compacted,session.idle",
-  });
-
-  return {
-    "chat.message": chatMessageHook,
-    "session.error": sessionErrorHook,
-    "session.compacted": sessionCompactedHook,
-    "session.idle": sessionIdleHook,
-  };
-}) as any;
 
 // ═══════════════════════════════════════════════════════════════
 // [RUNTIME] Inside hook function body — triggered on event
@@ -91,8 +69,6 @@ async function chatMessageHook(input: any, _output: any) {
 
   try {
     const mp = getSessionMapPath();
-    const dir = path.dirname(mp);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     let map: Record<string, { agent: string; ts: string }> = {};
     if (fs.existsSync(mp)) {
       try { map = JSON.parse(fs.readFileSync(mp, "utf8")); } catch {}
@@ -105,7 +81,7 @@ async function chatMessageHook(input: any, _output: any) {
       );
       for (const k of sorted.slice(50)) delete map[k];
     }
-    fs.writeFileSync(mp, JSON.stringify(map, null, 2), "utf8");
+    atomicWriteJson(mp, map);
 
     writeLog("session", "runtime", {
       sessionID: sid,
@@ -129,19 +105,6 @@ async function chatMessageHook(input: any, _output: any) {
 // ═══════════════════════════════════════════════════════════════
 // [FW-INTERRUPT-GUARD 2026-06-14] session.error / compacted / idle
 // ═══════════════════════════════════════════════════════════════
-//
-// Rationale: when the upstream OpenCode interrupt handler throws using an
-// uninterpolated template like "Unexpected {interrupt}", the raw string
-// surfaces in the TUI and ToolRegistry-derived state (session map, gate
-// locks) can be left stale. Subscribing to `session.error` lets us:
-//   1. Log the event through the framework log manager so it shows up in
-//      .task_temp/_logs/<date>/plugin-session-runtime.log.
-//   2. Heuristically detect the interrupt signature and write a sentinel
-//      file (.opencode/state/.last-interrupt.json) that the rest of the
-//      framework can read to know "previous tool invocation was cancelled".
-//   3. On session.compacted, reset the in-memory session map to avoid
-//      stale scope leakage (mirrors upstream `compaction.*` semantics).
-//   4. On session.idle, clear the sentinel so the next run starts clean.
 
 async function sessionErrorHook(input: any, _output: any) {
   const sid = input?.sessionID || input?.session?.id || "";
@@ -174,8 +137,6 @@ async function sessionErrorHook(input: any, _output: any) {
 
 async function sessionCompactedHook(input: any, _output: any) {
   const sid = input?.sessionID || input?.session?.id || "";
-  // Reset the in-memory session map — compaction means prior agent bindings
-  // may no longer be valid and we must not reuse them for new messages.
   _sessionMap = {};
   writeLog("session", "runtime", {
     sessionID: sid,
@@ -201,8 +162,6 @@ function writeInterruptSentinel(info: {
   raw: string;
 }): void {
   try {
-    const dir = path.dirname(INTERRUPT_SENTINEL_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     const payload = {
       interrupted: true,
       sessionID: info.sessionID,
@@ -211,11 +170,7 @@ function writeInterruptSentinel(info: {
       raw_message: info.raw,
       timestamp: new Date().toISOString(),
     };
-    fs.writeFileSync(
-      INTERRUPT_SENTINEL_PATH,
-      JSON.stringify(payload, null, 2),
-      "utf8",
-    );
+    atomicWriteJson(INTERRUPT_SENTINEL_PATH, payload);
   } catch {
     /* sentinel write must never break the hook */
   }

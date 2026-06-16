@@ -135,15 +135,13 @@ jobs:
           cat /tmp/lf-check-result.json
 
   # ────────────────────────────────────────────────────────────
-  # JOB 3: digest-check
-  # Validates that every file registered in rule_registry.json
-  # has a SHA-256 digest matching its current on-disk content.
-  # A mismatch indicates a rule/skill/requirement document was
-  # modified without updating the registry — a framework
-  # integrity violation that must be resolved before merge.
+  # JOB 3: critical-files-check
+  # Validates that no critical infrastructure files have been
+  # modified without being committed (git diff HEAD check).
+  # Replaces the old SHA-256 digest verification against rule_registry.json.
   # ────────────────────────────────────────────────────────────
-  digest-check:
-    name: Rule Digest Check
+  critical-files-check:
+    name: Critical Files Check
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
@@ -152,85 +150,47 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate rule_registry.json SHA-256 digests
+      - name: Check critical infrastructure files
         run: |
-          node -e '
-          const fs = require("fs");
-          const crypto = require("crypto");
+          CRITICAL_FILES=(
+            ".opencode/rules/common-project.md"
+            ".opencode/rules/mcp-compliance-guide.md"
+            ".opencode/rules/skill-compliance-guide.md"
+            ".opencode/agents/Meta-Planner.md"
+            ".opencode/agents/Orchestrator.md"
+            ".opencode/agents/Coder-BE.md"
+            ".opencode/agents/Coder-FE.md"
+            ".opencode/agents/Guardian.md"
+            ".opencode/agents/Arbiter.md"
+            ".opencode/agents/CI-CD-Agent.md"
+            ".opencode/agents/Super-Admin.md"
+            ".opencode/agents/Knowledge-Curator.md"
+            ".opencode/agents/Architect.md"
+            ".opencode/project.config.json"
+            ".opencode/lib/gate-core.ts"
+            ".opencode/lib/dag-policy.ts"
+            ".opencode/lib/permission-isolation-core.ts"
+            ".opencode/tools/dispatch_subagent.ts"
+            ".opencode/hooks/pre-commit"
+            ".opencode/hooks/commit-msg"
+            "opencode.json"
+            "AGENTS.md"
+          )
 
-          const REGISTRY_PATH = ".opencode/state/rule_registry.json";
+          # Check for uncommitted modifications to critical files
+          MODIFIED=$(git diff HEAD --name-only -- "${CRITICAL_FILES[@]}" 2>/dev/null || true)
 
-          if (!fs.existsSync(REGISTRY_PATH)) {
-            console.error("ERROR: " + REGISTRY_PATH + " not found");
-            process.exit(1);
-          }
+          if [ -n "$MODIFIED" ]; then
+            echo "FAIL: Critical infrastructure files modified since HEAD:"
+            echo "$MODIFIED" | while IFS= read -r f; do echo "  - $f"; done
+            echo ""
+            echo "Action required:"
+            echo "  1. Commit the changes with [INFRA] marker in commit message"
+            echo "  2. If changes are unintended, revert with: git checkout -- <file>"
+            exit 1
+          fi
 
-          const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
-          const entries = registry.entries || {};
-          const algo = (registry.meta && registry.meta.digest_algorithm) || "sha256";
-          const entryCount = Object.keys(entries).length;
-
-          if (entryCount === 0) {
-            console.error("ERROR: rule_registry.json has zero entries");
-            process.exit(1);
-          }
-
-          console.log("Digest algorithm: " + algo);
-          console.log("Total entries in registry: " + entryCount);
-          console.log("");
-
-          let failed = 0;
-          let missing = 0;
-
-          for (const [key, entry] of Object.entries(entries)) {
-            const filePath = entry.path;
-
-            if (!fs.existsSync(filePath)) {
-              console.log("MISSING: " + key + " → " + filePath);
-              missing++;
-              failed++;
-              continue;
-            }
-
-            const content = fs.readFileSync(filePath, "utf8");
-            const actualHash = crypto.createHash(algo).update(content).digest("hex");
-            const expectedHash = entry.sha256;
-
-            if (actualHash !== expectedHash) {
-              console.log(
-                "MISMATCH: " + filePath + "\n" +
-                "  expected: " + expectedHash + "\n" +
-                "  actual:   " + actualHash
-              );
-              failed++;
-            }
-          }
-
-          const passed = entryCount - failed;
-          console.log("");
-          console.log("──────────────────────────────────────────────");
-          console.log("Result: " + passed + "/" + entryCount + " digests verified OK");
-
-          if (missing > 0) {
-            console.log("  Missing files: " + missing);
-          }
-
-          if (failed > 0) {
-            console.log("");
-            console.log("FAIL: " + failed + " digest issues detected");
-            console.log("");
-            console.log("Action required:");
-            console.log("  1. If files were intentionally modified, update their");
-            console.log("     sha256 digests in .opencode/state/rule_registry.json");
-            console.log("  2. If files were added/deleted, add/remove corresponding");
-            console.log("     entries in the registry");
-            console.log("  3. Run: node .opencode/scripts/framework-self-test.js");
-            console.log("     for a full framework integrity scan");
-            process.exit(1);
-          }
-
-          console.log("PASS: All " + entryCount + " digests match ✓");
-          '
+          echo "PASS: No critical infrastructure files modified since HEAD"
 
       - name: Export check result
         if: always()

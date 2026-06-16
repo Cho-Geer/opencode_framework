@@ -170,15 +170,15 @@ if (taskId) {
       logWarn(`Pre-execution gate failed: ${errMsg.substring(0, 300)}`);
 
       // Smart detection: check if failure is ONLY due to rule_registry digest mismatch
-      const isRegistryMismatch = /digest mismatch|rule_registry/i.test(errMsg);
+      const isCriticalFileModified = /critical.*(file|infrastructure)/i.test(errMsg);
       const hasOtherBlockers = /DAG.*missing|task.*not found|gate.*not armed|TDD.*violation/i.test(errMsg);
 
-      if (isRegistryMismatch && !hasOtherBlockers) {
+      if (isCriticalFileModified && !hasOtherBlockers) {
         console.error(
-          `[dispatch] 💡 HINT: Dispatch blocked by rule_registry digest mismatch.`,
+          `[dispatch] 💡 HINT: Dispatch blocked by critical infrastructure file modification.`,
         );
         console.error(
-          `[dispatch]    → Run the rule_registry_repair tool to recompute digests.`,
+          `[dispatch]    → Review the modified files and commit with [INFRA] marker.`,
         );
         console.error(
           `[dispatch]    → Then retry the dispatch.`,

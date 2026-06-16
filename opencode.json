@@ -94,7 +94,6 @@
         "compliance_gate_retry_confirm": "allow",
         "dispatch_subagent": "allow",
         "safe_diff": "allow",
-        "rule_registry_repair": "allow",
         "safe_edit": {
           ".task_temp/**": "allow",
           "docs/review/**": "allow",
@@ -271,7 +270,7 @@
     },
     "Coder-BE": {
       "mode": "subagent",
-      "model": "kimi-for-coding/k2p7",
+      "model": "bailian-token-plan/qwen3.7-plus",
       "prompt": ".opencode/agents/Coder-BE.md",
       "hidden": true,
       "permission": {
@@ -357,7 +356,7 @@
     },
     "Coder-FE": {
       "mode": "subagent",
-      "model": "kimi-for-coding/k2p7",
+      "model": "bailian-token-plan/qwen3.7-plus",
       "prompt": ".opencode/agents/Coder-FE.md",
       "hidden": true,
       "permission": {
@@ -427,7 +426,7 @@
     },
     "Guardian": {
       "mode": "subagent",
-      "model": "kimi-for-coding/k2p6",
+      "model": "bailian-token-plan/qwen3.7-plus",
       "prompt": ".opencode/agents/Guardian.md",
       "hidden": true,
       "permission": {
@@ -562,7 +561,7 @@
     },
     "CI-CD-Agent": {
       "mode": "subagent",
-      "model": "kimi-for-coding/k2p7",
+      "model": "bailian-token-plan/qwen3.7-plus",
       "prompt": ".opencode/agents/CI-CD-Agent.md",
       "hidden": true,
       "permission": {
@@ -663,7 +662,6 @@
         "compliance_gate_complete": "allow",
         "code_quality_gate": "allow",
         "safe_diff": "allow",
-        "rule_registry_repair": "allow",
         "safe_restore": {
           ".opencode/**": "allow",
           "opencode.json": "allow",
@@ -833,7 +831,7 @@
         "ENFORCEMENT_MODE": "strict"
       },
       "timeout": 60000,
-      "enabled": false
+      "enabled": true
     },
     "eslint-audit": {
       "type": "local",
@@ -842,7 +840,7 @@
         "./.opencode/scripts/mcp-tools/eslint-audit.ts"
       ],
       "timeout": 60000,
-      "enabled": false
+      "enabled": true
     },
     "context7": {
       "type": "local",
@@ -878,7 +876,7 @@
     },
     "postgre_sql": {
       "type": "local",
-      "enabled": false,
+      "enabled": true,
       "command": [
         "npx",
         "-y",

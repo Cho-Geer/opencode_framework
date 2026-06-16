@@ -20,6 +20,7 @@ export * from './safe-edit-core';
 export * from './safe-bash-core';
 export * from './safe-test-core';
 export * from './permission-isolation-core';
+export * from './critical-files';
 
 // gate-core is exported separately since it has dependencies
 // on the compliance gate MCP tool infrastructure
@@ -40,3 +41,5 @@ export {
   isInterruptError,
 } from './interrupt-guard';
 export type { InterruptTrapPayload } from './interrupt-guard';
+
+export * from './hook-lifecycle';

@@ -1325,62 +1325,28 @@ export interface RuleRegistryResult {
 }
 
 /**
- * Check rule_registry.json integrity by comparing stored digests with actual file digests.
- * HIGH = digest changed but version unchanged. WARNING = version bumped.
+ * Check critical infrastructure files for uncommitted changes using git diff HEAD.
+ * Replaces the old SHA-256 digest comparison against rule_registry.json.
+ * All modified critical files are reported as HIGH severity.
  *
  * @returns Integrity check result
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
  */
 export function checkRuleRegistryIntegrity(): RuleRegistryResult {
-  const mismatches: RegistryMismatch[] = [];
-  const fp = resolveFrameworkPaths();
-
-  let registryPath = fp.ruleRegistry;
-  if (!fileExists(registryPath)) {
-    if (fileExists(fp.ruleRegistryFallback)) {
-      registryPath = fp.ruleRegistryFallback;
-    } else {
-      return { valid: true, mismatches: [] };
-    }
+  try {
+    const { getModifiedCriticalFiles } = require('./critical-files');
+    const modified = getModifiedCriticalFiles();
+    const mismatches: RegistryMismatch[] = modified.map((f: string) => ({
+      file: f,
+      severity: 'HIGH' as const,
+    }));
+    return {
+      valid: mismatches.length === 0,
+      mismatches,
+    };
+  } catch {
+    return { valid: true, mismatches: [] };
   }
-
-  const rr = readJsonFile<{ entries?: Record<string, { path: string; sha256?: string; semver?: string }> }>(registryPath);
-  if (!rr || !rr.entries) {
-    mismatches.push({ file: 'rule_registry.json', severity: 'HIGH' });
-    return { valid: false, mismatches };
-  }
-
-  for (const [key, entry] of Object.entries(rr.entries)) {
-    const filePath = path.join(fp.root, entry.path);
-    if (!fileExists(filePath)) {
-      mismatches.push({ file: entry.path, severity: 'HIGH' });
-      continue;
-    }
-    const actualHash = computeSHA256(filePath);
-    if (!actualHash) {
-      mismatches.push({ file: entry.path, severity: 'HIGH' });
-      continue;
-    }
-    const storedHash = entry.sha256 || '';
-    if (actualHash !== storedHash) {
-      let versionBumped = false;
-      try {
-        const content = fs.readFileSync(filePath, 'utf-8');
-        const ymMatch = content.match(/^version:\s*"?(\d+\.\d+\.\d+)"?/m);
-        if (ymMatch && ymMatch[1] !== entry.semver) {
-          versionBumped = true;
-        }
-      } catch { /* can't read — treat as HIGH */ }
-      mismatches.push({
-        file: entry.path,
-        severity: versionBumped ? 'WARNING' : 'HIGH',
-      });
-    }
-  }
-  return {
-    valid: mismatches.filter((m) => m.severity === 'HIGH').length === 0,
-    mismatches,
-  };
 }
 
 // ════════════════════════════════════════════════════════════

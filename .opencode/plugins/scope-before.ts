@@ -1,25 +1,14 @@
 // scope-before.ts — "tool.execute.before" plugin: write scope enforcement
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
-import { isModifyTool, getModifyPath, readDispatchAllowedTools, isToolAllowed } from "../lib/tool-scope";
+import { isModifyTool, getModifyPath, readDispatchAllowedTools, isToolAllowed, getEffectivePathScopeFilePath } from "../lib/tool-scope";
 import { getEnforcementMode } from "../lib/gate-core";
 import { isWriteAllowed } from "../lib/gate-checks";
-import { isModifyShell } from "../lib/tool-scope";
 import { isSourceFile } from "../lib/state-utils";
 import { checkUC7KSWrite } from "../lib/uc7ks-utils";
 
-ensureLogDir();
-writeLog("scope-before", "loaded", { event: "PLUGIN-LOADED", detail: "scope-before.ts" });
-updateIndex("scope-before", "PLUGIN-LOADED");
-
-export default (async (_ctx: any) => {
-  writeLog("scope-before", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.before" });
-  return { "tool.execute.before": toolExecuteBefore };
-}) as any;
+export default withPluginLifecycle("scope-before", { "tool.execute.before": toolExecuteBefore });
 
 async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);
@@ -54,15 +43,9 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     return;
   }
 
-  // safe_shell guard: only apply path scope to cp/mv/rm commands.
-  // For safe_shell, getModifyPath() returns args.command (the shell
-  // command string, not a file path). Applying ROUTE-MISMATCH and
-  // isWriteAllowed to arbitrary command strings produces false
-  // positives (e.g., "cat .opencode/x" would match .opencode/).
-  const applyPathScope =
-    input.tool !== "safe_shell"
-      ? true
-      : isModifyShell(output.args || {});
+  // Get effective file path for path-scope checks (safe_shell handling)
+  const effectivePath = getEffectivePathScopeFilePath(input.tool, output.args || {});
+  const applyPathScope = effectivePath !== null;
 
   // Agent dispatch tool check
   const allowedTools = readDispatchAllowedTools(agent);
@@ -87,17 +70,18 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // Route to @Super-Admin for framework changes.
   // ═══════════════════════════════════════════════════════════════
   if (applyPathScope) {
+    const scopePath = effectivePath;
     const agentNorm = (agent || "").toLowerCase().replace(/^@/, "");
     if (agentNorm === "architect" || agentNorm === "orchestrator") {
-      if (filePath.includes(".opencode/") || filePath === "opencode.json" || filePath.includes("AGENTS.md")) {
+      if (scopePath.includes(".opencode/") || scopePath === "opencode.json" || scopePath.includes("AGENTS.md")) {
         const msg =
           `[FW-ENFORCE][ROUTE-MISMATCH] ${agent} has no authority to modify ` +
-          `framework files (${filePath}). Framework infrastructure is ` +
+          `framework files (${scopePath}). Framework infrastructure is ` +
           `administered by @Super-Admin. Auto-route this task to @Super-Admin.`;
         writeLog("scope-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
           level: "ERROR", event: "TOOL-BEFORE",
-          detail: `BLOCKED | ROUTE-MISMATCH | framework-file | agent=${agent} file=${filePath}`,
+          detail: `BLOCKED | ROUTE-MISMATCH | framework-file | agent=${agent} file=${scopePath}`,
         });
         if (mode === "strict" || mode === "locked") throw new Error(msg);
         return; // advisory: logged, pass through
@@ -121,15 +105,15 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
         "booking_system_refactor/booking-backend/prisma/schema.prisma",
       ];
       for (const bp of businessPaths) {
-        if (filePath.includes(bp)) {
+        if (scopePath.includes(bp)) {
           const msg =
             `[FW-ENFORCE][ROUTE-MISMATCH] Super-Admin has no authority to ` +
-            `modify business code (${filePath}). Business code modifications ` +
+            `modify business code (${scopePath}). Business code modifications ` +
             `must be handled by @Coder-BE or @Coder-FE.`;
           writeLog("scope-before", "runtime", {
             sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
             level: "ERROR", event: "TOOL-BEFORE",
-            detail: `BLOCKED | ROUTE-MISMATCH | SA→business | file=${filePath}`,
+            detail: `BLOCKED | ROUTE-MISMATCH | SA→business | file=${scopePath}`,
           });
           if (mode === "strict" || mode === "locked") throw new Error(msg);
           return; // advisory: logged, pass through
@@ -149,18 +133,18 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     // ═══════════════════════════════════════════════════════════════
     if (agentNorm === "knowledge-curator") {
       const kcAllowed =
-        filePath.includes("docs/official_docs/") ||
-        filePath.includes(".metadata/") ||
-        filePath.includes(".task_temp/");
+        scopePath.includes("docs/official_docs/") ||
+        scopePath.includes(".metadata/") ||
+        scopePath.includes(".task_temp/");
       if (!kcAllowed) {
         const msg =
           `[FW-ENFORCE][UC7-008] Knowledge-Curator scope violation: ` +
-          `cannot write to "${filePath}". ` +
+          `cannot write to "${scopePath}". ` +
           `Allowed: docs/official_docs/**, .metadata/**, .task_temp/**.`;
         writeLog("scope-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
           level: "ERROR", event: "TOOL-BEFORE",
-          detail: `BLOCKED | UC7-008 | file=${filePath}`,
+          detail: `BLOCKED | UC7-008 | file=${scopePath}`,
         });
         if (mode === "strict" || mode === "locked") throw new Error(msg);
         return; // advisory: logged, pass through
@@ -181,7 +165,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     // ═══════════════════════════════════════════════════════════════
     if (!agent || agent === "1" || agent === "human") {
       const msg =
-        `[FW-ENFORCE] Agent identity unresolved — write to "${filePath}" ` +
+        `[FW-ENFORCE] Agent identity unresolved — write to "${scopePath}" ` +
         `BLOCKED. Agent="" (resolveAgent returned no identity). ` +
         `This indicates a dispatch mechanism failure. ` +
         `Use human dispatch (@Super-Admin) to repair or set ` +
@@ -189,20 +173,20 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       writeLog("scope-before", "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
         level: "ERROR", event: "TOOL-BEFORE",
-        detail: `BLOCKED | UNRESOLVED-AGENT | file=${filePath}`,
+        detail: `BLOCKED | UNRESOLVED-AGENT | file=${scopePath}`,
       });
       if (mode === "strict" || mode === "locked") throw new Error(msg);
       return; // advisory: logged, pass through
     }
 
-    if (!isWriteAllowed(agent, filePath)) {
+    if (!isWriteAllowed(agent, scopePath)) {
       const msg =
-        `[FW-ENFORCE][WRITE-SCOPE] Agent "${agent}" write to "${filePath}" ` +
+        `[FW-ENFORCE][WRITE-SCOPE] Agent "${agent}" write to "${scopePath}" ` +
         `blocked by agent_write_scopes in project.config.json.`;
       writeLog("scope-before", "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
         level: "ERROR", event: "TOOL-BEFORE",
-        detail: `BLOCKED | WRITE-SCOPE | agent=${agent} file=${filePath}`,
+        detail: `BLOCKED | WRITE-SCOPE | agent=${agent} file=${scopePath}`,
       });
       if (mode === "strict" || mode === "locked") throw new Error(msg);
       return; // advisory: logged, pass through
@@ -219,13 +203,13 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     // and non-advisory modes. Skips safe_shell non-modify commands
     // via applyPathScope.
     // ═══════════════════════════════════════════════════════════════
-    if (isSourceFile(filePath)) {
+    if (isSourceFile(scopePath)) {
       const uc7Block = checkUC7KSWrite(agent, mode);
       if (uc7Block) {
         writeLog("scope-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
           level: "ERROR", event: "TOOL-BEFORE",
-          detail: `BLOCKED | UC7-001-WRITE | agent=${agent} file=${filePath} | ${uc7Block.substring(0, 120)}`,
+          detail: `BLOCKED | UC7-001-WRITE | agent=${agent} file=${scopePath} | ${uc7Block.substring(0, 120)}`,
         });
         if (mode === "strict" || mode === "locked") throw new Error(uc7Block);
         return; // advisory: logged, pass through
@@ -240,17 +224,17 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     // Only applies to writes targeting docs/official_docs/.
     // Content extracted from write/edit tool args.
     // ═══════════════════════════════════════════════════════════════
-    if (filePath.includes("docs/official_docs/")) {
+    if (scopePath.includes("docs/official_docs/")) {
       const content = ((output.args?.content || output.args?.newString || "") as string);
       if (content && content.length > 524288) {
         const msg =
           `[FW-ENFORCE][UC7-005] Knowledge cache file exceeds 500KB limit: ` +
-          `"${filePath}" (${content.length} bytes > 524288). ` +
+          `"${scopePath}" (${content.length} bytes > 524288). ` +
           `Split into smaller chunks or compress.`;
         writeLog("scope-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
           level: "ERROR", event: "TOOL-BEFORE",
-          detail: `BLOCKED | UC7-005 | size=${content.length} | file=${filePath}`,
+          detail: `BLOCKED | UC7-005 | size=${content.length} | file=${scopePath}`,
         });
         if (mode === "strict" || mode === "locked") throw new Error(msg);
         return; // advisory: logged, pass through

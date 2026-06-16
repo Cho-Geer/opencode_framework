@@ -1,36 +1,22 @@
 // task-after.ts — "tool.execute.after" plugin: task failure recording
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent, resolveTaskId } from "../lib/agent-resolver";
+import { capFailedEntries, atomicWriteJson } from "../lib/state-utils";
+import { findArmedSession } from "../lib/gate-core";
 
-ensureLogDir();
-writeLog("task-after", "loaded", { event: "PLUGIN-LOADED", detail: "task-after.ts" });
-updateIndex("task-after", "PLUGIN-LOADED");
-
-const FAILED_DIR = ".task_temp/_dispatch";
 const FAILED_FILE = ".task_temp/_dispatch/.pending.json.failed";
-// SA-FIX-PARALLEL-DISPATCH-20260611 (@Super-Admin): TTL cap for .pending.json.failed
-const FAILED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const FAILED_MAX_ENTRIES = 100;
+const GATE_REMINDER_FILE = ".task_temp/_global/gate-reminder.md";
 
-function capFailedEntries(entries: any[]): any[] {
-  const cutoff = Date.now() - FAILED_TTL_MS;
-  const capped = entries.filter((e) => {
-    const ts = e.failedAt || e.timestamp;
-    return ts && new Date(ts).getTime() > cutoff;
-  });
-  return capped.length > FAILED_MAX_ENTRIES ? capped.slice(-FAILED_MAX_ENTRIES) : capped;
-}
-
-export default (async (_ctx: any) => {
-  writeLog("task-after", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.after" });
-  return { "tool.execute.after": toolExecuteAfter };
-}) as any;
+export default withPluginLifecycle("task-after", {
+  "tool.execute.after": toolExecuteAfter,
+  // Point 3b of compliance-gate-optimization-plan.md:
+  // push armed gate reminder into the compaction context so it survives
+  // context compression. Only fires during experimental.session.compacting.
+  "experimental.session.compacting": compactionHook,
+});
 
 async function toolExecuteAfter(input: any, output: any): Promise<void> {
   // Only track Task() dispatch calls
@@ -54,8 +40,6 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     try {
       const root = process.env.OPENCODE_ROOT || ".";
       const ff = path.join(root, FAILED_FILE);
-      const dir = path.join(root, FAILED_DIR);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
       let failed: any[] = [];
       try { if (fs.existsSync(ff)) failed = JSON.parse(fs.readFileSync(ff, "utf8")); } catch {}
@@ -70,7 +54,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
       // SA-FIX-PARALLEL-DISPATCH-20260611: Apply TTL cap before writing failed file
       failed = capFailedEntries(failed);
-      fs.writeFileSync(ff, JSON.stringify(failed, null, 2), "utf8");
+      atomicWriteJson(ff, failed);
     } catch (err: any) {
       writeLog("task-after", "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
@@ -78,5 +62,106 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         detail: "failure-record failed: " + err.message,
       });
     }
+  }
+
+  // ── Point 3a: Armed gate fallback reminder ───────────────────────────────
+  // When a Task() dispatch completes successfully and the gate is still
+  // armed, write a persistent reminder file. This is the FALLBACK mechanism
+  // for Point 3 of compliance-gate-optimization-plan.md (the PRIMARY
+  // mechanism is the reminder text appended to the check/confirm MCP
+  // response, which lives in the LLM's conversation context). The file
+  // persists across context compressions and agent switches so any
+  // subsequent agent (or the user) can see that compliance_gate_complete
+  // still needs to be called.
+  //
+  // NOTE: `tui.prompt.append` is listed as a TUI event in the OpenCode
+  // plugin docs but has no documented programmatic API for plugins to
+  // emit. We rely on `client.app.log` (via writeLog) + file persistence
+  // instead. See compliance-gate-optimization-plan.md §3 for the
+  // feasibility analysis.
+  if (outcome === "SUCCESS") {
+    try {
+      const armed = findArmedSession();
+      if (armed.found && armed.sessionId) {
+        const root = process.env.OPENCODE_ROOT || ".";
+        const rf = path.join(root, GATE_REMINDER_FILE);
+        const dir = path.dirname(rf);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        const dispatchedAgent = input.args?.subagent_type || agent || "unknown";
+        const ts = new Date().toISOString();
+
+        // Atomic write helper: write to .tmp, then rename over the target.
+        // Keeps the reminder files consistent even if multiple Task() calls
+        // fire close together.
+        const atomicWriteText = (target: string, text: string): void => {
+          const tmp = `${target}.tmp.${process.pid}`;
+          fs.writeFileSync(tmp, text, "utf8");
+          fs.renameSync(tmp, target);
+        };
+
+        // 1) Human-readable markdown reminder (the primary file)
+        const mdContent =
+          "# Gate Reminder (auto-generated by task-after.ts)\n\n" +
+          "- **Status**: gate session `" + armed.sessionId + "` is still ARMED\n" +
+          "- **Last dispatch**: `" + dispatchedAgent + "` completed task `" + (taskId || "(none)") + "` at " + ts + "\n" +
+          "- **Required action**: call `compliance_gate_complete` with\n" +
+          '  ```json\n' +
+          "  { \"session_id\": \"" + armed.sessionId + "\", \"execution_summary\": \"...\" }\n" +
+          "  ```\n" +
+          "- **Why**: leaving the gate armed will block the next `git commit` via the pre-commit hook (Layer 0).\n";
+        atomicWriteText(rf, mdContent);
+
+        // 2) Machine-readable JSON sidecar (for downstream tooling)
+        atomicWriteJson(rf.replace(/\.md$/, ".json"), {
+          session_id: armed.sessionId,
+          last_dispatched_agent: dispatchedAgent,
+          last_task_id: taskId || null,
+          written_at: ts,
+          note: "This file is the Point 3 FALLBACK reminder. The PRIMARY reminder lives in the LLM conversation context (appended to the check/confirm MCP response).",
+        });
+
+        writeLog("task-after", "runtime", {
+          sessionID: input.sessionID, callID: input.callID,
+          agent, agentType: agent,
+          level: "WARN", event: "GATE-REMINDER-WRITTEN",
+          detail: `armed session ${armed.sessionId} still open after dispatch of ${dispatchedAgent} — wrote ${GATE_REMINDER_FILE}`,
+        });
+      }
+    } catch (err: any) {
+      // Reminder generation is best-effort; never block dispatch
+      writeLog("task-after", "runtime", {
+        sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+        level: "WARN", event: "GATE-REMINDER-FAILED",
+        detail: "armed-session reminder skipped: " + err.message,
+      });
+    }
+  }
+}
+
+/**
+ * Point 3b: push armed gate reminder into the compaction context.
+ * Fires only when OpenCode triggers experimental.session.compacting.
+ * This is the last-resort mechanism: even if the LLM's conversation
+ * context is compressed and the Point 2 reminder text is lost, this
+ * push re-injects the reminder into the compressed summary so the
+ * LLM still sees it after compaction.
+ */
+async function compactionHook(input: any, output: any): Promise<void> {
+  try {
+    const armed = findArmedSession();
+    if (!armed.found || !armed.sessionId) return;
+    if (!output || typeof output.context?.push !== "function") return;
+
+    output.context.push(
+      "## Gate Reminder (injected by task-after.ts on compaction)\n" +
+      "Compliance gate session `" + armed.sessionId + "` is still ARMED. " +
+      "You MUST call `compliance_gate_complete` with `{ \"session_id\": \"" +
+      armed.sessionId +
+      "\", \"execution_summary\": \"...\" }` when the task finishes. " +
+      "Leaving the gate armed will block the next `git commit` via the pre-commit hook (Layer 0)."
+    );
+  } catch {
+    // Compaction hook is best-effort; never throw
   }
 }

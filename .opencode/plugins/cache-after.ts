@@ -1,23 +1,13 @@
 // cache-after.ts — "tool.execute.after" plugin: knowledge cache sync
 import * as fs from "node:fs";
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isLocalCacheAvailable } from "../lib/uc7ks-utils";
-import { STATE_PATHS } from "../lib/state-utils";
-
-ensureLogDir();
-writeLog("cache-after", "loaded", { event: "PLUGIN-LOADED", detail: "cache-after.ts" });
-updateIndex("cache-after", "PLUGIN-LOADED");
+import { atomicWriteMachine } from "../lib/uc7ks-schema";
 
 const INDEX_PATH = "docs/official_docs/index.json";
 
-export default (async (_ctx: any) => {
-  writeLog("cache-after", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.after" });
-  return { "tool.execute.after": toolExecuteAfter };
-}) as any;
+export default withPluginLifecycle("cache-after", { "tool.execute.after": toolExecuteAfter });
 
 async function toolExecuteAfter(input: any, output: any): Promise<void> {
   // Only fire after reads of the knowledge cache index
@@ -35,21 +25,18 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
   // Sync cache status to machine.json
   try {
-    const mp = STATE_PATHS.machine();
-    if (!fs.existsSync(mp)) return;
-    const m = JSON.parse(fs.readFileSync(mp, "utf8"));
-    m.knowledge_cache_state = m.knowledge_cache_state || {};
-    m.knowledge_cache_state.cache_status = cacheAvail ? "healthy" : "degraded";
-    m.knowledge_cache_state.last_index_check = new Date().toISOString();
+    atomicWriteMachine((m) => {
+      m.knowledge_cache_state = m.knowledge_cache_state || {};
+      m.knowledge_cache_state.cache_status = cacheAvail ? "healthy" : "degraded";
+      m.knowledge_cache_state.last_index_check = new Date().toISOString();
 
-    if (cacheAvail) {
-      try {
-        const idx = JSON.parse(fs.readFileSync(filePath, "utf8"));
-        m.knowledge_cache_state.total_entries = idx.total_entries || 0;
-      } catch {}
-    }
-
-    fs.writeFileSync(mp, JSON.stringify(m, null, 2), "utf8");
+      if (cacheAvail) {
+        try {
+          const idx = JSON.parse(fs.readFileSync(filePath, "utf8"));
+          m.knowledge_cache_state.total_entries = idx.total_entries || 0;
+        } catch {}
+      }
+    });
   } catch (err: any) {
     writeLog("cache-after", "runtime", {
       sessionID: input.sessionID, callID: input.callID,

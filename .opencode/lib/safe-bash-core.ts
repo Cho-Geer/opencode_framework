@@ -324,13 +324,9 @@ export const ALLOWED_SCRIPT_PATHS: string[] = [
  * Agent-specific script allowlist — bypasses content scanning for maintenance
  * scripts that legitimately need file-write operations (e.g., rule_registry repair,
  * state reset). Only the listed agents may execute these scripts via `node <script>`.
- *
- * Added FW-REPAIR-14: Super-Admin needs rule-registry-verify.js --repair to
- * regenerate digests after framework sync operations.
  */
 export const AGENT_ALLOWED_SCRIPTS: Record<string, string[]> = {
   "@Super-Admin": [
-    "rule-registry-verify.js",
     "state-reconciliation.js",
     "state-transaction.js",
     "framework-self-test.js",

@@ -12,11 +12,8 @@
 // WHY: safe_edit can introduce trailing commas (valid JS but invalid JSON).
 // This plugin catches them BEFORE they are written, preventing framework
 // breakage from unparseable config files.
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
 import { tolerantParse } from "../lib/tolerant-json";
@@ -36,15 +33,8 @@ const MODE_RANK: Record<string, number> = { advisory: 1, strict: 2, locked: 3 };
 /** Keys in project.config.json.template_resolution that control enforcement */
 const MODE_KEYS = ["develop_enforcement_mode", "runtime_enforcement_mode"];
 
-// ── Plugin boilerplate ──
-ensureLogDir();
-writeLog("json-validate", "loaded", { event: "PLUGIN-LOADED", detail: "json-validate.ts" });
-updateIndex("json-validate", "PLUGIN-LOADED");
-
-export default (async (_ctx: any) => {
-  writeLog("json-validate", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.before" });
-  return { "tool.execute.before": toolExecuteBefore };
-}) as any;
+// ── Plugin lifecycle ──
+export default withPluginLifecycle("json-validate", { "tool.execute.before": toolExecuteBefore });
 
 // ── Hook handler ──
 async function toolExecuteBefore(input: any, output: any): Promise<void> {

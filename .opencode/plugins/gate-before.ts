@@ -1,9 +1,6 @@
 // gate-before.ts — "tool.execute.before" plugin: gate & DAG enforcement
-import {
-  writeLog,
-  updateIndex,
-  ensureLogDir,
-} from "../lib/log-manager";
+import { writeLog } from "../lib/log-manager";
+import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent, resolveTaskId } from "../lib/agent-resolver";
 import {
   getEnforcementMode,
@@ -40,14 +37,7 @@ try {
   // Silent failure — never block OpenCode startup
 }
 
-ensureLogDir();
-writeLog("gate-before", "loaded", { event: "PLUGIN-LOADED", detail: "gate-before.ts" });
-updateIndex("gate-before", "PLUGIN-LOADED");
-
-export default (async (_ctx: any) => {
-  writeLog("gate-before", "hooks", { event: "HOOK-REGISTERED", detail: "tool.execute.before" });
-  return { "tool.execute.before": toolExecuteBefore };
-}) as any;
+export default withPluginLifecycle("gate-before", { "tool.execute.before": toolExecuteBefore });
 
 async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);

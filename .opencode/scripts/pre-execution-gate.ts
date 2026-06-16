@@ -214,10 +214,10 @@ const REMEDIATION_MAP = {
     "Unresolved role violations detected in machine.json compliance_records.\n" +
     "  🔧 Fix: Have the violating agent resolve the scope issue, or file a waiver.\n" +
     "  🔧 Run: node .opencode/scripts/state-reconciliation.ts --fix",
-  "Rule Registry":
-    "Rule registry digest mismatches detected — files may have been modified unexpectedly.\n" +
-    "  🔧 Fix: Run registry repair to recompute and update digests.\n" +
-    "  🔧 Run: node .opencode/scripts/rule-registry-verify.ts --repair",
+  "Critical Files":
+    "Critical infrastructure files have been modified since the last commit.\n" +
+    "  🔧 Review the changes and ensure they are intentional.\n" +
+    "  🔧 When committing, include [INFRA] marker in commit message.",
   "Config Validity":
     "Required configuration file(s) are missing or unreadable.\n" +
     "  🔧 Fix: Ensure project.config.json, Task.DAG.json, machine.json, and gate-state.json exist.\n" +
@@ -291,21 +291,6 @@ function isKnowledgeCacheHealthy() {
     return false;
   }
   return true;
-}
-
-/**
- * Compute SHA-256 digest of a file.
- * Returns hex string without prefix, or empty string on failure.
- */
-function computeFileSHA256(filePath) {
-  try {
-    const content = fs.readFileSync(filePath);
-    const hash = crypto.createHash("sha256");
-    hash.update(content);
-    return hash.digest("hex");
-  } catch {
-    return "";
-  }
 }
 
 /**
@@ -567,127 +552,47 @@ function checkRoleViolations() {
 }
 
 /**
- * Check 4 — Rule Registry: no HIGH severity mismatches.
- * Reads rule_registry.json, computes SHA-256 of each registered file,
- * compares against stored digests. HIGH if digest changed but version didn't.
+ * Check 4 — Critical Infrastructure Files: detect uncommitted changes
+ * to critical framework files using git diff HEAD (replaces SHA-256 digest check).
+ * advisory → warn, strict → warn+log, locked → block dispatch.
  */
 function checkRuleRegistry() {
-  const rr = readJSON(RULE_REGISTRY_FILE);
-  if (!rr.ok) {
-    // rule_registry.json may not exist — skip check
-    console.error(
-      `  ℹ️  rule_registry.json not found — skipping registry check`,
-    );
-    gateLog("rule_registry_missing", "INFO", {});
-    return true;
+  const { getModifiedCriticalFiles } = require("../lib/critical-files");
+  const modified = getModifiedCriticalFiles();
+
+  if (modified.length === 0) {
+    return true; // no critical files changed
   }
 
-  const entries = rr.data.entries || {};
-  const entryKeys = Object.keys(entries);
+  const mode = getEnforcementMode();
+  const fileList = modified.join(", ");
 
-  if (entryKeys.length === 0) {
-    return true; // nothing to check
-  }
-
-  let highCount = 0;
-  let warnCount = 0;
-  let passCount = 0;
-  let errorEntries = [];
-
-  for (const key of entryKeys) {
-    const entry = entries[key];
-    const filePath = path.join(OPENCODE_ROOT, entry.path);
-    const storedHash = entry.sha256 || "";
-    const storedSemver = entry.semver || "";
-
-    if (!fs.existsSync(filePath)) {
-      highCount++;
-      errorEntries.push({
-        key,
-        severity: "HIGH",
-        reason: "file_missing",
-        path: entry.path,
-      });
-      continue;
-    }
-
-    const actualHash = computeFileSHA256(filePath);
-    if (!actualHash) {
-      highCount++;
-      errorEntries.push({
-        key,
-        severity: "HIGH",
-        reason: "read_error",
-        path: entry.path,
-      });
-      continue;
-    }
-
-    if (actualHash === storedHash) {
-      passCount++;
-      continue;
-    }
-
-    // Digest mismatch — determine severity
-    // Try to extract current semver from the file
-    let currentSemver = "";
-    try {
-      const content = fs.readFileSync(filePath, "utf-8");
-      // YAML frontmatter pattern: version: "x.y.z"
-      const ymMatch = content.match(/^version:\s*"?(\d+\.\d+\.\d+)"?/m);
-      if (ymMatch) currentSemver = ymMatch[1];
-    } catch {
-      // can't read file
-    }
-
-    if (currentSemver && currentSemver !== storedSemver) {
-      // Version bumped → intentional update → WARNING
-      warnCount++;
-      errorEntries.push({
-        key,
-        severity: "WARNING",
-        reason: "version_bumped",
-        path: entry.path,
-        stored_semver: storedSemver,
-        current_semver: currentSemver,
-      });
-    } else {
-      // No version change → possible unauthorized modification → HIGH
-      highCount++;
-      errorEntries.push({
-        key,
-        severity: "HIGH",
-        reason: "digest_mismatch_unchanged_version",
-        path: entry.path,
-        stored_hash: storedHash.substring(0, 12) + "...",
-        actual_hash: actualHash.substring(0, 12) + "...",
-      });
-    }
-  }
-
-  if (highCount > 0) {
+  if (mode === "locked") {
     const blocked = emitError(
-      "Rule Registry",
-      `${highCount} HIGH severity digest mismatch(es) detected (${passCount} pass, ${warnCount} warn)`,
-      {
-        high_count: highCount,
-        warn_count: warnCount,
-        pass_count: passCount,
-        errors: errorEntries.filter((e) => e.severity === "HIGH").slice(0, 10),
-      },
+      "Critical Files",
+      `${modified.length} critical infrastructure file(s) modified since HEAD: ${fileList}`,
+      { modified_files: modified, enforcement_mode: mode },
     );
     if (blocked) process.exit(1);
     return false;
   }
 
-  // Warnings only — non-blocking even in strict mode
-  if (warnCount > 0) {
+  if (mode === "strict") {
     console.error(
-      `  ⚠️  Rule Registry: ${warnCount} WARNING(s) (version bumps), ${passCount} pass`,
+      `  ⚠️  [STRICT] Critical infrastructure files modified: ${fileList}`,
     );
-    gateLog("rule_registry_warnings", "WARN", { warnCount, passCount, failCount });
+    console.error(
+      `     Ensure commit message includes [INFRA] marker when committing.`,
+    );
+    gateLog("critical_files_modified", "WARN", { modified_files: modified, enforcement_mode: mode });
+    return true;
   }
 
+  // advisory
+  console.error(
+    `  ⚠️  [ADVISORY] Critical infrastructure files modified: ${fileList}`,
+  );
+  gateLog("critical_files_modified", "INFO", { modified_files: modified, enforcement_mode: mode });
   return true;
 }
 
@@ -1047,7 +952,6 @@ if (require.main === module) {
     OPENCODE_ROOT,
     readJSON,
     getEnforcementMode,
-    computeFileSHA256,
     emitError,
     isKnowledgeCacheHealthy,
     checkDagCoverage,
