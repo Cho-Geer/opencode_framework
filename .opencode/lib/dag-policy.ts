@@ -20,6 +20,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { findTaskInDag } from "./gate-checks";
 import { writeAuditLogEntry } from "./audit-log";
+import { atomicWriteSubState } from "./state-utils";
+import { readSubState } from "./substate-manager";
 
 // ───────────────────────────────────────────────────────────────────────────
 // §1  CANONICAL DAG-EXEMPT AGENT LIST
@@ -199,35 +201,21 @@ function machinePath(): string {
   return path.join(root, ".opencode", "state", "machine.json");
 }
 
-function readMachine(): any {
-  try {
-    return JSON.parse(fs.readFileSync(machinePath(), "utf8"));
-  } catch {
-    return {};
-  }
-}
-
-function writeMachineAtomic(m: any): boolean {
-  const p = machinePath();
-  const tmp = p + ".tmp";
-  try {
-    fs.writeFileSync(tmp, JSON.stringify(m, null, 2) + "\n", "utf8");
-    fs.renameSync(tmp, p);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function appendAutoPlanRecord(rec: AutoPlanRecord): void {
-  const m = readMachine();
-  m.auto_plan_history = Array.isArray(m.auto_plan_history) ? m.auto_plan_history : [];
-  m.auto_plan_history.push(rec);
-  // Cap at 200 entries to bound the file size.
-  if (m.auto_plan_history.length > 200) {
-    m.auto_plan_history = m.auto_plan_history.slice(-200);
+  const ok = atomicWriteSubState("transaction_state", (txn) => {
+    if (!Array.isArray(txn.auto_plan_history)) {
+      txn.auto_plan_history = [];
+    }
+    txn.auto_plan_history.push(rec);
+    // Cap at 200 entries to bound the file size.
+    if (txn.auto_plan_history.length > 200) {
+      txn.auto_plan_history = txn.auto_plan_history.slice(-200);
+    }
+  });
+
+  if (!ok) {
+    process.stderr.write("[dag-policy] Failed to write auto_plan_history after 3 retries\n");
   }
-  writeMachineAtomic(m);
 
   writeAuditLogEntry({
     event: "AUTO-PLAN-" + rec.status.toUpperCase(),
@@ -238,8 +226,8 @@ function appendAutoPlanRecord(rec: AutoPlanRecord): void {
 }
 
 export function countAutoPlanAttempts(callerSession: string): number {
-  const m = readMachine();
-  const history: AutoPlanRecord[] = m.auto_plan_history || [];
+  const txn = readSubState("transaction_state");
+  const history: AutoPlanRecord[] = txn.auto_plan_history || [];
   return history.filter((r) => r.caller_session === callerSession).length;
 }
 

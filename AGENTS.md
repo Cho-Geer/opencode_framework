@@ -26,7 +26,7 @@
 | 场景 | 正确动作 | 违规动作 |
 |------|---------|---------|
 | 框架文件损坏 | @Orchestrator `dispatch_subagent @Super-Admin "repair..."`（需匹配修复模式） | ❌ @Orchestrator 自行修改 |
-| machine.json 状态不一致 | @Orchestrator `dispatch_subagent @Super-Admin "fix state..."` | ❌ @Orchestrator 自行修改 |
+| 子状态文件不一致（P1-B split architecture） | @Orchestrator `dispatch_subagent @Super-Admin "fix state..."` | ❌ @Orchestrator 自行修改 |
 | 合规门无法关闭 | @Orchestrator `dispatch_subagent @Super-Admin "drain gate..."` | ❌ @Orchestrator 直接提交 |
 | 插件完整性破坏 | @Orchestrator `dispatch_subagent @Super-Admin "repair plugin"` | ❌ @Coder-BE 直接编辑 |
 | UC7KS 知识获取 / 缓存扩充 | @Super-Admin 直接 `dispatch_subagent @Knowledge-Curator` | ❌ 必须通过 @Orchestrator 中转 |
@@ -110,7 +110,7 @@
 - `auto_plan_max_per_session: 5`(每会话次数上限)
 - `auto_plan_timeout_ms: 120000`(每次超时)
 - **locked 模式下强制为 `false`**(必须人工介入)
-- 所有尝试记入 `machine.json.auto_plan_history`
+- 所有尝试记入 `transaction-state.json` 的 `auto_plan_history` 字段（P1-B split architecture）
 
 **@Orchestrator 不能绕过**:
 - 无法修改 `dispatch_subagent.ts` 或 `dispatch-before.ts`
@@ -237,9 +237,9 @@
 4. 【TDD-GREEN 阶段】@Coder-FE / @Coder-BE **更新 TASK_LOG.md 工作记忆** → 基于测试用例 → 编写最简业务代码 → 让测试全部通过（Commit Message 标记 `[Green] {task_id}`）
 5. 【任务交接】执行 Agent 输出 **HANDOVER.md 交接摘要** + **test_report.json（含 execution_evidence + eslint_audit）**
 6. 【TDD-REFACTOR 阶段】@Coder 重构代码 → 回归测试（保持全量通过）→ 更新 test_report.json
-7. 【合规门关闭环】@Coder 调用 **compliance_gate_complete** → 内部执行 ESLint mock-audit 全量扫描（CAT1.1 检查 + CAT1.0 绕过检查）→ machine.json.eslint_state 更新 → 违规 > 0 时返回 failed，@Coder 必须修复后重试
-8. @Guardian 代码审查（规范/安全/架构 + **machine.json.eslint_state 合规检查** + **测试执行证据验证（DoD 强制检查）**）→ 冲突由 @Arbiter 裁决
-8. Git Hook 校验 machine.json 契约哈希同步 → 代码合并
+7. 【合规门关闭环】@Coder 调用 **compliance_gate_complete** → 内部执行 ESLint mock-audit 全量扫描（CAT1.1 检查 + CAT1.0 绕过检查）→ eslint-state.json 更新 → 违规 > 0 时返回 failed，@Coder 必须修复后重试
+8. @Guardian 代码审查（规范/安全/架构 + **eslint-state.json 合规检查** + **测试执行证据验证（DoD 强制检查）**）→ 冲突由 @Arbiter 裁决
+8. Git Hook 校验 keystone-hashes.json 契约哈希同步 → 代码合并
 9. @CI-CD-Agent 部署/自愈 → 结果回传@Orchestrator → 全流程闭环
 10. 【熔断重试】若连续3次未通过 → @Arbiter 介入 → @Orchestrator 执行降级重试/专家切换/人工待命
 

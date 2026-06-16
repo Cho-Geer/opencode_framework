@@ -3,8 +3,10 @@ import { tool } from "@opencode-ai/plugin";
 import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import * as path from "node:path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { withInterruptGuard } from "../lib";
+import { atomicWriteSubState } from "../lib/state-utils";
+import { writeAuditLogEntry } from "../lib/audit-log";
 import {
   isDagExempt,
   readDispatchPolicy,
@@ -98,13 +100,7 @@ function logOrchestratorSADispatch(opts: {
   mode: string;
 }): void {
   try {
-    const logDir = path.join(
-      process.env.OPENCODE_ROOT || process.cwd(),
-      ".task_temp",
-      "_global",
-    );
-    mkdirSync(logDir, { recursive: true });
-    const entry = JSON.stringify({
+    writeAuditLogEntry({
       timestamp: new Date().toISOString(),
       event: "orchestrator_sa_dispatch",
       caller: opts.caller,
@@ -114,9 +110,6 @@ function logOrchestratorSADispatch(opts: {
       patterns_matched: opts.patterns_matched,
       mode: opts.mode,
     });
-    writeFileSync(path.join(logDir, "audit_log.jsonl"), entry + "\n", {
-      flag: "a",
-    });
 
     const machinePath = path.join(
       process.env.OPENCODE_ROOT || process.cwd(),
@@ -125,23 +118,22 @@ function logOrchestratorSADispatch(opts: {
       "machine.json",
     );
     if (existsSync(machinePath)) {
-      const machine = JSON.parse(readFileSync(machinePath, "utf8"));
-      machine.compliance_records = machine.compliance_records || {};
-      machine.compliance_records.orchestrator_sa_dispatches =
-        machine.compliance_records.orchestrator_sa_dispatches || [];
-      machine.compliance_records.orchestrator_sa_dispatches.push({
-        timestamp: new Date().toISOString(),
-        caller: opts.caller,
-        target: opts.target,
-        dag_task_id: opts.dag_task_id,
-        patterns_matched: opts.patterns_matched,
-        mode: opts.mode,
+      atomicWriteSubState("compliance_records", (cr) => {
+        cr.orchestrator_sa_dispatches =
+          cr.orchestrator_sa_dispatches || [];
+        cr.orchestrator_sa_dispatches.push({
+          timestamp: new Date().toISOString(),
+          caller: opts.caller,
+          target: opts.target,
+          dag_task_id: opts.dag_task_id,
+          patterns_matched: opts.patterns_matched,
+          mode: opts.mode,
+        });
+        if (cr.orchestrator_sa_dispatches.length > 100) {
+          cr.orchestrator_sa_dispatches =
+            cr.orchestrator_sa_dispatches.slice(-100);
+        }
       });
-      if (machine.compliance_records.orchestrator_sa_dispatches.length > 100) {
-        machine.compliance_records.orchestrator_sa_dispatches =
-          machine.compliance_records.orchestrator_sa_dispatches.slice(-100);
-      }
-      writeFileSync(machinePath, JSON.stringify(machine, null, 2), "utf8");
     }
   } catch {
     /* best-effort */
@@ -159,25 +151,15 @@ function logSuperAdminDispatchBypass(opts: {
   patterns_matched: string[];
 }): void {
   try {
-    const logDir = path.join(
-      process.env.OPENCODE_ROOT || process.cwd(),
-      ".task_temp",
-      "_global",
-    );
-    mkdirSync(logDir, { recursive: true });
-    writeFileSync(
-      path.join(logDir, "audit_log.jsonl"),
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        event: "super_admin_kc_dispatch_bypass",
-        caller: opts.caller,
-        target: opts.target,
-        task_description_hash: opts.task_description.slice(0, 80),
-        dag_task_id: opts.dag_task_id,
-        patterns_matched: opts.patterns_matched,
-      }) + "\n",
-      { flag: "a" },
-    );
+    writeAuditLogEntry({
+      timestamp: new Date().toISOString(),
+      event: "super_admin_kc_dispatch_bypass",
+      caller: opts.caller,
+      target: opts.target,
+      task_description_hash: opts.task_description.slice(0, 80),
+      dag_task_id: opts.dag_task_id,
+      patterns_matched: opts.patterns_matched,
+    });
   } catch {
     /* best-effort */
   }

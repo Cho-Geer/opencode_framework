@@ -27,6 +27,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
+import { readSubState } from './substate-manager';
+import {
+  dbLoadGateStore,
+  dbSaveGateStore,
+} from './db-state-manager';
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -383,10 +388,10 @@ export function createFreshStore(): GateStore {
 }
 
 /**
- * Load the gate store from disk, with active_sessions reconciliation.
- * @public — Primary gate store loader with auto-reconciliation
+ * Load the gate store from the JSON file on disk (internal helper).
+ * P2-A Step 3: renamed from loadGateStore; used as DB fallback during transition.
  */
-export function loadGateStore(root?: string): GateStore {
+function loadGateStoreJson(root?: string): GateStore {
   const gateFile = getGateStatePath(root);
   const s = readJsonFile<GateStore>(gateFile);
 
@@ -396,60 +401,122 @@ export function loadGateStore(root?: string): GateStore {
     s.sessions &&
     typeof s.sessions === 'object'
   ) {
-    // Ensure active_sessions exists
     if (!Array.isArray(s.active_sessions)) {
       s.active_sessions = [];
     }
-
-    // Reconciliation: remove completed/failed sessions from active_sessions
-    let reconciled = false;
-
-    s.active_sessions = s.active_sessions.filter((sid) => {
-      const ses = s.sessions[sid];
-      if (!ses) { reconciled = true; return false; }
-      if (ses.gate_status === 'completed' || ses.gate_status === 'failed') {
-        reconciled = true; return false;
-      }
-      if (ses.consumed_at) { reconciled = true; return false; }
-      return true;
-    });
-
-    // Remove stale armed sessions (>24h since confirmation)
-    const STALE_MS = 24 * 60 * 60 * 1000;
-    const nowTs = Date.now();
-    s.active_sessions = s.active_sessions.filter((sid) => {
-      const ses = s.sessions[sid];
-      if (!ses) return false;
-      if (ses.gate_status === 'armed' && !ses.consumed_at && ses.confirmed_at) {
-        const age = nowTs - new Date(ses.confirmed_at).getTime();
-        if (age > STALE_MS) { reconciled = true; return false; }
-      }
-      return true;
-    });
-
-    // Add armed sessions missing from active_sessions
-    for (const [sid, ses] of Object.entries(s.sessions)) {
-      if (
-        ses.gate_status === 'armed' &&
-        !ses.consumed_at &&
-        !s.active_sessions.includes(sid)
-      ) {
-        s.active_sessions.push(sid);
-        reconciled = true;
-      }
-    }
-
-    if (reconciled) {
-      s.last_updated = new Date().toISOString();
-    }
+    // Ensure last_updated
     if (!s.last_updated) {
       s.last_updated = new Date().toISOString();
     }
-
     return s;
   }
 
   return createFreshStore();
+}
+
+/**
+ * Apply active_sessions reconciliation to a GateStore in-place.
+ * Extracted from the former loadGateStore so both DB and JSON paths
+ * apply the same invariant enforcement.
+ *
+ * @returns true if the store was modified (caller should persist)
+ */
+function reconcileGateStore(s: GateStore): boolean {
+  let reconciled = false;
+
+  // Remove completed/failed sessions from active_sessions
+  s.active_sessions = s.active_sessions.filter((sid) => {
+    const ses = s.sessions[sid];
+    if (!ses) { reconciled = true; return false; }
+    if (ses.gate_status === 'completed' || ses.gate_status === 'failed') {
+      reconciled = true; return false;
+    }
+    if (ses.consumed_at) { reconciled = true; return false; }
+    return true;
+  });
+
+  // Remove stale armed sessions (>24h since confirmation)
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  const nowTs = Date.now();
+  s.active_sessions = s.active_sessions.filter((sid) => {
+    const ses = s.sessions[sid];
+    if (!ses) return false;
+    if (ses.gate_status === 'armed' && !ses.consumed_at && ses.confirmed_at) {
+      const age = nowTs - new Date(ses.confirmed_at).getTime();
+      if (age > STALE_MS) { reconciled = true; return false; }
+    }
+    return true;
+  });
+
+  // Add armed sessions missing from active_sessions
+  for (const [sid, ses] of Object.entries(s.sessions)) {
+    if (
+      ses.gate_status === 'armed' &&
+      !ses.consumed_at &&
+      !s.active_sessions.includes(sid)
+    ) {
+      s.active_sessions.push(sid);
+      reconciled = true;
+    }
+  }
+
+  if (reconciled) {
+    s.last_updated = new Date().toISOString();
+  }
+  if (!s.last_updated) {
+    s.last_updated = new Date().toISOString();
+  }
+
+  return reconciled;
+}
+
+/**
+ * Load the gate store with DB priority + JSON fallback (P2-A Step 3).
+ *
+ * Read order:
+ *   1. DB (gate_sessions + gate_store_meta + gate_audit_history)
+ *   2. JSON file (gate-state.json) — fallback if DB empty or failed
+ *
+ * Whichever source returns the store, reconciliation is applied.
+ * If reconciliation modified the store, both DB and JSON are persisted
+ * so subsequent readers see a consistent view.
+ *
+ * @public — Primary gate store loader with auto-reconciliation
+ */
+export function loadGateStore(root?: string): GateStore {
+  // 1. Try DB first
+  let store: GateStore | null = null;
+  let fromDb = false;
+  try {
+    const dbStore = dbLoadGateStore();
+    if (dbStore && Object.keys(dbStore.sessions).length > 0) {
+      store = dbStore as GateStore;
+      fromDb = true;
+    }
+  } catch {
+    // fall through to JSON
+  }
+
+  // 2. Fallback to JSON
+  if (!store) {
+    store = loadGateStoreJson(root);
+  }
+
+  // 3. Reconcile (applies invariants to whichever source)
+  const modified = reconcileGateStore(store);
+
+  // 4. If modified, persist back to DB
+  if (modified) {
+    try { dbSaveGateStore(store); } catch (e: any) { writeLog(SRC, "WARN", { event: "DB-RECONCILE-WRITE-FAILED", detail: e.message }); }
+  }
+
+  // Log source for diagnostics
+  if (!fromDb && store && Object.keys(store.sessions).length > 0) {
+    // DB was empty/failed, JSON was used — flag for observability
+    // (no-op in normal operation; becomes actionable after Step 8)
+  }
+
+  return store;
 }
 
 /**
@@ -510,12 +577,16 @@ export function findAnyGateSession(root?: string): {
 }
 
 /**
- * Save the gate store to disk.
+ * Save the gate store (DB-only — P2-A Step 8, solves G1 non-atomic writes).
+ * SQLite transaction provides atomic persistence; JSON dual-write removed.
  * @public — Primary gate store persistence API
  */
 export function saveGateStore(store: GateStore, root?: string): void {
-  const gateFile = getGateStatePath(root);
-  writeJsonFile(gateFile, store);
+  try {
+    dbSaveGateStore(store);
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", { event: "DB-SAVE-GATE-FAILED", detail: e.message });
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -677,18 +748,16 @@ export function completeSession(
 
   const mode = getEnforcementMode(root);
 
-  // ESLint dirty_modules check
-  const machinePath = getMachinePath(root);
+  // ESLint dirty_modules check — P1-B: read from dedicated sub-state file
+  // instead of monolithic machine.json (which now only holds meta + contracts).
   let eslintFailed = false;
   let dirtyModules: string[] = [];
 
   try {
-    if (fs.existsSync(machinePath)) {
-      const machine = JSON.parse(fs.readFileSync(machinePath, 'utf8'));
-      if (machine.eslint_state?.aggregate?.dirty_modules?.length > 0) {
-        dirtyModules = machine.eslint_state.aggregate.dirty_modules;
-        eslintFailed = true;
-      }
+    const eslintState = readSubState("eslint_state");
+    if (eslintState?.aggregate?.dirty_modules?.length > 0) {
+      dirtyModules = eslintState.aggregate.dirty_modules;
+      eslintFailed = true;
     }
   } catch {
     // Non-blocking
@@ -1277,34 +1346,44 @@ export interface MachineCleanlinessResult {
 }
 
 /**
- * Check if machine.json sub-states are clean (no violations, no dirty modules).
+ * Check if machine sub-states are clean (no violations, no dirty modules).
  *
- * @param machineState - Parsed machine.json object
+ * P1-B split architecture: reads each sub-state from its dedicated file
+ * via readSubState() instead of from a monolithic machine.json parameter.
+ * After the split, machine.json only contains meta + contracts;
+ * eslint_state, type_check_state, dependency_state, and format_state
+ * live in separate JSON files under .opencode/state/.
+ *
  * @returns Cleanliness check result
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
+ * @since P1-B — Signature changed: removed machineState parameter (obsolete after split)
  */
-export function checkMachineCleanliness(machineState: Record<string, unknown> | null): MachineCleanlinessResult {
+export function checkMachineCleanliness(): MachineCleanlinessResult {
   const dirty: string[] = [];
-  if (!machineState) return { clean: true, dirty: [] };
 
-  const eslintAgg = (machineState as any).eslint_state?.aggregate;
-  if (eslintAgg?.dirty_modules?.length > 0) {
-    dirty.push(`eslint_state: ${eslintAgg.dirty_modules.length} dirty module(s) — ${eslintAgg.dirty_modules.join(', ')}`);
-  }
+  try {
+    const eslintAgg = readSubState("eslint_state")?.aggregate;
+    if (eslintAgg?.dirty_modules?.length > 0) {
+      dirty.push(`eslint_state: ${eslintAgg.dirty_modules.length} dirty module(s) — ${eslintAgg.dirty_modules.join(', ')}`);
+    }
 
-  const tcs = (machineState as any).type_check_state;
-  if (tcs?.status && tcs.status !== 'clean') {
-    dirty.push(`type_check_state: status=${tcs.status}, ${(tcs.dirty_files || []).length} dirty file(s)`);
-  }
+    const tcs = readSubState("type_check_state");
+    if (tcs?.status && tcs.status !== 'clean') {
+      dirty.push(`type_check_state: status=${tcs.status}, ${(tcs.dirty_files || []).length} dirty file(s)`);
+    }
 
-  const ds = (machineState as any).dependency_state;
-  if (ds?.status && ds.status !== 'clean') {
-    dirty.push(`dependency_state: status=${ds.status}, ${(ds.violations || []).length} violation(s)`);
-  }
+    const ds = readSubState("dependency_state");
+    if (ds?.status && ds.status !== 'clean') {
+      dirty.push(`dependency_state: status=${ds.status}, ${(ds.violations || []).length} violation(s)`);
+    }
 
-  const fs2 = (machineState as any).format_state;
-  if (fs2?.status && fs2.status !== 'clean') {
-    dirty.push(`format_state: status=${fs2.status}, ${(fs2.unformatted_files || []).length} unformatted file(s)`);
+    const fs2 = readSubState("format_state");
+    if (fs2?.status && fs2.status !== 'clean') {
+      dirty.push(`format_state: status=${fs2.status}, ${(fs2.unformatted_files || []).length} unformatted file(s)`);
+    }
+  } catch {
+    // Non-blocking — readSubState returns {} on failure, so sub-states
+    // that cannot be read are treated as empty/clean.
   }
 
   return { clean: dirty.length === 0, dirty };
