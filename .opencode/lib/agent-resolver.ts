@@ -2,13 +2,15 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { demoLog } from "./shared-infra";
+import { dbReadSessionMap } from "./db-state-manager";
 
 const SESSION_MAP_DIR = ".task_temp/_dispatch";
 const SESSION_MAP_FILE = ".session_map.json";
 
 // No caching — resolve fresh every call via sessionID
-// Priority: session map → _dispatch_target.json → ""
+// Priority: session map (DB) → _dispatch_target.json → ""
 // (2026-06-12 swapped: session map is session-specific, no race condition)
+// (2026-06-17 S25-v4: session map migrated from JSON file to DB table)
 
 export function getSessionMapPath(): string {
   return path.join(process.env.OPENCODE_ROOT || ".", SESSION_MAP_DIR, SESSION_MAP_FILE);
@@ -17,10 +19,7 @@ export function getSessionMapPath(): string {
 export function resolveAgentFromSessionMap(sessionID: string): string {
   if (!sessionID) return "";
   try {
-    const mp = getSessionMapPath();
-    if (!fs.existsSync(mp)) return "";
-    const map = JSON.parse(fs.readFileSync(mp, "utf8"));
-    const entry = map?.[sessionID];
+    const entry = dbReadSessionMap(sessionID);
     if (entry?.agent) {
       demoLog("INFO", `session map hit: ${sessionID} → ${entry.agent}`);
       return entry.agent;

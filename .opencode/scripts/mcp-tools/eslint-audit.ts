@@ -29,18 +29,11 @@ const { execSync } = require("child_process");
 
 const OPENCODE_ROOT = path.resolve(__dirname, "..", "..", "..");
 
-// ─── State Transaction Engine (RVW-REVIEW-01) ─────────────────────
-const {
-  beginTransaction,
-  initializeTransactionSystem,
-} = require("../state-transaction");
-let _eaTxnInitialized = false;
-function ensureEaTxnInit() {
-  if (!_eaTxnInitialized) {
-    initializeTransactionSystem();
-    _eaTxnInitialized = true;
-  }
-}
+// ─── Atomic Write (Sub-State Split) ────────────────────────────────────────────
+/**
+ * FW-REPAIR-P1B-IMPORT: atomicWriteSubState is defined in state-utils.ts.
+ */
+const { atomicWriteSubState } = require("../../lib/state-utils");
 const PROJECT_CONFIG = path.join(
   OPENCODE_ROOT,
   ".opencode",
@@ -204,17 +197,13 @@ function runESLint(projectRoot, targetFiles, scanBusinessCode) {
 }
 
 function updateMachineJson(moduleName, violations, waivers, taskId) {
-  const stateDir = getStateDir();
-  const machinePath = path.join(stateDir, "machine.json");
+  const hasWaiver = waivers && waivers.length > 0;
+  const status =
+    violations.length === 0 ? "clean" : hasWaiver ? "waived" : "dirty";
 
-  if (!fs.existsSync(machinePath))
-    return { updated: false, reason: "machine.json not found" };
-
-  try {
-    const machine = JSON.parse(fs.readFileSync(machinePath, "utf-8"));
-
-    if (!machine.eslint_state) {
-      machine.eslint_state = {
+  const ok = atomicWriteSubState("eslint_state", (eslint_state) => {
+    if (!eslint_state) {
+      eslint_state = {
         last_full_scan: null,
         modules: {},
         aggregate: {
@@ -225,11 +214,7 @@ function updateMachineJson(moduleName, violations, waivers, taskId) {
       };
     }
 
-    const hasWaiver = waivers && waivers.length > 0;
-    const status =
-      violations.length === 0 ? "clean" : hasWaiver ? "waived" : "dirty";
-
-    machine.eslint_state.modules[moduleName] = {
+    eslint_state.modules[moduleName] = {
       status,
       violations: violations.map((v) => ({
         ...v,
@@ -240,49 +225,27 @@ function updateMachineJson(moduleName, violations, waivers, taskId) {
     };
 
     // Recalculate aggregate
-    const allModules = Object.values(machine.eslint_state.modules);
-    machine.eslint_state.aggregate = {
+    const allModules = Object.values(eslint_state.modules);
+    eslint_state.aggregate = {
       total_violations: allModules.reduce(
         (sum, m) => sum + m.violations.length,
         0,
       ),
-      dirty_modules: Object.entries(machine.eslint_state.modules)
+      dirty_modules: Object.entries(eslint_state.modules)
         .filter(([, m]) => m.status === "dirty")
         .map(([k]) => k),
-      waived_modules: Object.entries(machine.eslint_state.modules)
+      waived_modules: Object.entries(eslint_state.modules)
         .filter(([, m]) => m.status === "waived")
         .map(([k]) => k),
     };
-    machine.eslint_state.last_full_scan = new Date().toISOString();
+    eslint_state.last_full_scan = new Date().toISOString();
+  });
 
-    // ═══ State Transaction Envelope (RVW-REVIEW-01) ═══
-    // Replace raw fs.writeFileSync with two-phase write protocol:
-    // beginTransaction() → prepare() → commit() (or rollback() on failure)
-    ensureEaTxnInit();
-    const effectiveTaskId = taskId || "unknown";
-    const txn = beginTransaction(machinePath, "eslint-audit", effectiveTaskId);
-
-    // Set transaction_state.operation_id (needed for machine.json targets;
-    // prepare() ensures transaction_state exists but does not set operation_id)
-    if (!machine.transaction_state) {
-      machine.transaction_state = {};
-    }
-    machine.transaction_state.last_operation_id = txn.operationId;
-    machine.transaction_state.last_transaction_at = new Date().toISOString();
-
-    const content = JSON.stringify(machine, null, 2) + "\n";
-    try {
-      txn.prepare(content); // increments meta.revision, writes BEGIN+PREPARE to WAL
-      txn.commit(); // atomic rename, COMMIT to WAL
-    } catch (txnErr) {
-      txn.rollback(txnErr.message);
-      throw txnErr;
-    }
-
-    return { updated: true, status };
-  } catch (err) {
-    return { updated: false, reason: err.message };
+  if (!ok) {
+    return { updated: false, reason: "Sub-state write failed after 3 retries" };
   }
+
+  return { updated: true, status };
 }
 
 // MCP Server

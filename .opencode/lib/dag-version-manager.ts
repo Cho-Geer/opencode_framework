@@ -26,6 +26,9 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DAGTask, DAGMeta } from './state-manager';
 import { STATE_PATHS, getDateKey } from './state-manager';
+import { writeLog } from './log-manager';
+
+const SRC = 'lib-dag-version-manager';
 
 // ============================================================================
 // Configuration
@@ -408,7 +411,7 @@ export class DAGVersionManager {
       );
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[dag-version-manager] Failed to write task index: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'TASK-INDEX-WRITE-FAILED', detail: message });
     }
   }
 }

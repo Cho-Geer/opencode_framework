@@ -66,6 +66,21 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
     return;
   }
 
+  // ── P6/S26: Resume path bypass ──
+  // When resume_session_id is provided, this is a resume dispatch (not a new task).
+  // Skip DAG existence check — the task was already planned in the original session.
+  if (output?.args?.resume_session_id) {
+    writeLog("dispatch-before", "runtime", {
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent: caller,
+      agentType: caller,
+      event: "DISPATCH-BEFORE",
+      detail: `exit (pass) | RESUME dispatch | resume_session_id=${output.args.resume_session_id}`,
+    });
+    return;
+  }
+
   if (!policy.require_dag_entry) {
     writeLog("dispatch-before", "runtime", {
       sessionID: input.sessionID,

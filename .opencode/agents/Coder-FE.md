@@ -3,7 +3,7 @@ name: Coder-FE
 description: Frontend Development Engineer – page/component/interaction/state management implementation, following interface contracts.
 mode: subagent
 hidden: true
-model: bailian-token-plan/qwen3.7-plus
+model: DeepSeek/deepseek-v4-pro
 temperature: 0.6
 steps: 50
 color: "#34D399"

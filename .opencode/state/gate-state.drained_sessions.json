@@ -829,8 +829,465 @@
       "drained_at": "2026-06-14T15:12:42.981Z",
       "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
       "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781575065463": {
+      "session_id": "cg_ses_1781575065463",
+      "created_at": "2026-06-16T01:57:45.463Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Auto-armed by gate-before plugin on OpenCode startup",
+      "confirmed_at": "2026-06-16T01:57:45.465Z",
+      "consumed_at": null,
+      "expires_at": "2026-06-17T01:57:45.466Z",
+      "task_id": null,
+      "agent": "framework",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T09:34:21.775Z",
+      "drain_reason": "armed for 7h without completion (threshold: 0.5h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781587093116": {
+      "session_id": "cg_ses_1781587093116",
+      "created_at": "2026-06-16T05:18:13.128Z",
+      "task_description": "Independent verification of 6 framework refactor implementation plans in docs/review/framework-refactor/. Read each plan, grep source code to verify each step's implementation status, run framework-self-test for final pass rate, produce comprehensive PASS/FAIL report with evidence.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_lib_dag_policy_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/dag-policy.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_AGENTS_md",
+          "desc": "[Gate Preflight v2] AGENTS.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 4 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "MPLAN-VERIFY-IMPL-001",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T09:34:21.775Z",
+      "drain_reason": "checked for 4h without confirmation (threshold: 0.1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781590334737": {
+      "session_id": "cg_ses_1781590334737",
+      "created_at": "2026-06-16T06:12:14.748Z",
+      "task_description": "Meta-Planner deep verification: (1) Run framework-self-test.ts and capture output with PASS/FAIL stats; (2) Cross-verify 6 failure root causes against verification-final-report.md §六; (3) Independently verify 6 implementation plan documents for claimed artifacts. Read-only audit task — no code modifications.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_lib_dag_policy_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/dag-policy.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_AGENTS_md",
+          "desc": "[Gate Preflight v2] AGENTS.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 4 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "VERIFY-REPORT-V2",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T09:34:21.775Z",
+      "drain_reason": "checked for 3h without confirmation (threshold: 0.1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781598903071": {
+      "session_id": "cg_ses_1781598903071",
+      "created_at": "2026-06-16T08:35:03.081Z",
+      "task_description": "深度交叉验证 docs/review/framework-refactor/database-migration-plan.md (P2-A 数据库引入方案)：验证 G1-G13 问题准确性、Schema 完整性、子状态映射保真度、子系统兼容性、实施状态评估、方案整体可执行性。需读取方案文档、db-manager.ts、db-state-manager.ts、substate-manager.ts、framework-state.db schema、12 个 JSON 子状态文件及 gateway 代码。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_lib_dag_policy_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/dag-policy.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_AGENTS_md",
+          "desc": "[Gate Preflight v2] AGENTS.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 4 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "P2-A-cross-validation",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T09:34:21.775Z",
+      "drain_reason": "checked for 0h without confirmation (threshold: 0.1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781602309415": {
+      "session_id": "cg_ses_1781602309415",
+      "created_at": "2026-06-16T09:31:49.426Z",
+      "task_description": "P2-A 数据库迁移方案实际运行验证 (VERIFY-DB-LIVE-002): 对双写层活跃状态下的框架进行5项实际验证 — (1) framework-self-test 运行, (2) SQLite PRAGMA integrity_check, (3) 双写一致性验证 (substate_kv vs JSON), (4) gate 操作端到端测试, (5) 性能基准对比",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_lib_dag_policy_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/dag-policy.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_AGENTS_md",
+          "desc": "[Gate Preflight v2] AGENTS.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 4 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "VERIFY-DB-LIVE-002",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T11:59:26.595Z",
+      "drain_reason": "checked for 2h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781604940018": {
+      "session_id": "cg_ses_1781604940018",
+      "created_at": "2026-06-16T10:15:40.018Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Auto-armed by gate-before plugin on OpenCode startup",
+      "confirmed_at": "2026-06-16T10:15:40.041Z",
+      "consumed_at": null,
+      "expires_at": "2026-06-17T10:15:40.041Z",
+      "task_id": null,
+      "agent": "framework",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T11:59:26.595Z",
+      "drain_reason": "armed for 1h without completion (threshold: 1h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781605208617": {
+      "session_id": "cg_ses_1781605208617",
+      "created_at": "2026-06-16T10:20:08.628Z",
+      "task_description": "P2-A Step 8 深度验证：验证 DB-only 状态持久化迁移的 5 个维度（代码行数变化、读路径DB-only、Gate端到端、审计日志统一、DB健康+self-test）。已确认 16/16 Phase 变更完成。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_lib_dag_policy_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/dag-policy.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_AGENTS_md",
+          "desc": "[Gate Preflight v2] AGENTS.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 4 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "VERIFY-STEP8-003",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T11:59:26.595Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781605308045": {
+      "session_id": "cg_ses_1781605308045",
+      "created_at": "2026-06-16T10:21:48.057Z",
+      "task_description": "Step 8 verification: test gate session for end-to-end validation",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_lib_dag_policy_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/dag-policy.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_AGENTS_md",
+          "desc": "[Gate Preflight v2] AGENTS.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 4 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "VERIFY-STEP8-003",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T11:59:26.595Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781606128643": {
+      "session_id": "cg_ses_1781606128643",
+      "created_at": "2026-06-16T10:35:28.653Z",
+      "task_description": "Git commit 4 modified P2-A Step 8 framework files (dag-policy.ts, gate-core.ts, dispatch_subagent.ts, AGENTS.md) with INFRA commit message",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_lib_dag_policy_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/dag-policy.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_AGENTS_md",
+          "desc": "[Gate Preflight v2] AGENTS.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 4 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.4.1 (45 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T11:59:26.595Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781617790132": {
+      "session_id": "cg_ses_1781617790132",
+      "created_at": "2026-06-16T13:49:50.132Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Auto-armed by gate-before plugin on OpenCode startup",
+      "confirmed_at": "2026-06-16T13:49:50.139Z",
+      "consumed_at": null,
+      "expires_at": "2026-06-17T13:49:50.139Z",
+      "task_id": null,
+      "agent": "framework",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T14:27:46.657Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781618646731": {
+      "session_id": "cg_ses_1781618646731",
+      "created_at": "2026-06-16T14:04:06.747Z",
+      "task_description": "Orchestrate multi-agent system optimization proposal: (1) @Knowledge-Curator searches for multi-agent architecture design best practices from web; (2) @Architect analyzes evaluation report Section 8 and writes optimization proposal; (3) Merge and save final document to docs/review/framework-refactor/",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Step 1: Dispatch @Knowledge-Curator to web-search multi-agent architecture design patterns (Anthropic agent patterns, AutoGen, CrewAI, LangGraph, etc.) and cache results. Step 2: Dispatch @Architect with evaluation report Section 8 context + cached research to produce optimization proposal. Step 3: @Orchestrator merges final artifact and saves to docs/review/framework-refactor/multi-agent-optimization-proposal.md",
+      "confirmed_at": "2026-06-16T14:04:06.749Z",
+      "consumed_at": null,
+      "expires_at": "2026-06-17T14:04:06.749Z",
+      "task_id": null,
+      "agent": "unknown",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "audit": null,
+      "missing_artifacts": [],
+      "drained_at": "2026-06-16T14:27:46.658Z",
+      "drain_reason": "armed for 0h without completion (threshold: 0.01h)",
+      "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781624470682": {
+      "session_id": "cg_ses_1781624470682",
+      "created_at": "2026-06-16T15:41:10.682Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Auto-armed by gate-before plugin on OpenCode startup",
+      "confirmed_at": "2026-06-16T15:41:10.684Z",
+      "consumed_at": null,
+      "expires_at": "2026-06-17T15:41:10.684Z",
+      "task_id": null,
+      "agent": "framework",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T17:21:41.725Z",
+      "drain_reason": "armed for 1h without completion (threshold: 1h)",
+      "drain_type": "STALE_ARMED"
     }
   },
-  "last_drained": "2026-06-14T15:12:42.981Z",
-  "total_drained": 26
+  "last_drained": "2026-06-16T17:21:41.725Z",
+  "total_drained": 38
 }

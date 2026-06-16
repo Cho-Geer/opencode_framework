@@ -84,6 +84,32 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // DELIVERED STATE APPROVAL REMINDER:
+  // When Orchestrator uses modify tools and there are gate sessions
+  // in 'delivered' state, warn about pending approvals.
+  // ═══════════════════════════════════════════════════════════════
+  if (isModifyTool(input.tool) && (agent === "Orchestrator" || agent === "@Orchestrator")) {
+    try {
+      const { dbLoadGateStore } = require("../lib/db-state-manager");
+      const store = dbLoadGateStore();
+      if (store?.sessions) {
+        const pendingApproval = Object.entries(store.sessions)
+          .filter(([, ses]: [string, any]) => ses.gate_status === "delivered")
+          .map(([sid, ses]: [string, any]) => `${sid}(${ses.agent || "?"})`);
+        if (pendingApproval.length > 0) {
+          writeLog("gate-before", "WARN", {
+            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+            event: "DELIVERED-PENDING",
+            detail: `${pendingApproval.length} session(s) awaiting Orchestrator approval: ${pendingApproval.join(", ")}. Call compliance_gate_approve_deliverables to approve/reject.`,
+          });
+        }
+      }
+    } catch {
+      /* non-critical */
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // P2-1: DAG Task Existence/Status Audit
   // Migrated from enforce.ts L1331–1356
   //

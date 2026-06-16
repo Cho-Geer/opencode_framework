@@ -270,7 +270,7 @@
     },
     "Coder-BE": {
       "mode": "subagent",
-      "model": "bailian-token-plan/qwen3.7-plus",
+      "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Coder-BE.md",
       "hidden": true,
       "permission": {
@@ -356,7 +356,7 @@
     },
     "Coder-FE": {
       "mode": "subagent",
-      "model": "bailian-token-plan/qwen3.7-plus",
+      "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Coder-FE.md",
       "hidden": true,
       "permission": {
@@ -426,7 +426,7 @@
     },
     "Guardian": {
       "mode": "subagent",
-      "model": "bailian-token-plan/qwen3.7-plus",
+      "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Guardian.md",
       "hidden": true,
       "permission": {
@@ -561,7 +561,7 @@
     },
     "CI-CD-Agent": {
       "mode": "subagent",
-      "model": "bailian-token-plan/qwen3.7-plus",
+      "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/CI-CD-Agent.md",
       "hidden": true,
       "permission": {
@@ -737,7 +737,7 @@
     "Knowledge-Curator": {
       "mode": "subagent",
       "hidden": true,
-      "model": "bailian-token-plan/qwen3.7-plus",
+      "model": "DeepSeek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Knowledge-Curator.md",
       "permission": {
         "task": {

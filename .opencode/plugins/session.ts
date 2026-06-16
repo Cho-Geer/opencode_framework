@@ -19,9 +19,9 @@ import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isInterruptError } from "../lib/interrupt-guard";
 import { atomicWriteJson } from "../lib/state-utils";
+import { dbWriteSessionMap } from "../lib/db-state-manager";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import { getSessionMapPath } from "../lib/agent-resolver";
 
 const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
 const INTERRUPT_SENTINEL_PATH = path.join(
@@ -68,27 +68,19 @@ async function chatMessageHook(input: any, _output: any) {
   }
 
   try {
-    const mp = getSessionMapPath();
-    let map: Record<string, { agent: string; ts: string }> = {};
-    if (fs.existsSync(mp)) {
-      try { map = JSON.parse(fs.readFileSync(mp, "utf8")); } catch {}
-    }
-    map[sid] = { agent, ts: new Date().toISOString() };
-    const keys = Object.keys(map);
-    if (keys.length > 50) {
-      const sorted = keys.sort((a, b) =>
-        (map[b]?.ts || "").localeCompare(map[a]?.ts || ""),
-      );
-      for (const k of sorted.slice(50)) delete map[k];
-    }
-    atomicWriteJson(mp, map);
+    // S25-v4: Write session → agent mapping to DB (replaces .session_map.json)
+    // dbWriteSessionMap handles upsert (INSERT OR REPLACE) and preserves created_at.
+    dbWriteSessionMap(sid, agent);
+
+    // Keep in-memory map for session.compacted reset
+    _sessionMap[sid] = { agent, ts: new Date().toISOString() };
 
     writeLog("session", "runtime", {
       sessionID: sid,
       agent,
       agentType: agent,
       event: "CHAT-HOOK",
-      detail: `exit (ok) map size=${Object.keys(map).length}`,
+      detail: `exit (ok) map size=${Object.keys(_sessionMap).length}`,
     });
   } catch (err: any) {
     writeLog("session", "runtime", {

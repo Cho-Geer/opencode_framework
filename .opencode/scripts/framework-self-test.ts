@@ -224,7 +224,7 @@ function checkStateDir() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 3: machine.json has all sub-states
+// Check 3: Split sub-state architecture integrity (P1-B)
 
 // ═══════════════════════════════════════════════════════════════
 function checkMachineSubStates() {
@@ -239,25 +239,54 @@ function checkMachineSubStates() {
 
   try {
     const m = JSON.parse(raw);
-    const requiredKeys = [
-      "eslint_state",
-      "type_check_state",
-      "dependency_state",
-      "format_state",
-      "write_audit_state",
-      "compliance_records",
-      "tdd_enforcement_state",
-      "contracts",
-      "keystone_hashes",
+    
+    // P1-B: machine.json should only contain meta and contracts
+    const expectedKeys = ["meta", "contracts"];
+    const actualKeys = Object.keys(m);
+    const unexpectedKeys = actualKeys.filter(k => !expectedKeys.includes(k));
+    
+    if (unexpectedKeys.length > 0) {
+      return check(
+        3,
+        false,
+        `machine.json contains unexpected keys (should be split): ${unexpectedKeys.join(", ")}`,
+      );
+    }
+    
+    // Verify all sub-state files exist
+    const subStateFiles = [
+      "eslint-state.json",
+      "type-check-state.json",
+      "dependency-state.json",
+      "format-state.json",
+      "write-audit-state.json",
+      "compliance-records.json",
+      "tdd-enforcement-state.json",
+      "keystone-hashes.json",
+      "knowledge-state.json",
+      "knowledge-cache-state.json",
+      "knowledge-audit-state.json",
+      "transaction-state.json",
     ];
-    const missing = requiredKeys.filter((k) => !(k in m));
-    const ok = missing.length === 0;
+    
+    const stateDir = path.join(OPENCODE_ROOT, ".opencode", "state");
+    const missing = subStateFiles.filter(f => {
+      const fullPath = path.join(stateDir, f);
+      return !fs.existsSync(fullPath);
+    });
+    
+    if (missing.length > 0) {
+      return check(
+        3,
+        false,
+        `Missing sub-state files: ${missing.join(", ")}`,
+      );
+    }
+    
     return check(
       3,
-      ok,
-      ok
-        ? `All ${requiredKeys.length} sub-states present`
-        : `Missing: ${missing.join(", ")}`,
+      true,
+      `Split architecture OK: machine.json has ${expectedKeys.length} keys, ${subStateFiles.length} sub-state files present`,
     );
   } catch (e) {
     return check(3, false, `JSON parse error: ${e.message}`);
@@ -302,22 +331,26 @@ function checkESLintRules() {
 
 // ═══════════════════════════════════════════════════════════════
 function checkPreCommitLayer0() {
-  const hookPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "pre-commit");
-  const content = readFile(hookPath);
-  if (!content) return check(5, false, "pre-commit hook not found");
+  const tsPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "lib", "hook-layers.ts");
+  const wrapperPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "pre-commit");
 
-  // Layer 0 is the Compliance Gate Armed Check which uses exit 1
+  const wrapper = readFile(wrapperPath);
+  const hasDelegation = wrapper && wrapper.includes("hook-layers.ts");
+
+  const content = readFile(tsPath);
+  if (!content) return check(5, false, "hook-layers.ts not found");
+
   const hasExit1 =
-    content.includes("exit 1") && content.includes("compliance gate");
+    content.includes("process.exit(1)") && content.includes("compliance gate");
   const hasArmedCheck =
-    content.includes("Layer 0") && content.includes("exit 1");
-  const ok = hasExit1 && hasArmedCheck;
+    content.includes("Layer 0") && content.includes("process.exit(1)");
+  const ok = hasDelegation && hasExit1 && hasArmedCheck;
   return check(
     5,
     ok,
     ok
-      ? "Layer 0 compliance gate check with exit 1 found"
-      : "Missing compliance gate Layer 0 exit 1 enforcement",
+      ? "Layer 0 compliance gate check with process.exit(1) found in hook-layers.ts"
+      : "Missing compliance gate Layer 0 process.exit(1) enforcement in hook-layers.ts",
   );
 }
 
@@ -326,23 +359,23 @@ function checkPreCommitLayer0() {
 
 // ═══════════════════════════════════════════════════════════════
 function checkPreCommitLayer25() {
-  const hookPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "pre-commit");
-  const content = readFile(hookPath);
-  if (!content) return check(6, false, "pre-commit hook not found");
+  const tsPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "lib", "hook-layers.ts");
+  const content = readFile(tsPath);
+  if (!content) return check(6, false, "hook-layers.ts not found");
 
-  // Layer 2.5 is TDD Order Pre-Check (BLOCKING) with exit 1
   const hasLayer25 = content.includes("Layer 2.5") && content.includes("TDD");
-  const hasExit1 = content.includes("exit 1");
+  const hasExit1 = content.includes("process.exit(1)");
   const isBlocking =
+    content.includes("BLOCKED") ||
     content.includes("BLOCKING") ||
-    (content.includes("Layer 2.5") && content.includes("TDD Order Pre-Check"));
+    (content.includes("Layer 2.5") && content.includes("TDD"));
   const ok = hasLayer25 && hasExit1;
   return check(
     6,
     ok,
     ok
-      ? "Layer 2.5 TDD violation check with exit 1 (BLOCKING) found"
-      : "Missing TDD Layer 2.5 BLOCKING enforcement",
+      ? "Layer 2.5 TDD violation check with process.exit(1) (BLOCKING) found in hook-layers.ts"
+      : "Missing TDD Layer 2.5 BLOCKING enforcement in hook-layers.ts",
   );
 }
 
@@ -351,23 +384,27 @@ function checkPreCommitLayer25() {
 
 // ═══════════════════════════════════════════════════════════════
 function checkCommitMsgTDD() {
-  const hookPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "commit-msg");
-  const content = readFile(hookPath);
-  if (!content) return check(7, false, "commit-msg hook not found");
+  const tsPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "lib", "hook-commit-msg.ts");
+  const wrapperPath = path.join(OPENCODE_ROOT, ".opencode", "hooks", "commit-msg");
 
-  // Must validate RED→GREEN→REFACTOR phase ordering
+  const wrapper = readFile(wrapperPath);
+  const hasDelegation = wrapper && wrapper.includes("hook-commit-msg.ts");
+
+  const content = readFile(tsPath);
+  if (!content) return check(7, false, "hook-commit-msg.ts not found");
+
   const hasGreenCheck = content.includes("Green") && content.includes("[Red]");
   const hasRefactorCheck =
     content.includes("Refactor") && content.includes("[Green]");
-  const hasExit1 =
-    content.match(/exit 1/g) && content.match(/exit 1/g).length >= 2;
-  const ok = hasGreenCheck && hasRefactorCheck && hasExit1;
+  const exitMatches = content.match(/process\.exit\(1\)/g);
+  const hasExit1 = exitMatches && exitMatches.length >= 2;
+  const ok = hasDelegation && hasGreenCheck && hasRefactorCheck && hasExit1;
   return check(
     7,
     ok,
     ok
-      ? "RED→GREEN→REFACTOR phase ordering validation present"
-      : "Missing TDD phase ordering check in commit-msg",
+      ? "RED→GREEN→REFACTOR phase ordering validation present in hook-commit-msg.ts"
+      : "Missing TDD phase ordering check in hook-commit-msg.ts",
   );
 }
 
@@ -1956,21 +1993,21 @@ function checkCrossValidation() {
 
 // ───────────────────────────────────────────────────────────────
 // Check 28: UC7KS Schema Integrity
-// Validates machine.json.knowledge_cache_state structure against
+// Validates knowledge-cache-state.json structure against
 // the schema defined in machine.schema.json. Added FW-HARDEN-UC7KS.
+// Updated for P1-B split architecture.
 // ───────────────────────────────────────────────────────────────
 function checkUC7KSSchemaIntegrity() {
-  const machinePath = path.join(
+  const kcsPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
     "state",
-    "machine.json",
+    "knowledge-cache-state.json",
   );
-  const raw = readFile(machinePath);
-  if (!raw) return check(28, false, "machine.json not found");
+  const raw = readFile(kcsPath);
+  if (!raw) return check(28, false, "knowledge-cache-state.json not found");
   try {
-    const machine = JSON.parse(raw);
-    const kcs = machine.knowledge_cache_state;
+    const kcs = JSON.parse(raw);
     if (!kcs || typeof kcs !== "object") {
       return check(28, false, "knowledge_cache_state missing or not an object");
     }
@@ -2394,10 +2431,9 @@ function checkPendingJson(): void {
 function checkSessionAccessAgentKeys(): void {
   const INVALID_KEYS = ["unknown", "", "undefined", "null"];
   try {
-    const mPath = path.join(OPENCODE_ROOT, ".opencode", "state", "machine.json");
-    if (!fs.existsSync(mPath)) { check(34, true, "machine.json not found"); return; }
-    const m = JSON.parse(fs.readFileSync(mPath, "utf-8"));
-    const sa = m?.knowledge_cache_state?.session_access;
+    const { readSubState } = require(path.join(__dirname, "..", "lib", "substate-manager"));
+    const kcs = readSubState("knowledge_cache_state");
+    const sa = kcs?.session_access;
     if (!sa) { check(34, true, "no entries"); return; }
     const invalid: string[] = [];
     for (const key of Object.keys(sa)) { if (INVALID_KEYS.includes(key)) invalid.push(key); }
@@ -2412,13 +2448,9 @@ function checkSessionAccessAgentKeys(): void {
 // These were created by pre-HARDEN knowledge_cache_search before UC7-001c.
 function checkStaleInternalEvidence(): void {
   try {
-    const mPath = path.join(OPENCODE_ROOT, ".opencode", "state", "machine.json");
-    if (!fs.existsSync(mPath)) {
-      check(35, true, "machine.json not found (skip)");
-      return;
-    }
-    const m = JSON.parse(fs.readFileSync(mPath, "utf-8"));
-    const sa = m?.knowledge_cache_state?.session_access;
+    const { readSubState } = require(path.join(__dirname, "..", "lib", "substate-manager"));
+    const kcs = readSubState("knowledge_cache_state");
+    const sa = kcs?.session_access;
     if (!sa) {
       check(35, true, "no session_access entries (skip)");
       return;
@@ -2581,6 +2613,77 @@ checkSessionAccessAgentKeys();
 checkStaleInternalEvidence();
 checkWorkingTreeDrift();
 checkPlanFirstConsistency();
+
+// Check 38: v6 DB schema tables exist and are queryable
+// Verifies: session_log, dispatch_failed_log, session_map
+// These tables replace SESSION_ID.md, .pending.json.failed, .session_map.json
+function checkV6DbTables() {
+  const issues = [];
+  try {
+    const { getDb } = require("../lib/db-manager");
+    const db = getDb();
+
+    // Verify all 3 tables exist
+    const tables = ["session_log", "dispatch_failed_log", "session_map"];
+    for (const table of tables) {
+      const row = db.query(
+        "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name=?",
+      ).get(table) as { c: number } | null;
+      if ((row?.c ?? 0) === 0) {
+        issues.push(`table ${table} not found in sqlite_master`);
+      }
+    }
+
+    // Verify key indexes exist
+    const indexes = [
+      "idx_slog_dag", "idx_slog_session", "idx_slog_agent",
+      "idx_dfl_dag", "idx_dfl_agent", "idx_dfl_reason", "idx_dfl_failed_at",
+      "idx_smap_agent",
+    ];
+    for (const idx of indexes) {
+      const row = db.query(
+        "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='index' AND name=?",
+      ).get(idx) as { c: number } | null;
+      if ((row?.c ?? 0) === 0) {
+        issues.push(`index ${idx} not found`);
+      }
+    }
+
+    // Verify schema_version has v6
+    const sv = db.query(
+      "SELECT version FROM schema_version WHERE version = 6",
+    ).get() as { version: number } | null;
+    if (!sv) {
+      issues.push("schema_version v6 entry missing");
+    }
+
+    // Verify CRUD functions are importable
+    try {
+      const dsm = require("../lib/db-state-manager");
+      const fns = [
+        "dbAppendSessionLog", "dbQuerySessionByDagTaskId",
+        "dbQueryAllSessionsByDagTaskId", "dbAppendDispatchFailed",
+        "dbReadSessionMap", "dbWriteSessionMap", "dbCapSessionLog",
+      ];
+      for (const fn of fns) {
+        if (typeof dsm[fn] !== "function") {
+          issues.push(`db-state-manager.${fn} is not a function`);
+        }
+      }
+    } catch (e: any) {
+      issues.push("db-state-manager import failed: " + e.message);
+    }
+  } catch (e: any) {
+    issues.push("DB access failed: " + e.message);
+  }
+
+  check(38, issues.length === 0,
+    issues.length === 0
+      ? "v6 DB schema: session_log + dispatch_failed_log + session_map tables + 8 indexes + 7 CRUD functions verified"
+      : issues.length + " issue(s): " + issues.join("; "));
+}
+
+checkV6DbTables();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");

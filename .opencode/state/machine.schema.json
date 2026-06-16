@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opencode.dev/state/machine.schema.json",
   "title": "OpenCode State Machine",
-  "description": "JSON Schema for .opencode/state/machine.json — validates all 9 sub-state sections enforcing required fields and types, while allowing unknown additional properties for forward compatibility. See state-machine-standard.md §3.1 for the role of this schema in the state machine architecture.",
+  "description": "JSON Schema for .opencode/state/machine.json \u2014 validates all 9 sub-state sections enforcing required fields and types, while allowing unknown additional properties for forward compatibility. See state-machine-standard.md \u00a73.1 for the role of this schema in the state machine architecture.",
   "type": "object",
   "required": [
     "meta",
@@ -21,7 +21,7 @@
   "properties": {
     "meta": {
       "type": "object",
-      "description": "Machine metadata — version, project identity, and timestamps.",
+      "description": "Machine metadata \u2014 version, project identity, and timestamps.",
       "required": [
         "version",
         "createdAt",
@@ -58,7 +58,7 @@
           "description": "Monotonic revision counter incremented per state mutation (RVW-REVIEW-01)."
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "eslint_state": {
       "type": "object",
@@ -861,7 +861,7 @@
     },
     "knowledge_cache_state": {
       "type": "object",
-      "description": "UC7KS knowledge cache state — tracks cache health, agent compliance, and pipeline bypass attempts. Added Phase 4 hardening (FW-HARDEN-UC7KS).",
+      "description": "UC7KS knowledge cache state \u2014 tracks cache health, agent compliance, and pipeline bypass attempts. Added Phase 4 hardening (FW-HARDEN-UC7KS).",
       "required": [
         "cache_status",
         "total_entries",

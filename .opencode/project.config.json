@@ -1182,6 +1182,11 @@
         "node *.ts *",
         "node -e *",
         "bun -e *"
+      ],
+      "@Knowledge-Curator": [
+        "sha256sum *",
+        "wc *",
+        "cd *"
       ]
     },
     "agent_allowed_scripts": {

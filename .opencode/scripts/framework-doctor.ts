@@ -21,6 +21,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+const { readSubState } = require("../lib/substate-manager");
 
 // ─── Constants ────────────────────────────────────────────────
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
@@ -393,7 +394,7 @@ function checkStateReconciliation() {
 
   if (fileExists(reconcilePath)) {
     try {
-      const output = execSync(`node "${reconcilePath}" --json --strict`, {
+      const output = execSync(`bun "${reconcilePath}" --json --strict`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -505,7 +506,7 @@ function checkStateReconciliation() {
   );
   if (fileExists(reconcileJs)) {
     try {
-      const output = execSync(`node "${reconcileJs}" --json`, {
+      const output = execSync(`bun "${reconcileJs}" --json`, {
         cwd: PROJECT_ROOT,
         timeout: 15000,
         encoding: "utf8",
@@ -532,26 +533,24 @@ function checkStateReconciliation() {
     }
   }
 
-  // Final fallback: inline check
-  const machinePath = path.join(STATE_DIR, "machine.json");
-  const machineRaw = readFile(machinePath);
+  // Final fallback: inline check using substate-manager (P1-B split architecture)
+  const writeAuditState = readSubState("write_audit_state");
   const gateRaw = readFile(path.join(STATE_DIR, "gate-state.json"));
 
-  if (!machineRaw || !gateRaw) {
+  if (!gateRaw) {
     return {
       id: 4,
       name: "State reconciliation",
       status: FAIL,
       detail:
-        "Cannot read both machine.json and gate-state.json for inline check",
+        "Cannot read gate-state.json for inline check",
     };
   }
 
   try {
-    const machine = JSON.parse(machineRaw);
     const gate = JSON.parse(gateRaw);
 
-    const hasWriteAudit = !!machine.write_audit_state?.current_session;
+    const hasWriteAudit = !!writeAuditState?.current_session;
     // FW-REPAIR-13: Handle V3 (active+recent) or V2 (sessions) format
     const isV3_4 = gate.formatVersion === "3.0" || (!!gate.active_sessions && !gate.sessions);
     const activeSessions = isV3_4
@@ -568,7 +567,7 @@ function checkStateReconciliation() {
       name: "State reconciliation",
       status: ok ? PASS : FAIL,
       detail: ok
-        ? `Inline check: machine.json OK, ${activeSessions} gate sessions`
+        ? `Inline check: write_audit_state OK, ${activeSessions} gate sessions`
         : issues.join("; "),
     };
   } catch (e) {
@@ -594,7 +593,7 @@ function checkTransactionVerification() {
   }
 
   try {
-    const output = execSync(`node "${txnPath}" verify`, {
+    const output = execSync(`bun "${txnPath}" verify`, {
       cwd: PROJECT_ROOT,
       timeout: 15000,
       encoding: "utf8",
@@ -947,26 +946,23 @@ function checkEncoding() {
 // ─── Check 10: Role permission sync ──────────────────────────
 function checkRolePermissionSync() {
   const ocPath = path.join(PROJECT_ROOT, "opencode.json");
-  const machinePath = path.join(STATE_DIR, "machine.json");
 
   const ocRaw = readFile(ocPath);
-  const machineRaw = readFile(machinePath);
+  // P1-B: write_audit_state read via substate-manager (split architecture)
+  const writeAudit = readSubState("write_audit_state") || {};
 
-  if (!ocRaw || !machineRaw) {
+  if (!ocRaw) {
     return {
       id: 10,
       name: "Role permission sync",
       status: FAIL,
-      detail: "Cannot read opencode.json or machine.json",
+      detail: "Cannot read opencode.json",
     };
   }
 
   try {
     const oc = JSON.parse(ocRaw);
-    const machine = JSON.parse(machineRaw);
-
     const ocAgents = oc.agent || {};
-    const writeAudit = machine.write_audit_state || {};
 
     let mismatches = [];
 
@@ -1030,7 +1026,7 @@ function checkFrameworkCompliance() {
   }
 
   try {
-    const output = execSync(`node "${scriptPath}"`, {
+    const output = execSync(`bun "${scriptPath}"`, {
       cwd: PROJECT_ROOT,
       timeout: 15000,
       encoding: "utf8",
@@ -1213,7 +1209,7 @@ function attemptFix(results) {
       continue;
     }
 
-    const fixCmd = `node "${fixScript}" ${fix.args.join(" ")}`;
+    const fixCmd = `bun "${fixScript}" ${fix.args.join(" ")}`;
     try {
       execSync(fixCmd, {
         cwd: PROJECT_ROOT,

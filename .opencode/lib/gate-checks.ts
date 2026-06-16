@@ -13,6 +13,8 @@ import {
   CRITICAL_PATTERNS,
 } from "./state-utils";
 import { writeAuditLogEntry } from "./audit-log";
+import { readSubState } from "./substate-manager";
+import { writeLog } from "./log-manager";
 // Module-level state (extracted from monolith)
 let _pluginHash = "";
 let _pluginHooksCount = 0;
@@ -237,24 +239,32 @@ export function checkMachineCleanliness(paths: typeof STATE_PATHS): {
   dirty: string[];
 } {
   try {
-    const machine = readJsonFile<any>(paths.machine());
-    if (!machine) return { clean: true, dirty: [] };
     const dirty: string[] = [];
+    // P1-B: Read sub-states from individual files instead of monolithic machine.json.
+    // After split, machine.json only contains meta + contracts; sub-state keys
+    // (eslint_state, type_check_state, format_state) live in separate files.
+    const eslintState = readSubState("eslint_state");
     dirty.push(
-      ...(machine?.eslint_state?.aggregate?.dirty_modules || []).map(
+      ...(eslintState?.aggregate?.dirty_modules || []).map(
         (f: string) => "eslint:" + f,
       ),
     );
+    const typeCheckState = readSubState("type_check_state");
     dirty.push(
-      ...(machine?.type_check_state?.dirty_files || []).map(
+      ...(typeCheckState?.dirty_files || []).map(
         (f: string) => "tsc:" + f,
       ),
     );
+    const formatState = readSubState("format_state");
     dirty.push(
-      ...(machine?.format_state?.unformatted_files || []).map(
+      ...(formatState?.unformatted_files || []).map(
         (f: string) => "format:" + f,
       ),
     );
+    writeLog("lib-gate-checks", "DEBUG", {
+      event: "MACHINE-CLEANLINESS-CHECK",
+      detail: `dirty_count=${dirty.length} sources=eslint_state,type_check_state,format_state`,
+    });
     return { clean: dirty.length === 0, dirty };
   } catch {
     return { clean: true, dirty: [] };

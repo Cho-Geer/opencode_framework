@@ -16,6 +16,9 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
+import { writeLog } from './log-manager';
+
+const SRC = 'lib-state-manager';
 
 // ============================================================================
 // Type Definitions
@@ -285,7 +288,7 @@ export function countJsonlLines(filePath: string): number {
     return content.split('\n').filter((line) => line.trim().length > 0).length;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`[state-manager] Failed to count lines in ${filePath}: ${message}`);
+    writeLog(SRC, 'ERROR', { event: 'JSONL-LINE-COUNT-FAILED', detail: `filePath=${filePath} err=${message}` });
     return 0;
   }
 }

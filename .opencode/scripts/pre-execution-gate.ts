@@ -79,6 +79,7 @@ function getIsDagExempt() {
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { readSubState } = require("../lib/substate-manager");
 
 // ─── Path Resolution (Node path APIs ONLY — no shell path manipulation) ───
 const OPENCODE_ROOT = (function () {
@@ -513,21 +514,22 @@ function checkGateLifecycle(taskId) {
  * Check 3 — Role Violations: no unresolved role violations in machine.json.
  */
 function checkRoleViolations() {
-  const mach = readJSON(MACHINE_FILE);
-  if (!mach.ok) {
+  // P1-B split: compliance_records now lives in compliance-records.json sub-state file.
+  // readSubState returns {} if file missing/unreadable; preserve fail-closed
+  // semantics by checking file existence first (same pattern as original).
+  const complianceRecords = readSubState("compliance_records");
+  const crPath = path.join(STATE_DIR, "compliance-records.json");
+  if (!fs.existsSync(crPath)) {
     const blocked = emitError(
       "Role Violations",
-      "machine.json cannot be read",
-      mach.error,
+      "compliance-records.json cannot be read",
+      "File not found: .opencode/state/compliance-records.json",
     );
     if (blocked) process.exit(2);
-    return true;
+    return true; // advisory: pass through with empty violations
   }
 
-  const violations =
-    mach.data.compliance_records && mach.data.compliance_records.role_violations
-      ? mach.data.compliance_records.role_violations
-      : [];
+  const violations = complianceRecords.role_violations || [];
 
   const unresolved = violations.filter((v) => v.status !== "resolved");
 
@@ -711,10 +713,11 @@ function checkKnowledgeGate(taskId) {
     }
   }
 
-  // ── Check 6b: UC7KS bypass audit (reads machine.json knowledge_cache_state) ──
-  const machine = readJSON(MACHINE_FILE);
-  if (machine && machine.knowledge_cache_state) {
-    const kcs = machine.knowledge_cache_state;
+  // ── Check 6b: UC7KS bypass audit (reads knowledge-cache-state.json sub-state) ──
+  // P1-B split: knowledge_cache_state now lives in its own sub-state file.
+  const knowledgeCacheState = readSubState("knowledge_cache_state");
+  if (knowledgeCacheState) {
+    const kcs = knowledgeCacheState;
     const bypassAttempts = kcs.compliance?.total_bypass_attempts || 0;
 
     if (bypassAttempts > 0) {

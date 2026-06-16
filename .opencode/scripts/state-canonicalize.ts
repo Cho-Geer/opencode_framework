@@ -41,6 +41,8 @@
 
 const fs = require("fs");
 const path = require("path");
+const { atomicWriteSubState } = require("../lib/state-utils");
+const { readSubState } = require("../lib/substate-manager");
 
 // ─── Constants ────────────────────────────────────────────
 
@@ -606,14 +608,17 @@ function canonicalizeStateFile(options = {}) {
     changesApplied: false,
   };
 
-  // Read machine.json
-  let machine;
-  try {
-    machine = JSON.parse(fs.readFileSync(statePath, "utf-8"));
-  } catch (readErr) {
-    results.error = `Cannot read ${statePath}: ${readErr.message}`;
-    return results;
-  }
+  // Read sub-states via substate-manager (P1-B split architecture)
+  // Pure functions below still take a machine-like object, so we assemble
+  // one from individual readSubState() calls instead of reading machine.json
+  // monolithically.
+  const machine = {
+    write_audit_state: readSubState("write_audit_state"),
+    type_check_state: readSubState("type_check_state"),
+    format_state: readSubState("format_state"),
+    compliance_records: readSubState("compliance_records"),
+    tdd_enforcement_state: readSubState("tdd_enforcement_state"),
+  };
 
   // Phase 1: Validate workspace integrity
   const integrity = validateWorkspaceIntegrity(machine, OPENCODE_ROOT);
@@ -644,19 +649,35 @@ function canonicalizeStateFile(options = {}) {
     results.foreignPathsDetected || results.absolutePathsConverted > 0;
 
   if (hasChanges && !dryRun) {
-    // Write back
-    if (!machine.meta) {
-      machine.meta = {
-        version: "1.0.0",
-        createdAt: new Date().toISOString(),
-        lastUpdated: null,
-      };
+    // Write back using CAS for each sub-state
+    const subStates = [
+      "write_audit_state",
+      "type_check_state",
+      "format_state",
+      "compliance_records",
+      "tdd_enforcement_state",
+    ];
+    
+    let allOk = true;
+    for (const subStateKey of subStates) {
+      const ok = atomicWriteSubState(subStateKey, (subState) => {
+        // Create a temporary machine-like object with just this sub-state
+        const tempMachine = { [subStateKey]: subState };
+        sanitizePathsInMachine(tempMachine, OPENCODE_ROOT);
+        canonicalizePathsInMachine(tempMachine, OPENCODE_ROOT);
+        // Copy back the modified sub-state
+        Object.assign(subState, tempMachine[subStateKey]);
+      });
+      if (!ok) {
+        allOk = false;
+        console.error(`[canonicalize] CAS write failed for ${subStateKey}`);
+      }
     }
-    machine.meta.lastUpdated = new Date().toISOString();
-
-    const content = JSON.stringify(machine, null, 2) + "\n";
-    fs.writeFileSync(statePath, content, "utf-8");
-    results.changesApplied = true;
+    
+    results.changesApplied = allOk;
+    if (!allOk) {
+      results.error = "CAS write failed for one or more sub-states";
+    }
   }
 
   return results;

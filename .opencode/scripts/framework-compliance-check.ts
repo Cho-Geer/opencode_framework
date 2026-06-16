@@ -14,6 +14,7 @@ const {
   readJsonFile,
   resolveFrameworkPaths,
 } = require("../lib/gate-core.ts");
+const { readSubState } = require("../lib/substate-manager");
 
 // ════════════════════════════════════════════════════════════
 // FW-REPAIR-13: Inline framework path resolution
@@ -193,31 +194,31 @@ function main() {
   }
 
   // ── Check 5: machine.json sub-state cleanliness ──
+  // P1-B: Sub-states are now in dedicated files; read via readSubState().
   if (machine) {
+    const eslintState = readSubState("eslint_state");
+    const typeCheckState = readSubState("type_check_state");
+    const formatState = readSubState("format_state");
+    const dependencyState = readSubState("dependency_state");
+
     const dirtyStates = [];
     if (
-      machine.eslint_state &&
-      machine.eslint_state.aggregate &&
-      machine.eslint_state.aggregate.total_violations > 0
+      eslintState &&
+      eslintState.aggregate &&
+      eslintState.aggregate.total_violations > 0
     ) {
       dirtyStates.push(
-        `eslint_state: ${machine.eslint_state.aggregate.total_violations} violations`,
+        `eslint_state: ${eslintState.aggregate.total_violations} violations`,
       );
     }
-    if (
-      machine.type_check_state &&
-      machine.type_check_state.status !== "clean"
-    ) {
-      dirtyStates.push(`type_check_state: ${machine.type_check_state.status}`);
+    if (typeCheckState && typeCheckState.status !== "clean") {
+      dirtyStates.push(`type_check_state: ${typeCheckState.status}`);
     }
-    if (machine.format_state && machine.format_state.status !== "clean") {
-      dirtyStates.push(`format_state: ${machine.format_state.status}`);
+    if (formatState && formatState.status !== "clean") {
+      dirtyStates.push(`format_state: ${formatState.status}`);
     }
-    if (
-      machine.dependency_state &&
-      machine.dependency_state.status !== "clean"
-    ) {
-      dirtyStates.push(`dependency_state: ${machine.dependency_state.status}`);
+    if (dependencyState && dependencyState.status !== "clean") {
+      dirtyStates.push(`dependency_state: ${dependencyState.status}`);
     }
 
     if (dirtyStates.length > 0) {

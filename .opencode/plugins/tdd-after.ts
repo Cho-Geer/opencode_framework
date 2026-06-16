@@ -7,7 +7,7 @@
 //      .opencode_backups/) using generateDiff() from safe-edit-core.ts.
 //   2. For test files: verify the write produced *actual* content changes
 //      (not just a touch/empty write). If real changes exist, set
-//      machine.json.tdd_enforcement_state.current_session.test_written = true
+//      tdd_enforcement_state.current_session.test_written = true
 //      and record diff evidence.
 //   3. For impl files: record diff evidence in impl_files_attempted for
 //      audit trail and downstream Guardian review.
@@ -21,14 +21,13 @@ import { resolveAgent } from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
 import {
   isBusinessSourceFile,
-  STATE_PATHS,
   isTddAgent,
   isTddTool,
+  atomicWriteSubState,
 } from "../lib/state-utils";
 import { generateDiff, findLatestBackup } from "../lib";
-import { atomicWriteMachine } from "../lib/uc7ks-schema";
+import { readSubState } from "../lib/substate-manager";
 import * as fs from "node:fs";
-import * as path from "node:path";
 
 // ── Constants ──
 
@@ -64,10 +63,9 @@ function updateTDDState(
   agent: string,
 ): void {
   try {
-    atomicWriteMachine((machine) => {
-      if (!machine?.tdd_enforcement_state?.enabled) return;
-      const tdd = machine.tdd_enforcement_state;
-      tdd.current_session = tdd.current_session || {
+    atomicWriteSubState("tdd_enforcement_state", (state) => {
+      if (!state?.enabled) return;
+      state.current_session = state.current_session || {
         test_written: false,
         impl_files_attempted: [],
         blocked_attempts: [],
@@ -75,7 +73,7 @@ function updateTDDState(
         initialized: true,
         diff_evidence: [],
       };
-      const sess = tdd.current_session;
+      const sess = state.current_session;
       sess.diff_evidence = sess.diff_evidence || [];
 
       const evidence = {
@@ -114,8 +112,8 @@ function updateTDDState(
   }
 }
 
-function hasOnlyShallowTests(machine: any): boolean {
-  const sess = machine?.tdd_enforcement_state?.current_session;
+function hasOnlyShallowTests(tddState: any): boolean {
+  const sess = tddState?.current_session;
   if (!sess?.test_files_written || sess.test_files_written.length === 0) return false;
   if (!sess.diff_evidence || sess.diff_evidence.length === 0) return false;
 
@@ -206,17 +204,14 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     });
 
     try {
-      const mp = STATE_PATHS.machine();
-      if (fs.existsSync(mp)) {
-        const machine = JSON.parse(fs.readFileSync(mp, "utf8"));
-        if (machine?.tdd_enforcement_state?.current_session?.test_written && hasOnlyShallowTests(machine)) {
-          writeLog("tdd-after", "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-            level: "WARN",
-            event: "TOOL-AFTER",
-            detail: `shallow-test circumvention detected | impl=${fp} | test files have no real changes`,
-          });
-        }
+      const tddState = readSubState("tdd_enforcement_state");
+      if (tddState?.current_session?.test_written && hasOnlyShallowTests(tddState)) {
+        writeLog("tdd-after", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          level: "WARN",
+          event: "TOOL-AFTER",
+          detail: `shallow-test circumvention detected | impl=${fp} | test files have no real changes`,
+        });
       }
     } catch (_err) {
       // ignore

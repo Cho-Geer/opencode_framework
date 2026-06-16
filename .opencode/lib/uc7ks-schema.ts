@@ -23,9 +23,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-// ════════════════════════════════════════════════════════════
 // CONFIGURATION KEYS (F7: parameterized per Templatization System)
-// ════════════════════════════════════════════════════════════
 
 /** template_resolution keys used by knowledge pipeline tools */
 export const CONFIG_KEYS = {
@@ -37,9 +35,7 @@ export const CONFIG_KEYS = {
   LOGS_RETENTION_DAYS: "logs.retention_days",
 } as const;
 
-// ════════════════════════════════════════════════════════════
 // TYPES
-// ════════════════════════════════════════════════════════════
 
 export interface CacheSufficiency {
   status: "sufficient" | "insufficient" | "undeclared";
@@ -82,18 +78,14 @@ export interface SessionAccess {
   [agent: string]: AgentEntry;
 }
 
-// ════════════════════════════════════════════════════════════
 // PATH RESOLVERS
-// ════════════════════════════════════════════════════════════
 
 export function getMachinePath(): string {
   const root = process.env.OPENCODE_ROOT || ".";
   return path.resolve(root, ".opencode", "state", "machine.json");
 }
 
-// ════════════════════════════════════════════════════════════
 // SCHEMA HELPERS
-// ════════════════════════════════════════════════════════════
 
 /** Ensure agent entry exists in session_access */
 export function ensureAgentEntry(
@@ -153,9 +145,7 @@ export function updateAgentRollups(
   a.total_cache_reads = (a.total_cache_reads || 0) + 1;
 }
 
-// ════════════════════════════════════════════════════════════
 // BACKWARD-COMPAT READER
-// ════════════════════════════════════════════════════════════
 
 /**
  * Read cache_sufficiency for a specific domain and task.
@@ -327,53 +317,7 @@ export function getSufficientDomains(
   return results;
 }
 
-// ════════════════════════════════════════════════════════════
-// ATOMIC WRITE (CAS)
-// ════════════════════════════════════════════════════════════
-
-/**
- * Write machine.json with CAS (compare-and-swap) on meta.revision.
- * Retries up to maxRetries on concurrent modification.
- * Returns true if write succeeded, false if retries exhausted.
- *
- * @param modifyFn — Called with parsed machine object, should modify in place
- * @param maxRetries — Max retry count (default 3)
- */
-export function atomicWriteMachine(
-  modifyFn: (machine: any) => void,
-  maxRetries: number = 3,
-): boolean {
-  const machinePath = getMachinePath();
-  for (let retry = 0; retry < maxRetries; retry++) {
-    try {
-      if (!fs.existsSync(machinePath)) return false;
-      const raw = fs.readFileSync(machinePath, "utf8");
-      const machine = JSON.parse(raw);
-      const prevRev = machine.meta?.revision || 0;
-
-      modifyFn(machine);
-
-      // Increment revision for CAS
-      machine.meta = machine.meta || {};
-      machine.meta.revision = prevRev + 1;
-
-      const tmpPath = machinePath + ".tmp." + Date.now() + "." + retry;
-      fs.writeFileSync(tmpPath, JSON.stringify(machine, null, 2), "utf8");
-      fs.renameSync(tmpPath, machinePath);
-
-      // Verify write took effect
-      const postRaw = fs.readFileSync(machinePath, "utf8");
-      const post = JSON.parse(postRaw);
-      if ((post.meta?.revision || 0) === prevRev + 1) {
-        return true;
-      }
-      // CAS failed — another writer modified it, retry
-    } catch (e) {
-      if (retry === maxRetries - 1) return false;
-    }
-  }
-  return false;
-}
+// ATOMIC WRITE (CAS) — Re-exported from state-utils
 
 // ════════════════════════════════════════════════════════════
 // CAP MANAGEMENT

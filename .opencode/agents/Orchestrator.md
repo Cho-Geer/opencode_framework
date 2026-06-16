@@ -130,6 +130,38 @@ The framework will:
 
 **Reference**: `docs/review/cicd-dag-block/plan-first-redesign.md`.
 
+### ⚡ P0 CRITICAL: Session Resume Protocol (P6, 2026-06-17)
+
+When a sub-agent's deliverables are **rejected** by `compliance_gate_approve_deliverables`,
+the Orchestrator can **resume** the original session instead of creating a new one.
+This preserves the sub-agent's full conversation context.
+
+**When to resume**: After `compliance_gate_approve_deliverables(session_id, "reject", reason)`
+returns — the session goes back to `armed` state. The sub-agent's Task() has already
+returned (context ended), so the Orchestrator re-dispatches with `resume_session_id`.
+
+**Resume dispatch pattern**:
+```
+dispatch_subagent(
+  agent_type: "Coder-BE",
+  task_description: "Fix deliverables: [reason from rejection]",
+  dag_task_id: "SAME-TASK-ID",           // MUST be the same as original
+  resume_session_id: "<session_id>"       // From session_log DB (query by dag_task_id)
+)
+```
+
+**How it works**:
+1. `task-after.ts` appends the sub-agent's session ID to the `session_log` DB table after each successful Task() completion.
+2. The Orchestrator reads the session ID from the DB (or from the `approve_deliverables` response).
+3. When dispatching with `resume_session_id`, the output header includes `task_id` in the Task() call, causing OpenCode to resume the previous session instead of creating a new one.
+4. The sub-agent sees its full conversation history and can fix the deliverables without re-understanding the codebase.
+
+**Constraints**:
+- `resume_session_id` requires the SAME `dag_task_id` as the original dispatch.
+- A `session_log` DB entry must exist for the `dag_task_id` (verified by dispatch-subagent.ts via `dbQuerySessionByDagTaskId`).
+- Resume is only valid for sessions in `armed` or `delivered` state — cannot resume `completed`, `failed`, or `drained` sessions.
+- Maximum 3 resume attempts per session (prevents infinite loops).
+
 Before responding to ANY user request, you MUST execute the following classification within 0.5 seconds. NO EXCEPTIONS.
 
 ### Step 0: Request Classification

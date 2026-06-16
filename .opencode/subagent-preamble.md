@@ -7,39 +7,54 @@ alwaysApply: true
 
 ## 🔒 P0 PROTOCOL — MANDATORY PREEXECUTION SEQUENCE
 
-> **Enforcement note**: Steps 0 (Knowledge Pipeline), 2 (Compliance Gate), and 4 (Close Gate)
-> are **physically enforced by TypeScript plugins** (`uc7ks-before.ts`, `gate-before.ts`,
-> `compliance_gate_complete` MCP tool). The text below is procedural guidance for steps
-> that have **no plugin enforcement**.
+> **Enforcement note**: Steps 0 (Knowledge Pipeline), 2 (Compliance Gate), and 4 (Submit Deliverables)
+> are **physically enforced by TypeScript plugins and MCP tools**
+> (`uc7ks-before.ts`, `gate-before.ts`, `compliance_gate_submit_deliverables`,
+> `compliance_gate_approve_deliverables`). Steps 1, 3 are procedural guidance.
 
-### Step 0: Knowledge Pipeline — P0 Mandatory (plugin-enforced with hard constraints)
+### Step 0: Knowledge Pipeline — P0 Mandatory (plugin-enforced)
 
-> **UC7-001c HARDEN** (2026-06-11): Three evidence fields are REQUIRED for valid
-> sufficiency determination. Any of `reason`, `files_read`, or `content_summary`
-> missing or empty → treated as `"insufficient"` across all enforcement layers.
+> **UC7-001c HARDEN**: Three evidence fields are REQUIRED for valid
+> sufficiency determination. Missing `reason`, `files_read`, or `content_summary`
+> → treated as `"insufficient"`.
 
-**0a.** Call `module_scope_declare(module, task_id)` to declare your target knowledge domain. Use the same `task_id` across all pipeline calls.
+**0a.** Call `module_scope_declare(module, task_id)`.
+**0b.** Call `knowledge_cache_search(domain, task_id)`.
+**0c.** If `status === "insufficient"` → request @Knowledge-Curator dispatch, re-search.
 
-**0b.** Call `knowledge_cache_search(domain, task_id)`. The tool will:
-- Search `docs/official_docs/index.json` for entries matching your domain
-- Auto-fill `cache_sufficiency.reason` (why sufficient/insufficient)
-- Auto-fill `cache_sufficiency.files_read` (which cache files were matched)
-- Auto-fill `cache_sufficiency.content_summary` (brief summary of findings)
-- Return `cache_sufficiency.status` and `next_step` guidance
-
-**0c.** Check the result:
-- `status === "sufficient"` → proceed to Step 1
-- `status === "insufficient"` → declare what is missing, request @Orchestrator dispatch @Knowledge-Curator, wait for KC to complete, re-search cache
-
-**Enforcement**: `uc7ks-before.ts` blocks external queries when cache is available but agent has not satisfied UC7-001. `compliance-gate.ts` and `pre-execution-hook.sh` Stage 4 reject tasks with incomplete sufficiency evidence.
-
-### Step 1: Invoke skills (P0 mandatory — no plugin enforcement)
+### Step 1: Invoke Skills (no plugin enforcement)
 
 Invoke all skills listed in your agent config in order. P0 skills (`execution-preflight-check`, `context7-first`) MUST be called first.
 
-### Step 2: Execute
+### Step 2: Compliance Gate Check + Confirm (plugin + hard constraint)
 
-Proceed with task. Write-time quality checks (type/lint/deps/format/scope) run automatically after each file change. Fix violations immediately.
+**2a.** Call `compliance_gate_check(task_description, task_id)` — creates session.
+
+**2b.** Call `compliance_gate_confirm(session_id, plan_summary, declared_deliverables)`.
+- **`declared_deliverables`** is **MANDATORY** for non-exempt agents.
+- Declare each concrete output you will produce as a JSON array:
+  `[{"name":"HANDOVER.md","description":"Handover summary","artifact_path":".task_temp/{taskId}/HANDOVER.md","required":true}]`
+- **Exempt agents** (@Orchestrator, @Super-Admin): may omit `declared_deliverables`.
+
+### Step 3: Execute
+
+Proceed with task. Write all declared deliverables and artifacts to their specified paths.
+
+### Step 4: Submit Deliverables — MCP-ENFORCED HARD CONSTRAINT
+
+**4a.** Write HANDOVER.md, TASK_LOG.md, and all other declared deliverables.
+
+**4b.** Call `compliance_gate_submit_deliverables(session_id, deliverables_evidence)`:
+- `deliverables_evidence`: JSON array of `{"name":"HANDOVER.md","artifact_path":"...","content_summary":"..."}`
+- **MUST be called BEFORE compliance_gate_complete** — otherwise complete will REJECT.
+- This step transitions session from `armed` to `delivered`.
+
+### Step 5: Close Gate (requires Orchestrator approval)
+
+- **Exempt agents** (@Orchestrator, @Super-Admin): Call `compliance_gate_complete(session_id, execution_summary)` directly.
+- **Non-exempt agents**: Your session ends after `submit_deliverables`. The Orchestrator will review your deliverables and call `compliance_gate_approve_deliverables(session_id, "approve", note, execution_summary)` to close the gate on your behalf.
+
+> ⚠️ **ORDERING**: Write artifacts FIRST, then `submit_deliverables`. Calling submit before writing will cause `recoverable` state.
 
 ### Domain Reference (knowledge_semantic_map)
 
@@ -57,12 +72,3 @@ Proceed with task. Write-time quality checks (type/lint/deps/format/scope) run a
 | `opencode_framework` | Agent configs, rules, skills, plugins |
 | `infrastructure` | Git, JSON Schema, Node.js, shell |
 | `state_management` | machine.json, gate-state.json, keystone, enforcement |
-
-<!-- FW-SLIM-03 (2026-06-11, @Super-Admin): Slimmed from 48→28 effective lines.
-  Removed: Step 0 (Knowledge Pipeline — enforced by uc7ks-before.ts),
-  Step 2 (Compliance Gate — enforced by gate-before.ts),
-  Step 4 (Close Gate — enforced by compliance_gate_complete MCP tool).
-  Renumbered: Step 1→1 (skills), Step 3→2 (execute).
-  Added: enforcement note explaining plugin coverage.
-  Kept: Step 1 (skills — no plugin), Step 2 (execute — no plugin), Domain Reference table.
-  Version history: 163→108 (FW-SLIM-01) → 48 (FW-SLIM-02) → 28 (FW-SLIM-03). -->

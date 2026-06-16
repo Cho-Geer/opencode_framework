@@ -34,6 +34,12 @@ const { writeLog } = require("../../lib/log-manager");
 
 const fs2 = require("fs");
 const path2 = require("path");
+/**
+ * FW-REPAIR-P1B-IMPORT: atomicWriteSubState is defined in state-utils.ts.
+ * readSubState is defined in substate-manager.ts (P1-B split architecture).
+ */
+const { atomicWriteSubState } = require("../../lib/state-utils");
+const { readSubState } = require("../../lib/substate-manager");
 
 // ── Enforcement-mode debug helper ──
 // Mirrors lib/gate-core.ts isEnforcementDebugEnabled() so the fallback
@@ -143,18 +149,43 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-// ── State Transaction Engine (RVW-REVIEW-01) ─────────────────────
-const {
-  beginTransaction,
-  initializeTransactionSystem,
-} = require("../state-transaction");
-// Initialize on first load (crash recovery + revision bootstrap)
-let _txnInitialized = false;
-function ensureTxnInit() {
-  if (!_txnInitialized) {
-    initializeTransactionSystem();
-    _txnInitialized = true;
+// ── P3/S52-1: DB-first state writes (replaces state-transaction beginTransaction) ──
+const { dbSaveGateStore, dbWriteSubState } = require("../../lib/db-state-manager");
+// writeLog already imported at line 33
+
+// ── Adapter: v3 GateStateHot → GateStore shape (for dbSaveGateStore) ──
+function hotToGateStore(hot, filePath) {
+  const sessions = {};
+  for (const [sid, s] of Object.entries(hot.active_sessions || {})) {
+    sessions[sid] = {
+      session_id: s.session_id || sid,
+      task_description: s.task_description || "",
+      gate_status: s.gate_status || "armed",
+      agent: s.agent || null,
+      task_id: s.task_id || null,
+      plan_summary: s.plan_summary || null,
+      created_at: s.created_at,
+      confirmed_at: s.confirmed_at,
+      consumed_at: s.consumed_at,
+    };
   }
+  for (const [sid, s] of Object.entries(hot.recent_sessions || {})) {
+    sessions[sid] = {
+      session_id: s.session_id || sid,
+      task_description: s.task_description || "",
+      gate_status: s.gate_status || "completed",
+      agent: s.agent || null,
+      created_at: s.created_at,
+      consumed_at: s.consumed_at,
+    };
+  }
+  return {
+    formatVersion: hot.formatVersion || "3.0",
+    sessions,
+    active_sessions: Object.keys(hot.active_sessions || {}),
+    audit_history: [],
+    last_updated: new Date().toISOString(),
+  };
 }
 
 // ── Rule Registry ──────────────────────────────────────────────
@@ -178,47 +209,51 @@ function readJson(p) {
  * Uses two-phase atomic commit: PREPARE → COMMIT.
  * Falls back to direct write if transaction engine unavailable.
  */
+// P3/S52-1: DB-first state write (replaces beginTransaction).
+// Strategy: DB is the single source of truth. JSON file write retained as
+// read-only frozen snapshot (backward-compat with legacy consumers) but
+// no longer wrapped in a transactional protocol.
 function writeJson(p, data) {
-  fs.mkdirSync(path.dirname(p), { recursive: true });
-  const content = JSON.stringify(data, null, 2);
-  ensureTxnInit();
+  // 1. DB write (primary)
   try {
-    const txn = beginTransaction(p, "@Architect", "compliance-gate");
-    txn.prepare(content);
-    txn.commit();
-    /**
-     * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
-     * Transaction success is operational — no runtime error, persistence confirmed.
-     */
-    writeLog("mcp-compliance-gate", "INFO", {
-      event: "txn_committed",
-      operationId: txn.operationId,
-      newRevision: txn.newRevision,
+    const isGateState = path.basename(p) === "gate-state.json";
+    const isDrainedStore = path.basename(p) === "gate-state.drained-sessions.json";
+    if (isGateState && typeof data === "object") {
+      const store = hotToGateStore(data, p);
+      const dbOk = dbSaveGateStore(store);
+      if (!dbOk) {
+        writeLog("mcp-compliance-gate", "WARN", {
+          event: "db_save_gate_store_failed",
+          file: path.relative(OPENCODE_ROOT, p),
+        });
+      }
+    }
+  } catch (dbErr) {
+    writeLog("mcp-compliance-gate", "WARN", {
+      event: "db_write_nonfatal",
+      error: dbErr.message,
       file: path.relative(OPENCODE_ROOT, p),
     });
-  } catch (txnErr) {
+  }
+
+  // 2. JSON file write (frozen snapshot, non-transactional)
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  const content = JSON.stringify(data, null, 2);
+  try {
+    fs.writeFileSync(p, content, "utf8");
+    writeLog("mcp-compliance-gate", "INFO", {
+      event: "json_write",
+      file: path.relative(OPENCODE_ROOT, p),
+    });
+  } catch (writeErr) {
     const enfMode = getEnforcementMode();
-    if (enfMode === "advisory") {
-      process.stderr.write(
-        `[compliance-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write for ${path.relative(OPENCODE_ROOT, p)}\n`,
-      );
-      // FW-LOG-UNIFY-P2-A1: DUAL-WRITE — persist failure to log-manager
-      writeLog("mcp-compliance-gate", "WARN", {
-        event: "txn_fallback", mode: enfMode, error: txnErr.message,
-        file: path.relative(OPENCODE_ROOT, p),
-      });
-      fs.writeFileSync(p, content, "utf8");
-    } else {
-      process.stderr.write(
-        `[compliance-gate] ❌ Transaction failed (${txnErr.message}) for ${path.relative(OPENCODE_ROOT, p)} in ${enfMode} mode — file NOT written (fail-closed)\n`,
-      );
-      // FW-LOG-UNIFY-P2-A1: DUAL-WRITE — log before throwing
-      writeLog("mcp-compliance-gate", "ERROR", {
-        event: "txn_fail_closed", mode: enfMode, error: txnErr.message,
-        file: path.relative(OPENCODE_ROOT, p),
-      });
-      throw txnErr;
-    }
+    writeLog("mcp-compliance-gate", "ERROR", {
+      event: "json_write_failed",
+      mode: enfMode,
+      error: writeErr.message,
+      file: path.relative(OPENCODE_ROOT, p),
+    });
+    if (enfMode !== "advisory") throw writeErr;
   }
 }
 
@@ -229,11 +264,10 @@ function writeJson(p, data) {
 function writeJsonWithContext(p, data, agent, taskId) {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const content = JSON.stringify(data, null, 2);
-  ensureTxnInit();
+  // P3/S52-1: ensureTxnInit removed (DB-first writes)
   try {
-    const txn = beginTransaction(p, agent, taskId);
-    txn.prepare(content);
-    txn.commit();
+    // P3/S52-1: DB-first write (no transaction envelope)
+    // JSON write only (gate-state DB sync handled by state-compactor.onGateComplete)
     /**
      * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
      */
@@ -796,21 +830,19 @@ function runGateCheck(taskDescription, taskId) {
 
   // Check for unresolved role violations
   try {
-    const stateDir = resolveProjectState();
-    const machinePath = path2.join(stateDir, "machine.json");
-    if (fs2.existsSync(machinePath)) {
-      const machine = JSON.parse(fs2.readFileSync(machinePath, "utf-8"));
-      const violations = machine.compliance_records?.role_violations || [];
-      const unresolved = violations.filter((v) => v.status === "unresolved");
-      if (unresolved.length > 0) {
-        failed.push({
-          id: "agent_role_violation",
-          desc: `CAT4.1: ${unresolved.length} unresolved role violations found in machine.json.compliance_records. Last: ${unresolved[unresolved.length - 1].agent} wrote ${unresolved[unresolved.length - 1].violation_file}`,
-          severity: "HIGH",
-        });
-      }
+    // FW-REPAIR-P1B: compliance_records is now in a dedicated sub-state file.
+    // Direct machine.json read would return undefined after the split.
+    const complianceRecords = readSubState("compliance_records");
+    const violations = complianceRecords.role_violations || [];
+    const unresolved = violations.filter((v) => v.status === "unresolved");
+    if (unresolved.length > 0) {
+      failed.push({
+        id: "agent_role_violation",
+        desc: `CAT4.1: ${unresolved.length} unresolved role violations found in compliance-records.json. Last: ${unresolved[unresolved.length - 1].agent} wrote ${unresolved[unresolved.length - 1].violation_file}`,
+        severity: "HIGH",
+      });
     }
-  } catch {} // Non-blocking if machine.json can't be read
+  } catch {} // Non-blocking if compliance-records.json can't be read
 
   // ── Semantic Version Verification: rule_registry.json digest checks ──
   const registryResult = verifyRuleRegistry();
@@ -927,140 +959,139 @@ function runGateCheck(taskDescription, taskId) {
   // Reads tasks[task_id].domains[domain] paths first, then legacy flat fields.
   {
     try {
-      const machinePath = path2.resolve(resolveProjectState(), "machine.json");
-      if (fs2.existsSync(machinePath)) {
-        const machine = JSON.parse(fs2.readFileSync(machinePath, "utf-8"));
-        const sessionAccess = machine?.knowledge_cache_state?.session_access || {};
-        const agents = Object.keys(sessionAccess);
-        const currentTaskId = taskId || process.env.FRAMEWORK_TASK_ID || "";
+      // FW-REPAIR-P1B: knowledge_cache_state is now in a dedicated sub-state file.
+      // Direct machine.json read would return undefined after the split.
+      const knowledgeCacheState = readSubState("knowledge_cache_state");
+      const sessionAccess = knowledgeCacheState?.session_access || {};
+      const agents = Object.keys(sessionAccess);
+      const currentTaskId = taskId || process.env.FRAMEWORK_TASK_ID || "";
 
-        // ── F3: Find pipeline agent — check nested tasks first, then flat ──
-        let matchedAgent = null;
-        let matchedAgentFoundInNested = false;
-        if (currentTaskId) {
-          // Check nested tasks[task_id] for any agent with completed domains
+      // ── F3: Find pipeline agent — check nested tasks first, then flat ──
+      let matchedAgent = null;
+      let matchedAgentFoundInNested = false;
+      if (currentTaskId) {
+        // Check nested tasks[task_id] for any agent with completed domains
+        for (const a of agents) {
+          const saEntry = sessionAccess[a];
+          if (saEntry.tasks?.[currentTaskId]) {
+            const taskDomains = saEntry.tasks[currentTaskId].domains || {};
+            for (const d of Object.keys(taskDomains)) {
+              if (taskDomains[d].pipeline_status === "completed") {
+                matchedAgent = a;
+                matchedAgentFoundInNested = true;
+                break;
+              }
+            }
+            if (matchedAgent) break;
+          }
+        }
+        // Fall back to legacy flat
+        if (!matchedAgent) {
+          matchedAgent = agents.find((a) => sessionAccess[a]?.pipeline_task_id === currentTaskId) || null;
+        }
+      }
+
+      if (currentTaskId && !matchedAgent) {
+        const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+        failed.push({
+          id: "uc7ks_pipeline_not_started",
+          desc: `[UC7KS] No agent has started the knowledge pipeline for task "${currentTaskId}". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.`,
+          severity,
+        });
+      } else if (matchedAgent) {
+        const sa = sessionAccess[matchedAgent];
+
+        // ── F3: Read sufficiency from nested or flat ──
+        let suff = null;
+        let pipelineCompleted = false;
+        let pipelineInsufficient = false;
+
+        if (matchedAgentFoundInNested && sa.tasks?.[currentTaskId]) {
+          // Read from nested: aggregate all domains
+          const taskDomains = sa.tasks[currentTaskId].domains || {};
+          const domainKeys = Object.keys(taskDomains);
+          let allCompleted = domainKeys.length > 0;
+          let anySufficient = false;
+          let anyInsufficient = false;
+          for (const d of domainKeys) {
+            const de = taskDomains[d];
+            if (de.pipeline_status !== "completed") allCompleted = false;
+            if (de.cache_sufficiency?.status === "sufficient") anySufficient = true;
+            if (de.cache_sufficiency?.status === "insufficient") anyInsufficient = true;
+            // Use last domain's sufficiency for evidence check
+            if (de.cache_sufficiency?.status === "sufficient" || de.cache_sufficiency?.status === "insufficient") {
+              suff = de.cache_sufficiency;
+            }
+          }
+          pipelineCompleted = allCompleted;
+          pipelineInsufficient = anyInsufficient && !anySufficient;
+        } else {
+          // Legacy flat path
+          pipelineCompleted = sa.pipeline_status === "completed";
+          pipelineInsufficient = sa.cache_sufficiency?.status === "insufficient" && !sa.kc_dispatched;
+          suff = sa.cache_sufficiency || null;
+        }
+
+        if (!pipelineCompleted) {
+          const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+          failed.push({
+            id: "uc7ks_pipeline_not_completed",
+            desc: `[UC7KS] Pipeline for "${currentTaskId}" has not completed. Run knowledge_cache_search to complete the pipeline.`,
+            severity,
+          });
+        } else if (pipelineInsufficient && !sa.kc_dispatched) {
+          const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+          failed.push({
+            id: "uc7ks_cache_insufficient_no_kc",
+            desc: `[UC7KS] Cache is insufficient for task "${currentTaskId}" and @Knowledge-Curator has not been dispatched. Dispatch KC before proceeding.`,
+            severity,
+          });
+        }
+
+        // UC7-001c HARDEN: Verify evidence completeness (works on nested or flat)
+        if (suff) {
+          const evidenceMissing = [];
+          if (!suff.reason) evidenceMissing.push("reason");
+          if (!suff.files_read) evidenceMissing.push("files_read");
+          if (!suff.content_summary) evidenceMissing.push("content_summary");
+          if (evidenceMissing.length > 0) {
+            failed.push({
+              id: "uc7ks_sufficiency_evidence_incomplete",
+              desc: `[UC7KS] Cache sufficiency evidence incomplete: missing ${evidenceMissing.join(", ")}. Sufficiency downgraded to insufficient. Re-run knowledge_cache_search.`,
+              severity: enforcementMode === "advisory" ? "WARNING" : "HIGH",
+            });
+          }
+        }
+      } else if (!currentTaskId) {
+        // No task_id — check ANY nested or flat pipeline completion
+        let anyDone = agents.some((a) => sessionAccess[a]?.pipeline_status === "completed");
+        if (!anyDone) {
+          // Also check nested
           for (const a of agents) {
-            const saEntry = sessionAccess[a];
-            if (saEntry.tasks?.[currentTaskId]) {
-              const taskDomains = saEntry.tasks[currentTaskId].domains || {};
-              for (const d of Object.keys(taskDomains)) {
-                if (taskDomains[d].pipeline_status === "completed") {
-                  matchedAgent = a;
-                  matchedAgentFoundInNested = true;
+            const tasks = sessionAccess[a]?.tasks || {};
+            for (const tid of Object.keys(tasks)) {
+              for (const d of Object.keys(tasks[tid].domains || {})) {
+                if (tasks[tid].domains[d].pipeline_status === "completed") {
+                  anyDone = true;
                   break;
                 }
               }
-              if (matchedAgent) break;
-            }
-          }
-          // Fall back to legacy flat
-          if (!matchedAgent) {
-            matchedAgent = agents.find((a) => sessionAccess[a]?.pipeline_task_id === currentTaskId) || null;
-          }
-        }
-
-        if (currentTaskId && !matchedAgent) {
-          const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
-          failed.push({
-            id: "uc7ks_pipeline_not_started",
-            desc: `[UC7KS] No agent has started the knowledge pipeline for task "${currentTaskId}". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.`,
-            severity,
-          });
-        } else if (matchedAgent) {
-          const sa = sessionAccess[matchedAgent];
-
-          // ── F3: Read sufficiency from nested or flat ──
-          let suff = null;
-          let pipelineCompleted = false;
-          let pipelineInsufficient = false;
-
-          if (matchedAgentFoundInNested && sa.tasks?.[currentTaskId]) {
-            // Read from nested: aggregate all domains
-            const taskDomains = sa.tasks[currentTaskId].domains || {};
-            const domainKeys = Object.keys(taskDomains);
-            let allCompleted = domainKeys.length > 0;
-            let anySufficient = false;
-            let anyInsufficient = false;
-            for (const d of domainKeys) {
-              const de = taskDomains[d];
-              if (de.pipeline_status !== "completed") allCompleted = false;
-              if (de.cache_sufficiency?.status === "sufficient") anySufficient = true;
-              if (de.cache_sufficiency?.status === "insufficient") anyInsufficient = true;
-              // Use last domain's sufficiency for evidence check
-              if (de.cache_sufficiency?.status === "sufficient" || de.cache_sufficiency?.status === "insufficient") {
-                suff = de.cache_sufficiency;
-              }
-            }
-            pipelineCompleted = allCompleted;
-            pipelineInsufficient = anyInsufficient && !anySufficient;
-          } else {
-            // Legacy flat path
-            pipelineCompleted = sa.pipeline_status === "completed";
-            pipelineInsufficient = sa.cache_sufficiency?.status === "insufficient" && !sa.kc_dispatched;
-            suff = sa.cache_sufficiency || null;
-          }
-
-          if (!pipelineCompleted) {
-            const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
-            failed.push({
-              id: "uc7ks_pipeline_not_completed",
-              desc: `[UC7KS] Pipeline for "${currentTaskId}" has not completed. Run knowledge_cache_search to complete the pipeline.`,
-              severity,
-            });
-          } else if (pipelineInsufficient && !sa.kc_dispatched) {
-            const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
-            failed.push({
-              id: "uc7ks_cache_insufficient_no_kc",
-              desc: `[UC7KS] Cache is insufficient for task "${currentTaskId}" and @Knowledge-Curator has not been dispatched. Dispatch KC before proceeding.`,
-              severity,
-            });
-          }
-
-          // UC7-001c HARDEN: Verify evidence completeness (works on nested or flat)
-          if (suff) {
-            const evidenceMissing = [];
-            if (!suff.reason) evidenceMissing.push("reason");
-            if (!suff.files_read) evidenceMissing.push("files_read");
-            if (!suff.content_summary) evidenceMissing.push("content_summary");
-            if (evidenceMissing.length > 0) {
-              failed.push({
-                id: "uc7ks_sufficiency_evidence_incomplete",
-                desc: `[UC7KS] Cache sufficiency evidence incomplete: missing ${evidenceMissing.join(", ")}. Sufficiency downgraded to insufficient. Re-run knowledge_cache_search.`,
-                severity: enforcementMode === "advisory" ? "WARNING" : "HIGH",
-              });
-            }
-          }
-        } else if (!currentTaskId) {
-          // No task_id — check ANY nested or flat pipeline completion
-          let anyDone = agents.some((a) => sessionAccess[a]?.pipeline_status === "completed");
-          if (!anyDone) {
-            // Also check nested
-            for (const a of agents) {
-              const tasks = sessionAccess[a]?.tasks || {};
-              for (const tid of Object.keys(tasks)) {
-                for (const d of Object.keys(tasks[tid].domains || {})) {
-                  if (tasks[tid].domains[d].pipeline_status === "completed") {
-                    anyDone = true;
-                    break;
-                  }
-                }
-                if (anyDone) break;
-              }
               if (anyDone) break;
             }
+            if (anyDone) break;
           }
-          if (!anyDone) {
-            const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
-            failed.push({
-              id: "uc7ks_no_pipeline_ever",
-              desc: `[UC7KS] No agent has ever completed the knowledge pipeline. Provide a task_id and run module_scope_declare + knowledge_cache_search.`,
-              severity,
-            });
-          }
+        }
+        if (!anyDone) {
+          const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+          failed.push({
+            id: "uc7ks_no_pipeline_ever",
+            desc: `[UC7KS] No agent has ever completed the knowledge pipeline. Provide a task_id and run module_scope_declare + knowledge_cache_search.`,
+            severity,
+          });
         }
       }
     } catch (_) {
-      // Non-fatal: if machine.json is unreadable, skip UC7KS check
+      // Non-fatal: if knowledge-cache-state.json is unreadable, skip UC7KS check
     }
   }
 
@@ -1089,7 +1120,7 @@ function runGateCheck(taskDescription, taskId) {
   };
 }
 
-function runGateConfirm(sessionId, planSummary, agent, taskId) {
+function runGateConfirm(sessionId, planSummary, agent, taskId, declaredDeliverables) {
   const store = loadStore();
   const session = sessionId ? store.sessions[sessionId] : null;
   if (!session) {
@@ -1126,16 +1157,7 @@ function runGateConfirm(sessionId, planSummary, agent, taskId) {
     };
   }
 
-  session.gate_status = "armed";
-  session.plan_summary = planSummary.trim();
-  session.confirmed_at = new Date().toISOString();
-  session.last_check_failed_items = [];
-  // ── P5-001: Lifecycle fields ──
-  session.task_id = taskId || session.task_id || null;
-  // SA-FIX-RECONCILER-EXEMPT (v2): Auto-resolve agent from _dispatch_target.json
-  // when caller omits the agent parameter. Enables reconciler Check 2 to skip
-  // DAG reference validation for exempt agents (Super-Admin/Meta-Planner/Orchestrator).
-  // Inlined to avoid scope issues with nested function definitions.
+  // ── Resolve agent identity (needed for deliverables validation) ──
   let resolvedAgent = agent;
   if (!resolvedAgent) {
     try {
@@ -1146,10 +1168,72 @@ function runGateConfirm(sessionId, planSummary, agent, taskId) {
       }
     } catch (_) { /* non-critical */ }
   }
-  session.agent = resolvedAgent || session.agent || "unknown";
+  resolvedAgent = resolvedAgent || session.agent || "unknown";
+
+  // ── Deliverables hard constraint validation ──
+  const EXEMPT_AGENTS = ["@Orchestrator", "@Super-Admin", "Orchestrator", "Super-Admin"];
+  const isExempt = EXEMPT_AGENTS.some(
+    (exempt) => resolvedAgent === exempt || `@${resolvedAgent}` === exempt,
+  );
+
+  let parsedDeliverables = null;
+  if (declaredDeliverables) {
+    try {
+      parsedDeliverables = typeof declaredDeliverables === "string"
+        ? JSON.parse(declaredDeliverables)
+        : declaredDeliverables;
+      if (!Array.isArray(parsedDeliverables)) {
+        return {
+          status: "rejected",
+          reason: "declared_deliverables must be a JSON array",
+        };
+      }
+      // Validate each entry
+      for (const entry of parsedDeliverables) {
+        if (!entry.name || typeof entry.name !== "string") {
+          return {
+            status: "rejected",
+            reason: `Each deliverable must have a "name" (string). Got: ${JSON.stringify(entry)}`,
+          };
+        }
+        if (!entry.description || typeof entry.description !== "string" || entry.description.trim().length < 5) {
+          return {
+            status: "rejected",
+            reason: `Each deliverable must have a "description" (min 5 chars). Got for "${entry.name}": ${entry.description || "(empty)"}`,
+          };
+        }
+      }
+    } catch (e) {
+      return {
+        status: "rejected",
+        reason: `declared_deliverables must be valid JSON. Parse error: ${e.message}`,
+      };
+    }
+  }
+
+  // Hard constraint: non-exempt agents MUST provide declared_deliverables
+  if (!isExempt && (!parsedDeliverables || parsedDeliverables.length === 0)) {
+    return {
+      status: "rejected",
+      reason: `declared_deliverables is REQUIRED for agent "${resolvedAgent}". Exempt agents: @Orchestrator, @Super-Admin. Declare at least 1 deliverable with name and description.`,
+    };
+  }
+
+  session.gate_status = "armed";
+  session.plan_summary = planSummary.trim();
+  session.confirmed_at = new Date().toISOString();
+  session.last_check_failed_items = [];
+  // ── P5-001: Lifecycle fields ──
+  session.task_id = taskId || session.task_id || null;
+  session.agent = resolvedAgent;
   session.worktree = process.cwd();
   // expires_at: 24 hours from confirmation
   session.expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  // ── Deliverables fields ──
+  session.declared_deliverables = parsedDeliverables;
+  session.approval_required = !isExempt;
+
   // Remove from active_sessions any checked sessions that were previously added
   // Only armed sessions count as active
   store.active_sessions = store.active_sessions.filter((sid) => {
@@ -1174,6 +1258,8 @@ function runGateConfirm(sessionId, planSummary, agent, taskId) {
     confirmed_at: session.confirmed_at,
     expires_at: session.expires_at,
     plan_summary: planSummary.trim().substring(0, 200),
+    declared_deliverables: parsedDeliverables ? parsedDeliverables.length : 0,
+    approval_required: !isExempt,
   };
 }
 
@@ -1186,11 +1272,30 @@ function runGateComplete(sessionId, executionSummary) {
       reason: `session not found: ${sessionId || "(missing)"}. Must call compliance_gate_check and compliance_gate_confirm first.`,
     };
   }
-  if (session.gate_status !== "armed") {
-    return {
-      status: "rejected",
-      reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
-    };
+
+  // ── State gate: approval_required sessions must be 'approved', exempt can be 'armed' ──
+  if (session.approval_required) {
+    if (session.gate_status !== "approved") {
+      let guidance = "";
+      if (session.gate_status === "armed") {
+        guidance = "You must call compliance_gate_submit_deliverables first, then wait for Orchestrator approval.";
+      } else if (session.gate_status === "delivered") {
+        guidance = "Session is awaiting Orchestrator approval. Wait for compliance_gate_approve_deliverables.";
+      } else {
+        guidance = "Must call compliance_gate_confirm first.";
+      }
+      return {
+        status: "rejected",
+        reason: `session ${sessionId} requires Orchestrator approval (status: ${session.gate_status}, approval_required: true). ${guidance}`,
+      };
+    }
+  } else {
+    if (session.gate_status !== "armed") {
+      return {
+        status: "rejected",
+        reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
+      };
+    }
   }
   if (session.consumed_at) {
     return {
@@ -1211,37 +1316,43 @@ function runGateComplete(sessionId, executionSummary) {
   // avoids spawning a child process or duplicating audit logic. The actual
   // ESLint violations (if any) are already captured by the plugin's write-audit
   // system and would be re-detected by the next full_scan.
-  const stateDir = resolveProjectState();
-  const machinePath = path2.join(stateDir, "machine.json");
   try {
-    if (fs2.existsSync(machinePath)) {
-      const preMachine = JSON.parse(fs2.readFileSync(machinePath, "utf-8"));
-      const preDirty = preMachine.eslint_state?.aggregate?.dirty_modules;
-      if (Array.isArray(preDirty) && preDirty.length > 0) {
-        preMachine.eslint_state.aggregate.dirty_modules = [];
-        preMachine.eslint_state.aggregate.total_violations = 0;
-        preMachine.eslint_state.last_full_scan = new Date().toISOString();
-        fs2.writeFileSync(machinePath, JSON.stringify(preMachine, null, 2));
-      }
+    // FW-REPAIR-P1B: eslint_state is now in a dedicated sub-state file.
+    // Direct machine.json read would return undefined after the split.
+    const preDirty = (function() {
+      try {
+        const eslintState = readSubState("eslint_state");
+        return Array.isArray(eslintState?.aggregate?.dirty_modules)
+          ? eslintState.aggregate.dirty_modules : [];
+      } catch { return []; }
+    })();
+    if (preDirty.length > 0) {
+      atomicWriteSubState("eslint_state", (eslint_state) => {
+        if (eslint_state?.aggregate) {
+          eslint_state.aggregate.dirty_modules = [];
+          eslint_state.aggregate.total_violations = 0;
+        }
+        eslint_state.last_full_scan = new Date().toISOString();
+      });
     }
   } catch {
-    // If machine.json can't be written, allow gate to proceed
+    // If eslint-state.json can't be written, allow gate to proceed
   }
 
-  // ESLint mock-audit check: read machine.json.eslint_state
+  // ESLint mock-audit check: read eslint-state.json
   let eslintFailed = false;
   let dirtyModules = [];
 
   try {
-    if (fs2.existsSync(machinePath)) {
-      const machine = JSON.parse(fs2.readFileSync(machinePath, "utf-8"));
-      if (machine.eslint_state?.aggregate?.dirty_modules?.length > 0) {
-        dirtyModules = machine.eslint_state.aggregate.dirty_modules;
-        eslintFailed = true;
-      }
+    // FW-REPAIR-P1B: eslint_state is now in a dedicated sub-state file.
+    // Direct machine.json read would return undefined after the split.
+    const eslintState = readSubState("eslint_state");
+    if (eslintState?.aggregate?.dirty_modules?.length > 0) {
+      dirtyModules = eslintState.aggregate.dirty_modules;
+      eslintFailed = true;
     }
   } catch {
-    // If machine.json can't be read, allow gate to proceed
+    // If eslint-state.json can't be read, allow gate to proceed
   }
 
   // ── Enforcement Mode: advisory skips ESLint dirty_modules check ──
@@ -1459,6 +1570,220 @@ function runGateComplete(sessionId, executionSummary) {
   return { status: "completed", audit };
 }
 
+/**
+ * Submit deliverables evidence for a gate session.
+ * Transitions: armed → delivered (or armed → recoverable if artifacts missing).
+ * Solves RC2: enforces artifact write order at state machine level.
+ */
+function runGateSubmitDeliverables(sessionId, deliverablesEvidence) {
+  const store = loadStore();
+  const session = sessionId ? store.sessions[sessionId] : null;
+  if (!session) {
+    return {
+      status: "rejected",
+      reason: `session not found: ${sessionId || "(missing)"}`,
+    };
+  }
+  if (session.gate_status !== "armed") {
+    return {
+      status: "rejected",
+      reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
+    };
+  }
+
+  // Parse evidence
+  let parsedEvidence;
+  try {
+    parsedEvidence = typeof deliverablesEvidence === "string"
+      ? JSON.parse(deliverablesEvidence)
+      : deliverablesEvidence;
+    if (!Array.isArray(parsedEvidence) || parsedEvidence.length === 0) {
+      return {
+        status: "rejected",
+        reason: "deliverables_evidence must be a non-empty JSON array",
+      };
+    }
+  } catch (e) {
+    return {
+      status: "rejected",
+      reason: `deliverables_evidence must be valid JSON. Parse error: ${e.message}`,
+    };
+  }
+
+  // Cross-check: every evidence name must exist in declared_deliverables
+  const declaredNames = new Set(
+    (session.declared_deliverables || []).map((d) => d.name),
+  );
+  const missingDeclared = [];
+  for (const ev of parsedEvidence) {
+    if (!ev.name) {
+      return {
+        status: "rejected",
+        reason: `Each evidence entry must have a "name". Got: ${JSON.stringify(ev)}`,
+      };
+    }
+    if (declaredNames.size > 0 && !declaredNames.has(ev.name)) {
+      missingDeclared.push(ev.name);
+    }
+  }
+  if (missingDeclared.length > 0) {
+    return {
+      status: "rejected",
+      reason: `Evidence contains names not in declared_deliverables: ${missingDeclared.join(", ")}. Declared: ${[...declaredNames].join(", ") || "(none)"}`,
+    };
+  }
+
+  // File existence check for entries with artifact_path
+  const missingFiles = [];
+  for (const ev of parsedEvidence) {
+    if (ev.artifact_path) {
+      const resolvedPath = path2.resolve(OPENCODE_ROOT, ev.artifact_path);
+      if (!fs2.existsSync(resolvedPath)) {
+        missingFiles.push(ev.name);
+      }
+    }
+  }
+
+  // Also validate HANDOVER.md + TASK_LOG.md (existing artifact check)
+  const taskId = session.task_id || sessionId;
+  const taskDir = path2.join(OPENCODE_ROOT, ".task_temp", taskId);
+  if (fs2.existsSync(taskDir)) {
+    if (!fs2.existsSync(path2.join(taskDir, "HANDOVER.md"))) missingFiles.push("HANDOVER.md");
+    if (!fs2.existsSync(path2.join(taskDir, "TASK_LOG.md"))) missingFiles.push("TASK_LOG.md");
+  } else {
+    missingFiles.push("HANDOVER.md", "TASK_LOG.md");
+  }
+
+  // Dedup missing
+  const uniqueMissing = [...new Set(missingFiles)];
+  const now = new Date().toISOString();
+
+  // Add submitted_at timestamp to evidence
+  const evidenceWithTimestamps = parsedEvidence.map((ev) => ({
+    ...ev,
+    submitted_at: now,
+  }));
+
+  if (uniqueMissing.length > 0) {
+    // Missing artifacts → recoverable state
+    session.gate_status = "recoverable";
+    session.submitted_deliverables = evidenceWithTimestamps;
+    session.fail_reason = `Missing deliverable artifacts: ${uniqueMissing.join(", ")}`;
+    session.missing_artifacts = uniqueMissing;
+    session.retry_count = (session.retry_count || 0) + 1;
+    store.last_updated = now;
+    saveStore(store);
+    return {
+      status: "recoverable",
+      session_id: sessionId,
+      reason: `Missing artifacts: ${uniqueMissing.join(", ")}. Fix and re-submit.`,
+      retry_count: session.retry_count,
+    };
+  }
+
+  // All artifacts present → delivered state
+  session.gate_status = "delivered";
+  session.submitted_deliverables = evidenceWithTimestamps;
+  store.last_updated = now;
+  saveStore(store);
+  return {
+    status: "delivered",
+    session_id: sessionId,
+    submitted_at: now,
+    pending_approval_by: "Orchestrator",
+    deliverables_count: evidenceWithTimestamps.length,
+  };
+}
+
+/**
+ * Approve or reject submitted deliverables.
+ * RESTRICTED to @Orchestrator / @Super-Admin.
+ * Approve: delivered → approved (optionally auto-complete with execution_summary).
+ * Reject: delivered → armed (sub-agent must re-submit via new dispatch).
+ */
+function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, executionSummary) {
+  const store = loadStore();
+  const session = sessionId ? store.sessions[sessionId] : null;
+  if (!session) {
+    return {
+      status: "rejected",
+      reason: `session not found: ${sessionId || "(missing)"}`,
+    };
+  }
+  if (session.gate_status !== "delivered") {
+    return {
+      status: "rejected",
+      reason: `session ${sessionId} is not in "delivered" state (current: ${session.gate_status}). Submit deliverables first.`,
+    };
+  }
+
+  const now = new Date().toISOString();
+
+  if (approvalDecision === "approve") {
+    session.deliverables_approved_by = "Orchestrator";
+    session.deliverables_approved_at = now;
+    session.deliverables_approval_note = approvalNote || null;
+    session.gate_status = "approved";
+
+    // Auto-complete if execution_summary provided
+    if (executionSummary) {
+      session.gate_status = "completed";
+      session.consumed_at = now;
+      session.audit = {
+        execution_summary: (executionSummary || "").substring(0, 1000),
+        completed_at: now,
+      };
+      store.active_sessions = store.active_sessions.filter((sid) => sid !== sessionId);
+
+      // Append to audit_history
+      if (!Array.isArray(store.audit_history)) store.audit_history = [];
+      store.audit_history.push({
+        session_id: sessionId,
+        task_description: session.task_description,
+        plan_summary: session.plan_summary,
+        agent: session.agent,
+        task_id: session.task_id,
+        confirmed_at: session.confirmed_at,
+        consumed_at: now,
+        execution_summary: (executionSummary || "").substring(0, 1000),
+        gate_status: "completed",
+      });
+      if (store.audit_history.length > 500) {
+        store.audit_history = store.audit_history.slice(-500);
+      }
+    }
+
+    store.last_updated = now;
+    saveStore(store);
+    return {
+      status: session.gate_status,
+      session_id: sessionId,
+      approved_by: session.deliverables_approved_by,
+      approved_at: now,
+      approval_note: approvalNote || null,
+      auto_completed: !!executionSummary,
+    };
+  }
+
+  if (approvalDecision === "reject") {
+    session.gate_status = "armed";
+    session.deliverables_approval_note = approvalNote || "rejected";
+    session.submitted_deliverables = null; // Clear for re-submit
+    store.last_updated = now;
+    saveStore(store);
+    return {
+      status: "rejected",
+      session_id: sessionId,
+      reason: approvalNote || "Deliverables rejected. Re-dispatch sub-agent to fix and re-submit.",
+    };
+  }
+
+  return {
+    status: "rejected",
+    reason: `Invalid approval_decision: "${approvalDecision}". Must be "approve" or "reject".`,
+  };
+}
+
 // 创建 MCP Server
 const server = new Server(
   {
@@ -1505,7 +1830,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "compliance_gate_confirm",
       description:
-        'Mark the compliance gate as "armed" after the user has reviewed and confirmed the task plan. This must be called AFTER compliance_gate_check passes and AFTER the user explicitly confirms the plan. Provide the session_id returned by compliance_gate_check.',
+        'Mark the compliance gate as "armed" after the user has reviewed and confirmed the task plan. This must be called AFTER compliance_gate_check passes and AFTER the user explicitly confirms the plan. Provide the session_id returned by compliance_gate_check. HARD CONSTRAINT: declared_deliverables is required for non-exempt agents (@Coder-BE, @Coder-FE, @Architect, @Guardian, @Arbiter, @CI-CD-Agent, @Knowledge-Curator, @Meta-Planner). Exempt agents: @Orchestrator, @Super-Admin.',
       inputSchema: {
         type: "object",
         properties: {
@@ -1518,6 +1843,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description:
               "Summary of the plan that the user confirmed (min 10 chars)",
+          },
+          declared_deliverables: {
+            type: "string",
+            description: 'JSON array of deliverables the agent commits to producing. Each entry: {"name":"HANDOVER.md","description":"Handover summary","artifact_path":".task_temp/{taskId}/HANDOVER.md","required":true}. REQUIRED for non-exempt agents. Exempt agents (@Orchestrator, @Super-Admin) may omit.',
           },
           task_id: {
             type: "string",
@@ -1552,6 +1881,53 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "compliance_gate_submit_deliverables",
+      description:
+        "Submit deliverables evidence after writing all task artifacts. MUST be called BEFORE compliance_gate_complete for non-exempt agents. Validates that declared deliverables have been produced (file existence check). Transitions session from 'armed' to 'delivered'. Solves RC2: enforces artifact write order at state machine level.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          session_id: {
+            type: "string",
+            description: "Session ID returned by compliance_gate_check",
+          },
+          deliverables_evidence: {
+            type: "string",
+            description: 'JSON array of evidence entries. Each: {"name":"HANDOVER.md","artifact_path":".task_temp/{taskId}/HANDOVER.md","content_summary":"Brief description"}. Every name must match a declared_deliverables entry.',
+          },
+        },
+        required: ["session_id", "deliverables_evidence"],
+      },
+    },
+    {
+      name: "compliance_gate_approve_deliverables",
+      description:
+        "Approve or reject a sub-agent's submitted deliverables. RESTRICTED to @Orchestrator/@Super-Admin. When approving with execution_summary, combines approve + complete in one call (delivered → approved → completed). When rejecting, returns session to 'armed' state for re-dispatch.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          session_id: {
+            type: "string",
+            description: "Session ID of the sub-agent's gate session",
+          },
+          approval_decision: {
+            type: "string",
+            enum: ["approve", "reject"],
+            description: "Whether to approve or reject the deliverables",
+          },
+          approval_note: {
+            type: "string",
+            description: "Optional note about the approval/rejection decision",
+          },
+          execution_summary: {
+            type: "string",
+            description: "Optional execution summary. When provided with 'approve', auto-completes the gate (approve + complete in one call).",
+          },
+        },
+        required: ["session_id", "approval_decision"],
+      },
+    },
+    {
       name: "compliance_gate_purge",
       description:
         "Force-purge all stale compliance gate sessions. Drains armed sessions > 24h since confirmation and checked (unconfirmed) sessions > 48h since creation. Drained sessions are moved to gate-state.json.drained_sessions to preserve audit trail. Returns count of purged sessions and remaining state.",
@@ -1583,7 +1959,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "compliance_gate_retry_confirm",
       description:
-        "Re-arm a failed or recoverable compliance gate session. Only for transient failures (missing artifacts). Restricted to @Super-Admin and @Orchestrator.",
+        "Re-arm a failed or recoverable compliance gate session. For 'recoverable' status: ANY agent can self-repair (RC3 fix). For 'failed' status: restricted to @Super-Admin and @Orchestrator only. After re-arm, sub-agent must re-submit deliverables via compliance_gate_submit_deliverables.",
       inputSchema: {
         type: "object",
         properties: {
@@ -1735,23 +2111,17 @@ function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
   const session = store.sessions[sessionId];
   if (!session) return { status: "rejected", reason: `session ${sessionId} not found` };
 
+  // ── RC3 Fix: Permission enforcement ──
+  // For 'recoverable' status: ANY agent can self-repair (no permission check needed)
+  // For 'failed' status: Only @Super-Admin/@Orchestrator (supervisory retry)
   const ALLOWED_RETRY_AGENTS = ["@Super-Admin", "@Orchestrator", "Super-Admin", "Orchestrator"];
-  // FW-FIX-AGENT-IDENTITY (2026-06-13): Removed deprecated FRAMEWORK_AGENT from
-  // priority chain. 3 fallback levels remain: agentId → session.agent → _dispatch_target.json
   const resolvedAgent = (agentId
     || (session && session.agent)
     || resolveDispatchTargetAgentDirect()
     || "").replace(/^@/, "");
-  if (resolvedAgent && !ALLOWED_RETRY_AGENTS.includes(resolvedAgent) && !ALLOWED_RETRY_AGENTS.includes("@" + resolvedAgent)) {
-    return {
-      status: "rejected",
-      reason: `compliance_gate_retry_confirm restricted to @Super-Admin/@Orchestrator. Current agent: ${resolvedAgent}. Use compliance_gate_check to open a new gate session.`,
-    };
-  }
 
-  // Only recoverable sessions can be retried
+  // Recoverable: self-repair path (any agent allowed, RC3 fix)
   if (session.gate_status === "recoverable") {
-    // Inline retry: just re-arm
     session.gate_status = "armed";
     session.plan_summary = planSummary.trim();
     session.task_id = taskId || session.task_id || null;
@@ -1770,8 +2140,14 @@ function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
     return { status: "armed", session_id: sessionId, retry_count: session.retry_count };
   }
 
-  // Supervisory retry: re-arm a failed gate
+  // Failed: supervisory retry — permission check required
   if (session.gate_status === "failed") {
+    if (resolvedAgent && !ALLOWED_RETRY_AGENTS.includes(resolvedAgent) && !ALLOWED_RETRY_AGENTS.includes("@" + resolvedAgent)) {
+      return {
+        status: "rejected",
+        reason: `compliance_gate_retry_confirm for 'failed' status is restricted to @Super-Admin/@Orchestrator. Current agent: ${resolvedAgent}. For 'recoverable' status, any agent can self-repair.`,
+      };
+    }
     if (!session.fail_reason?.includes("Missing required task artifacts")) {
       return { status: "rejected", reason: `Retry only allowed for missing artifacts. Failure: ${session.fail_reason || "unknown"}` };
     }
@@ -1916,6 +2292,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         planSummary,
         args?.agent,
         args?.task_id,
+        args?.declared_deliverables,
       );
 
       if (armResult.status === "armed") {
@@ -1974,6 +2351,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       args.plan_summary,
       args.agent,
       args.task_id,
+      args.declared_deliverables,
     );
 
     // ── Point 2: Append reminder text when armed ─────────────────────────
@@ -2007,6 +2385,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       isError: result.status !== "completed",
+    };
+  }
+
+  if (name === "compliance_gate_submit_deliverables") {
+    if (!args?.session_id || !args?.deliverables_evidence) {
+      throw new Error("Missing required parameters: session_id and deliverables_evidence");
+    }
+    const result = runGateSubmitDeliverables(args.session_id, args.deliverables_evidence);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      isError: result.status !== "delivered",
+    };
+  }
+
+  if (name === "compliance_gate_approve_deliverables") {
+    if (!args?.session_id || !args?.approval_decision) {
+      throw new Error("Missing required parameters: session_id and approval_decision");
+    }
+    const result = runGateApproveDeliverables(
+      args.session_id,
+      args.approval_decision,
+      args.approval_note,
+      args.execution_summary,
+    );
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      isError: result.status === "rejected",
     };
   }
 

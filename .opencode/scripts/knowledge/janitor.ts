@@ -17,6 +17,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { atomicWriteSubState, atomicWriteJson } = require("../../lib/state-utils");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -137,29 +138,29 @@ function run() {
   if (!DRY_RUN) {
     writeManifest(manifest);
 
-    // Update machine.json knowledge_state
+    // Update knowledge-state.json
     try {
-      const machinePath = path.join(PROJECT_ROOT, ".opencode", "state", "machine.json");
-      const machine = JSON.parse(fs.readFileSync(machinePath, "utf-8"));
-      if (machine.knowledge_state) {
-        machine.knowledge_state.last_janitor_run = now();
-        machine.knowledge_state.total_docs_count = manifest.entries.length;
-        machine.knowledge_state.total_size_bytes = totalSizeAfter;
-        fs.writeFileSync(machinePath, JSON.stringify(machine, null, 2), "utf-8");
+      const ok = atomicWriteSubState("knowledge_state", (ks) => {
+        ks.last_janitor_run = now();
+        ks.total_docs_count = manifest.entries.length;
+        ks.total_size_bytes = totalSizeAfter;
+      });
+      if (!ok) {
+        console.error("[Janitor] CAS write to knowledge_state failed after 3 retries");
       }
-    } catch (e) { console.error(`[Janitor] Failed to update machine.json: ${e.message}`); }
+    } catch (e) { console.error(`[Janitor] Failed to update knowledge_state: ${e.message}`); }
 
     // Generate size report
     const indexer = require("./indexer");
     const stats = indexer.getStats();
-    fs.writeFileSync(SIZE_REPORT_PATH, JSON.stringify({
+    atomicWriteJson(SIZE_REPORT_PATH, {
       generated_at: now(),
       total_size_bytes: totalSizeAfter,
       total_size_mb: (totalSizeAfter / 1048576).toFixed(1),
       max_total_mb: 50,
       entries: manifest.entries.length,
       ...stats,
-    }, null, 2), "utf-8");
+    });
   }
 
   

@@ -5,10 +5,10 @@ import { tolerantParse } from "../lib/tolerant-json";
 import {
   getDomainEntry,
   updateAgentRollups,
-  atomicWriteMachine,
   evictOldAgents,
   normalizeAgentKey,
 } from "../lib/uc7ks-schema";
+import { atomicWriteSubState } from "../lib/state-utils";
 import { withInterruptGuard } from "../lib";
 
 var VALID_MODULES = [
@@ -72,15 +72,15 @@ export default tool({
       });
     }
 
-    // ── Write to machine.json via CAS (F2: nested per-task-per-domain) ──
+    // ── Write to knowledge_cache_state.json via CAS (F2: nested per-task-per-domain) ──
     try {
       var taskId = args.task_id || "unknown";
       var domainName = args.module;
       var agentRef = normalizeAgentKey(agent);
 
-      atomicWriteMachine(function (machine: any) {
-        var kcs = machine.knowledge_cache_state = machine.knowledge_cache_state || { session_access: {}, compliance: {} };
+      atomicWriteSubState("knowledge_cache_state", function (kcs: any) {
         kcs.session_access = kcs.session_access || {};
+        kcs.compliance = kcs.compliance || {};
 
         // Write to nested domain entry (F2)
         var domainEntry = getDomainEntry(kcs.session_access, agentRef, taskId, domainName);

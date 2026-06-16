@@ -37,12 +37,34 @@ import {
 // TYPES
 // ════════════════════════════════════════════════════════════
 
+/**
+ * Deliverable entry declared at confirm phase.
+ * Each entry represents a specific artifact the sub-agent commits to producing.
+ */
+export interface DeliverableEntry {
+  name: string;
+  description: string;
+  artifact_path?: string; // Template variable {taskId} replaced at dispatch
+  required: boolean;
+}
+
+/**
+ * Evidence submitted when sub-agent calls submit_deliverables.
+ * Each entry provides proof that a declared deliverable was produced.
+ */
+export interface DeliverableEvidence {
+  name: string;
+  artifact_path?: string;
+  content_summary?: string;
+  submitted_at?: string;
+}
+
 export interface GateSession {
   session_id: string;
   created_at: string;
   task_description?: string;
   enforcement_mode?: string;
-  gate_status: 'checked' | 'armed' | 'completed' | 'failed' | 'drained';
+  gate_status: 'checked' | 'armed' | 'delivered' | 'approved' | 'completed' | 'failed' | 'recoverable' | 'drained';
   last_check_passed?: boolean;
   last_check_failed_items?: GateCheckItem[];
   plan_summary?: string | null;
@@ -55,6 +77,14 @@ export interface GateSession {
   audit?: GateAudit | null;
   fail_reason?: string;
   missing_artifacts?: string[];
+
+  // Deliverables hard constraint fields (P3/RC2 fix)
+  declared_deliverables?: DeliverableEntry[];
+  submitted_deliverables?: DeliverableEvidence[];
+  deliverables_approved_by?: string;
+  deliverables_approved_at?: string;
+  deliverables_approval_note?: string;
+  approval_required?: boolean; // true = sub-agent needs Orchestrator approval; false = exempt (Orchestrator/Super-Admin)
 }
 
 export interface GateCheckItem {
@@ -424,11 +454,11 @@ function loadGateStoreJson(root?: string): GateStore {
 function reconcileGateStore(s: GateStore): boolean {
   let reconciled = false;
 
-  // Remove completed/failed sessions from active_sessions
+  // Remove completed/failed/drained sessions from active_sessions
   s.active_sessions = s.active_sessions.filter((sid) => {
     const ses = s.sessions[sid];
     if (!ses) { reconciled = true; return false; }
-    if (ses.gate_status === 'completed' || ses.gate_status === 'failed') {
+    if (ses.gate_status === 'completed' || ses.gate_status === 'failed' || ses.gate_status === 'drained') {
       reconciled = true; return false;
     }
     if (ses.consumed_at) { reconciled = true; return false; }
@@ -448,10 +478,11 @@ function reconcileGateStore(s: GateStore): boolean {
     return true;
   });
 
-  // Add armed sessions missing from active_sessions
+  // Add armed/delivered/approved sessions missing from active_sessions
+  const LIVE_STATUSES = ['armed', 'delivered', 'approved'];
   for (const [sid, ses] of Object.entries(s.sessions)) {
     if (
-      ses.gate_status === 'armed' &&
+      LIVE_STATUSES.includes(ses.gate_status) &&
       !ses.consumed_at &&
       !s.active_sessions.includes(sid)
     ) {
@@ -648,6 +679,7 @@ export function armSession(
   agent?: string,
   taskId?: string,
   root?: string,
+  declaredDeliverables?: DeliverableEntry[],
 ): GateConfirmResult {
   const store = loadGateStore(root);
   const session = sessionId ? store.sessions[sessionId] : undefined;
@@ -682,14 +714,30 @@ export function armSession(
     };
   }
 
+  // ── Deliverables hard constraint validation ──
+  const EXEMPT_AGENTS = ['@Orchestrator', '@Super-Admin', 'Orchestrator', 'Super-Admin'];
+  const resolvedAgent = agent || session.agent || 'unknown';
+  const isExempt = EXEMPT_AGENTS.some(
+    (exempt) => resolvedAgent === exempt || `@${resolvedAgent}` === exempt,
+  );
+
+  if (!isExempt && (!declaredDeliverables || declaredDeliverables.length === 0)) {
+    return {
+      status: 'rejected',
+      reason: `declared_deliverables is REQUIRED for agent "${resolvedAgent}". Exempt agents: @Orchestrator, @Super-Admin.`,
+    };
+  }
+
   session.gate_status = 'armed';
   session.plan_summary = planSummary.trim();
   session.confirmed_at = new Date().toISOString();
   session.last_check_failed_items = [];
   session.task_id = taskId || session.task_id || null;
-  session.agent = agent || session.agent || 'unknown';
+  session.agent = resolvedAgent;
   session.worktree = process.cwd();
   session.expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  session.declared_deliverables = declaredDeliverables;
+  session.approval_required = !isExempt;
 
   // Clean active_sessions
   store.active_sessions = store.active_sessions.filter((sid) => {
@@ -732,11 +780,29 @@ export function completeSession(
     };
   }
 
-  if (session.gate_status !== 'armed') {
-    return {
-      status: 'rejected',
-      reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
-    };
+  // ── State gate: approval_required sessions must be 'approved', exempt can be 'armed' ──
+  if (session.approval_required) {
+    if (session.gate_status !== 'approved') {
+      let guidance = '';
+      if (session.gate_status === 'armed') {
+        guidance = 'Must call submitDeliverables first, then wait for Orchestrator approval.';
+      } else if (session.gate_status === 'delivered') {
+        guidance = 'Awaiting Orchestrator approval.';
+      } else {
+        guidance = 'Must call compliance_gate_confirm first.';
+      }
+      return {
+        status: 'rejected',
+        reason: `session ${sessionId} requires Orchestrator approval (status: ${session.gate_status}). ${guidance}`,
+      };
+    }
+  } else {
+    if (session.gate_status !== 'armed') {
+      return {
+        status: 'rejected',
+        reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
+      };
+    }
   }
 
   if (session.consumed_at) {
@@ -845,6 +911,113 @@ export function completeSession(
   };
 }
 
+/**
+ * Submit deliverables evidence for a gate session.
+ * Transitions: armed → delivered (or armed → recoverable if artifacts missing).
+ * @public — Deliverables submission API
+ */
+export function submitDeliverables(
+  sessionId: string,
+  deliverablesEvidence: DeliverableEvidence[],
+  root?: string,
+): { status: string; session_id: string; reason?: string } {
+  const store = loadGateStore(root);
+  const session = sessionId ? store.sessions[sessionId] : undefined;
+
+  if (!session) {
+    return { status: 'rejected', session_id: sessionId, reason: `session not found: ${sessionId}` };
+  }
+  if (session.gate_status !== 'armed') {
+    return { status: 'rejected', session_id: sessionId, reason: `session ${sessionId} is not armed (status: ${session.gate_status})` };
+  }
+  if (!deliverablesEvidence || deliverablesEvidence.length === 0) {
+    return { status: 'rejected', session_id: sessionId, reason: 'deliverables_evidence must be non-empty' };
+  }
+
+  const now = new Date().toISOString();
+  const evidenceWithTimestamps = deliverablesEvidence.map((ev) => ({
+    ...ev,
+    submitted_at: now,
+  }));
+
+  // Validate artifacts exist (HANDOVER.md + TASK_LOG.md)
+  const taskId = session.task_id || sessionId;
+  const taskDir = path.join(getProjectRoot(), '.task_temp', taskId || '');
+  const missing: string[] = [];
+
+  if (!fs.existsSync(path.join(taskDir, 'HANDOVER.md'))) missing.push('HANDOVER.md');
+  if (!fs.existsSync(path.join(taskDir, 'TASK_LOG.md'))) missing.push('TASK_LOG.md');
+
+  if (missing.length > 0) {
+    session.gate_status = 'recoverable';
+    session.submitted_deliverables = evidenceWithTimestamps;
+    session.fail_reason = `Missing deliverable artifacts: ${missing.join(', ')}`;
+    session.missing_artifacts = missing;
+    store.last_updated = now;
+    saveGateStore(store, root);
+    return { status: 'recoverable', session_id: sessionId, reason: `Missing: ${missing.join(', ')}` };
+  }
+
+  session.gate_status = 'delivered';
+  session.submitted_deliverables = evidenceWithTimestamps;
+  store.last_updated = now;
+  saveGateStore(store, root);
+  return { status: 'delivered', session_id: sessionId };
+}
+
+/**
+ * Approve or reject submitted deliverables.
+ * @public — Deliverables approval API (Orchestrator/Super-Admin only)
+ */
+export function approveDeliverables(
+  sessionId: string,
+  decision: 'approve' | 'reject',
+  approvalNote?: string,
+  executionSummary?: string,
+  root?: string,
+): { status: string; session_id: string; reason?: string } {
+  const store = loadGateStore(root);
+  const session = sessionId ? store.sessions[sessionId] : undefined;
+
+  if (!session) {
+    return { status: 'rejected', session_id: sessionId, reason: `session not found: ${sessionId}` };
+  }
+  if (session.gate_status !== 'delivered') {
+    return { status: 'rejected', session_id: sessionId, reason: `session ${sessionId} is not in delivered state` };
+  }
+
+  const now = new Date().toISOString();
+
+  if (decision === 'approve') {
+    session.deliverables_approved_by = 'Orchestrator';
+    session.deliverables_approved_at = now;
+    session.deliverables_approval_note = approvalNote || null;
+    session.gate_status = 'approved';
+
+    if (executionSummary) {
+      session.gate_status = 'completed';
+      session.consumed_at = now;
+      session.audit = { execution_summary: executionSummary.substring(0, 1000), completed_at: now };
+      store.active_sessions = store.active_sessions.filter((sid) => sid !== sessionId);
+    }
+
+    store.last_updated = now;
+    saveGateStore(store, root);
+    return { status: session.gate_status, session_id: sessionId };
+  }
+
+  if (decision === 'reject') {
+    session.gate_status = 'armed';
+    session.deliverables_approval_note = approvalNote || 'rejected';
+    session.submitted_deliverables = undefined;
+    store.last_updated = now;
+    saveGateStore(store, root);
+    return { status: 'rejected', session_id: sessionId, reason: approvalNote || 'rejected' };
+  }
+
+  return { status: 'rejected', session_id: sessionId, reason: `Invalid decision: ${decision}` };
+}
+
 // ════════════════════════════════════════════════════════════
 // STALE SESSION MANAGEMENT
 // ════════════════════════════════════════════════════════════
@@ -864,6 +1037,7 @@ export function drainStaleSessions(
   remaining_total: number;
   drained_armed: number;
   drained_checked: number;
+  drained_delivered: number;
 } {
   const gateFile = getGateStatePath(root);
   const store = loadGateStore(root);
@@ -878,6 +1052,7 @@ export function drainStaleSessions(
   let purged = 0;
   let drainedArmed = 0;
   let drainedChecked = 0;
+  let drainedDelivered = 0;
   const drainedIds: string[] = [];
 
   for (const sid of Object.keys(store.sessions)) {
@@ -906,6 +1081,19 @@ export function drainStaleSessions(
       }
     }
 
+    // Delivered state: drain after 4 hours without Orchestrator approval
+    if (ses.gate_status === 'delivered' && ses.submitted_deliverables) {
+      const submittedAt = ses.submitted_deliverables[0]?.submitted_at;
+      if (submittedAt) {
+        const age = nowTs - new Date(submittedAt).getTime();
+        if (age > 4 * 3600000) {
+          shouldDrain = true;
+          drainType = 'STALE_DELIVERED';
+          reason = `delivered for ${Math.floor(age / 3600000)}h without Orchestrator approval (threshold: 4h)`;
+        }
+      }
+    }
+
     if (shouldDrain) {
       drainedStore.drained_sessions[sid] = {
         ...ses,
@@ -919,6 +1107,7 @@ export function drainStaleSessions(
       drainedIds.push(sid);
       if (drainType === 'STALE_ARMED') drainedArmed++;
       if (drainType === 'STALE_CHECKED') drainedChecked++;
+      if (drainType === 'STALE_DELIVERED') drainedDelivered++;
     }
   }
 
@@ -935,6 +1124,7 @@ export function drainStaleSessions(
     drained_sessions: drainedIds,
     drained_armed: drainedArmed,
     drained_checked: drainedChecked,
+    drained_delivered: drainedDelivered,
     remaining_active: store.active_sessions.length,
     remaining_total: Object.keys(store.sessions).length,
   };

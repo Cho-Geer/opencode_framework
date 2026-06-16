@@ -39,6 +39,15 @@ import {
   buildArchiveRef,
   countJsonlLines,
 } from './state-manager';
+import { writeLog } from './log-manager';
+// P3/S63-3, S63-4: Compactor DB sync (shadow DB for reconciliation + future DB-first)
+import {
+  dbSyncCompactorHot,
+  dbMarkSessionArchived,
+  dbMarkSessionDrained,
+} from './db-state-manager';
+
+const SRC = 'lib-state-compactor';
 
 // ============================================================================
 // Configuration
@@ -129,6 +138,12 @@ export class StateCompactor {
 
     // 5. Update meta counts
     this.updateMeta();
+
+    // P3/S63-3: Sync hot state to DB (non-fatal; best-effort)
+    try {
+      dbSyncCompactorHot(this.readHotState());
+      dbMarkSessionArchived(sessionId);
+    } catch { /* DB unavailable — JSON remains primary */ }
   }
 
   /**
@@ -145,6 +160,11 @@ export class StateCompactor {
     if (activeSession && activeSession.gate_status !== 'active') {
       await this.onGateComplete(sessionId, activeSession);
     }
+
+    // P3/S63-3: Sync hot state to DB
+    try {
+      dbSyncCompactorHot(this.readHotState());
+    } catch { /* best-effort */ }
   }
 
   /**
@@ -193,6 +213,14 @@ export class StateCompactor {
     this.writeHotState(hotState);
     this.updateMeta();
 
+    // P3/S63-3: Sync archived sessions to DB
+    try {
+      dbSyncCompactorHot(this.readHotState());
+      for (const sid of oldSessionIds) {
+        dbMarkSessionArchived(sid);
+      }
+    } catch { /* best-effort */ }
+
     return { archivedCount: oldSessionIds.length };
   }
 
@@ -223,6 +251,11 @@ export class StateCompactor {
     if (drainedCount > 0) {
       this.writeHotState(hotState);
       this.updateMeta();
+
+      // P3/S63-3: Sync drained sessions to DB
+      try {
+        dbSyncCompactorHot(this.readHotState());
+      } catch { /* best-effort */ }
     }
 
     return drainedCount;
@@ -267,7 +300,7 @@ export class StateCompactor {
       writeFileSync(historyFile, line, { flag: 'a' }); // 'a' = append mode
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[state-compactor] Failed to append to history file ${historyFile}: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'HISTORY-APPEND-FAILED', detail: `historyFile=${historyFile} err=${message}` });
       throw error;
     }
 
@@ -292,7 +325,7 @@ export class StateCompactor {
       return JSON.parse(readFileSync(this.indexFile, 'utf8')) as GateStateIndex;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[state-compactor] Failed to parse ${this.indexFile}: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'INDEX-PARSE-FAILED', detail: `indexFile=${this.indexFile} err=${message}` });
       return { formatVersion: '3.0', sessions: {} };
     }
   }
@@ -305,7 +338,7 @@ export class StateCompactor {
       writeFileSync(this.indexFile, JSON.stringify(index, null, 2));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[state-compactor] Failed to write ${this.indexFile}: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'INDEX-WRITE-FAILED', detail: `indexFile=${this.indexFile} err=${message}` });
       throw error;
     }
   }
@@ -363,7 +396,7 @@ export class StateCompactor {
       return data as GateStateHot;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[state-compactor] Failed to parse ${this.hotFile}: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'HOT-PARSE-FAILED', detail: `hotFile=${this.hotFile} err=${message}` });
       throw error;
     }
   }
@@ -376,7 +409,7 @@ export class StateCompactor {
       writeFileSync(this.hotFile, JSON.stringify(state, null, 2));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[state-compactor] Failed to write ${this.hotFile}: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'HOT-WRITE-FAILED', detail: `hotFile=${this.hotFile} err=${message}` });
       throw error;
     }
   }
@@ -478,7 +511,7 @@ export class StateCompactor {
       return JSON.parse(readFileSync(this.archiveFile, 'utf8')) as GateStateArchive;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[state-compactor] Failed to parse ${this.archiveFile}: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'ARCHIVE-PARSE-FAILED', detail: `archiveFile=${this.archiveFile} err=${message}` });
       return {
         formatVersion: '3.0',
         archived_at: new Date().toISOString(),
@@ -496,7 +529,7 @@ export class StateCompactor {
       writeFileSync(this.archiveFile, JSON.stringify(archive, null, 2));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[state-compactor] Failed to write ${this.archiveFile}: ${message}`);
+      writeLog(SRC, 'ERROR', { event: 'ARCHIVE-WRITE-FAILED', detail: `archiveFile=${this.archiveFile} err=${message}` });
       throw error;
     }
   }

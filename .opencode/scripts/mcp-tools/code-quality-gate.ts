@@ -59,21 +59,27 @@ const { execSync } = require("child_process");
  */
 const { writeLog } = require("../../lib/log-manager");
 
-// ─── State Transaction Engine (RVW-REVIEW-01) ─────────────────────
-const {
-  beginTransaction,
-  initializeTransactionSystem,
-} = require("../state-transaction");
+// ─── Atomic Write (Sub-State Split) ────────────────────────────────────────────
+/**
+ * FW-REPAIR-P1B-IMPORT: atomicWriteSubState is defined in state-utils.ts, not
+ * substate-manager.ts. Split import to avoid runtime import errors.
+ */
+const { atomicWriteSubState } = require("../../lib/state-utils");
+const { writeSubState, readSubState, writeMachineMeta, readMachineMeta } = require("../../lib/substate-manager");
+
+// Sub-state keys that callers typically modify
+const SUB_STATE_KEYS = [
+  "write_audit_state",
+  "eslint_state",
+  "type_check_state",
+  "dependency_state",
+  "format_state",
+  "tdd_enforcement_state",
+  "compliance_records",
+];
 
 // ─── Workspace-Root Canonicalization (RVW-REVIEW-02) ─────────
 const stateCanon = require("../state-canonicalize");
-let _cqTxnInitialized = false;
-function ensureCqTxnInit() {
-  if (!_cqTxnInitialized) {
-    initializeTransactionSystem();
-    _cqTxnInitialized = true;
-  }
-}
 
 // ─── Constants ────────────────────────────────────────────
 /**
@@ -217,7 +223,21 @@ function getDefaultMachine() {
 
 function getMachine() {
   try {
-    const raw = JSON.parse(fs.readFileSync(getStatePath(), "utf-8"));
+    // Read meta + contracts from machine.json (slim file)
+    const meta = readMachineMeta();
+
+    // Read all sub-states from their own files
+    const raw = { ...meta };
+    for (const key of SUB_STATE_KEYS) {
+      raw[key] = readSubState(key);
+    }
+
+    // Also read keystone_hashes and knowledge_state if they exist
+    raw.keystone_hashes = readSubState("keystone_hashes");
+    raw.knowledge_state = readSubState("knowledge_state");
+    raw.knowledge_cache_state = readSubState("knowledge_cache_state");
+    raw.knowledge_audit_state = readSubState("knowledge_audit_state");
+    raw.transaction_state = readSubState("transaction_state");
 
     // ─── Cross-Workspace Bootstrap Validation (FW-REPAIR-09) ───
     const integrity = stateCanon.validateWorkspaceIntegrity(raw, OPENCODE_ROOT);
@@ -289,51 +309,51 @@ function getMachine() {
   }
 }
 
-function writeMachine(machine) {
-  if (!machine.meta) {
-    machine.meta = {
-      version: "1.0.0",
-      createdAt: new Date().toISOString(),
-      lastUpdated: null,
-    };
-  }
-  machine.meta.lastUpdated = new Date().toISOString();
+function writeMachine(callerMachine) {
+  // Pre-process caller's machine: sanitize and canonicalize paths
+  stateCanon.sanitizePathsInMachine(callerMachine, OPENCODE_ROOT);
+  stateCanon.canonicalizePathsInMachine(callerMachine, OPENCODE_ROOT);
 
-  // ─── Pre-Write Path Sanitization (FW-REPAIR-09) ───
-  stateCanon.sanitizePathsInMachine(machine, OPENCODE_ROOT);
-
-  // ─── Pre-Write Canonicalization: Convert to relative paths (RVW-REVIEW-02) ───
-  stateCanon.canonicalizePathsInMachine(machine, OPENCODE_ROOT);
-
-  const statePath = getStatePath();
-  ensureStateDir(path.dirname(statePath));
-  const content = JSON.stringify(machine, null, 2) + "\n";
-
-  // ─── Transactional Write (RVW-REVIEW-01) ───
-  ensureCqTxnInit();
-  const agent =
-    machine.write_audit_state?.current_session?.agent || "@Architect";
-  const taskId =
-    machine.write_audit_state?.current_session?.task_id || "unknown";
-  try {
-    const txn = beginTransaction(statePath, agent, taskId);
-    txn.prepare(content);
-    txn.commit();
-    /**
-     * FW-LOG-UNIFY-P2-A2 (2026-06-12): Migrated from process.stderr.write to writeLog.
-     */
-    writeLog("mcp-code-quality-gate", "INFO", {
-      event: "txn_committed", operationId: txn.operationId, newRevision: txn.newRevision,
-    });
-  } catch (txnErr) {
-    process.stderr.write(
-      `[code-quality-gate] ⚠ Transaction failed (${txnErr.message}), falling back to direct write\n`,
-    );
-    // FW-LOG-UNIFY-P2-A2: DUAL-WRITE transaction failure
+  // Write meta + contracts to machine.json (slim file)
+  const metaOnly = {
+    meta: callerMachine.meta || {},
+    contracts: callerMachine.contracts || [],
+  };
+  const metaOk = writeMachineMeta(metaOnly);
+  if (!metaOk) {
     writeLog("mcp-code-quality-gate", "WARN", {
-      event: "txn_fallback", error: txnErr.message,
+      event: "meta_write_failed",
+      detail: "writeMachineMeta failed",
     });
-    fs.writeFileSync(statePath, content, "utf-8");
+  }
+
+  // Write each sub-state to its own file sequentially
+  let successCount = 0;
+  let failCount = 0;
+  for (const key of SUB_STATE_KEYS) {
+    if (callerMachine[key] !== undefined) {
+      const ok = writeSubState(key, callerMachine[key]);
+      if (ok) {
+        successCount++;
+      } else {
+        failCount++;
+        writeLog("mcp-code-quality-gate", "WARN", {
+          event: "substate_write_failed",
+          detail: `key=${key}`,
+        });
+      }
+    }
+  }
+
+  if (failCount > 0) {
+    process.stderr.write(
+      `[code-quality-gate] ⚠ ${failCount} sub-state write(s) failed\n`,
+    );
+  } else {
+    writeLog("mcp-code-quality-gate", "INFO", {
+      event: "substates_committed",
+      detail: `${successCount} sub-state(s) written`,
+    });
   }
 }
 

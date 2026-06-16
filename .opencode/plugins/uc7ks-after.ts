@@ -4,7 +4,7 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
 import { normalizeAgentKey } from "../lib/uc7ks-schema";
-import { atomicWriteMachine } from "../lib/uc7ks-schema";
+import { atomicWriteSubState } from "../lib/state-utils";
 
 export default withPluginLifecycle("uc7ks-after", { "tool.execute.after": toolExecuteAfter });
 
@@ -17,7 +17,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   // after-hook: args live in input.args
   const filePath = getModifyPath(input.args || {});
 
-  // Track knowledge cache reads — update machine.json.knowledge_cache_state
+  // Track knowledge cache reads — update knowledge-cache-state.json (P1-B split)
   if (input.tool === "read" && filePath && filePath.includes("docs/official_docs/")) {
     const rawAgent = resolveAgent(input.sessionID);
     const agent = normalizeAgentKey(rawAgent);
@@ -26,17 +26,16 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       event: "TOOL-AFTER",
       detail: `cache-read | agent=${agent} | file=${filePath}`,
     });
-    // Update machine.json knowledge_cache_state
+    // Update knowledge-cache-state.json
     try {
-      atomicWriteMachine((m) => {
-        m.knowledge_cache_state = m.knowledge_cache_state || { session_access: {} };
-        m.knowledge_cache_state.session_access = m.knowledge_cache_state.session_access || {};
-        m.knowledge_cache_state.session_access[agent] = m.knowledge_cache_state.session_access[agent] || {};
-        m.knowledge_cache_state.session_access[agent].uc7_001_compliant = true;
-        m.knowledge_cache_state.session_access[agent].last_read_at = new Date().toISOString();
-        m.knowledge_cache_state.session_access[agent].last_file_read = filePath;
-        m.knowledge_cache_state.session_access[agent].total_cache_reads =
-          (m.knowledge_cache_state.session_access[agent].total_cache_reads || 0) + 1;
+      atomicWriteSubState("knowledge_cache_state", (state) => {
+        state.session_access = state.session_access || {};
+        state.session_access[agent] = state.session_access[agent] || {};
+        state.session_access[agent].uc7_001_compliant = true;
+        state.session_access[agent].last_read_at = new Date().toISOString();
+        state.session_access[agent].last_file_read = filePath;
+        state.session_access[agent].total_cache_reads =
+          (state.session_access[agent].total_cache_reads || 0) + 1;
       });
     } catch (err: any) {
       writeLog("uc7ks-after", "runtime", {

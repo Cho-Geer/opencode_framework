@@ -21,6 +21,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+// P3/G11: cross-process TOCTOU baseline (DB-backed).
+// These imports are optional — if DB fails, fallback to in-process registry only.
+import {
+  dbReadFileBaseline,
+  dbWriteFileBaseline,
+  dbDeleteFileBaseline,
+  type FileBaselineSnapshot,
+} from './db-state-manager';
+
 // ════════════════════════════════════════════════════════════
 // TYPES
 // ════════════════════════════════════════════════════════════
@@ -81,6 +90,103 @@ const _fileRegistry = new Map<string, Omit<StatSnapshot, 'path'>>();
  */
 export function clearRegistry(): void {
   _fileRegistry.clear();
+}
+
+// ════════════════════════════════════════════════════════════
+// DB BASELINE HELPERS (P3/G11: cross-process TOCTOU)
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Compute hex-encoded path hash, matching acquireLock's key format.
+ * Same path → same hash → cross-process baseline lookup works.
+ */
+function _pathHash(filePath: string): string {
+  return Buffer.from(filePath).toString('hex');
+}
+
+/**
+ * Convert a StatSnapshot to a DB-compatible FileBaselineSnapshot.
+ * Strips the 'path' field (not stored in DB); adds updated_at + process_id.
+ */
+function _statToBaseline(stat: Omit<StatSnapshot, 'path'>): FileBaselineSnapshot {
+  return {
+    inode: stat.ino,
+    size: stat.size,
+    mtime: stat.mtimeMs,
+    ctime: stat.ctimeMs,
+    dev: stat.dev,
+    updated_at: Date.now(),
+    process_id: process.pid,
+  };
+}
+
+/**
+ * Convert a DB FileBaselineSnapshot back to the in-process registry shape.
+ * Drops updated_at / process_id (not used by TOCTOU comparison).
+ */
+function _baselineToRegistry(snap: FileBaselineSnapshot): Omit<StatSnapshot, 'path'> {
+  return {
+    ino: snap.inode,
+    size: snap.size,
+    mtimeMs: snap.mtime,
+    ctimeMs: snap.ctime,
+    dev: snap.dev,
+    mode: 0, // mode not stored in DB; default 0 (safe — writeSafe restores orig mode via FW-REPAIR-14)
+  };
+}
+
+/**
+ * Resolve baseline for a file path using the dual-layer strategy:
+ *   1. Check in-process _fileRegistry (cache) — fast path.
+ *   2. If miss, check DB file_baseline_kv — cross-process visible.
+ *   3. If miss, return null (caller will populate both layers).
+ *
+ * On DB hit, the in-process cache is populated for subsequent calls.
+ * Failures during DB read are non-fatal (fallback to cache-only behavior).
+ */
+function _resolveBaseline(filePath: string): Omit<StatSnapshot, 'path'> | null {
+  const cached = _fileRegistry.get(filePath);
+  if (cached) return cached;
+
+  try {
+    const dbSnap = dbReadFileBaseline(_pathHash(filePath));
+    if (dbSnap) {
+      const reg = _baselineToRegistry(dbSnap);
+      _fileRegistry.set(filePath, reg);
+      return reg;
+    }
+  } catch {
+    // DB unavailable — fallback to cache-only (graceful degradation)
+  }
+  return null;
+}
+
+/**
+ * Populate baseline in both layers (in-process cache + DB).
+ * Called when no baseline exists (first call for this file path).
+ * Non-fatal if DB write fails — cache-only baseline still provides
+ * same-process TOCTOU protection.
+ */
+function _populateBaseline(filePath: string, stat: Omit<StatSnapshot, 'path'>): void {
+  _fileRegistry.set(filePath, stat);
+  try {
+    dbWriteFileBaseline(_pathHash(filePath), _statToBaseline(stat));
+  } catch {
+    // DB unavailable — continue with cache-only (graceful degradation)
+  }
+}
+
+/**
+ * Clear baseline from both layers after a successful write.
+ * The baseline is "consumed" — next writeSafe() call will re-establish.
+ */
+function _consumeBaseline(filePath: string): void {
+  _fileRegistry.delete(filePath);
+  try {
+    dbDeleteFileBaseline(_pathHash(filePath));
+  } catch {
+    // DB unavailable — cache-only clear is sufficient for same-process
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -529,23 +635,22 @@ export function writeSafe(
       fs.renameSync(tmpBackup, backupPathStr);
     }
 
-    // Phase 3: Registry-based TOCTOU detection
+    // Phase 3: DB-backed TOCTOU baseline (P3/G11: cross-process)
+    // Dual-layer resolution: in-process cache (fast) → DB file_baseline_kv (cross-process).
+    // On first-ever call for this path: populate baseline and proceed (no failure return).
     const registryKey = resolvedPath;
-    if (!_fileRegistry.has(registryKey)) {
-      _fileRegistry.set(registryKey, {
+    const existingBaseline = _resolveBaseline(registryKey);
+    if (!existingBaseline) {
+      _populateBaseline(registryKey, {
         ino: origStat.ino,
         size: origStat.size,
         mtimeMs: origStat.mtimeMs,
         ctimeMs: origStat.ctimeMs,
         dev: origStat.dev,
+        mode: origStat.mode,
       });
-      if (backupPathStr) {
-        try { fs.rmSync(backupPathStr, { force: true }); } catch { /* ignore */ }
-      }
-      return {
-        success: false,
-        error: 'TOCTOU race detected: no baseline audit in registry — first call establishes baseline, call writeSafe again to verify',
-      };
+      // P3/G11: No longer fail on first call — baseline now established, proceed with write.
+      // The origStat captured in Phase 1 matches the baseline, so Phase 4 will pass.
     }
 
     // Phase 4: Re-stat to detect changes
@@ -622,7 +727,24 @@ export function writeSafe(
       return { success: false, error: `Write verification failed: ${msg} — rolled back` };
     }
 
-    // Phase 7: Success — registry and backup preserved
+    // Phase 7: Success — refresh baseline in both layers (P3/G11)
+    // After write, the file's size/mtime/ctime changed. Establish a new baseline
+    // matching the post-write state so the next writeSafe() call compares correctly.
+    // (The old baseline is now stale — if left, Phase 4 would detect a spurious TOCTOU.)
+    try {
+      const newStat = captureStat(resolvedPath);
+      _populateBaseline(registryKey, {
+        ino: newStat.ino,
+        size: newStat.size,
+        mtimeMs: newStat.mtimeMs,
+        ctimeMs: newStat.ctimeMs,
+        dev: newStat.dev,
+        mode: newStat.mode,
+      });
+    } catch {
+      // best-effort baseline refresh; if it fails, next call re-establishes
+    }
+
     // SA-IMPL-BACKUP-LIFECYCLE: Opportunistic cleanup of stale backups
     try {
       cleanupStaleBackups(
@@ -776,21 +898,21 @@ export function writeSafeFull(
       return { success: false, error: `Write verification failed: ${msg}` };
     }
 
-    // Phase 2d: Register baseline for future TOCTOU checks
+    // Phase 2d: Register baseline in both layers (P3/G11)
+    // Ensures subsequent writeSafe() calls on this new file have a cross-process baseline.
     try {
       const newStat = captureStat(absPath);
       const regKey = absPath;
-      if (!_fileRegistry.has(regKey)) {
-        _fileRegistry.set(regKey, {
-          ino: newStat.ino,
-          size: newStat.size,
-          mtimeMs: newStat.mtimeMs,
-          ctimeMs: newStat.ctimeMs,
-          dev: newStat.dev,
-        });
-      }
+      _populateBaseline(regKey, {
+        ino: newStat.ino,
+        size: newStat.size,
+        mtimeMs: newStat.mtimeMs,
+        ctimeMs: newStat.ctimeMs,
+        dev: newStat.dev,
+        mode: newStat.mode,
+      });
     } catch {
-      // best-effort registry population
+      // best-effort baseline population
     }
 
     return { success: true };
@@ -839,20 +961,20 @@ export function safeDelete(
     const resolvedPath = fs.realpathSync(absPath);
     const origStat = captureStat(resolvedPath);
 
-    // TOCTOU: registry check
+    // TOCTOU: dual-layer baseline resolution (P3/G11: cross-process)
+    // On first-ever call for this path: populate baseline and proceed (no failure return).
     const registryKey = resolvedPath;
-    if (!_fileRegistry.has(registryKey)) {
-      _fileRegistry.set(registryKey, {
+    const existingBaseline = _resolveBaseline(registryKey);
+    if (!existingBaseline) {
+      _populateBaseline(registryKey, {
         ino: origStat.ino,
         size: origStat.size,
         mtimeMs: origStat.mtimeMs,
         ctimeMs: origStat.ctimeMs,
         dev: origStat.dev,
+        mode: origStat.mode,
       });
-      return {
-        success: false,
-        error: "TOCTOU: first call establishes baseline, call safeDelete again",
-      };
+      // P3/G11: No longer fail on first call — baseline established, proceed with delete.
     }
 
     // Re-stat for TOCTOU
@@ -890,6 +1012,10 @@ export function safeDelete(
         false,
       );
     } catch { /* non-critical */ }
+
+    // P3/G11: Consume baseline (file is gone; baseline no longer valid).
+    // Next writeSafe on this path will re-establish via _populateBaseline.
+    _consumeBaseline(registryKey);
 
     return { success: true, backupPath: backupPathStr };
   } catch (e: unknown) {

@@ -3,6 +3,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { readCacheSufficiency, getSufficientDomains } from "./uc7ks-schema";
+import { readSubState } from "./substate-manager";
+import { writeLog } from "./log-manager";
+
+const SRC = "lib-uc7ks-utils";
 
 const INDEX_PATH = "docs/official_docs/index.json";
 
@@ -28,12 +32,14 @@ export function isLocalCacheAvailable(): boolean {
 
 export function readCachedSessionAccess(agentKey: string): any {
   try {
-    const mp = path.join(process.env.OPENCODE_ROOT || ".", ".opencode", "state", "machine.json");
-    if (fs.existsSync(mp)) {
-      const m = JSON.parse(fs.readFileSync(mp, "utf8"));
-      return m?.knowledge_cache_state?.session_access?.[agentKey] || null;
-    }
-  } catch {}
+    const kcs = readSubState("knowledge_cache_state");
+    return kcs?.session_access?.[agentKey] || null;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "READ-CACHED-SESSION-ACCESS-FAILED",
+      detail: `agentKey=${agentKey} err=${e.message}`,
+    });
+  }
   return null;
 }
 
@@ -68,12 +74,14 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
 
   let agentReadCache = false;
   try {
-    const mp = path.join(process.env.OPENCODE_ROOT || ".", ".opencode", "state", "machine.json");
-    if (fs.existsSync(mp)) {
-      const m = JSON.parse(fs.readFileSync(mp, "utf8"));
-      agentReadCache = !!m?.knowledge_cache_state?.session_access?.[agent]?.uc7_001_compliant;
-    }
-  } catch {}
+    const kcs = readSubState("knowledge_cache_state");
+    agentReadCache = !!kcs?.session_access?.[agent]?.uc7_001_compliant;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "UC7KS-COMPLIANT-CHECK-FAILED",
+      detail: `agent=${agent} err=${e.message}`,
+    });
+  }
 
   if (!agentReadCache && cacheAvailable) {
     return buildUC7KSError(agent, tool, mode, true, "UC7-001: Agent has not read local knowledge cache before external query.");
@@ -82,82 +90,84 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
   // ── F3: Per-domain sufficiency check with nested schema fallback ──
   if (agentReadCache && cacheAvailable) {
     try {
-      const mp = path.join(process.env.OPENCODE_ROOT || ".", ".opencode", "state", "machine.json");
-      if (fs.existsSync(mp)) {
-        const m = JSON.parse(fs.readFileSync(mp, "utf8"));
-        const sa = m?.knowledge_cache_state?.session_access || {};
-        const agentKey = agent.replace(/^@/, "");
+      const kcs = readSubState("knowledge_cache_state");
+      const sa = kcs?.session_access || {};
+      const agentKey = agent.replace(/^@/, "");
 
-        // Try nested: find any completed domain with sufficient cache for this agent
-        let hasSufficientCache = false;
-        let suff: any = null;
-        let evidenceOk = true;
+      // Try nested: find any completed domain with sufficient cache for this agent
+      let hasSufficientCache = false;
+      let suff: any = null;
+      let evidenceOk = true;
 
-        const agentEntry = sa[agent] || sa[agentKey];
+      const agentEntry = sa[agent] || sa[agentKey];
+      if (agentEntry?.tasks) {
+        for (const tid of Object.keys(agentEntry.tasks)) {
+          for (const domain of Object.keys(agentEntry.tasks[tid].domains || {})) {
+            const d = agentEntry.tasks[tid].domains[domain];
+            if (d.pipeline_status === "completed" && d.cache_sufficiency?.status === "sufficient") {
+              hasSufficientCache = true;
+              suff = d.cache_sufficiency;
+              break;
+            }
+          }
+          if (hasSufficientCache) break;
+        }
+      }
+
+      // Fall back to legacy flat (F3: backward compat)
+      if (!hasSufficientCache) {
+        const flat = agentEntry || {};
+        if (flat.cache_sufficiency?.status === "sufficient") {
+          hasSufficientCache = true;
+          suff = flat.cache_sufficiency;
+        }
+      }
+
+      if (!hasSufficientCache) {
+        // Check for any insufficient cache
+        let hasAnyCache = false;
         if (agentEntry?.tasks) {
           for (const tid of Object.keys(agentEntry.tasks)) {
             for (const domain of Object.keys(agentEntry.tasks[tid].domains || {})) {
               const d = agentEntry.tasks[tid].domains[domain];
-              if (d.pipeline_status === "completed" && d.cache_sufficiency?.status === "sufficient") {
-                hasSufficientCache = true;
-                suff = d.cache_sufficiency;
+              if (d.cache_sufficiency?.status === "insufficient") {
+                hasAnyCache = true;
                 break;
               }
             }
-            if (hasSufficientCache) break;
+            if (hasAnyCache) break;
           }
         }
-
-        // Fall back to legacy flat (F3: backward compat)
-        if (!hasSufficientCache) {
+        if (!hasAnyCache) {
           const flat = agentEntry || {};
-          if (flat.cache_sufficiency?.status === "sufficient") {
-            hasSufficientCache = true;
-            suff = flat.cache_sufficiency;
-          }
-        }
-
-        if (!hasSufficientCache) {
-          // Check for any insufficient cache
-          let hasAnyCache = false;
-          if (agentEntry?.tasks) {
-            for (const tid of Object.keys(agentEntry.tasks)) {
-              for (const domain of Object.keys(agentEntry.tasks[tid].domains || {})) {
-                const d = agentEntry.tasks[tid].domains[domain];
-                if (d.cache_sufficiency?.status === "insufficient") {
-                  hasAnyCache = true;
-                  break;
-                }
-              }
-              if (hasAnyCache) break;
-            }
-          }
-          if (!hasAnyCache) {
-            const flat = agentEntry || {};
-            if (flat.cache_sufficiency?.status === "insufficient") hasAnyCache = true;
-            else if (!flat.cache_sufficiency?.status || flat.cache_sufficiency.status === "undeclared") {
-              return buildUC7KSError(agent, tool, mode, true,
-                `UC7-001b: Cache sufficiency not declared (status: ${flat.cache_sufficiency?.status || "undeclared"}). See subagent-preamble.md Step 0c.`);
-            }
-          }
-        }
-
-        // UC7-001c HARDEN: Verify evidence fields
-        if (suff) {
-          const missing: string[] = [];
-          if (!suff.reason || suff.reason.length === 0) missing.push("reason");
-          if (!suff.files_read || !Array.isArray(suff.files_read) || suff.files_read.length === 0) {
-            if (suff.status === "sufficient") missing.push("files_read");
-          }
-          if (!suff.content_summary || suff.content_summary.length === 0) missing.push("content_summary");
-          if (missing.length > 0) {
+          if (flat.cache_sufficiency?.status === "insufficient") hasAnyCache = true;
+          else if (!flat.cache_sufficiency?.status || flat.cache_sufficiency.status === "undeclared") {
             return buildUC7KSError(agent, tool, mode, true,
-              `UC7-001c: Cache sufficiency evidence incomplete. Missing: ${missing.join(", ")}. ` +
-              `Must provide reason, files_read, and content_summary. See preamble Step 0.`);
+              `UC7-001b: Cache sufficiency not declared (status: ${flat.cache_sufficiency?.status || "undeclared"}). See subagent-preamble.md Step 0c.`);
           }
         }
       }
-    } catch {}
+
+      // UC7-001c HARDEN: Verify evidence fields
+      if (suff) {
+        const missing: string[] = [];
+        if (!suff.reason || suff.reason.length === 0) missing.push("reason");
+        if (!suff.files_read || !Array.isArray(suff.files_read) || suff.files_read.length === 0) {
+          if (suff.status === "sufficient") missing.push("files_read");
+        }
+        if (!suff.content_summary || suff.content_summary.length === 0) missing.push("content_summary");
+        if (missing.length > 0) {
+          return buildUC7KSError(agent, tool, mode, true,
+            `UC7-001c: Cache sufficiency evidence incomplete. Missing: ${missing.join(", ")}. ` +
+            `Must provide reason, files_read, and content_summary. See preamble Step 0.`);
+        }
+      }
+    } catch (e: any) {
+      writeLog(SRC, "ERROR", {
+        event: "UC7KS-SUFFICIENCY-CHECK-FAILED",
+        detail: `agent=${agent} err=${e.message}`,
+      });
+    }
   }
 
   if (mode === "advisory" || mode === "strict") {
@@ -196,7 +206,7 @@ export function checkUC7KSWrite(agent: string, mode: string): string | null {
     return null; // bypass: SA repairing broken cache
   }
 
-  // Check uc7_001_compliant in machine.json
+  // Check uc7_001_compliant via sub-state (knowledge-cache-state.json)
   const agentKey = agent.replace(/^@/, "");
   const sa = readCachedSessionAccess(agentKey);
   if (!sa?.uc7_001_compliant) {

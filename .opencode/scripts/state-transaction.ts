@@ -1,11 +1,41 @@
 #!/usr/bin/env bun
 /**
- * state-transaction.js — Unified State Transaction Engine
+ * state-transaction.ts — Unified State Transaction Engine
  * =======================================================
- * OpenCode v3.0 Atomic Commit Protocol for state files.
+
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * ⚠️  DEPRECATED (P3/S52-2, 2026-06-16)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * This custom WAL / two-phase commit engine is no longer the
+ * recommended path for state writes. After P2-A Step 8, all
+ * sub-state writes go through DB transactions via
+ * `atomicWriteSubState()` / `dbWriteSubState()` in lib/state-utils.ts
+ * and lib/db-state-manager.ts.
  *
- * Wraps updates to gate-state.json and machine.json in a
- * two-phase write protocol with write-ahead logging (WAL).
+ * `beginTransaction()` is retained ONLY as a legacy bridge for
+ * `compliance-gate.ts` writes to gate-state.json. A follow-up
+ * migration (P3/S52-1, dependent on S63-3/S63-4 state-compactor
+ * DB migration) will remove these call sites and fully retire
+ * beginTransaction.
+ *
+ * NEW CODE: Do NOT use beginTransaction / commitTransaction /
+ * rollbackTransaction. Use `atomicWriteSubState()` or
+ * `dbSaveGateStore()` for gate-state writes.
+ *
+ * CLI TOOLS PRESERVED: `verify`, `recover`, `log-tail`,
+ * `repair-monotonic` are kept as ops diagnostics and are not
+ * deprecated.
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * * OpenCode v3.0 Atomic Commit Protocol for state files.
+ *
+ * Wraps updates to gate-state.json in a two-phase write protocol
+ * with write-ahead logging (WAL).
+ *
+ * NOTE (P1-A CAS Unification, 2026-06-16):
+ *   All machine.json writes now use atomicWriteMachine() from
+ *   lib/state-utils.ts (CAS-on-revision with exponential backoff).
+ *   beginTransaction is retained ONLY for non-machine.json state
+ *   files (e.g., gate-state.json via compliance-gate.ts).
  *
  * Features:
  *   - UUID v4 operation IDs (zero-dependency)
@@ -33,6 +63,10 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+
+// P1-B split architecture: transaction_state lives in its own file,
+// meta lives in machine.json (only meta + contracts, ~307 bytes).
+const { readSubState, writeSubState, readMachineMeta, writeMachineMeta } = require(path.join(__dirname, "..", "lib", "substate-manager"));
 
 // ─── Constants ────────────────────────────────────────────
 const OPENCODE_ROOT =
@@ -64,7 +98,7 @@ function ensureStateDir() {
 // ─── Monotonic Revision Counter ───────────────────────────
 function getCurrentRevision() {
   try {
-    const machine = JSON.parse(fs.readFileSync(MACHINE_JSON, "utf-8"));
+    const machine = readMachineMeta();
     return machine.meta?.revision || 0;
   } catch {
     return 0;
@@ -78,10 +112,6 @@ function incrementRevision(machineObj) {
   const current = machineObj.meta.revision || 0;
   machineObj.meta.revision = current + 1;
   machineObj.meta.lastUpdated = new Date().toISOString();
-  // Update transaction state in machine.json
-  if (!machineObj.transaction_state) {
-    machineObj.transaction_state = {};
-  }
   return machineObj.meta.revision;
 }
 
@@ -249,8 +279,6 @@ class StateTransaction {
     }
 
     // ═══ Compute new revision ═══
-    // For machine.json, read the file to get/set revision counter
-    // For other files (gate-state.json), increment a file-system-level revision
     const isMachineJson = path.basename(this.filePath) === "machine.json";
     if (isMachineJson) {
       try {
@@ -264,29 +292,20 @@ class StateTransaction {
     } else {
       this.newRevision = getCurrentRevision() + 1;
       // Non-machine files: increment the machine revision to record this mutation
-      if (fs.existsSync(MACHINE_JSON)) {
-        try {
-          const machineObj = JSON.parse(fs.readFileSync(MACHINE_JSON, "utf-8"));
-          machineObj.meta.revision = this.newRevision;
-          // Update transaction_state in machine.json
-          if (!machineObj.transaction_state) {
-            machineObj.transaction_state = {};
-          }
-          machineObj.transaction_state.last_operation_id = this.operationId;
-          machineObj.transaction_state.last_transaction_at = timestamp;
-          // Write machine.json update (non-transactional for the revision bump itself)
-          // We use atomic write for this too
-          const machineTmp =
-            MACHINE_JSON + ".txn-" + this.operationId + ".rev.tmp";
-          fs.writeFileSync(
-            machineTmp,
-            JSON.stringify(machineObj, null, 2) + "\n",
-            "utf-8",
-          );
-          fs.renameSync(machineTmp, MACHINE_JSON);
-        } catch {
-          // If machine.json can't be read, just use the counter
-        }
+      // P1-B split: meta lives in machine.json, transaction_state in transaction-state.json
+      try {
+        const machineObj = readMachineMeta();
+        machineObj.meta.revision = this.newRevision;
+        machineObj.meta.lastUpdated = timestamp;
+        writeMachineMeta(machineObj);
+
+        // Update transaction_state in its dedicated sub-state file
+        const ts = readSubState("transaction_state") || {};
+        ts.last_operation_id = this.operationId;
+        ts.last_transaction_at = timestamp;
+        writeSubState("transaction_state", ts);
+      } catch {
+        // If state files can't be read, just use the counter
       }
     }
 
@@ -778,43 +797,51 @@ function initializeTransactionSystem() {
   }
 
   // ═══ Ensure machine.json has meta.revision ═══
-  if (fs.existsSync(MACHINE_JSON)) {
-    try {
-      const machine = JSON.parse(fs.readFileSync(MACHINE_JSON, "utf-8"));
-      let updated = false;
+  // P1-B split: meta stays in machine.json, transaction_state lives in its own file
+  try {
+    const machine = readMachineMeta();
+    let metaUpdated = false;
 
-      if (!machine.meta) {
-        machine.meta = {};
-        updated = true;
-      }
-      if (machine.meta.revision == null) {
-        // Set initial revision to the count of existing COMMIT entries + 1
-        const commitCount = readTransactionLog().filter(
-          (e) => e.phase === "COMMIT",
-        ).length;
-        machine.meta.revision = Math.max(1, commitCount + 1);
-        updated = true;
-      }
-      if (!machine.transaction_state) {
-        machine.transaction_state = {
-          last_operation_id: null,
-          last_transaction_at: null,
-          pending_operations: [],
-          transaction_log_path: ".opencode/state/.transaction-log",
-        };
-        updated = true;
-      }
-
-      if (updated) {
-        fs.writeFileSync(
-          MACHINE_JSON,
-          JSON.stringify(machine, null, 2) + "\n",
-          "utf-8",
-        );
-      }
-    } catch {
-      // machine.json corrupted or unreadable — state-machine-reset.sh should handle this
+    if (!machine.meta) {
+      machine.meta = {};
+      metaUpdated = true;
     }
+    if (machine.meta.revision == null) {
+      const commitCount = readTransactionLog().filter(
+        (e) => e.phase === "COMMIT",
+      ).length;
+      machine.meta.revision = Math.max(1, commitCount + 1);
+      metaUpdated = true;
+    }
+
+    if (metaUpdated) {
+      writeMachineMeta(machine);
+    }
+
+    // Ensure transaction_state sub-state file has defaults
+    const ts = readSubState("transaction_state") || {};
+    let tsUpdated = false;
+    if (!ts.last_operation_id) {
+      ts.last_operation_id = null;
+      tsUpdated = true;
+    }
+    if (!ts.last_transaction_at) {
+      ts.last_transaction_at = null;
+      tsUpdated = true;
+    }
+    if (!ts.pending_operations) {
+      ts.pending_operations = [];
+      tsUpdated = true;
+    }
+    if (!ts.transaction_log_path) {
+      ts.transaction_log_path = ".opencode/state/.transaction-log";
+      tsUpdated = true;
+    }
+    if (tsUpdated) {
+      writeSubState("transaction_state", ts);
+    }
+  } catch {
+    // Corrupted or unreadable — state-machine-reset.sh should handle this
   }
 
   return recovery;
@@ -885,18 +912,16 @@ function repairMonotonicRevision() {
 
   fs.writeFileSync(TRANSACTION_LOG, newLines.join("\n") + "\n", "utf-8");
 
-  // Update machine.json meta.revision to the max
+  // Update machine.json meta.revision to the max (P1-B: only meta stays in machine.json)
   const maxRev = commitEntries.length; // After repair, max = count
-  if (fs.existsSync(MACHINE_JSON)) {
-    try {
-      const machine = JSON.parse(fs.readFileSync(MACHINE_JSON, "utf-8"));
-      if (!machine.meta) machine.meta = {};
-      machine.meta.revision = maxRev;
-      machine.meta.lastUpdated = new Date().toISOString();
-      fs.writeFileSync(MACHINE_JSON, JSON.stringify(machine, null, 2) + "\n", "utf-8");
-    } catch {
-      issues.push("Failed to update machine.json meta.revision");
-    }
+  try {
+    const machine = readMachineMeta();
+    if (!machine.meta) machine.meta = {};
+    machine.meta.revision = maxRev;
+    machine.meta.lastUpdated = new Date().toISOString();
+    writeMachineMeta(machine);
+  } catch {
+    issues.push("Failed to update machine.json meta.revision");
   }
 
   return {
@@ -915,13 +940,13 @@ function runCLI() {
   switch (command) {
     case "verify": {
       const result = verifyTransactionLog();
-      console.log(JSON.stringify(result, null, 2));
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
       process.exit(result.valid ? 0 : 1);
     }
 
     case "recover": {
       const result = runRecoveryScan();
-      console.log(JSON.stringify(result, null, 2));
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
       process.exit(0);
     }
 
@@ -930,36 +955,32 @@ function runCLI() {
       const entries = readTransactionLog();
       const tail = entries.slice(-n);
       for (const entry of tail) {
-        console.log(JSON.stringify(entry));
+        process.stdout.write(JSON.stringify(entry) + "\n");
       }
       process.exit(0);
     }
 
     case "init": {
       const result = initializeTransactionSystem();
-      console.log(JSON.stringify(result, null, 2));
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
       process.exit(0);
     }
 
     // ═══ P5-002: Repair monotonic revision sequence ═══
     case "repair-monotonic": {
-      // Rewrite revision sequence to be strict monotonic
-      // Reads all COMMIT entries, reassigns sequential revision numbers
       const result = repairMonotonicRevision();
-      console.log(JSON.stringify(result, null, 2));
+      process.stdout.write(JSON.stringify(result, null, 2) + "\n");
       process.exit(result.success ? 0 : 1);
     }
 
     // ═══ Internal: prepare+commit in one step (for scripted use) ═══
     case "atomic-write": {
-      // Usage: bun state-transaction.ts atomic-write <filePath> <agent> <taskId>
-      // Content is read from stdin
       const filePath = args[0];
       const agent = args[1] || "unknown";
       const taskId = args[2] || "unknown";
 
       if (!filePath) {
-        console.error("ERROR: filePath required");
+        process.stderr.write("ERROR: filePath required\n");
         process.exit(1);
       }
 
@@ -970,7 +991,7 @@ function runCLI() {
         const txn = beginTransaction(filePath, agent, taskId);
         txn.prepare(content);
         const result = txn.commit();
-        console.log(JSON.stringify(result));
+        process.stdout.write(JSON.stringify(result) + "\n");
         process.exit(0);
       });
       process.stdin.resume();
@@ -978,17 +999,13 @@ function runCLI() {
     }
 
     default: {
-      console.error("Usage: bun state-transaction.ts <command> [args...]");
-      console.error("Commands:");
-      console.error("  verify          Verify transaction log integrity");
-      console.error("  recover         Run crash recovery scan");
-      console.error(
-        "  log-tail [N]    Show last N transaction log entries (default 20)",
-      );
-      console.error("  init            Initialize transaction system");
-      console.error(
-        "  atomic-write <file> <agent> <taskId>  Atomic write (content from stdin)",
-      );
+      process.stderr.write("Usage: bun state-transaction.ts <command> [args...]\n");
+      process.stderr.write("Commands:\n");
+      process.stderr.write("  verify          Verify transaction log integrity\n");
+      process.stderr.write("  recover         Run crash recovery scan\n");
+      process.stderr.write("  log-tail [N]    Show last N transaction log entries (default 20)\n");
+      process.stderr.write("  init            Initialize transaction system\n");
+      process.stderr.write("  atomic-write <file> <agent> <taskId>  Atomic write (content from stdin)\n");
       process.exit(1);
     }
   }

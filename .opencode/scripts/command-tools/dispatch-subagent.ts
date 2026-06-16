@@ -35,6 +35,8 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { deliverablesTemplateMarkdown, isExemptAgent } = require("../../lib/deliverables-templates");
+const { dbQuerySessionByDagTaskId } = require("../../lib/db-state-manager");
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
   ? path.resolve(process.env.OPENCODE_ROOT)
@@ -653,6 +655,14 @@ ${
     : `> **Agent-type note**: As a ${agentType}, Steps 5a and 5b in the P0 protocol above are informational — you may not be writing source code.`
 }
 
+### Deliverables Declaration — MANDATORY
+
+When calling \`compliance_gate_confirm\`, you MUST include \`declared_deliverables\`.
+${deliverablesTemplateMarkdown(agentType)}
+
+After writing ALL deliverables, call \`compliance_gate_submit_deliverables(session_id, evidence)\`.
+Then your session ends — Orchestrator reviews and approves deliverables to close the gate.
+
 ---
 
 ### Agent Configuration (from .opencode/agents/${agentFileEntry})
@@ -882,7 +892,27 @@ if (dedupedEntries.length > 0) {
     `prevHash=${(dedupedEntries[0].promptHash || '').substring(0, 12)} | ` +
     `newHash=${promptHash.substring(0, 12)}`,
   );
-  process.exit(1);
+
+  // ── P6/S23: RESUME BRANCH (S25 v4: DB query replaces SESSION_ID.md) ──
+  // If DISPATCH_RESUME_SESSION_ID is set, this is a resume dispatch (not a new task).
+  // Allow same dag_task_id + different promptHash when resuming a previous session.
+  // Verify the prior session exists via session_log DB table to prevent misuse.
+  const resumeSessionId = process.env.DISPATCH_RESUME_SESSION_ID || null;
+  if (resumeSessionId) {
+    const dagTaskIdForResume = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
+    const priorSession = dbQuerySessionByDagTaskId(dagTaskIdForResume);
+    if (priorSession) {
+      logInfo(`RESUME dispatch allowed: dag_task_id=${dagTaskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`);
+      // Continue — skip fatal exit, proceed to push new entry
+    } else {
+      console.error(fatalMsg);
+      logWarn(`DAG-TASK-ID REUSE BLOCKED (no session_log entry): ${dagTaskIdForResume}`);
+      process.exit(1);
+    }
+  } else {
+    console.error(fatalMsg);
+    process.exit(1);
+  }
 }
 if (queue.length < beforeDedup) {
   logInfo(

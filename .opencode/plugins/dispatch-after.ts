@@ -4,7 +4,8 @@ import * as path from "node:path";
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent, resolveTaskId, sessionLastDispatched } from "../lib/agent-resolver";
-import { capFailedEntries, atomicWriteJson } from "../lib/state-utils";
+import { atomicWriteJson } from "../lib/state-utils";
+import { dbAppendDispatchFailed } from "../lib/db-state-manager";
 
 const PENDING_FILE = ".task_temp/_dispatch/.pending.json";
 const FAILED_FILE = ".task_temp/_dispatch/.pending.json.failed";
@@ -74,18 +75,22 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     }
 
     if (stale.length > 0) {
-      // Archive stale entries to failed file
-      const ff = path.join(root, FAILED_FILE);
-      let failed: any[] = [];
-      try { if (fs.existsSync(ff)) failed = JSON.parse(fs.readFileSync(ff, "utf8")); } catch {}
+      // Archive stale entries to dispatch_failed_log DB (replaces .pending.json.failed)
       for (let i = stale.length - 1; i >= 0; i--) {
-        failed.push({ ...queue[stale[i]], failedAt: new Date().toISOString(), reason: "stale-timeout" });
+        const entry = queue[stale[i]];
+        dbAppendDispatchFailed({
+          dispatchId: entry.dispatchId || entry.filePath || "unknown",
+          promptHash: entry.promptHash,
+          filePath: entry.filePath,
+          agentType: entry.agentType || "unknown",
+          dagTaskId: entry.dagTaskId,
+          createdAt: new Date(entry.createdAt).getTime(),
+          failedAt: Date.now(),
+          reason: "stale-timeout",
+        });
         queue.splice(stale[i], 1);
       }
       atomicWriteJson(pf, queue);
-      // SA-FIX-PARALLEL-DISPATCH-20260611: Apply TTL cap before writing failed file
-      failed = capFailedEntries(failed);
-      atomicWriteJson(ff, failed);
       writeLog("dispatch-after", "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
         event: "TOOL-AFTER",
@@ -98,5 +103,36 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       level: "ERROR", event: "TOOL-AFTER",
       detail: "stale-drain failed: " + err.message,
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // DELIVERED STATE TIMEOUT WARNING:
+  // Check for gate sessions in 'delivered' state awaiting Orchestrator
+  // approval for > 2 hours. Log WARNING to alert Orchestrator.
+  // ═══════════════════════════════════════════════════════════════
+  try {
+    const { dbLoadGateStore } = require("../lib/db-state-manager");
+    const store = dbLoadGateStore();
+    if (store?.sessions) {
+      const now = Date.now();
+      const DELIVERED_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
+      for (const [sid, ses] of Object.entries(store.sessions)) {
+        if (ses.gate_status === "delivered" && ses.submitted_deliverables) {
+          const submittedAt = ses.submitted_deliverables[0]?.submitted_at;
+          if (submittedAt) {
+            const age = now - new Date(submittedAt).getTime();
+            if (age > DELIVERED_TIMEOUT_MS) {
+              writeLog("dispatch-after", "WARN", {
+                sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+                event: "DELIVERED-TIMEOUT",
+                detail: `Session ${sid} in 'delivered' state for ${Math.round(age / 3600000)}h (agent: ${ses.agent}). Orchestrator: call compliance_gate_approve_deliverables to approve or reject.`,
+              });
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    /* non-critical: gate state may not be available */
   }
 }

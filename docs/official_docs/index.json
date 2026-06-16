@@ -1,7 +1,7 @@
 {
-  "manifest_version": "1.4.1",
-  "last_updated": "2026-06-14T05:14:52.789Z",
-  "total_entries": 45,
+  "manifest_version": "1.5.0",
+  "last_updated": "2026-06-17T08:00:00.000Z",
+  "total_entries": 50,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -1402,6 +1402,188 @@
           "size_bytes": 6950,
           "created_at": "2026-06-14T05:15:00Z",
           "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "multi-agent-patterns",
+      "query_topic": "Cross-framework synthesis of multi-agent LLM architecture patterns: Anthropic workflows, AutoGen, CrewAI, LangGraph, Google A2A, OpenAI Swarm",
+      "domain": "opencode_framework",
+      "tags": [
+        "multi-agent",
+        "architecture",
+        "patterns",
+        "anthropic",
+        "autogen",
+        "crewai",
+        "langgraph",
+        "a2a",
+        "swarm",
+        "orchestration",
+        "role-decomposition",
+        "dispatch-overhead",
+        "attention-focus",
+        "context-management",
+        "single-vs-multi",
+        "handoff",
+        "group-chat",
+        "routing",
+        "parallelization",
+        "evaluator-optimizer"
+      ],
+      "files": [
+        {
+          "path": "multi-agent-patterns/cross-framework-synthesis.md",
+          "source": "context7+webfetch",
+          "original_url": "https://www.anthropic.com/research/building-effective-agents",
+          "sha256": "sha256:46396eae02598ac20288666928c9cf4e684028e7833f56e61c5e1d07aac1183e",
+          "size_bytes": 16489,
+          "created_at": "2026-06-16T14:15:00Z",
+          "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "anthropic-agents",
+      "query_topic": "Anthropic Building Effective Agents: prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer, autonomous agents",
+      "domain": "opencode_framework",
+      "tags": [
+        "anthropic",
+        "agents",
+        "workflows",
+        "prompt-chaining",
+        "routing",
+        "parallelization",
+        "orchestrator-workers",
+        "evaluator-optimizer",
+        "autonomous-agent",
+        "augmented-llm",
+        "aci",
+        "tool-design"
+      ],
+      "files": [
+        {
+          "path": "multi-agent-patterns/anthropic-building-effective-agents.md",
+          "source": "webfetch",
+          "original_url": "https://www.anthropic.com/research/building-effective-agents",
+          "sha256": "sha256:e36558675e65881e04b34205fbce54ca84f044980361fdd23d102c38a4a65e22",
+          "size_bytes": 4495,
+          "created_at": "2026-06-16T14:15:00Z",
+          "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "multi-agent-frameworks",
+      "query_topic": "Multi-agent framework architectures: Microsoft AutoGen GroupChat, CrewAI hierarchical crews, LangGraph state graphs and Send/Command, OpenAI Swarm handoffs",
+      "domain": "opencode_framework",
+      "tags": [
+        "autogen",
+        "crewai",
+        "langgraph",
+        "swarm",
+        "openai",
+        "microsoft",
+        "group-chat",
+        "hierarchical",
+        "state-graph",
+        "handoff",
+        "sequential",
+        "parallel",
+        "send",
+        "command",
+        "selector-group-chat",
+        "process-hierarchical",
+        "triage-agent"
+      ],
+      "files": [
+        {
+          "path": "multi-agent-patterns/framework-architectures.md",
+          "source": "context7",
+          "original_url": "https://github.com/microsoft/autogen",
+          "sha256": "sha256:212da85e66d18e718f171ad5f1c99ebc23fd2d697ea4429c641444a57c4cdd7e",
+          "size_bytes": 8550,
+          "created_at": "2026-06-16T14:15:00Z",
+          "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "google-a2a",
+      "query_topic": "Google Agent2Agent A2A protocol: agent discovery, agent cards, task lifecycle, interop, opaque agents, MCP complement, enterprise features",
+      "domain": "opencode_framework",
+      "tags": [
+        "a2a",
+        "google",
+        "agent-to-agent",
+        "protocol",
+        "agent-card",
+        "discovery",
+        "task-lifecycle",
+        "interop",
+        "opacity",
+        "mcp-complement",
+        "enterprise",
+        "json-rpc",
+        "grpc",
+        "sse",
+        "push-notifications",
+        "linux-foundation"
+      ],
+      "files": [
+        {
+          "path": "multi-agent-patterns/google-a2a-protocol.md",
+          "source": "webfetch",
+          "original_url": "https://a2a-protocol.org/latest/specification/",
+          "sha256": "sha256:d7d32d8e0fd84a80f7ed11c1fb0a5d74c1df284a9b1d244e2d962dd9e6c0ccb7",
+          "size_bytes": 6837,
+          "created_at": "2026-06-16T14:15:00Z",
+          "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode session storage and retrieval: SessionStore file-based JSON, Task() tool task_id parameter, Tool.Context sessionID, sessions.create/prompt/interrupt, session execution flow",
+      "domain": "opencode",
+      "tags": [
+        "opencode",
+        "sessions",
+        "session-storage",
+        "sessionId",
+        "task_id",
+        "SessionStore",
+        "file-based",
+        "JSON",
+        "Tool.Context",
+        "session-resume",
+        "session-create",
+        "session-prompt"
+      ],
+      "files": [
+        {
+          "path": "opencode/sessions/opencode-session-api.md",
+          "source": "context7+webfetch",
+          "original_url": "https://github.com/anomalyco/opencode",
+          "sha256": "sha256:ac481363c1f86cf06acd48be8a319e386277bacbcbef5e8b04812fd3ec13ab61",
+          "size_bytes": 11509,
+          "created_at": "2026-06-17T08:00:00Z",
+          "ttl_days": 30,
           "access_count": 0,
           "last_accessed": null,
           "status": "active"

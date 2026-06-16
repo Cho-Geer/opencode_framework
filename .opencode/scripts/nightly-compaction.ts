@@ -23,6 +23,13 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, renameSync, rmSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicWriteSubState } from '../lib/state-utils';
+// P3/S63-1 + S63-5: DB maintenance (stale cleanup + WAL checkpoint + weekly vacuum)
+import { dbCleanStaleEntries, getDb, dbVacuum } from '../lib/db-manager';
+// P3/S11-6: Stale baseline cleanup (from Phase 2 safe-edit-core additions)
+import { writeLog } from '../lib/log-manager';
+
+const NC_SRC = 'scripts-nightly-compaction';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '../..');
@@ -138,40 +145,76 @@ async function cleanupStaleSessionAccessStep() {
       log(`[${stepName}] machine.json not found — skip`);
       return;
     }
-    const machine = JSON.parse(readFileSync(machinePath, 'utf-8'));
-    const sa = machine?.knowledge_cache_state?.session_access;
-    if (!sa || Object.keys(sa).length === 0) {
-      log(`[${stepName}] no session_access entries — skip`);
-      return;
-    }
-    const now = Date.now();
-    const staleMs = STALE_DAYS * 24 * 60 * 60 * 1000;
     let removed = 0;
+    const ok = atomicWriteSubState("knowledge_cache_state", (kcs) => {
+      const sa = kcs?.session_access;
+      if (!sa || Object.keys(sa).length === 0) return;
+      const now = Date.now();
+      const staleMs = STALE_DAYS * 24 * 60 * 60 * 1000;
 
-    for (const key of Object.keys(sa)) {
-      let shouldRemove = false;
-      if (INVALID_KEYS.includes(key)) {
-        shouldRemove = true;
-      } else {
-        const lastRead = sa[key]?.last_read_at || sa[key]?.declared_at;
-        if (lastRead && (now - new Date(lastRead).getTime() > staleMs)) {
+      for (const key of Object.keys(sa)) {
+        let shouldRemove = false;
+        if (INVALID_KEYS.includes(key)) {
           shouldRemove = true;
+        } else {
+          const lastRead = sa[key]?.last_read_at || sa[key]?.declared_at;
+          if (lastRead && (now - new Date(lastRead).getTime() > staleMs)) {
+            shouldRemove = true;
+          }
+        }
+        if (shouldRemove) {
+          delete sa[key];
+          removed++;
         }
       }
-      if (shouldRemove) {
-        delete sa[key];
-        removed++;
-      }
-    }
+    });
 
-    if (removed > 0) {
-      writeFileSync(machinePath, JSON.stringify(machine, null, 2), 'utf-8');
-      log(`[${stepName}] Cleaned ${removed} stale/invalid session_access entries. ${Object.keys(sa).length} remaining.`);
+    if (removed > 0 && ok) {
+      log(`[${stepName}] Cleaned ${removed} stale/invalid session_access entries.`);
+    } else if (!ok) {
+      log(`[${stepName}] CAS write failed after 3 retries`);
     } else {
-      log(`[${stepName}] All ${Object.keys(sa).length} entries fresh — no cleanup needed.`);
+      log(`[${stepName}] All entries fresh — no cleanup needed.`);
     }
   } catch (err) {
     log(`[${stepName}] ERROR: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+
+// P3/S63-1 + S63-2 + S63-5: Nightly DB maintenance.
+// - dbCleanStaleEntries(): delete audit/WAL rows >7 days old (S63-1)
+// - PRAGMA wal_checkpoint(TRUNCATE): reclaim WAL space (S63-1)
+// - dbVacuum(): weekly reclaim free pages (Sundays only) (S63-5)
+async function dbMaintenanceStep() {
+  const stepName = 'db-maintenance';
+  if (DRY_RUN) {
+    log(`[${stepName}] Would clean stale audit entries (>7d), WAL checkpoint (TRUNCATE), and vacuum (Sundays) — DRY-RUN`);
+    return;
+  }
+  try {
+    // 1. Clean stale audit rows (db-manager handles all 4 tables internally)
+    const deleted = dbCleanStaleEntries();
+    log(`[${stepName}] Cleaned ${deleted} stale audit/WAL rows (>7 days)`);
+    writeLog(NC_SRC, 'INFO', { event: 'DB-CLEAN-STALE', detail: `deleted=${deleted}` });
+
+    // 2. WAL checkpoint + truncate (reclaim WAL space)
+    const db = getDb();
+    db.run('PRAGMA wal_checkpoint(TRUNCATE)');
+    log(`[${stepName}] WAL checkpoint (TRUNCATE) complete`);
+    writeLog(NC_SRC, 'INFO', { event: 'DB-WAL-CHECKPOINT', detail: 'TRUNCATE' });
+
+    // 3. Weekly vacuum (Sundays only — VACUUM is expensive, ~1-2s)
+    const dayOfWeek = new Date().getDay();
+    if (dayOfWeek === 0) {
+      const vacOk = dbVacuum();
+      log(`[${stepName}] Sunday VACUUM: ${vacOk ? 'complete' : 'failed (see log)'}`);
+      if (vacOk) writeLog(NC_SRC, 'INFO', { event: 'DB-VACUUM', detail: 'Sunday maintenance' });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`[${stepName}] ERROR: ${msg}`);
+    writeLog(NC_SRC, 'ERROR', { event: 'DB-MAINTENANCE-FAILED', detail: msg });
   }
 }
 
@@ -193,6 +236,10 @@ async function main() {
 
   // SA-IMPL-SELF-CLEANUP: Nightly cleanup of stale session_access entries
   await cleanupStaleSessionAccessStep();
+  log('');
+
+  // P3/S63-1: Nightly DB maintenance (stale cleanup + WAL checkpoint + weekly vacuum)
+  await dbMaintenanceStep();
   log('');
 
   log('Nightly compaction complete.');

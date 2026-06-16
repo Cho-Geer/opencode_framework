@@ -5,7 +5,13 @@
 // Purpose: Cross-references three state planes:
 //           1. Task.DAG.json          — task planning/execution state
 //           2. gate-state.json        — compliance gate session state
-//           3. machine.json           — write audit / enforcement state
+//           3. machine.json           — meta + contracts (write audit / eslint
+//                                      sub-states loaded via readSubState)
+//
+// P1-B split note: After the machine.json split, sub-state keys
+// (write_audit_state, eslint_state, etc.) are stored in dedicated
+// files under .opencode/state/. They are loaded via readSubState()
+// from substate-manager, not from the monolithic machine.json.
 //
 // Checks:
 //   Check 1 (DAG ↔ Gate):   Every in_progress DAG task MUST have an armed gate
@@ -24,10 +30,15 @@
 // Exit:    0 — all three state planes consistent
 //          1 — inconsistencies found (or strict mode with warnings)
 //          2 — precondition failure (missing files, parse errors)
+//
+// Logging: All output uses process.stderr.write / process.stdout.write.
+// console.log/error/warn is forbidden per MCP/CLI logging convention
+// (stdout pollution corrupts JSON-RPC protocol in MCP context).
 // ==============================================================================
 
 const fs = require('fs');
 const path = require('path');
+const { readSubState } = require('../../lib/substate-manager');
 
 /**
  * FW-LOG-UNIFY Phase 2: Lazy-load writeLog to avoid circular imports.
@@ -70,19 +81,19 @@ const warningDetails = [];
 function logInconsistency(msg) {
   INCONSISTENCIES++;
   inconsistencyDetails.push(msg);
-  if (!QUIET && !JSON_OUTPUT) console.log(`  ⚠️  ${msg}`);
+  if (!QUIET && !JSON_OUTPUT) process.stderr.write(`  ⚠️  ${msg}\n`);
   srcLog("WARN", "inconsistency", { message: msg });
 }
 
 function logWarning(msg) {
   warningDetails.push(msg);
-  if (!QUIET && !JSON_OUTPUT) console.log(`  ℹ️  ${msg}`);
+  if (!QUIET && !JSON_OUTPUT) process.stderr.write(`  ℹ️  ${msg}\n`);
   srcLog("INFO", "warning", { message: msg });
 }
 
 // Verbose output helper — suppressed in both --quiet and --json modes
 function verbose(line) {
-  if (!QUIET && !JSON_OUTPUT) console.log(line);
+  if (!QUIET && !JSON_OUTPUT) process.stderr.write(line + '\n');
 }
 
 // ─── File Loading ──────────────────────────────────────────────
@@ -91,7 +102,7 @@ function loadJSON(filePath, label) {
     const raw = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(raw);
   } catch (err) {
-    console.error(`❌ [Reconciliation] Failed to load ${label} from ${filePath}: ${err.message}`);
+    process.stderr.write(`❌ [Reconciliation] Failed to load ${label} from ${filePath}: ${err.message}\n`);
     srcLog("ERROR", "load_failed", { label, filePath, error: err.message });
     return null;
   }
@@ -104,16 +115,20 @@ if (!dag) process.exit(2);
 const gate = loadJSON(GATE_FILE, 'gate-state.json');
 if (!gate) process.exit(2);
 
+// P1-B split: machine.json now only contains meta + contracts.
+// Sub-state keys (write_audit_state, eslint_state) are loaded
+// separately via readSubState() from substate-manager.
+process.stderr.write('[reconciliation-validate] Loading machine.json (meta+contracts only, P1-B split)\n');
 const machine = loadJSON(MACHINE_FILE, 'machine.json');
 if (!machine) process.exit(2);
 
 if (!Array.isArray(dag.tasks)) {
-  console.error('❌ [Reconciliation] Task.DAG.json missing .tasks array. Cannot reconcile.');
+  process.stderr.write('❌ [Reconciliation] Task.DAG.json missing .tasks array. Cannot reconcile.\n');
   process.exit(2);
 }
 
 if (!gate.sessions || typeof gate.sessions !== 'object') {
-  console.error('❌ [Reconciliation] gate-state.json missing .sessions object. Cannot reconcile.');
+  process.stderr.write('❌ [Reconciliation] gate-state.json missing .sessions object. Cannot reconcile.\n');
   process.exit(2);
 }
 
@@ -144,7 +159,10 @@ function anySessionReferencesTask(taskId, statusFilter) {
 }
 
 // ─── Write Audit Data ──────────────────────────────────────────
-const writeAudit = machine.write_audit_state || {};
+// P1-B split: write_audit_state is now in a dedicated sub-state file,
+// no longer embedded in machine.json. Use readSubState() to load it.
+process.stderr.write('[reconciliation-validate] Loading write_audit_state via readSubState (P1-B split)\n');
+const writeAudit = readSubState("write_audit_state") || {};
 const currentSession = writeAudit.current_session || {};
 const writeHistory = writeAudit.history || [];
 const currentTaskId = currentSession.task_id || null;
@@ -197,8 +215,8 @@ for (const [sessionId, session] of armedSessions) {
 }
 
 if (!QUIET && !JSON_OUTPUT) {
-  console.log(`  DAG in_progress: ${dagInProgress.length} | Gate armed: ${armedSessions.length}`);
-  console.log('');
+  process.stderr.write(`  DAG in_progress: ${dagInProgress.length} | Gate armed: ${armedSessions.length}\n`);
+  process.stderr.write('\n');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -246,8 +264,8 @@ for (const [sessionId, session] of armedSessions) {
 }
 
 if (!QUIET && !JSON_OUTPUT) {
-  console.log(`  Current write audit: agent=${currentAgent || 'none'}, task=${currentTaskId || 'none'}`);
-  console.log('');
+  process.stderr.write(`  Current write audit: agent=${currentAgent || 'none'}, task=${currentTaskId || 'none'}\n`);
+  process.stderr.write('\n');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -287,8 +305,8 @@ for (const task of dagPending) {
 }
 
 if (!QUIET && !JSON_OUTPUT) {
-  console.log(`  DAG completed: ${dagCompleted.length} | Write audit history entries: ${writeHistory.length}`);
-  console.log('');
+  process.stderr.write(`  DAG completed: ${dagCompleted.length} | Write audit history entries: ${writeHistory.length}\n`);
+  process.stderr.write('\n');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -300,12 +318,15 @@ const dagCompletedCount = dagCompleted.length;
 const sessionTotal = sessionEntries.length;
 const gateArmedCount = armedSessions.length;
 
-// Machine state status
-const eslintStatus = ((machine.eslint_state || {}).aggregate || {}).total_violations || 0;
+// P1-B split: eslint_state is now in a dedicated sub-state file,
+// no longer embedded in machine.json. Use readSubState() to load it.
+process.stderr.write('[reconciliation-validate] Loading eslint_state via readSubState (P1-B split)\n');
+const eslintSubState = readSubState("eslint_state") || {};
+const eslintStatus = ((eslintSubState.aggregate || {}).total_violations) || 0;
 const machineStatus = eslintStatus === 0 ? 'clean' : `dirty(${eslintStatus} violations)`;
 
 if (JSON_OUTPUT) {
-  console.log(JSON.stringify({
+  process.stdout.write(JSON.stringify({
     status: INCONSISTENCIES === 0 ? 'consistent' : 'inconsistent',
     summary: {
       dag: { total: dagTotal, pending: dagPendingCount, completed: dagCompletedCount, inProgress: dagInProgress.length },
@@ -315,34 +336,34 @@ if (JSON_OUTPUT) {
     inconsistencies: inconsistencyDetails,
     warnings: warningDetails,
     exitCode: INCONSISTENCIES === 0 ? (STRICT && warningDetails.length > 0 ? 1 : 0) : 1
-  }, null, 2));
+  }, null, 2) + '\n');
 } else {
   verbose('═══════════════════════════════════════════════════════════════');
 
   if (INCONSISTENCIES === 0) {
     const statusLine = `✅ [Reconciliation] DAG(${dagTotal} tasks, ${dagPendingCount} pending) ↔ Gate(${sessionTotal} sessions, ${gateArmedCount} armed) ↔ Machine(${machineStatus}) — consistent`;
-    console.log(statusLine);
+    process.stdout.write(statusLine + '\n');
     srcLog("INFO", "reconciliation_complete", {
       status: "consistent", dagTotal, dagPendingCount, dagCompletedCount,
       sessionTotal, gateArmedCount, machineStatus, warnings: warningDetails.length,
     });
     if (STRICT && warningDetails.length > 0) {
-      console.log(`⚠️  [Reconciliation] Strict mode: ${warningDetails.length} warning(s) treated as errors.`);
+      process.stderr.write(`⚠️  [Reconciliation] Strict mode: ${warningDetails.length} warning(s) treated as errors.\n`);
       process.exit(1);
     }
     process.exit(0);
   } else {
     const statusLine = `❌ [Reconciliation] DAG(${dagTotal} tasks) ↔ Gate(${sessionTotal} sessions) ↔ Machine(${machineStatus}) — ${INCONSISTENCIES} inconsistency(ies) found`;
-    console.log(statusLine);
+    process.stdout.write(statusLine + '\n');
     srcLog("ERROR", "reconciliation_failed", {
       status: "inconsistent", dagTotal, sessionTotal, machineStatus,
       inconsistencies: INCONSISTENCIES, warnings: warningDetails.length,
     });
     if (!QUIET) {
-      console.log('');
-      console.log('Details:');
+      process.stderr.write('\n');
+      process.stderr.write('Details:\n');
       for (const detail of inconsistencyDetails) {
-        console.log(`  ${detail}`);
+        process.stderr.write(`  ${detail}\n`);
       }
     }
     process.exit(1);

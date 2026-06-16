@@ -25,6 +25,7 @@
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { writeLog } from "./log-manager";
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -481,30 +482,18 @@ export function _isScriptInAllowedPath(scriptPath: string): boolean {
 // ════════════════════════════════════════════════════════════
 
 /**
- * Log safe bash action to log file
+ * Log safe bash action via centralized writeLog (G8 fix: P2-A Step 8).
  */
 function logAction(result: SafeBashResult): void {
-  const logDir = path.join(process.cwd(), ".opencode", "logs");
-  const logFile = path.join(logDir, "safe-bash.log");
-
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
-  }
-
-  const entry = {
-    ...result,
+  writeLog("safe-bash", "INFO", {
+    event: "SAFE-BASH-ACTION",
+    command: result.command,
+    agent: result.agent,
+    exitCode: result.exitCode,
+    success: result.success,
+    duration: result.duration,
     timestamp: new Date().toISOString(),
-  };
-
-  fs.appendFileSync(logFile, JSON.stringify(entry) + "\n");
-
-  // ── P2-2: Log rotation trigger (best-effort, fire-and-forget) ──
-  try {
-    const { rotateSafeBashLogIfNeeded } = require("./dist/log-rotator");
-    rotateSafeBashLogIfNeeded().catch(() => {});
-  } catch {
-    // Best-effort: rotation module may not be compiled yet
-  }
+  });
 }
 
 // ════════════════════════════════════════════════════════════

@@ -31,6 +31,10 @@
 
 const fs = require("fs");
 const path = require("path");
+const { atomicWriteSubState, atomicWriteJson } = require("../lib/state-utils");
+const { readSubState } = require("../lib/substate-manager");
+// P3/S74-1: DB-first gate-state integrity check
+const { getDb } = require("../lib/db-manager");
 
 /**
  * FW-LOG-UNIFY-C5: Lazy-load writeLog to record reconciliation outcomes.
@@ -668,7 +672,10 @@ function reconcile(options = {}) {
   const dag = readJson(DAG_PATH);
   const gate = readJson(GATE_PATH);
   normalizeGateV3(gate); // V3→V2 shim: merge active_sessions + recent_sessions → sessions
-  const machine = readJson(MACHINE_PATH);
+  const machine = readJson(MACHINE_PATH) || {};
+  // P1-B split: Overlay sub-state keys (machine.json only contains meta + contracts after split)
+  machine.compliance_records = readSubState("compliance_records");
+  machine.write_audit_state = readSubState("write_audit_state");
 
   if (!dag) {
     return {
@@ -753,14 +760,8 @@ function reconcile(options = {}) {
     if (!check6Pre.ok && fs.existsSync(indexPath) && fs.existsSync(MACHINE_PATH)) {
       try {
         const manifest = JSON.parse(fs.readFileSync(indexPath, "utf8"));
-        const machine = JSON.parse(fs.readFileSync(MACHINE_PATH, "utf8"));
-        machine.knowledge_state = machine.knowledge_state || {};
-        const oldCount = machine.knowledge_state.total_docs_count || 0;
-        const oldSize = machine.knowledge_state.total_size_bytes || 0;
-        machine.knowledge_state.total_docs_count = manifest.entries.length;
-        // Recalculate total size from actual docs/official_docs files
-        let actualSize = 0;
         const docsDir = path.join(OPENCODE_ROOT, "docs", "official_docs");
+        let actualSize = 0;
         const walk = (dir: string) => {
           const entries = fs.readdirSync(dir, { withFileTypes: true });
           for (const e of entries) {
@@ -773,11 +774,29 @@ function reconcile(options = {}) {
           }
         };
         if (fs.existsSync(docsDir)) walk(docsDir);
-        machine.knowledge_state.total_size_bytes = actualSize;
-        fs.writeFileSync(MACHINE_PATH, JSON.stringify(machine, null, 2), "utf8");
-        console.error(
-          `[fix] check6: total_docs_count ${oldCount} → ${manifest.entries.length}, total_size_bytes ${oldSize} → ${actualSize}`,
-        );
+
+        // Read current values before writing
+        const ksPath = path.join(OPENCODE_ROOT, ".opencode", "state", "knowledge-state.json");
+        let oldCount = 0, oldSize = 0;
+        if (fs.existsSync(ksPath)) {
+          try {
+            const currentKs = JSON.parse(fs.readFileSync(ksPath, "utf8"));
+            oldCount = currentKs.total_docs_count || 0;
+            oldSize = currentKs.total_size_bytes || 0;
+          } catch {}
+        }
+
+        const ok = atomicWriteSubState("knowledge_state", (ks: any) => {
+          ks.total_docs_count = manifest.entries.length;
+          ks.total_size_bytes = actualSize;
+        });
+        if (ok) {
+          console.error(
+            `[fix] check6: total_docs_count ${oldCount} → ${manifest.entries.length}, total_size_bytes ${oldSize} → ${actualSize}`,
+          );
+        } else {
+          console.error(`[fix] check6: CAS write failed after 3 retries`);
+        }
       } catch (e: any) {
         console.error(`[fix] check6: ${e.message}`);
       }
@@ -805,12 +824,10 @@ function reconcile(options = {}) {
 
     if (gateChanged) {
       delete gate.sessions; // Remove V3→V2 virtual field before writing back
-      const gateContent = JSON.stringify(gate, null, 2) + "\n";
-      fs.writeFileSync(GATE_PATH, gateContent, "utf-8");
+      atomicWriteJson(GATE_PATH, gate);
     }
     if (dagChanged) {
-      const dagContent = JSON.stringify(dag, null, 2) + "\n";
-      fs.writeFileSync(DAG_PATH, dagContent, "utf-8");
+      atomicWriteJson(DAG_PATH, dag);
     }
 
     results.fixes_applied = fixes;
@@ -825,8 +842,7 @@ function reconcile(options = {}) {
 
     if (forceResult.drained > 0) {
       delete gate.sessions; // Remove V3→V2 virtual field before writing back
-      const gateContent = JSON.stringify(gate, null, 2) + "\n";
-      fs.writeFileSync(GATE_PATH, gateContent, "utf-8");
+      atomicWriteJson(GATE_PATH, gate);
     }
   }
 
@@ -838,8 +854,13 @@ function reconcile(options = {}) {
     results.backfill_audit.backfilledList = backfillResult.backfilledList;
 
     if (backfillResult.backfilled > 0) {
-      const machineContent = JSON.stringify(machine, null, 2) + "\n";
-      fs.writeFileSync(MACHINE_PATH, machineContent, "utf-8");
+      const newViolations = machine.compliance_records?.gate_violations || [];
+      const ok = atomicWriteSubState("compliance_records", (cr: any) => {
+        cr.gate_violations = newViolations;
+      });
+      if (!ok) {
+        console.error(`[fix] backfill: CAS write failed after 3 retries`);
+      }
     }
   }
 
@@ -889,7 +910,10 @@ function reconcile(options = {}) {
   if (options.dryRun && options.backfillAudit) {
     if (!results.dry_run_plan) results.dry_run_plan = {};
     const dagLocal = readJson(DAG_PATH);
-    const machineLocal = readJson(MACHINE_PATH);
+    const machineLocal = readJson(MACHINE_PATH) || {};
+    // P1-B split: Overlay sub-state keys for backfill dry-run
+    machineLocal.compliance_records = readSubState("compliance_records");
+    machineLocal.write_audit_state = readSubState("write_audit_state");
     if (dagLocal && machineLocal) {
       const result = backfillComplianceRecords(dagLocal, machineLocal);
       results.dry_run_plan.backfill_audit = {
@@ -905,7 +929,7 @@ function reconcile(options = {}) {
    * check5 now uses the same { passed, description, details, summary } pattern as check6 (raw6 wrapper).
    * This ensures consistent output format for the --fix flag and downstream consumers.
    */
-  const raw5 = checkHierarchicalStateIntegrity(OPENCODE_ROOT);
+  const raw5 = checkHierarchicalStateIntegrityDB(OPENCODE_ROOT); // P3/S74-1: DB-first
   const check5 = {
     passed: raw5.valid,
     description: raw5.valid
@@ -1146,7 +1170,8 @@ function validateWriteAuditIntegrity(machine, rootDir) {
     filesPassed++;
   }
 
-  const was = machine.write_audit_state;
+  // P1-B split: Fallback to readSubState if write_audit_state not in passed machine object
+  const was = machine.write_audit_state || readSubState("write_audit_state");
   if (!was || !was.enabled)
     return {
       valid: true,
@@ -1177,6 +1202,127 @@ function validateWriteAuditIntegrity(machine, rootDir) {
  * @param {string} rootDir - Project root directory
  * @returns {{ valid: boolean, issues: Array<{ref: string, severity: string, detail: string}> }}
  */
+// P3/S74-1: DB-first hierarchical state integrity check.
+// Replaces the JSON cross-file check (5a-5d) with DB row-count consistency.
+function checkHierarchicalStateIntegrityDB(rootDir) {
+  const issues = [];
+  let summary = "DB gate-state integrity check";
+
+  try {
+    const db = getDb();
+
+    // 5a-DB: gate_sessions vs gate_session_index row count consistency
+    const sessionsCount = (db.query("SELECT COUNT(*) AS c FROM gate_sessions").get() || {}).c || 0;
+    const indexCount = (db.query("SELECT COUNT(*) AS c FROM gate_session_index").get() || {}).c || 0;
+    if (sessionsCount !== indexCount) {
+      issues.push({
+        ref: "gate_sessions",
+        severity: "HIGH",
+        detail: `DB row count mismatch: gate_sessions=${sessionsCount}, gate_session_index=${indexCount}`,
+      });
+    }
+
+    // 5b-DB: orphan gate_session_index rows
+    const orphanIdx = db.query(`
+      SELECT COUNT(*) AS c FROM gate_session_index
+      WHERE session_id NOT IN (SELECT session_id FROM gate_sessions)
+    `).get() || { c: 0 };
+    if (orphanIdx.c > 0) {
+      issues.push({
+        ref: "gate_session_index",
+        severity: "MEDIUM",
+        detail: `${orphanIdx.c} orphan index rows (no matching gate_sessions)`,
+      });
+    }
+
+    // 5c-DB: status consistency
+    const statusMismatch = db.query(`
+      SELECT COUNT(*) AS c FROM gate_sessions s
+      JOIN gate_session_index i ON s.session_id = i.session_id
+      WHERE s.status != i.status
+    `).get() || { c: 0 };
+    if (statusMismatch.c > 0) {
+      issues.push({
+        ref: "gate_sessions.status",
+        severity: "MEDIUM",
+        detail: `${statusMismatch.c} rows with status mismatch`,
+      });
+    }
+
+    // 5c2-DB: delivered/approved state consistency — sessions in delivered/approved
+    // should have approval_required=1 and declared_deliverables not null
+    const deliveredWithoutApproval = db.query(`
+      SELECT COUNT(*) AS c FROM gate_sessions
+      WHERE status IN ('delivered', 'approved') AND (approval_required IS NULL OR approval_required = 0)
+    `).get() || { c: 0 };
+    if (deliveredWithoutApproval.c > 0) {
+      issues.push({
+        ref: "gate_sessions.delivered_consistency",
+        severity: "MEDIUM",
+        detail: `${deliveredWithoutApproval.c} sessions in delivered/approved state but approval_required=0 (should be 1)`,
+      });
+    }
+
+    const approvedWithoutBy = db.query(`
+      SELECT COUNT(*) AS c FROM gate_sessions
+      WHERE status = 'approved' AND deliverables_approved_by IS NULL
+    `).get() || { c: 0 };
+    if (approvedWithoutBy.c > 0) {
+      issues.push({
+        ref: "gate_sessions.approved_consistency",
+        severity: "LOW",
+        detail: `${approvedWithoutBy.c} sessions in approved state but deliverables_approved_by is null`,
+      });
+    }
+
+    // 5d-DB: drained sessions not also active
+    const drainedOrphan = db.query(`
+      SELECT COUNT(*) AS c FROM gate_drained_sessions
+      WHERE session_id IN (SELECT session_id FROM gate_sessions WHERE status != 'drained')
+    `).get() || { c: 0 };
+    if (drainedOrphan.c > 0) {
+      issues.push({
+        ref: "gate_drained_sessions",
+        severity: "LOW",
+        detail: `${drainedOrphan.c} drained sessions still active`,
+      });
+    }
+
+    summary = `DB gate-state: ${sessionsCount} sessions, ${indexCount} index rows`;
+  } catch (e) {
+    issues.push({
+      ref: "db-unavailable",
+      severity: "LOW",
+      detail: `DB check skipped (${e.message}); JSON fallback`,
+    });
+    return checkHierarchicalStateIntegrity(rootDir);
+  }
+
+  // 5e: docs/official_docs/index.json consistency (S74-2: preserved)
+  const indexPath = path.join(rootDir, "docs/official_docs/index.json");
+  if (fs.existsSync(indexPath)) {
+    try {
+      const idx = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+      if (!Array.isArray(idx.entries)) {
+        issues.push({
+          ref: "docs/official_docs/index.json",
+          severity: "LOW",
+          detail: "index.json 'entries' is not an array",
+        });
+      }
+    } catch (e) {
+      issues.push({
+        ref: "docs/official_docs/index.json",
+        severity: "LOW",
+        detail: `index.json parse error: ${e.message}`,
+      });
+    }
+  }
+
+  return { valid: issues.length === 0, issues, summary };
+}
+
+/** JSON-based check (retained as DB fallback) */
 function checkHierarchicalStateIntegrity(rootDir) {
   const issues = [];
   const gateHot = readJson(
@@ -1440,20 +1586,12 @@ function checkKnowledgeStateIntegrity(rootDir) {
   const fixes = [];
   const indexPath = path.join(rootDir, "docs", "official_docs", "index.json");
   const docsDir = path.join(rootDir, "docs", "official_docs");
-  const machinePath = path.join(rootDir, ".opencode", "state", "machine.json");
-
-  // Read machine.json knowledge_state
-  let machine;
-  try {
-    machine = JSON.parse(fs.readFileSync(machinePath, "utf-8"));
-  } catch {
-    return { ok: false, detail: "Cannot read machine.json", fixes: [] };
-  }
-  const ks = machine.knowledge_state;
-  if (!ks) {
+  // P1-B split: Read knowledge_state from dedicated sub-state file
+  const ks = readSubState("knowledge_state");
+  if (!ks || Object.keys(ks).length === 0) {
     return {
       ok: true,
-      detail: "knowledge_state section not yet initialized in machine.json",
+      detail: "knowledge_state section not yet initialized",
       fixes: [],
     };
   }
@@ -1539,12 +1677,10 @@ function checkSessionAccessIntegrity(projectRoot) {
   const invalidEntries = [];
   const STALE_DAYS = 30;
   const INVALID_AGENT_KEYS = ["unknown", "", "undefined", "null"];
-  const machinePath = path.join(projectRoot, ".opencode", "state", "machine.json");
-
   try {
-    if (!fs.existsSync(machinePath)) return { ok: true, detail: "machine.json not found", fixes: [] };
-    const machine = JSON.parse(fs.readFileSync(machinePath, "utf-8"));
-    const sa = machine?.knowledge_cache_state?.session_access;
+    // P1-B split: Read knowledge_cache_state from dedicated sub-state file
+    const kcs = readSubState("knowledge_cache_state");
+    const sa = kcs?.session_access;
     if (!sa || Object.keys(sa).length === 0) return { ok: true, detail: "no session_access entries", fixes: [] };
 
     const now = Date.now();
@@ -1577,7 +1713,7 @@ function checkSessionAccessIntegrity(projectRoot) {
       invalidEntries,
     };
   } catch (e) {
-    return { ok: false, detail: "Failed to read machine.json: " + e.message, fixes: [] };
+    return { ok: false, detail: "Failed to read session access state: " + e.message, fixes: [] };
   }
 }
 

@@ -3,17 +3,17 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { tolerantParse } from "../lib/tolerant-json";
 import {
-  getMachinePath,
   getDomainEntry,
   updateAgentRollups,
   readCacheSufficiency,
   isPipelineDeclared,
-  atomicWriteMachine,
   evictOldAgents,
   MAX_AGENTS,
   type CacheSufficiency,
   normalizeAgentKey,
 } from "../lib/uc7ks-schema";
+const { readSubState } = require("../lib/substate-manager");
+import { atomicWriteSubState } from "../lib/state-utils";
 import { withInterruptGuard } from "../lib";
 
 export default tool({
@@ -34,20 +34,19 @@ export default tool({
       // Now checks whether THIS domain has been declared for THIS task,
       // not a global agent-level "declared" flag. Multiple domains can
       // coexist for the same task without clobbering each other.
+      // P1-B: read knowledge_cache_state via readSubState (split from machine.json)
       var pipelineValid = true;
       try {
-        var machinePath = getMachinePath();
-        if (fs.existsSync(machinePath)) {
-          var preMachine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
-          var preSA = (preMachine.knowledge_cache_state?.session_access || {}) as Record<string, any>;
-          var preAgent = normalizeAgentKey(agent);
-          // Check nested domain declaration
-          if (!isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)) {
-            // Also check legacy flat for backward compat
-            var flat = preSA[preAgent] || preSA[agent] || {};
-            if (flat.pipeline_task_id !== args.task_id || flat.pipeline_status !== "declared") {
-              pipelineValid = false;
-            }
+        process.stderr.write("[knowledge_cache_search] P1-B: reading knowledge_cache_state via readSubState\n");
+        var preKCS = readSubState("knowledge_cache_state");
+        var preSA = (preKCS.session_access || {}) as Record<string, any>;
+        var preAgent = normalizeAgentKey(agent);
+        // Check nested domain declaration
+        if (!isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)) {
+          // Also check legacy flat for backward compat
+          var flat = preSA[preAgent] || preSA[agent] || {};
+          if (flat.pipeline_task_id !== args.task_id || flat.pipeline_status !== "declared") {
+            pipelineValid = false;
           }
         }
       } catch (e) { /* non-fatal */ }
@@ -165,16 +164,17 @@ export default tool({
           : "No cached content for domain \"" + (args.domain || "all") + "\". Cache has " + entries.length + " total entries.",
       };
 
-      // ── Write to machine.json via CAS (F2: nested schema + F4: atomic) ──
+      // ── Write to sub-state files via CAS (F2: nested schema + F4: atomic) ──
       var uc7Recorded = false;
       try {
         var taskId = args.task_id || "unknown";
         var domainName = args.domain || "all";
         var agentRef = normalizeAgentKey(agent);
 
-        var writeOk = atomicWriteMachine(function (machine: any) {
-          var kcs = machine.knowledge_cache_state = machine.knowledge_cache_state || { session_access: {}, compliance: {} };
+        // Write knowledge_cache_state
+        var cacheWriteOk = atomicWriteSubState("knowledge_cache_state", function (kcs: any) {
           kcs.session_access = kcs.session_access || {};
+          kcs.compliance = kcs.compliance || {};
 
           // Ensure agent entry
           var agentKey = agentRef;
@@ -200,26 +200,45 @@ export default tool({
           // Cap management (F8: 50 agents)
           evictOldAgents(kcs.session_access);
 
+          // P3/S85-1: Per-agent session_access LRU pruning (max 50 domain entries per agent).
+          // Prevents unbounded growth between nightly cleanupStaleSessionAccessStep() runs.
+          // Each agent's entries are sorted by accessed_at (declared_at fallback) descending,
+          // keeping the 50 most recent.
+          const MAX_DOMAINS_PER_AGENT = 50;
+          if (kcs.session_access) {
+            for (const ak of Object.keys(kcs.session_access)) {
+              const agentEntries = kcs.session_access[ak];
+              if (!agentEntries || typeof agentEntries !== "object") continue;
+              const keys = Object.keys(agentEntries);
+              if (keys.length > MAX_DOMAINS_PER_AGENT) {
+                const sorted = keys
+                  .map((k) => ({
+                    key: k,
+                    ts: new Date(agentEntries[k]?.last_read_at || agentEntries[k]?.declared_at || 0).getTime() || 0,
+                  }))
+                  .sort((a, b) => b.ts - a.ts);
+                const keep = new Set(sorted.slice(0, MAX_DOMAINS_PER_AGENT).map((x) => x.key));
+                for (const k of keys) {
+                  if (!keep.has(k)) delete agentEntries[k];
+                }
+              }
+            }
+          }
+
           // Compliance rollup
-          kcs.compliance = kcs.compliance || {};
           kcs.compliance.cache_hits = (kcs.compliance.cache_hits || 0) + hitEntries.length;
         });
 
-        uc7Recorded = writeOk;
+        // Write knowledge_state
+        var stateWriteOk = atomicWriteSubState("knowledge_state", function (ks: any) {
+          var newCount = entries.length;
+          var oldCount = ks.total_docs_count || 0;
+          if (oldCount < newCount) {
+            ks.total_docs_count = newCount;
+          }
+        });
 
-        // Knowledge_state sync (CAS pattern)
-        if (writeOk) {
-          try {
-            atomicWriteMachine(function (machine: any) {
-              machine.knowledge_state = machine.knowledge_state || {};
-              var newCount = entries.length;
-              var oldCount = machine.knowledge_state.total_docs_count || 0;
-              if (oldCount < newCount) {
-                machine.knowledge_state.total_docs_count = newCount;
-              }
-            });
-          } catch (_syncErr) { /* non-critical */ }
-        }
+        uc7Recorded = cacheWriteOk && stateWriteOk;
       } catch (e) {
         /* non-fatal */
       }

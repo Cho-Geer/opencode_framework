@@ -1,0 +1,1075 @@
+{
+  "last_full_scan": "2026-06-16T00:54:38.396Z",
+  "modules": {
+    "all_modules": {
+      "status": "clean",
+      "violations": [],
+      "last_check": "2026-06-15T08:15:32.773Z",
+      "waivers_applied": []
+    },
+    "unknown": {
+      "status": "clean",
+      "violations": [],
+      "last_check": "2026-06-12T13:57:05.941Z",
+      "waivers_applied": []
+    },
+    "admin": {
+      "status": "clean",
+      "violations": [],
+      "last_check": "2026-05-21T01:27:15.995Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_framework-enforcer_enforce.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T08:53:29.250Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_framework-enforcer_index.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T11:59:21.861Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_dispatch_subagent.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:05:48.959Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_command-tools_dispatch-subagent.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:06:00.294Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_pre-execution-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:06:53.242Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_edit.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:08:47.796Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_shell.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:08:59.704Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_diff.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:09:10.951Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_restore.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:09:22.838Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_safe_delete.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:09:34.731Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_knowledge_cache_search.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:09:45.557Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_tools_module_scope_declare.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:09:57.117Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:10:14.526Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_code-quality-lib.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:10:33.036Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_safe-bash-core.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T14:10:44.453Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_framework-enforcer_gate-checks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T16:09:15.605Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-compliance-check.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T17:15:04.706Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-integrity-scan.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T17:15:47.260Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_gate-lifecycle-audit.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-08T17:15:58.972Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_booking_system_refactor_booking-backend_src_test_test-e2e-audit.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-09T00:59:50.418Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-reconciliation.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-09T02:18:51.658Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins__p1_cleanup_gate-checks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-09T02:22:51.083Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins__p1_cleanup_checks_gate-checks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-09T02:23:01.887Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-self-test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-09T06:02:58.675Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_scope-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T16:18:30.529Z",
+      "waivers_applied": []
+    },
+    "head -3 _home_zhaoge_workspace_opencode_work-one_.opencode_lib_gate-checks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T16:18:38.239Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_gate-checks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T16:18:48.440Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_log-manager.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T16:46:59.968Z",
+      "waivers_applied": []
+    },
+    "bun _tmp_fix_note.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T16:52:36.960Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_scope-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:05:34.531Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_uc7ks-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:40:05.682Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_dispatch-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:43:06.586Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_gate-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:43:20.972Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_audit-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:46:17.891Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_task-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:46:30.457Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_cache-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:46:42.544Z",
+      "waivers_applied": []
+    },
+    "bun -e \"\nconst fs=require('fs');\nconst script = \\`\nconst fs=require('fs');\nconst p='_home_zhaoge_workspace_opencode_work-one_docs_review_plugin-backlog_framework-enforcer-module-inventory.md';\nconst c=fs.readFileSync(p,'utf8');\nconst oldStart=c.indexOf('## 当前缺口');\nconst oldEnd=c.indexOf('## 模块统计');\nconst newSection='## 重构完成（2026-06-11）\\\\n\\\\n13_13 插件全部上线并通过运行时验证。plugins_loaded: 13。\\\\n\\\\n| 域名 | before | after | 状态 |\\\\n|------|--------|-------|:---:|\\\\n| session | session.ts | — | 通过 |\\\\n| scope | scope-before.ts | scope-after.ts | 通过 |\\\\n| uc7ks | uc7ks-before.ts | uc7ks-after.ts | 通过 |\\\\n| dispatch | dispatch-before.ts | dispatch-after.ts | 通过 |\\\\n| gate | gate-before.ts | gate-after.ts | 通过 |\\\\n| audit | audit-before.ts | audit-after.ts | 通过 |\\\\n| task | — | task-after.ts | 通过 |\\\\n| cache | — | cache-after.ts | 通过 |\\\\n';\nfs.writeFileSync(p,c.slice(0,oldStart)+newSection+c.slice(oldEnd),'utf8');\nconsole.log('DONE');\n\\`;\nfs.writeFileSync('_tmp_update_inv.js', script, 'utf8');\nconsole.log('written');\n\" && bun _tmp_update_inv.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:57:14.246Z",
+      "waivers_applied": []
+    },
+    "_tmp_upd_inv.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:57:23.881Z",
+      "waivers_applied": []
+    },
+    "bun _tmp_upd_inv.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:57:29.267Z",
+      "waivers_applied": []
+    },
+    "ls -la _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_log-manager.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_shared-infra.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_agent-resolver.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_tool-scope.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_uc7ks-utils.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_write-audit-lib.ts _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_lib_gate-checks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T17:59:48.203Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_gate-core.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T18:31:01.471Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib___tests___gate-core.test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T18:31:51.690Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_state-utils.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T18:38:55.051Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_dispatch-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T20:51:04.315Z",
+      "waivers_applied": []
+    },
+    "grep -n 'should find artifacts via fallback\\|should use sessionId\\|subdirectory\\|SUBDIR' _home_zhaoge_workspace_opencode_work-one_.opencode_lib___tests___gate-core.test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T21:38:14.451Z",
+      "waivers_applied": []
+    },
+    "cd _home_zhaoge_workspace_opencode_work-one && head -50 .opencode_lib_framework-enforcer.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T21:45:27.088Z",
+      "waivers_applied": []
+    },
+    "node .opencode_scripts_framework-self-test.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T22:07:34.209Z",
+      "waivers_applied": []
+    },
+    "npx tsx .opencode_scripts_framework-self-test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T22:07:44.900Z",
+      "waivers_applied": []
+    },
+    "npx tsx .opencode_scripts_state-reconciliation.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T23:04:33.649Z",
+      "waivers_applied": []
+    },
+    "touch .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T23:22:37.414Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_safe-edit-core.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T23:48:11.970Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_nightly-compaction.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-10T23:48:48.320Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_code-quality-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T00:06:16.494Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_keystone-validate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T00:06:17.559Z",
+      "waivers_applied": []
+    },
+    "bun .opencode_scripts_framework-self-test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T00:34:53.382Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_tdd-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T03:10:25.889Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_gate-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T03:11:04.017Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_tdd-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T03:43:05.030Z",
+      "waivers_applied": []
+    },
+    "test-tdd": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T03:53:27.150Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_uc7ks-utils.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T04:22:51.641Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_tolerant-json.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T06:55:07.948Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_json-validate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T06:57:41.555Z",
+      "waivers_applied": []
+    },
+    "ls booking_system_refactor_booking-backend_prisma_schema.prisma 2>_dev_null && head -5 booking_system_refactor_booking-backend_prisma_schema.prisma": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T07:51:06.057Z",
+      "waivers_applied": []
+    },
+    "head -20 _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-self-test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T07:57:11.787Z",
+      "waivers_applied": []
+    },
+    "wc -l _home_zhaoge_workspace_opencode_work-one_.opencode_lib_log-manager.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T08:03:33.884Z",
+      "waivers_applied": []
+    },
+    "echo \"=== compliance-gate.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_compliance-gate.ts && echo \"\" && echo \"=== eslint-audit.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_eslint-audit.ts && echo \"\" && echo \"=== code-quality-gate.ts top 20 lines ===\" && head -20 .opencode_scripts_mcp-tools_code-quality-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T09:03:29.440Z",
+      "waivers_applied": []
+    },
+    "grep -n \"_gateCore\" .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T10:11:51.370Z",
+      "waivers_applied": []
+    },
+    "sed -n '110,130p' .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T10:12:31.728Z",
+      "waivers_applied": []
+    },
+    "grep -n \"_gateCore\\|require(\" .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T10:14:03.582Z",
+      "waivers_applied": []
+    },
+    "grep -n \"getEnforcementMode()\" .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T10:16:09.044Z",
+      "waivers_applied": []
+    },
+    "grep -n \"_gateCore\\|require(.*child_process\\|require(.*state-compactor\" .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T10:17:49.750Z",
+      "waivers_applied": []
+    },
+    "grep -n \"_gateCore\\|require(.*child_process\\|require(.*compactor\" .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T10:18:28.835Z",
+      "waivers_applied": []
+    },
+    "grep -n \"require(\" .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T10:20:24.707Z",
+      "waivers_applied": []
+    },
+    "tail -20 .opencode_scripts_state-transaction.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T11:03:16.168Z",
+      "waivers_applied": []
+    },
+    "tail -10 .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T11:03:30.267Z",
+      "waivers_applied": []
+    },
+    "git checkout -- .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T11:04:18.103Z",
+      "waivers_applied": []
+    },
+    "echo \"=== gate-core.ts BUN-CACHE-VERSION ===\" && head -4 .opencode_lib_gate-core.ts && echo \"\" && echo \"=== compliance-gate.ts top 30 ===\" && head -30 .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T11:05:18.042Z",
+      "waivers_applied": []
+    },
+    "cd _home_zhaoge_workspace_opencode_work-one && head -20 .opencode_scripts_mcp-tools_eslint-audit.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:11:18.256Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_check_mode.js << 'SCRIPT'\nconst path = require('path');\nconst fs = require('fs');\nconst cfgPath = path.join('_home_zhaoge_workspace_opencode_work-one', '.opencode', 'project.config.json');\nconsole.log('cfgPath:', cfgPath);\nconsole.log('exists:', fs.existsSync(cfgPath));\ntry {\n  const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));\n  const tr = cfg.template_resolution;\n  console.log('develop_enforcement_mode:', tr?.develop_enforcement_mode);\n  console.log('runtime_enforcement_mode:', tr?.runtime_enforcement_mode);\n  const mode = tr?.develop_enforcement_mode || tr?.runtime_enforcement_mode;\n  console.log('RESOLVED:', mode);\n} catch(e) {\n  console.log('ERROR:', e.message);\n}\nSCRIPT\nnode _tmp_check_mode.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:41:23.567Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_test_mode.js << 'ENDOFSCRIPT'\nvar path = require('path');\nvar fs = require('fs');\nvar rootDir = path.resolve(__dirname || '_home_zhaoge_workspace_opencode_work-one', '.');\nvar cfgPath = path.join(rootDir, '.opencode', 'project.config.json');\nvar configMode = 'advisory';\ntry {\n  if (fs.existsSync(cfgPath)) {\n    var raw = fs.readFileSync(cfgPath, 'utf8');\n    var cfg = JSON.parse(raw);\n    var tr = cfg.template_resolution;\n    var mode = (tr && tr.develop_enforcement_mode) || (tr && tr.runtime_enforcement_mode);\n    if (mode && ['advisory','strict','locked'].indexOf(mode) >= 0) {\n      configMode = mode;\n    }\n  } else {\n    console.log('cfgPath NOT FOUND:', cfgPath);\n  }\n} catch(e) {\n  console.log('ERROR:', e.message);\n  console.log('cfgPath was:', cfgPath);\n}\nconsole.log('RESULT:', configMode);\nENDOFSCRIPT\nnode _tmp_test_mode.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:42:42.916Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_test_mode2.js << 'ENDOFSCRIPT'\nvar path = require('path');\nvar fs = require('fs');\nvar rootDir = '_home_zhaoge_workspace_opencode_work-one';\nvar cfgPath = path.join(rootDir, '.opencode', 'project.config.json');\nvar configMode = 'advisory';\ntry {\n  if (fs.existsSync(cfgPath)) {\n    var raw = fs.readFileSync(cfgPath, 'utf8');\n    var cfg = JSON.parse(raw);\n    var tr = cfg.template_resolution;\n    var mode = (tr && tr.develop_enforcement_mode) || (tr && tr.runtime_enforcement_mode);\n    if (mode && ['advisory','strict','locked'].indexOf(mode) >= 0) {\n      configMode = mode;\n    }\n  } else {\n    console.log('cfgPath NOT FOUND:', cfgPath);\n  }\n} catch(e) {\n  console.log('ERROR:', e.message);\n}\nconsole.log('RESULT:', configMode);\nENDOFSCRIPT\nnode _tmp_test_mode2.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:42:51.605Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_jsoncheck.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_.opencode_project.config.json', 'utf8');\ntry { JSON.parse(raw); console.log('VALID'); } catch(e) { \n  var lineNum = (e.message.match(_position (\\d+)_) || [])[1];\n  if (lineNum) {\n    var pos = parseInt(lineNum);\n    var start = Math.max(0, pos - 50);\n    var end = Math.min(raw.length, pos + 50);\n    console.log('ERROR at position', pos);\n    console.log('CONTEXT:', JSON.stringify(raw.substring(start, end)));\n  }\n  console.log('MESSAGE:', e.message);\n}\nSCRIPT\nnode _tmp_jsoncheck.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:43:14.532Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_find_bad_json.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_.opencode_project.config.json', 'utf8');\ntry {\n  JSON.parse(raw);\n  console.log('VALID');\n} catch(e) {\n  var m = e.message.match(_position (\\d+)_);\n  if (m) {\n    var pos = parseInt(m[1]);\n    var lineNum = raw.substring(0, pos).split('\\n').length;\n    var colNum = pos - raw.lastIndexOf('\\n', pos - 1);\n    console.log('Error at line', lineNum, 'column', colNum, 'position', pos);\n    var context = raw.substring(Math.max(0, pos - 30), Math.min(raw.length, pos + 30));\n    console.log('Context:', JSON.stringify(context));\n  }\n  console.log('Full error:', e.message);\n}\nSCRIPT\nnode _tmp_find_bad_json.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:44:45.867Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_find_bad_json2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_.opencode_project.config.json', 'utf8');\nvar lines = raw.split('\\n');\n__ Try to find the invalid line by parsing subsets\nfor (var i = 0; i < lines.length; i++) {\n  try {\n    __ Try parsing first i lines\n    var subset = lines.slice(0, i+1).join('\\n');\n    JSON.parse(subset);\n  } catch(e) {\n    __ Found the problematic area\n    var j = i;\n    for (; j < lines.length; j++) {\n      try {\n        JSON.parse(lines.slice(0, j+1).join('\\n'));\n        break;\n      } catch(e2) {}\n    }\n    console.log('Problem area around line', (i-1), 'to', j);\n    for (var k = Math.max(0, i-3); k <= Math.min(lines.length-1, j+1); k++) {\n      console.log(k+1 + ':', lines[k]);\n    }\n    break;\n  }\n}\nSCRIPT\nnode _tmp_find_bad_json2.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:45:12.965Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_hexcheck.js << 'SCRIPT'\nvar fs = require('fs');\nvar buf = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_.opencode_project.config.json');\n__ Check first 10 bytes\nconsole.log('First 10 bytes:', Array.from(buf.slice(0,10)).map(b => b.toString(16)).join(' '));\nconsole.log('Length:', buf.length);\n__ Check if BOM present\nif (buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF) console.log('BOM: YES');\nelse console.log('BOM: NO');\n__ Try parsing with clean content\nvar str = buf.toString('utf8');\n__ Check for null bytes\nvar nullPos = str.indexOf('\\0');\nif (nullPos >= 0) console.log('NULL BYTE at position', nullPos);\nelse console.log('No null bytes');\nSCRIPT\nnode _tmp_hexcheck.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:45:36.362Z",
+      "waivers_applied": []
+    },
+    "cp _home_zhaoge_workspace_opencode_work-one_.opencode_project.config.json _tmp_pcfg.json && cat > _tmp_parse.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('_tmp_pcfg.json', 'utf8');\ntry { JSON.parse(json); console.log('PARSE OK'); } \ncatch(e) { \n  console.log('PARSE FAILED');\n  __ Binary search for error position\n  var lo = 0, hi = json.length;\n  while (hi - lo > 1) {\n    var mid = Math.floor((lo + hi) _ 2);\n    try { JSON.parse(json.substring(0, mid)); lo = mid; }\n    catch(e2) { hi = mid; }\n  }\n  console.log('Error around byte', hi);\n  var ctx = json.substring(Math.max(0, hi-40), Math.min(json.length, hi+40));\n  console.log('Context:', JSON.stringify(ctx));\n  __ Find line number\n  var lineNum = json.substring(0, hi).split('\\n').length;\n  console.log('Line:', lineNum);\n}\nSCRIPT\nnode _tmp_parse.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:45:45.747Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_parse2.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('_tmp_pcfg.json', 'utf8');\n__ Binary search: find largest prefix that parses successfully\nvar lo = 0, hi = json.length;\nwhile (hi - lo > 1) {\n  var mid = Math.floor((lo + hi) _ 2);\n  try { JSON.parse(json.substring(0, mid)); lo = mid; }\n  catch(e2) { hi = mid; }\n}\nconsole.log('Last good byte:', lo);\nconsole.log('Error at byte:', hi);\nvar ctx = json.substring(Math.max(0, hi-60), Math.min(json.length, hi+40));\nconsole.log('Context:', JSON.stringify(ctx));\nvar lineNum = json.substring(0, hi).split('\\n').length;\nconsole.log('Line:', lineNum);\n__ Show the line\nvar lines = json.split('\\n');\nconsole.log('Offending line:', lines[lineNum-1]);\nif (lineNum > 1) console.log('Previous line:', lines[lineNum-2]);\nSCRIPT\nnode _tmp_parse2.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:46:05.199Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_parse3.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('_tmp_pcfg.json', 'utf8');\ntry { JSON.parse(json); console.log('VALID'); }\ncatch(e) {\n  console.log('Error:', e.message);\n  __ Extract position from error message\n  var posMatch = e.message.match(_position (\\d+)_);\n  if (posMatch) {\n    var pos = parseInt(posMatch[1]);\n    console.log('Position:', pos);\n    var lineCol = e.message.match(_line (\\d+) column (\\d+)_);\n    if (lineCol) {\n      console.log('Line:', lineCol[1], 'Column:', lineCol[2]);\n    }\n    var ctx = json.substring(Math.max(0, pos-50), Math.min(json.length, pos+50));\n    console.log('Context:', JSON.stringify(ctx));\n    __ Show the line\n    var lines = json.split('\\n');\n    var lineNum = json.substring(0, pos).split('\\n').length;\n    console.log('Calculated line:', lineNum);\n    console.log('Line content:', lines[lineNum-1]);\n    if (lineNum > 1) console.log('Prev line:', lines[lineNum-2]);\n    if (lineNum < lines.length) console.log('Next line:', lines[lineNum]);\n  }\n}\nSCRIPT\nnode _tmp_parse3.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:47:50.266Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_parse4.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('_tmp_pcfg.json', 'utf8');\nvar lines = json.split('\\n');\n\n__ Try parsing with progressively more lines\nfor (var i = 1; i <= lines.length; i++) {\n  var partial = lines.slice(0, i).join('\\n');\n  try {\n    JSON.parse(partial);\n  } catch(e) {\n    __ Only report if this is the FIRST failure\n    __ (many lines will fail because they're incomplete JSON)\n    __ We want the line where the error message changes from \"unexpected end\" to something else\n    if (e.message.indexOf('Unexpected end') === -1 && e.message.indexOf('Expected property') === -1) {\n      console.log('Line', i, ':', e.message.substring(0, 80));\n      console.log('  Content:', lines[i-1].substring(0, 120));\n      if (i > 1) console.log('  Prev:', lines[i-2].substring(0, 120));\n      break;\n    }\n  }\n}\nSCRIPT\nnode _tmp_parse4.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:48:03.557Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_parse5.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('_tmp_pcfg.json', 'utf8');\nvar lines = json.split('\\n');\n\n__ Strategy: find the first line where removing that line makes the JSON parseable\n__ OR find the line where the error message contains \"Unexpected token\"\nvar lastEndError = 0;\nfor (var i = 1; i <= lines.length; i++) {\n  var partial = lines.slice(0, i).join('\\n');\n  try {\n    JSON.parse(partial);\n    console.log('Line', i, ': VALID (complete JSON)');\n  } catch(e) {\n    var msg = e.message;\n    if (msg.indexOf('Unexpected token') >= 0 || msg.indexOf('is not valid JSON') >= 0) {\n      console.log('Line', i, ':', msg.substring(0, 100));\n      console.log('  >>>', lines[i-1].substring(0, 150));\n      if (i > 1) console.log('  prev:', lines[i-2].substring(0, 150));\n      __ Don't break — keep going to find ALL such lines\n    }\n  }\n}\nSCRIPT\nnode _tmp_parse5.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:48:19.510Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_parse6.js << 'SCRIPT'\nvar fs = require('fs');\nvar json = fs.readFileSync('_tmp_pcfg.json', 'utf8');\nvar lines = json.split('\\n');\n\nfor (var i = 1; i <= lines.length; i++) {\n  var partial = lines.slice(0, i).join('\\n');\n  try {\n    JSON.parse(partial);\n  } catch(e) {\n    var msg = e.message;\n    if (msg.indexOf('Unexpected token') >= 0 || msg.indexOf('is not valid JSON') >= 0) {\n      console.log('FIRST ERROR at line', i, ':', msg.substring(0, 120));\n      console.log('  >>>', lines[i-1]);\n      if (i > 1) console.log('  prev:', lines[i-2]);\n      if (i > 2) console.log('  prev2:', lines[i-3]);\n      if (i < lines.length) console.log('  next:', lines[i]);\n      break;\n    }\n  }\n}\nSCRIPT\nnode _tmp_parse6.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:48:32.635Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_find_trailing.js << 'SCRIPT'\nvar fs = require('fs');\nvar lines = fs.readFileSync('_tmp_pcfg.json', 'utf8').split('\\n');\nfor (var i = 0; i < lines.length; i++) {\n  var trimmed = lines[i].trim();\n  __ Trailing comma before ] or }\n  if (trimmed.match(_,\\s*$_)) {\n    var nextTrimmed = lines[i+1] ? lines[i+1].trim() : '';\n    if (nextTrimmed === ']' || nextTrimmed === '}' || nextTrimmed === '},') {\n      console.log('Line', (i+1), ': TRAILING COMMA before', nextTrimmed);\n      console.log('  ', lines[i]);\n      console.log('  ', lines[i+1]);\n    }\n  }\n}\nSCRIPT\nnode _tmp_find_trailing.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:49:01.087Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_verify.js << 'SCRIPT'\nvar fs = require('fs');\nvar path = '_home_zhaoge_workspace_opencode_work-one_.opencode_project.config.json';\nvar content = fs.readFileSync(path, 'utf8');\ntry {\n  var obj = JSON.parse(content);\n  console.log('JSON.parse: OK');\n  console.log('develop_enforcement_mode:', obj.template_resolution?.develop_enforcement_mode);\n  console.log('runtime_enforcement_mode:', obj.template_resolution?.runtime_enforcement_mode);\n} catch(e) {\n  console.log('JSON.parse: FAILED -', e.message);\n}\nSCRIPT\nnode _tmp_verify.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T13:50:17.681Z",
+      "waivers_applied": []
+    },
+    "node -e \"JSON.parse(require('fs').readFileSync('.opencode_scripts_mcp-tools_compliance-gate.ts','utf8')); console.log('syntax(JS): ok')\" 2>&1; head -1 .opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T14:57:53.233Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_find_dispatch.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n__ Find dispatch_subagent tool registration\nvar tools = obj.mcpServers || {};\nfor (var key in tools) {\n  var server = tools[key];\n  if (server.tools && Array.isArray(server.tools)) {\n    for (var t of server.tools) {\n      if (typeof t === 'object' && t.name === 'dispatch_subagent') {\n        console.log('Server:', key);\n        console.log('Tool:', JSON.stringify(t, null, 2));\n      }\n    }\n  }\n}\nSCRIPT\nnode _tmp_find_dispatch.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:01:27.567Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_find_dispatch2.js << 'SCRIPT'\nvar fs = require('fs');\nvar raw = fs.readFileSync('_home_zhaoge_workspace_opencode_work-one_opencode.json', 'utf8');\nvar obj = JSON.parse(raw);\n__ Search for dispatch in any field\nvar str = JSON.stringify(obj);\nvar idx = 0;\nwhile (true) {\n  idx = str.indexOf('dispatch', idx);\n  if (idx === -1) break;\n  console.log('Found at char', idx, ':', str.substring(Math.max(0,idx-30), idx+50));\n  idx += 10;\n}\nSCRIPT\nnode _tmp_find_dispatch2.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:01:35.320Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_uc7ks-schema.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:35:40.697Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_uc7ks-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:42:56.196Z",
+      "waivers_applied": []
+    },
+    "_tmp_registry-fix.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:50:46.677Z",
+      "waivers_applied": []
+    },
+    "_tmp_vfy-tc1.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:58:03.592Z",
+      "waivers_applied": []
+    },
+    "_tmp_vfy-tc3.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:58:32.987Z",
+      "waivers_applied": []
+    },
+    "_tmp_vfy-tc4.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:58:53.906Z",
+      "waivers_applied": []
+    },
+    "_tmp_vfy-tc6.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T15:59:08.043Z",
+      "waivers_applied": []
+    },
+    "wc -c .opencode_scripts_pre-execution-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T16:06:09.651Z",
+      "waivers_applied": []
+    },
+    "ls -la _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_pre-execution-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T16:09:48.140Z",
+      "waivers_applied": []
+    },
+    "ls -la _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_pre-execution-gate.ts; wc -l _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_pre-execution-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T16:38:52.822Z",
+      "waivers_applied": []
+    },
+    "grep -n \"Super-Admin\\|SA_skip\\|SA_agent\\|fast.path\\|bypass\\|agentExempt\\|DAG_creator\\|DAG.creator\" _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_compliance-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T17:15:59.991Z",
+      "waivers_applied": []
+    },
+    "grep -n \"isKnowledgeCacheHealthy\\|UC7-009\\|health.state\\|emergency.*bypass\" _home_zhaoge_workspace_opencode_work-one_.opencode_tools_tool-execute.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T17:22:43.678Z",
+      "waivers_applied": []
+    },
+    "head -5 _home_zhaoge_workspace_opencode_work-one_.opencode_lib_log-manager.ts && echo \"---\" && head -5 _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_pre-execution-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T17:42:50.447Z",
+      "waivers_applied": []
+    },
+    "grep -n \"^import\\|^export\\|require(\" _home_zhaoge_workspace_opencode_work-one_.opencode_lib_log-manager.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T17:42:58.630Z",
+      "waivers_applied": []
+    },
+    "grep -rn \"process.exit\\|process\\.on.*exit\\|handleExit\" _home_zhaoge_workspace_opencode_work-one_.opencode_scripts_pre-execution-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T17:42:59.270Z",
+      "waivers_applied": []
+    },
+    "echo \"compliance-gate:\" && head -3 .opencode_scripts_mcp-tools_compliance-gate.ts && echo \"---eslint-audit:\" && head -3 .opencode_scripts_mcp-tools_eslint-audit.ts && echo \"---pre-exec-gate:\" && head -5 .opencode_scripts_pre-execution-gate.ts && echo \"---framework-self-test:\" && head -5 .opencode_scripts_framework-self-test.ts && echo \"---dispatch-subagent:\" && head -3 .opencode_scripts_command-tools_dispatch-subagent.ts && echo \"---state-reconciliation:\" && head -3 .opencode_scripts_state-reconciliation.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T17:56:14.466Z",
+      "waivers_applied": []
+    },
+    "echo \"=== log-manager: sync vs async critical paths ===\" && grep -n \"setInterval\\|setImmediate\\|process.on\\|appendFileSync\\|writeFileSync\\|flushAll\\|handleExit\" .opencode_lib_log-manager.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T17:56:23.943Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_shared-infra.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T18:34:13.964Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_log-rotator.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T18:34:15.384Z",
+      "waivers_applied": []
+    },
+    "node .opencode_scripts_framework-self-test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-11T18:38:03.319Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_archiver.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T01:11:37.309Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_size-reporter.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T01:11:44.772Z",
+      "waivers_applied": []
+    },
+    "grep -n \"FW-PERM-AUDIT-EXEC\" .opencode_project.config.json opencode.json .opencode_lib_safe-bash-core.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T03:09:43.749Z",
+      "waivers_applied": []
+    },
+    "grep -n \"^export const WRITE_PATTERNS\\|^const WRITE_PATTERNS\\|^export const WRITE\" .opencode_lib_safe-bash-core.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T05:00:25.282Z",
+      "waivers_applied": []
+    },
+    "cat > _tmp_fix-patterns.js << 'SCRIPT'\nconst fs = require('fs');\nlet content = fs.readFileSync('.opencode_lib_safe-bash-core.ts', 'utf8');\n\n__ 1. Add resetSafeShellConfigCache after the config loader (before _getConfigList)\nconst resetFn = `\n_**\n * FW-PERM-AUDIT-FIX: Reset the safe shell config cache.\n * Call after modifying project.config.json to force reload on next safe_shell call.\n *_\nexport function resetSafeShellConfigCache(): void {\n  _safeShellConfigLoaded = false;\n  _safeShellConfigCache = null;\n}\n`;\n\nconst insertPoint = content.indexOf('function _getConfigList');\nif (insertPoint > 0) {\n  content = content.slice(0, insertPoint) + resetFn + content.slice(insertPoint);\n}\n\n__ 2. Remove 'fs\\\\.' prefix from WRITE_PATTERNS (replace with '.' to match any char)\n__ Source has: _fs\\\\.writeFileSync\\\\s*\\\\(_  → change to: _.writeFileSync\\\\s*\\\\(_\n__ In the string, this is: _fs\\\\.writeFileSync\\\\s*\\\\(_  →  _.writeFileSync\\\\s*\\\\(_\ncontent = content.replace(_fs\\\\\\._g, '.');\n\n__ 3. Also add reset call at the end of _loadSafeShellConfig\n__ so hot-reload is automatic when config file changes\n__ (Not needed for now - explicit reset is cleaner)\n\nfs.writeFileSync('.opencode_lib_safe-bash-core.ts', content);\nconsole.log('OK');\nSCRIPT\nnode _tmp_fix-patterns.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T05:01:32.316Z",
+      "waivers_applied": []
+    },
+    "git diff _home_zhaoge_workspace_opencode_work-one_.opencode_lib_safe-bash-core.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T05:09:21.585Z",
+      "waivers_applied": []
+    },
+    "grep -n \"_dispatch_target.json\" .opencode_plugins_dispatch-before.ts .opencode_plugins_dispatch-after.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T08:38:36.059Z",
+      "waivers_applied": []
+    },
+    "grep -n \"_dispatch_target.json\" .opencode_lib_agent-resolver.ts .opencode_scripts_mcp-tools_compliance-gate.ts .opencode_scripts_pre-execution-gate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T08:38:36.655Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_agent-resolver.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T09:12:55.431Z",
+      "waivers_applied": []
+    },
+    ".opencode_lib_gate-checks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T09:40:08.295Z",
+      "waivers_applied": []
+    },
+    ".opencode_plugins_scope-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T09:40:17.553Z",
+      "waivers_applied": []
+    },
+    "booking_system_refactor_booking-backend_src_main.spec.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T09:49:02.369Z",
+      "waivers_applied": []
+    },
+    "ls -lt .opencode_logs_ | head -5; echo \"---\"; ls -la .opencode_plugins_scope-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T09:50:40.798Z",
+      "waivers_applied": []
+    },
+    "wc -l _home_zhaoge_workspace_opencode_work-one_.opencode_plugins_scope-before.ts _home_zhaoge_workspace_opencode_work-one_.opencode_lib_uc7ks-utils.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T11:14:44.469Z",
+      "waivers_applied": []
+    },
+    "bun .opencode_scripts_framework-self-test.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T11:30:49.184Z",
+      "waivers_applied": []
+    },
+    "cat _home_zhaoge_workspace_opencode_work-one_.opencode_lib_agent-resolver.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T14:19:00.301Z",
+      "waivers_applied": []
+    },
+    "sed -n '47,52p' _home_zhaoge_workspace_opencode_work-one_.opencode_lib_agent-resolver.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T14:19:09.957Z",
+      "waivers_applied": []
+    },
+    "wc -l _home_zhaoge_workspace_opencode_work-one_.opencode_plugins_json-validate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T14:30:44.115Z",
+      "waivers_applied": []
+    },
+    "cd _tmp && cat > test-p1-5.ts <<'EOF'\nimport { readFileSync, writeFileSync, mkdtempSync, rmSync } from \"fs\";\nimport { tmpdir } from \"os\";\nimport { join } from \"path\";\n\n__ Replicate logic from json-validate.ts for isolated testing\nconst MODE_RANK: Record<string, number> = { advisory: 1, strict: 2, locked: 3 };\nconst MODE_KEYS = [\"develop_enforcement_mode\", \"runtime_enforcement_mode\"];\n\nfunction tolerantParse(text: string): any {\n  return JSON.parse(text);\n}\n\nfunction detectModeDowngrade(newContent: string, filePath: string): string | null {\n  let currentContent: string;\n  try {\n    currentContent = readFileSync(filePath, \"utf8\");\n  } catch {\n    return null;\n  }\n  let current: any;\n  let next: any;\n  try {\n    current = tolerantParse(currentContent);\n    next = tolerantParse(newContent);\n  } catch {\n    return null;\n  }\n  for (const key of MODE_KEYS) {\n    const from = current?.template_resolution?.[key] || \"advisory\";\n    const to = next?.template_resolution?.[key] || \"advisory\";\n    if (from === to) continue;\n    if (MODE_RANK[to] < MODE_RANK[from] && (from === \"strict\" || from === \"locked\")) {\n      return `${key} downgrade: ${from} → ${to}`;\n    }\n  }\n  return null;\n}\n\nconst dir = mkdtempSync(join(tmpdir(), \"p1-5-test-\"));\nconst file = join(dir, \"project.config.json\");\n\nfunction test(name: string, current: any, next: any, expectBlocked: boolean) {\n  writeFileSync(file, JSON.stringify(current));\n  const result = detectModeDowngrade(JSON.stringify(next), file);\n  const blocked = result !== null;\n  const status = blocked === expectBlocked ? \"PASS\" : \"FAIL\";\n  console.log(`${status}: ${name} | blocked=${blocked}${result ? \" (\" + result + \")\" : \"\"}`);\n}\n\nconst base = { project: { name: \"x\" }, template_resolution: {} };\n\ntest(\"strict → advisory\", { ...base, template_resolution: { develop_enforcement_mode: \"strict\" } }, { ...base, template_resolution: { develop_enforcement_mode: \"advisory\" } }, true);\ntest(\"locked → strict\", { ...base, template_resolution: { develop_enforcement_mode: \"locked\" } }, { ...base, template_resolution: { develop_enforcement_mode: \"strict\" } }, true);\ntest(\"locked → advisory\", { ...base, template_resolution: { develop_enforcement_mode: \"locked\" } }, { ...base, template_resolution: { develop_enforcement_mode: \"advisory\" } }, true);\ntest(\"advisory → strict\", { ...base, template_resolution: { develop_enforcement_mode: \"advisory\" } }, { ...base, template_resolution: { develop_enforcement_mode: \"strict\" } }, false);\ntest(\"strict → locked\", { ...base, template_resolution: { develop_enforcement_mode: \"strict\" } }, { ...base, template_resolution: { develop_enforcement_mode: \"locked\" } }, false);\ntest(\"strict unchanged\", { ...base, template_resolution: { develop_enforcement_mode: \"strict\" } }, { ...base, template_resolution: { develop_enforcement_mode: \"strict\" } }, false);\ntest(\"key removed from strict\", { ...base, template_resolution: { develop_enforcement_mode: \"strict\" } }, { ...base, template_resolution: {} }, true);\ntest(\"new file no current\", base, { ...base, template_resolution: { develop_enforcement_mode: \"advisory\" } }, false);\n\nrmSync(dir, { recursive: true, force: true });\nEOF\nbun run test-p1-5.ts\nrm test-p1-5.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-12T14:31:25.179Z",
+      "waivers_applied": []
+    },
+    "time-slots": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T00:38:16.964Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_framework-doctor.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T01:52:58.676Z",
+      "waivers_applied": []
+    },
+    ".opencode_scripts_framework-self-test.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T01:54:47.001Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_plugins_audit-before.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T02:20:59.602Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_reconciliation-validate.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:01:16.744Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_rotate-logs.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:11:05.220Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_janitor.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:14:43.978Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_compressor.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:17:27.312Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_deduplicator.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:19:07.324Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_indexer.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:21:04.340Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_scout-extractor.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:23:02.798Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_knowledge_scout-trigger.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-13T04:24:32.187Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_archive-dag-tasks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:14:12.864Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_install-hooks.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:31.571Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-reset.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:32.101Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_migrate-gate-state-v2-to-v3.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:32.713Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_rollback-state-migration.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:33.258Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_migrate-dag-v2.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:33.764Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-transaction.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:48.831Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_monitoring-status.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:49.840Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_state-canonicalize.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:50.865Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_eslint-audit.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:41:55.908Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_dag-version-manager.d.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:18.767Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_dag-version-manager.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:19.071Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_gate-core.d.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:19.359Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_gate-core.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:19.611Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_log-rotator.d.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:19.934Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_log-rotator.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:20.224Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_state-compactor.d.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:23.451Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_state-compactor.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:23.731Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_state-manager.d.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:24.013Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_dist_state-manager.js": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-14T01:42:24.302Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_hook-critical-files.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-15T09:00:50.755Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_hook-layers.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-15T09:01:55.038Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_hook-commit-msg.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-15T09:02:21.787Z",
+      "waivers_applied": []
+    },
+    "_home_zhaoge_workspace_opencode_work-one_.opencode_lib_index.ts": {
+      "status": "dirty",
+      "violations": [],
+      "last_check": "2026-06-15T09:02:36.462Z",
+      "waivers_applied": []
+    }
+  },
+  "aggregate": {
+    "total_violations": 0,
+    "dirty_modules": [
+      "grep -n \"writeFileSync\" /home/zhaoge/workspace/opencode/work-one/.opencode/lib/write-audit-lib.ts",
+      "grep -n \"writeFileSync\" /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/state-reconciliation.ts",
+      "grep -n \"writeFileSync\" /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/knowledge/janitor.ts",
+      "grep -n \"writeMachineAtomic\\|writeFileSync.*machine\\|beginTransaction\" /home/zhaoge/workspace/opencode/work-one/.opencode/lib/dag-policy.ts",
+      "grep -n \"atomicWriteMachine\\|writeFileSync\" /home/zhaoge/workspace/opencode/work-one/.opencode/tools/knowledge_cache_search.ts",
+      "bun .opencode/scripts/framework-self-test.ts",
+      "echo \"=== atomicWriteMachine call count by category ===\" && echo \"Plugins (5):\" && grep -l \"atomicWriteMachine\" /home/zhaoge/workspace/opencode/work-one/.opencode/plugins/*.ts | wc -l && echo \"MCP tools (3):\" && grep -l \"atomicWriteMachine\" /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/*.ts | wc -l && echo \"Tools (3):\" && grep -l \"atomicWriteMachine\" /home/zhaoge/workspace/opencode/work-one/.opencode/tools/*.ts | wc -l && echo \"lib files (2):\" && (grep -l \"atomicWriteMachine\" /home/zhaoge/workspace/opencode/work-one/.opencode/lib/*.ts 2>/dev/null | grep -v state-utils | wc -l) && echo \"Admin scripts (4):\" && grep -l \"atomicWriteMachine\" /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/*.ts 2>/dev/null | wc -l && echo \"=== Backward compatibility: plugins still import via uc7ks-schema ===\" && grep -c \"uc7ks-schema\" /home/zhaoge/workspace/opencode/work-one/.opencode/plugins/audit-after.ts && grep -c \"uc7ks-schema\" /home/zhaoge/workspace/opencode/work-one/.opencode/plugins/cache-after.ts && grep -c \"uc7ks-schema\" /home/zhaoge/workspace/opencode/work-one/.opencode/plugins/scope-after.ts && grep -c \"uc7ks-schema\" /home/zhaoge/workspace/opencode/work-one/.opencode/plugins/tdd-after.ts && grep -c \"uc7ks-schema\" /home/zhaoge/workspace/opencode/work-one/.opencode/plugins/uc7ks-after.ts",
+      "head -40 /home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
+      "wc -l /home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
+      "head -5 /home/zhaoge/workspace/opencode/work-one/.opencode/lib/log-manager.ts",
+      "grep -n 'export.*atomicWriteSubState\\|export.*atomicWriteMachine' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/substate-manager.ts",
+      "grep -n 'SUB_STATE_KEYS' /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/code-quality-gate.ts",
+      "grep -n 'atomicWriteSubState' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
+      "tail -20 /home/zhaoge/workspace/opencode/work-one/.opencode/lib/substate-manager.ts",
+      "_home_zhaoge_workspace_opencode_work-one_.opencode_scripts_mcp-tools_code-quality-gate.ts",
+      "grep -n 'getMachinePath\\|isPipelineDeclared\\|readCacheSufficiency\\|getDomainEntry' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/uc7ks-schema.ts",
+      "grep -c 'CRITICAL_FILES' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/critical-files.ts && grep 'export const CRITICAL_FILES' /home/zhaoge/workspace/opencode/work-one/.opencode/lib/critical-files.ts",
+      "wc -l /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/mcp-tools/compliance-gate.ts",
+      "grep -n 'Check 5\\|Check 6\\|Check 11\\|id: 5\\|id: 6\\|id: 11\\|Transaction verification\\|Critical infrastructure\\|Framework compliance' /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-doctor.ts",
+      "bun /home/zhaoge/workspace/opencode/work-one/.opencode/scripts/framework-self-test.ts"
+    ],
+    "waived_modules": []
+  }
+}

@@ -9,6 +9,7 @@ const {
   fileExists,
   resolveFrameworkPaths,
 } = require("../lib/gate-core.ts");
+const { readSubState, readMachineMeta } = require("../lib/substate-manager");
 
 const paths = resolveFrameworkPaths();
 
@@ -63,7 +64,6 @@ function main() {
 
   // ── Required fields check ──
   const gateState = readJsonFile(files["gate-state.json"]);
-  const machine = readJsonFile(files["machine.json"]);
   const dag = readJsonFile(files["Task.DAG.json"]);
   const registry = readJsonFile(files["rule_registry.json"]);
 
@@ -120,10 +120,12 @@ function main() {
     }
   }
 
-  // machine.json required fields
-  if (machine) {
+  // machine.json required sub-state fields check (P1-B: split architecture)
+  // Sub-states now live in dedicated files; readSubState() returns {} for
+  // missing/unreadable files, which we flag as structural problems.
+  if (fileExists(files["machine.json"])) {
+    const machineMeta = readMachineMeta();
     const requiredSubStates = [
-      "meta",
       "eslint_state",
       "type_check_state",
       "dependency_state",
@@ -131,20 +133,37 @@ function main() {
       "write_audit_state",
       "compliance_records",
       "tdd_enforcement_state",
-      "contracts",
       "keystone_hashes",
     ];
     for (const key of requiredSubStates) {
-      if (!machine[key]) {
+      const subState = readSubState(key);
+      if (!subState || Object.keys(subState).length === 0) {
         inconsistencies.push({
           severity: "HIGH",
           file: "machine.json",
           issue: "missing_substate",
-          detail: `Required sub-state '${key}' missing`,
+          detail: `Required sub-state '${key}' missing or empty`,
         });
       }
     }
-    if (!machine.meta || !machine.meta.revision) {
+    // meta and contracts reside in machine.json itself (not split files)
+    if (!machineMeta.meta || Object.keys(machineMeta.meta).length === 0) {
+      inconsistencies.push({
+        severity: "HIGH",
+        file: "machine.json",
+        issue: "missing_substate",
+        detail: `Required sub-state 'meta' missing or empty`,
+      });
+    }
+    if (!machineMeta.contracts) {
+      inconsistencies.push({
+        severity: "HIGH",
+        file: "machine.json",
+        issue: "missing_substate",
+        detail: `Required sub-state 'contracts' missing`,
+      });
+    }
+    if (!machineMeta.meta || !machineMeta.meta.revision) {
       inconsistencies.push({
         severity: "WARNING",
         file: "machine.json",
@@ -267,7 +286,9 @@ function main() {
   // Every successful auto-plan attempt must have a matching DAG entry.
   // A "success" record whose dag_task_id is no longer in the DAG indicates
   // a past plan that was pruned without updating history.
-  if (machine && Array.isArray(machine.auto_plan_history)) {
+  // P1-B: auto_plan_history resides in transaction_state sub-state file.
+  const transactionState = readSubState("transaction_state");
+  if (transactionState && Array.isArray(transactionState.auto_plan_history)) {
     const taskIds = new Set();
     if (dag && Array.isArray(dag.tasks)) {
       for (const t of dag.tasks) if (t && t.id) taskIds.add(t.id);
@@ -283,7 +304,7 @@ function main() {
         }
       }
     }
-    for (const rec of machine.auto_plan_history) {
+    for (const rec of transactionState.auto_plan_history) {
       if (rec && rec.status === "success" && rec.dag_task_id && !taskIds.has(rec.dag_task_id)) {
         inconsistencies.push({
           severity: "WARNING",

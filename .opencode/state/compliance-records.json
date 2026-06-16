@@ -1,0 +1,5419 @@
+{
+  "role_violations": [
+    {
+      "timestamp": "2026-05-18T07:51:55.628Z",
+      "agent": "@Coder-BE",
+      "violation_file": ".opencode/scripts/framework-self-test.js",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": ".opencode/scripts/**",
+      "resolved_at": "2026-05-19T01:32:00.000Z",
+      "resolved_by": "@Orchestrator"
+    },
+    {
+      "timestamp": "2026-05-24T00:46:19.015Z",
+      "agent": "@Coder-BE",
+      "violation_file": ".opencode/scripts/__tests__/compliance-gate.test.js",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": ".opencode/scripts/**",
+      "resolved_at": "2026-05-24T06:50:00.000Z",
+      "resolved_by": "@Architect",
+      "resolution": "T-TECHDEBT-016: Narrowed @Coder-BE denied scope from .opencode/scripts/** to .opencode/scripts/mcp-tools/** + .opencode/scripts/command-tools/**. .opencode/scripts/__tests__/** already in allowed list. WV-2026-010 closed."
+    },
+    {
+      "timestamp": "2026-05-25T19:49:35.384Z",
+      "agent": "@Coder-FE",
+      "violation_file": "booking_system_refactor/booking-backend/src/test-illegal.txt",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": "booking_system_refactor/booking-backend/**",
+      "resolved_at": "2026-05-25T19:59:00.000Z",
+      "resolved_by": "@Architect",
+      "resolution": "Test artifact from Plugin Hook testing; file removed by @Coder-BE"
+    },
+    {
+      "timestamp": "2026-05-25T20:37:38.797Z",
+      "agent": "@Coder-BE",
+      "violation_file": ".opencode/scripts/command-tools/dispatch-subagent.js",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": ".opencode/scripts/command-tools/**",
+      "resolved_at": "2026-05-25T21:01:39Z",
+      "resolved_by": "@Orchestrator",
+      "resolution": "Per user directive: @Architect owns all framework configuration including edition. @Coder-BE restricted to business code. This was a one-time BUG-5894 fix applied before policy clarified. Future framework script changes assigned to @Architect."
+    },
+    {
+      "timestamp": "2026-05-25T23:29:31.045Z",
+      "agent": "@Coder-BE",
+      "violation_file": ".opencode/tools/safe-edit.js",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": ".opencode/tools/**",
+      "resolved_at": "2026-05-26T00:00:00Z",
+      "resolved_by": "@Architect",
+      "resolution": "Pre-approved by @Arbiter for CI-EMBED task scope. @Coder-BE CI-EMBED-005 created safe-edit.js under CI-EMBED task authorization. See dispatch: .task_temp/_dispatch/dispatch-Architect-2026-05-25T23-23-36-506Z.md"
+    },
+    {
+      "timestamp": "2026-05-26T00:58:58.395Z",
+      "agent": "@Coder-BE",
+      "violation_file": ".opencode/tools/__tests__/safe-test.test.ts",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": ".opencode/tools/**",
+      "resolved_at": "2026-05-26T10:00:00Z",
+      "resolution": "Scope config fixed in CI-UNIFY-001 - .opencode/tools/** removed from denied list"
+    },
+    {
+      "timestamp": "2026-05-26T00:59:03.651Z",
+      "agent": "@Coder-BE",
+      "violation_file": ".opencode/tools/safe-test.ts",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": ".opencode/tools/**",
+      "resolved_at": "2026-05-26T10:00:00Z",
+      "resolution": "Scope config fixed in CI-UNIFY-001 - .opencode/tools/** removed from denied list"
+    },
+    {
+      "timestamp": "2026-05-26T01:49:17.347Z",
+      "agent": "@Coder-BE",
+      "violation_file": ".opencode/scripts/command-tools/dispatch-subagent.js",
+      "status": "resolved",
+      "severity": "BLOCKER",
+      "denied_by": ".opencode/scripts/command-tools/**",
+      "resolved_at": "2026-05-26T02:00:00.000Z",
+      "resolved_by": "@Architect",
+      "resolution": "Pre-existing violation from BUG-5894 fix; cleared for system config maintenance task."
+    }
+  ],
+  "gate_violations": [
+    {
+      "session_id": "B-MSG-CONTRACT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-CONTRACT\""
+    },
+    {
+      "session_id": "B-MSG-RED-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-001\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-001\""
+    },
+    {
+      "session_id": "B-MSG-RED-FE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-FE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-COMPONENT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-COMPONENT\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-SERVICE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-SERVICE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-HEADER",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-HEADER\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-STORE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-STORE\""
+    },
+    {
+      "session_id": "B-MSG-GUARDIAN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GUARDIAN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-ANALYSIS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-ANALYSIS\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-RED\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-GREEN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-REVIEW\""
+    },
+    {
+      "session_id": "OPC-FW-ACL",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-ACL\""
+    },
+    {
+      "session_id": "OPC-FW-DAG-GATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-DAG-GATE\""
+    },
+    {
+      "session_id": "OPC-FW-SELFCHECK",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-SELFCHECK\""
+    },
+    {
+      "session_id": "OPC-FW-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-AUDIT\""
+    },
+    {
+      "session_id": "UNIV-P0-E",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P0-E\""
+    },
+    {
+      "session_id": "UNIV-P1-C",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-C\""
+    },
+    {
+      "session_id": "UNIV-P1-D",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-D\""
+    },
+    {
+      "session_id": "UNIV-P2-A",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-A\""
+    },
+    {
+      "session_id": "UNIV-P2-B",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-B\""
+    },
+    {
+      "session_id": "UNIV-P2-J",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-J\""
+    },
+    {
+      "session_id": "UNIV-P3-F",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-F\""
+    },
+    {
+      "session_id": "UNIV-P3-G",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-G\""
+    },
+    {
+      "session_id": "UNIV-P4-H",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-H\""
+    },
+    {
+      "session_id": "UNIV-P4-I",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-I\""
+    },
+    {
+      "session_id": "UNIV-P5-K",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-K\""
+    },
+    {
+      "session_id": "UNIV-P5-L",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-L\""
+    },
+    {
+      "session_id": "UNIV-P5-M",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-M\""
+    },
+    {
+      "session_id": "UNIV-P5-N",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-N\""
+    },
+    {
+      "session_id": "UNIV-P6-O",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P6-O\""
+    },
+    {
+      "session_id": "FW-REPAIR-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-02\""
+    },
+    {
+      "session_id": "FW-REPAIR-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-03\""
+    },
+    {
+      "session_id": "FW-REPAIR-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-04\""
+    },
+    {
+      "session_id": "FW-REPAIR-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-05\""
+    },
+    {
+      "session_id": "FW-REPAIR-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-06\""
+    },
+    {
+      "session_id": "FW-REPAIR-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-07\""
+    },
+    {
+      "session_id": "FW-REPAIR-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-08\""
+    },
+    {
+      "session_id": "FW-REPAIR-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-09\""
+    },
+    {
+      "session_id": "FW-REPAIR-10",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-10\""
+    },
+    {
+      "session_id": "FW-REPAIR-11",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-11\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01\""
+    },
+    {
+      "session_id": "RVW-REVIEW-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-02\""
+    },
+    {
+      "session_id": "RVW-REVIEW-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-03\""
+    },
+    {
+      "session_id": "RVW-REVIEW-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-04\""
+    },
+    {
+      "session_id": "RVW-REVIEW-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-05\""
+    },
+    {
+      "session_id": "RVW-REVIEW-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-06\""
+    },
+    {
+      "session_id": "RVW-REVIEW-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-07\""
+    },
+    {
+      "session_id": "RVW-REVIEW-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-08\""
+    },
+    {
+      "session_id": "RVW-REVIEW-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-09\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-HOOKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-HOOKS\""
+    },
+    {
+      "session_id": "RVW2-ENFORCE-STRICT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-ENFORCE-STRICT\""
+    },
+    {
+      "session_id": "RVW2-PURGE-SESSIONS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-PURGE-SESSIONS\""
+    },
+    {
+      "session_id": "RVW2-FIX-CRLF",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-CRLF\""
+    },
+    {
+      "session_id": "RVW2-REGEN-DIGESTS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-REGEN-DIGESTS\""
+    },
+    {
+      "session_id": "RVW2-FIX-SELFTEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-SELFTEST\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-MCP-DEPS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-MCP-DEPS\""
+    },
+    {
+      "session_id": "RVW2-FIX-PATHS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-PATHS\""
+    },
+    {
+      "session_id": "RVW2-FIX-DAG-TRACE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-DAG-TRACE\""
+    },
+    {
+      "session_id": "RVW2-CI-CHECKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-CI-CHECKS\""
+    },
+    {
+      "session_id": "RVW2-FIX-WAL-DUP",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-WAL-DUP\""
+    },
+    {
+      "session_id": "TD-2026-010-REPAY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"TD-2026-010-REPAY\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-RED\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-GREEN\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-REVIEW\""
+    },
+    {
+      "session_id": "T-TECHDEBT-013",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-013\""
+    },
+    {
+      "session_id": "T-TECHDEBT-014",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-014\""
+    },
+    {
+      "session_id": "T-TECHDEBT-015",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-015\""
+    },
+    {
+      "session_id": "FW-FIX-F1",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F1\""
+    },
+    {
+      "session_id": "FW-FIX-F2",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F2\""
+    },
+    {
+      "session_id": "FW-FIX-F3",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F3\""
+    },
+    {
+      "session_id": "FW-FIX-F4",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F4\""
+    },
+    {
+      "session_id": "FW-FIX-F5",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F5\""
+    },
+    {
+      "session_id": "FW-FIX-F6",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F6\""
+    },
+    {
+      "session_id": "FW-FIX-F7",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F7\""
+    },
+    {
+      "session_id": "FW-HARDEN-F1-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F1-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-F6-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F6-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-CROSS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-CROSS\""
+    },
+    {
+      "session_id": "FW-GOVERN-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-GOVERN-AUDIT\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-004\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-003\""
+    },
+    {
+      "session_id": "T-TECHDEBT-016",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-016\""
+    },
+    {
+      "session_id": "FW-SAFE-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:37:48.306Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-AUDIT\""
+    },
+    {
+      "session_id": "B-MSG-CONTRACT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-CONTRACT\""
+    },
+    {
+      "session_id": "B-MSG-RED-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-001\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-001\""
+    },
+    {
+      "session_id": "B-MSG-RED-FE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-FE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-COMPONENT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-COMPONENT\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-SERVICE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-SERVICE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-HEADER",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-HEADER\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-STORE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-STORE\""
+    },
+    {
+      "session_id": "B-MSG-GUARDIAN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GUARDIAN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-ANALYSIS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-ANALYSIS\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-RED\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-GREEN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-REVIEW\""
+    },
+    {
+      "session_id": "OPC-FW-ACL",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-ACL\""
+    },
+    {
+      "session_id": "OPC-FW-DAG-GATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-DAG-GATE\""
+    },
+    {
+      "session_id": "OPC-FW-SELFCHECK",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-SELFCHECK\""
+    },
+    {
+      "session_id": "OPC-FW-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-AUDIT\""
+    },
+    {
+      "session_id": "UNIV-P0-E",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P0-E\""
+    },
+    {
+      "session_id": "UNIV-P1-C",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-C\""
+    },
+    {
+      "session_id": "UNIV-P1-D",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-D\""
+    },
+    {
+      "session_id": "UNIV-P2-A",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-A\""
+    },
+    {
+      "session_id": "UNIV-P2-B",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-B\""
+    },
+    {
+      "session_id": "UNIV-P2-J",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-J\""
+    },
+    {
+      "session_id": "UNIV-P3-F",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-F\""
+    },
+    {
+      "session_id": "UNIV-P3-G",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-G\""
+    },
+    {
+      "session_id": "UNIV-P4-H",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-H\""
+    },
+    {
+      "session_id": "UNIV-P4-I",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-I\""
+    },
+    {
+      "session_id": "UNIV-P5-K",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-K\""
+    },
+    {
+      "session_id": "UNIV-P5-L",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-L\""
+    },
+    {
+      "session_id": "UNIV-P5-M",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-M\""
+    },
+    {
+      "session_id": "UNIV-P5-N",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-N\""
+    },
+    {
+      "session_id": "UNIV-P6-O",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P6-O\""
+    },
+    {
+      "session_id": "FW-REPAIR-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-02\""
+    },
+    {
+      "session_id": "FW-REPAIR-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-03\""
+    },
+    {
+      "session_id": "FW-REPAIR-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-04\""
+    },
+    {
+      "session_id": "FW-REPAIR-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-05\""
+    },
+    {
+      "session_id": "FW-REPAIR-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-06\""
+    },
+    {
+      "session_id": "FW-REPAIR-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-07\""
+    },
+    {
+      "session_id": "FW-REPAIR-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-08\""
+    },
+    {
+      "session_id": "FW-REPAIR-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-09\""
+    },
+    {
+      "session_id": "FW-REPAIR-10",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-10\""
+    },
+    {
+      "session_id": "FW-REPAIR-11",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-11\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01\""
+    },
+    {
+      "session_id": "RVW-REVIEW-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-02\""
+    },
+    {
+      "session_id": "RVW-REVIEW-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-03\""
+    },
+    {
+      "session_id": "RVW-REVIEW-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-04\""
+    },
+    {
+      "session_id": "RVW-REVIEW-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-05\""
+    },
+    {
+      "session_id": "RVW-REVIEW-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-06\""
+    },
+    {
+      "session_id": "RVW-REVIEW-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-07\""
+    },
+    {
+      "session_id": "RVW-REVIEW-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-08\""
+    },
+    {
+      "session_id": "RVW-REVIEW-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-09\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-HOOKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-HOOKS\""
+    },
+    {
+      "session_id": "RVW2-ENFORCE-STRICT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-ENFORCE-STRICT\""
+    },
+    {
+      "session_id": "RVW2-PURGE-SESSIONS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-PURGE-SESSIONS\""
+    },
+    {
+      "session_id": "RVW2-FIX-CRLF",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-CRLF\""
+    },
+    {
+      "session_id": "RVW2-REGEN-DIGESTS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-REGEN-DIGESTS\""
+    },
+    {
+      "session_id": "RVW2-FIX-SELFTEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-SELFTEST\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-MCP-DEPS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-MCP-DEPS\""
+    },
+    {
+      "session_id": "RVW2-FIX-PATHS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-PATHS\""
+    },
+    {
+      "session_id": "RVW2-FIX-DAG-TRACE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-DAG-TRACE\""
+    },
+    {
+      "session_id": "RVW2-CI-CHECKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-CI-CHECKS\""
+    },
+    {
+      "session_id": "RVW2-FIX-WAL-DUP",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-WAL-DUP\""
+    },
+    {
+      "session_id": "TD-2026-010-REPAY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"TD-2026-010-REPAY\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-RED\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-GREEN\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-REVIEW\""
+    },
+    {
+      "session_id": "T-TECHDEBT-013",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-013\""
+    },
+    {
+      "session_id": "T-TECHDEBT-014",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-014\""
+    },
+    {
+      "session_id": "T-TECHDEBT-015",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-015\""
+    },
+    {
+      "session_id": "FW-FIX-F1",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F1\""
+    },
+    {
+      "session_id": "FW-FIX-F2",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F2\""
+    },
+    {
+      "session_id": "FW-FIX-F3",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F3\""
+    },
+    {
+      "session_id": "FW-FIX-F4",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F4\""
+    },
+    {
+      "session_id": "FW-FIX-F5",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F5\""
+    },
+    {
+      "session_id": "FW-FIX-F6",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F6\""
+    },
+    {
+      "session_id": "FW-FIX-F7",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F7\""
+    },
+    {
+      "session_id": "FW-HARDEN-F1-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F1-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-F6-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F6-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-CROSS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-CROSS\""
+    },
+    {
+      "session_id": "FW-GOVERN-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-GOVERN-AUDIT\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-004\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-003\""
+    },
+    {
+      "session_id": "T-TECHDEBT-016",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-016\""
+    },
+    {
+      "session_id": "FW-SAFE-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:38:28.674Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-AUDIT\""
+    },
+    {
+      "session_id": "B-MSG-CONTRACT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-CONTRACT\""
+    },
+    {
+      "session_id": "B-MSG-RED-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-001\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-001\""
+    },
+    {
+      "session_id": "B-MSG-RED-FE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-FE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-COMPONENT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-COMPONENT\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-SERVICE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-SERVICE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-HEADER",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-HEADER\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-STORE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-STORE\""
+    },
+    {
+      "session_id": "B-MSG-GUARDIAN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GUARDIAN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-ANALYSIS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-ANALYSIS\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-RED\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-GREEN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-REVIEW\""
+    },
+    {
+      "session_id": "OPC-FW-ACL",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-ACL\""
+    },
+    {
+      "session_id": "OPC-FW-DAG-GATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-DAG-GATE\""
+    },
+    {
+      "session_id": "OPC-FW-SELFCHECK",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-SELFCHECK\""
+    },
+    {
+      "session_id": "OPC-FW-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-AUDIT\""
+    },
+    {
+      "session_id": "UNIV-P0-E",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P0-E\""
+    },
+    {
+      "session_id": "UNIV-P1-C",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-C\""
+    },
+    {
+      "session_id": "UNIV-P1-D",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-D\""
+    },
+    {
+      "session_id": "UNIV-P2-A",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-A\""
+    },
+    {
+      "session_id": "UNIV-P2-B",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-B\""
+    },
+    {
+      "session_id": "UNIV-P2-J",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-J\""
+    },
+    {
+      "session_id": "UNIV-P3-F",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-F\""
+    },
+    {
+      "session_id": "UNIV-P3-G",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-G\""
+    },
+    {
+      "session_id": "UNIV-P4-H",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-H\""
+    },
+    {
+      "session_id": "UNIV-P4-I",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-I\""
+    },
+    {
+      "session_id": "UNIV-P5-K",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-K\""
+    },
+    {
+      "session_id": "UNIV-P5-L",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-L\""
+    },
+    {
+      "session_id": "UNIV-P5-M",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-M\""
+    },
+    {
+      "session_id": "UNIV-P5-N",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-N\""
+    },
+    {
+      "session_id": "UNIV-P6-O",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P6-O\""
+    },
+    {
+      "session_id": "FW-REPAIR-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-02\""
+    },
+    {
+      "session_id": "FW-REPAIR-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-03\""
+    },
+    {
+      "session_id": "FW-REPAIR-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-04\""
+    },
+    {
+      "session_id": "FW-REPAIR-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-05\""
+    },
+    {
+      "session_id": "FW-REPAIR-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-06\""
+    },
+    {
+      "session_id": "FW-REPAIR-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-07\""
+    },
+    {
+      "session_id": "FW-REPAIR-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-08\""
+    },
+    {
+      "session_id": "FW-REPAIR-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-09\""
+    },
+    {
+      "session_id": "FW-REPAIR-10",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-10\""
+    },
+    {
+      "session_id": "FW-REPAIR-11",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-11\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01\""
+    },
+    {
+      "session_id": "RVW-REVIEW-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-02\""
+    },
+    {
+      "session_id": "RVW-REVIEW-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-03\""
+    },
+    {
+      "session_id": "RVW-REVIEW-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-04\""
+    },
+    {
+      "session_id": "RVW-REVIEW-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-05\""
+    },
+    {
+      "session_id": "RVW-REVIEW-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-06\""
+    },
+    {
+      "session_id": "RVW-REVIEW-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-07\""
+    },
+    {
+      "session_id": "RVW-REVIEW-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-08\""
+    },
+    {
+      "session_id": "RVW-REVIEW-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-09\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-HOOKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-HOOKS\""
+    },
+    {
+      "session_id": "RVW2-ENFORCE-STRICT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-ENFORCE-STRICT\""
+    },
+    {
+      "session_id": "RVW2-PURGE-SESSIONS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-PURGE-SESSIONS\""
+    },
+    {
+      "session_id": "RVW2-FIX-CRLF",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-CRLF\""
+    },
+    {
+      "session_id": "RVW2-REGEN-DIGESTS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-REGEN-DIGESTS\""
+    },
+    {
+      "session_id": "RVW2-FIX-SELFTEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-SELFTEST\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-MCP-DEPS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-MCP-DEPS\""
+    },
+    {
+      "session_id": "RVW2-FIX-PATHS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-PATHS\""
+    },
+    {
+      "session_id": "RVW2-FIX-DAG-TRACE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-DAG-TRACE\""
+    },
+    {
+      "session_id": "RVW2-CI-CHECKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-CI-CHECKS\""
+    },
+    {
+      "session_id": "RVW2-FIX-WAL-DUP",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-WAL-DUP\""
+    },
+    {
+      "session_id": "TD-2026-010-REPAY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"TD-2026-010-REPAY\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-RED\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-GREEN\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-REVIEW\""
+    },
+    {
+      "session_id": "T-TECHDEBT-013",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-013\""
+    },
+    {
+      "session_id": "T-TECHDEBT-014",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-014\""
+    },
+    {
+      "session_id": "T-TECHDEBT-015",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-015\""
+    },
+    {
+      "session_id": "FW-FIX-F1",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F1\""
+    },
+    {
+      "session_id": "FW-FIX-F2",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F2\""
+    },
+    {
+      "session_id": "FW-FIX-F3",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F3\""
+    },
+    {
+      "session_id": "FW-FIX-F4",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F4\""
+    },
+    {
+      "session_id": "FW-FIX-F5",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F5\""
+    },
+    {
+      "session_id": "FW-FIX-F6",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F6\""
+    },
+    {
+      "session_id": "FW-FIX-F7",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F7\""
+    },
+    {
+      "session_id": "FW-HARDEN-F1-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F1-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-F6-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F6-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-CROSS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-CROSS\""
+    },
+    {
+      "session_id": "FW-GOVERN-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-GOVERN-AUDIT\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-004\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-003\""
+    },
+    {
+      "session_id": "T-TECHDEBT-016",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-016\""
+    },
+    {
+      "session_id": "FW-SAFE-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:16.053Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-AUDIT\""
+    },
+    {
+      "session_id": "B-MSG-CONTRACT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-CONTRACT\""
+    },
+    {
+      "session_id": "B-MSG-RED-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-001\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-001\""
+    },
+    {
+      "session_id": "B-MSG-RED-FE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-FE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-COMPONENT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-COMPONENT\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-SERVICE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-SERVICE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-HEADER",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-HEADER\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-STORE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-STORE\""
+    },
+    {
+      "session_id": "B-MSG-GUARDIAN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GUARDIAN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-ANALYSIS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-ANALYSIS\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-RED\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-GREEN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-REVIEW\""
+    },
+    {
+      "session_id": "OPC-FW-ACL",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-ACL\""
+    },
+    {
+      "session_id": "OPC-FW-DAG-GATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-DAG-GATE\""
+    },
+    {
+      "session_id": "OPC-FW-SELFCHECK",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-SELFCHECK\""
+    },
+    {
+      "session_id": "OPC-FW-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-AUDIT\""
+    },
+    {
+      "session_id": "UNIV-P0-E",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P0-E\""
+    },
+    {
+      "session_id": "UNIV-P1-C",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-C\""
+    },
+    {
+      "session_id": "UNIV-P1-D",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-D\""
+    },
+    {
+      "session_id": "UNIV-P2-A",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-A\""
+    },
+    {
+      "session_id": "UNIV-P2-B",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-B\""
+    },
+    {
+      "session_id": "UNIV-P2-J",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-J\""
+    },
+    {
+      "session_id": "UNIV-P3-F",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-F\""
+    },
+    {
+      "session_id": "UNIV-P3-G",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-G\""
+    },
+    {
+      "session_id": "UNIV-P4-H",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-H\""
+    },
+    {
+      "session_id": "UNIV-P4-I",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-I\""
+    },
+    {
+      "session_id": "UNIV-P5-K",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-K\""
+    },
+    {
+      "session_id": "UNIV-P5-L",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-L\""
+    },
+    {
+      "session_id": "UNIV-P5-M",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-M\""
+    },
+    {
+      "session_id": "UNIV-P5-N",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-N\""
+    },
+    {
+      "session_id": "UNIV-P6-O",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P6-O\""
+    },
+    {
+      "session_id": "FW-REPAIR-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-02\""
+    },
+    {
+      "session_id": "FW-REPAIR-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-03\""
+    },
+    {
+      "session_id": "FW-REPAIR-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-04\""
+    },
+    {
+      "session_id": "FW-REPAIR-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-05\""
+    },
+    {
+      "session_id": "FW-REPAIR-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-06\""
+    },
+    {
+      "session_id": "FW-REPAIR-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-07\""
+    },
+    {
+      "session_id": "FW-REPAIR-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-08\""
+    },
+    {
+      "session_id": "FW-REPAIR-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-09\""
+    },
+    {
+      "session_id": "FW-REPAIR-10",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-10\""
+    },
+    {
+      "session_id": "FW-REPAIR-11",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-11\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01\""
+    },
+    {
+      "session_id": "RVW-REVIEW-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-02\""
+    },
+    {
+      "session_id": "RVW-REVIEW-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-03\""
+    },
+    {
+      "session_id": "RVW-REVIEW-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-04\""
+    },
+    {
+      "session_id": "RVW-REVIEW-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-05\""
+    },
+    {
+      "session_id": "RVW-REVIEW-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-06\""
+    },
+    {
+      "session_id": "RVW-REVIEW-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-07\""
+    },
+    {
+      "session_id": "RVW-REVIEW-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-08\""
+    },
+    {
+      "session_id": "RVW-REVIEW-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-09\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-HOOKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-HOOKS\""
+    },
+    {
+      "session_id": "RVW2-ENFORCE-STRICT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-ENFORCE-STRICT\""
+    },
+    {
+      "session_id": "RVW2-PURGE-SESSIONS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-PURGE-SESSIONS\""
+    },
+    {
+      "session_id": "RVW2-FIX-CRLF",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-CRLF\""
+    },
+    {
+      "session_id": "RVW2-REGEN-DIGESTS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-REGEN-DIGESTS\""
+    },
+    {
+      "session_id": "RVW2-FIX-SELFTEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-SELFTEST\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-MCP-DEPS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-MCP-DEPS\""
+    },
+    {
+      "session_id": "RVW2-FIX-PATHS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-PATHS\""
+    },
+    {
+      "session_id": "RVW2-FIX-DAG-TRACE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-DAG-TRACE\""
+    },
+    {
+      "session_id": "RVW2-CI-CHECKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-CI-CHECKS\""
+    },
+    {
+      "session_id": "RVW2-FIX-WAL-DUP",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-WAL-DUP\""
+    },
+    {
+      "session_id": "TD-2026-010-REPAY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"TD-2026-010-REPAY\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-RED\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-GREEN\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-REVIEW\""
+    },
+    {
+      "session_id": "T-TECHDEBT-013",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-013\""
+    },
+    {
+      "session_id": "T-TECHDEBT-014",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-014\""
+    },
+    {
+      "session_id": "T-TECHDEBT-015",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-015\""
+    },
+    {
+      "session_id": "FW-FIX-F1",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F1\""
+    },
+    {
+      "session_id": "FW-FIX-F2",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F2\""
+    },
+    {
+      "session_id": "FW-FIX-F3",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F3\""
+    },
+    {
+      "session_id": "FW-FIX-F4",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F4\""
+    },
+    {
+      "session_id": "FW-FIX-F5",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F5\""
+    },
+    {
+      "session_id": "FW-FIX-F6",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F6\""
+    },
+    {
+      "session_id": "FW-FIX-F7",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F7\""
+    },
+    {
+      "session_id": "FW-HARDEN-F1-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F1-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-F6-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F6-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-CROSS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-CROSS\""
+    },
+    {
+      "session_id": "FW-GOVERN-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-GOVERN-AUDIT\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-004\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-003\""
+    },
+    {
+      "session_id": "T-TECHDEBT-016",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-016\""
+    },
+    {
+      "session_id": "FW-SAFE-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-24T09:47:37.215Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-AUDIT\""
+    },
+    {
+      "session_id": "B-MSG-CONTRACT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-CONTRACT\""
+    },
+    {
+      "session_id": "B-MSG-RED-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-001\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-001\""
+    },
+    {
+      "session_id": "B-MSG-RED-FE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-RED-FE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-COMPONENT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-COMPONENT\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-SERVICE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-SERVICE\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-HEADER",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-HEADER\""
+    },
+    {
+      "session_id": "B-MSG-GREEN-FE-STORE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GREEN-FE-STORE\""
+    },
+    {
+      "session_id": "B-MSG-GUARDIAN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"B-MSG-GUARDIAN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-ANALYSIS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-ANALYSIS\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-RED\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-GREEN\""
+    },
+    {
+      "session_id": "BUG-SENDCODE-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-SENDCODE-REVIEW\""
+    },
+    {
+      "session_id": "OPC-FW-ACL",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-ACL\""
+    },
+    {
+      "session_id": "OPC-FW-DAG-GATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-DAG-GATE\""
+    },
+    {
+      "session_id": "OPC-FW-SELFCHECK",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-SELFCHECK\""
+    },
+    {
+      "session_id": "OPC-FW-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"OPC-FW-AUDIT\""
+    },
+    {
+      "session_id": "UNIV-P0-E",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P0-E\""
+    },
+    {
+      "session_id": "UNIV-P1-C",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-C\""
+    },
+    {
+      "session_id": "UNIV-P1-D",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P1-D\""
+    },
+    {
+      "session_id": "UNIV-P2-A",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-A\""
+    },
+    {
+      "session_id": "UNIV-P2-B",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-B\""
+    },
+    {
+      "session_id": "UNIV-P2-J",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P2-J\""
+    },
+    {
+      "session_id": "UNIV-P3-F",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-F\""
+    },
+    {
+      "session_id": "UNIV-P3-G",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P3-G\""
+    },
+    {
+      "session_id": "UNIV-P4-H",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-H\""
+    },
+    {
+      "session_id": "UNIV-P4-I",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P4-I\""
+    },
+    {
+      "session_id": "UNIV-P5-K",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-K\""
+    },
+    {
+      "session_id": "UNIV-P5-L",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-L\""
+    },
+    {
+      "session_id": "UNIV-P5-M",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-M\""
+    },
+    {
+      "session_id": "UNIV-P5-N",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P5-N\""
+    },
+    {
+      "session_id": "UNIV-P6-O",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"UNIV-P6-O\""
+    },
+    {
+      "session_id": "FW-REPAIR-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-02\""
+    },
+    {
+      "session_id": "FW-REPAIR-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-03\""
+    },
+    {
+      "session_id": "FW-REPAIR-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-04\""
+    },
+    {
+      "session_id": "FW-REPAIR-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-05\""
+    },
+    {
+      "session_id": "FW-REPAIR-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-06\""
+    },
+    {
+      "session_id": "FW-REPAIR-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-07\""
+    },
+    {
+      "session_id": "FW-REPAIR-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-08\""
+    },
+    {
+      "session_id": "FW-REPAIR-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-09\""
+    },
+    {
+      "session_id": "FW-REPAIR-10",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-10\""
+    },
+    {
+      "session_id": "FW-REPAIR-11",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-REPAIR-11\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01\""
+    },
+    {
+      "session_id": "RVW-REVIEW-02",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-02\""
+    },
+    {
+      "session_id": "RVW-REVIEW-03",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-03\""
+    },
+    {
+      "session_id": "RVW-REVIEW-04",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-04\""
+    },
+    {
+      "session_id": "RVW-REVIEW-05",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-05\""
+    },
+    {
+      "session_id": "RVW-REVIEW-06",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-06\""
+    },
+    {
+      "session_id": "RVW-REVIEW-07",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-07\""
+    },
+    {
+      "session_id": "RVW-REVIEW-08",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-08\""
+    },
+    {
+      "session_id": "RVW-REVIEW-09",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-09\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-HOOKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-HOOKS\""
+    },
+    {
+      "session_id": "RVW2-ENFORCE-STRICT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-ENFORCE-STRICT\""
+    },
+    {
+      "session_id": "RVW2-PURGE-SESSIONS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-PURGE-SESSIONS\""
+    },
+    {
+      "session_id": "RVW2-FIX-CRLF",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-CRLF\""
+    },
+    {
+      "session_id": "RVW2-REGEN-DIGESTS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-REGEN-DIGESTS\""
+    },
+    {
+      "session_id": "RVW2-FIX-SELFTEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-SELFTEST\""
+    },
+    {
+      "session_id": "RVW2-INSTALL-MCP-DEPS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-INSTALL-MCP-DEPS\""
+    },
+    {
+      "session_id": "RVW2-FIX-PATHS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-PATHS\""
+    },
+    {
+      "session_id": "RVW2-FIX-DAG-TRACE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-DAG-TRACE\""
+    },
+    {
+      "session_id": "RVW2-CI-CHECKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-CI-CHECKS\""
+    },
+    {
+      "session_id": "RVW2-FIX-WAL-DUP",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW2-FIX-WAL-DUP\""
+    },
+    {
+      "session_id": "TD-2026-010-REPAY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"TD-2026-010-REPAY\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-RED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-RED\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-GREEN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-GREEN\""
+    },
+    {
+      "session_id": "RVW-REVIEW-01-TXNFIX-REVIEW",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"RVW-REVIEW-01-TXNFIX-REVIEW\""
+    },
+    {
+      "session_id": "T-TECHDEBT-013",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-013\""
+    },
+    {
+      "session_id": "T-TECHDEBT-014",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-014\""
+    },
+    {
+      "session_id": "T-TECHDEBT-015",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-015\""
+    },
+    {
+      "session_id": "FW-FIX-F1",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F1\""
+    },
+    {
+      "session_id": "FW-FIX-F2",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F2\""
+    },
+    {
+      "session_id": "FW-FIX-F3",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F3\""
+    },
+    {
+      "session_id": "FW-FIX-F4",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F4\""
+    },
+    {
+      "session_id": "FW-FIX-F5",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F5\""
+    },
+    {
+      "session_id": "FW-FIX-F6",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F6\""
+    },
+    {
+      "session_id": "FW-FIX-F7",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-FIX-F7\""
+    },
+    {
+      "session_id": "FW-HARDEN-F1-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F1-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-F6-TEST",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-F6-TEST\""
+    },
+    {
+      "session_id": "FW-HARDEN-CROSS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARDEN-CROSS\""
+    },
+    {
+      "session_id": "FW-GOVERN-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-GOVERN-AUDIT\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P1-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P1-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P2-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P2-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P3-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P3-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P4-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P4-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P5-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P5-004\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P6-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P6-003\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-001\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-002\""
+    },
+    {
+      "session_id": "FW-SAFE-P7-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-P7-003\""
+    },
+    {
+      "session_id": "T-TECHDEBT-016",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-016\""
+    },
+    {
+      "session_id": "FW-SAFE-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-SAFE-AUDIT\""
+    },
+    {
+      "session_id": "FW-CRASH-MITIGATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-MITIGATE\""
+    },
+    {
+      "session_id": "FW-CRASH-ANALYSIS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-ANALYSIS\""
+    },
+    {
+      "session_id": "FW-CRASH-FIX-PLUGIN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-FIX-PLUGIN\""
+    },
+    {
+      "session_id": "FW-CRASH-RESTORE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-RESTORE\""
+    },
+    {
+      "session_id": "FW-CRASH-VALIDATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-VALIDATE\""
+    },
+    {
+      "session_id": "FW-CRASH-FIX2A",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-FIX2A\""
+    },
+    {
+      "session_id": "FW-CRASH-FIX2B",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-FIX2B\""
+    },
+    {
+      "session_id": "FW-CRASH-VALIDATE2",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-CRASH-VALIDATE2\""
+    },
+    {
+      "session_id": "T-TECHDEBT-012",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-012\""
+    },
+    {
+      "session_id": "FW-HARNESS-FILE-EDITED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-FILE-EDITED\""
+    },
+    {
+      "session_id": "FW-HARNESS-AFTER-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-AFTER-AUDIT\""
+    },
+    {
+      "session_id": "FW-HARNESS-BEFORE-TDD",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-BEFORE-TDD\""
+    },
+    {
+      "session_id": "FW-HARNESS-PLUGIN-CHECK",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-PLUGIN-CHECK\""
+    },
+    {
+      "session_id": "FW-HARNESS-ENF-GUARD",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-ENF-GUARD\""
+    },
+    {
+      "session_id": "FW-HARNESS-CODE-QUALITY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-CODE-QUALITY\""
+    },
+    {
+      "session_id": "FW-HARNESS-SHARED-MODULE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-SHARED-MODULE\""
+    },
+    {
+      "session_id": "FW-HARNESS-MOVE-SCRIPTS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-MOVE-SCRIPTS\""
+    },
+    {
+      "session_id": "FW-HARNESS-UPDATE-PRECOMMIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-UPDATE-PRECOMMIT\""
+    },
+    {
+      "session_id": "FW-HARNESS-SESSION-HOOKS",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-SESSION-HOOKS\""
+    },
+    {
+      "session_id": "FW-HARNESS-PERMISSION",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-PERMISSION\""
+    },
+    {
+      "session_id": "FW-HARNESS-CONTRACT-HASH",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-CONTRACT-HASH\""
+    },
+    {
+      "session_id": "FW-HARNESS-COMMAND-EXEC",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-COMMAND-EXEC\""
+    },
+    {
+      "session_id": "FW-HARNESS-AFTER-REPAIR",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-AFTER-REPAIR\""
+    },
+    {
+      "session_id": "FW-HARNESS-BEFORE-REGISTRY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-BEFORE-REGISTRY\""
+    },
+    {
+      "session_id": "FW-HARNESS-BEFORE-DIRTY",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-BEFORE-DIRTY\""
+    },
+    {
+      "session_id": "FW-HARNESS-SHELL-AUDIT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-SHELL-AUDIT\""
+    },
+    {
+      "session_id": "FW-HARNESS-SCOPE-ESCALATION",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-SCOPE-ESCALATION\""
+    },
+    {
+      "session_id": "FW-HARNESS-FULL-SCAN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-FULL-SCAN\""
+    },
+    {
+      "session_id": "FW-HARNESS-DOCTOR-INTEGRATION",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-DOCTOR-INTEGRATION\""
+    },
+    {
+      "session_id": "FW-HARNESS-SESSION-COMPACTED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-SESSION-COMPACTED\""
+    },
+    {
+      "session_id": "FW-HARNESS-MESSAGE-UPDATED",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-MESSAGE-UPDATED\""
+    },
+    {
+      "session_id": "FW-HARNESS-TUI-COMMAND",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-TUI-COMMAND\""
+    },
+    {
+      "session_id": "FW-HARNESS-SKILL-GATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-SKILL-GATE\""
+    },
+    {
+      "session_id": "FW-HARNESS-SCOPE-LOG",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-SCOPE-LOG\""
+    },
+    {
+      "session_id": "FW-HARNESS-AUDIT-TRAIL",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-HARNESS-AUDIT-TRAIL\""
+    },
+    {
+      "session_id": "T-TECHDEBT-017",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"T-TECHDEBT-017\""
+    },
+    {
+      "session_id": "FW-ENFORCER-REPAIR",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FW-ENFORCER-REPAIR\""
+    },
+    {
+      "session_id": "FIX-CONSOLE-1",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FIX-CONSOLE-1\""
+    },
+    {
+      "session_id": "FIX-CONSOLE-2",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FIX-CONSOLE-2\""
+    },
+    {
+      "session_id": "FIX-CONSOLE-3",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"FIX-CONSOLE-3\""
+    },
+    {
+      "session_id": "HARNESS-RESTRUCTURE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"HARNESS-RESTRUCTURE\""
+    },
+    {
+      "session_id": "HARNESS-BUILD",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"HARNESS-BUILD\""
+    },
+    {
+      "session_id": "HARNESS-VERIFY-LOAD",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"HARNESS-VERIFY-LOAD\""
+    },
+    {
+      "session_id": "AGENT-MODE-FIX",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"AGENT-MODE-FIX\""
+    },
+    {
+      "session_id": "HARNESS-SMOKE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"HARNESS-SMOKE\""
+    },
+    {
+      "session_id": "HARNESS-EVAL-REPORT",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"HARNESS-EVAL-REPORT\""
+    },
+    {
+      "session_id": "HARDEN-CONSTRAINT-DESIGN",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"HARDEN-CONSTRAINT-DESIGN\""
+    },
+    {
+      "session_id": "BUG-5894-ENV-PROPAGATE",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"BUG-5894-ENV-PROPAGATE\""
+    },
+    {
+      "session_id": "CI-EMBED-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-EMBED-001\""
+    },
+    {
+      "session_id": "CI-EMBED-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-EMBED-002\""
+    },
+    {
+      "session_id": "CI-EMBED-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-EMBED-003\""
+    },
+    {
+      "session_id": "CI-EMBED-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-EMBED-004\""
+    },
+    {
+      "session_id": "CI-EMBED-005",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-EMBED-005\""
+    },
+    {
+      "session_id": "CI-EMBED-006",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-EMBED-006\""
+    },
+    {
+      "session_id": "CI-EMBED-007",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-EMBED-007\""
+    },
+    {
+      "session_id": "CI-STRENGTHEN-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-STRENGTHEN-001\""
+    },
+    {
+      "session_id": "CI-STRENGTHEN-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-STRENGTHEN-002\""
+    },
+    {
+      "session_id": "CI-STRENGTHEN-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-STRENGTHEN-003\""
+    },
+    {
+      "session_id": "CI-STRENGTHEN-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-STRENGTHEN-004\""
+    },
+    {
+      "session_id": "CI-UNIFY-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-UNIFY-001\""
+    },
+    {
+      "session_id": "CI-UNIFY-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-UNIFY-002\""
+    },
+    {
+      "session_id": "CI-UNIFY-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-UNIFY-003\""
+    },
+    {
+      "session_id": "CI-UNIFY-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-UNIFY-004\""
+    },
+    {
+      "session_id": "CI-HARDEN-001",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-HARDEN-001\""
+    },
+    {
+      "session_id": "CI-HARDEN-002",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-HARDEN-002\""
+    },
+    {
+      "session_id": "CI-HARDEN-003",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-HARDEN-003\""
+    },
+    {
+      "session_id": "CI-HARDEN-004",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-HARDEN-004\""
+    },
+    {
+      "session_id": "CI-HARDEN-005",
+      "reconciled": true,
+      "reconciled_at": "2026-05-26T07:31:43.920Z",
+      "original_status": "completed",
+      "detail": "Backfilled by state-reconciliation --backfill-audit for completed task \"CI-HARDEN-005\""
+    }
+  ],
+  "tdd_violations": [],
+  "super_admin_dispatch_bypasses": [
+    {
+      "timestamp": "2026-06-07T07:03:39.983Z",
+      "caller": "Super-Admin",
+      "target": "Knowledge-Curator",
+      "dag_task_id": "",
+      "patterns_matched": [
+        "official",
+        "explore",
+        "source code",
+        "repository",
+        "github",
+        "documentation"
+      ]
+    },
+    {
+      "timestamp": "2026-06-07T08:32:51.980Z",
+      "caller": "Super-Admin",
+      "target": "Knowledge-Curator",
+      "dag_task_id": "",
+      "patterns_matched": [
+        "cache",
+        "docs",
+        "official",
+        "index"
+      ]
+    },
+    {
+      "timestamp": "2026-06-07T09:03:20.537Z",
+      "caller": "Super-Admin",
+      "target": "Knowledge-Curator",
+      "dag_task_id": "",
+      "patterns_matched": [
+        "docs",
+        "official",
+        "index",
+        "explore",
+        "source code",
+        "repository",
+        "github"
+      ]
+    }
+  ],
+  "orchestrator_sa_dispatches": [
+    {
+      "timestamp": "2026-06-08T16:36:28.257Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VALIDATE-SUB-AUDIT",
+      "patterns_matched": [
+        "compliance",
+        "validate",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-08T16:37:03.755Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VALIDATE-SUB-BASELINE",
+      "patterns_matched": [
+        "integrity",
+        "validate",
+        "test",
+        "baseline"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-08T16:44:41.441Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VALIDATE-SUB-BASELINE-DEBUG",
+      "patterns_matched": [
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-08T16:47:50.175Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "debug-sa-repair-01",
+      "patterns_matched": [
+        "repair",
+        "integrity",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-08T16:54:03.896Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "debug-sa-repair-02",
+      "patterns_matched": [
+        "repair",
+        "integrity",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-08T17:01:03.105Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "repair-crit-01",
+      "patterns_matched": [
+        "repair"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-08T17:03:52.716Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "repair-crit-02",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-08T17:10:15.766Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "repair-crit-03",
+      "patterns_matched": [
+        "repair",
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T00:46:49.525Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VALIDATE-SUB-BASE",
+      "patterns_matched": [
+        "compliance",
+        "validate",
+        "audit",
+        "test",
+        "baseline"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T03:01:19.189Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "INVESTIGATE-DRAIN",
+      "patterns_matched": [
+        "fix",
+        "drain"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T03:27:36.272Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VALIDATE-CONFIG-10",
+      "patterns_matched": [
+        "validate"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T03:31:16.141Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "PERSIST-CONFIG-REPORT",
+      "patterns_matched": [
+        "validate"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T08:51:12.559Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "WRITE-VERIFY-REPORT",
+      "patterns_matched": [
+        "repair"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T08:51:55.687Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "WRITE-VERIFY-REPORT",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T08:52:32.884Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "WRITE-VERIFY-REPORT",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T08:59:56.445Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-report-v3",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T09:02:37.413Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-report-v4",
+      "patterns_matched": [
+        "repair",
+        "compliance",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T09:03:12.551Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-v5",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T09:03:51.319Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-v6",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T09:56:19.971Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-v7",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T11:46:02.852Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-v8",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T11:58:03.825Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-v9",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T12:21:18.673Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-v10",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T12:51:55.795Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "write-verification-v11",
+      "patterns_matched": [
+        "repair",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T13:39:54.603Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "compile-uc7ks-verification-report",
+      "patterns_matched": [
+        "repair",
+        "state",
+        "hook",
+        "plugin",
+        "machine.json",
+        "audit",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T14:02:38.420Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "investigate-gaps-uc7ks",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "state",
+        "hook",
+        "plugin",
+        "machine.json",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T14:02:45.800Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "investigate-gaps-uc7ks-v2",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "state",
+        "hook",
+        "plugin",
+        "machine.json",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-09T14:02:55.258Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "gap-investigation-2026-06-09-A",
+      "patterns_matched": [
+        "fix",
+        "state",
+        "hook",
+        "plugin",
+        "machine.json",
+        "compliance",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-10T07:32:34.555Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "test-dispatch-super-admin",
+      "patterns_matched": [
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-10T07:45:43.057Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "repair-verify-super-admin-20260610",
+      "patterns_matched": [
+        "repair",
+        "emergency"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-10T18:07:55.552Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "plugin-verify-superadmin-20260610",
+      "patterns_matched": [
+        "repair",
+        "emergency",
+        "hook",
+        "plugin",
+        "integrity"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-10T18:27:42.430Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-GATE-ARTIFACT-PATH-20260610",
+      "patterns_matched": [
+        "fix",
+        "validate"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-10T21:53:44.533Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-FIX-MCP-TOOLS-20260611",
+      "patterns_matched": [
+        "fix"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-10T22:05:37.874Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-FIX-KC-PERM-20260611",
+      "patterns_matched": [
+        "fix",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T04:35:18.855Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "KC-PERMISSION-AUDIT-001",
+      "patterns_matched": [
+        "state",
+        "plugin",
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T04:46:12.512Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "KC-PERMISSION-FIX-001",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "state",
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T05:04:10.879Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "CONFIG-ALIGNMENT-AUDIT-001",
+      "patterns_matched": [
+        "repair",
+        "state",
+        "plugin",
+        "compliance",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T05:20:06.052Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "CONFIG-ALIGNMENT-FIX-002",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "state"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T07:32:34.496Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "RUN-SELFTEST-001",
+      "patterns_matched": [
+        "fix",
+        "state"
+      ],
+      "mode": "advisory"
+    },
+    {
+      "timestamp": "2026-06-11T08:12:49.432Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-LOG-FILES-SA",
+      "patterns_matched": [
+        "state",
+        "hook",
+        "plugin"
+      ],
+      "mode": "advisory"
+    },
+    {
+      "timestamp": "2026-06-11T16:07:32.073Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-RECOVER-EXEC-GATE-20250612",
+      "patterns_matched": [
+        "fix",
+        "restore"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T16:34:29.783Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-ROOT-CAUSE-DIAG-20250612",
+      "patterns_matched": [
+        "fix",
+        "state",
+        "hook",
+        "plugin",
+        "gate-state",
+        "compliance",
+        "validate"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T17:08:05.497Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-V4-MULTI-DOMAIN",
+      "patterns_matched": [
+        "machine.json"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T17:14:38.125Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-V3-UC7KS-E2E",
+      "patterns_matched": [
+        "state"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T17:19:07.369Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-V5-GATE-INTEGRATION",
+      "patterns_matched": [
+        "state",
+        "machine.json",
+        "gate-state",
+        "compliance",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T17:31:01.937Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-UC7KS-HEALTH-GATE-FIX",
+      "patterns_matched": [
+        "fix",
+        "corrupt",
+        "emergency",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-11T18:12:14.416Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-LOG-UNIFY-PLAN",
+      "patterns_matched": [
+        "state",
+        "plugin",
+        "compliance",
+        "validate",
+        "audit",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T02:27:57.111Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-SHELL-BUN-CACHE-ALLOW",
+      "patterns_matched": [
+        "compliance",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T02:30:55.956Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-SHELL-BUN-CACHE-v2",
+      "patterns_matched": [
+        "compliance",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T02:55:48.886Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-PERM-AUDIT-EXEC",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "compliance",
+        "audit",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T04:43:35.655Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-REAPPLY-PERM-AUDIT-V2",
+      "patterns_matched": [
+        "emergency",
+        "compliance"
+      ],
+      "mode": "advisory"
+    },
+    {
+      "timestamp": "2026-06-12T04:49:06.084Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-REAPPLY-PERM-AUDIT-V2",
+      "patterns_matched": [
+        "compliance",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T05:02:05.888Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-PERM-AUDIT-PRACTICAL",
+      "patterns_matched": [
+        "reset",
+        "audit",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T05:08:02.999Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-SAFE-BASH-CORRUPT-01",
+      "patterns_matched": [
+        "fix",
+        "restore",
+        "corrupt"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T05:08:45.121Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-SA-SEARCH-01",
+      "patterns_matched": [
+        "validate",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T08:01:02.951Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-P0-1-TDD-FIX",
+      "patterns_matched": [
+        "fix",
+        "plugin"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T08:36:08.738Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-P0-6-7-PROP-FIX",
+      "patterns_matched": [
+        "fix",
+        "plugin",
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T08:49:11.967Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "REPAIR-P0-6-7-AGENT-CASING",
+      "patterns_matched": [
+        "repair",
+        "plugin",
+        "compliance",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T08:59:47.671Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "REPAIR-P0-6-7-AGENT-CASING-V2",
+      "patterns_matched": [
+        "repair",
+        "compliance"
+      ],
+      "mode": "advisory"
+    },
+    {
+      "timestamp": "2026-06-12T09:09:26.529Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "REPAIR-P0-6-7-EXECUTE-V3",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "compliance"
+      ],
+      "mode": "advisory"
+    },
+    {
+      "timestamp": "2026-06-12T09:26:05.103Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-P0-6-CASING-SUPERADMIN-V2",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "emergency",
+        "compliance",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T09:37:53.020Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "DRAIN-STUCK-ARCH-GATE-SESSION",
+      "patterns_matched": [
+        "emergency",
+        "drain",
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T09:46:49.689Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-P0-4-SUPERADMIN",
+      "patterns_matched": [
+        "repair",
+        "emergency",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T14:19:30.047Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-SESSION-MAP-AGENT-NORMALIZE",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "emergency"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-12T23:49:50.011Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "TEST-NO-REPAIR-PATTERN",
+      "patterns_matched": [
+        "plugin"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-13T00:39:48.771Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-P0-4-BIZ",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T02:52:37.118Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-PERM-DOCS-WRITE",
+      "patterns_matched": [
+        "repair",
+        "fix"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T03:06:08.334Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-DIAG-WRITE-PERM",
+      "patterns_matched": [
+        "repair",
+        "fix"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T05:11:22.803Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "KC-BUN-PERSIST",
+      "patterns_matched": [
+        "repair"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T07:51:17.053Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-PHASE10-DOC-UPDATE",
+      "patterns_matched": [
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T07:51:44.080Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-PHASE10-DOC-UPDATE-v2",
+      "patterns_matched": [
+        "fix",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T07:59:26.450Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-FINAL-ARTIFACTS",
+      "patterns_matched": [
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T08:02:17.537Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-FINAL-ARTIFACTS-2",
+      "patterns_matched": [
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T08:02:27.133Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FW-REPAIR-GATE-ARTIFACTS",
+      "patterns_matched": [
+        "repair",
+        "compliance"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T08:17:04.063Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-P2-FINDTASKINDAG-EXECUTION-ORDER",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "emergency",
+        "drain",
+        "compliance",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T08:20:03.580Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "P2-FIX-GATE-CHECKS-EXECUTION-ORDER-v2",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "emergency",
+        "drain",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T08:35:33.704Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "DOCS-UPDATE-P2-RESOLVED-001",
+      "patterns_matched": [
+        "fix",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T08:38:52.445Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-P2-PRE-EXECUTION-HOOK-EXECUTION-ORDER",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "emergency",
+        "drain",
+        "hook",
+        "compliance",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T08:52:30.873Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "DOCS-UPDATE-P2-FULL-001",
+      "patterns_matched": [
+        "fix",
+        "hook",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T09:00:30.981Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SMOKE-TEST-P2-FINAL-001",
+      "patterns_matched": [
+        "hook",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T09:05:44.451Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FORENSIC-P2-FINDTASKINDAG-VERIFY",
+      "patterns_matched": [
+        "fix",
+        "hook"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T09:13:53.945Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FORENSIC-P2-FINDTASKINDAG-VERIFY",
+      "patterns_matched": [
+        "fix",
+        "inconsistency",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T09:13:57.952Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FORENSIC-P2-FINDTASKINDAG-VERIFY-V2",
+      "patterns_matched": [
+        "fix",
+        "inconsistency",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T09:19:04.293Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-P3-PRE-EXECUTION-GATE-COVERAGE",
+      "patterns_matched": [
+        "fix"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T09:47:23.902Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-PRE-EXECUTION-GATE-COVERAGE-V2",
+      "patterns_matched": [
+        "fix"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T09:51:51.974Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-CHECKDAGCOVERAGE-EXECORDER-V3",
+      "patterns_matched": [
+        "repair",
+        "fix"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T15:03:16.842Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-STATE-REPAIR-001",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "drain",
+        "inconsistency",
+        "state",
+        "machine.json",
+        "gate-state",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T15:03:32.038Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-STATE-REPAIR-001",
+      "patterns_matched": [
+        "repair",
+        "fix",
+        "drain",
+        "inconsistency",
+        "state",
+        "machine.json",
+        "gate-state",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T15:12:38.091Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-STATE-REPAIR-001",
+      "patterns_matched": [
+        "repair",
+        "drain",
+        "reconcile",
+        "state",
+        "machine.json",
+        "gate-state",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T15:12:47.752Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-STATE-REPAIR-V2",
+      "patterns_matched": [
+        "repair",
+        "drain",
+        "reconcile",
+        "state",
+        "machine.json",
+        "gate-state",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T23:46:57.644Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "GIT-AUDIT-FRAMEWORK-001",
+      "patterns_matched": [
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-14T23:51:23.112Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "GIT-AUDIT-ARTIFACTS-001",
+      "patterns_matched": [
+        "compliance",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-15T00:10:03.907Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-GIT-HYGIENE-FIX-001",
+      "patterns_matched": [
+        "fix",
+        "state",
+        "plugin",
+        "gate-state"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-15T00:10:36.115Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-GIT-HYGIENE-FIX-001",
+      "patterns_matched": [
+        "fix",
+        "state",
+        "plugin",
+        "gate-state"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-15T00:27:38.134Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-BAK-CLEANUP-002",
+      "patterns_matched": [
+        "state",
+        "plugin",
+        "gate-state",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-15T00:29:45.295Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "SA-BAK-CLEANUP-003",
+      "patterns_matched": [
+        "state",
+        "plugin",
+        "gate-state",
+        "compliance",
+        "audit"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-15T08:02:51.019Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "VERIFY-PRECOMMIT-CLAIMS-001",
+      "patterns_matched": [
+        "hook"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-15T08:51:59.218Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "PRECOMMIT-HOOK-TS-MIGRATION",
+      "patterns_matched": [
+        "fix",
+        "hook",
+        "test"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-15T09:08:36.031Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-REGEX-ALTERNATION",
+      "patterns_matched": [
+        "fix",
+        "hook"
+      ],
+      "mode": "strict"
+    },
+    {
+      "timestamp": "2026-06-16T03:34:51.379Z",
+      "caller": "Orchestrator",
+      "target": "Super-Admin",
+      "dag_task_id": "FIX-MCP-IMPORT-BUG-001",
+      "patterns_matched": [
+        "state",
+        "compliance",
+        "audit"
+      ],
+      "mode": "strict"
+    }
+  ]
+}

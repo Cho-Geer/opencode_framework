@@ -3,7 +3,7 @@ import { tool } from "@opencode-ai/plugin";
 import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import * as path from "node:path";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { withInterruptGuard } from "../lib";
 import { atomicWriteSubState } from "../lib/state-utils";
 import { writeAuditLogEntry } from "../lib/audit-log";
@@ -204,6 +204,17 @@ export default tool({
           "dispatch_policy.auto_plan_max_per_session attempts per caller session. " +
           "Forced to false in locked enforcement mode (human-in-the-loop). " +
           "Every invocation is recorded in machine.json.auto_plan_history.",
+      ),
+    resume_session_id: tool.schema
+      .string()
+      .optional()
+      .describe(
+        "Session ID of a previously dispatched sub-agent to resume. " +
+          "When provided, the output header will include task_id in the Task() invocation, " +
+          "enabling session resumption via upstream OpenCode's task_id parameter. " +
+          "Only set if you mean to resume a previous task. The session must have been " +
+          "recorded in the session_log DB table (queryable by dag_task_id). When absent, every dispatch " +
+          "creates a NEW session (default behavior).",
       ),
   },
   async execute(args, context) {
@@ -478,6 +489,7 @@ export default tool({
                 ...process.env,
                 DISPATCH_TASK_DESC: args.task_description,
                 ...(dagTaskId ? { FRAMEWORK_TASK_ID: dagTaskId } : {}),
+                ...(args.resume_session_id ? { DISPATCH_RESUME_SESSION_ID: args.resume_session_id } : {}),
               },
             },
           );
@@ -506,10 +518,11 @@ export default tool({
           `///       [FW-ENFORCE][DAG] "Task … not found in Task.DAG.json`,
           `///       (checked both dag.tasks[] and dag.execution_order)"`,
           `///`,
-          `/// 🆕 Call Task() to dispatch (always new session):`,
+          `/// 🆕 Call Task() to dispatch${args.resume_session_id ? ' (RESUME session)' : ' (new session)'}:`,
           `///   Task({`,
           `///     subagent_type: "${args.agent_type}",`,
           `///     description: "<short description>",`,
+          args.resume_session_id ? `///     task_id: "${args.resume_session_id}",` : null,
           `///     prompt: <PROMPT BELOW>`,
           `///   })`,
           `///`,
@@ -518,9 +531,35 @@ export default tool({
           `///`,
         ];
 
+        // ── S25-FIX-V4: Write .dispatch_ctx for task-after.ts ──
+        // Replaces process.env.FRAMEWORK_TASK_ID propagation. The file is
+        // consumed (read + deleted) by task-after.ts after Task() completes.
+        // If Task() is never called, the file persists harmlessly — it is
+        // NOT read by gate-before.ts, so it cannot cause DAG gate blocking.
+        if (dagTaskId) {
+          try {
+            const root = process.env.OPENCODE_ROOT || process.cwd();
+            const dispatchCtxDir = path.join(root, ".task_temp", "_dispatch");
+            const dispatchCtxPath = path.join(dispatchCtxDir, ".dispatch_ctx");
+            if (!existsSync(dispatchCtxDir)) {
+              require("node:fs").mkdirSync(dispatchCtxDir, { recursive: true });
+            }
+            writeFileSync(
+              dispatchCtxPath,
+              JSON.stringify({ dagTaskId, createdAt: Date.now() }),
+              "utf8",
+            );
+          } catch {
+            // Best-effort; never block dispatch
+          }
+        }
+
         return [...header, ``, wrappedPrompt].join("\n");
       } finally {
-        // ── FW-REPAIR-DAG-DEADLOCK: Restore FRAMEWORK_TASK_ID after dispatch ──
+        // ── S25-FIX-V4: Restore FRAMEWORK_TASK_ID (v1 behavior) ──
+        // The env var is no longer needed after dispatch_subagent returns.
+        // task-after.ts reads dagTaskId from .dispatch_ctx file instead.
+        // This prevents Bug 2: stale env var causing permanent DAG gate blocking.
         if (savedTaskId === undefined) {
           delete process.env.FRAMEWORK_TASK_ID;
         } else {

@@ -162,3 +162,34 @@ export function atomicWriteJson(filePath: string, data: any): void {
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
   fs.renameSync(tmp, filePath);
 }
+
+
+// ── Atomic Sub-State Write (P2-A: DB Transaction + JSON Dual-Write) ──
+
+import { writeLog } from "./log-manager";
+import { SUBSTATE_FILES } from "./substate-manager";
+import type { SubStateKey, SubStateMap } from "./substate-types";
+import { dbAtomicWriteSubState } from "./db-state-manager";
+
+const SRC = "lib-state-utils";
+
+/**
+ * Atomic write for sub-state (P2-A Step 8: DB-only).
+ * Uses SQLite transaction (dbAtomicWriteSubState) for true atomic
+ * read-modify-write, solving G3 (CAS weak validation) and G4 (busy-wait spin).
+ */
+export function atomicWriteSubState<K extends SubStateKey>(
+  subStateKey: K,
+  modifyFn: (subState: SubStateMap[K]) => void,
+  maxRetries: number = 3,
+): boolean {
+  const dbOk = dbAtomicWriteSubState(subStateKey as any, modifyFn, maxRetries);
+  if (!dbOk) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-ATOMIC-WRITE-FAILED",
+      detail: `key=${subStateKey}`,
+    });
+    return false;
+  }
+  return true;
+}

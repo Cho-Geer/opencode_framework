@@ -2,8 +2,7 @@
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isModifyTool, getModifyPath } from "../lib/tool-scope";
-import { isSourceFile } from "../lib/state-utils";
-import { atomicWriteMachine } from "../lib/uc7ks-schema";
+import { isSourceFile, atomicWriteSubState } from "../lib/state-utils";
 
 export default withPluginLifecycle("scope-after", { "tool.execute.after": toolExecuteAfter });
 
@@ -24,13 +23,13 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     detail: "tool=" + input.tool + " file=" + filePath,
   });
 
-  // Update machine.json eslint_state dirty_modules
+  // Update eslint-state.json dirty_modules (P1-B split)
   try {
-    atomicWriteMachine((m) => {
-      m.eslint_state = m.eslint_state || { aggregate: { dirty_modules: [] } };
-      m.eslint_state.aggregate = m.eslint_state.aggregate || { dirty_modules: [] };
-      if (!m.eslint_state.aggregate.dirty_modules.includes(filePath)) {
-        m.eslint_state.aggregate.dirty_modules.push(filePath);
+    atomicWriteSubState("eslint_state", (state) => {
+      state.aggregate = state.aggregate || { dirty_modules: [] };
+      state.aggregate.dirty_modules = state.aggregate.dirty_modules || [];
+      if (!state.aggregate.dirty_modules.includes(filePath)) {
+        state.aggregate.dirty_modules.push(filePath);
       }
     });
   } catch (err: any) {

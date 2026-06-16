@@ -6,6 +6,7 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent, resolveTaskId } from "../lib/agent-resolver";
 import { capFailedEntries, atomicWriteJson } from "../lib/state-utils";
 import { findArmedSession } from "../lib/gate-core";
+import { dbAppendSessionLog, dbAppendDispatchFailed } from "../lib/db-state-manager";
 
 const FAILED_FILE = ".task_temp/_dispatch/.pending.json.failed";
 const GATE_REMINDER_FILE = ".task_temp/_global/gate-reminder.md";
@@ -35,26 +36,19 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     detail: `dispatch-outcome | status=${outcome} | taskId=${taskId} | agentType=${input.args?.subagent_type || "?"}`,
   });
 
-  // On failure, append to failed dispatch log
+  // On failure, record to dispatch_failed_log DB (replaces .pending.json.failed)
   if (outcome === "FAILURE") {
     try {
-      const root = process.env.OPENCODE_ROOT || ".";
-      const ff = path.join(root, FAILED_FILE);
-
-      let failed: any[] = [];
-      try { if (fs.existsSync(ff)) failed = JSON.parse(fs.readFileSync(ff, "utf8")); } catch {}
-
-      failed.push({
-        sessionID: input.sessionID,
+      dbAppendDispatchFailed({
+        dispatchId: input.callID || "unknown",
         agentType: input.args?.subagent_type || "unknown",
-        taskId,
-        timestamp: new Date().toISOString(),
-        error: output?.error || output?.failed || "unknown",
+        dagTaskId: taskId || undefined,
+        sessionId: input.sessionID,
+        createdAt: Date.now(),
+        failedAt: Date.now(),
+        reason: "task-failure",
+        errorMsg: (output?.error || output?.failed || "unknown").toString(),
       });
-
-      // SA-FIX-PARALLEL-DISPATCH-20260611: Apply TTL cap before writing failed file
-      failed = capFailedEntries(failed);
-      atomicWriteJson(ff, failed);
     } catch (err: any) {
       writeLog("task-after", "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
@@ -135,6 +129,51 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         level: "WARN", event: "GATE-REMINDER-FAILED",
         detail: "armed-session reminder skipped: " + err.message,
       });
+    }
+
+    // ── P6/S25-FIX-V4: Persist sub-agent session via DB ──
+    // FIX HISTORY:
+    //   v1: resolveTaskId() → FAIL (env var cleared by dispatch_subagent finally block)
+    //   v2: promptHash bridge → FAIL (hash mismatch: 12KB dispatch output vs ~100-char
+    //        Task() prompt argument — completely different content)
+    //   v3: Keep FRAMEWORK_TASK_ID on parent process.env → FAIL (introduces Bug 2:
+    //        env pollution → permanent DAG gate blocking if Task() never called)
+    //   v4: Read .dispatch_ctx file (written by dispatch_subagent.ts before return)
+    //        → dbAppendSessionLog() to DB → delete .dispatch_ctx. No env var dependency.
+    try {
+      const subSessionId = output?.metadata?.sessionId;
+      if (!subSessionId) return;
+
+      const root = process.env.OPENCODE_ROOT || ".";
+      const dispatchCtxPath = path.join(root, ".task_temp", "_dispatch", ".dispatch_ctx");
+
+      let dagTaskId: string | null = null;
+      try {
+        if (fs.existsSync(dispatchCtxPath)) {
+          const ctx = JSON.parse(fs.readFileSync(dispatchCtxPath, "utf8"));
+          dagTaskId = ctx.dagTaskId || null;
+          // Consume the file immediately — single-use context
+          fs.unlinkSync(dispatchCtxPath);
+        }
+      } catch {
+        // File read/parse/delete is best-effort
+      }
+
+      // Fallback: env var (works if FRAMEWORK_TASK_ID is still set from parent context)
+      if (!dagTaskId) dagTaskId = resolveTaskId();
+
+      if (dagTaskId) {
+        const agentType = input.args?.subagent_type || agent || "unknown";
+        const runId = process.env.OPENCODE_RUN_ID || null;
+        dbAppendSessionLog(subSessionId, dagTaskId, agentType, runId);
+        writeLog("task-after", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          event: "SESSION-LOG-APPENDED",
+          detail: `sub-agent sessionId=${subSessionId} dagTaskId=${dagTaskId} agentType=${agentType}`,
+        });
+      }
+    } catch {
+      // Session log persistence is best-effort; never block dispatch
     }
   }
 }

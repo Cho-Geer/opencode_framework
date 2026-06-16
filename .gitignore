@@ -117,6 +117,9 @@ docs/handover/
 .opencode/logs/safe-bash.log*
 !.opencode/logs/archive/.gitkeep
 .opencode/state/.transaction-log*
+.opencode/state/framework-state.db
+.opencode/state/framework-state.db-wal
+.opencode/state/framework-state.db-shm
 
 # Plugin refactor backups (stale backup directory from 2026-06-10)
 .opencode/_plugins_backups/

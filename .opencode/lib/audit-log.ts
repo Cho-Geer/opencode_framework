@@ -1,19 +1,29 @@
 /**
- * utils/audit-log.ts — Audit Log Writers
+ * utils/audit-log.ts — Audit Log Writers (DB-only)
  * Extracted from framework-enforcer.ts (Phase 4 modularization).
- * STATUS: ✅ EXTRACTED
+ *
+ * P2-A Step 8 (2026-06-16): DB-only audit writes.
+ * - writeAuditLogEntry: DB INSERT (atomic, solves G6)
+ * - flushAuditTrail: DB upsert (atomic, solves G7)
+ *
+ * JSONL/JSON dual-write removed; DB is single source of truth.
  */
-import * as path from 'node:path';
-import * as fs from 'node:fs';
-import { getOpenCodeRoot, ensureDir, STATE_PATHS } from "./state-utils";
+import {
+  dbWriteAuditLogEntry,
+  dbFlushAuditTrail,
+} from "./db-state-manager";
 
 export function writeAuditLogEntry(entry: Record<string, unknown>): void {
-  const auditDir = path.dirname(STATE_PATHS.auditLog());
-  ensureDir(auditDir);
   try {
-    fs.appendFileSync(STATE_PATHS.auditLog(), JSON.stringify(entry) + "\n", "utf8");
-  } catch {
-    // Best-effort
+    dbWriteAuditLogEntry({
+      session_id: (entry.sessionID as string) || undefined,
+      agent: (entry.agent as string) || undefined,
+      event_type: (entry.event as string) || (entry.eventType as string) || "audit",
+      detail: entry,
+      timestamp: entry.timestamp ? Date.parse(entry.timestamp as string) : Date.now(),
+    });
+  } catch (e: any) {
+    // DB write failed — logged internally by db-state-manager
   }
 }
 
@@ -22,11 +32,11 @@ export function logAuditEntry(entry: Record<string, unknown>): void {
 }
 
 export function flushAuditTrail(sessionID: string): void {
-  const auditDir = path.join(getOpenCodeRoot(), '.task_temp', '_global');
-  if (!fs.existsSync(auditDir)) { fs.mkdirSync(auditDir, { recursive: true }); }
-  const trailPath = path.join(auditDir, 'audit_trail.json');
-  let existing: Record<string, unknown>[] = [];
-  try { existing = JSON.parse(fs.readFileSync(trailPath, 'utf-8')); } catch {}
-  existing.push({ sessionID, flushedAt: new Date().toISOString() });
-  fs.writeFileSync(trailPath, JSON.stringify(existing, null, 2));
+  const newEntry = { sessionID, flushedAt: new Date().toISOString() };
+
+  try {
+    dbFlushAuditTrail(sessionID, [newEntry]);
+  } catch (e: any) {
+    // DB write failed — logged internally by db-state-manager
+  }
 }

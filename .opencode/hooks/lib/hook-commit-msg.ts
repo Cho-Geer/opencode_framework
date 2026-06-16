@@ -48,6 +48,12 @@ if (/^Merge /i.test(msg)) {
 
 // ── TDD Marker + Phase Ordering ──
 const tddMatch = msg.match(/^\[(Red|Green|Refactor)\]\s+(\S+)/i);
+const criticalModified = getStagedCriticalFiles();
+const isInfraOnly =
+  !tddMatch &&
+  msg.includes('[INFRA]') &&
+  criticalModified.length > 0;
+
 if (tddMatch) {
   const phase = tddMatch[1].toLowerCase();
   const taskId = tddMatch[2];
@@ -83,6 +89,10 @@ if (tddMatch) {
     }
   }
   console.log(`✅ [TDD] Valid ${phase} commit for ${taskId}`);
+} else if (isInfraOnly) {
+  console.log(
+    `✅ [INFRA] infrastructure-only commit (${criticalModified.length} critical file(s)) — TDD marker not required`,
+  );
 } else if (mode === 'strict' || mode === 'locked') {
   console.log('❌ [TDD] Commit message must contain [Red], [Green], or [Refactor]');
   process.exit(1);
@@ -91,7 +101,6 @@ if (tddMatch) {
 }
 
 // ── [INFRA] Marker Check (critical files) ──
-const criticalModified = getStagedCriticalFiles();
 if (criticalModified.length > 0) {
   if (!msg.includes('[INFRA]')) {
     console.log('═══════════════════════════════════════════════════════');
@@ -107,7 +116,9 @@ if (criticalModified.length > 0) {
     if (mode !== 'advisory') {
       process.exit(1);
     }
-  } else {
+  } else if (!isInfraOnly) {
+    // Already acknowledged above when isInfraOnly; skip duplicate message when
+    // [INFRA] is paired with a TDD marker (e.g. "[Green][INFRA] ...").
     console.log(
       `✅ [INFRA] ${criticalModified.length} critical file(s) — marker confirmed`,
     );
