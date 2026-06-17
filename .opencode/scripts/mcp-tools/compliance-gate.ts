@@ -1219,6 +1219,27 @@ function runGateConfirm(sessionId, planSummary, agent, taskId, declaredDeliverab
     };
   }
 
+  // ── Auto-append universal mandatory deliverables if missing ──
+  // FH-HANDOVER-001: HANDOVER.md and TASK_LOG.md are universal required
+  // deliverables for ALL non-exempt agents. Auto-appended here to prevent
+  // agent omission while still allowing agents to provide custom descriptions.
+  if (!isExempt && parsedDeliverables) {
+    const universalDeliverables = [
+      "HANDOVER.md",
+      "TASK_LOG.md",
+    ];
+    for (const name of universalDeliverables) {
+      if (!parsedDeliverables.some((d: any) => d.name === name)) {
+        parsedDeliverables.push({
+          name,
+          description: `${name} — universal mandatory deliverable (auto-added)`,
+          artifact_path: `.task_temp/${taskId || "{taskId}"}/${name}`,
+          required: true,
+        });
+      }
+    }
+  }
+
   session.gate_status = "armed";
   session.plan_summary = planSummary.trim();
   session.confirmed_at = new Date().toISOString();
@@ -1701,7 +1722,7 @@ function runGateSubmitDeliverables(sessionId, deliverablesEvidence) {
  * Approve: delivered → approved (optionally auto-complete with execution_summary).
  * Reject: delivered → armed (sub-agent must re-submit via new dispatch).
  */
-function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, executionSummary) {
+function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, executionSummary, agentId) {
   const store = loadStore();
   const session = sessionId ? store.sessions[sessionId] : null;
   if (!session) {
@@ -1710,6 +1731,27 @@ function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, e
       reason: `session not found: ${sessionId || "(missing)"}`,
     };
   }
+
+  // ── SA-FIX-APPROVE-PERMISSION: Caller identity enforcement ──
+  // approve_deliverables is restricted to @Orchestrator/@Super-Admin.
+  // Previously documented as "RESTRICTED" but had no code-level enforcement
+  // (same vulnerability class as SA-FIX-GATE-PERMISSION on retry_confirm).
+  // Three-layer fallback chain (mirrors runGateRetryConfirm L2139-2142):
+  //   Layer A: explicit agent_id parameter from tool caller
+  //   Layer B: session.agent (persisted by runGateConfirm at arm time)
+  //   Layer C: _dispatch_target.json (set by dispatch-before.ts)
+  const ALLOWED_APPROVE_AGENTS = ["@Orchestrator", "@Super-Admin", "Orchestrator", "Super-Admin"];
+  const resolvedAgent = (agentId
+    || (session && session.agent)
+    || resolveDispatchTargetAgentDirect()
+    || "").replace(/^@/, "");
+  if (resolvedAgent && !ALLOWED_APPROVE_AGENTS.includes(resolvedAgent) && !ALLOWED_APPROVE_AGENTS.includes("@" + resolvedAgent)) {
+    return {
+      status: "rejected",
+      reason: `compliance_gate_approve_deliverables restricted to @Orchestrator/@Super-Admin. Current agent: @${resolvedAgent}. Only the Orchestrator or Super-Admin may approve deliverables.`,
+    };
+  }
+
   if (session.gate_status !== "delivered") {
     return {
       status: "rejected",
@@ -1922,6 +1964,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           execution_summary: {
             type: "string",
             description: "Optional execution summary. When provided with 'approve', auto-completes the gate (approve + complete in one call).",
+          },
+          agent_id: {
+            type: "string",
+            description: "Agent identity of the caller (e.g. 'Orchestrator', '@Super-Admin'). Used for permission enforcement. Restricted to @Orchestrator/@Super-Admin.",
           },
         },
         required: ["session_id", "approval_decision"],
@@ -2408,6 +2454,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       args.approval_decision,
       args.approval_note,
       args.execution_summary,
+      args.agent_id,
     );
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

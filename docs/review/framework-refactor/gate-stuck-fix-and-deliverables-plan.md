@@ -850,3 +850,112 @@ Phase E: 清理 + 文档
 - Phase B 可独立实施（`.dispatch_ctx` + `session_log` 不影响 P0-4）
 - Phase D 可独立实施（`.pending.json.failed` 无读取者，零风险）
 - Phase E 在 A-D 全部验证通过后执行
+
+---
+
+## 十六、SA-FIX-APPROVE-PERMISSION: approve_deliverables 调用者身份硬化
+
+### 16.1 漏洞分析
+
+**问题**: `compliance_gate_approve_deliverables` 工具描述声明 "RESTRICTED to @Orchestrator/@Super-Admin"，但无代码级身份校验。任何 agent 可调用此工具审批/驳回任意 session 的成果物。
+
+**漏洞类别**: 与 `SA-FIX-GATE-PERMISSION` (2026-06-11) 完全同类 — `compliance_gate_retry_confirm` 曾有相同漏洞，`Knowledge-Curator` 成功绕过。
+
+**当前状态** (修复前):
+
+| 校验层 | 状态 |
+|--------|------|
+| 工具描述 "RESTRICTED" | ✅ 存在 (仅文本) |
+| JSDoc 注释 | ✅ 存在 (仅文档) |
+| 代码级身份校验 | ❌ 不存在 |
+| ALLOWED 列表 | ❌ 不存在 |
+
+### 16.2 MCP 调用者身份获取约束
+
+**关键发现**: `context.agent` 在 MCP 工具 handler 中**始终为 `undefined`**。
+
+**证据** (`compliance-gate.ts` 三处注释):
+- L2122: `"The MCP handler only receives (request), NOT (context). context?.agent is always undefined."`
+- L2461: `"context?.agent is NOT available in the raw MCP handler"`
+- L2085-2086: `"Removed deprecated FRAMEWORK_AGENT env var"`
+
+**原因**: MCP stdio transport 的 JSON-RPC 协议不携带 caller identity 元数据。MCP handler 签名 `setRequestHandler(CallToolRequestSchema, async (request) => {...})` 仅接收 `request.params.name` + `request.params.arguments`。
+
+**`FRAMEWORK_AGENT` 已废弃** (v4.0.0)，运行时从不设置。
+
+### 16.3 修正方案: 三层 fallback chain
+
+复用 `runGateRetryConfirm` (L2139-2142) 已验证的模式:
+
+```
+Layer A: agent_id 参数 (工具 schema 新增，调用者显式传入)
+Layer B: session.agent (gate-state 持久化，confirm 时写入)
+Layer C: resolveDispatchTargetAgentDirect() (_dispatch_target.json)
+```
+
+**三处修改**:
+
+| # | 文件 | 修改 |
+|---|------|------|
+| 1 | `compliance-gate.ts` 工具 schema | 新增 `agent_id` 参数 (optional, string) |
+| 2 | `runGateApproveDeliverables()` | 新增 `agentId` 参数 + `ALLOWED_APPROVE_AGENTS` 列表 + 三层 fallback chain + 拒绝非授权调用 |
+| 3 | MCP handler dispatch | 传递 `args.agent_id` 到 `runGateApproveDeliverables` 第 5 参数 |
+
+### 16.4 实施详情
+
+**工具 schema 变更**:
+```typescript
+agent_id: {
+  type: "string",
+  description: "Agent identity of the caller (e.g. 'Orchestrator', '@Super-Admin'). "
+    + "Used for permission enforcement. Restricted to @Orchestrator/@Super-Admin.",
+}
+```
+
+**身份校验代码**:
+```typescript
+const ALLOWED_APPROVE_AGENTS = ["@Orchestrator", "@Super-Admin", "Orchestrator", "Super-Admin"];
+const resolvedAgent = (agentId
+  || (session && session.agent)
+  || resolveDispatchTargetAgentDirect()
+  || "").replace(/^@/, "");
+if (resolvedAgent && !ALLOWED_APPROVE_AGENTS.includes(resolvedAgent)
+    && !ALLOWED_APPROVE_AGENTS.includes("@" + resolvedAgent)) {
+  return {
+    status: "rejected",
+    reason: `compliance_gate_approve_deliverables restricted to @Orchestrator/@Super-Admin. `
+      + `Current agent: @${resolvedAgent}.`,
+  };
+}
+```
+
+### 16.5 9 子系统影响审计
+
+| Agent | 影响 | 说明 |
+|-------|:----:|------|
+| @Orchestrator | ✅ 无 | 在 ALLOWED 列表中，调用不受阻 |
+| @Super-Admin | ✅ 无 | 在 ALLOWED 列表中，调用不受阻 |
+| @Meta-Planner | ✅ 无 | 非审批者，修复后阻止越权调用 |
+| @Coder-BE/FE | ✅ 无 | 同上 |
+| @Architect | ✅ 无 | 同上 |
+| @Guardian | ✅ 无 | 同上 |
+| @Arbiter | ✅ 无 | 同上 |
+| @CI-CD-Agent | ✅ 无 | 同上 |
+| @Knowledge-Curator | ✅ 无 | 同上 — 修复 SA-FIX-GATE-PERMISSION 同类漏洞 |
+
+**结论**: 零 agent 配置需修改。仅阻止非授权 agent 调用 approve_deliverables，对合法流程无影响。
+
+### 16.6 框架一致性审计
+
+| 维度 | 一致性 | 说明 |
+|------|:------:|------|
+| MCP 工具模式 | ✅ | 复用 `retry_confirm` 已验证的三层 fallback chain |
+| 日志系统 | ✅ | 拒绝时由 MCP handler 返回 `isError: true`，不额外写日志 (与 retry_confirm 一致) |
+| DB schema | ✅ | 不涉及新表/新列 |
+| 子进程隔离 | ✅ | 不依赖 process.env (FRAMEWORK_AGENT 已废弃) |
+| P0-4 作用域 | ✅ | 补充了 approve_deliverables 的权限缺口，与 retry_confirm 对齐 |
+
+### 16.7 实施状态
+
+**日期**: 2026-06-17
+**状态**: ✅ **已实施** — `compliance-gate.ts` 3 处修改已完成并验证加载通过

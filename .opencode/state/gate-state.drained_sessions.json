@@ -1286,8 +1286,1066 @@
       "drained_at": "2026-06-16T17:21:41.725Z",
       "drain_reason": "armed for 1h without completion (threshold: 1h)",
       "drain_type": "STALE_ARMED"
+    },
+    "cg_ses_1781623225226": {
+      "session_id": "cg_ses_1781623225226",
+      "created_at": "2026-06-16T15:20:25.243Z",
+      "task_description": "Replace 4 placeholder SHA-256 hashes in docs/official_docs/index.json with real values and update last_updated timestamp",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 7 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 7h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781624870438": {
+      "session_id": "cg_ses_1781624870438",
+      "created_at": "2026-06-16T15:47:50.453Z",
+      "task_description": "Fix typo in .opencode/agents/Knowledge-Curator.md line 6: change \"bDeepSeek\" to \"DeepSeek\" in the model field. This is a framework repair task (agent config correction) that falls within @Super-Admin scope.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 7 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 7h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781625941803": {
+      "session_id": "cg_ses_1781625941803",
+      "created_at": "2026-06-16T16:05:41.819Z",
+      "task_description": "调查分析：根据docs/review/framework-refactor/framework-evaluation-report.md结合实际代码，分析DAG设计对框架的增益程度，是否没那么有用。只调查，不修改任何代码。",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 7 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_pipeline_not_started",
+          "desc": "[UC7KS] No agent has started the knowledge pipeline for task \"INVESTIGATE-DAG-VALUE\". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "INVESTIGATE-DAG-VALUE",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 7h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781626049049": {
+      "session_id": "cg_ses_1781626049049",
+      "created_at": "2026-06-16T16:07:29.058Z",
+      "task_description": "DAG Design Utility Analysis for OpenCode Framework — READ-ONLY investigation. Map all DAG-related code, analyze value vs cost, assess flat task list feasibility. Output to docs/review/framework-refactor/dag-utility-analysis.md.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 7 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 7h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781628337205": {
+      "session_id": "cg_ses_1781628337205",
+      "created_at": "2026-06-16T16:45:37.218Z",
+      "task_description": "Verify Phase 1-2 deliverable approval flow implementation: read and inspect .opencode/lib/gate-core.ts, db-manager.ts, db-state-manager.ts, deliverables-templates.ts, and compliance-gate MCP tools to check S1-S11 implementation against the plan. Read-only verification - no code modifications.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 8 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "ARCH-VERIFY-001",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 6h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781630371943": {
+      "session_id": "cg_ses_1781630371943",
+      "created_at": "2026-06-16T17:19:31.957Z",
+      "task_description": "Lifecycle simulation test",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_pipeline_not_started",
+          "desc": "[UC7KS] No agent has started the knowledge pipeline for task \"GATE-FIX-VERIFY-SIM\". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "GATE-FIX-VERIFY-SIM",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781630386678": {
+      "session_id": "cg_ses_1781630386678",
+      "created_at": "2026-06-16T17:19:46.690Z",
+      "task_description": "Gate-Stuck-Fix Verification S19-S21: Framework self-test, TypeScript type check on 7 modified files, and full lifecycle simulation of the new compliance gate state machine",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "GATE-FIX-VERIFY-SIM",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781630442058": {
+      "session_id": "cg_ses_1781630442058",
+      "created_at": "2026-06-16T17:20:42.071Z",
+      "task_description": "Lifecycle simulation test - Gate-Stuck-Fix verification S21",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "GATE-FIX-VERIFY-SIM",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781632188516": {
+      "session_id": "cg_ses_1781632188516",
+      "created_at": "2026-06-16T17:49:48.516Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 5h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781645894563": {
+      "session_id": "cg_ses_1781645894563",
+      "created_at": "2026-06-16T21:38:14.563Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781646196917": {
+      "session_id": "cg_ses_1781646196917",
+      "created_at": "2026-06-16T21:43:16.937Z",
+      "task_description": "Full flow verification test",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_pipeline_not_started",
+          "desc": "[UC7KS] No agent has started the knowledge pipeline for task \"VERIFY-FULL-FLOW\". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "VERIFY-FULL-FLOW",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781646214832": {
+      "session_id": "cg_ses_1781646214832",
+      "created_at": "2026-06-16T21:43:34.845Z",
+      "task_description": "Full flow verification test",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "VERIFY-FULL-FLOW",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781646253505": {
+      "session_id": "cg_ses_1781646253505",
+      "created_at": "2026-06-16T21:44:13.516Z",
+      "task_description": "Full flow verification test and report update",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        },
+        {
+          "id": "uc7ks_pipeline_not_started",
+          "desc": "[UC7KS] No agent has started the knowledge pipeline for task \"PLUGIN-VFY-LOAD\". Run module_scope_declare and knowledge_cache_search before compliance_gate_check.",
+          "severity": "HIGH"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "PLUGIN-VFY-LOAD",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781646288629": {
+      "session_id": "cg_ses_1781646288629",
+      "created_at": "2026-06-16T21:44:48.642Z",
+      "task_description": "Report update only - no task id",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
+    },
+    "cg_ses_1781647100831": {
+      "session_id": "cg_ses_1781647100831",
+      "created_at": "2026-06-16T21:58:20.845Z",
+      "task_description": "Research OpenCode Session Storage APIs: Check cached docs, search GitHub source via context7, and fetch official docs to understand session storage, Task() task_id parameter, sessionId metadata, and session query/retrieval APIs. Cache findings to docs/official_docs/opencode/sessions/opencode-session-api.md.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Orchestrator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Orchestrator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_tools_dispatch_subagent_ts",
+          "desc": "[Gate Preflight v2] .opencode/tools/dispatch_subagent.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 10 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (49 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false,
+      "drained_at": "2026-06-16T23:18:49.627Z",
+      "drain_reason": "checked for 1h without confirmation (threshold: 1h)",
+      "drain_type": "STALE_CHECKED"
     }
   },
-  "last_drained": "2026-06-16T17:21:41.725Z",
-  "total_drained": 38
+  "last_drained": "2026-06-16T23:18:49.627Z",
+  "total_drained": 53
 }

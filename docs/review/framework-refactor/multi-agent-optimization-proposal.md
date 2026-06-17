@@ -2,7 +2,14 @@
 
 **Document**: `docs/review/framework-refactor/multi-agent-optimization-proposal.md`  
 **Author**: @Architect  
-**Date**: 2026-06-16  
+**Date**: 2026-06-16（初版） / **2026-06-17（状态更新）**
+
+> **2026-06-17 状态更新说明**：本提案仍为**提案性质**，尚未实施。在 `gate-stuck-fix` Phase 1-5（2026-06-17）落地后，以下假设需重新评估：
+>
+> 1. **Compliance Gate 协议**：原 3 步（check→confirm→complete）已演进为 **5 步**（check→confirm→execute→submit_deliverables→Orchestrator approve+complete），新增 `delivered`/`approved` 状态与 2 个新 MCP 工具。§7.4 已更新。
+> 2. **@Knowledge-Curator 方向冲突**：gate-stuck-fix 已将 KC 强化为非豁免 agent（`deliverables-templates.ts` 配置必需成果物）。本提案 Phase 4 "Demote KC"（§4.5）与当前方向冲突，建议改为"保留角色 + 简化 UC7KS 实现"。§1.2、§3.3、§4.5 已加 status note。
+> 3. **Dispatch 开销**：非豁免 sub-agent 每次派遣由 2 MCP 调用增至 5 次（+submit+approve+complete 由 Orchestrator 执行），§5.1 token 成本分析未反映此增量。
+> 4. **@Orchestrator 角色不可替代性上升**：gate-stuck-fix 要求每个非豁免 sub-agent 完成后 Orchestrator 必须调用 `approve_deliverables`，其调度功能无法简单硬编码化（需 LLM 审查证据），§3.2 "Role 0: Orchestrator (Hardcoded)" 的假设需重新评估。  
 **Status**: Proposal (awaiting review)  
 **Sources**: framework-evaluation-report.md §8, Anthropic "Building Effective Agents", AutoGen, CrewAI, LangGraph, OpenAI Swarm, Google A2A, OpenCode internal architecture docs
 
@@ -135,6 +142,8 @@ The UC7KS pipeline's local-first + dedicated curator design is architecturally u
 
 **Recommendation**: Preserve @Knowledge-Curator as a dedicated agent and the UC7KS pipeline enforcement mechanism, but reduce implementation complexity:
 
+> **2026-06-17 Status Note**: `gate-stuck-fix` Phase 1-5 已将 @Knowledge-Curator 纳入**非豁免 agent 清单**（`deliverables-templates.ts:62-64` 配置 HANDOVER.md 必需成果物，`declared_deliverables` 硬约束适用）。框架方向短期是**保留并加约束**（Orchestrator 必须审批 KC 的 deliverables 才能关闭 gate），而非本提案原设想的消除。本提案 Phase 4 "Demote Knowledge-Curator"（§4.5）与当前方向冲突，若推进需重新评估 KC 消除的可行性，或改为保留角色 + 简化 UC7KS 实现。
+
 - **(a) Keep KC as a dedicated agent**: The enforcement mechanism (UC7-001 through UC7-009) must remain. Replacing it with prompt-level instructions directly contradicts the design evidence: if prompt instructions were sufficient, KC would not have been created in the first place. The behavioral gap (agents skip docs → wrong code → rework) is real and recurrent.
 - **(b) Simplify the implementation, not the design pattern**: The 8-step pipeline, 12 semantic domains, and 7 knowledge scripts can be consolidated without removing the enforcement mechanism. Specific simplification targets include:
   - Merge `module_scope_declare` and `knowledge_cache_search` into a single pre-dispatch hook
@@ -260,7 +269,9 @@ This is the strongest argument FOR role separation. The proposal preserves this 
 │         │                                                        │
 │  ┌──────┴──────────────────────────────────────────────────┐    │
 │  │              QUALITY GATE INFRASTRUCTURE                  │    │
-│  │  • compliance_gate_check/confirm/complete (2-step flow)  │    │
+│  │  • compliance_gate 5-step protocol with deliverables:    │    │
+│  │      check→confirm→execute→submit_deliverables→          │    │
+│  │      Orchestrator approve+complete (non-exempt agents)   │    │
 │  │  • Permission Matrix (per-agent write scopes)            │    │
 │  │  • Safe Tools (TOCTOU, backup, CAS)                      │    │
 │  │  • Keystone hash validation                              │    │
@@ -385,7 +396,7 @@ permission:
 | @Architect | → Merged with @Meta-Planner into Planner-Architect | See above |
 | @Arbiter | → Human governance function (via Guardian escalation) | Technical debt decisions are human governance, not LLM tasks |
 | @Super-Admin | → Human role (direct invocation when needed) | Framework repair is a human activity; agent is symptom of complexity |
-| @Knowledge-Curator | → Prompt instruction + on-demand human trigger | LLM can read cached docs directly; acquisition is an infrequent human task |
+| @Knowledge-Curator | ~~→ Prompt instruction + on-demand human trigger~~ **⚠️ CONFLICT 2026-06-17** | ~~LLM can read cached docs directly~~ **gate-stuck-fix 已强化 KC 为非豁免 agent；建议改为"保留角色 + 简化 UC7KS 实现"** |
 | @Coder-BE | → Consolidated into parameterized Coder agent | Same workflow, different context |
 | @Coder-FE | → Consolidated into parameterized Coder agent | Same workflow, different context |
 
@@ -462,6 +473,7 @@ Each phase is independently deployable and can be rolled back without data loss.
 1. **Arbiter**: Add escalation logic to Guardian's prompt ("Flag conflicts for human review. Recommend: ..."). Remove `agents/arbiter.md`. Update TECH_DEBT_REGISTRY.md workflow to be human-maintained.
 2. **Super-Admin**: Remove `agents/super-admin.md`. Document framework repair process as human-executed using direct OpenCode commands. Super-Admin's `mode: "all"` means it was always human-accessible.
 3. **Knowledge-Curator**: Keep `docs/official_docs/` + `index.json`. Replace MCP pipeline with prompt instruction: "Before external queries, check `docs/official_docs/index.json`. If insufficient, request human to fetch docs." Remove `agents/knowledge-curator.md` + 7 knowledge scripts.
+   > **2026-06-17 Status Note (CONFLICT)**: KC 已被 `gate-stuck-fix` Phase 1-5 强化为非豁免 agent（`deliverables-templates.ts` 配置 HANDOVER.md 必需成果物，受 `declared_deliverables` 硬约束与 Orchestrator 审批约束）。本步骤与当前框架方向冲突。建议改为：**保留 KC 角色定义，仅简化 UC7KS 实现**（合并 `module_scope_declare`/`knowledge_cache_search`、精简 semantic domains 12→5-6、7 脚本→2-3 脚本），不删除 `agents/knowledge-curator.md`。
 4. **Validation**: Run self-test → verify no references to removed agents in framework configs. Run one complete task flow → verify all functions are covered.
 5. **Rollback**: Restore agent configs individually.
 
@@ -664,7 +676,13 @@ The following principles from the current architecture are explicitly preserved:
 
 > *"合规门禁（认知锚定）"*
 
-**Preserved**: `compliance_gate_check` → `compliance_gate_confirm` → `compliance_gate_complete` remains the mandatory protocol for all LLM agents. The 2-step optimization (combined check+confirm flow) remains in place.
+**Preserved and evolved (2026-06-17, gate-stuck-fix Phase 1-5)**: Compliance Gate protocol has been **extended from 3-step to 5-step** for non-exempt agents to fix three systemic stuck-session root causes (RC1/RC2/RC3). The current mandatory protocol is:
+- **Non-exempt agents (8 of 10)**: `check` → `confirm` (with `declared_deliverables`) → `execute` → `submit_deliverables` → Orchestrator `approve_deliverables` + `complete` (merged). New gate states `delivered`/`approved`; new MCP tools `compliance_gate_submit_deliverables` and `compliance_gate_approve_deliverables`.
+- **Exempt agents (@Orchestrator, @Super-Admin)**: `check` → `confirm` → `complete` (short path, `approval_required=0`).
+
+The 2-step optimization (combined check+confirm flow) remains as Step 2 of the 5-step protocol.
+
+> **Impact on this proposal**: The 5-step protocol increases per-dispatch MCP overhead (2→5 calls for non-exempt agents) and adds an Orchestrator approval node per sub-agent. Token cost estimates in §5.1 must account for this additional overhead when comparing the 10-agent vs 4-agent architectures.
 
 **Enhanced**: With fewer agent types, compliance gate configurations are simpler and less likely to drift.
 

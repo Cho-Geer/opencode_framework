@@ -61,9 +61,11 @@ export const DELIVERABLES_TEMPLATES: Record<string, DeliverableTemplate[]> = {
   ],
   "Knowledge-Curator": [
     { name: "HANDOVER.md", description: "Handover summary of knowledge cache updates", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
+    { name: "TASK_LOG.md", description: "Working memory log with knowledge curation details", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
   ],
   "Meta-Planner": [
     { name: "HANDOVER.md", description: "Handover summary of planning outputs", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
+    { name: "TASK_LOG.md", description: "Working memory log with planning rationale", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
   ],
 };
 

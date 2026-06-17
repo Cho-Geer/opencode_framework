@@ -1,7 +1,7 @@
 ---
 name: Orchestrator
 description: Project Manager – task scheduling, status control, result merging, and full‑process coordination. Does not write business code.
-model: DeepSeek/deepseek-v4-pro
+model: DeepSeek/deepseek-v4-flash
 temperature: 0.2
 color: "#6366F1"
 top_p: 0.4

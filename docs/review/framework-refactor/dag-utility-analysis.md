@@ -1,9 +1,15 @@
 # DAG Design Utility Analysis
 
-**Date**: 2026-06-17  
+**Date**: 2026-06-17 (初版) / **2026-06-17 (状态更新)**  
 **Author**: @Architect (investigation)  
 **Source**: `docs/review/framework-refactor/framework-evaluation-report.md` §8-9  
 **Status**: READ-ONLY investigation — no code changes
+
+> **2026-06-17 状态更新说明**：本分析核心结论（DAG 为"defense-in-depth applied to a low-value target"、建议简化为 flat task list + priority 字段）仍成立。以下细节在 `gate-stuck-fix` 后略有变化，但不影响分析逻辑：
+>
+> - **dispatch_subagent.ts** 从 532 行增至 **571 行**（新增 `resume_session_id` 参数支持 Phase 6 可选 Session Resume）；DAG LOC 占比仍约 23% 量级，对 §2.1 表 2.1 总码量结论影响 <2%。
+> - **Compliance Gate 协议**从 3 步演进为 5 步（deliverables 硬约束），§3.2 提及的"3-step protocol"上下文应理解为当前 5-step（check+confirm+execute+submit+approve+complete）。对 DAG 本身效用分析无影响。
+> - **Token cost 分析**（§4.2）：`dag_task_id` + `auto_plan` 参数 token 成本估算有效；新增的 `resume_session_id` 参数 token 开销 ~30 tokens，对 dispatch 总成本影响可忽略。
 
 ---
 
@@ -38,7 +44,7 @@ The evaluation report argues that the DAG is "defense-in-depth protecting a low-
 | 2 | `lib/dag-version-manager.ts` | 439 | 439 | 100% | Version snapshots, changelog, indexing, hot/warm/cold tiers |
 | 3 | `plugins/dispatch-before.ts` | 193 | 193 | 100% | **Layer 1** — policy-driven dispatch gate |
 | 4 | `plugins/gate-before.ts` | 153 | ~60 | ~39% | **Layer 3** — P2-1 DAG task existence audit at modify-tool time |
-| 5 | `tools/dispatch_subagent.ts` | 532 | ~120 | ~23% | **Layer 2** — unconditional DAG check + auto_plan integration; dual-semantic `dag_task_id` |
+| 5 | `tools/dispatch_subagent.ts` | **571** (2026-06-17) | ~120 | ~21% | **Layer 2** — unconditional DAG check + auto_plan integration; dual-semantic `dag_task_id`; Phase 6 `resume_session_id` parameter added |
 | 6 | `lib/gate-checks.ts` | 272 | ~74 | ~27% | `findTaskInDag()` — two-phase lookup (tasks[] + execution_order) |
 | 7 | `scripts/pre-execution-gate.ts` | 967 | ~120 | ~12% | `checkDagCoverage()` — 6-check gate including DAG coverage (Check 2/6) |
 | 8 | `scripts/pre-execution-hook.sh` | 598 | ~70 | ~12% | Stage 1: DAG gate with jq/python3/bun fallback chain |

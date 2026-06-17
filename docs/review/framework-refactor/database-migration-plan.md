@@ -1,10 +1,22 @@
 # P2-A: 数据库引入 — 技术选型与迁移实施方案
 
-**日期：** 2026-06-16
-**状态：** Step 0-7 已实施（2026-06-16），Step 8 待 7 天过渡期后推进（2026-06-23）
-**Self-test 基线：** 36/38 PASS（Check 26/27 FAIL 为 uncommitted files，非 DB 问题；Check 33 PASS）
-**DB Schema：** v3 — initial + substate_kv + eslint_state.last_full_scan
+**日期：** 2026-06-17（六次更新；初始 2026-06-16）
+**状态：** **Step 0-8 全部已完成（2026-06-16）** + P3 schema v4（2026-06-16）+ gate-stuck-fix Phase 1-5 schema v5/v6（2026-06-17）
+**Self-test 基线：** framework-self-test.ts (2790 行) 运行时基线 PASS；具体 check 数随迭代演进
+**DB Schema：** **v6** — initial (v1) + substate_kv (v2) + eslint_state.last_full_scan (v3) + file_baseline_kv + G2 cleanup (v4) + gate_sessions deliverables columns (v5) + session_log + dispatch_failed_log + session_map (v6)
+**DB 表数：** **29 张**（24 typed + 4 auxiliary + sqlite_sequence）
 **前置条件：** P1-A（CAS 统一）✅、P1-B（machine.json 拆分）✅ 已完成
+
+**Schema 演进时间线：**
+
+| 版本 | 日期 | 内容 | 实施来源 |
+|:----:|:----:|------|----------|
+| v1 | — | Initial: 19 typed 表 + 4 auxiliary + sqlite_sequence（共 24 张） | P2-A Step 0-2 |
+| v2 | — | 新增 `substate_kv` 表（12 子状态 JSON blob） | P2-A Step 1 |
+| v3 | — | `eslint_state.last_full_scan` 列 | P2-A Step 2 |
+| **v4** | 2026-06-16 | 新增 `file_baseline_kv` 表（G11 关闭）+ `machine_meta.last_updated` 统一清理（G2 DB 侧）+ `substate-types.ts` `SubStateMap` 强类型（G12 关闭） | P3-deep |
+| **v5** | 2026-06-17 | `gate_sessions` 表扩展 6 列 deliverables 硬约束（`declared_deliverables`、`submitted_deliverables`、`deliverables_approved_by/_at/_note`、`approval_required`） | gate-stuck-fix Phase 1-5 |
+| **v6** | 2026-06-17 | 新增 `session_log`、`dispatch_failed_log`、`session_map` 三张表（替代 `SESSION_ID.md` / `.pending.json.failed` / `.session_map.json`） | gate-stuck-fix §14 v4 方案 |
 
 ---
 
@@ -17,18 +29,20 @@ P1-B 将 1.1MB 的 `machine.json` 拆分为 12 个独立子状态文件（最大
 | 编号 | 问题 | 严重程度 | 当前缓解 | 数据库解决方案 |
 |------|------|---------|---------|-------------|
 | G1 | `gate-state.json` 写入非原子（saveGateStore 使用 writeFileSync，无 tmp+rename） | **P0** | ✅ Step 3: DB 事务原子写 + JSON 双写 | SQLite WAL 事务保证原子性 |
-| G2 | `machine.json` 双 `lastUpdated/last_updated` 字段 | P3 | 文档标注 | Schema 表强制统一 |
+| G2 | `machine.json` 双 `lastUpdated/last_updated` 字段 | P3 | ✅ **P3 schema v4**: DB 侧 `last_updated` 写入已清理；JSON 兼容字段暂保留（低影响 307B） | Schema 表强制统一 |
 | G3 | `atomicWriteMachine` CAS 弱验证（post-read 期间可能被二次写入） | P1 | ✅ Step 5: atomicWriteSubState 使用 DB 事务替代 CAS | SQLite 行级锁 |
 | G4 | 退避使用忙等自旋（空耗 CPU） | P2 | ✅ Step 5: DB 事务 + busy_timeout=5000 | SQLite 内核调度 |
 | G5 | `code-quality-gate.ts` 自定义 writeMachine 混合模式 | P1 | ✅ Step 7: writeMachine 已使用 writeMachineMeta+writeSubState 双写代理 | 统一 DB API |
 | G6 | `writeAuditLogEntry` 使用 appendFileSync（无缓冲） | P2 | ✅ Step 4: DB INSERT + JSONL 双写 | DB INSERT 原子 |
 | G7 | `flushAuditTrail` 非原子写入 | P2 | ✅ Step 4: DB upsert + JSON 双写 | DB 事务 |
-| G8 | `safe-bash-core.ts` 绕过 writeLog 写独立文件 | P2 | ⏳ Step 8 待修 | 统一到 DB 或 writeLog |
+| G8 | `safe-bash-core.ts` 绕过 writeLog 写独立文件 | P2 | ✅ **Step 8 已修复**：`logAction` → `writeLog()` 统一 | 统一到 DB 或 writeLog |
 | G9 | gate-core ↔ log-manager 循环依赖导致 gate-core 使用 appendFileSync | P2 | ✅ Step 3: DB 作为中间层解耦 | DB 作为中间层解耦 |
-| G10 | uc7ks-schema.ts re-export atomicWriteMachine 鼓励旧模式 | P3 | ✅ Step 7: 已确认无调用者 (dead code)，待 Step 8 删除 | 统一 DB API |
-| G11 | safe-edit-core.ts FileStateRegistry 进程内限 | P1 | mkdir 互斥跨进程 | DB 事务跨进程 |
-| G12 | readSubState/writeSubState 缺乏类型安全（any） | P2 | ✅ Step 1: substate_kv + typed 表共存 | Schema 表类型约束 |
+| G10 | uc7ks-schema.ts re-export atomicWriteMachine 鼓励旧模式 | P3 | ✅ **Step 8 已删除**：dead code 全部清理 | 统一 DB API |
+| G11 | safe-edit-core.ts FileStateRegistry 进程内限 | P1 | ✅ **P3 schema v4 已关闭**：新增 `file_baseline_kv` 表提供跨进程基线注册，替代 mkdir 互斥 | DB 事务跨进程 |
+| G12 | readSubState/writeSubState 缺乏类型安全（any） | P2 | ✅ **P3 已关闭**：`substate-types.ts` 导出 `SubStateKey`/`SubStateMap` 泛型，`db-state-manager.ts` 强类型化 | Schema 表类型约束 |
 | G13 | compliance-gate.ts inline fallback 函数与原子模式不一致 | P1 | ✅ Step 6: 所有读取已通过 readSubState 双写代理 (DB-first) | DB 连接统一 |
+
+**G-problem 最终统计：** 12/13 完全解决（G1, G3-G13），1/13 缓解（G2 JSON 兼容字段保留，低影响 307B）。
 
 ---
 
@@ -869,56 +883,109 @@ export function dbUpdateKnowledgeCacheAccess(
 
 ---
 
-## 十一、实施进度总结（2026-06-16 最新）
+## 十一、实施进度总结（2026-06-17 最新）
 
 ### 11.1 DB 运行时状态
 
 | 指标 | 实际值 |
 |------|--------|
 | DB 文件大小 | 1.1MB (framework-state.db) + 4MB WAL + 32KB SHM |
-| Schema 版本 | v3 (initial + substate_kv + last_full_scan) |
-| 表数量 | 25 张 (20 typed + 4 auxiliary + sqlite_sequence) |
-| substate_kv 行数 | 12 (全部子状态活跃双写) |
+| Schema 版本 | **v6** (initial + substate_kv + last_full_scan + file_baseline_kv + deliverables columns + session/dispatch tables) |
+| 表数量 | **29 张** (24 typed + 4 auxiliary + sqlite_sequence) |
+| 新增表（v4-v6） | `file_baseline_kv` (v4)、`session_log` / `dispatch_failed_log` / `session_map` (v6) |
+| gate_sessions 扩展（v5） | 6 列 deliverables 硬约束 |
+| substate_kv 行数 | 12 (全部子状态 DB-only，JSON 快照已冻结) |
 | WAL 模式 | active |
 | PRAGMA integrity_check | ok |
 
-### 11.2 G1-G13 问题矩阵（最新状态）
+### 11.2 G1-G13 问题矩阵（最终状态）
 
 | 编号 | 缓解状态 | 实施 Step |
 |------|:--:|:--:|
 | G1 gate-state.json 非原子 | ✅ 已解决 | Step 3 (DB 事务 + JSON 双写) |
-| G2 machine.json 双 lastUpdated 字段 | ⏳ 待文档 | Step 8 (统一为 last_updated) |
+| G2 machine.json 双 lastUpdated 字段 | ✅ **已缓解** | **P3 schema v4** (DB 侧清理；JSON 兼容字段暂保留，低影响 307B) |
 | G3 CAS 弱验证 | ✅ 已解决 | Step 5 (DB 事务替代 CAS) |
 | G4 忙等自旋 | ✅ 已解决 | Step 5 (DB busy_timeout=5000) |
 | G5 code-quality-gate 混合 writeMachine | ✅ 已解决 | Step 7 (本地 writeMachine 已使用双写代理) |
 | G6 appendFileSync 审计日志 | ✅ 已解决 | Step 4 (DB INSERT + JSONL 双写) |
 | G7 flushAuditTrail 非原子 | ✅ 已解决 | Step 4 (DB upsert + JSON 双写) |
-| G8 safe-bash-core 绕过 writeLog | ⏳ 待修 | Step 8 (统一到 DB audit_log 或 writeLog) |
+| G8 safe-bash-core 绕过 writeLog | ✅ **已解决** | **Step 8** (`logAction` → `writeLog()`) |
 | G9 gate-core ↔ log-manager 循环依赖 | ✅ 已解决 | Step 3 (DB 作为中间层) |
-| G10 uc7ks-schema re-export dead code | ⏳ 待删 | Step 8 (0 调用者) |
-| G11 FileStateRegistry 进程内限制 | ⏳ 待优化 | Step 8+ (DB 事务跨进程，非紧迫) |
-| G12 readSubState/writeSubState any 类型 | ⏳ 待优化 | Step 8+ (typed 表查询 API 待设计) |
+| G10 uc7ks-schema re-export dead code | ✅ **已解决** | **Step 8** (dead code 全部清理) |
+| G11 FileStateRegistry 进程内限制 | ✅ **已解决** | **P3 schema v4** (`file_baseline_kv` 表) |
+| G12 readSubState/writeSubState any 类型 | ✅ **已解决** | **P3** (`substate-types.ts` SubStateMap 泛型) |
 | G13 compliance-gate inline fallback | ✅ 已解决 | Step 6 (所有读取已通过 readSubState 双写代理) |
 
-**已解决：8/13 (G1, G3, G4, G5, G6, G7, G9, G13 + INC-1~8 全部关闭)**
-**Step 8 解决：3/13 (G2, G8, G10)**
-**后续优化：2/13 (G11, G12)**
+**最终统计：12/13 完全解决（G1, G3-G13）+ 1/13 缓解（G2 低影响设计约束）**
+**INC-1 ~ INC-8 全部关闭**
 
-### 11.3 Step 8 清理清单（待 2026-06-23）
+### 11.3 Step 8 清理清单（✅ 2026-06-16 已完成）
 
-| 清理项 | 调用者 | 风险 |
-|--------|:--:|:--:|
-| `atomicWriteMachine()` (state-utils.ts:180) | 0 | 低（已 7 天观察期） |
-| `readMachine()/writeMachine()` (substate-manager.ts:248,263) | 0 (外部) | 低 |
-| `uc7ks-schema.ts` re-export atomicWriteMachine (line 333) | 0 | 低 |
-| `code-quality-gate.ts` 本地 `writeMachine` 函数 (line 312) | 3 callers | 中（需重构为 writeMachineMeta+writeSubState） |
-| 12 个 JSON 子状态文件 | — | 中（保留 7 天备份后删除） |
-| `gate-state.json` (2.2KB) | — | 低 |
-| `gate-state.index.json` (159KB) | — | 低 |
-| `audit_log.jsonl` 双写 | — | 低 |
-| `writeJsonFile()` (gate-core) | 需审计 | 中 |
-| `safe-bash-core.ts` 独立日志 | — | 低（统一到 DB audit_log） |
+| 清理项 | 状态 | 备注 |
+|--------|:--:|------|
+| `atomicWriteMachine()` (state-utils.ts) | ✅ 已删除 | 0 残留调用者 |
+| `readMachine()/writeMachine()` (substate-manager.ts) | ✅ 已删除 | 外部 0 调用者 |
+| `uc7ks-schema.ts` re-export atomicWriteMachine | ✅ 已删除 | dead code |
+| `code-quality-gate.ts` 本地 `writeMachine` 函数 | ✅ 已重构 | writeMachineMeta+writeSubState 双写代理 |
+| 12 个 JSON 子状态文件 | ✅ 冻结 | 保留为只读后备，DB 为实际读写目标 |
+| `gate-state.json` (2.2KB) | ✅ DB-only | DB gate_sessions 表为主要存储 |
+| `gate-state.index.json` (159KB) | ✅ 保留 | compactor v3 架构，非双写对象 |
+| `audit_log.jsonl` 双写 | ✅ 移除 | 仅 DB INSERT |
+| `writeJsonFile()` (gate-core) | ✅ 清理 | 已审计无调用者 |
+| `safe-bash-core.ts` 独立日志 | ✅ 修复 | 统一到 `writeLog()` |
 
-**预计耗时**：~2-3h
-**预计效果**：self-test 36/38 → 38/38（解决 Check 26/27 的 uncommitted files 后），代码净重减少 ~500 行
+**实际耗时**：~2h
+**实际效果**：JSON 双写层全部移除（JSON 快照冻结为只读后备）、dead code 全部清理、日志规范 0 违规。
+
+### 11.4 P3 schema v4 增量（2026-06-16 已完成）
+
+| 变更 | 文件 | 状态 |
+|------|------|:--:|
+| 新增 `file_baseline_kv` 表 | `db-manager.ts` v4 block | ✅ |
+| `machine_meta.last_updated` 统一清理 | `db-state-manager.ts` | ✅ |
+| `substate-types.ts` SubStateMap 泛型 | `lib/substate-types.ts` (新) | ✅ |
+| `db-state-manager.ts` 强类型化 | 导入 `SubStateKey`/`SubStateMap` | ✅ |
+| state-transaction.ts DEPRECATED | beginTransaction 移除 | ✅ |
+
+详见 `p3-deep-optimization-plan.md` + `p3-verification-report.md`。
+
+### 11.5 gate-stuck-fix schema v5/v6 增量（2026-06-17 已完成）
+
+**v5 — deliverables 硬约束（Phase 1-5）：**
+
+| 变更 | 表 | 状态 |
+|------|-----|:--:|
+| `declared_deliverables` TEXT (JSON) | gate_sessions | ✅ |
+| `submitted_deliverables` TEXT (JSON) | gate_sessions | ✅ |
+| `deliverables_approved_by` TEXT | gate_sessions | ✅ |
+| `deliverables_approved_at` INTEGER | gate_sessions | ✅ |
+| `deliverables_approval_note` TEXT | gate_sessions | ✅ |
+| `approval_required` INTEGER | gate_sessions | ✅ |
+
+**v6 — session 基础设施（§14 v4 方案）：**
+
+| 表 | 用途 | 状态 |
+|----|------|:--:|
+| `session_log` | sub-agent session 持久记录（替代 SESSION_ID.md） | ✅ |
+| `dispatch_failed_log` | dispatch 失败归档（替代 .pending.json.failed） | ✅ |
+| `session_map` | session→agent 映射（替代 .session_map.json） | ✅ |
+
+**配套代码修改：**
+- `.dispatch_ctx` 单次消费文件机制（替代 process.env.FRAMEWORK_TASK_ID，解决 Bug 1+2）
+- `db-state-manager.ts` 新增 7 个 CRUD 函数（`dbAppendSessionLog`、`dbQuerySessionByDagTaskId`、`dbAppendDispatchFailed`、`dbReadSessionMap`、`dbWriteSessionMap`、`dbCleanupSessionLog`、`dbCleanupDispatchFailed`）
+- `task-after.ts` / `dispatch-after.ts` / `session.ts` 改 DB 写入路径
+- `agent-resolver.ts` / `dispatch-subagent.ts` 改 DB 读取路径
+- `framework-self-test.ts` 新增 Check 38（验证 v6 三表存在且可查询）
+
+详见 `gate-stuck-fix-and-deliverables-plan.md` §14-15。
+
+### 11.6 待跟进（非阻塞）
+
+| 项目 | 状态 | 说明 |
+|------|:--:|------|
+| **gate-stuck-fix Phase 6（可选）** | ⏸️ 暂缓 | Session Resume 解锁（2.2h），Phase 1-5 已通过 session_log DB 解决 Bug 3；Phase 6 进一步解决 Bug 1+2 使 Orchestrator 驳回后能 resume 原 session。**非阻塞，按需推进** |
+| **nightly-compaction v6 表清理** | ⏳ 待调度 | `dbCleanStaleEntries()` 已存在但未纳入 nightly；session_log/dispatch_failed_log/session_map 均内置 7 天 TTL 函数 |
+| **typed DB 表结构化查询** | ⏳ 中期 | eslint_state, write_audit_state, compliance_records 当前 substate_kv JSON blob 性能可接受（1-2ms） |
+| **JSON 快照文件删除** | ⏳ 长期 | .opencode/state/*.json (12 files) 已冻结为只读后备；建议 DB 稳定 1 个月+ 后删除 |
+| **machine.schema.json 拆分** | ⏳ 长期 | 40KB 单体 schema；当前不影响运行（DB 不依赖此 schema） |
 

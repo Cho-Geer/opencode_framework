@@ -78,7 +78,7 @@
     },
     "Orchestrator": {
       "mode": "primary",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Orchestrator.md",
       "permission": {
         "task": "allow",
@@ -496,7 +496,7 @@
     },
     "Arbiter": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Arbiter.md",
       "hidden": true,
       "permission": {
@@ -561,7 +561,7 @@
     },
     "CI-CD-Agent": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/CI-CD-Agent.md",
       "hidden": true,
       "permission": {
@@ -737,7 +737,7 @@
     "Knowledge-Curator": {
       "mode": "subagent",
       "hidden": true,
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "DeepSeek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Knowledge-Curator.md",
       "permission": {
         "task": {

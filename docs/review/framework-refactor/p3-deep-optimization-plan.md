@@ -1,9 +1,11 @@
 # P3 框架深度优化方案 — G11/G12/G2 + 遗留问题治理
 
-**日期：** 2026-06-16
+**日期：** 2026-06-16（初版）/ **2026-06-17（状态更新）**
 **制定者：** @Orchestrator (基于 @Meta-Planner 深度分析)
 **前置条件：** P2-A Step 0-8 + post-Step-8 补丁全部完成；所有读写路径 DB-only
 **目标：** 解决 G11/G12/G2 三个遗留 G-problem + 治理 5 项结构性遗留问题
+**实施状态：** ✅ **P3 已完成（2026-06-16）** — 详见 `p3-verification-report.md`；schema 演进至 v4
+**Schema 演进后状态：** v4 (P3, 2026-06-16) → **v5** (gate-stuck-fix Phase 1-5, 2026-06-17, deliverables 硬约束) → **v6** (gate-stuck-fix §14, 2026-06-17, session/dispatch 基础设施三表)。本文档描述的 v4 方案已按设计落地，后续 schema 演进详见 `gate-stuck-fix-and-deliverables-plan.md` 与本文件 §14 之后的演进注记。
 
 ---
 
