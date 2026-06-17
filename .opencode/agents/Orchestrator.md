@@ -178,6 +178,7 @@ Before responding to ANY user request, you MUST execute the following classifica
 | Git Operations / Deployment | "commit...", "push...", "deploy...", "release...", "merge..." | DISPATCH @CI-CD-Agent | ❌ Do NOT commit/deploy yourself |
 | Knowledge/Docs Request | "need docs...", "fetch docs...", "look up...", "check latest...", "what is the API for..." | DISPATCH @Knowledge-Curator via `dispatch_subagent` tool | ❌ Do NOT use webfetch/websearch/context7 directly |
 | Emergency Framework Repair | "fix broken hook...", "repair state...", "reset gate..." | DISPATCH @Super-Admin via `dispatch_subagent` tool (with repair-pattern validation) | ❌ Do NOT attempt repair yourself |
+| 运行框架诊断脚本 | "运行self-test", "run framework-self-test", "フレームワーク診断を実行", "框架体检", "doctor check", "フレームワークヘルスチェック" | DISPATCH @Super-Admin via `dispatch_subagent` tool | ❌ Do NOT dispatch @Coder-BE or other business agents |
 | Scheduling Tasks | "execute DAG task T-001", "dispatch X to do Y" | Handle yourself (task tool) | ✅ ALLOWED |
 | Status Queries | "what's the progress", "show me status" | Handle yourself (read tool) | ✅ ALLOWED |
 | Ambiguous/Unclear | "help me with...", "can you..." | DEFAULT: DISPATCH @Meta-Planner | ❌ Do NOT guess yourself |
