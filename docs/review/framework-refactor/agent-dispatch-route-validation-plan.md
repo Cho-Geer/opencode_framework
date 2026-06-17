@@ -2,7 +2,7 @@
 
 **日期**: 2026-06-17
 **作者**: @Super-Admin
-**状态**: Proposal — 审核修订版 (含 CRITICAL/HIGH 缺陷修复 + console 违规治理)
+**状态**: ✅ Implemented (commit 12c9df09) — 含 CRITICAL/HIGH 缺陷修复 + console 违规治理
 **依赖**: project.config.json 新增 `route_rules` 块、dispatch-before.ts 扩展、gate-before.ts 扩展、route-validator.ts 新建、scope-before.ts 迁移、dispatch-subagent.ts console→writeLog、pre-execution-gate.ts gateLog 补全
 
 ---
@@ -915,4 +915,65 @@ if (scopeRules && isBusinessCodeFile(scopePath)) {
 - `gate-before.ts:112-172` — 已有 P2-1 DAG task audit
 - `dag-policy.ts:53-58` — DAG_EXEMPT_AGENTS 规范列表
 - `opencode.json` — Agent 权限矩阵（L3 否决权数据源，结构: `agent.{Agent}.permission.safe_edit`）
+
+---
+
+## 十二、实施结果摘要
+
+**实施日期**: 2026-06-17
+**实施 Commit**: `12c9df09`
+**验证报告**: `docs/review/framework-refactor/agent-dispatch-route-validation-implementation-report.md`
+
+### 12.1 实施总览
+
+| 阶段 | 状态 | 说明 |
+|------|:----:|------|
+| **Phase 0: Console 违规治理** | ✅ PASS | dispatch-subagent.ts 24→12 console.error（保留 CLI UX）；pre-execution-gate.ts 补全 3 处 gateLog |
+| **Phase 1: 配置与基础设施** | ✅ PASS | route-validator.ts (308行) + project.config.json route_rules |
+| **Phase 2: 派遣与 DAG 校验** | ✅ PASS | dispatch-before.ts L1-L4 + gate-before.ts L2+L3 |
+| **Phase 3: scope-before.ts 迁移** | ✅ PASS | P0-3/P0-4 硬编码→配置驱动 |
+| **Phase 4: 验证** | ✅ PASS | self-test 37/40 (3 预存失败无关) + TypeScript 零错误 |
+
+### 12.2 Console 违规治理详情
+
+**dispatch-subagent.ts** (1000 行):
+
+| 区域 | 原来 | 现在 | 保留原因 |
+|------|:----:|:----:|---------|
+| logInfo/logWarn | fs.appendFileSync | writeLog | — |
+| CLI 入口参数验证 | 7 console.error | 1 console.error + 6 writeLog | process.exit(1) 前保留 1 条 CLI UX |
+| Pre-execution gate | 5 console.error | 1 console.error + 4 writeLog | process.exit 前保留 1 条 CLI UX |
+| Gate script missing | 2 console.error | 0 console.error + 2 writeLog | — |
+| Agent config not found | 1 console.error | 0 console.error + 1 writeLog | — |
+| readRuntimePermissions | 1 console.error | 0 console.error + 1 writeLog | — |
+| DAG_TASK_ID reuse | 3 console.error | 1 console.error + 2 writeLog | process.exit 前保留 1 条 CLI UX |
+| .pending.json write | 3 console.error | 1 console.error + 2 writeLog | process.exit 前保留 1 条 CLI UX |
+| .pending.json read-back | 4 console.error | 1 console.error + 3 writeLog | process.exit 前保留 1 条 CLI UX |
+| stdout output | 1 console.log | 1 console.log | 脚本主输出契约（不可替换） |
+| **总计** | **24 console.error + 1 console.log** | **11 console.error + 1 console.log + 14 writeLog** | — |
+
+> **设计原则**：每个 process.exit(1) 路径保留 1 条 console.error 用于 CLI stderr 可见性，其余全部迁移到 writeLog 持久化审计。这是计划明确要求的行为，不是遗漏。
+
+**pre-execution-gate.ts** (951 行):
+- ✅ 补全 3 处 gateLog 覆盖（dag_creator_bypass L798, uc7ks_bypass_warn L726, runtime_error L950）
+- ✅ 总计 16 处 gateLog 调用
+- 现有 console.error/console.log 保留为 CLI UX 层，gateLog 提供持久化审计层
+
+### 12.3 集成测试结果
+
+4 个实际派遣场景全部通过：
+
+| 场景 | 派遣目标 | dag_task_id | 结果 |
+|:----:|:--------:|:-----------:|:----:|
+| S1 分析 contract.yaml | @Architect | ROUTE-VFY-TEST01 | ✅ PASS |
+| S2 DB-VFY-L2-03 DAG任务 | @Coder-BE | DB-VFY-L2-03 | ✅ PASS |
+| S3 修复框架路由缓存 | @Super-Admin | ROUTE-VFY-TEST03 | ✅ PASS |
+| S4 获取 NestJS 文档 | @Knowledge-Curator | ROUTE-VFY-TEST04 | ✅ PASS |
+
+### 12.4 代码变更统计
+
+- **新增文件**: 2 (route-validator.ts, implementation-report.md)
+- **修改文件**: 8 (dispatch-before.ts, gate-before.ts, scope-before.ts, dispatch-subagent.ts, pre-execution-gate.ts, project.config.json, plan.md)
+- **代码量**: +3066 / -166 行
+- **TypeScript**: 零类型错误
 - `project.config.json` `agent_write_scopes` — 写入作用域配置（681-859行）
