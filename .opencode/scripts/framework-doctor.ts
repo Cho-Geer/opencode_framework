@@ -306,24 +306,29 @@ function checkDagValidation() {
 }
 
 // ─── Check 3: Compliance gate dry-run ─────────────────────────
+// Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot.
 function checkGateDryRun() {
-  const gatePath = path.join(STATE_DIR, "gate-state.json");
-  const raw = readFile(gatePath);
-  if (!raw) {
+  let gate: any = null;
+  try {
+    const { dbLoadGateStore } = require("../lib/db-state-manager");
+    gate = dbLoadGateStore();
+  } catch {
+    // DB unavailable
+  }
+
+  if (!gate) {
     return {
       id: 3,
       name: "Compliance gate dry-run",
       status: FAIL,
-      detail: "gate-state.json not found or unreadable",
+      detail: "gate-state DB store not found or unreadable",
     };
   }
 
   try {
-    const gate = JSON.parse(raw);
     const hasFormatVersion = !!gate.formatVersion;
 
-    // FW-REPAIR-13: Handle V3 format (active_sessions + recent_sessions)
-    // and V2 format (sessions). The V3 migration moved bulk data to index.json.
+    // Post-Step-8 DB-only migration: DB store may have V2 (sessions map) or V3 (active/recent).
     const isV3 = gate.formatVersion === "3.0" || (!!gate.active_sessions && !gate.sessions);
     const hasSessions = isV3
       ? (!!gate.active_sessions && typeof gate.active_sessions === "object")
@@ -335,8 +340,8 @@ function checkGateDryRun() {
         name: "Compliance gate dry-run",
         status: FAIL,
         detail: isV3
-          ? "gate-state.json V3: missing active_sessions"
-          : "gate-state.json missing formatVersion or sessions",
+          ? "gate-state DB store V3: missing active_sessions"
+          : "gate-state DB store missing formatVersion or sessions",
       };
     }
 
@@ -346,7 +351,7 @@ function checkGateDryRun() {
       : (gate.sessions || {});
     const sessionIds = Object.keys(allSessions);
     let corruptedCount = 0;
-    let anomalies = [];
+    let anomalies: string[] = [];
 
     for (const [sid, session] of Object.entries(allSessions)) {
       if (!session || typeof session !== "object") {
@@ -359,14 +364,14 @@ function checkGateDryRun() {
         anomalies.push(`${sid}: missing session_id or gate_status`);
       }
       // Check for corrupted timestamps
-      if (session.created_at && isNaN(Date.parse(session.created_at))) {
+      if (session.created_at && isNaN(Date.parse(session.created_at as string))) {
         corruptedCount++;
         anomalies.push(`${sid}: invalid created_at timestamp`);
       }
     }
 
     const ok = corruptedCount === 0;
-    let detail = `${sessionIds.length} sessions, formatVersion=${gate.formatVersion}`;
+    let detail = `${sessionIds.length} sessions (DB), formatVersion=${gate.formatVersion}`;
     if (anomalies.length > 0) {
       detail += `; ${corruptedCount} corrupted: ${anomalies.slice(0, 3).join("; ")}`;
     }
@@ -377,12 +382,12 @@ function checkGateDryRun() {
       status: ok ? PASS : FAIL,
       detail,
     };
-  } catch (e) {
+  } catch (e: any) {
     return {
       id: 3,
       name: "Compliance gate dry-run",
       status: FAIL,
-      detail: `JSON parse error: ${e.message}`,
+      detail: `DB store validation error: ${e.message}`,
     };
   }
 }
@@ -533,30 +538,32 @@ function checkStateReconciliation() {
     }
   }
 
-  // Final fallback: inline check using substate-manager (P1-B split architecture)
+  // Final fallback: inline check using DB store (Post-Step-8 DB-only migration)
   const writeAuditState = readSubState("write_audit_state");
-  const gateRaw = readFile(path.join(STATE_DIR, "gate-state.json"));
+  let gate: any = null;
+  try {
+    const { dbLoadGateStore } = require("../lib/db-state-manager");
+    gate = dbLoadGateStore();
+  } catch { /* DB unavailable */ }
 
-  if (!gateRaw) {
+  if (!gate) {
     return {
       id: 4,
       name: "State reconciliation",
       status: FAIL,
       detail:
-        "Cannot read gate-state.json for inline check",
+        "Cannot read gate-state DB store for inline check",
     };
   }
 
   try {
-    const gate = JSON.parse(gateRaw);
-
     const hasWriteAudit = !!writeAuditState?.current_session;
-    // FW-REPAIR-13: Handle V3 (active+recent) or V2 (sessions) format
+    // Post-Step-8 DB-only: handle V3 (active+recent) or V2 (sessions) format from DB store
     const isV3_4 = gate.formatVersion === "3.0" || (!!gate.active_sessions && !gate.sessions);
     const activeSessions = isV3_4
       ? Object.keys(gate.active_sessions || {}).length + Object.keys(gate.recent_sessions || {}).length
       : Object.keys(gate.sessions || {}).length;
-    const issues = [];
+    const issues: string[] = [];
     if (hasWriteAudit && activeSessions === 0) {
       issues.push("write_audit active but no gate sessions");
     }
@@ -567,7 +574,7 @@ function checkStateReconciliation() {
       name: "State reconciliation",
       status: ok ? PASS : FAIL,
       detail: ok
-        ? `Inline check: write_audit_state OK, ${activeSessions} gate sessions`
+        ? `Inline check (DB): write_audit_state OK, ${activeSessions} gate sessions`
         : issues.join("; "),
     };
   } catch (e) {

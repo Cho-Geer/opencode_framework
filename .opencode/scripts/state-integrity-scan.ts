@@ -10,6 +10,8 @@ const {
   resolveFrameworkPaths,
 } = require("../lib/gate-core.ts");
 const { readSubState, readMachineMeta } = require("../lib/substate-manager");
+// Post-Step-8 DB-only migration: read/write gate state via DB instead of frozen JSON snapshot
+const { dbLoadGateStore, dbSaveGateStore } = require("../lib/db-state-manager");
 
 const paths = resolveFrameworkPaths();
 
@@ -63,18 +65,19 @@ function main() {
   }
 
   // ── Required fields check ──
-  const gateState = readJsonFile(files["gate-state.json"]);
+  // Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot
+  const gateState = dbLoadGateStore();
   const dag = readJsonFile(files["Task.DAG.json"]);
   const registry = readJsonFile(files["rule_registry.json"]);
 
   // gate-state.json required fields
   if (gateState) {
-    if (!gateState.sessions || typeof gateState.sessions !== "object") {
+    if (!gateState.sessions && !gateState.active_sessions) {
       inconsistencies.push({
         severity: "HIGH",
         file: "gate-state.json",
         issue: "missing_sessions",
-        detail: "sessions field missing or not an object",
+        detail: "sessions/active_sessions field missing",
       });
     }
     if (!gateState.formatVersion) {
@@ -86,9 +89,10 @@ function main() {
       });
     }
 
-    // Check session fields
-    if (gateState.sessions) {
-      for (const [sid, session] of Object.entries(gateState.sessions)) {
+    // Check session fields (v2: sessions, v3: active_sessions)
+    const allSessions = gateState.sessions || gateState.active_sessions;
+    if (allSessions) {
+      for (const [sid, session] of Object.entries(allSessions)) {
         if (typeof session !== "object" || session === null) {
           continue;
         }
@@ -317,13 +321,10 @@ function main() {
   }
 
   // ── Apply fixes ──
+  // Post-Step-8 DB-only migration: persist gate state fixes via DB instead of frozen JSON snapshot.
   if (shouldFix && !dryRun && autoFixPossible) {
     if (gateState) {
-      const fs = require("fs");
-      fs.writeFileSync(
-        files["gate-state.json"],
-        JSON.stringify(gateState, null, 2),
-      );
+      dbSaveGateStore(gateState);
     }
   }
 

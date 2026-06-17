@@ -15,6 +15,8 @@ const {
   resolveFrameworkPaths,
 } = require("../lib/gate-core.ts");
 const { readSubState } = require("../lib/substate-manager");
+// Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot
+const { dbLoadGateStore } = require("../lib/db-state-manager");
 
 // ════════════════════════════════════════════════════════════
 // FW-REPAIR-13: Inline framework path resolution
@@ -70,7 +72,8 @@ function main() {
 
   // ── Load state files ──
   const dag = readJsonFile(paths.dag);
-  const gateState = readJsonFile(paths.gateState);
+  // Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot
+  const gateState = dbLoadGateStore();
   const machine = readJsonFile(paths.machine);
 
   // ── Check 1: Task.DAG.json exists and is valid ──

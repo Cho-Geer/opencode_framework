@@ -35,6 +35,8 @@ const { atomicWriteSubState, atomicWriteJson } = require("../lib/state-utils");
 const { readSubState } = require("../lib/substate-manager");
 // P3/S74-1: DB-first gate-state integrity check
 const { getDb } = require("../lib/db-manager");
+// Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot
+const { dbLoadGateStore } = require("../lib/db-state-manager");
 
 /**
  * FW-LOG-UNIFY-C5: Lazy-load writeLog to record reconciliation outcomes.
@@ -670,8 +672,9 @@ function reconcile(options = {}) {
 
   // Read state files
   const dag = readJson(DAG_PATH);
-  const gate = readJson(GATE_PATH);
-  normalizeGateV3(gate); // V3→V2 shim: merge active_sessions + recent_sessions → sessions
+  // Post-Step-8 DB-only migration: gate-state.json is frozen snapshot.
+  // Read from DB via dbLoadGateStore() for accurate session state.
+  const gate = dbLoadGateStore();
   const machine = readJson(MACHINE_PATH) || {};
   // P1-B split: Overlay sub-state keys (machine.json only contains meta + contracts after split)
   machine.compliance_records = readSubState("compliance_records");
@@ -895,8 +898,8 @@ function reconcile(options = {}) {
   if (options.dryRun && options.forceDrain) {
     if (!results.dry_run_plan) results.dry_run_plan = {};
     const dagLocal = readJson(DAG_PATH);
-    const gateLocal = readJson(GATE_PATH);
-    normalizeGateV3(gateLocal); // V3→V2 shim
+    // Post-Step-8 DB-only migration: read from DB instead of frozen JSON snapshot
+    const gateLocal = dbLoadGateStore();
     if (dagLocal && gateLocal) {
       const result = fixForceDrainOrphanedSessions(gateLocal, dagLocal);
       results.dry_run_plan.force_drain = {

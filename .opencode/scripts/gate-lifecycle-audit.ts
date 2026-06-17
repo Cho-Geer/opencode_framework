@@ -1,12 +1,19 @@
 #!/usr/bin/env bun
 // gate-lifecycle-audit.ts — P4-003
-// Audits gate-state.json for lifecycle compliance.
+// Audits gate sessions for lifecycle compliance via DB (Post-Step-8 migration).
 // --auto-drain flag moves stale sessions (>24h armed) to drained_sessions.
-// FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; imports gate-core.ts source directly.
+// FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; reads from DB via db-state-manager.
+// Post-Step-8 DB-only migration: gate-state.json is frozen snapshot.
+// Read from DB via dbLoadGateStore() for accurate session state.
 const {
   readJsonFile,
   resolveFrameworkPaths,
 } = require("../lib/gate-core.ts");
+const {
+  dbLoadGateStore,
+  dbSaveGateStore,
+  dbArchiveDrainedSession,
+} = require("../lib/db-state-manager");
 
 const paths = resolveFrameworkPaths();
 const GATE_STATE_PATH = paths.gateState;
@@ -22,7 +29,7 @@ function main() {
   let activeCount = 0;
   let drainedCount = 0;
 
-  const gateState = readJsonFile(GATE_STATE_PATH);
+  const gateState = dbLoadGateStore();
 
   if (!gateState) {
     console.log(
@@ -34,11 +41,11 @@ function main() {
             {
               severity: "HIGH",
               issue: "gate_state_missing",
-              detail: "gate-state.json missing or invalid",
+              detail: "gate-state DB store missing or invalid",
             },
           ],
           stale_sessions: [],
-          summary: "gate-state.json not found or invalid JSON",
+          summary: "gate-state DB store not found or invalid",
         },
         null,
         2,
@@ -47,7 +54,7 @@ function main() {
     process.exit(1);
   }
 
-  const sessions = gateState.sessions || {};
+  const sessions = gateState.sessions || gateState.active_sessions || {};
   const drained = gateState.drained_sessions || {};
 
   drainedCount = Object.keys(drained).length;
@@ -159,30 +166,47 @@ function main() {
 
   // ── Auto-drain if requested ──
   if (autoDrain && staleSessions.length > 0) {
-    for (const stale of staleSessions) {
-      const sid = stale.session_id;
-      const session = sessions[sid];
-      if (session && typeof session === "object") {
-        gateState.drained_sessions[sid] = {
-          ...session,
-          drained_at: new Date().toISOString(),
-          drain_reason: `auto-drain: ${stale.issue || "stale"} (${stale.age_hours}h)`,
-          gate_status: "drained",
-        };
-        delete gateState.sessions[sid];
+    // Post-Step-8 DB-only migration: read from DB, drain in DB, write to DB
+    try {
+      const { dbLoadGateStore, dbSaveGateStore, dbArchiveDrainedSession } = require("../lib/db-state-manager");
+      const dbStore = dbLoadGateStore();
+      const dbSessions = dbStore?.sessions || {};
+      const dbDrained = dbStore?.drained_sessions || {};
+
+      for (const stale of staleSessions) {
+        const sid = stale.session_id;
+        const session = dbSessions[sid];
+        if (session && typeof session === "object") {
+          const drainedEntry = {
+            ...session,
+            drained_at: new Date().toISOString(),
+            drain_reason: `auto-drain: ${stale.issue || "stale"} (${stale.age_hours}h)`,
+            gate_status: "drained",
+          };
+          dbDrained[sid] = drainedEntry;
+          dbArchiveDrainedSession(sid, drainedEntry);
+          delete dbSessions[sid];
+        }
       }
+
+      if (!args.includes("--dry-run")) {
+        dbStore.sessions = dbSessions;
+        dbStore.drained_sessions = dbDrained;
+        dbSaveGateStore(dbStore);
+      }
+
+      drainedCount = Object.keys(dbDrained).length;
+      activeCount = Object.values(dbSessions).filter(
+        (s) =>
+          typeof s === "object" &&
+          s !== null &&
+          activeStatuses.includes(s.gate_status),
+      ).length;
+    } catch (e) {
+      console.error("DB auto-drain failed:", e.message);
+      // Fallback: skip auto-drain if DB unavailable
+      drainedCount = 0;
     }
-    if (!args.includes("--dry-run")) {
-      const fs = require("fs");
-      fs.writeFileSync(GATE_STATE_PATH, JSON.stringify(gateState, null, 2));
-    }
-    drainedCount = Object.keys(gateState.drained_sessions).length;
-    activeCount = Object.values(gateState.sessions).filter(
-      (s) =>
-        typeof s === "object" &&
-        s !== null &&
-        activeStatuses.includes(s.gate_status),
-    ).length;
   }
 
   // ── Output ──

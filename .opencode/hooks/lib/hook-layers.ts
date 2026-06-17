@@ -65,24 +65,28 @@ console.log('\n[Layer 0/4] Checking compliance gate state...');
 
 if (mode === 'advisory') {
   console.log('  ⚠️  [ADVISORY] Gate armed check skipped');
-} else if (existsSync(GATE_STATE)) {
-  const store = JSON.parse(readFileSync(GATE_STATE, 'utf8'));
-  const sessions = store.active_sessions;
-  const count = sessions
-    ? Array.isArray(sessions)
-      ? sessions.length
-      : Object.keys(sessions).length
-    : 0;
-  if (count === 0) {
-    console.log('❌ [GATE] No compliance gate session is armed.');
-    console.log(
-      '   Run: compliance_gate_check → compliance_gate_confirm before committing.',
-    );
-    process.exit(1);
-  }
-  console.log(`  ✅ Compliance gate armed (${count} active session(s))`);
 } else {
-  console.log('  ⚠️  gate-state.json not found — skipped');
+  // Post-Step-8 DB-only migration: gate-state.json is frozen snapshot.
+  // Read from DB via dbLoadGateStore() for accurate session state.
+  let store: any = null;
+  try {
+    const { dbLoadGateStore } = require('../../lib/db-state-manager');
+    store = dbLoadGateStore();
+  } catch {
+    console.log('  ⚠️  Cannot read gate sessions from DB — skipped');
+  }
+  if (store) {
+    const sessions = store.sessions || {};
+    const count = Object.keys(sessions).length;
+    if (count === 0) {
+      console.log('❌ [GATE] No compliance gate session is armed.');
+      console.log(
+        '   Run: compliance_gate_check → compliance_gate_confirm before committing.',
+      );
+      process.exit(1);
+    }
+    console.log(`  ✅ Compliance gate armed (${count} active session(s))`);
+  }
 }
 
 // ── Layer 1.5: Critical Files Check (git diff, replaces SHA-256) ──
@@ -125,25 +129,39 @@ try {
 }
 
 // ── Layer 1.9: State Format Validation ──
+// Post-Step-8 DB-only migration: gate-state.json is frozen snapshot.
+// Validate format consistency from DB store instead of JSON file.
 console.log('\n[1.9/4] State format validation...');
-if (existsSync(GATE_STATE)) {
-  const gs = JSON.parse(readFileSync(GATE_STATE, 'utf8'));
-  if ((gs.formatVersion || '1.0') === '3.0') {
+try {
+  const { dbLoadGateStore } = require('../../lib/db-state-manager');
+  const gs = dbLoadGateStore();
+  if (gs) {
     const active = Object.keys(gs.active_sessions || {}).length;
     const recent = Object.keys(gs.recent_sessions || {}).length;
-    const indexPath = join(ROOT, '.opencode/state/gate-state.index.json');
-    if (existsSync(indexPath)) {
-      const idx = JSON.parse(readFileSync(indexPath, 'utf8'));
-      const indexCount = Object.keys(idx.sessions || {}).length;
-      if (indexCount < recent) {
-        console.log(
-          `  ❌ gate-state v3: index (${indexCount}) < recent (${recent})`,
-        );
-        process.exit(1);
+    // Also validate frozen snapshot for format consistency
+    if (existsSync(GATE_STATE)) {
+      const frozen = JSON.parse(readFileSync(GATE_STATE, 'utf8'));
+      if ((frozen.formatVersion || '1.0') === '3.0') {
+        const indexPath = join(ROOT, '.opencode/state/gate-state.index.json');
+        if (existsSync(indexPath)) {
+          const idx = JSON.parse(readFileSync(indexPath, 'utf8'));
+          const indexCount = Object.keys(idx.sessions || {}).length;
+          const frozenRecent = Object.keys(frozen.recent_sessions || {}).length;
+          if (indexCount < frozenRecent) {
+            console.log(
+              `  ❌ gate-state v3: index (${indexCount}) < frozen recent (${frozenRecent})`,
+            );
+            process.exit(1);
+          }
+        }
       }
     }
-    console.log(`  ✅ gate-state v3: active=${active} recent=${recent}`);
+    console.log(`  ✅ gate-state v3 (DB): active=${active} recent=${recent}`);
+  } else {
+    console.log('  ✅ gate-state: no DB store (clean state)');
   }
+} catch {
+  console.log('  ⚠️  State format validation skipped (DB unavailable)');
 }
 
 // DAG changelog externalization

@@ -179,10 +179,12 @@ export function checkStaleSessions(paths: typeof STATE_PATHS): {
   count: number;
 } {
   try {
-    const gate = readJsonFile<any>(paths.gateState());
-    if (!gate?.sessions) return { count: 0 };
+    // Post-Step-8 DB-only migration: read from DB instead of JSON file.
+    const { dbLoadGateStore } = require('./db-state-manager');
+    const store = dbLoadGateStore();
+    if (!store?.sessions) return { count: 0 };
     return {
-      count: Object.values(gate.sessions).filter(isStaleSession).length,
+      count: Object.values(store.sessions).filter(isStaleSession).length,
     };
   } catch {
     return { count: 0 };
@@ -191,29 +193,32 @@ export function checkStaleSessions(paths: typeof STATE_PATHS): {
 
 export function autoDrainStaleSessions(paths: typeof STATE_PATHS): number {
   try {
-    const gatePath = paths.gateState();
-    const gate = readJsonFile<any>(gatePath);
-    if (!gate?.sessions) return 0;
-    const staleEntries = Object.entries(gate.sessions).filter(([, s]) =>
+    // Post-Step-8 DB-only migration: gate-state.json is frozen snapshot.
+    // Read from DB, archive drained sessions, write back to DB.
+    const { dbLoadGateStore, dbSaveGateStore, dbArchiveDrainedSession } = require('./db-state-manager');
+    const store = dbLoadGateStore();
+    if (!store?.sessions) return 0;
+    const staleEntries = Object.entries(store.sessions).filter(([, s]) =>
       isStaleSession(s as any),
     );
     if (staleEntries.length === 0) return 0;
-    // P0-FIX-QUAD-02: drained_sessions uses canonical Record<string, ...> (object) format.
-    // Previously array; mismatched gate-lifecycle-audit.ts (object) and gate-core.ts type.
-    (gate as any).drained_sessions = (gate as any).drained_sessions || {};
+    const drainedAt = new Date().toISOString();
     for (const [sid, session] of staleEntries) {
-      (gate as any).drained_sessions[sid] = {
+      // Archive to gate_drained_sessions DB table
+      dbArchiveDrainedSession(sid, "auto-drain", {
         ...session,
-        drained_at: new Date().toISOString(),
+        drained_at: drainedAt,
         drain_reason: "auto-drain",
-      };
-      delete gate.sessions[sid];
+      });
+      // Remove from active sessions
+      delete store.sessions[sid];
     }
-    gate.active_sessions = (gate.active_sessions || []).filter(
+    store.active_sessions = (store.active_sessions || []).filter(
       (sid: string) =>
-        gate.sessions[sid] && gate.sessions[sid].gate_status === "armed",
+        store.sessions[sid] && store.sessions[sid].gate_status === "armed",
     );
-    fs.writeFileSync(gatePath, JSON.stringify(gate, null, 2), "utf8");
+    // Persist updated store to DB
+    dbSaveGateStore(store);
     return staleEntries.length;
   } catch {
     return 0;

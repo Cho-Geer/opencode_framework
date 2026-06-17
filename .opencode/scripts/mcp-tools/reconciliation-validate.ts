@@ -127,16 +127,16 @@ if (!Array.isArray(dag.tasks)) {
   process.exit(2);
 }
 
-if (!gate.sessions || typeof gate.sessions !== 'object') {
-  process.stderr.write('❌ [Reconciliation] gate-state.json missing .sessions object. Cannot reconcile.\n');
+if (!gate.sessions && !gate.active_sessions) {
+  process.stderr.write('❌ [Reconciliation] gate-state.json missing sessions/active_sessions. Cannot reconcile.\n');
   process.exit(2);
 }
 
 // ─── Data Extraction ───────────────────────────────────────────
 const tasks = dag.tasks;
 
-// Extract gate sessions as entries
-const sessions = gate.sessions;
+// Extract gate sessions as entries (v2: sessions, v3: active_sessions)
+const sessions = gate.sessions || gate.active_sessions;
 const sessionEntries = Object.entries(sessions);
 
 // Helper: find DAG task(s) referenced in a gate session's task_description

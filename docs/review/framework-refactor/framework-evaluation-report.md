@@ -50,12 +50,13 @@
 
 | 优先级 | 对应问题 | 行动 | 预估工时 | 说明 |
 |:------:|:--------:|------|:-------:|------|
-| **P2-D** | L-2, L-4 | **配置文件与权限源统一**：将 `opencode.json` 中的 per-agent 权限块迁移到 `project.config.json`（已承担 enforcement 职责），`opencode.json` 仅保留 agent 定义 + MCP 适配器；同步修正 `framework-authorities.json` 对 `opencode.json` 的 authority 声明 | 4h | **根因问题**：与 §2 的 P-4 同源（双配置源），合并为单一 P2-D 项目可一次关闭 3 个问题（L-2 + L-4 + P-4）。解锁 §2 P3-E 的权限模板化工作 |
+| **P2-D** | L-2, L-4 | **权限源反转统一（上游约束兼容版）**：保持 `opencode.json` 为所有权限数据的唯一权威源（上游 OpenCode 强制：`{env:}`/`{file:}` 仅字符串替换，无法注入 JSON；`project.config.json` 不在 8 个预设 config 位置中，上游读不到）；从 `project.config.json` 删除 `agent_write_scopes` + `safe_shell.agent_allowlists` 重复定义；改 `safe-bash-core.ts` / `safe-edit-core.ts` 读取 `opencode.json` 的 permission 块；修正 `framework-authorities.json` 对 `opencode.json` 的 authority 声明（ADAPTER → AUTHORITATIVE） | 4h | **根因问题**：与 §2 的 P-4 同源（双配置源），合并为单一 P2-D 项目可一次关闭 3 个问题（L-2 + L-4 + P-4）。解锁 §2 P3-E 的权限模板化工作。**注意**：原方案（opencode.json 权限块迁移到 project.config.json）经官方文档验证会破坏上游权限引擎（permissions.md:165-168），必须反转 |
 | P4-E | L-1 | **Layout 路径解析硬化**：统一 pre-commit hook / tool / script 三场景的路径解析为单一 helper（如 `lib/path-resolver.ts`），消除 34 行 fallback 逻辑 | 1h | 低风险项：`framework-self-test.ts` + `install-hooks.ts` 已有运行时兜底；新增 agent 时才需修。美化项，建议延后 |
 | ~~P5-A~~ | L-3 | ~~`.opencode/` 代码与状态物理分离~~ | — | **不推荐**：`.gitignore` 135 行已能区分源码与状态；物理拆分（引入 `.opencode/src/` + `.opencode/runtime/`）是破坏性大重构，风险高于收益。长期搁置 |
 
 **关键判断：**
-- **P2-D 是 §1 + §2 的共同根因修复**：L-2、L-4、P-4 三个问题本质相同（`opencode.json` 被两套职责拉扯），合并为单一项目 ROI 最高——一次性关闭 3 个问题，且工时仅 ~4h
+- **P2-D 是 §1 + §2 的共同根因修复**：L-2、L-4、P-4 三个问题本质相同（`opencode.json` 与 `project.config.json` 两套权限数据并存），合并为单一项目 ROI 最高——一次性关闭 3 个问题，且工时仅 ~4h
+- **上游约束（OpenCode 官方文档，2026-06-17 验证）**：`opencode.json` 必须保留为权限数据的权威源——(a) `{env:VAR}`/`{file:path}` 仅做字符串替换，无法注入 JSON object/array（config.md:633-662）；(b) `project.config.json` 不在上游 8 个预设 config 位置中（config.md:40-48），上游权限引擎完全读不到；(c) 移除 `safe_edit`/`safe_shell` 等自定义工具权限块会让上游回落到 permissive defaults（`'allow'`，permissions.md:100-103），审批门完全失效。因此 P2-D 必须**反转权威方向**：`opencode.json` 持有权限，`project.config.json` 删除冗余定义
 - **L-1（路径解析）与 L-3（代码状态混存）属低 ROI 美化项**：L-1 已有运行时兜底，L-3 是破坏性重构，均不建议短期推进
 
 **结论：** 保留目录约定。**P2-D 是优先修复项**（与 §2 P-4 合并实施），P4-E 为次要美化项，P5-A 不建议实施。整体架构合理。
@@ -85,17 +86,18 @@
 
 | 优先级 | 对应问题 | 行动 | 预估工时 | 说明 |
 |:------:|:--------:|------|:-------:|------|
-| **P2-D**（与 §1 L-2/L-4 合并） | P-4 | **配置文件与权限源统一**：将 `opencode.json` 中的 per-agent 权限块迁移到 `project.config.json`（已承担 `safe_edit`/`safe_delete`/`safe_mkdir`/`safe_shell`/`safe_test` 完整 glob 矩阵），删除 `agent_write_scopes` 与 `safe_shell.agent_allowlists` 的重复定义 | 4h（含 §1 部分） | **根因问题**：与 §1 的 L-2/L-4 同源（双配置源），合并为单一 P2-D 项目可一次关闭 3 个问题。解锁 P3-E 的模板化工作（避免在双源上实现模板） |
-| **P3-E** | P-1, P-3, P-2 | **Permission Matrix 增强**：(a) 引入 `coder-base` / `framework-admin` / `reviewer-base` 等权限模板（新增 `lib/permission-templates.ts`），Coder-BE/FE 共享 `coder-base` 模板；(b) `dispatch_subagent.ts` 新增 scope 覆盖预检——DAG task 声明 `required_paths`，派遣前校验 `required_paths ⊆ agent.safe_edit`，不匹配时阻断并提示 scope 越界；(c) 规范化 glob 粒度，消除裸 `*` 通配符，统一为精确路径或 `**/*.ext` 模式 | 6h | 依赖 P2-D 完成；P-3（scope 越界）是真实运维痛点（WAIVE.md 频发），但修复需要权限模板 + DAG 任务元数据配合，不宜单独推进 |
+| **P2-D**（与 §1 L-2/L-4 合并） | P-4 | **权限源反转统一（上游约束兼容版）**：保持 `opencode.json` 为所有权限数据的唯一权威源（含上游 keys `task`/`read`/`bash`/`edit` 与自定义 MCP keys `safe_edit`/`safe_shell` 等，不瘦身）；从 `project.config.json` 删除 `agent_write_scopes` + `safe_shell.agent_allowlists` 重复定义；改 `safe-bash-core.ts` / `safe-edit-core.ts` 解析 `opencode.json` 的 `agent.*.permission.safe_shell` / `safe_edit` glob 矩阵 | 4h（含 §1 部分） | **根因问题**：与 §1 的 L-2/L-4 同源（双配置源），合并为单一 P2-D 项目可一次关闭 3 个问题。解锁 P3-E 的模板化工作。**注意**：原方案（迁出 opencode.json 权限块）会破坏上游 OpenCode 权限引擎（permissions.md:165-168），必须反转 |
+| **P3-E** | P-1, P-3, P-2 | **Permission Matrix 增强**：(a) 引入 `coder-base` / `framework-admin` / `reviewer-base` 等权限模板（新增 `lib/permission-templates.ts`），Coder-BE/FE 共享 `coder-base` 模板；(b) `dispatch_subagent.ts` 新增 scope 覆盖预检——DAG task 声明 `required_paths`，派遣前校验 `required_paths ⊆ agent.safe_edit`，不匹配时阻断并提示 scope 越界；(c) 规范化 glob 粒度，消除裸 `*` 通配符，统一为精确路径或 `**/*.ext` 模式 | 6h | opencode.json, lib/permission-templates.ts (新), dispatch_subagent.ts, safe-bash-core.ts, safe-edit-core.ts | 依赖 P2-D 完成；P-3（scope 越界）是真实运维痛点（WAIVE.md 频发），但修复需要权限模板 + DAG 任务元数据配合，不宜单独推进 |
 | P4 | P-2 | **粒度审计便利性优化**：配合 P3-E 模板化时顺带规范化 glob 粒度；独立推进价值低（`safe_edit` 在物理层阻止，粒度不一致不导致安全漏洞，仅影响审计） | 含在 P3-E | 不建议独立推进 |
 
 **关键判断：**
 - **P-4（双配置源）是 §1 + §2 共同的根因**：与 L-2、L-4 同源，P2-D 一次性关闭 3 个问题，ROI 最高
+- **上游约束（OpenCode 官方文档，2026-06-17 验证）**：`opencode.json` 必须保留为权限数据的权威源——(a) `{env:VAR}`/`{file:path}` 仅做字符串替换，无法注入 JSON object/array（config.md:633-662）；(b) `project.config.json` 不在上游 8 个预设 config 位置中（config.md:40-48），上游权限引擎完全读不到；(c) 移除 `safe_edit`/`safe_shell` 等自定义工具权限块会让上游回落到 permissive defaults（`'allow'`，permissions.md:100-103），审批门完全失效。因此 P2-D 必须**反转权威方向**：`opencode.json` 持有权限，`project.config.json` 删除冗余定义；`opencode.json` 不瘦身
 - **Permission Matrix 是框架最有价值的子系统**：值得投入 P3-E 的模板化与 scope 预检（P-1 + P-3），但**必须先 P2-D 统一数据源**，否则模板会跨两套配置漂移
 - **P-3（scope 越界）是真实运维痛点**（WAIVE.md 频发），但修复方案需要权限模板 + DAG 任务元数据配合，归入 P3-E 整体推进
 - **P-2（粒度不一致）属低 ROI 美化项**：安全边界已由 `safe_edit` 物理保证，粒度不一致仅影响审计便利性，建议随 P3-E 模板化时顺带规范化
 
-**结论：** 权限隔离是框架最有价值的子系统，值得保留并投入优化。**P2-D 是优先修复项**（与 §1 L-2/L-4 合并实施，4h），**P3-E 是中期增强项**（依赖 P2-D，6h），P-2 建议随 P3-E 顺带规范化。
+**结论：** 权限隔离是框架最有价值的子系统，值得保留并投入优化。**P2-D 是优先修复项**（与 §1 L-2/L-4 合并实施，4h；反转权威方向，`opencode.json` 不瘦身），**P3-E 是中期增强项**（依赖 P2-D，6h），P-2 建议随 P3-E 顺带规范化。
 
 ---
 
@@ -104,44 +106,16 @@
 **评价：**
 设计灵感来源于现代前端状态管理系统（Redux/Vuex），试图将状态管理概念引入 LLM agent 调度场景。`machine.json` 通过 JSON Schema（40KB）严格定义了 12+ 个子状态。这是一个有前瞻性的设计思路。
 
-**P1-A + P1-B 已完成（2026-06-16）：**
+**状态管理修复时间线（P1-A → P1-B → P2-A Step 0-8，2026-06-16 全部完成）：**
 
-1. ~~**单点故障**~~：~~`machine.json` 是 1MB+ 的 JSON 文件，承担所有状态管理职责。~~ ~~**已修复**：`machine.json` 瘦身至 307B（仅保留 `meta` + `contracts`），12 个子状态独立存储为各自 JSON 文件（最大 581KB knowledge-cache-state.json，其余均 <200KB）。~~
-2. ~~**并发写入 3 种 CAS 协议共存不协调**~~：~~`atomicWriteMachine`（7 插件+2 工具）、`beginTransaction`（2 MCP 服务器）、裸 `writeFileSync`（3 处）~~ ~~**已修复**：P1-A 统一为 `atomicWriteMachine()` 单一协议（CAS 覆盖率 100%）；P1-B 进一步迁移为 `atomicWriteSubState()`（每个子状态独立 CAS-on-revision），`atomicWriteMachine()` 保留为向后兼容层（0 调用者，计划 2026-06-23 删除）。~~
-3. ~~**3 处裸 writeFileSync + code-quality-gate fallback 路径**~~：~~**已修复**：全部迁移到 `atomicWriteMachine()` → `atomicWriteSubState()`。~~
-4. ~~**1MB+ 文件放大竞争窗口**~~：~~**已修复**：拆分后最大单文件 581KB，写入者独立操作各自子状态文件，竞争窗口大幅缩小。~~
+| 类别 | 问题（已关闭） | 修复手段 |
+|------|---------------|----------|
+| **P1-A CAS 统一** | 3 种 CAS 协议共存（`atomicWriteMachine` / `beginTransaction` / 裸 `writeFileSync`）+ 3 处裸 `writeFileSync` + 1MB+ 竞争窗口 | 统一为 `atomicWriteMachine()` → 进一步迁移为 `atomicWriteSubState()`（每子状态独立 CAS-on-revision），CAS 覆盖率 100% |
+| **P1-B 拆分** | `machine.json` 1MB+ 单点故障 | 瘦身至 307B（仅 `meta` + `contracts`）；12 个子状态独立存储（最大 581KB） |
+| **P2-A DB 迁移** | JSON 读写非原子（G1）+ 审计日志 `appendFileSync`（G6/G7）+ gate-core ↔ log-manager 循环依赖（G9）+ compliance-gate inline fallback（G13） | 引入 SQLite（bun:sqlite, WAL 模式）；`atomicWriteSubState` 升级为 DB 事务；`writeAuditLogEntry` → DB INSERT；`flushAuditTrail` → DB upsert；所有读取通过 `readSubState` DB-first 代理 |
+| **P2-A Step 8 清理** | JSON 双写层残留（G2）+ `atomicWriteMachine` 兼容层（G8）+ dead code（G10） | 12 子状态 DB-only 读写（JSON 快照已冻结 → v7 删除）；`atomicWriteMachine()` 0 调用者已删除；state 模块所有已迁移子状态的 JSON 读写路径删除 |
 
-**P2-A 数据库迁移全部完成（Step 0-8，2026-06-16）：**
-
-5. ~~**JSON 文件读写为非原子操作**~~：~~**已修复（P2-A Step 3/5）**：
-   - `gate-state.json` 读写已迁移到 DB（gate_sessions + gate_store_meta + gate_audit_history 三表），事务原子性保证 G1 非原子写入消除
-   - `atomicWriteSubState` 内部升级使用 SQLite `db.transaction()` 进行原子 read→modify→write，解决 G3 CAS 弱验证和 G4 忙等自旋
-   - 12 个子状态全部双写（JSON + DB `substate_kv` 表），DB 优先读取~~
-6. ~~**审计日志非原子写入**~~：~~**已修复（P2-A Step 4→8）**：
-   - `writeAuditLogEntry` → DB INSERT（G6，Step 8 移除 JSONL 双写）
-   - `flushAuditTrail` → DB upsert（G7，Step 8 移除 JSON 双写）~~
-7. ~~**gate-core ↔ log-manager 循环依赖**~~：~~**已修复（P2-A Step 3）**：DB 作为中间层解耦（G9）~~
-8. ~~**compliance-gate inline fallback 与原子模式不一致**~~：~~**已修复（P2-A Step 6）**：所有读取已通过 `readSubState` 双写代理 (DB-first)（G13）~~
-
-9. ~~**JSON 双写层清理（G2）**~~：~~**已修复（P2-A Step 8）**：12 个子状态已完成从 JSON 双写到 DB 单写的迁移，JSON fallback 层保留为只读后备（G2 留待 P3 最终移除）。~~
-10. ~~**atomicWriteMachine 兼容层（G8）**~~：~~**已修复（P2-A Step 8）**：已删除 `atomicWriteMachine()` 兼容层，0 残留调用者，所有写入走 `atomicWriteSubState()`（G8）。~~
-11. ~~**dead code 清理（G10）**~~：~~**已修复（P2-A Step 8）**：已删除 state 模块中所有已迁移子状态的 JSON 直接读写 dead path（G10）。~~
-
-**Step 8 清理验证 + post-Step-8 补丁（2026-06-16）：**
-
-| 验证维度 | 结果 |
-|----------|------|
-| Self-test 基线 | 38/38 ALL PASS（首次） |
-| Self-test 当前 | 37/38（Check 33 .pending.json 3 stale entries — 会话残留，非代码缺陷） |
-| framework-doctor | 12/12 ALL PASS |
-| G-problem 解决 | 10/13 完全解决 + 1/13 缓解 |
-| atomicWriteMachine 残留 | 0 调用者（已删除） |
-| JSON dead code 残留 | 0 处（已清理） |
-| DB-only 读路径 | readSubState / readMachineMeta → DB 直读 |
-| DB-only 写路径 | writeSubState / writeMachineMeta / atomicWriteSubState → DB 事务 |
-| DB-only 审计写入 | writeAuditLogEntry / flushAuditTrail → DB INSERT/upsert |
-| Safe-bash 日志统一 | logAction → writeLog() (G8 已修复) |
-| Hook isInfraOnly 补丁 | hook-commit-msg.ts 新增 isInfraOnly 短路，纯 [INFRA] commit 在 strict 模式不再被 TDD 检查阻断 |
+**Step 8 验证（2026-06-16）：** Self-test 基线 38/38 ALL PASS（首次）→ 演进至当前 **39/39 ALL PASS**（v6 schema 验证 + S41 schema 文件验证）；framework-doctor 12/12 ALL PASS；DB-only 读/写/审计三条路径全部收敛；safe-bash `logAction` → `writeLog()`（G8 修复）；hook-commit-msg isInfraOnly 短路补丁。
 
 **post-Step-8 补丁修复（2026-06-16）：**
 
@@ -177,59 +151,31 @@
 
 详见 `database-migration-plan.md` §11.2、`db-migration-verification-report.md`、`gate-stuck-fix-and-deliverables-plan.md` §14-15。
 
+**活跃状态文件清单（v7 清理后）：**
 
-**当前状态：**
+| 文件名 | 大小 | 职责 | 说明 |
+|--------|------|------|------|
+| `machine.json` | 307B | 全局 meta + contracts | 唯一顶层聚合文件；G2 双 `lastUpdated` 残留（低影响） |
+| `machine.schema.json` | 2KB | Slim JSON Schema（仅 meta+contracts） | S41 拆分后瘦身至 64 行；原始单体保留为 `machine.schema.full.json` (1304 行) 供参考 |
+| `gate-state.json` | 2.3KB | Gate 活跃会话索引 | DB `gate_sessions` 表为主要存储 |
+| `gate-state.index.json` | 156KB | Compactor v3 索引 | 非双写对象，compactor 内部管理 |
+| `rule_registry.json` | 7.6KB | 纯文档清单 | 已移除 sha256/semver/digest_history 字段 |
 
-| 指标 | P1-A/B 修复前 | 修复后 |
-|------|:---------:|:---------:|
-| machine.json 大小 | 1.1MB | 307B (99.97% ↓) |
-| 最大单文件 | 1.1MB | 581KB (48% ↓) |
-| CAS 协议种类 | 3 种 | 1 种 (atomicWriteSubState) |
-| CAS 覆盖率 | ~60% | 100% |
-| 并发写入冲突 | 18 写入者竞争 | 每子状态独立 |
-| 裸 writeFileSync | 3 处 | 0 处 |
+> **v7 清理注记（2026-06-17）：** 13 个 JSON 子状态快照（`knowledge-cache-state.json` 588KB、`compliance-records.json` 190KB、`write-audit-state.json` 149KB、`eslint-state.json` 60KB、`gate-state.drained_sessions.json` 60KB、`format-state.json` 30KB、`type-check-state.json` 30KB、`dependency-state.json` 12KB、`keystone-hashes.json` 2.8KB、`knowledge-audit-state.json` 661B、`knowledge-state.json` 639B、`transaction-state.json` 208B、`tdd-enforcement-state.json` 228B）已全部删除。`substate_kv` DB 行为唯一存储层；`gate_drained_sessions` DB 表替代 `gate-state.drained_sessions.json`。
 
-**子状态文件清单（v7 清理：JSON 快照已删除，substate_kv DB 为唯一存储）：**
-
-| 文件名 | 快照大小 | DB 行 | 修改频率 | 说明 |
-|--------|----------|:--:|---------|------|
-| ~~knowledge-cache-state.json~~ | ~~588KB~~ | ~~已删除~~ | — | v7 清理：substate_kv DB 行替代 |
-| ~~compliance-records.json~~ | ~~190KB~~ | ~~已删除~~ | — | v7 清理 |
-| ~~write-audit-state.json~~ | ~~149KB~~ | ~~已删除~~ | — | v7 清理 |
-| ~~eslint-state.json~~ | ~~60KB~~ | ~~已删除~~ | — | v7 清理 |
-| ~~gate-state.drained_sessions.json~~ | ~~60KB~~ | ~~已删除~~ | — | v7 drain DB 化：gate_drained_sessions 表替代 |
-| gate-state.index.json | 156KB | — | 低 | compactor v3 架构，非双写对象 |
-| ~~format-state.json~~ | ~~30KB~~ | ~~已删除~~ | — | v7 清理 |
-| ~~type-check-state.json~~ | ~~30KB~~ | ~~已删除~~ | — | v7 清理 |
-| ~~dependency-state.json~~ | ~~12KB~~ | ~~已删除~~ | — | v7 清理 |
-| machine.schema.json | 2KB | — | 极低 | S41 瘦身（原 40KB 单体 → meta+contracts only） |
-| rule_registry.json | 7.6KB | — | 极低 | 已简化为纯文档清单 |
-| ~~keystone-hashes.json~~ | ~~2.8KB~~ | ~~已删除~~ | — | v7 清理 |
-| gate-state.json | 2.3KB | ✅ | 中 | DB gate_sessions 表为主要存储 |
-| ~~knowledge-audit-state.json~~ | ~~661B~~ | ~~已删除~~ | — | v7 清理 |
-| ~~knowledge-state.json~~ | ~~639B~~ | ~~已删除~~ | — | v7 清理 |
-| ~~transaction-state.json~~ | ~~208B~~ | ~~已删除~~ | — | v7 清理 |
-| ~~tdd-enforcement-state.json~~ | ~~228B~~ | ~~已删除~~ | — | v7 清理 |
-| machine.json | 307B | ✅ | 极低 | 仅 meta+contracts，G2 双字段残留 |
-
-**遗留问题：**
+**当前遗留问题：**
 1. **状态膨胀仍存在**：DB 中 `knowledge-cache-state` (588KB JSON blob)、`compliance-records` (190KB)、`write-audit-state` (149KB) 持续增长，需定期 compaction 清理。
 2. **补救机制仍多**：state reconciliation、state compaction、state backup、state archive、state transaction log——五种补救机制中 compaction 和 archive 已与 P1-B 拆分架构整合，但其余仍独立运行。
-3. ~~**Schema 未拆分**~~：~~**已修复（S41, 2026-06-17）**：`machine.schema.json` 从 1304 行瘦身至 64 行（仅 `meta` + `contracts`）。12 个子状态 + 4 个扩展 schema 拆分至 `.opencode/state/schemas/`（16 个独立文件）。原始单体 schema 保留为 `machine.schema.full.json` 供参考。~~
-4. **G2 双字段残留（低影响）**：machine.json 同时包含 `lastUpdated` 和 `last_updated`，低影响（307B 文件）；P3 schema v4 已清理 DB 侧 `last_updated` 写入，JSON 兼容字段暂保留。
-5. **Deliverables 审计数据增长**：`gate_sessions` 表的 `declared_deliverables` / `submitted_deliverables` TEXT 列随任务数增长；drained 历史已迁移到 `gate_drained_sessions`，但 `completed` 状态 session 仍累积在主表中，需中期 compaction。
-6. ~~**Session 基础设施三表增长**~~：~~**已修复（2026-06-17）**：`dbCleanStaleEntries()` 已扩展覆盖 `session_log`/`dispatch_failed_log`/`session_map`（7 天 TTL + 行数上限），`nightly-compaction.ts` 的 `dbMaintenanceStep()` 已调度此函数。~~
+3. **G2 双字段残留（低影响）**：machine.json 同时包含 `lastUpdated` 和 `last_updated`，低影响（307B 文件）；P3 schema v4 已清理 DB 侧 `last_updated` 写入，JSON 兼容字段暂保留。
+4. **Deliverables 审计数据增长**：`gate_sessions` 表的 `declared_deliverables` / `submitted_deliverables` TEXT 列随任务数增长；drained 历史已迁移到 `gate_drained_sessions`，但 `completed` 状态 session 仍累积在主表中，需中期 compaction。
 
 **潜在风险：**
 - 补救机制本身增加代码复杂度和维护成本
 - knowledge-cache-state 持续膨胀可能成为 DB 性能瓶颈（当前 substate_kv JSON blob 全量替换模式）
 - DB WAL 文件增长（当前 4.2MB）需定期 checkpoint
-- **v6 三表的 TTL 清理已纳入 nightly-compaction**：`dbCleanStaleEntries()` 已扩展覆盖 `session_log`/`dispatch_failed_log`/`session_map`（7 天 TTL + 行数上限），`nightly-compaction.ts` 的 `dbMaintenanceStep()` 已调度
 
 **优化方向：**
 - **短期**：定期 compaction 清理大子状态 DB 行 + WAL checkpoint
-- ~~**中期**：typed DB 表结构化查询~~ ~~**已关闭（v7, 2026-06-17）**：13 张未使用 typed 表已 DROP，`substate_kv` JSON blob 为唯一存储层~~
-- ~~**中期**：DB schema v4 — 修复 G2 (machine_meta 双字段) + G12 (类型安全)~~ ~~**已实施**（P3：schema v4 引入 `file_baseline_kv` + G2 DB 侧清理 + G12 `substate-types.ts`）~~
 - **长期**：评估 G11 治理路径（FileStateRegistry 跨进程）— 当前 `file_baseline_kv` 表为轻量替代，若需求扩展再评估完整方案
 
 **结论：** 状态管理的技术债已系统性修复——P1-A/P1-B 解决单点故障和并发竞争，P2-A Step 0-8 进一步消除 JSON 非原子写入和循环依赖，post-Step-8 补丁修复 hook 逻辑 bug 和 stale 状态。**P3（2026-06-16）进一步关闭 G11/G12**：引入 `file_baseline_kv` 表 + `substate-types.ts` 类型安全。**gate-stuck-fix Phase 1-6（2026-06-17）**：schema v5 引入 deliverables 硬约束，schema v6 引入 session/dispatch 基础设施三表，Session Resume v4 端到端验证通过，approve_deliverables 物理限制已实施。G1-G13 问题矩阵 12/13 完全解决，1/13 缓解（G2 低影响设计约束）。DB 运行时健康（WAL 模式、integrity ok、doctor 12/12），所有读写路径已切换为 DB-only。
@@ -323,13 +269,13 @@ Step 5: Orchestrator 调用 compliance_gate_approve_deliverables (delivered → 
 
 `complete` 的自修正循环仍保留（豁免 agent 直接调用；非豁免 agent 由 Orchestrator 调用 `approve_deliverables` 合并审批+关闭），反馈即时性、精确性、闭环在调用方端三个条件依然满足。
 
-**已修复（compliance-gate-optimization-plan.md，已完成）：**
+**提醒纵深（三层）：**
 
-1. ~~**三步压缩为两步**~~：~~`compliance_gate_check` schema 新增可选 `plan_summary` + `agent` 参数；CallTool handler 在 check 通过时自动调用 `runGateConfirm`，单次 MCP 调用完成 check+confirm。（**保留**：combined flow 在 5 步协议中仍为 Step 2 的核心优化）~~
-2. ~~**返回值嵌入强提示**~~：~~新增 `buildReminderText()` helper；combined flow 和 legacy confirm 在 armed 成功时追加 `✅ GATE ARMED + ⚠️ REMINDER` 文本块到 MCP 响应，随 response 进入 LLM context。**新增 deliverables 提示**：armed 成功时追加"请在写完成果物后调用 submit_deliverables"。~~
-3. ~~**框架层兜底提醒**~~：~~`plugins/task-after.ts` 在 `tool.execute.after` 中检测 Task SUCCESS + armed session → 写 `.task_temp/_global/gate-reminder.{md,json}`（atomic temp+rename）+ `writeLog(WARN, GATE-REMINDER-WRITTEN)`；新增 `experimental.session.compacting` hook push 提醒到压缩 context。**`tui.prompt.append` 未实施**——官方文档列出其为 TUI 事件但无插件可调用的 API，详见 plan §3 可行性澄清。~~
-
-**当前状态：** 提醒纵深三层——(1) MCP 响应中的 reminder 文本（PRIMARY，进入 LLM context）；(2) `.task_temp/_global/gate-reminder.{md,json}` 文件（FALLBACK，跨 context 压缩存活）；(3) `experimental.session.compacting` push（LAST RESORT，压缩时重新注入）。
+| 层级 | 机制 | 作用 |
+|:----:|------|------|
+| PRIMARY | MCP 响应中的 reminder 文本 | 进入 LLM context |
+| FALLBACK | `.task_temp/_global/gate-reminder.{md,json}` 文件 | 跨 context 压缩存活 |
+| LAST RESORT | `experimental.session.compacting` hook push | 压缩时重新注入 |
 
 **问题：**
 1. **LLM 忘记调用 `submit_deliverables`**：与原 `complete` 遗忘同理，属注意力衰减。**缓解机制**：`delivered` 状态 4h 自动 drain + `gate-before.ts` 未审批 WARNING + `dispatch-after.ts` 超时警告；状态机层面强制不 submit 则不能 complete，避免"无成果物关闭"。
@@ -346,12 +292,9 @@ Step 5: Orchestrator 调用 compliance_gate_approve_deliverables (delivered → 
 
 核心原则：**不替代 LLM 参与，而是降低 LLM 遗忘的概率 + 让 Orchestrator 掌握 sub-agent 产出证据。**
 
-1. ~~**三步压缩为两步**~~ ~~（已实施，combined flow 保留为 Step 2）~~
-2. ~~**`check` 返回值中嵌入强提示**~~ ~~（已实施，扩展 deliverables 提示）~~
-3. ~~**框架层兜底提醒（非替代）**~~ ~~（已实施，`tui.prompt.append` 除外）~~
-4. **保留 `complete` / `approve_deliverables` 的自修正循环**：这是协议的核心价值，不可下沉到框架机械层
-5. **保留 enforcement mode 作为控制开关**
-6. **新增 deliverables 模板注入**：`dispatch-subagent.ts` 在 wrapped prompt 中按 agent type 注入典型成果物清单（`deliverables-templates.ts`），降低 sub-agent 声明成本
+1. **保留 `complete` / `approve_deliverables` 的自修正循环**：这是协议的核心价值，不可下沉到框架机械层
+2. **保留 enforcement mode 作为控制开关**
+3. **deliverables 模板注入**：`dispatch-subagent.ts` 在 wrapped prompt 中按 agent type 注入典型成果物清单（`deliverables-templates.ts`），降低 sub-agent 声明成本
 
 #### 4d. Rule Registry（已优化：SHA-256 → git diff + [INFRA] 标记）
 
@@ -359,12 +302,16 @@ Step 5: Orchestrator 调用 compliance_gate_approve_deliverables (delivered → 
 
 原方案使用 31 个注册条目的 SHA-256 digest 验证，存在自引用循环（registry 需手动维护→经常忘记→digest 不匹配→修复消耗 token）。已替换为：
 
-- **触发机制不变**（dispatch 前 + commit 前），**检测手段替换为 git diff HEAD**
-- **关键文件清单提取为 `.opencode/lib/critical-files.ts`**（26 个 CRITICAL_FILES），供 hooks、gate、compliance 等模块共享
-- **commit-msg hook 追加 [INFRA] 标记检查**：advisory 仅警告，strict/locked 阻断
-- **`rule_registry.json` 简化为纯文档清单**（167行，移除 sha256/semver/digest_history 字段）
-- **`rule-registry-verify.ts` 和 `rule_registry_repair.ts` 已删除**
-- **4 个检查点已替换**：pre-execution-gate.ts、compliance-gate.ts、gate-core.ts、gate-checks.ts
+| 变更 | 说明 |
+|------|------|
+| 检测手段 | SHA-256 digest → **git diff HEAD**（触发时机不变：dispatch 前 + commit 前） |
+| 关键文件清单 | 提取为 `lib/critical-files.ts`（26 个 CRITICAL_FILES），供 hooks/gate/compliance 共享 |
+| commit-msg hook | 追加 `[INFRA]` 标记检查（advisory 仅警告，strict/locked 阻断） |
+| `rule_registry.json` | 简化为纯文档清单（167 行）；移除 sha256/semver/digest_history 字段 |
+
+**已删除：** `rule-registry-verify.ts`、`rule_registry_repair.ts`
+
+**4 个检查点已替换：** pre-execution-gate.ts、compliance-gate.ts、gate-core.ts、gate-checks.ts
 
 **遗留价值：** 两层检查链路（dispatch 前检测 + commit 时强制标记）保留了关键文件变更感知能力，同时消除了 registry 维护成本。
 
@@ -681,12 +628,12 @@ DAG-exempt agents（无需 DAG 条目）：Meta-Planner、Orchestrator、Super-A
 
 2. **框架的"LLM 协议"子系统需要区分认知层和机械层**。Compliance Gate 的认知锚定和自修正循环是高价值的（不应下沉到框架层），但原三步对工作记忆负担过重且成果物顺序无法强制导致 92% 会话卡在 recoverable。**gate-stuck-fix Phase 1-6（2026-06-17）将协议演进为 5 步**（combined flow + submit_deliverables + Orchestrator approve），新增 `delivered`/`approved` 状态、`declared_deliverables` 硬约束、3 个新 MCP 工具，从状态机层面解决三个系统性卡死根因（RC1/RC2/RC3）。Phase 6 进一步实现 Session Resume（v4: `.dispatch_ctx` + `session_log` DB，端到端验证通过）和 approve_deliverables 物理限制（三层 agent identity fallback）。UC7KS 管道链验证、TDD RED→GREEN 强制的 ROI 则较低。优化方向是降低 LLM 记忆负担（压缩步骤 + 强化提醒 + 成果物模板注入），而非移除 LLM 参与。
 
-3. ~~**状态管理的设计思想正确，但 JSON 单文件实现是当前最大的技术债**~~ **已系统性修复**：
-   - **P1-A + P1-B（2026-06-16）**：1.1MB 单文件拆分为 12 个独立子状态文件（最大 581KB），3 种 CAS 协议统一为 1 种（atomicWriteSubState），CAS 覆盖率 100%，并发写入冲突消除。
-   - **P2-A Step 0-8（2026-06-16）**：引入 SQLite (bun:sqlite, WAL 模式) 作为状态存储后端。`atomicWriteSubState` 升级为 DB 事务原子写，消除 G1/G3/G4/G6/G7 非原子写入。12 个子状态从 JSON 双写迁移为 DB-only。Step 8 完成清理工作（删除 atomicWriteMachine 兼容层、删除 dead code、移除 JSON/JSONL 双写、统一 safe-bash 日志）。G1-G13 问题矩阵 10/13 完全解决，1/13 缓解（G2 低影响），2/13 留待后续（G11, G12）。详见 `database-migration-plan.md` §11.2 和 `db-migration-verification-report.md`。
-   - **P3（2026-06-16）**：关闭 G11（`file_baseline_kv` 表 + schema v4）+ G12（`substate-types.ts` `SubStateMap` 强类型化）。Schema 演进至 v4。
-   - **gate-stuck-fix Phase 1-6（2026-06-17）**：Schema v5 为 `gate_sessions` 扩展 6 列 deliverables 硬约束；Schema v6 新增 `session_log`/`dispatch_failed_log`/`session_map` 三张表替代 `SESSION_ID.md`/`.session_map.json`/`.pending.json.failed`；引入 `.dispatch_ctx` 单次消费文件解决 process.env 污染问题；Session Resume v4 端到端验证通过（3/3 集成测试 PASS）；approve_deliverables 物理限制已实施。详见 `gate-stuck-fix-and-deliverables-plan.md` §14-16。
-   - **post-Step-8 补丁（2026-06-16）**：hook-commit-msg isInfraOnly 短路修复、DAG stale tasks 清理、dispatch stale entries drain。
+3. ~~**状态管理的设计思想正确，但 JSON 单文件实现是当前最大的技术债**~~ ~~**已系统性修复**：~~
+   - ~~**P1-A + P1-B（2026-06-16）**：1.1MB 单文件拆分为 12 个独立子状态文件（最大 581KB），3 种 CAS 协议统一为 1 种（atomicWriteSubState），CAS 覆盖率 100%，并发写入冲突消除。~~
+   - ~~**P2-A Step 0-8（2026-06-16）**：引入 SQLite (bun:sqlite, WAL 模式) 作为状态存储后端。`atomicWriteSubState` 升级为 DB 事务原子写，消除 G1/G3/G4/G6/G7 非原子写入。12 个子状态从 JSON 双写迁移为 DB-only。Step 8 完成清理工作（删除 atomicWriteMachine 兼容层、删除 dead code、移除 JSON/JSONL 双写、统一 safe-bash 日志）。G1-G13 问题矩阵 10/13 完全解决，1/13 缓解（G2 低影响），2/13 留待后续（G11, G12）。详见 `database-migration-plan.md` §11.2 和 `db-migration-verification-report.md`。~~
+   - ~~**P3（2026-06-16）**：关闭 G11（`file_baseline_kv` 表 + schema v4）+ G12（`substate-types.ts` `SubStateMap` 强类型化）。Schema 演进至 v4。~~
+   - ~~**gate-stuck-fix Phase 1-6（2026-06-17）**：Schema v5 为 `gate_sessions` 扩展 6 列 deliverables 硬约束；Schema v6 新增 `session_log`/`dispatch_failed_log`/`session_map` 三张表替代 `SESSION_ID.md`/`.session_map.json`/`.pending.json.failed`；引入 `.dispatch_ctx` 单次消费文件解决 process.env 污染问题；Session Resume v4 端到端验证通过（3/3 集成测试 PASS）；approve_deliverables 物理限制已实施。详见 `gate-stuck-fix-and-deliverables-plan.md` §14-16。~~
+   - ~~**post-Step-8 补丁（2026-06-16）**：hook-commit-msg isInfraOnly 短路修复、DAG stale tasks 清理、dispatch stale entries drain。~~
 
 4. **Pre-commit hook 的 10x 代码重复已修复**（TypeScript + Bun 重写，1484→469行）。
 5. **核心脚本复杂度需要治理**：compliance-gate.ts(**2493**)、state-reconciliation.ts(1602)、gate-core.ts(**1733**)、framework-doctor.ts(1405)、framework-self-test.ts(**2790**)、pre-execution-gate.ts(967)——6 个文件 >900 行，职责过载。dispatch_subagent.ts(**571**) 已从原 972 行显著缩减。deliverables 硬约束贡献了 compliance-gate.ts ~400 行增量与 gate-core.ts ~190 行增量。
@@ -715,11 +662,11 @@ DAG-exempt agents（无需 DAG 条目）：Meta-Planner、Orchestrator、Super-A
 | ~~**gate-stuck-fix Phase 6**~~ | ~~Session Resume 解锁：`dispatch_subagent` `resume_session_id` 参数 + `.dispatch_ctx` 单次消费文件 + `session_log` DB 查询 + 4 层阻断（B1/B2/B3-A/B4）同步修复~~ | ~~2.2h~~ | — | **已完成 (2026-06-17)**: v4 方案全部 7 步验证通过，3/3 集成测试 PASS，commits `49b93ea3` + `2dcbf41b` |
 | **P2-B** | 精简 Multi-Agent 从 10 到 3-4 角色 | 4-8h | AGENTS.md, opencode.json, project.config.json, agents/*.md | 架构级设计决策；需评估对 DAG、权限矩阵、agent 定义的影响；**注意 @Knowledge-Curator 已被 gate-stuck-fix 强化为 deliverables 强制角色，短期不宜删除** |
 | **P2-C** | 简化 DAG → flat task list | 3-6h | dispatch-before.ts, dispatch_subagent.ts, dag-policy.ts | 降低规划复杂度和 token 消耗；需重写 PLAN-FIRST Layer 1/2 |
-| **P2-D** | **配置文件与权限源统一（§1 L-2/L-4 + §2 P-4）**：`opencode.json` 权限块迁移到 `project.config.json`；删除 `agent_write_scopes` + `safe_shell.agent_allowlists` 重复定义；修正 `framework-authorities.json` 的 authority 声明 | 4h | opencode.json, project.config.json, framework-authorities.json | **§1+§2 共同根因修复**；一次性关闭 3 个问题（L-2 + L-4 + P-4）；解锁 P3-E 权限模板化 |
+| **P2-D** | **权限源反转统一（§1 L-2/L-4 + §2 P-4，上游约束兼容版）**：保持 `opencode.json` 为所有权限数据的唯一权威源（**不瘦身**，上游 OpenCode 强制）；从 `project.config.json` 删除 `agent_write_scopes` + `safe_shell.agent_allowlists` 重复定义；改 `safe-bash-core.ts` / `safe-edit-core.ts` 解析 `opencode.json` 的 `agent.*.permission.safe_shell` / `safe_edit` glob 矩阵；修正 `framework-authorities.json` 的 authority 声明（`opencode.json` ADAPTER → AUTHORITATIVE） | 4h | opencode.json, project.config.json, framework-authorities.json, safe-bash-core.ts, safe-edit-core.ts | **§1+§2 共同根因修复**；一次性关闭 3 个问题（L-2 + L-4 + P-4）；解锁 P3-E 权限模板化。**注意**：原方案（opencode.json 权限块迁出）经 OpenCode 官方文档验证会破坏上游权限引擎（permissions.md:165-168），必须反转 |
 | ~~**P3-A（v6 表 compaction）**~~ | ~~`nightly-compaction.ts` 扩展 v6 三表 TTL 清理（`session_log`/`dispatch_failed_log`/`session_map`）~~ | ~~1h~~ | — | **已完成 (2026-06-17)**：`dbCleanStaleEntries()` 在 Phase A-1 中已扩展覆盖 v6 三表（7 天 TTL + session_map 50 条上限）；`nightly-compaction.ts` 的 `dbMaintenanceStep()` 已在调度此函数 |
 | **P3-B** | typed DB 表结构化查询 | 4-8h | eslint_state, write_audit_state, compliance_records | 当前 substate_kv JSON blob 性能可接受（1-2ms），结构化查询为上限优化 |
 | **P3-C** | 拆分核心脚本复杂度 | 6-12h | compliance-gate.ts(2493), state-reconciliation.ts(1602), gate-core.ts(1733) | 最大单文件拆分，维护性改善 |
-| **P3-E** | **Permission Matrix 增强（§2 P-1/P-2/P-3）**：(a) `lib/permission-templates.ts` 权限模板（`coder-base` / `framework-admin` / `reviewer-base`）；(b) `dispatch_subagent.ts` scope 覆盖预检（DAG task `required_paths ⊆ agent.safe_edit`）；(c) glob 粒度规范化（消除裸 `*`） | 6h | project.config.json, lib/permission-templates.ts (新), dispatch_subagent.ts | **依赖 P2-D**（避免在双配置源上实现模板）；P-3（scope 越界）是真实运维痛点（WAIVE.md 频发） |
+| **P3-E** | **Permission Matrix 增强（§2 P-1/P-2/P-3）**：(a) `lib/permission-templates.ts` 权限模板（`coder-base` / `framework-admin` / `reviewer-base`）；(b) `dispatch_subagent.ts` scope 覆盖预检（DAG task `required_paths ⊆ agent.safe_edit`）；(c) glob 粒度规范化（消除裸 `*`） | 6h | opencode.json, lib/permission-templates.ts (新), dispatch_subagent.ts, safe-bash-core.ts, safe-edit-core.ts | **依赖 P2-D**（避免在双配置源上实现模板）；P-3（scope 越界）是真实运维痛点（WAIVE.md 频发） |
 | **P4-E** | **Layout 路径解析硬化（§1 L-1）**：统一 pre-commit hook / tool / script 三场景路径解析为单一 helper（`lib/path-resolver.ts`） | 1h | hook-layers.ts, tool runner, install-hooks.ts | 低风险美化项：运行时已有 fallback 兜底 |
 | ~~P5-A~~ | ~~**.opencode/ 代码与状态物理分离（§1 L-3）**~~ | — | — | **不推荐**：`.gitignore` 已能区分源码与状态；物理拆分（引入 `.opencode/src/` + `.opencode/runtime/`）是破坏性大重构，风险高于收益 |
 | ~~P3-D~~ | ~~治理 G11（FileStateRegistry 跨进程）~~ | ~~3h~~ | — | **已缓解**：`file_baseline_kv` 表（schema v4）提供轻量替代 |
@@ -735,7 +682,7 @@ DAG-exempt agents（无需 DAG 条目）：Meta-Planner、Orchestrator、Super-A
 
 2. **P2-B/P2-C（架构级设计决策）**：Multi-Agent 精简和 DAG 简化需要充分的设计文档，不直接动手。可独立评估，与 P2-A 无依赖关系。**注意 gate-stuck-fix 已强化 @Knowledge-Curator 角色（deliverables 强制），P2-B 需重新评估 KC 消除的可行性**。
 
-3. **P2-D（§1+§2 共同根因修复，推荐优先推进）**：4h，一次性关闭 3 个问题（L-2 + L-4 + P-4）——消除 `opencode.json` 与 `project.config.json` 的双配置源。**ROI 最高的 §1/§2 优化项**，且解锁 P3-E 的权限模板化工作。无前置依赖，可独立评估推进。
+3. **P2-D（§1+§2 共同根因修复，推荐优先推进）**：4h，一次性关闭 3 个问题（L-2 + L-4 + P-4）——**反转权威方向**：保持 `opencode.json` 为所有权限数据的唯一权威源（上游 OpenCode 强制，`{env:}`/`{file:}` 无法注入 JSON；`project.config.json` 不在预设 config 位置），删除 `project.config.json` 中重复的 `agent_write_scopes` + `safe_shell.agent_allowlists`，改 `safe-bash-core.ts` / `safe-edit-core.ts` 解析 `opencode.json` 的 permission 块。**`opencode.json` 不瘦身**。经 OpenCode 官方文档（config.md:40-48, 633-662；permissions.md:100-103, 165-168）验证，原方案（opencode.json 权限块迁出）会破坏上游权限引擎，必须反转。**ROI 最高的 §1/§2 优化项**，且解锁 P3-E 的权限模板化工作。无前置依赖，可独立评估推进。
 
 4. **P3（中期优化上限）**：typed 表、脚本拆分、**Permission Matrix 增强（P3-E）**。当前性能可接受，仅在出现瓶颈或维护负担显著时推进。P3-A（v6 表 compaction）已通过 `dbCleanStaleEntries()` 扩展解决；P3-D（G11）已通过 `file_baseline_kv` 表缓解，可降级。**P3-E 依赖 P2-D**：必须在权限源统一后才能实施模板化，否则模板会跨两套配置漂移。P3-E 解决 P-3（scope 越界 WAIVE.md 频发）的真实运维痛点，建议 P2-D 完成后优先推进。
 
@@ -757,21 +704,18 @@ DAG-exempt agents（无需 DAG 条目）：Meta-Planner、Orchestrator、Super-A
 | Rule Registry 维护 | 31 SHA-256 | git diff + 26 CRITICAL_FILES | 完全消除手动维护 |
 | Plugin 样板代码 | 96 行 × 16 | 16 行 × 16 | 83% ↓ |
 | Plugin 重复代码 | 9 类 | 0 类 | 完全消除 |
-| Compliance Gate 步骤 | 3 步 | 5 步 (deliverables 硬约束) | +2 步，新增成果物证据强制 + Orchestrator 审批 |
-| Gate 状态数 | 6 (`checked`/`armed`/`completed`/`failed`/`recoverable`/`drained`) | 8 (+ `delivered`/`approved`) | 新增成果物审批中间态 |
-| Schema 版本 | v3 | **v7** | +4 版本（v4 baseline/v5 deliverables/v6 session 基础设施/v7 清理 13 张未使用 typed 表） |
-| DB 表数 | 25 | **16** | +4 新增（file_baseline_kv, session_log, dispatch_failed_log, session_map）−13 清理（v7 drop unused typed tables） |
-| MCP 暴露工具数 | 11 | **13** | +2（submit_deliverables, approve_deliverables） |
 | dispatch_subagent 行数 | 972 | 571 | 41% ↓ |
 | 日志规范合规 | 27 处违规 | 0 处 | 完全消除 |
-| JSON 非原子写入 | 5 处 (G1/G3/G4/G6/G7) | 0 处 (DB 事务) | 完全消除 |
-| 状态存储介质 | 纯 JSON 文件 | SQLite DB-only (JSON 快照已删除) | ACID 保证 |
 | Hook [INFRA] 逻辑 | strict 模式阻断纯 infra commit | isInfraOnly 短路 | 逻辑 bug 修复 |
-| 审计日志写入路径 | 3 条 (独立) | 1 条 (writeAuditLogEntry 统一) | 完全统一 |
-| safe-bash 日志 | appendFileSync | writeLog() | G8 修复 |
-| G-problem 解决 | 10/13 完全解决 + 1/13 缓解 + 2/13 未解决 | **12/13 完全解决 + 1/13 缓解** | G11/G12 关闭（P3） |
-| 合规门卡死率 | 92% (12/13 sessions recoverable) | 0%（状态机层面根除 RC1/RC2/RC3） | 完全修复 |
+| MCP 暴露工具数 | 11 | **13** | +2（submit_deliverables, approve_deliverables） |
+| Compliance Gate | 3 步 / 6 状态 / 92% 卡死率 | 5 步 (deliverables 硬约束) / 8 状态 (+delivered/approved) / 0% 卡死 | 根除 RC1/RC2/RC3 |
 | Session Resume | 不可用 (SESSION_ID.md 不创建) | 端到端验证通过 (v4: `.dispatch_ctx` + `session_log` DB) | 完全修复 |
 | approve_deliverables 限制 | 仅文档声明 (任何 agent 可调用) | 物理限制 (三层 agent identity fallback + `agent_id` 参数) | SA-FIX-APPROVE-PERMISSION |
+| Schema 版本 | v3 | **v7** | +4 版本（v4 baseline/v5 deliverables/v6 session 基础设施/v7 清理 13 张未使用 typed 表） |
+| DB 表数 | 25 | **16** | +4 新增（file_baseline_kv, session_log, dispatch_failed_log, session_map）−13 清理（v7 drop unused typed tables） |
+| DB 化收敛 | JSON + appendFileSync + 多条写入路径 | SQLite DB-only + 单一 writeAuditLogEntry + writeLog() | G1/G6/G7/G8/G9/G10/G13 关闭 |
+| G-problem 解决 | 10/13 完全解决 + 1/13 缓解 + 2/13 未解决 | **12/13 完全解决 + 1/13 缓解** | G11/G12 关闭（P3） |
 | Self-test 通过率 | 38/38 (基线) | **39/40** (+Check 38 v6 DB schema + Check 39 S41 schema；Check 33 为预先存在的 stale entries) | +2 checks |
 | 集成测试 | 无 E2E | **3/3 PASS** (auto-declare, normal lifecycle, resume lifecycle) | 新增 |
+
+> 详细状态数据见 §3 DB 运行时状态表 + G1-G13 矩阵；Compliance Gate 协议详见 §4c。
