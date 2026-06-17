@@ -27,6 +27,16 @@ import {
   readDispatchPolicy,
 } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
+import {
+  readRouteConfig,
+  readOpencodeConfig,
+  l1_verbCandidates,
+  l2_scopeFilter,
+  l3_permissionFilter,
+  l4_dagCheck,
+  extractScopePatterns,
+  isDispatchRouteExempt,
+} from "../lib/route-validator";
 
 export default withPluginLifecycle("dispatch-before", { "tool.execute.before": dispatchExecuteBefore });
 
@@ -53,6 +63,65 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       `| policy.require_dag_entry=${policy.require_dag_entry} ` +
       `| policy.auto_plan_enabled=${policy.auto_plan_enabled}`,
   });
+
+  // ── ROUTE VALIDATION: four-layer chain (L1 Verb → L2 Scope → L3 Permission → L4 DAG) ──
+  const routeConfig = readRouteConfig();
+  if (routeConfig?.enforcement?.dispatch === "block") {
+    // REVISED: Orchestrator/Meta-Planner/Super-Admin exempt — professional judgment authority
+    if (!isDispatchRouteExempt(caller, routeConfig)) {
+      const taskDesc = output?.args?.task_description || "";
+
+      // L1: Verb → Candidate Pool
+      const l1Candidates = l1_verbCandidates(taskDesc, routeConfig.verb_to_agent);
+      if (l1Candidates.length > 0) {
+        // REVISED: L2 uses Task.DAG.json target_files[] when dag_task_id available
+        let targetFiles: string[] = [];
+        if (dagTaskId) {
+          const tc = findTaskInDag(dagTaskId);
+          if (tc.found && tc.task?.target_files) {
+            targetFiles = tc.task.target_files;
+          }
+        }
+
+        const l2Candidates = l2_scopeFilter(l1Candidates, targetFiles, routeConfig.scope_to_agent);
+
+        // L3: Permission → Veto
+        const scopes = extractScopePatterns(
+          targetFiles.length > 0 ? targetFiles : [taskDesc],
+          routeConfig.scope_to_agent.rules,
+        );
+        const opencodeConfig = readOpencodeConfig();
+        const l3Candidates = l3_permissionFilter(l2Candidates, scopes, opencodeConfig);
+
+        // L4: DAG (selection step)
+        const finalAgent = l4_dagCheck(l3Candidates, dagTaskId, isDagExempt);
+
+        if (finalAgent && target !== finalAgent) {
+          writeLog("dispatch-before", "runtime", {
+            sessionID: input.sessionID, callID: input.callID,
+            agent: caller, agentType: caller,
+            level: "ERROR",
+            event: "DISPATCH-BEFORE",
+            detail:
+              `ROUTE-MISMATCH | task="${taskDesc.substring(0, 120)}" | ` +
+              `dispatched_to=${target} | expected=${finalAgent} | ` +
+              `L1=[${l1Candidates.join(",")}] L2=[${l2Candidates.join(",")}] ` +
+              `L3=[${l3Candidates.join(",")}]`,
+          });
+          if (mode === "strict" || mode === "locked") {
+            throw new Error(
+              `[FW-ENFORCE][ROUTE-MISMATCH] dispatch_subagent to @${target} is incorrect. ` +
+              `Four-layer route: L1(verb) [${l1Candidates.join(",")}] → ` +
+              `L2(scope) [${l2Candidates.join(",")}] → ` +
+              `L3(permission) [${l3Candidates.join(",")}] → ` +
+              `Selected: @${finalAgent}. ` +
+              `Task: "${taskDesc.substring(0, 100)}..."`,
+            );
+          }
+        }
+      }
+    }
+  }
 
   if (isDagExempt(target)) {
     writeLog("dispatch-before", "runtime", {

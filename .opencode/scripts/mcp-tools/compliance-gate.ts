@@ -150,7 +150,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 // ── P3/S52-1: DB-first state writes (replaces state-transaction beginTransaction) ──
-const { dbSaveGateStore, dbWriteSubState, dbArchiveDrainedSession, dbCountDrainedSessions } = require("../../lib/db-state-manager");
+const { dbSaveGateStore, dbWriteSubState, dbArchiveDrainedSession, dbCountDrainedSessions, dbQuerySessionByDagTaskId } = require("../../lib/db-state-manager");
 // writeLog already imported at line 33
 
 // ── Adapter: v3 GateStateHot → GateStore shape (for dbSaveGateStore) ──
@@ -707,6 +707,102 @@ function buildReminderText(sessionId, planSummary, expiresAt) {
 }
 
 function runGateCheck(taskDescription, taskId) {
+  // ── FW-DISPATCH-TASKID-IMMUTABLE: task_id integrity enforcement ──
+  // Uses session_map DB (per-session dag_task_id records) instead of shared
+  // .dispatch_ctx file. The DB approach is immune to:
+  //   (a) Concurrent dispatch race conditions (per-session, no shared file overwrite)
+  //   (b) task-after.ts deletion (DB records persist, unlike file consumed/deleted)
+  //
+  // When any session_map entry has a dag_task_id registered, the sub-agent's
+  // task_id parameter MUST be one of those registered values. If the provided
+  // task_id is not found in any session_map entry, it is fabricated — the
+  // sub-agent attempted to bypass gate session mutual exclusion by inventing
+  // a task_id not assigned by Orchestrator.
+  //
+  // Root cause: Q1 bug where SA received dag_task_id="GAP-FIX-ALL-001"
+  // but called compliance_gate_check(task_id="GAP-FIX-ALL-002") to bypass
+  // a stuck armed session, effectively executing under a different task ID
+  // than the one Orchestrator dispatched.
+  //
+  // Legal exit: If no dag_task_id entries exist in session_map (manual
+  // invocation without dispatch), any task_id is allowed — no integrity
+  // constraint exists.
+  let hasDispatchContext = false;
+  let dispatchAssignedTaskIds: string[] = [];
+  try {
+    // Check whether ANY session_map entry has a dag_task_id
+    // If taskId is provided, validate it against registered values
+    if (taskId) {
+      const sessions = dbQuerySessionByDagTaskId(taskId);
+      if (sessions.length > 0) {
+        // taskId matches a registered dispatch — legitimate
+        hasDispatchContext = true;
+        dispatchAssignedTaskIds = [taskId];
+      } else {
+        // taskId not found in session_map — could be fabricated
+        // But check if ANY dispatch context exists first
+        try {
+          const { getDb } = require("../../lib/db-manager");
+          const db = getDb();
+          const anyRegistered = db.query(
+            `SELECT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL LIMIT 1`
+          ).all() as { dag_task_id: string }[];
+          if (anyRegistered.length > 0) {
+            // Dispatch context exists but this taskId is NOT registered
+            hasDispatchContext = true;
+            dispatchAssignedTaskIds = anyRegistered.map(r => r.dag_task_id);
+          }
+        } catch {
+          // DB query failure — fall through to no dispatch context
+        }
+      }
+    } else {
+      // No taskId provided — check .dispatch_ctx for fallback
+      // (legacy path for pre-FW-DISPATCH-TASKID-IMMUTABLE callers)
+      const dispatchCtxPath = path2.join(OPENCODE_ROOT, ".task_temp", "_dispatch", ".dispatch_ctx");
+      try {
+        if (fs2.existsSync(dispatchCtxPath)) {
+          const ctx = JSON.parse(fs2.readFileSync(dispatchCtxPath, "utf8"));
+          if (ctx && ctx.dagTaskId) {
+            dispatchAssignedTaskIds = [ctx.dagTaskId];
+            hasDispatchContext = true;
+          }
+        }
+      } catch {
+        // .dispatch_ctx unreadable — fall through
+      }
+    }
+  } catch {
+    // DB query failure — fall through to no dispatch context
+  }
+
+  if (hasDispatchContext && taskId && dispatchAssignedTaskIds.length > 0) {
+    if (!dispatchAssignedTaskIds.includes(taskId)) {
+      writeLog("mcp-compliance-gate", "ERROR", {
+        event: "DISPATCH_TASKID_TAMPER",
+        provided_task_id: taskId,
+        dispatch_registered_task_ids: dispatchAssignedTaskIds,
+        detail: "sub-agent attempted to use a task_id not registered in any dispatch — fabricated task_id to bypass gate mutual exclusion",
+      });
+      return {
+        passed: false,
+        session_id: null,
+        reason: `DISPATCH-INTEGRITY: task_id "${taskId}" is not registered in any dispatch session. ` +
+                `Registered task_ids: ${dispatchAssignedTaskIds.join(", ")}. ` +
+                `The dispatch-assigned task_id is immutable — you cannot fabricate a different one. ` +
+                `If the gate is stuck (existing armed session for a registered task_id), call compliance_gate_drain_stale ` +
+                `to drain the stale session, then retry with the correct task_id.`,
+      };
+    }
+  }
+
+  // Normalize: if no taskId provided but dispatch context exists, use the
+  // dispatch-assigned value as default (enables "just call check, no task_id"
+  // pattern for correctly-dispatched sub-agents)
+  if (!taskId && dispatchAssignedTaskIds.length === 1) {
+    taskId = dispatchAssignedTaskIds[0];
+  }
+
   // ── GATE-RECOVERY: task_id based mutual exclusion ──
   // If taskId is provided, scan for existing active session with same task_id.
   // An active session (armed or recoverable) means the gate is still open —

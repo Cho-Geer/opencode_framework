@@ -10,7 +10,7 @@ export default withPluginLifecycle("audit-before", { "tool.execute.before": tool
 
 async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);
-  const taskId = resolveTaskId();
+  const taskId = resolveTaskId(input.sessionID);
   if (!isModifyTool(input.tool)) return;
   const filePath = getEffectivePathScopeFilePath(input.tool, output.args || {});
   if (!filePath || !isSourceFile(filePath)) return;

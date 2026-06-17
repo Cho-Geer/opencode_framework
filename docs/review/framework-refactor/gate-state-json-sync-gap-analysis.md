@@ -1,9 +1,10 @@
 # gate-state.json Post-Step-8 同步断裂分析报告
 
 **日期**: 2026-06-17
-**状态**: ✅ 修复完成
-**影响范围**: 4 HIGH + 2 MEDIUM 严重级运行时功能缺陷（已全部修复）
-**验证结果**: framework-self-test 39/40 PASS（仅 Check 33 预先存在的 .pending.json 过期条目失败，与 DB 迁移无关）
+**状态**: ✅ 全部修复完成 (framework-self-test 39/40 PASS + framework-doctor 13/13 PASS)
+**修复提交**: `14875666` — `chore(infra): [INFRA] fix all gate-state.json sync gaps`
+**影响范围**: 4 HIGH + 2 MEDIUM + 1 EXTRA 严重级运行时功能缺陷（已全部修复）
+**修复文件数**: 5 files + 3 already-fixed (confirmed)
 
 ---
 
@@ -65,7 +66,9 @@ P2-A Step 8 完成 DB-only 迁移后，`gate-core.saveGateStore()` 仅写 DB（�
 
 **风险**：Layer 0 从 JSON 读 `active_sessions` 判定是否允许 commit。DB 已武装但 JSON 未同步 → 误阻断合法提交。
 
-**修复**：改用 `loadGateStore()` 或 `dbLoadGateStore()` 读取。
+**修复**：Layer 0 (line 73) 已改用 `dbLoadGateStore()`。Layer 1.9 (line 133) 格式验证也已迁移至 DB。
+
+> **修复状态**：✅ 已迁移至 `dbLoadGateStore()` — Layer 0 + Layer 1.9 均已完成
 
 ### 3.2 `lib/gate-checks.ts:182-216` — autoDrainStaleSessions
 
@@ -75,19 +78,27 @@ P2-A Step 8 完成 DB-only 迁移后，`gate-core.saveGateStore()` 仅写 DB（�
 - 读：改用 `dbLoadGateStore()`
 - 写：改用 `dbSaveGateStore()` + `dbArchiveDrainedSession()`
 
+> **修复状态**：✅ 已迁移至 `dbLoadGateStore()` + `dbSaveGateStore()` + `dbArchiveDrainedSession()`
+
 ### 3.3 `scripts/gate-lifecycle-audit.ts` — auto-drain 模式
 
-**风险**：同上，auto-drain 模式直接写 JSON（line 177），数据丢失向量。
+**风险**：同上，auto-drain 模式直接写 JSON（line 177），数据丢失向量。此外初始审计读取 (line 25) 仍使用 `readJsonFile(GATE_STATE_PATH)`。
 
-**修复**：同 3.2。
+**修复**：
+- 初始读：line 25 `readJsonFile()` → `dbLoadGateStore()`
+- auto-drain 写入：已使用 `dbSaveGateStore()` + `dbArchiveDrainedSession()`（line 164-189 已迁移）
+
+> **修复状态**：✅ 已迁移至 `dbLoadGateStore()` — 初始审计读取 + auto-drain 写入均已完成
 
 ### 3.4 `scripts/state-reconciliation.ts:672` — 状态修复工具
 
 **风险**：修复工具操作过期 JSON，可能基于过时数据做出错误修复决策。
 
 **修复**：
-- 读：改用 `loadGateStore()` / `readSubState()`
-- 写：改用 `dbSaveGateStore()` / `dbWriteSubState()`
+- 读：改用 `dbLoadGateStore()` (line 677, line 902)
+- 文件级完整性检查 (line 1331-1338) 保留 JSON 读取——这是有意为之，用于验证冻结快照的结构完整性
+
+> **修复状态**：✅ 已迁移至 `dbLoadGateStore()` — 主会话读取已使用 DB；文件结构检查保留 JSON 读取（有意为之）
 
 ---
 
@@ -99,11 +110,23 @@ P2-A Step 8 完成 DB-only 迁移后，`gate-core.saveGateStore()` 仅写 DB（�
 
 **修复优先级**：中。诊断工具，不影响运行时功能。
 
+> **修复状态**：✅ 已迁移至 `dbLoadGateStore()` — line 76 使用 DB 读取
+
 ### 4.2 `scripts/state-integrity-scan.ts:66`
 
-**影响**：完整性扫描基于过期 JSON，结果误导性（报告"不一致"实为 DB 与 JSON 不同步）。
+**影响**：完整性扫描读取使用 `dbLoadGateStore()` 已于 line 69 修复。但**写入路径** (line 327-330) 仍使用 `fs.writeFileSync(files["gate-state.json"], ...)`——直接写冻结 JSON 快照，绕过 DB。
 
-**修复优先级**：中。调试工具，不阻断执行。
+**修复**：line 327 `writeFileSync()` → `dbSaveGateStore(gateState)`
+
+> **修复状态**：✅ 已迁移至 `dbSaveGateStore()` — 读取和写入均已完成
+
+### 4.3 `scripts/framework-doctor.ts` (额外发现)
+
+**影响**：Check 3（gate dry-run，line 310-390）和 Check 4（inline reconciliation，line 538-601）直接读取 `gate-state.json` 进行健康诊断。DB 状态与 JSON 快照不同步时产生误报。
+
+**修复**：两个检查点均改为 `dbLoadGateStore()` 读取，输出标记为 "(DB)" 以示区别。
+
+> **修复状态**：✅ 已迁移至 `dbLoadGateStore()` — Check 3 + Check 4 均已完成
 
 ---
 
@@ -149,9 +172,9 @@ dbArchiveDrainedSession(sessionId, reason, data);
 ### 5.3 验证方法
 
 修复后运行：
-1. `bun .opencode/scripts/framework-self-test.ts` — 确认 37/40+ PASS，零新增回归
-2. `bun .opencode/scripts/framework-doctor.ts` — 确认 Check 6 PASS（无未提交变更）
-3. 手动触发 `compliance_gate_confirm` + `dispatch_subagent` — 确认派遣不再被阻断
+1. `bun .opencode/scripts/framework-self-test.ts` — 确认 **39/40+ PASS**（Check 36 因 safe_edit 备份文件未提交显示 FAIL，提交后自动通过）。零新增回归。
+2. `bun .opencode/scripts/framework-doctor.ts --strict` — 确认 **13/13 ALL PASS**。Check 3 输出 `(DB)` 标记确认从 DB 读取，不再依赖冻结 JSON 快照。
+3. 手动触发 `compliance_gate_confirm` + `dispatch_subagent` — 确认派遣不再被阻断。
 
 ---
 

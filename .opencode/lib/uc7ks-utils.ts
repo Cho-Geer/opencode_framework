@@ -189,7 +189,13 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
  * @param mode   Enforcement mode ("advisory" | "strict" | "locked")
  * @returns Error string if blocked, null if allowed
  */
-export function checkUC7KSWrite(agent: string, mode: string): string | null {
+export function checkUC7KSWrite(
+  agent: string,
+  mode: string,
+  sessionId?: string,
+  taskId?: string,
+  domainId?: string,
+): string | null {
   // Advisory mode: no blocking
   if (mode === "advisory") return null;
 
@@ -209,7 +215,49 @@ export function checkUC7KSWrite(agent: string, mode: string): string | null {
   // Check uc7_001_compliant via sub-state (knowledge-cache-state.json)
   const agentKey = agent.replace(/^@/, "");
   const sa = readCachedSessionAccess(agentKey);
+
+  // ── FW-UC7KS-DOMAIN-001: Per-task per-domain check (priority) ──
+  // When taskId + domainId are available (from session_map DB), check the
+  // nested schema's cache_sufficiency instead of the flat uc7_001_compliant
+  // boolean. This prevents the bypass where reading ANY cache file sets the
+  // global flag and all subsequent writes pass regardless of domain.
+  if (taskId && domainId && sa?.tasks?.[taskId]?.domains?.[domainId]) {
+    const suff = sa.tasks[taskId].domains[domainId].cache_sufficiency;
+    if (suff?.status === "sufficient") {
+      writeLog(SRC, "INFO", {
+        event: "UC7KS-WRITE-PASS-PER-DOMAIN",
+        agent,
+        taskId,
+        domainId,
+        detail: `per-task per-domain check passed`,
+      });
+      return null;
+    }
+    // Per-domain insufficient → block
+    writeLog(SRC, "ERROR", {
+      event: "UC7KS-WRITE-BLOCK-PER-DOMAIN",
+      agent,
+      taskId,
+      domainId,
+      missing_topics: suff?.missing_topics || [],
+      detail: `Task ${taskId} domain ${domainId} cache insufficient: ${suff?.reason || "unknown"}`,
+    });
+    return [
+      `[FW-ENFORCE][UC7-001] Knowledge cache insufficient for task "${taskId}" domain "${domainId}".`,
+      `Status: ${suff?.status || "unknown"}.`,
+      `Missing topics: ${suff?.missing_topics?.join(", ") || "unknown"}.`,
+      `Search knowledge cache for this domain before writing source files.`,
+      `Agent: ${agent}`,
+    ].join(" ");
+  }
+
+  // ── Backward compat: no taskId/domainId → global check ──
   if (!sa?.uc7_001_compliant) {
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-WRITE-BLOCK-GLOBAL",
+      agent,
+      detail: `global uc7_001_compliant flag not set (legacy fallback path, no per-task/domain context available)`,
+    });
     const cacheMsg = cacheHealthy
       ? "Local knowledge cache exists but has not been searched."
       : "Knowledge cache not initialized.";
@@ -221,5 +269,11 @@ export function checkUC7KSWrite(agent: string, mode: string): string | null {
     ].join(" ");
   }
 
+  // Global pass (legacy path)
+  writeLog(SRC, "INFO", {
+    event: "UC7KS-WRITE-PASS-GLOBAL",
+    agent,
+    detail: `global uc7_001_compliant passed (no per-task/domain context available)`,
+  });
   return null; // pass
 }

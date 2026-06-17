@@ -676,6 +676,73 @@ export function armSession(
   root?: string,
   declaredDeliverables?: DeliverableEntry[],
 ): GateConfirmResult {
+  // ── FW-DISPATCH-TASKID-IMMUTABLE: task_id integrity at arm phase ──
+  // Uses session_map DB (per-session dag_task_id) instead of shared
+  // .dispatch_ctx file. DB is immune to concurrent dispatch race
+  // conditions and task-after.ts deletion.
+  //
+  // Defense-in-depth: runGateCheck() validates at check phase, this
+  // validates at arm phase. If sub-agent bypasses check (e.g. stale
+  // .dispatch_ctx deleted by task-after.ts), arm still catches it.
+  let hasDispatchContext = false;
+  let dispatchAssignedTaskIds: string[] = [];
+  try {
+    if (taskId) {
+      const { dbQuerySessionByDagTaskId } = require('./db-state-manager');
+      const sessions = dbQuerySessionByDagTaskId(taskId);
+      if (sessions.length > 0) {
+        hasDispatchContext = true;
+        dispatchAssignedTaskIds = [taskId];
+      } else {
+        // taskId not found — check if ANY dispatch context exists
+        try {
+          const { getDb } = require('./db-manager');
+          const db = getDb();
+          const anyRegistered = db.query(
+            `SELECT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL LIMIT 1`
+          ).all() as { dag_task_id: string }[];
+          if (anyRegistered.length > 0) {
+            hasDispatchContext = true;
+            dispatchAssignedTaskIds = anyRegistered.map(r => r.dag_task_id);
+          }
+        } catch { /* DB failure — fall through */ }
+      }
+    } else {
+      // No taskId — fallback to .dispatch_ctx (legacy path)
+      const projectRoot = root || getProjectRoot();
+      const dispatchCtxPath = path.join(projectRoot, '.task_temp', '_dispatch', '.dispatch_ctx');
+      try {
+        if (fs.existsSync(dispatchCtxPath)) {
+          const ctx = JSON.parse(fs.readFileSync(dispatchCtxPath, 'utf8'));
+          if (ctx && ctx.dagTaskId) {
+            dispatchAssignedTaskIds = [ctx.dagTaskId];
+            hasDispatchContext = true;
+          }
+        }
+      } catch { /* unreadable — fall through */ }
+    }
+  } catch { /* DB failure — fall through */ }
+
+  if (hasDispatchContext && taskId && dispatchAssignedTaskIds.length > 0) {
+    if (!dispatchAssignedTaskIds.includes(taskId)) {
+      writeLogSafe(SRC, "ERROR", {
+        event: "DISPATCH_TASKID_TAMPER_AT_ARM",
+        provided_task_id: taskId,
+        dispatch_registered_task_ids: dispatchAssignedTaskIds,
+        detail: "sub-agent attempted to use a task_id not registered in any dispatch at arm phase",
+      });
+      return {
+        status: 'rejected',
+        reason: `DISPATCH-INTEGRITY: taskId "${taskId}" is not registered in any dispatch session. Registered: ${dispatchAssignedTaskIds.join(", ")}. The dispatch-assigned task_id is immutable.`,
+      };
+    }
+  }
+
+  // Normalize: use dispatch-assigned taskId when empty
+  if (!taskId && dispatchAssignedTaskIds.length === 1) {
+    taskId = dispatchAssignedTaskIds[0];
+  }
+
   const store = loadGateStore(root);
   const session = sessionId ? store.sessions[sessionId] : undefined;
 

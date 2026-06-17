@@ -1,0 +1,206 @@
+/**
+ * uc7ks-domain.test.ts — FW-UC7KS-DOMAIN-001 tests
+ * Tests for session_map domain_id integration and per-domain UC7KS write checks.
+ */
+
+const { dbWriteSessionMap, dbReadSessionMap, dbQuerySessionByDomain } = require('../db-state-manager');
+
+describe('FW-UC7KS-DOMAIN-001', () => {
+  const testSessionId = 'test-uc7ks-domain-' + Date.now();
+  const testAgent = 'Coder-BE';
+  const testDomain = 'backend_api';
+
+  afterEach(() => {
+    try {
+      const { getDb } = require('../db-manager');
+      const db = getDb();
+      db.run(`DELETE FROM session_map WHERE session_id LIKE 'test-uc7ks-domain-%'`);
+      db.run(`DELETE FROM session_map WHERE domain_id = 'frontend_ui' AND session_id LIKE 'test-%'`);
+    } catch {}
+  });
+
+  describe('session_map domain_id CRUD', () => {
+    it('should write and read domain_id via dbWriteSessionMap', () => {
+      const result = dbWriteSessionMap(testSessionId, testAgent, undefined, testDomain);
+      expect(result).toBe(true);
+
+      const entry = dbReadSessionMap(testSessionId);
+      expect(entry).not.toBeNull();
+      expect(entry!.domain_id).toBe(testDomain);
+      expect(entry!.agent).toBe(testAgent);
+    });
+
+    it('should preserve domain_id on upsert without explicit domainId', () => {
+      // Write with domainId
+      dbWriteSessionMap(testSessionId, testAgent, 'TASK-001', testDomain);
+
+      // Upsert without domainId (chatMessageHook path)
+      dbWriteSessionMap(testSessionId, testAgent);
+
+      const entry = dbReadSessionMap(testSessionId);
+      expect(entry!.domain_id).toBe(testDomain);
+      expect(entry!.dag_task_id).toBe('TASK-001');
+    });
+
+    it('should preserve dag_task_id when only domainId is provided', () => {
+      // Write with both
+      dbWriteSessionMap(testSessionId, testAgent, 'TASK-001', testDomain);
+
+      // Upsert with only domainId
+      dbWriteSessionMap(testSessionId, testAgent, undefined, 'frontend_ui');
+
+      const entry = dbReadSessionMap(testSessionId);
+      expect(entry!.dag_task_id).toBe('TASK-001');
+      expect(entry!.domain_id).toBe('frontend_ui');
+    });
+
+    it('should query sessions by domain_id via dbQuerySessionByDomain', () => {
+      dbWriteSessionMap(testSessionId + '-1', testAgent, 'TASK-001', testDomain);
+      dbWriteSessionMap(testSessionId + '-2', 'Coder-FE', 'TASK-002', 'frontend_ui');
+      dbWriteSessionMap(testSessionId + '-3', testAgent, 'TASK-003', testDomain);
+
+      const beSessions = dbQuerySessionByDomain(testDomain);
+      expect(beSessions).toContain(testSessionId + '-1');
+      expect(beSessions).toContain(testSessionId + '-3');
+      expect(beSessions).not.toContain(testSessionId + '-2');
+
+      const feSessions = dbQuerySessionByDomain('frontend_ui');
+      expect(feSessions).toContain(testSessionId + '-2');
+      expect(feSessions).not.toContain(testSessionId + '-1');
+    });
+
+    it('should return empty array for unregistered domain_id', () => {
+      const sessions = dbQuerySessionByDomain('nonexistent_domain');
+      expect(sessions).toEqual([]);
+    });
+  });
+
+  describe('checkUC7KSWrite per-domain integration', () => {
+    const { checkUC7KSWrite } = require('../uc7ks-utils');
+    const { atomicWriteSubState } = require('../state-utils');
+
+    afterEach(() => {
+      // Clean up knowledge cache state
+      try {
+        atomicWriteSubState('knowledge_cache_state', (state) => {
+          if (state.session_access) {
+            delete state.session_access[testAgent.replace(/^@/, '')];
+          }
+        });
+      } catch {}
+    });
+
+    it('should pass when per-domain cache_sufficiency is sufficient', () => {
+      // Setup: write per-domain data to knowledge cache state
+      atomicWriteSubState('knowledge_cache_state', (state) => {
+        state.session_access = state.session_access || {};
+        const ak = testAgent.replace(/^@/, '');
+        state.session_access[ak] = {
+          uc7_001_compliant: false, // Global flag NOT set
+          tasks: {
+            'TASK-001': {
+              domains: {
+                'backend_api': {
+                  pipeline_status: 'completed',
+                  cache_sufficiency: {
+                    status: 'sufficient',
+                    missing_topics: [],
+                    declared_at: new Date().toISOString(),
+                    reason: 'test',
+                    files_read: [],
+                    content_summary: '',
+                  },
+                },
+              },
+            },
+          },
+        };
+      });
+
+      const result = checkUC7KSWrite(
+        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+      );
+      expect(result).toBeNull(); // Should pass per-domain
+    });
+
+    it('should block when per-domain cache_sufficiency is insufficient', () => {
+      atomicWriteSubState('knowledge_cache_state', (state) => {
+        state.session_access = state.session_access || {};
+        const ak = testAgent.replace(/^@/, '');
+        state.session_access[ak] = {
+          uc7_001_compliant: true, // Global flag IS set
+          tasks: {
+            'TASK-001': {
+              domains: {
+                'backend_api': {
+                  pipeline_status: 'completed',
+                  cache_sufficiency: {
+                    status: 'insufficient',
+                    missing_topics: ['authentication'],
+                    declared_at: new Date().toISOString(),
+                    reason: 'missing auth docs',
+                    files_read: [],
+                    content_summary: '',
+                  },
+                },
+              },
+            },
+          },
+        };
+      });
+
+      const result = checkUC7KSWrite(
+        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+      );
+      expect(result).not.toBeNull(); // Should block
+      expect(result).toContain('UC7-001');
+      expect(result).toContain('backend_api');
+      expect(result).toContain('insufficient');
+    });
+
+    it('should fallback to global check when no taskId/domainId provided', () => {
+      atomicWriteSubState('knowledge_cache_state', (state) => {
+        state.session_access = state.session_access || {};
+        const ak = testAgent.replace(/^@/, '');
+        state.session_access[ak] = {
+          uc7_001_compliant: true,
+        };
+      });
+
+      // No taskId/domainId — should use global flag
+      const result = checkUC7KSWrite(testAgent, 'strict');
+      expect(result).toBeNull(); // Global flag is true → pass
+    });
+
+    it('should block when no domain entry exists and global flag is false', () => {
+      atomicWriteSubState('knowledge_cache_state', (state) => {
+        state.session_access = state.session_access || {};
+        const ak = testAgent.replace(/^@/, '');
+        state.session_access[ak] = {
+          uc7_001_compliant: false,
+        };
+      });
+
+      // taskId/domainId provided but no matching nested entry → global fallback
+      const result = checkUC7KSWrite(
+        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+      );
+      expect(result).not.toBeNull(); // Global flag false → block
+      expect(result).toContain('UC7-001');
+    });
+
+    it('should pass in advisory mode regardless of domain state', () => {
+      const result = checkUC7KSWrite(
+        testAgent, 'advisory', 'sess-1', 'TASK-001', 'backend_api'
+      );
+      expect(result).toBeNull();
+    });
+
+    it('should bypass for Knowledge-Curator regardless of domain', () => {
+      const result = checkUC7KSWrite(
+        'Knowledge-Curator', 'strict', 'sess-1', 'TASK-001', 'backend_api'
+      );
+      expect(result).toBeNull();
+    });
+  });
+});

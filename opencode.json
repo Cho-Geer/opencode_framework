@@ -7,6 +7,11 @@
     ".opencode/rules/rule_detail/*.md"
   ],
   "lsp": true,
+  "compaction": {
+    "auto": true,
+    "prune": false,
+    "reserved": 10000
+  },
   "default_agent": "Orchestrator",
   "agent": {
     "Meta-Planner": {

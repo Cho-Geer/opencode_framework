@@ -28,6 +28,8 @@ const {
   extractSemver,
 } = require('../gate-core');
 
+const { dbWriteSessionMap, dbQuerySessionByDagTaskId } = require('../db-state-manager');
+
 describe('gate-core', () => {
   describe('getProjectRoot', () => {
     it('should return a non-empty string', () => {
@@ -121,6 +123,93 @@ describe('gate-core', () => {
       const result = armSession('nonexistent', 'Plan summary here');
       expect(result.status).toBe('rejected');
       expect(result.reason).toContain('session not found');
+    });
+
+    // ── FW-DISPATCH-TASKID-IMMUTABLE: task_id integrity tests ──
+    // Uses session_map DB (not .dispatch_ctx file) because:
+    //   (a) .dispatch_ctx is a shared file — concurrent dispatches overwrite it
+    //   (b) task-after.ts deletes .dispatch_ctx — late gate checks bypass integrity
+    //   (c) session_map DB is per-session, immune to both race conditions and deletion
+    describe('session_map DB integrity', () => {
+      const testSessionId = 'test-session-' + Date.now();
+      const testAgent = 'Coder-BE';
+
+      afterEach(() => {
+        // Clean up test DB entries to prevent test contamination
+        try {
+          const { getDb } = require('../db-manager');
+          const db = getDb();
+          db.run(`DELETE FROM session_map WHERE session_id = ?`, [testSessionId]);
+          db.run(`DELETE FROM session_map WHERE dag_task_id = 'GAP-FIX-ALL-001'`);
+          db.run(`DELETE FROM session_map WHERE dag_task_id = 'GAP-FIX-ALL-002'`);
+        } catch {}
+        // Also clean .dispatch_ctx if left over
+        const testRoot = getProjectRoot();
+        const dispatchCtxPath = path.join(testRoot, '.task_temp', '_dispatch', '.dispatch_ctx');
+        try { fs.rmSync(dispatchCtxPath, { force: true }); } catch {}
+      });
+
+      it('should reject when taskId is not registered in session_map DB (fabricated)', () => {
+        // Register GAP-FIX-ALL-001 as the dispatch-assigned dagTaskId
+        dbWriteSessionMap(testSessionId, testAgent, 'GAP-FIX-ALL-001');
+
+        // Sub-agent attempts to use GAP-FIX-ALL-002 — not registered → fabricated
+        const { session } = createSession('Test', [], {}, 'advisory');
+        const result = armSession(session.session_id, 'Plan summary here', 'TestAgent', 'GAP-FIX-ALL-002');
+        expect(result.status).toBe('rejected');
+        expect(result.reason).toContain('DISPATCH-INTEGRITY');
+        expect(result.reason).toContain('GAP-FIX-ALL-002');
+      });
+
+      it('should normalize taskId from session_map when empty and only one registered', () => {
+        // Register exactly one dagTaskId
+        dbWriteSessionMap(testSessionId, testAgent, 'GAP-FIX-ALL-001');
+
+        // No .dispatch_ctx file, no explicit taskId — should use DB value
+        const { session } = createSession('Test', [], {}, 'advisory');
+        const result = armSession(session.session_id, 'Plan summary here', 'Orchestrator', undefined);
+        // Orchestrator is exempt — no declared_deliverables required
+        expect(result.status).toBe('armed');
+      });
+
+      it('should allow when taskId is registered in session_map DB', () => {
+        // Register GAP-FIX-ALL-001 as the dispatch-assigned dagTaskId
+        dbWriteSessionMap(testSessionId, testAgent, 'GAP-FIX-ALL-001');
+
+        // Sub-agent provides matching taskId — legitimate
+        const { session } = createSession('Test', [], {}, 'advisory');
+        const result = armSession(session.session_id, 'Plan summary here', 'Orchestrator', 'GAP-FIX-ALL-001');
+        expect(result.status).toBe('armed');
+      });
+
+      it('should pass when no dag_task_id entries in session_map (no dispatch context)', () => {
+        // No dag_task_id entries → no integrity constraint → manual invocation
+        // Any taskId is allowed (no Orchestrator dispatch happened)
+        const { session } = createSession('Test', [], {}, 'advisory');
+        const result = armSession(session.session_id, 'Plan summary here', 'Orchestrator', 'MANUAL-TASK-003');
+        expect(result.status).toBe('armed');
+      });
+
+      it('should reject fabricated taskId even with concurrent registered taskIds', () => {
+        // Simulate concurrent dispatches: two different dagTaskIds registered
+        dbWriteSessionMap('session-1', 'Coder-BE', 'GAP-FIX-ALL-001');
+        dbWriteSessionMap('session-2', 'Coder-FE', 'GAP-FIX-ALL-002');
+
+        // Sub-agent fabricates a third taskId — not registered in any session
+        const { session } = createSession('Test', [], {}, 'advisory');
+        const result = armSession(session.session_id, 'Plan summary here', 'TestAgent', 'FABRICATED-003');
+        expect(result.status).toBe('rejected');
+        expect(result.reason).toContain('DISPATCH-INTEGRITY');
+        expect(result.reason).toContain('FABRICATED-003');
+
+        // Clean up concurrent test sessions
+        try {
+          const { getDb } = require('../db-manager');
+          const db = getDb();
+          db.run(`DELETE FROM session_map WHERE session_id = 'session-1'`);
+          db.run(`DELETE FROM session_map WHERE session_id = 'session-2'`);
+        } catch {}
+      });
     });
   });
 

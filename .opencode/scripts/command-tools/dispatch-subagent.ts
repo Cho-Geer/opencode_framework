@@ -37,6 +37,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { deliverablesTemplateMarkdown, isExemptAgent } = require("../../lib/deliverables-templates");
 const { dbQuerySessionByDagTaskId } = require("../../lib/db-state-manager");
+const { writeLog } = require("../../lib/log-manager");
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
   ? path.resolve(process.env.OPENCODE_ROOT)
@@ -55,22 +56,19 @@ const PROJECT_CONFIG = path.join(
 const OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
 
 // ── 日志重定向 ──
-const LOG_FILE = path.join(
-  OPENCODE_ROOT,
-  ".task_temp",
-  "_dispatch",
-  "dispatch.log",
-);
-
 function logInfo(msg) {
-  const dir = path.dirname(LOG_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] INFO  ${msg}\n`);
+  writeLog("dispatch-subagent", "runtime", {
+    level: "INFO",
+    event: "DISPATCH-INFO",
+    detail: msg,
+  });
 }
 function logWarn(msg) {
-  const dir = path.dirname(LOG_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] WARN  ${msg}\n`);
+  writeLog("dispatch-subagent", "runtime", {
+    level: "WARN",
+    event: "DISPATCH-WARN",
+    detail: msg,
+  });
 }
 
 // ──────────────────────────────────────────────
@@ -115,29 +113,22 @@ const agentType = process.argv[2];
 const taskDescription = process.env.DISPATCH_TASK_DESC || process.argv[3] || "";
 
 if (!agentType) {
-  console.error(
-    'Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
-  );
-  console.error(
-    '       bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"',
-  );
-  console.error(
-    'Example: bun dispatch-subagent.ts Architect "Validate architecture"',
-  );
-  console.error(
-    'Example: bun dispatch-subagent.ts Architect "dispatch-20260603" "Implement booking service"',
-  );
+  writeLog("dispatch-subagent", "runtime", {
+    level: "ERROR",
+    event: "CLI-ARGUMENT-ERROR",
+    detail: 'Missing agent_type. Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
+  });
+  console.error('Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"');
   process.exit(1);
 }
 
 if (!taskDescription) {
+  writeLog("dispatch-subagent", "runtime", {
+    level: "ERROR",
+    event: "CLI-ARGUMENT-ERROR",
+    detail: "task_description is required",
+  });
   console.error("ERROR: task_description is required");
-  console.error(
-    'Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
-  );
-  console.error(
-    '       bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"',
-  );
   process.exit(1);
 }
 
@@ -176,32 +167,28 @@ if (taskId) {
       const hasOtherBlockers = /DAG.*missing|task.*not found|gate.*not armed|TDD.*violation/i.test(errMsg);
 
       if (isCriticalFileModified && !hasOtherBlockers) {
-        console.error(
-          `[dispatch] 💡 HINT: Dispatch blocked by critical infrastructure file modification.`,
-        );
-        console.error(
-          `[dispatch]    → Review the modified files and commit with [INFRA] marker.`,
-        );
-        console.error(
-          `[dispatch]    → Then retry the dispatch.`,
-        );
+        writeLog("dispatch-subagent", "runtime", {
+          level: "WARN",
+          event: "GATE-BLOCKED-CRITICAL-INFRA",
+          detail: `Dispatch blocked by critical infrastructure file modification. Review modified files and commit with [INFRA] marker, then retry.`,
+        });
       }
 
-      console.error(
-        `[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`,
-      );
-      console.error(
-        `[dispatch] Exit code: ${e.status}, Signal: ${e.signal || "none"}`,
-      );
+      writeLog("dispatch-subagent", "runtime", {
+        level: "ERROR",
+        event: "PRE-EXECUTION-GATE-FAILED",
+        detail: `Pre-execution gate BLOCKED dispatch for task '${taskId}'. Exit code: ${e.status}, Signal: ${e.signal || "none"}`,
+      });
+      console.error(`[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`);
       process.exit(e.status || 1);
     }
   } else {
-    console.error(
-      `[dispatch] ⚠️  pre-execution-gate.ts not found — skipping gate check.`,
-    );
-    console.error(
-      `[dispatch] ⚠️  Install with: bun .opencode/scripts/install-hooks.ts`,
-    );
+    writeLog("dispatch-subagent", "runtime", {
+      level: "WARN",
+      event: "GATE-SCRIPT-MISSING",
+      detail: "pre-execution-gate.ts not found — skipping gate check. Install with: bun .opencode/scripts/install-hooks.ts",
+    });
+    console.error(`[dispatch] ⚠️  pre-execution-gate.ts not found — skipping gate check.`);
   }
 }
 
@@ -284,9 +271,12 @@ const agentFileEntry = agentFiles.find(
   (f) => f.toLowerCase() === `${agentType.toLowerCase()}.md`,
 );
 if (!agentFileEntry) {
-  console.error(
-    `ERROR: Agent config not found for "${agentType}". Available: ${agentFiles.filter((f) => f.endsWith(".md")).join(", ")}`,
-  );
+  writeLog("dispatch-subagent", "runtime", {
+    level: "ERROR",
+    event: "AGENT-CONFIG-NOT-FOUND",
+    detail: `Agent config not found for "${agentType}". Available: ${agentFiles.filter((f) => f.endsWith(".md")).join(", ")}`,
+  });
+  console.error(`ERROR: Agent config not found for "${agentType}".`);
   process.exit(1);
 }
 const agentFile = path.join(AGENTS_DIR, agentFileEntry);
@@ -406,9 +396,7 @@ function readRuntimePermissions(agentType) {
       permission: agentDict[agentKey].permission || {},
     };
   } catch (e) {
-    console.error(
-      `[dispatch] WARNING: Failed to parse opencode.json for ${agentType}: ${e.message}`,
-    );
+    logWarn(`Failed to parse opencode.json for ${agentType}: ${e.message}`);
     return null;
   }
 }
@@ -880,6 +868,11 @@ if (dedupedEntries.length > 0) {
     `║  FIX: Re-run dispatch_subagent with a DIFFERENT dag_task_id.     ║\n` +
     `║       e.g., "VERIFY-REPORT-FINAL" → "VERIFY-REPORT-FINAL-V2"     ║\n` +
     `╚══════════════════════════════════════════════════════════════════╝\n`;
+  writeLog("dispatch-subagent", "runtime", {
+    level: "ERROR",
+    event: "DAG-TASK-ID-REUSE-BLOCKED",
+    detail: `DAG_TASK_ID reuse blocked: ${dagTaskId} (agentType=${agentType})`,
+  });
   console.error(fatalMsg);
   logWarn(`DAG-TASK-ID REUSE BLOCKED: ${dagTaskId} (agentType=${agentType})`);
   // FW-DIAG-D1 (2026-06-10, @Super-Admin): Diagnostic log for dedup block tracing.
@@ -905,6 +898,11 @@ if (dedupedEntries.length > 0) {
       logInfo(`RESUME dispatch allowed: dag_task_id=${dagTaskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`);
       // Continue — skip fatal exit, proceed to push new entry
     } else {
+      writeLog("dispatch-subagent", "runtime", {
+        level: "ERROR",
+        event: "DAG-TASK-ID-REUSE-BLOCKED",
+        detail: `DAG_TASK_ID reuse blocked (no session_log entry): ${dagTaskIdForResume}`,
+      });
       console.error(fatalMsg);
       logWarn(`DAG-TASK-ID REUSE BLOCKED (no session_log entry): ${dagTaskIdForResume}`);
       process.exit(1);
@@ -952,15 +950,12 @@ for (let attempt = 1; attempt <= 2; attempt++) {
         `Failed to write .pending.json (attempt 1): ${e.message}. Retrying...`,
       );
     } else {
-      console.error(
-        `FATAL: Cannot write .pending.json after 2 attempts: ${e.message}`,
-      );
-      console.error(
-        `The dispatch file was created at ${outputFile} but the dispatch is NOT registered.`,
-      );
-      console.error(
-        `The Orchestrator MUST re-dispatch. Do NOT call Task() with this file.`,
-      );
+      writeLog("dispatch-subagent", "runtime", {
+        level: "ERROR",
+        event: "PENDING-WRITE-FATAL",
+        detail: `Cannot write .pending.json after 2 attempts: ${e.message}. Dispatch file created at ${outputFile} but NOT registered. Orchestrator MUST re-dispatch.`,
+      });
+      console.error(`FATAL: Cannot write .pending.json after 2 attempts.`);
       process.exit(1);
     }
   }
@@ -976,20 +971,24 @@ if (writeOk) {
         (e: any) => e.filePath === outputFile && e.promptHash === promptHash,
       );
     if (!found) {
-      console.error(
-        `FATAL: .pending.json written but entry not found on read-back.`,
-      );
-      console.error(`Dispatch file: ${outputFile}`);
-      console.error(`Expected hash: ${promptHash}`);
+      writeLog("dispatch-subagent", "runtime", {
+        level: "ERROR",
+        event: "PENDING-READBACK-FAIL",
+        detail: `.pending.json written but entry not found on read-back. Dispatch file: ${outputFile}. Expected hash: ${promptHash}`,
+      });
+      console.error(`FATAL: .pending.json written but entry not found on read-back.`);
       process.exit(1);
     }
     logInfo(
       `.pending.json verified: entry for ${agentType} registered (queue size: ${verify.length})`,
     );
   } catch (e: any) {
-    console.error(
-      `FATAL: Cannot verify .pending.json after write: ${e.message}`,
-    );
+    writeLog("dispatch-subagent", "runtime", {
+      level: "ERROR",
+      event: "PENDING-VERIFY-FATAL",
+      detail: `Cannot verify .pending.json after write: ${e.message}`,
+    });
+    console.error(`FATAL: Cannot verify .pending.json after write.`);
     process.exit(1);
   }
 }

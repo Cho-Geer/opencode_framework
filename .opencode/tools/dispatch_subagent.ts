@@ -13,6 +13,7 @@ import {
   autoPlan,
 } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
+import { dbWriteSessionMap, dbReadSessionMap, dbQuerySessionByDagTaskId } from "../lib/db-state-manager";
 
 // ── UC7KS Dispatch Bypass Helpers (FW-DISPATCH-BYPASS) ──
 
@@ -163,6 +164,35 @@ function logSuperAdminDispatchBypass(opts: {
   } catch {
     /* best-effort */
   }
+}
+
+/**
+ * FW-UC7KS-DOMAIN-001: Infer primary domain_id from agent type.
+ * Reads `agent_domain_map` from project.config.json. Returns null if
+ * no mapping exists (e.g., cross-domain or non-writing roles like
+ * Orchestrator, Knowledge-Curator).
+ */
+function inferDomainId(agentType: string): string | null {
+  try {
+    const root = process.env.OPENCODE_ROOT || process.cwd();
+    const configPath = path.join(root, ".opencode", "project.config.json");
+    if (existsSync(configPath)) {
+      const cfg = JSON.parse(readFileSync(configPath, "utf8"));
+      const map = cfg.agent_domain_map;
+      if (map && typeof map === "object") {
+        const normalized = agentType.replace(/^@/, "");
+        // Case-insensitive lookup
+        for (const [key, val] of Object.entries(map)) {
+          if (key.toLowerCase() === normalized.toLowerCase()) {
+            return (typeof val === "string" && val) ? val : null;
+          }
+        }
+      }
+    }
+  } catch {
+    /* best-effort */
+  }
+  return null;
 }
 
 export default tool({
@@ -533,9 +563,9 @@ export default tool({
 
         // ── S25-FIX-V4: Write .dispatch_ctx for task-after.ts ──
         // Replaces process.env.FRAMEWORK_TASK_ID propagation. The file is
-        // consumed (read + deleted) by task-after.ts after Task() completes.
-        // If Task() is never called, the file persists harmlessly — it is
-        // NOT read by gate-before.ts, so it cannot cause DAG gate blocking.
+        // consumed (read + delete) by task-after.ts after Task() completes.
+        // FW-UC7KS-DOMAIN-001: domainId included for uc7ks-after.ts fallback.
+        const inferredDomainId = inferDomainId(args.agent_type);
         if (dagTaskId) {
           try {
             const root = process.env.OPENCODE_ROOT || process.cwd();
@@ -546,8 +576,28 @@ export default tool({
             }
             writeFileSync(
               dispatchCtxPath,
-              JSON.stringify({ dagTaskId, createdAt: Date.now() }),
+              JSON.stringify({ dagTaskId, domainId: inferredDomainId, createdAt: Date.now() }),
               "utf8",
+            );
+          } catch {
+            // Best-effort; never block dispatch
+          }
+        }
+
+        // ── FW-DISPATCH-TASKID-IMMUTABLE + FW-UC7KS-DOMAIN-001 ──
+        // Write dagTaskId + domainId to session_map DB.
+        // Per-session DB record is immune to concurrent dispatch race conditions
+        // (unlike shared .dispatch_ctx file) and survives task-after.ts deletion.
+        // Preserves existing agent identity to avoid temporary agent mapping pollution
+        // (parent session should keep its own agent, not the dispatched sub-agent type).
+        if (dagTaskId && context.sessionID) {
+          try {
+            const existing = dbReadSessionMap(context.sessionID);
+            dbWriteSessionMap(
+              context.sessionID,
+              existing?.agent || args.agent_type,
+              dagTaskId,
+              inferredDomainId || undefined,
             );
           } catch {
             // Best-effort; never block dispatch

@@ -723,6 +723,13 @@ function checkKnowledgeGate(taskId) {
       const agentCount = agentBypasses?.count || 0;
 
       if (agentCount > 0) {
+        gateLog("uc7ks_bypass_warn", "WARN", {
+          agent,
+          agentCount,
+          bypassAttempts,
+          last_attempt_at: agentBypasses?.last_attempt_at,
+          last_tool_attempted: agentBypasses?.last_tool_attempted,
+        });
         console.error(
           `    ⚠️  Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) recorded. ` +
             `Last attempt: ${agentBypasses?.last_attempt_at || "unknown"} using "${agentBypasses?.last_tool_attempted || "unknown"}". ` +
@@ -788,6 +795,7 @@ function main() {
       normalizedAgent === "Meta-Planner" ||
       normalizedAgent === "Orchestrator"
     ) {
+      gateLog("dag_creator_bypass", "INFO", { agent });
       console.log(
         `[GATE] ${agent} detected — DAG creator bypass ` +
           `(no task_id needed for DAG planning/management).`,
@@ -939,6 +947,7 @@ function main() {
 
 // Verify we're running in a Node environment
 if (typeof require === "undefined" || typeof process === "undefined") {
+  gateLog("runtime_error", "ERROR", { reason: "non_node_runtime" });
   console.error("❌ [Pre-Exec Gate] This script requires Node.js runtime.");
   process.exit(2);
 }

@@ -484,6 +484,38 @@ export function initializeSchema(db: Database): void {
     writeLog(SRC, "WARN", { event: "DB-SCHEMA-MIGRATION-SKIPPED", detail: `v7: ${e.message}` });
   }
 
+  // v8: Add dag_task_id to session_map for FW-DISPATCH-TASKID-IMMUTABLE
+  // Stores the dispatch-assigned dagTaskId alongside agent identity,
+  // enabling MCP server to validate sub-agent task_id integrity without
+  // session context (replaces shared .dispatch_ctx file which had race conditions).
+  try {
+    db.run(`ALTER TABLE session_map ADD COLUMN dag_task_id TEXT DEFAULT NULL`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_smap_dag ON session_map(dag_task_id)`);
+    db.run(`
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (8, ?, 'FW-DISPATCH-TASKID-IMMUTABLE: add dag_task_id to session_map')
+    `, [Date.now()]);
+    writeLog(SRC, "INFO", { event: "DB-SCHEMA-MIGRATION", detail: "v8: dag_task_id column added to session_map" });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", { event: "DB-SCHEMA-MIGRATION-SKIPPED", detail: `v8: ${e.message}` });
+  }
+
+  // v9: Add domain_id to session_map for FW-UC7KS-DOMAIN-001
+  // Stores the dispatch-assigned domain_id (from knowledge_semantic_map) alongside
+  // dag_task_id, enabling scope-before.ts to validate per-domain UC7KS compliance
+  // without relying on the global uc7_001_compliant boolean bypass.
+  try {
+    db.run(`ALTER TABLE session_map ADD COLUMN domain_id TEXT DEFAULT NULL`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_smap_domain ON session_map(domain_id)`);
+    db.run(`
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (9, ?, 'FW-UC7KS-DOMAIN-001: add domain_id to session_map for per-domain UC7KS write check')
+    `, [Date.now()]);
+    writeLog(SRC, "INFO", { event: "DB-SCHEMA-MIGRATION", detail: "v9: domain_id column added to session_map" });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", { event: "DB-SCHEMA-MIGRATION-SKIPPED", detail: `v9: ${e.message}` });
+  }
+
 }
 
 // ════════════════════════════════════════════════════════════

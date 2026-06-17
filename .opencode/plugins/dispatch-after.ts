@@ -48,7 +48,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   }
 
   const agent = resolveAgent(input.sessionID);
-  const taskId = resolveTaskId();
+  const taskId = resolveTaskId(input.sessionID);
 
   writeLog("dispatch-after", "runtime", {
     sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,

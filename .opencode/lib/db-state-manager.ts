@@ -1046,20 +1046,24 @@ export function dbAppendDispatchFailed(entry: {
 }
 
 /**
- * Read agent identity from session_map by sessionId.
+ * Read agent identity + dagTaskId + domainId from session_map by sessionId.
  * Replaces reading .session_map.json.
  * Priority 1 path for P0-4 scope enforcement (resolveAgentFromSessionMap).
+ * FW-DISPATCH-TASKID-IMMUTABLE: dag_task_id enables task integrity validation.
+ * FW-UC7KS-DOMAIN-001: domain_id enables per-domain UC7KS write check.
  */
 export function dbReadSessionMap(sessionId: string): {
   agent: string;
+  dag_task_id: string | null;
+  domain_id: string | null;
   created_at: number;
   updated_at: number;
 } | null {
   try {
     const db = getDb();
     const row = db.query(
-      `SELECT agent, created_at, updated_at FROM session_map WHERE session_id = ?`,
-    ).get(sessionId) as { agent: string; created_at: number; updated_at: number } | null;
+      `SELECT agent, dag_task_id, domain_id, created_at, updated_at FROM session_map WHERE session_id = ?`,
+    ).get(sessionId) as { agent: string; dag_task_id: string | null; domain_id: string | null; created_at: number; updated_at: number } | null;
     return row || null;
   } catch (e: any) {
     writeLog(SRC, "ERROR", { event: "DB-SESSION-MAP-READ-FAILED", detail: e.message });
@@ -1070,23 +1074,112 @@ export function dbReadSessionMap(sessionId: string): {
 /**
  * Write/update agent identity in session_map.
  * Replaces writing .session_map.json.
- * Uses INSERT OR REPLACE for upsert semantics.
+ * Uses INSERT OR REPLACE for upsert semantics with COALESCE preservation.
+ * FW-DISPATCH-TASKID-IMMUTABLE: dagTaskId persisted alongside agent identity.
+ * FW-UC7KS-DOMAIN-001: domainId persisted for per-domain UC7KS write check.
+ *
+ * Four SQL paths based on which optional params are provided:
+ *   1. dagTaskId + domainId: explicit write for both
+ *   2. dagTaskId only: COALESCE preserve domainId
+ *   3. domainId only: COALESCE preserve dagTaskId
+ *   4. neither: COALESCE preserve both
  */
-export function dbWriteSessionMap(sessionId: string, agent: string): boolean {
+export function dbWriteSessionMap(sessionId: string, agent: string, dagTaskId?: string, domainId?: string): boolean {
   try {
     const db = getDb();
     const now = Date.now();
-    db.run(
-      `INSERT OR REPLACE INTO session_map (session_id, agent, created_at, updated_at)
-       VALUES (?, ?, COALESCE(
-         (SELECT created_at FROM session_map WHERE session_id = ?), ?
-       ), ?)`,
-      [sessionId, agent, sessionId, now, now],
-    );
+
+    if (dagTaskId !== undefined && domainId !== undefined) {
+      // Path 1: Both provided — explicit write
+      db.run(
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, COALESCE(
+           (SELECT created_at FROM session_map WHERE session_id = ?), ?
+         ), ?)`,
+        [sessionId, agent, dagTaskId, domainId, sessionId, now, now],
+      );
+    } else if (dagTaskId !== undefined) {
+      // Path 2: Only dagTaskId — COALESCE preserve domainId
+      db.run(
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+         VALUES (?, ?, ?, COALESCE(
+           (SELECT domain_id FROM session_map WHERE session_id = ?), NULL
+         ), COALESCE(
+           (SELECT created_at FROM session_map WHERE session_id = ?), ?
+         ), ?)`,
+        [sessionId, agent, dagTaskId, sessionId, sessionId, now, now],
+      );
+    } else if (domainId !== undefined) {
+      // Path 3: Only domainId — COALESCE preserve dagTaskId
+      db.run(
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+         VALUES (?, ?, COALESCE(
+           (SELECT dag_task_id FROM session_map WHERE session_id = ?), NULL
+         ), ?, COALESCE(
+           (SELECT created_at FROM session_map WHERE session_id = ?), ?
+         ), ?)`,
+        [sessionId, agent, sessionId, domainId, sessionId, now, now],
+      );
+    } else {
+      // Path 4: Neither — COALESCE preserve both
+      db.run(
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+         VALUES (?, ?, COALESCE(
+           (SELECT dag_task_id FROM session_map WHERE session_id = ?), NULL
+         ), COALESCE(
+           (SELECT domain_id FROM session_map WHERE session_id = ?), NULL
+         ), COALESCE(
+           (SELECT created_at FROM session_map WHERE session_id = ?), ?
+         ), ?)`,
+        [sessionId, agent, sessionId, sessionId, sessionId, now, now],
+      );
+    }
     return true;
   } catch (e: any) {
     writeLog(SRC, "ERROR", { event: "DB-SESSION-MAP-WRITE-FAILED", detail: e.message });
     return false;
+  }
+}
+
+/**
+ * FW-DISPATCH-TASKID-IMMUTABLE: Check whether any session_map entry
+ * has a given dagTaskId registered. Used by compliance-gate MCP server
+ * and gate-core armSession() to validate sub-agent task_id integrity.
+ *
+ * Returns the list of session_ids that have this dagTaskId, or empty
+ * array if none found (meaning the task_id is not a dispatch-registered
+ * value — likely fabricated by a sub-agent attempting to bypass gate).
+ */
+export function dbQuerySessionByDagTaskId(dagTaskId: string): string[] {
+  try {
+    const db = getDb();
+    const rows = db.query(
+      `SELECT session_id FROM session_map WHERE dag_task_id = ?`,
+    ).all(dagTaskId) as { session_id: string }[];
+    return rows.map(r => r.session_id);
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", { event: "DB-SESSION-MAP-DAG-QUERY-FAILED", detail: e.message });
+    return [];
+  }
+}
+
+/**
+ * FW-UC7KS-DOMAIN-001: Check whether any session_map entry has a
+ * given domainId registered. Used by scope-before.ts to validate
+ * per-domain UC7KS compliance (cache_sufficiency check).
+ *
+ * Returns the list of session_ids that have this domainId.
+ */
+export function dbQuerySessionByDomain(domainId: string): string[] {
+  try {
+    const db = getDb();
+    const rows = db.query(
+      `SELECT session_id FROM session_map WHERE domain_id = ?`,
+    ).all(domainId) as { session_id: string }[];
+    return rows.map(r => r.session_id);
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", { event: "DB-SESSION-MAP-DOMAIN-QUERY-FAILED", detail: e.message });
+    return [];
   }
 }
 

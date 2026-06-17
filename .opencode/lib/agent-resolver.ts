@@ -91,10 +91,36 @@ export function resolveAgent(sessionID?: string): string {
 /** P0-FIX-BUG-13-IDEM: Idempotency guard for duplicate Task() calls */
 export const sessionLastDispatched = new Map<string, { agentType: string; ts: number }>();
 
-/** Resolve task ID from env var or _dispatch_target.json */
-export function resolveTaskId(): string {
+/** Resolve task ID from env var, session_map DB, .dispatch_ctx, or _dispatch_target.json
+ *  FW-DISPATCH-TASKID-IMMUTABLE: session_map DB is now primary (per-session,
+ *  immune to concurrent race conditions), .dispatch_ctx is fallback.
+ */
+export function resolveTaskId(sessionId?: string): string {
   const envId = process.env.FRAMEWORK_TASK_ID || "";
   if (envId) return envId;
+
+  // Priority 1: session_map DB (per-session dag_task_id, immune to race)
+  if (sessionId) {
+    try {
+      const entry = dbReadSessionMap(sessionId);
+      if (entry?.dag_task_id) {
+        demoLog("INFO", `resolveTaskId: session_map DB → ${entry.dag_task_id}`);
+        return entry.dag_task_id;
+      }
+    } catch {}
+  }
+
+  // Priority 2: .dispatch_ctx file (shared, legacy fallback — has race condition
+  // with concurrent dispatches but still used by task-after.ts)
+  try {
+    const ctxPath = path.join(process.env.OPENCODE_ROOT || ".", ".task_temp", "_dispatch", ".dispatch_ctx");
+    if (fs.existsSync(ctxPath)) {
+      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
+      if (ctx && ctx.dagTaskId) return ctx.dagTaskId;
+    }
+  } catch {}
+
+  // Priority 3: _dispatch_target.json (legacy, no longer written)
   try {
     const p = path.join(process.env.OPENCODE_ROOT || ".", ".task_temp", "_dispatch_target.json");
     if (fs.existsSync(p)) {
@@ -103,4 +129,33 @@ export function resolveTaskId(): string {
     }
   } catch {}
   return "";
+}
+
+/** Resolve domain ID from session_map DB or .dispatch_ctx file.
+ *  FW-UC7KS-DOMAIN-001: session_map DB is primary (per-session, immune to
+ *  concurrent dispatch race conditions), .dispatch_ctx is legacy fallback.
+ *  Returns null if no domain context is available.
+ */
+export function resolveDomainId(sessionId?: string): string | null {
+  // Priority 1: session_map DB (per-session domain_id, immune to race)
+  if (sessionId) {
+    try {
+      const entry = dbReadSessionMap(sessionId);
+      if (entry?.domain_id) {
+        demoLog("INFO", `resolveDomainId: session_map DB → ${entry.domain_id}`);
+        return entry.domain_id;
+      }
+    } catch {}
+  }
+
+  // Priority 2: .dispatch_ctx file (shared, legacy fallback)
+  try {
+    const ctxPath = path.join(process.env.OPENCODE_ROOT || ".", ".task_temp", "_dispatch", ".dispatch_ctx");
+    if (fs.existsSync(ctxPath)) {
+      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
+      if (ctx && ctx.domainId) return ctx.domainId;
+    }
+  } catch {}
+
+  return null;
 }

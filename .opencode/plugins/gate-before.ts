@@ -11,6 +11,11 @@ import {
 import { findTaskInDag } from "../lib/gate-checks";
 import { isDagExempt } from "../lib/dag-policy";
 import { isModifyTool } from "../lib/tool-scope";
+import {
+  readRouteConfig,
+  readOpencodeConfig,
+  validateDagTaskAgentAssignment,
+} from "../lib/route-validator";
 
 // ── Solution 2: Auto-arm gate session on OpenCode startup ──
 // WHY: The pre-commit hook (hook-layers.ts Layer 0) requires an armed gate
@@ -121,7 +126,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // FW-FIX-DAG-SCOPE-01.
   // ═══════════════════════════════════════════════════════════════
   if (isModifyTool(input.tool)) {
-    const taskId = resolveTaskId();
+    const taskId = resolveTaskId(input.sessionID);
     // FW-PLAN-FIRST (2026-06-14): Canonical DAG-exempt list in lib/dag-policy.ts.
     // Members: meta-planner, orchestrator, super-admin, knowledge-curator.
     const isExempt = isDagExempt(agent);
@@ -167,6 +172,68 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
           event: "TOOL-BEFORE",
           detail: `DAG task verified | task=${taskId} status=${tc.status} source=${tc.source}`,
         });
+      }
+    }
+  }
+
+  // ── ROUTE VALIDATION: DAG task agent ←→ target_files (L2 Scope + L3 Permission) ──
+  // Validates that Task.DAG.json task.agent assignments match scope_to_agent rules.
+  // Only runs when a modify tool is writing to Task.DAG.json.
+  if (isModifyTool(input.tool)) {
+    const filePath = output?.args?.file_path || output?.args?.path || "";
+    if (filePath === "Task.DAG.json" || filePath.endsWith("/Task.DAG.json")) {
+      const routeConfig = readRouteConfig();
+      if (routeConfig?.enforcement?.dag_write === "block") {
+        const contentAfter = output?.args?.content || output?.args?.new_content || "";
+        const contentBefore = output?.args?.old_content || "";
+        const dagContent = contentAfter || contentBefore;
+
+        if (dagContent) {
+          try {
+            const dag = JSON.parse(dagContent);
+            const scopeRules = routeConfig.scope_to_agent.rules;
+            const opencodeConfig = readOpencodeConfig();
+            const exemptAgents = routeConfig.dispatch_exempt_agents || [];
+
+            for (const task of dag.tasks || []) {
+              if (task.status === "completed" || task.status === "skipped") continue;
+              if (!task.agent || !task.target_files?.length) continue;
+
+              // Skip validation for DAG-exempt agents' own tasks
+              const taskAgentNorm = (task.agent || "").replace(/^@/, "").toLowerCase();
+              const isExempt = exemptAgents.some((e) =>
+                e.replace(/^@/, "").toLowerCase() === taskAgentNorm
+              );
+              if (isExempt) continue;
+
+              const result = validateDagTaskAgentAssignment(task, scopeRules, opencodeConfig);
+              if (!result.valid) {
+                const v = result.violations[0];
+                writeLog("gate-before", "runtime", {
+                  sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+                  level: "ERROR", event: "GATE-BEFORE",
+                  detail:
+                    `ROUTE-MISMATCH | DAG task "${task.id}" | ` +
+                    `assigned=${v.assigned} | file=${v.file} | expected=${v.expected}`,
+                });
+                if (mode === "strict" || mode === "locked") {
+                  throw new Error(
+                    `[FW-ENFORCE][ROUTE-MISMATCH] Task "${task.id}" assigns ` +
+                    `@${v.assigned} but target_file "${v.file}" → should be @${v.expected}. ` +
+                    `Fix the DAG entry before committing.`,
+                  );
+                }
+              }
+            }
+          } catch (e) {
+            if (e.message?.includes("[FW-ENFORCE]")) throw e;
+            writeLog("gate-before", "runtime", {
+              sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+              level: "WARN", event: "GATE-BEFORE",
+              detail: `DAG parse failed: ${e.message}`,
+            });
+          }
+        }
       }
     }
   }

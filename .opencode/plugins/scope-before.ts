@@ -1,12 +1,18 @@
 // scope-before.ts — "tool.execute.before" plugin: write scope enforcement
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
-import { resolveAgent } from "../lib/agent-resolver";
+import { resolveAgent, resolveTaskId, resolveDomainId } from "../lib/agent-resolver";
 import { isModifyTool, getModifyPath, readDispatchAllowedTools, isToolAllowed, getEffectivePathScopeFilePath } from "../lib/tool-scope";
 import { getEnforcementMode } from "../lib/gate-core";
 import { isWriteAllowed } from "../lib/gate-checks";
 import { isSourceFile } from "../lib/state-utils";
 import { checkUC7KSWrite } from "../lib/uc7ks-utils";
+import {
+  readRouteConfig,
+  isFrameworkInfraFile,
+  isBusinessCodeFile,
+  findRouteAgentForFile,
+} from "../lib/route-validator";
 
 export default withPluginLifecycle("scope-before", { "tool.execute.before": toolExecuteBefore });
 
@@ -62,58 +68,32 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // P0-3 ROUTE-MISMATCH: Architect/Orchestrator → framework files
-  // Migrated from enforce.ts L1370-1398 (FW-ROUTE-FIX-04)
+  // P0-3 ROUTE-MISMATCH: Agent → file scope (MIGRATED to route-validator.ts)
+  // Originally from enforce.ts L1370-1398 (FW-ROUTE-FIX-04)
   //
-  // @Architect and @Orchestrator must NOT modify framework infra.
-  // Framework files: .opencode/**, opencode.json, AGENTS.md
-  // Route to @Super-Admin for framework changes.
+  // Uses route_rules.scope_to_agent from project.config.json instead
+  // of hardcoded path/agent comparisons. Configuration-driven:
+  // adding new route rules only requires editing project.config.json.
   // ═══════════════════════════════════════════════════════════════
   if (applyPathScope) {
     const scopePath = effectivePath;
     const agentNorm = (agent || "").toLowerCase().replace(/^@/, "");
-    if (agentNorm === "architect" || agentNorm === "orchestrator") {
-      if (scopePath.includes(".opencode/") || scopePath === "opencode.json" || scopePath.includes("AGENTS.md")) {
-        const msg =
-          `[FW-ENFORCE][ROUTE-MISMATCH] ${agent} has no authority to modify ` +
-          `framework files (${scopePath}). Framework infrastructure is ` +
-          `administered by @Super-Admin. Auto-route this task to @Super-Admin.`;
-        writeLog("scope-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-          level: "ERROR", event: "TOOL-BEFORE",
-          detail: `BLOCKED | ROUTE-MISMATCH | framework-file | agent=${agent} file=${scopePath}`,
-        });
-        if (mode === "strict" || mode === "locked") throw new Error(msg);
-        return; // advisory: logged, pass through
-      }
-    }
+    const routeConfig = readRouteConfig();
+    const scopeRules = routeConfig?.scope_to_agent?.rules;
 
-    // ═══════════════════════════════════════════════════════════════
-    // P0-4 ROUTE-MISMATCH: Super-Admin → business code
-    // Migrated from enforce.ts L1400-1425 (FW-ROUTE-FIX-04)
-    // FIX: Original enforce.ts had SA bypass at L1327 that made this
-    // check dead code. Migration removes the bypass — SA is now
-    // subject to business code restriction.
-    //
-    // Business paths mirror project.config.json agent_write_scopes
-    // @Super-Admin.denied (L830-832).
-    // ═══════════════════════════════════════════════════════════════
-    if (agentNorm === "super-admin") {
-      const businessPaths = [
-        "booking_system_refactor/booking-backend/src/",
-        "booking_system_refactor/booking-frontend/src/",
-        "booking_system_refactor/booking-backend/prisma/schema.prisma",
-      ];
-      for (const bp of businessPaths) {
-        if (scopePath.includes(bp)) {
+    if (scopeRules) {
+      const expectedAgent = findRouteAgentForFile(scopePath, scopeRules);
+      if (expectedAgent) {
+        const expectedNorm = expectedAgent.replace(/^@/, "").toLowerCase();
+        if (expectedNorm !== agentNorm) {
           const msg =
-            `[FW-ENFORCE][ROUTE-MISMATCH] Super-Admin has no authority to ` +
-            `modify business code (${scopePath}). Business code modifications ` +
-            `must be handled by @Coder-BE or @Coder-FE.`;
+            `[FW-ENFORCE][ROUTE-MISMATCH] ${agent} has no authority to modify ` +
+            `"${scopePath}". This file should be handled by ${expectedAgent}. ` +
+            `Route rules defined in project.config.json route_rules.scope_to_agent.`;
           writeLog("scope-before", "runtime", {
             sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
             level: "ERROR", event: "TOOL-BEFORE",
-            detail: `BLOCKED | ROUTE-MISMATCH | SA→business | file=${scopePath}`,
+            detail: `BLOCKED | ROUTE-MISMATCH | agent=${agent} file=${scopePath} expected=${expectedAgent}`,
           });
           if (mode === "strict" || mode === "locked") throw new Error(msg);
           return; // advisory: logged, pass through
@@ -204,7 +184,12 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     // via applyPathScope.
     // ═══════════════════════════════════════════════════════════════
     if (isSourceFile(scopePath)) {
-      const uc7Block = checkUC7KSWrite(agent, mode);
+      // FW-UC7KS-DOMAIN-001: Pass sessionId/taskId/domainId for per-domain check.
+      // resolveTaskId reads session_map DB dag_task_id; resolveDomainId reads domain_id.
+      // When neither is available (manual invocation), falls back to global check.
+      const taskId = resolveTaskId(input.sessionID);
+      const domainId = resolveDomainId(input.sessionID);
+      const uc7Block = checkUC7KSWrite(agent, mode, input.sessionID, taskId, domainId || undefined);
       if (uc7Block) {
         writeLog("scope-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,

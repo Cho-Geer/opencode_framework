@@ -20,6 +20,7 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isInterruptError } from "../lib/interrupt-guard";
 import { atomicWriteJson } from "../lib/state-utils";
 import { dbWriteSessionMap } from "../lib/db-state-manager";
+import { resolveTaskId, resolveDomainId } from "../lib/agent-resolver";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
@@ -70,7 +71,12 @@ async function chatMessageHook(input: any, _output: any) {
   try {
     // S25-v4: Write session → agent mapping to DB (replaces .session_map.json)
     // dbWriteSessionMap handles upsert (INSERT OR REPLACE) and preserves created_at.
-    dbWriteSessionMap(sid, agent);
+    // FW-DISPATCH-TASKID-IMMUTABLE: Also persist dagTaskId so compliance-gate MCP
+    // server can validate sub-agent task_id integrity without session context.
+    // FW-UC7KS-DOMAIN-001: Also persist domainId for per-domain UC7KS write checks.
+    const dagTaskId = resolveTaskId(sid);
+    const domainId = resolveDomainId(sid);
+    dbWriteSessionMap(sid, agent, dagTaskId || undefined, domainId || undefined);
 
     // Keep in-memory map for session.compacted reset
     _sessionMap[sid] = { agent, ts: new Date().toISOString() };

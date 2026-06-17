@@ -25,7 +25,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   if (!isTask) return;
 
   const agent = resolveAgent(input.sessionID);
-  const taskId = resolveTaskId();
+  const taskId = resolveTaskId(input.sessionID);
 
   // Record dispatch outcome
   const outcome = output?.error || output?.failed ? "FAILURE" : "SUCCESS";
@@ -159,8 +159,8 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         // File read/parse/delete is best-effort
       }
 
-      // Fallback: env var (works if FRAMEWORK_TASK_ID is still set from parent context)
-      if (!dagTaskId) dagTaskId = resolveTaskId();
+      // Fallback: env var or session_map DB (works if FRAMEWORK_TASK_ID is still set from parent context)
+      if (!dagTaskId) dagTaskId = resolveTaskId(input.sessionID);
 
       if (dagTaskId) {
         const agentType = input.args?.subagent_type || agent || "unknown";
