@@ -1,5 +1,7 @@
 {
-  "description": "This opencode.json is an ADAPTER \u2014 it reflects/mirrors existing framework authorities without overriding them.",
+  "description": "This opencode.json is AUTHORITATIVE for per-agent permission decisions (safe_edit, safe_delete, safe_mkdir, safe_shell, safe_test). Framework enforcement policies (enforcement_mode, route_rules, dangerous_patterns) remain in project.config.json. P2-D: authority inversion verified against OpenCode official docs (config.md:40-48, 633-662; permissions.md:100-103, 165-168).",
+  "permission_authority": "opencode.json agent.*.permission (AUTHORITATIVE, P2-D)",
+  "framework_policy_authority": "project.config.json (enforcement, route_rules, safe_shell policies)",
   "dag_authority": "Task.DAG.json",
   "state_authorities": [
     "machine.json",

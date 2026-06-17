@@ -11,21 +11,29 @@
  *
  * Exports:
  *   - DEFAULT_ALLOWLIST: string[]
- *   - AGENT_ALLOWLISTS: Record<string, string[]>
+ *   - AGENT_ALLOWLISTS: Record<string, string[]> (kept as fallback only; P2-D v2.1
+ *     shifts authority to opencode.json permission.safe_shell via getAgentShellAllowlist)
  *   - DANGEROUS_PATTERNS: RegExp[]
  *   - matchGlob(command, pattern): boolean
  *   - isAllowed(command, allowlist): boolean
  *   - isDangerous(command): boolean
- *   - getAllowlist(agent): string[]
+ *   - getAllowlist(agent): string[] | "ALL_ALLOWED"
  *
  * @author @Architect
  * @version 1.0.0
+ *
+ * REVISION (P2-D v2.1, 2026-06-17):
+ *   - getAllowlist() now uses opencode.json (via getAgentShellAllowlist) for per-agent
+ *     command permissions, with AGENT_ALLOWLISTS as fallback only.
+ *   - safeBashTool() now performs deny/ask veto BEFORE allowlist check, with toolDenied
+ *     handling and needsConfirmation → non-interactive deny (security downgrade).
  */
 
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "./log-manager";
+import { getAgentShellAllowlist } from "./permission-reader";
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -393,18 +401,52 @@ export function isDangerous(command: string): boolean {
 
 /**
  * Get the effective allowlist for a given agent.
- * Merges DEFAULT_ALLOWLIST with agent-specific extensions.
+ *
+ * P2-D v2.1: per-agent command permissions are now read from opencode.json
+ * (authoritative source) via getAgentShellAllowlist(). Returns "ALL_ALLOWED"
+ * sentinel when opencode.json grants permissive "allow", meaning all commands
+ * are permitted beyond the dangerous_patterns check.
+ *
+ * Caller MUST check for "ALL_ALLOWED" sentinel before invoking isAllowed().
+ * toolDenied / denied / needsConfirmation checks are performed in safeBashTool()
+ * BEFORE this function is called, so this function only returns the positive
+ * allowlist (or ALL_ALLOWED marker).
  *
  * @public — Agent-specific merged allowlist; used by safeBashTool and framework-enforcer.
  */
-export function getAllowlist(agent: string): string[] {
+export function getAllowlist(agent: string): string[] | "ALL_ALLOWED" {
   // Normalize: ensure leading @ for AGENT_ALLOWLISTS lookup
   if (!agent.startsWith("@")) agent = "@" + agent;
-  // FW-UNIFY-TS-P3: Config-aware — merge project.config.json overrides with hardcoded fallbacks
+  // P2-D v2.1: per-agent shell permissions from opencode.json (authoritative)
+  const shellResult = getAgentShellAllowlist(agent);
+
+  if (shellResult.toolDenied) {
+    // Tool itself denied — caller (safeBashTool) should have already blocked
+    return [];
+  }
+
+  // Permissive "allow": all commands permitted beyond dangerous_patterns check
+  if (shellResult.allAllowed) {
+    writeLog("safe-bash", "runtime", {
+      agent,
+      level: "INFO",
+      event: "ALLOWLIST-SOURCE-SWITCH",
+      detail: `agent="${agent}" source=opencode.json mode=all_allowed (permissive)`,
+    });
+    return "ALL_ALLOWED";
+  }
+
+  // Merge default_allowlist (project.config.json framework policy) with
+  // opencode.json per-agent allowed patterns. deny/ask handled by safeBashTool.
   const configDefaults = _getConfigList("default_allowlist", DEFAULT_ALLOWLIST);
-  const configAgents = _getConfigMap("agent_allowlists", AGENT_ALLOWLISTS);
-  const extensions = configAgents[agent] || [];
-  return [...configDefaults, ...extensions];
+  const allowed = [...configDefaults, ...shellResult.allowed];
+  writeLog("safe-bash", "runtime", {
+    agent,
+    level: "INFO",
+    event: "ALLOWLIST-SOURCE-SWITCH",
+    detail: `agent="${agent}" source=opencode.json entries=${shellResult.allowed.length} merged=${allowed.length}`,
+  });
+  return allowed;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -526,6 +568,66 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
    */
   const hasBypass = _hasAgentDangerousBypass(agent, command);
 
+  // P2-D v2.1: Pre-check deny/ask veto from opencode.json (authority inversion).
+  // These are agent-level per-command permissions that override default_allowlist.
+  // They must be checked BEFORE dangerous_patterns and allowlist checks because
+  // an explicit "deny" in opencode.json must always veto the project's default
+  // allowlist, even if the command would normally be allowed.
+  const shellResult = getAgentShellAllowlist(agent);
+  if (shellResult.toolDenied) {
+    const result: SafeBashResult = {
+      command,
+      agent,
+      allowed: false,
+      executed: false,
+      exitCode: null,
+      stdout: "",
+      stderr: "",
+      blockedReason: "SHELL_TOOL_DENIED: safe_shell denied by opencode.json permission",
+      timestamp: new Date().toISOString(),
+    };
+    logAction(result);
+    return result;
+  }
+  if (shellResult.denied.some((pattern) => matchGlob(command, pattern))) {
+    const result: SafeBashResult = {
+      command,
+      agent,
+      allowed: false,
+      executed: false,
+      exitCode: null,
+      stdout: "",
+      stderr: "",
+      blockedReason: "SHELL_CMD_DENIED_BY_PERMISSION: command denied by opencode.json safe_shell",
+      timestamp: new Date().toISOString(),
+    };
+    logAction(result);
+    return result;
+  }
+  if (shellResult.needsConfirmation.some((pattern) => matchGlob(command, pattern))) {
+    // "ask" semantics: in non-interactive framework context (no UI prompt),
+    // safely degrade to deny (HIGH-1 fix from plan §4.0.2).
+    writeLog("safe-bash", "runtime", {
+      agent,
+      level: "WARN",
+      event: "ASK-CMD-BLOCKED-IN-AUTO-CTX",
+      detail: `agent="${agent}" command="${command}" blocked (ask requires confirmation, non-interactive)`,
+    });
+    const result: SafeBashResult = {
+      command,
+      agent,
+      allowed: false,
+      executed: false,
+      exitCode: null,
+      stdout: "",
+      stderr: "",
+      blockedReason: "ASK_CMD_BLOCKED_IN_AUTO_CTX: command requires confirmation",
+      timestamp: new Date().toISOString(),
+    };
+    logAction(result);
+    return result;
+  }
+
   // 1. Check for dangerous patterns (skip if agent has explicit bypass)
   if (!hasBypass && isDangerous(command)) {
     const result: SafeBashResult = {
@@ -543,8 +645,8 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
     return result;
   }
 
-  // 2. Check allowlist
-  if (!isAllowed(command, allowlist)) {
+  // 2. Check allowlist (P2-D v2.1: handle "ALL_ALLOWED" sentinel from opencode.json)
+  if (allowlist !== "ALL_ALLOWED" && !isAllowed(command, allowlist as string[])) {
     const result: SafeBashResult = {
       command,
       agent,

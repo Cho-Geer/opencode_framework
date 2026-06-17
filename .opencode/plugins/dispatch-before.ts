@@ -34,7 +34,6 @@ import {
   l2_scopeFilter,
   l3_permissionFilter,
   l4_dagCheck,
-  extractScopePatterns,
   isDispatchRouteExempt,
 } from "../lib/route-validator";
 
@@ -85,13 +84,14 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
 
         const l2Candidates = l2_scopeFilter(l1Candidates, targetFiles, routeConfig.scope_to_agent);
 
-        // L3: Permission → Veto
-        const scopes = extractScopePatterns(
-          targetFiles.length > 0 ? targetFiles : [taskDesc],
-          routeConfig.scope_to_agent.rules,
-        );
+        // L3: Permission → Veto (P2-D v2.1: real target_files + pathMatchesGlob)
+        // L3 receives concrete target files (not route-scope fragments) and applies
+        // safe_edit glob matching via pathMatchesGlob(). If no concrete files are
+        // available, skip L3 veto and rely on PLAN-FIRST/DAG enforcement.
         const opencodeConfig = readOpencodeConfig();
-        const l3Candidates = l3_permissionFilter(l2Candidates, scopes, opencodeConfig);
+        const l3Candidates = targetFiles.length > 0
+          ? l3_permissionFilter(l2Candidates, targetFiles, opencodeConfig)
+          : l2Candidates; // no concrete files: skip L3 veto, rely on PLAN-FIRST/DAG
 
         // L4: DAG (selection step)
         const finalAgent = l4_dagCheck(l3Candidates, dagTaskId, isDagExempt);

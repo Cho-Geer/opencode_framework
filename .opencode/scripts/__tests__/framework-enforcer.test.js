@@ -202,13 +202,17 @@ function getEnforcementMode(root) {
   return "strict";
 }
 
+// P2-D v2.1: isWriteAllowed now reads from opencode.json (authoritative source).
+// The re-implementation below mirrors the framework's new behavior for unit testing.
 function isWriteAllowed(root, agent, filePath) {
   try {
-    const config = JSON.parse(
-      fs.readFileSync(path.join(root, ".opencode/project.config.json"), "utf8"),
-    );
-    const scopes = config?.agent_write_scopes?.[agent];
-    if (!scopes) return true;
+    const ocPath = path.join(root, "opencode.json");
+    if (!fs.existsSync(ocPath)) return true; // fail-open when no opencode.json
+    const oc = JSON.parse(fs.readFileSync(ocPath, "utf8"));
+    const agentKey = agent.replace(/^@/, "");
+    const safeEdit = oc?.agent?.[agentKey]?.permission?.safe_edit;
+    if (safeEdit === undefined) return true; // No scope definition = no restrictions
+    if (typeof safeEdit === "string") return safeEdit === "allow";
     const matchGlob = (fp, pattern) => {
       const nfp = fp.replace(/\\/g, "/");
       const npat = pattern.replace(/\\/g, "/");
@@ -222,9 +226,13 @@ function isWriteAllowed(root, agent, filePath) {
       );
       return re.test(nfp);
     };
-    for (const p of scopes.denied) if (matchGlob(filePath, p)) return false;
-    for (const p of scopes.allowed) if (matchGlob(filePath, p)) return true;
-    return false;
+    for (const [pattern, action] of Object.entries(safeEdit)) {
+      if (action === "deny" && matchGlob(filePath, pattern)) return false;
+    }
+    for (const [pattern, action] of Object.entries(safeEdit)) {
+      if (action === "allow" && matchGlob(filePath, pattern)) return true;
+    }
+    return false; // no match = default deny
   } catch {
     return true;
   }
@@ -289,7 +297,7 @@ async function toolExecuteBefore(root, toolName, args, taskId) {
     if (filePath && !isWriteAllowed(root, agent, filePath)) {
       if (mode === "strict" || mode === "locked") {
         violations.push(
-          `[FW-ENFORCE] Agent "${agent}" write to "${filePath}" blocked by agent_write_scopes (mode: ${mode})`,
+          `[FW-ENFORCE] Agent "${agent}" write to "${filePath}" blocked by permission.safe_edit in opencode.json (P2-D: authoritative source) (mode: ${mode})`,
         );
       }
     }

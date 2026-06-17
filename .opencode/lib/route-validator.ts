@@ -8,9 +8,15 @@
 //   - L3 opencode.json path: opencodeConfig.agent[agentName].permission.safe_edit
 //   - L4 is selection step (not filtering); actual DAG validation by PLAN-FIRST
 //   - Orchestrator/Meta-Planner/Super-Admin dispatches exempt from route validation
+//
+// REVISION NOTES (P2-D v2.1, 2026-06-17):
+//   - L3 now receives actual target_files[] (not extractScopePatterns() route-scope fragments)
+//   - L3 uses pathMatchesGlob() from gate-core.ts (was scope.includes() — pre-existing bug)
+//   - L2 route-scope matching RETAINED with fragment semantics (different from safe_edit globs)
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { pathMatchesGlob } from "./gate-core";
 
 interface VerbRule {
   keywords: string[];
@@ -144,11 +150,11 @@ export function l2_scopeFilter(
   return candidates;
 }
 
-// ═══ Layer 3: Permission → Veto (REVISED: correct opencode.json path) ═══
+// ═══ Layer 3: Permission → Veto (P2-D v2.1: real target_files + pathMatchesGlob) ═══
 
 export function l3_permissionFilter(
   candidates: string[],
-  targetScopes: string[],
+  targetFiles: string[],
   opencodeConfig: any,
 ): string[] {
   if (candidates.length === 0) return [];
@@ -164,10 +170,19 @@ export function l3_permissionFilter(
       continue;
     }
 
+    // Simple string: "allow" → all allowed, "deny" → all denied
+    if (typeof agentPerms === "string") {
+      if (agentPerms === "allow") {
+        allowed.push(agent);
+      }
+      // "deny" or "ask" → skip this agent (not allowed)
+      continue;
+    }
+
     let blocked = false;
-    for (const scope of targetScopes) {
+    for (const file of targetFiles) {
       for (const [pattern, action] of Object.entries(agentPerms)) {
-        if (action === "deny" && scope.includes(pattern)) {
+        if (action === "deny" && pathMatchesGlob(file, pattern)) {
           blocked = true;
           break;
         }
@@ -182,7 +197,7 @@ export function l3_permissionFilter(
     throw new Error(
       `[FW-ENFORCE][ROUTE-MISMATCH] No authorized agent found. ` +
       `Candidates ${candidates.join(",")} all have safe_edit deny for ` +
-      `scopes: ${targetScopes.join(", ")}`,
+      `target_files: ${targetFiles.join(", ")}`,
     );
   }
 
@@ -192,8 +207,12 @@ export function l3_permissionFilter(
       const bKey = b.replace(/^@/, "");
       const aPerms = opencodeConfig?.agent?.[aKey]?.permission?.safe_edit || {};
       const bPerms = opencodeConfig?.agent?.[bKey]?.permission?.safe_edit || {};
-      const aCount = Object.keys(aPerms).filter((k) => aPerms[k] === "allow").length;
-      const bCount = Object.keys(bPerms).filter((k) => bPerms[k] === "allow").length;
+      const aCount = typeof aPerms === "string"
+        ? (aPerms === "allow" ? Infinity : 0)
+        : Object.keys(aPerms).filter((k) => aPerms[k] === "allow").length;
+      const bCount = typeof bPerms === "string"
+        ? (bPerms === "allow" ? Infinity : 0)
+        : Object.keys(bPerms).filter((k) => bPerms[k] === "allow").length;
       return aCount - bCount;
     });
   }

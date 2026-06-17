@@ -162,7 +162,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     if (!isWriteAllowed(agent, scopePath)) {
       const msg =
         `[FW-ENFORCE][WRITE-SCOPE] Agent "${agent}" write to "${scopePath}" ` +
-        `blocked by agent_write_scopes in project.config.json.`;
+        `blocked by permission.safe_edit in opencode.json (P2-D: authoritative source).`;
       writeLog("scope-before", "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
         level: "ERROR", event: "TOOL-BEFORE",

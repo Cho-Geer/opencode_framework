@@ -608,13 +608,32 @@ function runWriteCheck(params) {
 
   // Build options for the library
   const config = getProjectConfig();
+  // P2-D v2.1: source agent write scopes from opencode.json (authoritative),
+  // via permission-reader.ts. Falls back to null when no permission block exists.
+  // conversion to bifurcated format {allowed, denied} is done by
+  // permissionMapToBifurcated() for the library's internal scope check.
+  const { getAgentPermission, permissionMapToBifurcated } = require("../../lib/permission-reader");
+  const agentPerm = getAgentPermission(agent_type);
+  let agentWriteScopes = null;
+  if (agentPerm?.safe_edit) {
+    if (typeof agentPerm.safe_edit === "string") {
+      agentWriteScopes = agentPerm.safe_edit === "allow"
+        ? { allowed: ["*"], denied: [] }
+        : { allowed: [], denied: ["*"] };
+    } else {
+      agentWriteScopes = permissionMapToBifurcated(agentPerm.safe_edit);
+    }
+    writeLog("code-quality-gate", "runtime", {
+      agent: agent_type,
+      level: "INFO",
+      event: "SCOPE-SOURCE-SWITCH",
+      detail: `agent="${agent_type}" source=opencode.json format=bifurcated-via-converter`,
+    });
+  }
   const libOptions = {
     skip_checks: skip_checks || [],
     auto_fix: auto_fix !== false,
-    agentWriteScopes:
-      config.agent_write_scopes && config.agent_write_scopes[agent_type]
-        ? config.agent_write_scopes[agent_type]
-        : null,
+    agentWriteScopes,
     backendDir: getBackendDir(),
     frontendDir: getFrontendDir(),
     tddState:
@@ -638,9 +657,9 @@ function runWriteCheck(params) {
     const normFile =
       stateCanon.makePathRelativeToWorkspace(filePath, OPENCODE_ROOT) ||
       filePath;
-    const agentScopes =
-      config.agent_write_scopes && config.agent_write_scopes[agent_type];
-    const denyRule = "scope";
+    // P2-D v2.1: violation source authority is opencode.json permission.safe_edit
+    // (already resolved above into agentWriteScopes). Recorded here for audit trail.
+    const denyRule = "permission.safe_edit in opencode.json (P2-D: authoritative source)";
     recordScopeViolation(machine, agent_type, normFile, denyRule);
   }
 

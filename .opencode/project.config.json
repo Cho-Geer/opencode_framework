@@ -691,185 +691,6 @@
       "reason": "DevOps/SRE — deployment docs should be cached by @Knowledge-Curator first"
     }
   },
-  "agent_write_scopes": {
-    "@Coder-BE": {
-      "allowed": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-backend/test/**",
-        "booking_system_refactor/booking-backend/prisma/**",
-        "booking_system_refactor/booking-backend/*.{json,js,ts}",
-        ".task_temp/**"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-frontend/**",
-        ".opencode/agents/**",
-        ".opencode/rules/**",
-        ".opencode/state/**",
-        ".opencode/scripts/mcp-tools/**",
-        ".opencode/scripts/command-tools/**",
-        "AGENTS.md",
-        "PROJECT_REFERENCE.md",
-        "TECH_DEBT_REGISTRY.md"
-      ]
-    },
-    "@Coder-FE": {
-      "allowed": [
-        "booking_system_refactor/booking-frontend/**",
-        ".task_temp/**"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/**",
-        ".opencode/agents/**",
-        ".opencode/rules/**",
-        ".opencode/tools/**",
-        ".opencode/state/**",
-        ".opencode/scripts/**",
-        "AGENTS.md",
-        "PROJECT_REFERENCE.md",
-        "TECH_DEBT_REGISTRY.md"
-      ]
-    },
-    "@Architect": {
-      "allowed": [
-        "contract.yaml",
-        ".opencode/state/machine.json",
-        ".opencode/context/**",
-        ".task_temp/**",
-        "contract.yaml",
-        "docs/**"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-frontend/src/**",
-        "booking_system_refactor/booking-backend/test/**",
-        ".opencode/agents/**",
-        ".opencode/rules/**",
-        ".opencode/scripts/**",
-        ".opencode/plugins/**",
-        ".opencode/subagent-preamble.md",
-        ".opencode/state/gate-state.json",
-        ".opencode/project.config.json",
-        "opencode.json",
-        "PROJECT_REFERENCE.md"
-      ]
-    },
-    "@Meta-Planner": {
-      "allowed": [
-        ".task_temp/**",
-        "Task.DAG.json",
-        "Project.graph",
-        "TECH_DEBT_REGISTRY.md",
-        "WAIVE.md"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-frontend/src/**",
-        ".opencode/tools/**",
-        ".opencode/scripts/**",
-        ".opencode/state/**"
-      ]
-    },
-    "@Orchestrator": {
-      "allowed": [
-        ".task_temp/**",
-        "Task.DAG.json",
-        "docs/review/**"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-frontend/src/**",
-        ".opencode/tools/**",
-        ".opencode/scripts/**"
-      ]
-    },
-    "@Guardian": {
-      "allowed": [
-        ".task_temp/**",
-        ".opencode/state/machine.json",
-        ".opencode/state/gate-state.json",
-        ".opencode/state/gate-state.index.json"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-frontend/src/**",
-        ".opencode/**",
-        "AGENTS.md",
-        "PROJECT_REFERENCE.md"
-      ]
-    },
-    "@Arbiter": {
-      "allowed": [
-        ".task_temp/**",
-        "WAIVE.md",
-        "TECH_DEBT_REGISTRY.md"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-frontend/src/**",
-        ".opencode/tools/**",
-        ".opencode/scripts/**"
-      ]
-    },
-    "@CI-CD-Agent": {
-      "allowed": [
-        "docker-compose*.yml",
-        ".github/workflows/**",
-        "Dockerfile*",
-        ".env.*",
-        "booking_system_refactor/booking-backend/prisma/**",
-        ".task_temp/**",
-        ".opencode/state/gate-state.history/**",
-        ".opencode/state/gate-state.index.json",
-        ".opencode/state/gate-state.archive.json",
-        ".opencode/logs/archive/**"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-frontend/src/**",
-        ".opencode/agents/**",
-        ".opencode/rules/**"
-      ]
-    },
-    "@Super-Admin": {
-      "allowed": [
-        ".opencode/**",
-        "opencode.json",
-        "AGENTS.md",
-        "PROJECT_REFERENCE.md",
-        "Task.DAG.json",
-        "TECH_DEBT_REGISTRY.md",
-        "WAIVE.md",
-        ".task_temp/**",
-        "contract.yaml",
-        "docs/**"
-      ],
-      "denied": [
-        "booking_system_refactor/booking-backend/src/**",
-        "booking_system_refactor/booking-frontend/src/**",
-        "booking_system_refactor/booking-backend/prisma/schema.prisma"
-      ]
-    },
-    "@Knowledge-Curator": {
-      "allowed": [
-        ".task_temp/**",
-        "docs/official_docs/**",
-        "docs/official_docs/.metadata/**",
-        "docs/official_docs/index.json"
-      ],
-      "denied": [
-        "booking_system_refactor/**",
-        ".opencode/agents/**",
-        ".opencode/rules/**",
-        ".opencode/state/**",
-        ".opencode/hooks/**",
-        ".opencode/plugins/**",
-        ".opencode/scripts/**",
-        "project.config.json",
-        "opencode.json",
-        "Task.DAG.json"
-      ]
-    }
-  },
   "agent_dispatch_allowed_tools": {
     "$description": "Orchestrator dispatch gate tool allowlist. Replaces hardcoded 7-tool ALLOWED list in enforce.ts. Agent entries define allowed tools per agent. Special: ['*'] = wildcard for Super-Admin. Fallback: minimum viable set (task/read/todowrite/compliance_gate_check/confirm/complete/dispatch_subagent). Added FW-DISPATCH-GATE-EXTERNALIZE (2026-06-09 @Super-Admin).",
     "@Orchestrator": [
@@ -1090,118 +911,6 @@
       "which *",
       "env | grep *"
     ],
-    "agent_allowlists": {
-      "@Super-Admin": [
-        "git *",
-        "rm -rf .opencode/**",
-        "mv .opencode/**",
-        "chmod +x .opencode/**",
-        "sed -i *",
-        "for *",
-        "find * -exec *",
-        "/home/zhaoge/.bun/bin/bun *",
-        "npx tsx *",
-        "tsx *",
-        "bunx tsx *",
-        "docker *",
-        "docker compose *",
-        "docker-compose *",
-        "opencode debug config",
-        "opencode mcp debug *",
-        "rm -rf ~/.cache/bun",
-        "rm -rf ~/.cache/bun/*",
-        "rm -rf /home/zhaoge/.cache/bun",
-        "rm -rf /home/zhaoge/.cache/bun/*"
-      ],
-      "@CI-CD-Agent": [
-        "docker build *",
-        "docker push *",
-        "docker pull *",
-        "docker run *",
-        "docker ps *",
-        "docker images *",
-        "docker logs *",
-        "docker inspect *",
-        "docker exec *",
-        "docker stop *",
-        "docker start *",
-        "docker restart *",
-        "docker rm *",
-        "docker network *",
-        "docker volume *",
-        "docker system *",
-        "docker info *",
-        "docker cp *",
-        "docker tag *",
-        "docker stats *",
-        "docker port *",
-        "docker compose *",
-        "docker-compose up *",
-        "docker-compose down *",
-        "docker-compose *",
-        "kubectl *",
-        "helm *",
-        "terraform *",
-        "ansible-playbook *",
-        "git *",
-        "opencode mcp auth *",
-        "opencode mcp list"
-      ],
-      "@Coder-BE": [
-        "npx prisma *",
-        "npm run db:*",
-        "npm run test:*",
-        "npm run build",
-        "npm run lint",
-        "npm run format",
-        "curl *"
-      ],
-      "@Orchestrator": [
-        "node *.js *",
-        "node *.ts *",
-        "node -e *",
-        "rm -rf ~/.cache/bun",
-        "rm -rf ~/.cache/bun/*",
-        "rm -rf /home/zhaoge/.cache/bun",
-        "rm -rf /home/zhaoge/.cache/bun/*"
-      ],
-      "@Guardian": [
-        "cat *",
-        "echo *",
-        "head *",
-        "tail *",
-        "wc *",
-        "find *",
-        "ls *",
-        "grep *",
-        "git log*",
-        "opencode mcp list"
-      ],
-      "@Architect": [
-        "mkdir *",
-        "ls *",
-        "cat *",
-        "echo *",
-        "head *",
-        "tail *",
-        "wc *",
-        "find *",
-        "grep *",
-        "sed *",
-        "git log*",
-        "git diff*",
-        "git show*",
-        "node *.js *",
-        "node *.ts *",
-        "node -e *",
-        "bun -e *"
-      ],
-      "@Knowledge-Curator": [
-        "sha256sum *",
-        "wc *",
-        "cd *"
-      ]
-    },
     "agent_allowed_scripts": {
       "@Super-Admin": [
         "state-reconciliation.ts",
@@ -1285,59 +994,220 @@
     "verb_to_agent": {
       "$description": "Layer 1: Chinese/English keywords in task_description → candidate agent pool",
       "分析_设计_拆解": {
-        "keywords": ["分析", "设计", "拆解", "规划", "contract", "architecture", "requirement"],
-        "agents": ["@Meta-Planner", "@Architect"]
+        "keywords": [
+          "分析",
+          "设计",
+          "拆解",
+          "规划",
+          "contract",
+          "architecture",
+          "requirement"
+        ],
+        "agents": [
+          "@Meta-Planner",
+          "@Architect"
+        ]
       },
       "编码_实现_修改": {
-        "keywords": ["编码", "实现", "修改", "编写", "开发", "implement", "code", "build"],
-        "agents": ["@Coder-BE", "@Coder-FE"]
+        "keywords": [
+          "编码",
+          "实现",
+          "修改",
+          "编写",
+          "开发",
+          "implement",
+          "code",
+          "build"
+        ],
+        "agents": [
+          "@Coder-BE",
+          "@Coder-FE"
+        ]
       },
       "审查_合规_验证": {
-        "keywords": ["审查", "合规", "验证", "review", "audit", "lint", "check", "质量"],
-        "agents": ["@Guardian"]
+        "keywords": [
+          "审查",
+          "合规",
+          "验证",
+          "review",
+          "audit",
+          "lint",
+          "check",
+          "质量"
+        ],
+        "agents": [
+          "@Guardian"
+        ]
       },
       "诊断_调查_根因": {
-        "keywords": ["诊断", "调查", "根因", "排查", "investigate", "diagnose", "root-cause", "原因"],
-        "agents": ["@Architect", "@Super-Admin"]
+        "keywords": [
+          "诊断",
+          "调查",
+          "根因",
+          "排查",
+          "investigate",
+          "diagnose",
+          "root-cause",
+          "原因"
+        ],
+        "agents": [
+          "@Architect",
+          "@Super-Admin"
+        ]
       },
       "修复_修改框架": {
-        "keywords": ["修复", "fix", "repair", "恢复", "补丁", "patch"],
-        "agents": ["@Super-Admin"]
+        "keywords": [
+          "修复",
+          "fix",
+          "repair",
+          "恢复",
+          "补丁",
+          "patch"
+        ],
+        "agents": [
+          "@Super-Admin"
+        ]
       },
       "裁决_豁免": {
-        "keywords": ["裁决", "豁免", "waiver", "waive", "arbitration", "技术债", "tech-debt"],
-        "agents": ["@Arbiter"]
+        "keywords": [
+          "裁决",
+          "豁免",
+          "waiver",
+          "waive",
+          "arbitration",
+          "技术债",
+          "tech-debt"
+        ],
+        "agents": [
+          "@Arbiter"
+        ]
       },
       "部署_提交_CI_CD": {
-        "keywords": ["部署", "commit", "CI", "CD", "pipeline", "deploy", "docker", "镜像"],
-        "agents": ["@CI-CD-Agent"]
+        "keywords": [
+          "部署",
+          "commit",
+          "CI",
+          "CD",
+          "pipeline",
+          "deploy",
+          "docker",
+          "镜像"
+        ],
+        "agents": [
+          "@CI-CD-Agent"
+        ]
       },
       "获取知识_查文档": {
-        "keywords": ["知识", "context7", "knowledge", "fetch", "acquire"],
-        "agents": ["@Knowledge-Curator"]
+        "keywords": [
+          "知识",
+          "context7",
+          "knowledge",
+          "fetch",
+          "acquire"
+        ],
+        "agents": [
+          "@Knowledge-Curator"
+        ]
       },
       "调度_状态追踪": {
-        "keywords": ["调度", "dispatch", "schedule", "状态"],
-        "agents": ["@Orchestrator"]
+        "keywords": [
+          "调度",
+          "dispatch",
+          "schedule",
+          "状态"
+        ],
+        "agents": [
+          "@Orchestrator"
+        ]
       }
     },
     "scope_to_agent": {
       "$description": "Layer 2: target file path patterns → agent mapping (filters L1 candidates). REVISED: scope matching now uses Task.DAG.json target_files[] as input, not task_description text",
       "rules": [
-        { "scope": ".opencode/", "agent": "@Super-Admin", "priority": 1, "desc": "Agent configs, rules, plugins, scripts, state" },
-        { "scope": "opencode.json", "agent": "@Super-Admin", "priority": 1, "desc": "Runtime configuration" },
-        { "scope": "AGENTS.md", "agent": "@Super-Admin", "priority": 1, "desc": "Agent collaboration spec" },
-        { "scope": "booking-backend/src/", "agent": "@Coder-BE", "priority": 1, "desc": "Backend business code" },
-        { "scope": "booking-backend/test/", "agent": "@Coder-BE", "priority": 1, "desc": "Backend test code" },
-        { "scope": "booking-frontend/", "agent": "@Coder-FE", "priority": 1, "desc": "Frontend business code" },
-        { "scope": "contract.yaml", "agent": "@Architect", "priority": 1, "desc": "Interface contract" },
-        { "scope": "/docs/", "agent": "@Architect", "priority": 2, "desc": "Architecture and design docs" },
-        { "scope": ".opencode/context/", "agent": "@Architect", "priority": 1, "desc": "Context code standards" },
-        { "scope": ".github/", "agent": "@CI-CD-Agent", "priority": 1, "desc": "CI/CD pipeline" },
-        { "scope": "Dockerfile", "agent": "@CI-CD-Agent", "priority": 1, "desc": "Container config" },
-        { "scope": "Task.DAG.json", "agent": "@Meta-Planner", "priority": 1, "desc": "DAG file" },
-        { "scope": "WAIVE.md", "agent": "@Arbiter", "priority": 1, "desc": "Waiver records" },
-        { "scope": "TECH_DEBT_REGISTRY.md", "agent": "@Arbiter", "priority": 1, "desc": "Tech debt registry" }
+        {
+          "scope": ".opencode/",
+          "agent": "@Super-Admin",
+          "priority": 1,
+          "desc": "Agent configs, rules, plugins, scripts, state"
+        },
+        {
+          "scope": "opencode.json",
+          "agent": "@Super-Admin",
+          "priority": 1,
+          "desc": "Runtime configuration"
+        },
+        {
+          "scope": "AGENTS.md",
+          "agent": "@Super-Admin",
+          "priority": 1,
+          "desc": "Agent collaboration spec"
+        },
+        {
+          "scope": "booking-backend/src/",
+          "agent": "@Coder-BE",
+          "priority": 1,
+          "desc": "Backend business code"
+        },
+        {
+          "scope": "booking-backend/test/",
+          "agent": "@Coder-BE",
+          "priority": 1,
+          "desc": "Backend test code"
+        },
+        {
+          "scope": "booking-frontend/",
+          "agent": "@Coder-FE",
+          "priority": 1,
+          "desc": "Frontend business code"
+        },
+        {
+          "scope": "contract.yaml",
+          "agent": "@Architect",
+          "priority": 1,
+          "desc": "Interface contract"
+        },
+        {
+          "scope": "/docs/",
+          "agent": "@Architect",
+          "priority": 2,
+          "desc": "Architecture and design docs"
+        },
+        {
+          "scope": ".opencode/context/",
+          "agent": "@Architect",
+          "priority": 1,
+          "desc": "Context code standards"
+        },
+        {
+          "scope": ".github/",
+          "agent": "@CI-CD-Agent",
+          "priority": 1,
+          "desc": "CI/CD pipeline"
+        },
+        {
+          "scope": "Dockerfile",
+          "agent": "@CI-CD-Agent",
+          "priority": 1,
+          "desc": "Container config"
+        },
+        {
+          "scope": "Task.DAG.json",
+          "agent": "@Meta-Planner",
+          "priority": 1,
+          "desc": "DAG file"
+        },
+        {
+          "scope": "WAIVE.md",
+          "agent": "@Arbiter",
+          "priority": 1,
+          "desc": "Waiver records"
+        },
+        {
+          "scope": "TECH_DEBT_REGISTRY.md",
+          "agent": "@Arbiter",
+          "priority": 1,
+          "desc": "Tech debt registry"
+        }
       ],
       "cross_domain": {
         "agent": "@Super-Admin",

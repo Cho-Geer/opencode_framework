@@ -175,13 +175,25 @@ describe("checkAgentsNoBackslashes", () => {
 // Check 22: opencode.json adapter validation
 
 
-describe("FX-DIAG-HARD-3: agent_write_scopes completeness", () => {
-  it('should verify all 8 agents have scope definitions (RED: no completeness check)', () => {
-    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-self-test.js'), 'utf8');
-    const expectedAgents = ['@Coder-BE','@Coder-FE','@Architect','@Meta-Planner','@Orchestrator','@Guardian','@Arbiter','@CI-CD-Agent'];
-    const hasCompletenessCheck = expectedAgents.every(a => src.includes(a));
-    const hasCheck28 = src.includes('Check 28') || src.includes('agent_write_scopes completeness');
-    expect(hasCheck28).toBe(true);
+// P2-D v2.1: Replaced "agent_write_scopes completeness" with "opencode.json permission
+// completeness" since authority moved from project.config.json to opencode.json.
+describe("FX-DIAG-HARD-3 (P2-D): opencode.json permission completeness", () => {
+  it('should verify opencode.json has permission blocks for all 8 agents', () => {
+    // Read opencode.json directly to verify it has agent permissions
+    const opencodePath = path.join(OPENCODE_ROOT, 'opencode.json');
+    const oc = JSON.parse(fs.readFileSync(opencodePath, 'utf8'));
+    const expectedAgents = ['Coder-BE', 'Coder-FE', 'Architect', 'Meta-Planner', 'Orchestrator', 'Guardian', 'Arbiter', 'CI-CD-Agent'];
+    const allHavePermissions = expectedAgents.every(a =>
+      oc.agent?.[a]?.permission && Object.keys(oc.agent[a].permission).length > 0
+    );
+    expect(allHavePermissions).toBe(true);
+  });
+
+  it('should verify framework-self-test.ts validates opencode.json permissions', () => {
+    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-self-test.ts'), 'utf8');
+    // P2-D v2.1: self-test now verifies opencode.json agent permissions
+    expect(src).toContain('opencode.json');
+    expect(src).toContain('hasAgentPermissions');
   });
 });
 

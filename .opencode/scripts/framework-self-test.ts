@@ -181,26 +181,48 @@ function checkConfigJson() {
   const cfg = readJSONFile(path.join(OPENCODE_ROOT, ".opencode", "project.config.json"));
   if (!cfg)
     return check(1, false, "project.config.json not found or unreadable");
-    const hasProjectRoot = !!cfg.project_root;
-    const hasTechStack = !!cfg.tech_stack && typeof cfg.tech_stack === "object";
-    const hasContext7Mapping =
-      Array.isArray(cfg.context7_task_mapping) &&
-      cfg.context7_task_mapping.length > 0;
-    const hasAgentWriteScopes =
-      !!cfg.agent_write_scopes && typeof cfg.agent_write_scopes === "object";
+  // P2-D v2.1: agent_write_scopes moved to opencode.json (authoritative source).
+  // project.config.json now only carries framework-level policies (enforcement_mode,
+  // route_rules, safe_shell framework policies, etc.). agent_write_scopes removed.
+  const hasProjectRoot = !!cfg.project_root;
+  const hasTechStack = !!cfg.tech_stack && typeof cfg.tech_stack === "object";
+  const hasContext7Mapping =
+    Array.isArray(cfg.context7_task_mapping) &&
+    cfg.context7_task_mapping.length > 0;
+  // P2-D: negative check — agent_write_scopes MUST NOT exist in project.config.json
+  // (it has been moved to opencode.json agent.*.permission.safe_edit)
+  const hasRemovedAgentWriteScopes = "agent_write_scopes" in cfg;
 
-    const ok = hasProjectRoot && hasTechStack && hasContext7Mapping && hasAgentWriteScopes;
-    let detail = "";
-    if (!hasProjectRoot) detail += " missing project_root";
-    if (!hasTechStack) detail += " missing tech_stack";
-    if (!hasContext7Mapping) detail += " missing context7_task_mapping";
-    if (!hasAgentWriteScopes) detail += " missing agent_write_scopes";
-    return check(
-      1,
-      ok,
-      detail.trim() ||
-        `project_root="${cfg.project_root}", tech_stack keys=${Object.keys(cfg.tech_stack).length}, context7_task_mapping=${cfg.context7_task_mapping.length}, agent_write_scopes keys=${Object.keys(cfg.agent_write_scopes).length}`,
-    );
+  // P2-D v2.1: ALSO verify opencode.json is present and has agent permissions
+  const ocCfg = readJSONFile(path.join(OPENCODE_ROOT, "opencode.json"));
+  const hasOpencode = !!ocCfg;
+  const hasAgentPermissions = !!ocCfg?.agent && typeof ocCfg.agent === "object";
+  const agentCount = hasAgentPermissions ? Object.keys(ocCfg.agent).length : 0;
+  const agentsWithSafeEdit = hasAgentPermissions
+    ? Object.values(ocCfg.agent).filter((a: any) => !!(a as any)?.permission?.safe_edit).length
+    : 0;
+
+  const ok = hasProjectRoot
+    && hasTechStack
+    && hasContext7Mapping
+    && !hasRemovedAgentWriteScopes
+    && hasOpencode
+    && hasAgentPermissions
+    && agentCount > 0;
+  let detail = "";
+  if (!hasProjectRoot) detail += " missing project_root";
+  if (!hasTechStack) detail += " missing tech_stack";
+  if (!hasContext7Mapping) detail += " missing context7_task_mapping";
+  if (hasRemovedAgentWriteScopes) detail += " agent_write_scopes still present (must be removed; authority → opencode.json)";
+  if (!hasOpencode) detail += " opencode.json not found or unreadable";
+  if (!hasAgentPermissions) detail += " opencode.json missing agent permissions";
+  if (hasAgentPermissions && agentCount === 0) detail += " opencode.json has 0 agent definitions";
+  return check(
+    1,
+    ok,
+    detail.trim() ||
+      `project_root="${cfg.project_root}", tech_stack keys=${Object.keys(cfg.tech_stack).length}, context7_task_mapping=${cfg.context7_task_mapping.length}, opencode.json agents=${agentCount} with_safe_edit=${agentsWithSafeEdit}`,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════

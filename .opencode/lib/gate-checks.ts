@@ -3,6 +3,10 @@
  * Extracted from framework-enforcer.ts (lines ~184-459)
  * STATUS: ✅ EXTRACTED — 7 functions live
  * @since Wave 3.1 (R5)
+ *
+ * REVISION (P2-D v2.1, 2026-06-17):
+ *   - isWriteAllowed() now delegates to permission-reader.ts (opencode.json authoritative)
+ *   - Private matchGlob() removed (pathMatchesGlob() from gate-core.ts is used instead)
  */
 import * as fs from "node:fs";
 import * as crypto from "node:crypto";
@@ -15,6 +19,7 @@ import {
 import { writeAuditLogEntry } from "./audit-log";
 import { readSubState } from "./substate-manager";
 import { writeLog } from "./log-manager";
+import { isPathAllowedForAgent } from "./permission-reader";
 // Module-level state (extracted from monolith)
 let _pluginHash = "";
 let _pluginHooksCount = 0;
@@ -142,37 +147,21 @@ export function findTaskInDag(taskId: string): {
   return { found: false, status: "unknown", source: "unknown" };
 }
 
-function matchGlob(filePath: string, pattern: string): boolean {
-  const normalized = filePath.replace(/\\/g, "/");
-  const pat = pattern.replace(/\\/g, "/");
-  const regexStr = pat
-    .replace(/\./g, "\\.")
-    .replace(/\*\*/g, "{{GLOBSTAR}}")
-    .replace(/\*/g, "[^/]*")
-    .replace(/{{GLOBSTAR}}/g, ".*");
-  return new RegExp("^" + regexStr + "$").test(normalized);
-}
-
+/**
+ * isWriteAllowed — P2-D v2.1: delegates to permission-reader (opencode.json authoritative).
+ *
+ * Signature preserved for all downstream consumers (scope-before.ts, code-quality-gate.ts).
+ *
+ * @param agentType — agent name (e.g. "@Coder-BE")
+ * @param filePath — absolute or relative file path
+ * @returns true if write is allowed, false if denied
+ *
+ * SEMANTIC EQUIVALENCE: deny-first priority, default-deny when no match. Uses
+ * pathMatchesGlob() from gate-core.ts (identical algorithm to pre-P2-D matchGlob()).
+ * No semantic changes from pre-P2-D behavior, only data source.
+ */
 export function isWriteAllowed(agentType: string, filePath: string): boolean {
-  const config = readJsonFile<any>(STATE_PATHS.projectConfig());
-  const scopes = config?.agent_write_scopes?.[agentType];
-  if (!scopes) return true;
-  // Normalize absolute paths to relative (strip OPENCODE_ROOT prefix)
-  // P0-3/4/5-FIX: Fallback to process.cwd() when OPENCODE_ROOT is unset.
-  // Previously used `|| ""` which made relPath==absolute path when unset,
-  // causing glob patterns like ".opencode/**" to never match absolute paths.
-  const root = process.env.OPENCODE_ROOT || process.cwd();
-  const relPath =
-    root && filePath.startsWith(root + "/")
-      ? filePath.slice(root.length + 1)
-      : filePath;
-  for (const pattern of scopes.denied || []) {
-    if (matchGlob(relPath, pattern)) return false;
-  }
-  for (const pattern of scopes.allowed || []) {
-    if (matchGlob(relPath, pattern)) return true;
-  }
-  return false;
+  return isPathAllowedForAgent(agentType, filePath, "safe_edit");
 }
 
 export function checkStaleSessions(paths: typeof STATE_PATHS): {
