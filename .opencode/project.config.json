@@ -1337,8 +1337,7 @@
         { "scope": "Dockerfile", "agent": "@CI-CD-Agent", "priority": 1, "desc": "Container config" },
         { "scope": "Task.DAG.json", "agent": "@Meta-Planner", "priority": 1, "desc": "DAG file" },
         { "scope": "WAIVE.md", "agent": "@Arbiter", "priority": 1, "desc": "Waiver records" },
-        { "scope": "TECH_DEBT_REGISTRY.md", "agent": "@Arbiter", "priority": 1, "desc": "Tech debt registry" },
-        { "scope": ".task_temp/", "agent": "@Guardian", "priority": 3, "desc": "Verification artifacts" }
+        { "scope": "TECH_DEBT_REGISTRY.md", "agent": "@Arbiter", "priority": 1, "desc": "Tech debt registry" }
       ],
       "cross_domain": {
         "agent": "@Super-Admin",
