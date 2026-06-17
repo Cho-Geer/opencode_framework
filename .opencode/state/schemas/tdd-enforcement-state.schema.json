@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/tdd-enforcement-state.schema.json",
+  "title": "TDD Enforcement State",
+  "description": "TDD enforcement tracking state.",
+  "type": "object",
+  "required": [
+    "enabled",
+    "current_session",
+    "violations",
+    "history"
+  ],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether TDD enforcement is active."
+    },
+    "current_session": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Active TDD enforcement session data populated by code-quality-gate.js checkTDDOrder().",
+          "required": [
+            "test_written",
+            "impl_files_attempted",
+            "blocked_attempts",
+            "test_files_written",
+            "initialized"
+          ],
+          "properties": {
+            "test_written": {
+              "type": "boolean",
+              "description": "Whether a test file has been written in this session."
+            },
+            "impl_files_attempted": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Implementation files attempted before test was written."
+            },
+            "blocked_attempts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "timestamp"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "description": "Blocked implementation attempts with timestamps."
+            },
+            "test_files_written": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Test files written in this session."
+            },
+            "diff_evidence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "timestamp",
+                  "type",
+                  "hasChanges",
+                  "added",
+                  "removed",
+                  "diffSummary"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "test",
+                      "impl"
+                    ]
+                  },
+                  "hasChanges": {
+                    "type": "boolean"
+                  },
+                  "added": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "removed": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "diffSummary": {
+                    "type": "string"
+                  },
+                  "agent": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "description": "Diff evidence for test/impl files written in this session (populated by tdd-after.ts)."
+            },
+            "initialized": {
+              "type": "boolean",
+              "description": "Whether the TDD session has been initialized."
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Active TDD enforcement session object, or null when idle."
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "file",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "file": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "Current TDD violations."
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "TDD enforcement history."
+    }
+  },
+  "additionalProperties": true
+}

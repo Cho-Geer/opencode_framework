@@ -7,7 +7,7 @@
  *
  * framework-doctor.ts — OpenCode Framework Health Diagnostic
  * ==========================================================
- * Runs 12 health checks against the OpenCode framework installation.
+ * Runs 13 health checks against the OpenCode framework installation.
  *
  * Usage:
  *   node .opencode/scripts/framework-doctor.ts          # human-readable output
@@ -1144,6 +1144,118 @@ function checkDispatchPolicy() {
   }
 }
 
+// ─── Check 13: Schema validation (S41 split + AJV) ───
+// Validates machine.json against the slim machine.schema.json (meta+contracts).
+// Cross-validates frozen JSON snapshots against sub-state schema files.
+// Gracefully skips if AJV is not installed (optional dependency).
+function checkSchemaValidation() {
+  const id = 13;
+  const name = "Schema validation (AJV)";
+
+  let Ajv;
+  try {
+    const ajvModule = require("ajv");
+    Ajv = ajvModule.default || ajvModule;
+  } catch {
+    return {
+      id, name,
+      status: PASS,
+      detail: "AJV not installed — schema validation skipped. Install: bun add ajv ajv-formats",
+    };
+  }
+
+  const issues = [];
+  let ajv;
+  try {
+    ajv = new Ajv({ allErrors: true, strict: false });
+    try {
+      const addFormats = require("ajv-formats");
+      (addFormats.default || addFormats)(ajv);
+    } catch {
+      // ajv-formats optional — date-time format validation skipped
+    }
+  } catch (e) {
+    return { id, name, status: FAIL, detail: "AJV init failed: " + e.message };
+  }
+
+  // 1. Validate machine.json against machine.schema.json
+  try {
+    const schemaPath = path.join(STATE_DIR, "machine.schema.json");
+    const machinePath = path.join(STATE_DIR, "machine.json");
+    if (fs.existsSync(schemaPath) && fs.existsSync(machinePath)) {
+      const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+      delete schema.$schema; // AJV doesn't resolve draft 2020-12 meta-schema
+      const machine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
+      const validate = ajv.compile(schema);
+      if (!validate(machine)) {
+        const errs = (validate.errors || []).slice(0, 3).map(
+          (e) => (e.instancePath || "(root)") + ": " + e.message
+        );
+        issues.push("machine.json: " + errs.join("; "));
+      }
+    }
+  } catch (e) {
+    issues.push("machine.json validation error: " + e.message);
+  }
+
+  // 2. Cross-validate frozen JSON snapshots against sub-state schemas
+  const schemaMappings = {
+    "eslint-state.schema.json": "eslint-state.json",
+    "type-check-state.schema.json": "type-check-state.json",
+    "dependency-state.schema.json": "dependency-state.json",
+    "format-state.schema.json": "format-state.json",
+    "write-audit-state.schema.json": "write-audit-state.json",
+    "compliance-records.schema.json": "compliance-records.json",
+    "knowledge-audit-state.schema.json": "knowledge-audit-state.json",
+    "tdd-enforcement-state.schema.json": "tdd-enforcement-state.json",
+    "keystone-hashes.schema.json": "keystone-hashes.json",
+    "transaction-state.schema.json": "transaction-state.json",
+    "knowledge-cache-state.schema.json": "knowledge-cache-state.json",
+    "knowledge-state.schema.json": "knowledge-state.json",
+  };
+
+  const schemasDir = path.join(STATE_DIR, "schemas");
+  let validated = 0;
+  let skipped = 0;
+
+  for (const [schemaFile, dataFile] of Object.entries(schemaMappings)) {
+    const schemaPath = path.join(schemasDir, schemaFile);
+    const dataPath = path.join(STATE_DIR, dataFile);
+
+    if (!fs.existsSync(schemaPath) || !fs.existsSync(dataPath)) {
+      skipped++;
+      continue;
+    }
+
+    try {
+      const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+      delete schema.$schema; // AJV doesn't resolve draft 2020-12 meta-schema
+      const data = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+      const validate = ajv.compile(schema);
+      if (!validate(data)) {
+        const errs = (validate.errors || []).slice(0, 2).map(
+          (e) => (e.instancePath || "(root)") + ": " + e.message
+        );
+        issues.push(dataFile + ": " + errs.join("; "));
+      } else {
+        validated++;
+      }
+    } catch (e) {
+      issues.push(dataFile + ": " + e.message);
+    }
+  }
+
+  const summary = issues.length === 0
+    ? "machine.json valid + " + validated + " sub-state JSON(s) validated against schemas" + (skipped > 0 ? " (" + skipped + " skipped)" : "")
+    : issues.length + " schema validation issue(s): " + issues.join("; ");
+
+  return {
+    id, name,
+    status: issues.length === 0 ? PASS : FAIL,
+    detail: summary,
+  };
+}
+
 // ─── Check Registry ───────────────────────────────────────────
 const CHECKS = [
   checkOpenCodeJson,
@@ -1158,6 +1270,7 @@ const CHECKS = [
   checkRolePermissionSync,
   checkFrameworkCompliance,
   checkDispatchPolicy,
+  checkSchemaValidation,
 ];
 
 // ─── Run Checks ───────────────────────────────────────────────

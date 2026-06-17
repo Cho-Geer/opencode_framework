@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/dependency-state.schema.json",
+  "title": "Dependency State",
+  "description": "Dependency-cruiser module boundary state.",
+  "type": "object",
+  "required": [
+    "last_check",
+    "violations",
+    "forbidden_rules_applied",
+    "status"
+  ],
+  "properties": {
+    "last_check": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "ISO 8601 timestamp of last check, or null."
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Dependency violation objects."
+    },
+    "forbidden_rules_applied": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of forbidden import rules applied."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "clean",
+        "dirty"
+      ],
+      "description": "Current dependency audit status."
+    }
+  },
+  "additionalProperties": true
+}

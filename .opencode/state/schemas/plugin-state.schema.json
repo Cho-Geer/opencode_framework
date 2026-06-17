@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/plugin-state.schema.json",
+  "title": "Plugin State",
+  "description": "Framework plugin load state tracking. Synchronized with .task_temp/_logs/index.json by state-reconciliation.",
+  "type": "object",
+  "required": [
+    "last_reconciliation",
+    "plugins"
+  ],
+  "properties": {
+    "last_reconciliation": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last reconciliation between machine.json and index.json."
+    },
+    "plugins": {
+      "type": "object",
+      "description": "Per-plugin state tracking keyed by plugin name (e.g., session, scope-before, uc7ks-before).",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "loaded",
+          "hooks_registered",
+          "last_seen"
+        ],
+        "properties": {
+          "loaded": {
+            "type": "boolean",
+            "description": "Whether the plugin module was successfully imported."
+          },
+          "hooks_registered": {
+            "type": "boolean",
+            "description": "Whether the plugin registered at least one hook event."
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of last plugin activity (load or hook trigger)."
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

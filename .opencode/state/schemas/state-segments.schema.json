@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/state-segments.schema.json",
+  "title": "State Segments",
+  "description": "Phase 1-2 hierarchical state segments introduced by state management refactoring. Validates that supplemental state files exist with correct format versions.",
+  "type": "object",
+  "properties": {
+    "gate_state_format": {
+      "type": "string",
+      "enum": [
+        "2.0",
+        "3.0"
+      ],
+      "description": "Active gate-state.json format version. '3.0' indicates hierarchical storage is active."
+    },
+    "gate_state_index": {
+      "type": "object",
+      "description": "Metadata for gate-state.index.json",
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": ".opencode/state/gate-state.index.json"
+        },
+        "formatVersion": {
+          "type": "string",
+          "const": "3.0"
+        }
+      }
+    },
+    "gate_state_archive": {
+      "type": "object",
+      "description": "Metadata for gate-state.archive.json",
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": ".opencode/state/gate-state.archive.json"
+        },
+        "formatVersion": {
+          "type": "string",
+          "const": "3.0"
+        }
+      }
+    },
+    "gate_state_history": {
+      "type": "object",
+      "description": "Metadata for gate-state.history/ directory",
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": ".opencode/state/gate-state.history/"
+        },
+        "type": {
+          "type": "string",
+          "const": "jsonl_directory"
+        }
+      }
+    },
+    "dag_format": {
+      "type": "string",
+      "enum": [
+        "1.0",
+        "2.0"
+      ],
+      "description": "Active Task.DAG.json format version. '2.0' indicates hierarchical storage with external changelog."
+    },
+    "dag_changelog": {
+      "type": "object",
+      "description": "Metadata for Task.DAG.changelog.md",
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": "Task.DAG.changelog.md"
+        }
+      }
+    },
+    "dag_index": {
+      "type": "object",
+      "description": "Metadata for Task.DAG.index.json",
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": "Task.DAG.index.json"
+        },
+        "formatVersion": {
+          "type": "string",
+          "const": "2.0"
+        }
+      }
+    },
+    "dag_versions": {
+      "type": "object",
+      "description": "Metadata for Task.DAG.versions/ directory",
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": "Task.DAG.versions/"
+        },
+        "type": {
+          "type": "string",
+          "const": "version_snapshots_directory"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

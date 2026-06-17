@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/transaction-state.schema.json",
+  "title": "Transaction State",
+  "description": "Unified State Transaction Envelope metadata (RVW-REVIEW-01).",
+  "type": "object",
+  "required": [
+    "last_operation_id",
+    "last_transaction_at",
+    "transaction_log_path"
+  ],
+  "properties": {
+    "last_operation_id": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "UUID v4 of the last committed transaction operation."
+    },
+    "last_transaction_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "ISO 8601 timestamp of the last committed transaction."
+    },
+    "pending_operations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Operation IDs currently in prepared (uncommitted) state."
+    },
+    "transaction_log_path": {
+      "type": "string",
+      "description": "Relative path from project root to the transaction WAL log file (e.g., '.opencode/state/.transaction-log')."
+    }
+  },
+  "additionalProperties": true
+}

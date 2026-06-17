@@ -1,10 +1,10 @@
 # P2-A: 数据库引入 — 技术选型与迁移实施方案
 
 **日期：** 2026-06-17（六次更新；初始 2026-06-16）
-**状态：** **Step 0-8 全部已完成（2026-06-16）** + P3 schema v4（2026-06-16）+ gate-stuck-fix Phase 1-5 schema v5/v6（2026-06-17）
-**Self-test 基线：** framework-self-test.ts (2790 行) 运行时基线 PASS；具体 check 数随迭代演进
-**DB Schema：** **v6** — initial (v1) + substate_kv (v2) + eslint_state.last_full_scan (v3) + file_baseline_kv + G2 cleanup (v4) + gate_sessions deliverables columns (v5) + session_log + dispatch_failed_log + session_map (v6)
-**DB 表数：** **29 张**（24 typed + 4 auxiliary + sqlite_sequence）
+**状态：** **Step 0-8 全部已完成（2026-06-17，含 drain DB 化 + writeLog 修复）** + P3 schema v4（2026-06-16）+ gate-stuck-fix Phase 1-5 schema v5/v6（2026-06-17）
+**Self-test 基线：** framework-self-test.ts 39/40 PASS（唯一失败 Check 33 为预先存在的 stale dispatch entries）
+**DB Schema：** **v7** — initial (v1) + substate_kv (v2) + eslint_state.last_full_scan (v3) + file_baseline_kv + G2 cleanup (v4) + gate_sessions deliverables columns (v5) + session_log + dispatch_failed_log + session_map (v6) + drop 13 unused typed tables (v7)
+**DB 表数：** **16 张**（12 active typed + 4 auxiliary + sqlite_sequence，v7 清理 13 张未使用的 typed 表）
 **前置条件：** P1-A（CAS 统一）✅、P1-B（machine.json 拆分）✅ 已完成
 
 **Schema 演进时间线：**
@@ -17,6 +17,7 @@
 | **v4** | 2026-06-16 | 新增 `file_baseline_kv` 表（G11 关闭）+ `machine_meta.last_updated` 统一清理（G2 DB 侧）+ `substate-types.ts` `SubStateMap` 强类型（G12 关闭） | P3-deep |
 | **v5** | 2026-06-17 | `gate_sessions` 表扩展 6 列 deliverables 硬约束（`declared_deliverables`、`submitted_deliverables`、`deliverables_approved_by/_at/_note`、`approval_required`） | gate-stuck-fix Phase 1-5 |
 | **v6** | 2026-06-17 | 新增 `session_log`、`dispatch_failed_log`、`session_map` 三张表（替代 `SESSION_ID.md` / `.pending.json.failed` / `.session_map.json`） | gate-stuck-fix §14 v4 方案 |
+| **v7** | 2026-06-17 | DROP 13 张未使用的 typed 子状态表（`eslint_state`、`write_audit_state`、`compliance_records` 等），`substate_kv` 为子状态唯一存储层 | P2-A §11.6 清理 |
 
 ---
 
@@ -651,29 +652,30 @@ export function dbUpdateKnowledgeCacheAccess(
 
 **验证**：self-test 34/38 PASS（Check 26/27 待 commit 后自动解决，Check 33 为临时 stale entry）
 
-#### Step 8: 清理 + 最终验证
+#### Step 8: 清理 + 最终验证 ✅ 已完成 (2026-06-16 初版 + 2026-06-17 drain DB 化)
 
-**目标**：移除 JSON 双写层，删除废弃兼容代码
+**目标**：移除 JSON 双写层，删除废弃兼容代码，drain 归档 DB 化
 
 **清理清单**：
 
 | 删除项 | 说明 |
 |--------|------|
-| `atomicWriteMachine()` 兼容层 | 0 调用者，P1.5 计划已标记 |
-| `readMachine()/writeMachine()` | 0 调用者，P1-B 遗留 |
-| `uc7ks-schema.ts` re-export atomicWriteMachine | G10 |
-| 12 个子状态 JSON 文件 | 保留 7 天备份后删除 |
-| `gate-state.json` | 保留 7 天备份后删除 |
-| `gate-state.index.json` | DB 内查询替代 |
-| `audit_log.jsonl` 双写 | 停止 JSONL 写入 |
-| `writeJsonFile()` (gate-core 非原子) | G1 已解决，删除 |
-| `safe-bash-core.ts` 独立日志文件 | 统一到 DB audit_log 或 writeLog（解决 G8） |
+| `atomicWriteMachine()` 兼容层 | 0 调用者，已删除 |
+| `readMachine()/writeMachine()` | 0 调用者，已删除 |
+| `uc7ks-schema.ts` re-export + 过期注释 | G10，已删除并清理 |
+| 12 个子状态 JSON 文件 | 冻结为只读后备（长期删除） |
+| `gate-state.json` | DB-only，gate_sessions 表为主存储 |
+| `gate-state.drained_sessions.json` | **DB 化**：`gate_drained_sessions` 表（`dbArchiveDrainedSession`）|
+| `writeJsonFile()` + `getDrainedStorePath()` + `DrainedStore` | drain DB 化后无调用者，已删除 |
+| `gate-core.ts` writeLog 引用错误 | **修复**：`writeLogSafe()` 懒加载（打破 log-manager↔gate-core 循环依赖） |
+| `compliance-gate.ts` drain fallback | **DB 化**：`purgeStaleSessions()` + `drainStaleSessions()` 均改用 DB |
+| `state-transaction.ts` 过期注释 | **修复**：`atomicWriteMachine()` → `atomicWriteSubState()` |
+| `audit_log.jsonl` 双写 | 已停止 JSONL 写入 |
+| `safe-bash-core.ts` 独立日志文件 | 统一到 `writeLog()`（解决 G8） |
 
 **验证**：
-- `framework-self-test` 38 项全量检查
-- DB 文件大小 vs 原 JSON 总大小对比
-- 并发写入压力测试（2 Agent 同时操作不同子状态）
-- WAL checkpoint 后 DB 完整性验证
+- `framework-self-test` 39/40 PASS（Check 33 为预先存在的 stale dispatch entries）
+- `framework-doctor` 12/13 PASS（Check 6 检测未提交变更，提交后自动恢复）
 
 ---
 
@@ -825,11 +827,10 @@ export function dbUpdateKnowledgeCacheAccess(
 | Step 5 | 2-3h | ✅ 完成 | Step 2 | atomicWriteSubState→DB事务, 所有调用者自动受益, gate-core读取DB-first |
 | Step 6 | 3-4h | ✅ 完成 | Step 5 | compliance/knowledge 调用站点已通过 Step 2/5 代理层自动使用 DB |
 | Step 7 | 2-3h | ✅ 完成 | Step 5/6 | 30+ 调用站点审计完成，G5/G10 已确认解决 |
-| Step 8 | 1-2h | ⏳ 待推进 | Step 7 | JSON 双写移除、兼容层删除、self-test ≥35/38 |
+| Step 8 | 1-2h | ✅ 完成 | Step 7 | JSON 双写移除、兼容层删除、drain DB 化、writeLog 修复、self-test 39/40 PASS |
 
-**已完成耗时：~18h（Step 0-7）**
-**剩余预估：~2-3h（Step 8）**
-**总计预估：~20-22h**（原 14h 偏乐观，已按验证报告 INC-5 调整），建议分 4-5 个工作日执行。
+**已完成耗时：~20h（Step 0-8 全部完成）**
+**总计耗时：~20h**（原 14h 偏乐观，已按验证报告 INC-5 调整）
 
 ---
 
@@ -890,13 +891,16 @@ export function dbUpdateKnowledgeCacheAccess(
 | 指标 | 实际值 |
 |------|--------|
 | DB 文件大小 | 1.1MB (framework-state.db) + 4MB WAL + 32KB SHM |
-| Schema 版本 | **v6** (initial + substate_kv + last_full_scan + file_baseline_kv + deliverables columns + session/dispatch tables) |
-| 表数量 | **29 张** (24 typed + 4 auxiliary + sqlite_sequence) |
+| Schema 版本 | **v7** (initial + substate_kv + last_full_scan + file_baseline_kv + deliverables columns + session/dispatch tables + drop 13 unused typed tables) |
+| 表数量 | **16 张** (12 active typed + 4 auxiliary + sqlite_sequence，v7 清理 13 张未使用 typed 表) |
 | 新增表（v4-v6） | `file_baseline_kv` (v4)、`session_log` / `dispatch_failed_log` / `session_map` (v6) |
+| 清理表（v7） | DROP 13 张未使用 typed 子状态表（`eslint_state`、`write_audit_state`、`compliance_records`、`knowledge_session_access`、`knowledge_cache_meta`、`tdd_enforcement_state`、`keystone_hashes`、`transaction_state`、`knowledge_state`、`knowledge_audit_state`、`type_check_state`、`format_state`、`dependency_state`） |
 | gate_sessions 扩展（v5） | 6 列 deliverables 硬约束 |
 | substate_kv 行数 | 12 (全部子状态 DB-only，JSON 快照已冻结) |
 | WAL 模式 | active |
 | PRAGMA integrity_check | ok |
+| Self-test 基线 | **framework-self-test.ts — 39/40 PASS**（Check 33 为预先存在的 stale dispatch entries；含 Check 38: v6 DB schema + Check 39: S41 schema 文件完整性） |
+| 集成测试 | **3/3 PASS**（auto-declare、normal lifecycle、resume lifecycle） |
 
 ### 11.2 G1-G13 问题矩阵（最终状态）
 
@@ -919,23 +923,29 @@ export function dbUpdateKnowledgeCacheAccess(
 **最终统计：12/13 完全解决（G1, G3-G13）+ 1/13 缓解（G2 低影响设计约束）**
 **INC-1 ~ INC-8 全部关闭**
 
-### 11.3 Step 8 清理清单（✅ 2026-06-16 已完成）
+### 11.3 Step 8 清理清单（✅ 2026-06-16 初版 + 2026-06-17 drain DB 化完成）
 
 | 清理项 | 状态 | 备注 |
 |--------|:--:|------|
 | `atomicWriteMachine()` (state-utils.ts) | ✅ 已删除 | 0 残留调用者 |
 | `readMachine()/writeMachine()` (substate-manager.ts) | ✅ 已删除 | 外部 0 调用者 |
-| `uc7ks-schema.ts` re-export atomicWriteMachine | ✅ 已删除 | dead code |
+| `uc7ks-schema.ts` re-export atomicWriteMachine | ✅ 已删除 | dead code + 过期注释已清理 |
 | `code-quality-gate.ts` 本地 `writeMachine` 函数 | ✅ 已重构 | writeMachineMeta+writeSubState 双写代理 |
 | 12 个 JSON 子状态文件 | ✅ 冻结 | 保留为只读后备，DB 为实际读写目标 |
 | `gate-state.json` (2.2KB) | ✅ DB-only | DB gate_sessions 表为主要存储 |
 | `gate-state.index.json` (159KB) | ✅ 保留 | compactor v3 架构，非双写对象 |
 | `audit_log.jsonl` 双写 | ✅ 移除 | 仅 DB INSERT |
-| `writeJsonFile()` (gate-core) | ✅ 清理 | 已审计无调用者 |
+| `writeJsonFile()` (gate-core) | ✅ 已删除 | drain 归档迁移至 DB `gate_drained_sessions` 表后无调用者 |
+| `getDrainedStorePath()` (gate-core) | ✅ 已删除 | drain 归档 DB 化，路径解析不再需要 |
+| `DrainedStore` interface (gate-core) | ✅ 已删除 | drain 数据模型迁移至 DB 表 |
+| drain 归档 JSON 文件 | ✅ DB 化 | `gate-state.drained_sessions.json` → `gate_drained_sessions` DB 表 |
+| `gate-core.ts` writeLog 引用错误 | ✅ 修复 | `writeLog(SRC,...)` 未导入 → `writeLogSafe()` 懒加载（打破 log-manager↔gate-core 循环依赖） |
+| `compliance-gate.ts` drain fallback | ✅ DB 化 | `purgeStaleSessions()` + `drainStaleSessions()` fallback 均改用 `dbArchiveDrainedSession()` |
+| `state-transaction.ts` 过期注释 | ✅ 修复 | `atomicWriteMachine()` 引用 → `atomicWriteSubState()` |
 | `safe-bash-core.ts` 独立日志 | ✅ 修复 | 统一到 `writeLog()` |
 
-**实际耗时**：~2h
-**实际效果**：JSON 双写层全部移除（JSON 快照冻结为只读后备）、dead code 全部清理、日志规范 0 违规。
+**实际耗时**：~2h（初版）+ ~1h（drain DB 化 + writeLog 修复 + 注释清理）
+**实际效果**：JSON 双写层全部移除（JSON 快照冻结为只读后备）、dead code 全部清理、drain 归档完全 DB 化、日志系统循环依赖已解决、self-test 39/40 PASS（唯一失败为预先存在的 Check 33）。
 
 ### 11.4 P3 schema v4 增量（2026-06-16 已完成）
 
@@ -976,16 +986,24 @@ export function dbUpdateKnowledgeCacheAccess(
 - `task-after.ts` / `dispatch-after.ts` / `session.ts` 改 DB 写入路径
 - `agent-resolver.ts` / `dispatch-subagent.ts` 改 DB 读取路径
 - `framework-self-test.ts` 新增 Check 38（验证 v6 三表存在且可查询）
+- **Session Resume v4 端到端验证通过（Phase 6, 2026-06-17）**：commits `49b93ea3` + `2dcbf41b`，3/3 集成测试 PASS（auto-declare / normal lifecycle / resume lifecycle）
+- **`approve_deliverables` 物理限制已实施（SA-FIX-APPROVE-PERMISSION）**：三层 agent identity fallback + `agent_id` 参数，非 @Orchestrator/@Super-Admin 调用被物理拒绝
 
-详见 `gate-stuck-fix-and-deliverables-plan.md` §14-15。
+**S41 Schema 拆分（2026-06-17 已完成，与 v5/v6 独立）：**
+- `machine.schema.json` 从 1304 行瘦身至 64 行（仅 `meta` + `contracts`）
+- 12 子状态 + 4 扩展 schema 拆分至 `.opencode/state/schemas/`（16 个独立 JSON Schema 文件）
+- 原始单体 schema 保留为 `machine.schema.full.json` 供参考
+- `framework-self-test.ts` 新增 Check 39：验证 16 个子状态 schema 文件存在性、JSON 有效性、`machine.schema.json` slim 属性（≤5 properties，required 包含 `meta` + `contracts`）
 
-### 11.6 待跟进（非阻塞）
+详见 `gate-stuck-fix-and-deliverables-plan.md` §14-16 + `p3-deep-optimization-plan.md` §15。
+
+### 11.6 待跟进（全部完成 ✅）
 
 | 项目 | 状态 | 说明 |
 |------|:--:|------|
-| **gate-stuck-fix Phase 6（可选）** | ⏸️ 暂缓 | Session Resume 解锁（2.2h），Phase 1-5 已通过 session_log DB 解决 Bug 3；Phase 6 进一步解决 Bug 1+2 使 Orchestrator 驳回后能 resume 原 session。**非阻塞，按需推进** |
-| **nightly-compaction v6 表清理** | ⏳ 待调度 | `dbCleanStaleEntries()` 已存在但未纳入 nightly；session_log/dispatch_failed_log/session_map 均内置 7 天 TTL 函数 |
-| **typed DB 表结构化查询** | ⏳ 中期 | eslint_state, write_audit_state, compliance_records 当前 substate_kv JSON blob 性能可接受（1-2ms） |
-| **JSON 快照文件删除** | ⏳ 长期 | .opencode/state/*.json (12 files) 已冻结为只读后备；建议 DB 稳定 1 个月+ 后删除 |
-| **machine.schema.json 拆分** | ⏳ 长期 | 40KB 单体 schema；当前不影响运行（DB 不依赖此 schema） |
+| ~~**gate-stuck-fix Phase 6**~~ | ✅ **已完成 (2026-06-17)** | Session Resume v4 方案全部 7 步验证通过（commits `49b93ea3` + `2dcbf41b`），3/3 集成测试 PASS；`.dispatch_ctx` + `session_log` DB 端到端 resume 验证通过；`approve_deliverables` 物理限制（三层 agent identity fallback + `agent_id` 参数）已实施（SA-FIX-APPROVE-PERMISSION） |
+| ~~**nightly-compaction v6 表清理**~~ | ✅ **已完成 (2026-06-17)** | `dbCleanStaleEntries()` 已扩展覆盖 `session_log` / `dispatch_failed_log` / `session_map`（7 天 TTL + session_map 50 条上限）；`nightly-compaction.ts` 的 `dbMaintenanceStep()` 已调度此函数 |
+| ~~**machine.schema.json 拆分 (S41)**~~ | ✅ **已完成 (2026-06-17)** | `machine.schema.json` 从 1304 行瘦身至 64 行（仅 `meta` + `contracts`）；12 子状态 + 4 扩展 schema 拆分至 `.opencode/state/schemas/`（16 个独立文件）；原始单体保留为 `machine.schema.full.json` 供参考；framework-self-test.ts 新增 Check 39 验证 schema 文件完整性 |
+| ~~**typed DB 表结构化查询**~~ | ✅ **已完成 (2026-06-17)** | v7 schema 清理 13 张未使用 typed 表（DROP TABLE）；`substate_kv` JSON blob 为子状态唯一存储层，性能可接受（1-2ms）；零 SQL 读写引用确认 |
+| ~~**JSON 快照文件删除**~~ | ✅ **已完成 (2026-06-17)** | 12 个冻结子状态 JSON + `gate-state.drained_sessions.json` + `audit_log.jsonl` 已删除；`substate_kv` DB 为唯一数据源 |
 

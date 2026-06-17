@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/knowledge-state.schema.json",
+  "title": "Knowledge State",
+  "description": "Knowledge domain coverage and audit state.",
+  "type": "object",
+  "properties": {
+    "domains_covered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "coverage_score": {
+      "type": "number"
+    }
+  },
+  "additionalProperties": true
+}

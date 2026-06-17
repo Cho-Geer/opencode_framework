@@ -167,7 +167,7 @@ Arbiter, CI-CD-Agent). See `docs/review/cicd-dag-block/plan-first-redesign.md`.
 
 **Audit trail**: every auto-plan attempt is recorded in
 `machine.json.auto_plan_history` (schema defined in
-`.opencode/state/machine.schema.json`). Every successful dispatch that
+`.opencode/state/schemas/auto-plan-history.schema.json`). Every successful dispatch that
 passed the PLAN-FIRST pre-flight is recorded in
 `machine.json.dispatch_history`.
 

@@ -180,189 +180,13 @@ export function initializeSchema(db: Database): void {
     )
   `);
 
-  // ── eslint_state ──────────────────────────────────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS eslint_state (
-      audit_id   TEXT PRIMARY KEY,
-      agent      TEXT NOT NULL,
-      session_id TEXT,
-      rule_id    TEXT,
-      severity   TEXT,
-      file_path  TEXT,
-      line       INTEGER,
-      message    TEXT,
-      category   TEXT,
-      status     TEXT DEFAULT 'active',
-      last_full_scan TEXT,
-      timestamp  INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_eslint_agent ON eslint_state(agent)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_eslint_session ON eslint_state(session_id)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_eslint_status ON eslint_state(status)`);
-
-  // ── write_audit_state ─────────────────────────────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS write_audit_state (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      agent        TEXT NOT NULL,
-      session_id   TEXT,
-      task_id      TEXT,
-      tool         TEXT,
-      file_path    TEXT NOT NULL,
-      operation    TEXT,
-      checks_run   INTEGER DEFAULT 0,
-      violations   INTEGER DEFAULT 0,
-      scope_result TEXT,
-      timestamp    INTEGER NOT NULL
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_write_audit_agent ON write_audit_state(agent)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_write_audit_session ON write_audit_state(session_id)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_write_audit_file ON write_audit_state(file_path)`);
-
-  // ── compliance_records ────────────────────────────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS compliance_records (
-      session_id        TEXT PRIMARY KEY,
-      task_desc         TEXT NOT NULL,
-      agent             TEXT,
-      task_id           TEXT,
-      status            TEXT NOT NULL,
-      plan_summary      TEXT,
-      execution_summary TEXT,
-      rule_status       TEXT,
-      mode              TEXT,
-      checked_at        INTEGER,
-      armed_at          INTEGER,
-      completed_at      INTEGER,
-      drained_at        INTEGER,
-      failed_items      TEXT
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_status ON compliance_records(status)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_agent ON compliance_records(agent)`);
-
-  // ── knowledge_session_access (flattened 3-layer nesting) ──
-  db.run(`
-    CREATE TABLE IF NOT EXISTS knowledge_session_access (
-      agent_key   TEXT NOT NULL,
-      task_id     TEXT NOT NULL,
-      domain_id   TEXT NOT NULL,
-      sufficient  INTEGER DEFAULT 0,
-      pipeline    TEXT,
-      accessed_at INTEGER NOT NULL,
-      updated_at  INTEGER NOT NULL,
-      PRIMARY KEY (agent_key, task_id, domain_id)
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_kcache_agent ON knowledge_session_access(agent_key)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_kcache_task ON knowledge_session_access(task_id)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_kcache_sufficient ON knowledge_session_access(sufficient)`);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS knowledge_cache_meta (
-      agent_key              TEXT PRIMARY KEY,
-      total_tasks            INTEGER DEFAULT 0,
-      sufficient_count       INTEGER DEFAULT 0,
-      last_pipeline_complete TEXT,
-      updated_at             INTEGER NOT NULL
-    )
-  `);
-
-  // ── tdd_enforcement_state ─────────────────────────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tdd_enforcement_state (
-      session_id    TEXT PRIMARY KEY,
-      agent         TEXT NOT NULL,
-      task_id       TEXT,
-      current_phase TEXT NOT NULL,
-      phase_files   TEXT,
-      last_verified INTEGER NOT NULL,
-      updated_at    INTEGER NOT NULL
-    )
-  `);
-
-  // ── keystone_hashes ───────────────────────────────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS keystone_hashes (
-      contract_path TEXT PRIMARY KEY,
-      hash_value    TEXT NOT NULL,
-      updated_at    INTEGER NOT NULL
-    )
-  `);
-
-  // ── transaction_state (key-value, JSON value) ─────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS transaction_state (
-      key        TEXT PRIMARY KEY,
-      value      TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  `);
-
-  // ── knowledge_state (key-value, JSON value) ───────────────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS knowledge_state (
-      key        TEXT PRIMARY KEY,
-      value      TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  `);
-
-  // ── knowledge_audit_state (key-value, JSON value, mostly read-only) ──
-  db.run(`
-    CREATE TABLE IF NOT EXISTS knowledge_audit_state (
-      key        TEXT PRIMARY KEY,
-      value      TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    )
-  `);
-
-  // ── type_check_state / format_state / dependency_state ────
-  db.run(`
-    CREATE TABLE IF NOT EXISTS type_check_state (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      agent      TEXT NOT NULL,
-      session_id TEXT,
-      file_path  TEXT,
-      check_type TEXT,
-      message    TEXT,
-      status     TEXT DEFAULT 'active',
-      timestamp  INTEGER NOT NULL
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_typecheck_agent ON type_check_state(agent)`);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS format_state (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      agent      TEXT NOT NULL,
-      session_id TEXT,
-      file_path  TEXT,
-      rule_id    TEXT,
-      message    TEXT,
-      status     TEXT DEFAULT 'active',
-      timestamp  INTEGER NOT NULL
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_format_agent ON format_state(agent)`);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS dependency_state (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      agent        TEXT NOT NULL,
-      session_id   TEXT,
-      package_name TEXT,
-      version      TEXT,
-      check_type   TEXT,
-      message      TEXT,
-      status       TEXT DEFAULT 'active',
-      timestamp    INTEGER NOT NULL
-    )
-  `);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_dep_agent ON dependency_state(agent)`);
+  // ── 13 typed sub-state tables REMOVED (v7) ────────────────
+  // eslint_state, write_audit_state, compliance_records,
+  // knowledge_session_access, knowledge_cache_meta, tdd_enforcement_state,
+  // keystone_hashes, transaction_state, knowledge_state, knowledge_audit_state,
+  // type_check_state, format_state, dependency_state.
+  // All sub-state I/O uses substate_kv JSON blob (dbReadSubState/dbWriteSubState).
+  // These tables were never populated and had zero SQL readers.
 
   // ── gate_sessions (gate-state.json replacement — solves G1) ──
   db.run(`
@@ -638,6 +462,26 @@ export function initializeSchema(db: Database): void {
     writeLog(SRC, "INFO", { event: "DB-SCHEMA-MIGRATION", detail: "v6: session_log + dispatch_failed_log + session_map tables created" });
   } catch (e: any) {
     writeLog(SRC, "WARN", { event: "DB-SCHEMA-MIGRATION-SKIPPED", detail: `v6: ${e.message}` });
+  }
+
+  // v7: Drop 13 unused typed sub-state tables (never populated, zero SQL readers)
+  try {
+    const deadTables = [
+      "eslint_state", "write_audit_state", "compliance_records",
+      "knowledge_session_access", "knowledge_cache_meta", "tdd_enforcement_state",
+      "keystone_hashes", "transaction_state", "knowledge_state", "knowledge_audit_state",
+      "type_check_state", "format_state", "dependency_state",
+    ];
+    for (const t of deadTables) {
+      db.run(`DROP TABLE IF EXISTS ${t}`);
+    }
+    db.run(`
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (7, ?, 'Drop 13 unused typed sub-state tables — substate_kv is sole storage')
+    `, [Date.now()]);
+    writeLog(SRC, "INFO", { event: "DB-SCHEMA-MIGRATION", detail: "v7: dropped 13 unused typed tables" });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", { event: "DB-SCHEMA-MIGRATION-SKIPPED", detail: `v7: ${e.message}` });
   }
 
 }

@@ -1,10 +1,10 @@
 {
-  "version": "5.8.0",
+  "version": "5.9.0",
   "project": "booking-system",
-  "feature": "FW-PLAN-PLUGIN-FIX-VERIFY: Plugin system fix verification plan — 4 verification tasks for Fix A-I (capFailedEntries, TDD constants, isBusinessSourceFile, safe_shell strategy, hook-lifecycle, atomicWriteMachine, findLatestBackup, machine.json path, barrel export).",
-  "description": "Plugin system fix verification DAG: PLUGIN-VFY-LOAD (@Coder-BE framework-self-test), PLUGIN-VFY-ISBUSINESS (@Coder-BE isBusinessSourceFile consistency), PLUGIN-VFY-ATOMIC (@Coder-BE atomicWriteMachine integrity), PLUGIN-VFY-SHELL (@Coder-BE safe_shell strategy unification). 265 total tasks (archived).",
+  "feature": "DB-VFY: Database migration runtime verification — 23 tasks across 5 levels (L1 infrastructure, L2 runtime R/W, L3 gate operations, L4 audit log, L5 end-to-end). Verifies P2-A Steps 0-8 + P3 schema v4/v5/v6 + Step 8 cleanup + drain DB-ification.",
+  "description": "Database migration verification DAG: 5 sequential levels × (5+5+5+3+5) = 23 total tasks. Verifies all claims in database-migration-plan.md against actual runtime state. 269 total tasks (4 archived + 23 new + 242 historical).",
   "generated_by": "@Meta-Planner",
-  "generated_at": "2026-05-30T23:59:00.000Z",
+  "generated_at": "2026-06-17T12:00:00.000Z",
   "tasks": [
     {
       "id": "PLUGIN-VFY-LOAD",
@@ -12,9 +12,7 @@
       "description": "Run bun .opencode/scripts/framework-self-test.ts to verify all 16 plugins still load correctly without import errors after Fix A-I migrations: capFailedEntries extraction (Fix A), TDD constants unification (Fix B+C), isBusinessSourceFile unification (Fix D), safe_shell strategy unification (Fix E), hook-lifecycle.ts HOF adoption (Fix F), atomicWriteMachine migration (Fix G), findLatestBackup extraction (Fix H), machine.json path unification (Fix I), barrel export update.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-LOAD/test_report.json"
-      ],
+      "outputs": [".task_temp/PLUGIN-VFY-LOAD/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -22,17 +20,9 @@
         "section": "三、实施顺序 > 验证方法",
         "clause": "验证步骤 1: bun .opencode/scripts/framework-self-test.ts — 确保所有插件仍可加载"
       },
-      "target_files": [
-        ".opencode/scripts/framework-self-test.ts",
-        ".opencode/lib/state-utils.ts",
-        ".opencode/lib/tool-scope.ts",
-        ".opencode/lib/hook-lifecycle.ts",
-        ".opencode/lib/safe-edit-core.ts"
-      ],
+      "target_files": [".opencode/scripts/framework-self-test.ts", ".opencode/lib/state-utils.ts", ".opencode/lib/tool-scope.ts", ".opencode/lib/hook-lifecycle.ts", ".opencode/lib/safe-edit-core.ts"],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-LOAD/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-LOAD/test_report.json"],
         "logic_complete": "framework-self-test.ts executes without import errors; all plugin loading checks pass; no UNRESOLVED placeholders; all 9 sub-state segments valid",
         "tests_pass": "framework-self-test.ts all checks pass (0 failures, 0 import errors)",
         "guardian_approved": false
@@ -46,9 +36,7 @@
       "description": "Verify the unified isBusinessSourceFile function (regex implementation from tdd-after.ts, deployed to state-utils.ts per Fix D) returns identical results to the old includes()-based implementation on 4 canonical test paths. Also verify tdd-after.ts correctly imports from lib instead of using local copy.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"
-      ],
+      "outputs": [".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -56,14 +44,9 @@
         "section": "三、实施顺序 > 验证方法",
         "clause": "验证步骤 2: 验证 isBusinessSourceFile 行为一致 — 对 4 个测试路径新旧实现应返回相同结果"
       },
-      "target_files": [
-        ".opencode/lib/state-utils.ts",
-        ".opencode/plugins/tdd-after.ts"
-      ],
+      "target_files": [".opencode/lib/state-utils.ts", ".opencode/plugins/tdd-after.ts"],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"],
         "logic_complete": "For all 4 test paths (booking-backend/src/main.ts→true, .opencode/lib/gate-core.ts→false, src/app.spec.ts→false, booking-frontend/src/app.ts→true), the unified regex implementation returns results identical to the old includes() implementation",
         "tests_pass": "4/4 test paths produce identical true/false results between old and new implementations",
         "guardian_approved": false
@@ -76,12 +59,8 @@
       "name": "atomicWriteMachine Integrity Verification",
       "description": "Verify that after migrating 6 plugins (audit-after, cache-after, scope-after, tdd-after, uc7ks-after, session.ts) from fs.writeFileSync to atomicWriteMachine() per Fix G, the machine.json file has zero structural changes. Run git diff .opencode/state/machine.json and confirm no differences.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "PLUGIN-VFY-LOAD"
-      ],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"
-      ],
+      "dependencies": ["PLUGIN-VFY-LOAD"],
+      "outputs": [".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -89,17 +68,9 @@
         "section": "三、实施顺序 > 验证方法",
         "clause": "验证步骤 3: git diff .opencode/state/machine.json 应无差异"
       },
-      "target_files": [
-        ".opencode/state/machine.json",
-        ".opencode/plugins/audit-after.ts",
-        ".opencode/plugins/cache-after.ts",
-        ".opencode/plugins/scope-after.ts",
-        ".opencode/plugins/tdd-after.ts"
-      ],
+      "target_files": [".opencode/state/machine.json", ".opencode/plugins/audit-after.ts", ".opencode/plugins/cache-after.ts", ".opencode/plugins/scope-after.ts", ".opencode/plugins/tdd-after.ts"],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"],
         "logic_complete": "git diff .opencode/state/machine.json produces empty output; machine.json structure unchanged after atomicWriteMachine migration",
         "tests_pass": "0 lines changed in machine.json; atomicWriteMachine CAS-on-revision functions correctly",
         "guardian_approved": false
@@ -113,9 +84,7 @@
       "description": "Verify that scope-before.ts and audit-before.ts produce identical path-scope decisions after both adopting getEffectivePathScopeFilePath() from tool-scope.ts per Fix E. Test with 3 canonical shell commands: 'cp file.ts /tmp/' (should accept path check), 'bun .opencode/scripts/test.ts' (should skip), 'cat .opencode/state/machine.json' (should skip).",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-SHELL/test_report.json"
-      ],
+      "outputs": [".task_temp/PLUGIN-VFY-SHELL/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -123,481 +92,642 @@
         "section": "三、实施顺序 > 验证方法",
         "clause": "验证步骤 4: scope-before 和 audit-before 对 3 个命令应行为一致"
       },
-      "target_files": [
-        ".opencode/lib/tool-scope.ts",
-        ".opencode/plugins/scope-before.ts",
-        ".opencode/plugins/audit-before.ts"
-      ],
+      "target_files": [".opencode/lib/tool-scope.ts", ".opencode/plugins/scope-before.ts", ".opencode/plugins/audit-before.ts"],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-SHELL/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-SHELL/test_report.json"],
         "logic_complete": "For all 3 test commands, scope-before.ts and audit-before.ts produce identical path-scope decisions; both use getEffectivePathScopeFilePath() from tool-scope.ts",
         "tests_pass": "3/3 test commands produce identical scope decisions across both plugins",
         "guardian_approved": false
       },
       "skipped_reason": "safe_shell strategy unification (scope-before/audit-before both using getEffectivePathScopeFilePath) landed pre-Step-8.",
       "skipped_at": "2026-06-16T11:55:00.000Z"
+    },
+    {
+      "id": "DB-VFY-L1-01",
+      "name": "DB Infrastructure — File Existence & WAL Mode",
+      "description": "Verify DB file (.opencode/state/framework-state.db) exists, is readable, and WAL mode is active. Check for WAL/SHM companion files. Run PRAGMA journal_mode and confirm return value is 'wal'.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/DB-VFY-L1-01/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 0: 基础设施 (DB 初始化 + 连接管理)",
+        "clause": "DB 文件路径: .opencode/state/framework-state.db; WAL 模式验证: PRAGMA journal_mode → WAL"
+      },
+      "target_files": [".opencode/state/framework-state.db", ".opencode/state/framework-state.db-wal", ".opencode/state/framework-state.db-shm", ".opencode/lib/db-manager.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L1-01/test_report.json"],
+        "logic_complete": "framework-state.db exists and is readable; framework-state.db-wal and -shm companion files present; PRAGMA journal_mode returns 'wal'; getDb() singleton returns valid Database instance",
+        "tests_pass": "4/4 checks: file exists + WAL companion files + journal_mode=wal + getDb() connects",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L1-02",
+      "name": "DB Infrastructure — 29 Tables Existence",
+      "description": "Verify all 29 tables exist in the database. Query sqlite_master for all table names and compare against the expected list from the migration plan: 24 typed tables (machine_meta, machine_contracts, eslint_state, write_audit_state, compliance_records, knowledge_session_access, knowledge_cache_meta, tdd_enforcement_state, keystone_hashes, transaction_state, knowledge_state, knowledge_audit_state, type_check_state, format_state, dependency_state, gate_sessions, gate_drained_sessions, gate_session_index, gate_store_meta, gate_audit_history, substate_kv, schema_version, audit_log, audit_trail) + 4 auxiliary + sqlite_sequence.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/DB-VFY-L1-02/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "三、数据库 Schema 设计 §3.2 + 11.1 DB 运行时状态",
+        "clause": "DB 表数: 29 张 (24 typed + 4 auxiliary + sqlite_sequence)"
+      },
+      "target_files": [".opencode/state/framework-state.db", ".opencode/lib/db-manager.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L1-02/test_report.json"],
+        "logic_complete": "SELECT name FROM sqlite_master WHERE type='table' returns exactly 29 table names matching the expected list; all 24 typed tables confirmed present; schema_version table contains v6",
+        "tests_pass": "29/29 expected tables found; 0 missing; 0 unexpected",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L1-03",
+      "name": "DB Infrastructure — PRAGMA integrity_check",
+      "description": "Run PRAGMA integrity_check on the database and confirm the result is 'ok'. This verifies no data corruption has occurred during the 9-step migration.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/DB-VFY-L1-03/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "七、风险与缓解 + 11.1 DB 运行时状态",
+        "clause": "PRAGMA integrity_check: ok; 风险缓解: 定期 PRAGMA integrity_check"
+      },
+      "target_files": [".opencode/state/framework-state.db", ".opencode/lib/db-manager.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L1-03/test_report.json"],
+        "logic_complete": "PRAGMA integrity_check returns 'ok'; free_list count reported; page_count reported; no corruption detected",
+        "tests_pass": "integrity_check result = 'ok'; 0 errors",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L1-04",
+      "name": "DB Infrastructure — Schema Version = v6",
+      "description": "Query the schema_version table and confirm the latest applied version is 6. Verify all version entries (v1 through v6) are present with correct applied_at timestamps and comments.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/DB-VFY-L1-04/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Schema 演进时间线 + 11.1 DB 运行时状态",
+        "clause": "Schema 版本: v6 (initial + substate_kv + last_full_scan + file_baseline_kv + deliverables columns + session/dispatch tables)"
+      },
+      "target_files": [".opencode/state/framework-state.db", ".opencode/lib/db-manager.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L1-04/test_report.json"],
+        "logic_complete": "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1 returns 6; versions 1-6 all present with correct comments: v1=initial, v2=substate_kv, v3=eslint_state.last_full_scan, v4=file_baseline_kv, v5=deliverables columns, v6=session_log+dispatch_failed_log+session_map",
+        "tests_pass": "Latest schema version = 6; all 6 migration entries present",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L1-05",
+      "name": "DB Infrastructure — Self-Test DB Checks Pass",
+      "description": "Run framework-self-test.ts and verify all DB-related checks pass: Check 14 (DB WAL mode), Check 15 (DB tables), Check 24 (DB size), Check 38 (v6 DB schema), Check 39 (S41 schema file integrity). This consolidates the infrastructure health baseline.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/DB-VFY-L1-05/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "五、子系统兼容性保证 §5.5 + 11.1",
+        "clause": "Self-test 基线: framework-self-test.ts — 39/40 PASS (Check 33 为预先存在的 stale dispatch entries)"
+      },
+      "target_files": [".opencode/scripts/framework-self-test.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L1-05/test_report.json"],
+        "logic_complete": "framework-self-test.ts checks 14, 15, 24, 38, 39 all return PASS; any failure must be explained in test_report.json",
+        "tests_pass": "5/5 DB-related self-test checks PASS (14, 15, 24, 38, 39)",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L2-01",
+      "name": "Runtime R/W — 12 Substate DB-First Read",
+      "description": "Verify all 12 sub-states (eslint_state, type_check_state, dependency_state, format_state, write_audit_state, knowledge_cache_state, compliance_records, knowledge_audit_state, tdd_enforcement_state, keystone_hashes, transaction_state, knowledge_state) can be read via the readSubState() proxy (DB-only post Step 8). Each read must return a non-null, structurally valid object.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L1-01", "DB-VFY-L1-02", "DB-VFY-L1-03", "DB-VFY-L1-04", "DB-VFY-L1-05"],
+      "outputs": [".task_temp/DB-VFY-L2-01/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 2: 双写过渡层 (substate-manager.ts 代理模式) + Step 8: 清理",
+        "clause": "新 readSubState: dbReadSubState() 优先 → null/error 时 fallback JSON; Step 8 后 DB-only"
+      },
+      "target_files": [".opencode/lib/substate-manager.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L2-01/test_report.json"],
+        "logic_complete": "All 12 sub-state reads return non-null typed objects; no SUBSTATE-READ-FAILED log events; readSubState uses DB-only path (no JSON fallback invocation)",
+        "tests_pass": "12/12 sub-state reads successful; 0 fallback to JSON",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L2-02",
+      "name": "Runtime R/W — atomicWriteSubState DB Transaction",
+      "description": "Verify dbAtomicWriteSubState() correctly performs transactional read-modify-write on the two highest-frequency sub-states: eslint_state and write_audit_state. Write a known value, read back via dbReadSubState, confirm data integrity. Test concurrent modification recovery (simulated CAS failure).",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L1-01", "DB-VFY-L1-02", "DB-VFY-L1-03", "DB-VFY-L1-04", "DB-VFY-L1-05"],
+      "outputs": [".task_temp/DB-VFY-L2-02/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 5: 高频子状态迁移 (eslint_state, write_audit_state)",
+        "clause": "atomicWriteSubState 改为使用 dbAtomicWriteSubState 进行 SQLite 事务级原子读-改-写（解决 G3 CAS 弱验证、G4 忙等自旋）"
+      },
+      "target_files": [".opencode/lib/db-state-manager.ts", ".opencode/lib/substate-manager.ts", ".opencode/lib/state-utils.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L2-02/test_report.json"],
+        "logic_complete": "dbAtomicWriteSubState on eslint_state and write_audit_state performs transactional read-modify-write; modified data persists and is readable; concurrent modification retry works (maxRetries=3); G3 CAS weak validation resolved; G4 busy-spin replaced by busy_timeout=5000",
+        "tests_pass": "2/2 sub-states test: eslint_state atomic write + write_audit_state atomic write; data integrity confirmed post-write",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L2-03",
+      "name": "Runtime R/W — DB Priority Read Correctness",
+      "description": "Compare data read via DB path (dbReadSubState) against frozen JSON snapshots (Step 8 frozen files) for all 12 substate keys. Since JSON snapshots are frozen at Step 8 dual-write cutoff, DB data should equal or supersede JSON data. Verify no structural corruption in either path.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L1-01", "DB-VFY-L1-02", "DB-VFY-L1-03", "DB-VFY-L1-04", "DB-VFY-L1-05"],
+      "outputs": [".task_temp/DB-VFY-L2-03/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 2: 双写过渡层 + Step 8: 清理",
+        "clause": "12 个 JSON 子状态文件: 冻结为只读后备，DB 为实际读写目标"
+      },
+      "target_files": [".opencode/lib/substate-manager.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L2-03/test_report.json"],
+        "logic_complete": "DB read returns data for all 12 keys; JSON frozen snapshots exist and are readable; DB data is structurally consistent with JSON snapshots (DB may have newer data); no structural corruption",
+        "tests_pass": "12/12 substate DB reads produce structurally valid objects; JSON snapshots present on disk",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L2-04",
+      "name": "Runtime R/W — JSON Fallback Path (DB Unavailable)",
+      "description": "Simulate DB unavailability (e.g., by renaming framework-state.db temporarily) and verify the readSubState/writeSubState proxy correctly falls back. For readSubState: when dbReadSubState returns null, the caller should handle gracefully (post Step 8, JSON path is removed — verify this returns empty object {}). Verify no crash or unhandled exception.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L1-01", "DB-VFY-L1-02", "DB-VFY-L1-03", "DB-VFY-L1-04", "DB-VFY-L1-05"],
+      "outputs": [".task_temp/DB-VFY-L2-04/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "七、风险与缓解 + Step 2",
+        "clause": "DB 读取失败自动 fallback 到 JSON (Step 2); Step 8 后 JSON fallback 移除，返回 {} 空对象"
+      },
+      "target_files": [".opencode/lib/substate-manager.ts", ".opencode/lib/db-state-manager.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L2-04/test_report.json"],
+        "logic_complete": "DB unavailable → readSubState returns empty {} (no throw); writeSubState returns false; no crash; DB-READ-FALLBACK or DB-READ-SUBSTATE-FAILED log event recorded; DB restored successfully after test",
+        "tests_pass": "Graceful degradation confirmed: no crash on DB unavailability; read returns {}, write returns false",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L2-05",
+      "name": "Runtime R/W — Step 8 Cleanup Verification",
+      "description": "Verify Step 8 cleanup claims: (a) substate-manager.ts is DB-only (no JSON write path), (b) audit-log.ts is DB-only (no JSONL appendFileSync), (c) no references to atomicWriteMachine() remain in codebase, (d) no references to readMachine()/writeMachine() remain, (e) uc7ks-schema.ts dead code removed, (f) gate-core.ts uses writeLogSafe for lazy loading. Audit grep results for all cleanup items from the migration plan §11.3.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L1-01", "DB-VFY-L1-02", "DB-VFY-L1-03", "DB-VFY-L1-04", "DB-VFY-L1-05"],
+      "outputs": [".task_temp/DB-VFY-L2-05/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 8: 清理 + 最终验证 + 11.3 Step 8 清理清单",
+        "clause": "15 项清理 (8 删除 + 4 DB化 + 3 修复) 全部标记 ✅ 已完成"
+      },
+      "target_files": [".opencode/lib/substate-manager.ts", ".opencode/lib/audit-log.ts", ".opencode/lib/state-utils.ts", ".opencode/lib/uc7ks-schema.ts", ".opencode/lib/gate-core.ts", ".opencode/lib/code-quality-gate.ts", ".opencode/lib/safe-bash-core.ts", ".opencode/lib/state-transaction.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L2-05/test_report.json"],
+        "logic_complete": "grep for 'atomicWriteMachine' returns 0 result (deleted); grep for 'readMachine\\(|writeMachine\\(' returns 0 business-code result; uc7ks-schema.ts has no re-export; audit-log.ts has no 'appendFileSync'; gate-core.ts uses writeLogSafe (not writeLog directly); safe-bash-core.ts uses writeLog(); state-transaction.ts references atomicWriteSubState (not atomicWriteMachine); substate-manager.ts is 104 lines DB-only (no JSON write)",
+        "tests_pass": "8/8 cleanup items verified; 0 regression references found",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L3-01",
+      "name": "Gate Operations — createSession DB Write",
+      "description": "Verify createSession() correctly writes a new gate session to the gate_sessions DB table. Call createSession with a test task description, then query gate_sessions table directly and confirm the row exists with gate_status='checked', correct session_id, and task_description.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L2-01", "DB-VFY-L2-02", "DB-VFY-L2-03", "DB-VFY-L2-04", "DB-VFY-L2-05"],
+      "outputs": [".task_temp/DB-VFY-L3-01/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 3: gate-state.json 迁移 (解决 G1)",
+        "clause": "createSession → DB gate_sessions 表; saveGateStore → dbSaveGateStore()"
+      },
+      "target_files": [".opencode/lib/gate-core.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L3-01/test_report.json"],
+        "logic_complete": "createSession called → gate_sessions DB table has new row with gate_status='checked'; SQL query SELECT * FROM gate_sessions WHERE session_id = ? returns the created session; session_id format matches expected pattern (cg_ses_*)",
+        "tests_pass": "1/1 createSession DB write verified; gate_sessions row exists with correct status",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L3-02",
+      "name": "Gate Operations — armSession with Deadline + Deliverables",
+      "description": "Verify armSession() correctly updates the gate_sessions row: gate_status='armed', confirmed_at populated, expires_at = now + 24h, plan_summary stored. Verify deliverables hard constraint (v5 schema): declared_deliverables JSON stored; for non-exempt agents, rejection when declared_deliverables missing. Test with @Coder-BE (non-exempt) and @Orchestrator (exempt).",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L2-01", "DB-VFY-L2-02", "DB-VFY-L2-03", "DB-VFY-L2-04", "DB-VFY-L2-05"],
+      "outputs": [".task_temp/DB-VFY-L3-02/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 3 + Schema v5 (gate_sessions deliverables columns)",
+        "clause": "armSession: gate_status='armed', confirmed_at + expires_at deadline; v5: 6 列 deliverables 硬约束"
+      },
+      "target_files": [".opencode/lib/gate-core.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L3-02/test_report.json"],
+        "logic_complete": "armSession with declared_deliverables succeeds for @Coder-BE (non-exempt); armSession without declared_deliverables is rejected; @Orchestrator (exempt) works without deliverables; gate_sessions row updated: status='armed', confirmed_at not null, expires_at = confirmed_at + 24h, plan_summary stored, declared_deliverables JSON stored",
+        "tests_pass": "3/3 scenarios: non-exempt with deliverables ✅, non-exempt without ❌, exempt without ✅",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L3-03",
+      "name": "Gate Operations — completeSession DB Update",
+      "description": "Verify completeSession() correctly updates the gate_sessions row: gate_status='completed', consumed_at populated, execution_summary stored. After completion, query the DB directly and confirm the row state. Also verify that calling completeSession on a non-armed session is rejected.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L2-01", "DB-VFY-L2-02", "DB-VFY-L2-03", "DB-VFY-L2-04", "DB-VFY-L2-05"],
+      "outputs": [".task_temp/DB-VFY-L3-03/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 3: gate-state.json 迁移 + 五、子系统兼容性保证 §5.7",
+        "clause": "completeSession → DB gate_sessions 表 status→'completed'; gate_sessions 表原子性保证 check→arm→complete→drain 链路不断裂"
+      },
+      "target_files": [".opencode/lib/gate-core.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L3-03/test_report.json"],
+        "logic_complete": "completeSession updates gate_sessions row: status='completed', consumed_at populated, execution_summary stored; completing a non-armed session returns 'rejected'; gate_audit_history table has audit entry for the complete event",
+        "tests_pass": "Correct state machine transition: armed→completed; rejection for invalid state (non-armed); audit trail recorded",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L3-04",
+      "name": "Gate Operations — drainStaleSessions DB Archive",
+      "description": "Verify drainStaleSessions() correctly moves stale sessions: (a) original row removed from gate_sessions, (b) new row inserted into gate_drained_sessions with drain_reason, (c) dbArchiveDrainedSession function operates correctly. Test with a session that has gate_status='checked' and created_at > 48h ago (simulated).",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L2-01", "DB-VFY-L2-02", "DB-VFY-L2-03", "DB-VFY-L2-04", "DB-VFY-L2-05"],
+      "outputs": [".task_temp/DB-VFY-L3-04/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 8: drain DB 化 + §11.3 清理清单",
+        "clause": "drain 归档 DB 化: gate-state.drained_sessions.json → gate_drained_sessions DB 表; dbArchiveDrainedSession"
+      },
+      "target_files": [".opencode/lib/gate-core.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L3-04/test_report.json"],
+        "logic_complete": "drainStaleSessions identifies sessions stale >48h (checked) or >24h (armed); drained session removed from gate_sessions; drained session inserted into gate_drained_sessions with drain_reason; drainStaleSessions returns count of drained sessions; gate-store-meta active_sessions updated",
+        "tests_pass": "Drain operation moves session from gate_sessions → gate_drained_sessions; gate_sessions count decremented; gate_drained_sessions count incremented",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L3-05",
+      "name": "Gate Operations — approveDeliverables 6-Column Hard Constraint",
+      "description": "Verify approveDeliverables() correctly populates the 6 deliverables columns in gate_sessions (v5 schema): declared_deliverables (already set at arm), submitted_deliverables, deliverables_approved_by, deliverables_approved_at, deliverables_approved_note, approval_required. Test full flow: check → arm (with declared_deliverables) → submit_deliverables → approve_deliverables → complete.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L2-01", "DB-VFY-L2-02", "DB-VFY-L2-03", "DB-VFY-L2-04", "DB-VFY-L2-05"],
+      "outputs": [".task_temp/DB-VFY-L3-05/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Schema v5: gate_sessions 表扩展 6 列 deliverables 硬约束",
+        "clause": "gate_sessions 表扩展 6 列 deliverables 硬约束（declared_deliverables、submitted_deliverables、deliverables_approved_by/_at/_note、approval_required）"
+      },
+      "target_files": [".opencode/lib/gate-core.ts", ".opencode/lib/db-state-manager.ts", ".opencode/scripts/mcp-tools/compliance-gate.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L3-05/test_report.json"],
+        "logic_complete": "approveDeliverables populates: submitted_deliverables (from submit step), deliverables_approved_by='@Orchestrator', deliverables_approved_at ISO timestamp, deliverables_approved_note, approval_required=false; all 6 deliverable columns present in gate_sessions row after flow; query confirms column values",
+        "tests_pass": "Full deliverables flow: declare → submit → approve; all 6 columns populated; SQL verification of each column",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L4-01",
+      "name": "Audit Log — writeAuditLogEntry DB INSERT",
+      "description": "Verify writeAuditLogEntry() correctly inserts a row into the audit_log DB table (G6 resolved). Call writeAuditLogEntry with a test event, then query audit_log table directly: confirm row exists with correct event_type, session_id, detail JSON, and timestamp.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L3-01", "DB-VFY-L3-02", "DB-VFY-L3-03", "DB-VFY-L3-04", "DB-VFY-L3-05"],
+      "outputs": [".task_temp/DB-VFY-L4-01/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 4: 审计日志迁移 (解决 G6/G7) + Step 8: 清理",
+        "clause": "writeAuditLogEntry: DB INSERT; G6 appendFileSync 审计日志 → DB INSERT + JSONL 双写 → Step 8 DB-only"
+      },
+      "target_files": [".opencode/lib/audit-log.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L4-01/test_report.json"],
+        "logic_complete": "writeAuditLogEntry writes to audit_log DB table; query returns the inserted row with correct event_type, session_id, detail JSON, timestamp; no appendFileSync call in audit-log.ts (Step 8); logAuditEntry delegates to writeAuditLogEntry",
+        "tests_pass": "Audit log entry written to DB; SQL SELECT confirms correct data; G6 resolved",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L4-02",
+      "name": "Audit Log — flushAuditTrail DB Upsert",
+      "description": "Verify flushAuditTrail() correctly upserts a row into the audit_trail DB table (G7 resolved). Call flushAuditTrail with a session ID and trail data, then query audit_trail table directly: confirm row exists (or was updated) with correct session_id, trail_data JSON, and updated_at.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L3-01", "DB-VFY-L3-02", "DB-VFY-L3-03", "DB-VFY-L3-04", "DB-VFY-L3-05"],
+      "outputs": [".task_temp/DB-VFY-L4-02/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 4: 审计日志迁移 (解决 G6/G7)",
+        "clause": "flushAuditTrail: DB upsert; G7 flushAuditTrail 非原子 → DB 事务"
+      },
+      "target_files": [".opencode/lib/audit-log.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L4-02/test_report.json"],
+        "logic_complete": "flushAuditTrail upserts to audit_trail DB table; query returns the row with correct session_id, trail_data contains the flushed entry, updated_at reflects flush time; repeat flush appends to trail_data array; G7 non-atomic write resolved",
+        "tests_pass": "Audit trail flushed to DB; upsert behavior correct (INSERT on first call, UPDATE on subsequent); G7 resolved",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L4-03",
+      "name": "Audit Log — JSONL Dual-Write Stopped (Step 8)",
+      "description": "Verify Step 8 cleanup claim: JSONL dual-write has been stopped. Grep audit-log.ts for 'appendFileSync', 'writeFileSync' with path containing 'audit_log'. Confirm audit-log.ts is 42 lines (DB-only, no file I/O for audit writes). Verify no other module writes to audit_log.jsonl.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L3-01", "DB-VFY-L3-02", "DB-VFY-L3-03", "DB-VFY-L3-04", "DB-VFY-L3-05"],
+      "outputs": [".task_temp/DB-VFY-L4-03/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 8: 清理 + §11.3 清理清单",
+        "clause": "audit_log.jsonl 双写: 已停止 JSONL 写入; JSONL 作为人类可读备份 → 仅 DB INSERT"
+      },
+      "target_files": [".opencode/lib/audit-log.ts", ".opencode/lib/db-state-manager.ts", ".opencode/lib/framework-enforcer.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L4-03/test_report.json"],
+        "logic_complete": "audit-log.ts has 0 references to appendFileSync; 0 references to 'audit_log.jsonl' in writeFileSync; audit_log table is sole destination for writeAuditLogEntry; any JSONL file is stale (pre-Step 8) and should be tagged as frozen",
+        "tests_pass": "0 appendFileSync in audit-log.ts; 0 JSONL write paths; audit_log.jsonl file state documented (frozen or absent)",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L5-01",
+      "name": "E2E — framework-self-test.ts 39/40 PASS",
+      "description": "Run the full framework-self-test.ts (all 40 checks) and verify: (a) 39/40 PASS as documented in migration plan §11.1, (b) only Check 33 (stale dispatch entries) fails — this is a pre-existing failure unrelated to DB migration, (c) all DB-related checks (14, 15, 24, 38, 39) pass. Capture the full output for the verification report.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-01/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "11.1 DB 运行时状态 + 11.2 G1-G13 问题矩阵",
+        "clause": "Self-test 基线: framework-self-test.ts — 39/40 PASS（Check 33 为预先存在的 stale dispatch entries）"
+      },
+      "target_files": [".opencode/scripts/framework-self-test.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L5-01/test_report.json"],
+        "logic_complete": "bun .opencode/scripts/framework-self-test.ts runs to completion; 39/40 checks PASS; only Check 33 fails (pre-existing stale dispatch entries); all DB checks (14,15,24,38,39) PASS; exit code 1 (expected due to Check 33)",
+        "tests_pass": "39/40 PASS; 0 new failures introduced by DB migration",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L5-02",
+      "name": "E2E — framework-doctor.ts --strict 12/13 PASS",
+      "description": "Run framework-doctor.ts --strict and verify 12/13 checks pass. Check 6 (uncommitted changes detection) may fail if there are uncommitted files; this is expected and should auto-recover after commit. Verify DB integrity check (doctor check for PRAGMA integrity_check) passes.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-02/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "五、子系统兼容性保证 §5.5 + Step 8 验证",
+        "clause": "framework-doctor 12/13 PASS（Check 6 检测未提交变更，提交后自动恢复）"
+      },
+      "target_files": [".opencode/scripts/framework-doctor.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L5-02/test_report.json"],
+        "logic_complete": "framework-doctor.ts --strict runs; 12/13 PASS (or 13/13 if committed); Check 6 is the only possible failure (uncommitted files); DB integrity check passes; no critical health issues",
+        "tests_pass": "≥12/13 PASS; DB health PASS; exit code 0 if 13/13, 1 if Check 6 fails",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L5-03",
+      "name": "E2E — Complete Gate Lifecycle End-to-End",
+      "description": "Execute the full compliance gate lifecycle end-to-end: (1) compliance_gate_check → gate_sessions row created, (2) compliance_gate_confirm → armed with deliverables, (3) compliance_gate_submit_deliverables → submitted, (4) compliance_gate_approve_deliverables → approved, (5) compliance_gate_complete → completed. Verify every step writes correctly to gate_sessions DB table. This is the single most comprehensive integration test for the DB migration.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-03/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "Step 3 + Step 8 + Schema v5 + §11.1 集成测试",
+        "clause": "集成测试: 3/3 PASS（auto-declare、normal lifecycle、resume lifecycle）; Gate 全生命周期 check→confirm→submit→approve→complete"
+      },
+      "target_files": [".opencode/scripts/mcp-tools/compliance-gate.ts", ".opencode/lib/gate-core.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L5-03/test_report.json"],
+        "logic_complete": "Full gate lifecycle executes without error; each step verified via DB query: (1) check → gate_sessions row with status='checked', (2) confirm → status='armed' with deliverables, (3) submit → submitted_deliverables populated, (4) approve → approved columns populated, (5) complete → status='completed'; gate-state.json.index.json updated; gate_audit_history has entries for all steps",
+        "tests_pass": "5/5 lifecycle steps pass; DB state correct at each step; full chain intact",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L5-04",
+      "name": "E2E — G1-G13 Final State Verification",
+      "description": "Audit the G1-G13 problem matrix against the migration plan §11.2 claims: 12/13 resolved (G1, G3-G13) + 1/13 mitigated (G2). For each resolved G-problem, verify the resolution mechanism is in place: G1 (gate_sessions DB table), G3 (dbAtomicWriteSubState), G4 (busy_timeout=5000), G5 (writeMachineMeta+writeSubState dual-write proxy), G6 (DB INSERT), G7 (DB upsert), G8 (writeLog unified), G9 (DB intermediate layer), G10 (dead code removed), G11 (file_baseline_kv table), G12 (substate-types.ts SubStateMap), G13 (readSubState DB-first). For G2, confirm machine_meta.last_updated is cleaned in DB but compatible field exists in JSON.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-04/test_report.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "一、当前状态架构的问题矩阵 + §11.2 G1-G13 问题矩阵（最终状态）",
+        "clause": "最终统计：12/13 完全解决（G1, G3-G13）+ 1/13 缓解（G2 低影响设计约束）"
+      },
+      "target_files": [".opencode/lib/gate-core.ts", ".opencode/lib/db-state-manager.ts", ".opencode/lib/substate-manager.ts", ".opencode/lib/audit-log.ts", ".opencode/lib/state-utils.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L5-04/test_report.json"],
+        "logic_complete": "G1: gate_sessions table exists with atomic writes → resolved; G2: machine_meta.last_updated DB-only, JSON field preserved (307B) → mitigated; G3: dbAtomicWriteSubState replaces CAS → resolved; G4: busy_timeout=5000 in db-manager.ts → resolved; G5: writeMachineMeta+writeSubState used in code-quality-gate.ts → resolved; G6: DB INSERT in audit-log.ts → resolved; G7: DB upsert in audit-log.ts → resolved; G8: writeLog in safe-bash-core.ts → resolved; G9: DB as intermediate layer → resolved; G10: 0 references to atomicWriteMachine → resolved; G11: file_baseline_kv table exists → resolved; G12: SubStateMap type in substate-types.ts → resolved; G13: readSubState DB-first in substate-manager.ts → resolved",
+        "tests_pass": "12/13 resolved verified; 1/13 mitigated (G2) verified as low-impact",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "DB-VFY-L5-05",
+      "name": "E2E — Stale Dispatch Entries State Check",
+      "description": "Document the current state of Check 33 (stale dispatch entries) from framework-self-test.ts. This is a pre-existing failure unrelated to DB migration. Verify: (a) Check 33 is the ONLY failing check, (b) no new stale entries were introduced by the verification tasks, (c) the dispatch_failed_log table (v6 schema) exists and is functional for tracking failed dispatches.",
+      "agent": "@Coder-BE",
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-05/test_report.json"],
+      "priority": "P2",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/database-migration-plan.md",
+        "section": "11.1 DB 运行时状态 + Schema v6",
+        "clause": "Self-test 基线: 39/40 PASS（Check 33 为预先存在的 stale dispatch entries）; v6 新增 dispatch_failed_log 表"
+      },
+      "target_files": [".opencode/scripts/framework-self-test.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/DB-VFY-L5-05/test_report.json"],
+        "logic_complete": "Check 33 is confirmed as the only failing self-test check; dispatch_failed_log table exists (v6 schema); session_log and session_map tables exist (v6 schema); stale dispatch entries count documented; no new stale entries introduced",
+        "tests_pass": "Check 33 failure is pre-existing; v6 dispatch tables exist; 0 new stale entries from verification",
+        "guardian_approved": false
+      }
     }
   ],
   "execution_order": {
-    "validate_baseline_parallel": [
-      "VALIDATE-SUB-BASELINE",
-      "VALIDATE-SUB-AUDIT"
-    ],
-    "validate_configs_all": [
-      "VALIDATE-SUB-MP-CONFIG",
-      "VALIDATE-SUB-ORC-CONFIG",
-      "VALIDATE-SUB-ARCH-CONFIG",
-      "VALIDATE-SUB-CBE-CONFIG",
-      "VALIDATE-SUB-CFE-CONFIG",
-      "VALIDATE-SUB-GD-CONFIG",
-      "VALIDATE-SUB-ARB-CONFIG",
-      "VALIDATE-SUB-CICD-CONFIG",
-      "VALIDATE-SUB-KC-CONFIG",
-      "VALIDATE-SUB-SA-CONFIG"
-    ],
-    "validate_func_all": [
-      "VALIDATE-SUB-MP-FUNC",
-      "VALIDATE-SUB-ORC-FUNC",
-      "VALIDATE-SUB-ARCH-FUNC",
-      "VALIDATE-SUB-CBE-FUNC",
-      "VALIDATE-SUB-CFE-FUNC",
-      "VALIDATE-SUB-GD-FUNC",
-      "VALIDATE-SUB-ARB-FUNC",
-      "VALIDATE-SUB-CICD-FUNC",
-      "VALIDATE-SUB-KC-FUNC",
-      "VALIDATE-SUB-SA-FUNC"
-    ],
-    "validate_techdebt_parallel": [
-      "VALIDATE-SUB-TD-WV002",
-      "VALIDATE-SUB-TD-WV007",
-      "VALIDATE-SUB-TD-WV008",
-      "VALIDATE-SUB-TD-008",
-      "VALIDATE-SUB-TD-009",
-      "VALIDATE-SUB-TD-011"
-    ],
-    "validate_summary": [
-      "VALIDATE-SUB-SUMMARY"
-    ],
-    "retest_verification": [
-      "T-RETEST-SCOPE",
-      "T-RETEST-AUDIT"
-    ],
-    "phase_0_bugfix": [
-      "BUG-SENDCODE-ANALYSIS"
-    ],
-    "phase_0b_bugfix_red": [
-      "BUG-SENDCODE-RED"
-    ],
-    "phase_0c_bugfix_green": [
-      "BUG-SENDCODE-GREEN"
-    ],
-    "phase_0d_bugfix_review": [
-      "BUG-SENDCODE-REVIEW"
-    ],
-    "phase_1_backend": [
-      "B-MSG-CONTRACT",
-      "B-MSG-RED-001"
-    ],
-    "phase_2_parallel": {
-      "backend": [
-        "B-MSG-GREEN-001"
-      ],
-      "frontend": [
-        "B-MSG-RED-FE"
-      ]
-    },
-    "phase_3_frontend": [
-      "B-MSG-GREEN-FE-COMPONENT",
-      "B-MSG-GREEN-FE-SERVICE"
-    ],
-    "phase_4_integration": [
-      "B-MSG-GREEN-FE-HEADER",
-      "B-MSG-GREEN-FE-STORE"
-    ],
-    "phase_5_review": [
-      "B-MSG-GUARDIAN"
-    ],
-    "phase_fw_optimization": [
-      "OPC-FW-ACL",
-      "OPC-FW-DAG-GATE"
-    ],
-    "phase_fw_selfcheck_audit": [
-      "OPC-FW-SELFCHECK",
-      "OPC-FW-AUDIT"
-    ],
-    "univ_phase_0": [
-      "UNIV-P0-E"
-    ],
-    "univ_phase_1": [
-      "UNIV-P1-C",
-      "UNIV-P1-D"
-    ],
-    "univ_phase_2": [
-      "UNIV-P2-A",
-      "UNIV-P2-B",
-      "UNIV-P2-J"
-    ],
-    "univ_phase_3": [
-      "UNIV-P3-F",
-      "UNIV-P3-G"
-    ],
-    "univ_phase_4_parallel": [
-      "UNIV-P4-H",
-      "UNIV-P4-I"
-    ],
-    "univ_phase_5_parallel": [
-      "UNIV-P5-K",
-      "UNIV-P5-L",
-      "UNIV-P5-M",
-      "UNIV-P5-N"
-    ],
-    "univ_phase_6": [
-      "UNIV-P6-O"
-    ],
-    "fw_repair_p0": [
-      "FW-REPAIR-01",
-      "FW-REPAIR-02",
-      "FW-REPAIR-04"
-    ],
-    "fw_repair_p0_dep": [
-      "FW-REPAIR-03"
-    ],
-    "fw_repair_p1": [
-      "FW-REPAIR-05",
-      "FW-REPAIR-06",
-      "FW-REPAIR-07",
-      "FW-REPAIR-08"
-    ],
-    "fw_repair_p2": [
-      "FW-REPAIR-09",
-      "FW-REPAIR-10",
-      "FW-REPAIR-11"
-    ],
-    "phase_review_p0": [
-      "RVW-REVIEW-01",
-      "RVW-REVIEW-02",
-      "RVW-REVIEW-03"
-    ],
-    "phase_review_p1": [
-      "RVW-REVIEW-04",
-      "RVW-REVIEW-05",
-      "RVW-REVIEW-06"
-    ],
-    "phase_review_p2": [
-      "RVW-REVIEW-07",
-      "RVW-REVIEW-08",
-      "RVW-REVIEW-09"
-    ],
-    "rvw2_p0_independent": [
-      "RVW2-INSTALL-HOOKS",
-      "TD-2026-010-REPAY"
-    ],
-    "rvw2_p0_dependent": [
-      "RVW2-ENFORCE-STRICT",
-      "RVW2-PURGE-SESSIONS"
-    ],
-    "rvw2_p1_independent": [
-      "RVW2-FIX-CRLF",
-      "RVW2-REGEN-DIGESTS",
-      "RVW2-INSTALL-MCP-DEPS",
-      "RVW2-FIX-WAL-DUP"
-    ],
-    "rvw2_p1_dependent": [
-      "RVW2-FIX-SELFTEST",
-      "RVW2-FIX-PATHS"
-    ],
-    "rvw2_p2": [
-      "RVW2-FIX-DAG-TRACE",
-      "RVW2-CI-CHECKS"
-    ],
-    "rvw_review_01_txnfix": [
-      "RVW-REVIEW-01-TXNFIX-RED",
-      "RVW-REVIEW-01-TXNFIX-GREEN",
-      "RVW-REVIEW-01-TXNFIX-REVIEW"
-    ],
-    "tech_debt_repayment": [
-      "T-TECHDEBT-013",
-      "T-TECHDEBT-014",
-      "T-TECHDEBT-015"
-    ],
-    "fw_governance_p0_independent": [
-      "FW-FIX-F1",
-      "FW-FIX-F2",
-      "FW-FIX-F3",
-      "FW-FIX-F4",
-      "FW-FIX-F5",
-      "FW-FIX-F6",
-      "FW-FIX-F7"
-    ],
-    "fw_governance_p1_dependent": [
-      "FW-HARDEN-F1-TEST",
-      "FW-HARDEN-F6-TEST",
-      "FW-HARDEN-CROSS"
-    ],
-    "fw_governance_p2_audit": [
-      "FW-GOVERN-AUDIT"
-    ],
-    "fw_safe_phase1_independent": [
-      "FW-SAFE-P1-001",
-      "T-TECHDEBT-016"
-    ],
-    "fw_safe_phase1_sequential": [
-      "FW-SAFE-P1-002",
-      "FW-SAFE-P1-003"
-    ],
-    "fw_safe_phase2": [
-      "FW-SAFE-P2-001",
-      "FW-SAFE-P2-002"
-    ],
-    "fw_safe_phase3_independent": [
-      "FW-SAFE-P3-001",
-      "FW-SAFE-P5-001",
-      "FW-SAFE-P5-002"
-    ],
-    "fw_safe_phase3_sequential": [
-      "FW-SAFE-P3-002",
-      "FW-SAFE-P3-003"
-    ],
-    "fw_safe_phase4_parallel": [
-      "FW-SAFE-P4-001",
-      "FW-SAFE-P4-002",
-      "FW-SAFE-P4-003"
-    ],
-    "fw_safe_phase5_sequential": [
-      "FW-SAFE-P5-003",
-      "FW-SAFE-P5-004"
-    ],
-    "fw_safe_phase6": [
-      "FW-SAFE-P6-001",
-      "FW-SAFE-P6-002",
-      "FW-SAFE-P6-003"
-    ],
-    "fw_safe_phase7": [
-      "FW-SAFE-P7-001",
-      "FW-SAFE-P7-002",
-      "FW-SAFE-P7-003"
-    ],
-    "fw_safe_audit": [
-      "FW-SAFE-AUDIT"
-    ],
-    "fw_crash_fix": [
-      "FW-CRASH-MITIGATE",
-      "FW-CRASH-ANALYSIS",
-      "FW-CRASH-FIX-PLUGIN",
-      "FW-CRASH-RESTORE",
-      "FW-CRASH-VALIDATE"
-    ],
-    "fw_harness_p0_parallel": [
-      "FW-HARNESS-FILE-EDITED",
-      "FW-HARNESS-AFTER-AUDIT",
-      "FW-HARNESS-BEFORE-TDD",
-      "FW-HARNESS-PLUGIN-CHECK",
-      "FW-HARNESS-ENF-GUARD",
-      "FW-HARNESS-CODE-QUALITY"
-    ],
-    "fw_harness_p1_independent": [
-      "FW-HARNESS-SHARED-MODULE",
-      "FW-HARNESS-SESSION-HOOKS",
-      "FW-HARNESS-PERMISSION",
-      "FW-HARNESS-CONTRACT-HASH",
-      "FW-HARNESS-COMMAND-EXEC"
-    ],
-    "fw_harness_p1_sequential": [
-      "FW-HARNESS-MOVE-SCRIPTS",
-      "FW-HARNESS-UPDATE-PRECOMMIT"
-    ],
-    "fw_harness_p2_independent": [
-      "FW-HARNESS-SHELL-AUDIT",
-      "FW-HARNESS-SCOPE-ESCALATION"
-    ],
-    "fw_harness_p2_sequential": [
-      "FW-HARNESS-AFTER-REPAIR",
-      "FW-HARNESS-BEFORE-REGISTRY",
-      "FW-HARNESS-BEFORE-DIRTY",
-      "FW-HARNESS-FULL-SCAN",
-      "FW-HARNESS-DOCTOR-INTEGRATION"
-    ],
-    "fw_harness_p3_parallel": [
-      "FW-HARNESS-SESSION-COMPACTED",
-      "FW-HARNESS-MESSAGE-UPDATED",
-      "FW-HARNESS-TUI-COMMAND",
-      "FW-HARNESS-SKILL-GATE",
-      "FW-HARNESS-SCOPE-LOG",
-      "FW-HARNESS-AUDIT-TRAIL"
-    ],
-    "fw_harness_techdebt": [
-      "T-TECHDEBT-017"
-    ],
-    "fix_console_residual": [
-      "FIX-CONSOLE-1",
-      "FIX-CONSOLE-2",
-      "FIX-CONSOLE-3"
-    ],
-    "harness_auto_run": [
-      "HARNESS-RESTRUCTURE",
-      "HARNESS-BUILD",
-      "HARNESS-VERIFY-LOAD",
-      "AGENT-MODE-FIX",
-      "HARNESS-SMOKE"
-    ],
-    "bug_5894_fix": [
-      "BUG-5894-ENV-PROPAGATE"
-    ],
-    "ci_embed_phase1_independent": [
-      "CI-EMBED-001",
-      "CI-EMBED-007"
-    ],
-    "ci_embed_phase1_sequential": [
-      "CI-EMBED-002",
-      "CI-EMBED-003",
-      "CI-EMBED-004",
-      "CI-EMBED-005",
-      "CI-EMBED-006"
-    ],
-    "ci_strengthen_phase2_independent": [
-      "CI-STRENGTHEN-001",
-      "CI-STRENGTHEN-002",
-      "CI-STRENGTHEN-004"
-    ],
-    "ci_strengthen_phase2_sequential": [
-      "CI-STRENGTHEN-003"
-    ],
-    "ci_unify_phase3": [
-      "CI-UNIFY-001",
-      "CI-UNIFY-002",
-      "CI-UNIFY-003",
-      "CI-UNIFY-004"
-    ],
-    "ci_harden_phase4_independent": [
-      "CI-HARDEN-001",
-      "CI-HARDEN-002",
-      "CI-HARDEN-003"
-    ],
-    "ci_harden_phase4_sequential": [
-      "CI-HARDEN-004",
-      "CI-HARDEN-005"
-    ],
-    "verify_diagnostics": [
-      "VERIFY-DIAG-BUG-1",
-      "VERIFY-DIAG-BUG-2",
-      "VERIFY-DIAG-BUG-3",
-      "VERIFY-DIAG-BUG-4",
-      "VERIFY-DIAG-BUG-5",
-      "VERIFY-DIAG-CNTR-1",
-      "VERIFY-DIAG-CNTR-2",
-      "VERIFY-DIAG-CNTR-3",
-      "VERIFY-DIAG-CNTR-4",
-      "VERIFY-DIAG-OMIS-1",
-      "VERIFY-DIAG-OMIS-2",
-      "VERIFY-DIAG-OMIS-3",
-      "VERIFY-DIAG-OMIS-4",
-      "VERIFY-DIAG-OMIS-5",
-      "VERIFY-DIAG-OMIS-6",
-      "VERIFY-DIAG-OMIS-7",
-      "VERIFY-DIAG-OMIS-8",
-      "VERIFY-DIAG-ARCH-1",
-      "VERIFY-DIAG-ARCH-2",
-      "VERIFY-DIAG-ARCH-3",
-      "VERIFY-DIAG-ARCH-4",
-      "VERIFY-DIAG-ARCH-5",
-      "VERIFY-DIAG-SUMMARY"
-    ],
-    "tc_phase_0": [
-      "TC-Phase-0.1",
-      "TC-Phase-0.2",
-      "TC-Phase-0.3",
-      "TC-Phase-0.4",
-      "TC-Phase-0.5"
-    ],
-    "fw_verify_js_to_ts": [
-      "FW-VERIFY-JS-TS-ARCH",
-      "FW-VERIFY-JS-TS-DISPATCH",
-      "FW-VERIFY-JS-TS-AUDIT",
-      "FW-VERIFY-JS-TS-INTEGRATION"
-    ],
-    "fw_fix_commit_execorder": [
-      "COMMIT-EXECORDER-FIX-001"
-    ],
-    "plugin_fix_verify_parallel": [
-      "PLUGIN-VFY-LOAD",
-      "PLUGIN-VFY-ISBUSINESS",
-      "PLUGIN-VFY-SHELL"
-    ],
-    "plugin_fix_verify_atomic": [
-      "PLUGIN-VFY-ATOMIC"
-    ]
+    "validate_baseline_parallel": ["VALIDATE-SUB-BASELINE", "VALIDATE-SUB-AUDIT"],
+    "validate_configs_all": ["VALIDATE-SUB-MP-CONFIG", "VALIDATE-SUB-ORC-CONFIG", "VALIDATE-SUB-ARCH-CONFIG", "VALIDATE-SUB-CBE-CONFIG", "VALIDATE-SUB-CFE-CONFIG", "VALIDATE-SUB-GD-CONFIG", "VALIDATE-SUB-ARB-CONFIG", "VALIDATE-SUB-CICD-CONFIG", "VALIDATE-SUB-KC-CONFIG", "VALIDATE-SUB-SA-CONFIG"],
+    "validate_func_all": ["VALIDATE-SUB-MP-FUNC", "VALIDATE-SUB-ORC-FUNC", "VALIDATE-SUB-ARCH-FUNC", "VALIDATE-SUB-CBE-FUNC", "VALIDATE-SUB-CFE-FUNC", "VALIDATE-SUB-GD-FUNC", "VALIDATE-SUB-ARB-FUNC", "VALIDATE-SUB-CICD-FUNC", "VALIDATE-SUB-KC-FUNC", "VALIDATE-SUB-SA-FUNC"],
+    "validate_techdebt_parallel": ["VALIDATE-SUB-TD-WV002", "VALIDATE-SUB-TD-WV007", "VALIDATE-SUB-TD-WV008", "VALIDATE-SUB-TD-008", "VALIDATE-SUB-TD-009", "VALIDATE-SUB-TD-011"],
+    "validate_summary": ["VALIDATE-SUB-SUMMARY"],
+    "retest_verification": ["T-RETEST-SCOPE", "T-RETEST-AUDIT"],
+    "phase_0_bugfix": ["BUG-SENDCODE-ANALYSIS"],
+    "phase_0b_bugfix_red": ["BUG-SENDCODE-RED"],
+    "phase_0c_bugfix_green": ["BUG-SENDCODE-GREEN"],
+    "phase_0d_bugfix_review": ["BUG-SENDCODE-REVIEW"],
+    "phase_1_backend": ["B-MSG-CONTRACT", "B-MSG-RED-001"],
+    "phase_2_parallel": {"backend": ["B-MSG-GREEN-001"], "frontend": ["B-MSG-RED-FE"]},
+    "phase_3_frontend": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
+    "phase_4_integration": ["B-MSG-GREEN-FE-HEADER", "B-MSG-GREEN-FE-STORE"],
+    "phase_5_review": ["B-MSG-GUARDIAN"],
+    "phase_fw_optimization": ["OPC-FW-ACL", "OPC-FW-DAG-GATE"],
+    "phase_fw_selfcheck_audit": ["OPC-FW-SELFCHECK", "OPC-FW-AUDIT"],
+    "univ_phase_0": ["UNIV-P0-E"],
+    "univ_phase_1": ["UNIV-P1-C", "UNIV-P1-D"],
+    "univ_phase_2": ["UNIV-P2-A", "UNIV-P2-B", "UNIV-P2-J"],
+    "univ_phase_3": ["UNIV-P3-F", "UNIV-P3-G"],
+    "univ_phase_4_parallel": ["UNIV-P4-H", "UNIV-P4-I"],
+    "univ_phase_5_parallel": ["UNIV-P5-K", "UNIV-P5-L", "UNIV-P5-M", "UNIV-P5-N"],
+    "univ_phase_6": ["UNIV-P6-O"],
+    "fw_repair_p0": ["FW-REPAIR-01", "FW-REPAIR-02", "FW-REPAIR-04"],
+    "fw_repair_p0_dep": ["FW-REPAIR-03"],
+    "fw_repair_p1": ["FW-REPAIR-05", "FW-REPAIR-06", "FW-REPAIR-07", "FW-REPAIR-08"],
+    "fw_repair_p2": ["FW-REPAIR-09", "FW-REPAIR-10", "FW-REPAIR-11"],
+    "phase_review_p0": ["RVW-REVIEW-01", "RVW-REVIEW-02", "RVW-REVIEW-03"],
+    "phase_review_p1": ["RVW-REVIEW-04", "RVW-REVIEW-05", "RVW-REVIEW-06"],
+    "phase_review_p2": ["RVW-REVIEW-07", "RVW-REVIEW-08", "RVW-REVIEW-09"],
+    "rvw2_p0_independent": ["RVW2-INSTALL-HOOKS", "TD-2026-010-REPAY"],
+    "rvw2_p0_dependent": ["RVW2-ENFORCE-STRICT", "RVW2-PURGE-SESSIONS"],
+    "rvw2_p1_independent": ["RVW2-FIX-CRLF", "RVW2-REGEN-DIGESTS", "RVW2-INSTALL-MCP-DEPS", "RVW2-FIX-WAL-DUP"],
+    "rvw2_p1_dependent": ["RVW2-FIX-SELFTEST", "RVW2-FIX-PATHS"],
+    "rvw2_p2": ["RVW2-FIX-DAG-TRACE", "RVW2-CI-CHECKS"],
+    "rvw_review_01_txnfix": ["RVW-REVIEW-01-TXNFIX-RED", "RVW-REVIEW-01-TXNFIX-GREEN", "RVW-REVIEW-01-TXNFIX-REVIEW"],
+    "tech_debt_repayment": ["T-TECHDEBT-013", "T-TECHDEBT-014", "T-TECHDEBT-015"],
+    "fw_governance_p0_independent": ["FW-FIX-F1", "FW-FIX-F2", "FW-FIX-F3", "FW-FIX-F4", "FW-FIX-F5", "FW-FIX-F6", "FW-FIX-F7"],
+    "fw_governance_p1_dependent": ["FW-HARDEN-F1-TEST", "FW-HARDEN-F6-TEST", "FW-HARDEN-CROSS"],
+    "fw_governance_p2_audit": ["FW-GOVERN-AUDIT"],
+    "fw_safe_phase1_independent": ["FW-SAFE-P1-001", "T-TECHDEBT-016"],
+    "fw_safe_phase1_sequential": ["FW-SAFE-P1-002", "FW-SAFE-P1-003"],
+    "fw_safe_phase2": ["FW-SAFE-P2-001", "FW-SAFE-P2-002"],
+    "fw_safe_phase3_independent": ["FW-SAFE-P3-001", "FW-SAFE-P5-001", "FW-SAFE-P5-002"],
+    "fw_safe_phase3_sequential": ["FW-SAFE-P3-002", "FW-SAFE-P3-003"],
+    "fw_safe_phase4_parallel": ["FW-SAFE-P4-001", "FW-SAFE-P4-002", "FW-SAFE-P4-003"],
+    "fw_safe_phase5_sequential": ["FW-SAFE-P5-003", "FW-SAFE-P5-004"],
+    "fw_safe_phase6": ["FW-SAFE-P6-001", "FW-SAFE-P6-002", "FW-SAFE-P6-003"],
+    "fw_safe_phase7": ["FW-SAFE-P7-001", "FW-SAFE-P7-002", "FW-SAFE-P7-003"],
+    "fw_safe_audit": ["FW-SAFE-AUDIT"],
+    "fw_crash_fix": ["FW-CRASH-MITIGATE", "FW-CRASH-ANALYSIS", "FW-CRASH-FIX-PLUGIN", "FW-CRASH-RESTORE", "FW-CRASH-VALIDATE"],
+    "fw_harness_p0_parallel": ["FW-HARNESS-FILE-EDITED", "FW-HARNESS-AFTER-AUDIT", "FW-HARNESS-BEFORE-TDD", "FW-HARNESS-PLUGIN-CHECK", "FW-HARNESS-ENF-GUARD", "FW-HARNESS-CODE-QUALITY"],
+    "fw_harness_p1_independent": ["FW-HARNESS-SHARED-MODULE", "FW-HARNESS-SESSION-HOOKS", "FW-HARNESS-PERMISSION", "FW-HARNESS-CONTRACT-HASH", "FW-HARNESS-COMMAND-EXEC"],
+    "fw_harness_p1_sequential": ["FW-HARNESS-MOVE-SCRIPTS", "FW-HARNESS-UPDATE-PRECOMMIT"],
+    "fw_harness_p2_independent": ["FW-HARNESS-SHELL-AUDIT", "FW-HARNESS-SCOPE-ESCALATION"],
+    "fw_harness_p2_sequential": ["FW-HARNESS-AFTER-REPAIR", "FW-HARNESS-BEFORE-REGISTRY", "FW-HARNESS-BEFORE-DIRTY", "FW-HARNESS-FULL-SCAN", "FW-HARNESS-DOCTOR-INTEGRATION"],
+    "fw_harness_p3_parallel": ["FW-HARNESS-SESSION-COMPACTED", "FW-HARNESS-MESSAGE-UPDATED", "FW-HARNESS-TUI-COMMAND", "FW-HARNESS-SKILL-GATE", "FW-HARNESS-SCOPE-LOG", "FW-HARNESS-AUDIT-TRAIL"],
+    "fw_harness_techdebt": ["T-TECHDEBT-017"],
+    "fix_console_residual": ["FIX-CONSOLE-1", "FIX-CONSOLE-2", "FIX-CONSOLE-3"],
+    "harness_auto_run": ["HARNESS-RESTRUCTURE", "HARNESS-BUILD", "HARNESS-VERIFY-LOAD", "AGENT-MODE-FIX", "HARNESS-SMOKE"],
+    "bug_5894_fix": ["BUG-5894-ENV-PROPAGATE"],
+    "ci_embed_phase1_independent": ["CI-EMBED-001", "CI-EMBED-007"],
+    "ci_embed_phase1_sequential": ["CI-EMBED-002", "CI-EMBED-003", "CI-EMBED-004", "CI-EMBED-005", "CI-EMBED-006"],
+    "ci_strengthen_phase2_independent": ["CI-STRENGTHEN-001", "CI-STRENGTHEN-002", "CI-STRENGTHEN-004"],
+    "ci_strengthen_phase2_sequential": ["CI-STRENGTHEN-003"],
+    "ci_unify_phase3": ["CI-UNIFY-001", "CI-UNIFY-002", "CI-UNIFY-003", "CI-UNIFY-004"],
+    "ci_harden_phase4_independent": ["CI-HARDEN-001", "CI-HARDEN-002", "CI-HARDEN-003"],
+    "ci_harden_phase4_sequential": ["CI-HARDEN-004", "CI-HARDEN-005"],
+    "verify_diagnostics": ["VERIFY-DIAG-BUG-1", "VERIFY-DIAG-BUG-2", "VERIFY-DIAG-BUG-3", "VERIFY-DIAG-BUG-4", "VERIFY-DIAG-BUG-5", "VERIFY-DIAG-CNTR-1", "VERIFY-DIAG-CNTR-2", "VERIFY-DIAG-CNTR-3", "VERIFY-DIAG-CNTR-4", "VERIFY-DIAG-OMIS-1", "VERIFY-DIAG-OMIS-2", "VERIFY-DIAG-OMIS-3", "VERIFY-DIAG-OMIS-4", "VERIFY-DIAG-OMIS-5", "VERIFY-DIAG-OMIS-6", "VERIFY-DIAG-OMIS-7", "VERIFY-DIAG-OMIS-8", "VERIFY-DIAG-ARCH-1", "VERIFY-DIAG-ARCH-2", "VERIFY-DIAG-ARCH-3", "VERIFY-DIAG-ARCH-4", "VERIFY-DIAG-ARCH-5", "VERIFY-DIAG-SUMMARY"],
+    "tc_phase_0": ["TC-Phase-0.1", "TC-Phase-0.2", "TC-Phase-0.3", "TC-Phase-0.4", "TC-Phase-0.5"],
+    "fw_verify_js_to_ts": ["FW-VERIFY-JS-TS-ARCH", "FW-VERIFY-JS-TS-DISPATCH", "FW-VERIFY-JS-TS-AUDIT", "FW-VERIFY-JS-TS-INTEGRATION"],
+    "fw_fix_commit_execorder": ["COMMIT-EXECORDER-FIX-001"],
+    "plugin_fix_verify_parallel": ["PLUGIN-VFY-LOAD", "PLUGIN-VFY-ISBUSINESS", "PLUGIN-VFY-SHELL"],
+    "plugin_fix_verify_atomic": ["PLUGIN-VFY-ATOMIC"],
+    "db_vfy_level1": ["DB-VFY-L1-01", "DB-VFY-L1-02", "DB-VFY-L1-03", "DB-VFY-L1-04", "DB-VFY-L1-05"],
+    "db_vfy_level2": ["DB-VFY-L2-01", "DB-VFY-L2-02", "DB-VFY-L2-03", "DB-VFY-L2-04", "DB-VFY-L2-05"],
+    "db_vfy_level3": ["DB-VFY-L3-01", "DB-VFY-L3-02", "DB-VFY-L3-03", "DB-VFY-L3-04", "DB-VFY-L3-05"],
+    "db_vfy_level4": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+    "db_vfy_level5": ["DB-VFY-L5-01", "DB-VFY-L5-02", "DB-VFY-L5-03", "DB-VFY-L5-04", "DB-VFY-L5-05"]
   },
   "meta": {
-    "version": "5.8.0",
+    "version": "5.9.0",
     "project": "booking-system",
     "generated_by": "@Meta-Planner",
-    "generated_at": "2026-06-15T23:15:00.000Z",
-    "description": "FW-PLAN-PLUGIN-FIX-VERIFY: Appended 4 plugin system fix verification tasks based on plugin-system-fix-plan.md §三 verification steps (framework-self-test plugin load, isBusinessSourceFile consistency, atomicWriteMachine integrity, safe_shell strategy unification)",
+    "generated_at": "2026-06-17T12:00:00.000Z",
+    "description": "DB-VFY: Database migration runtime verification — appended 23 verification tasks across 5 sequential levels (L1 DB infra → L2 runtime R/W → L3 gate ops → L4 audit log → L5 E2E). Verifies P2-A Steps 0-8 + P3 schema v4/v5/v6 + Step 8 cleanup + drain DB-ification claims against actual runtime state. Total: 269 tasks (4 archived + 23 new + 242 historical).",
     "changelog": [
+      {
+        "version": "5.9.0",
+        "date": "2026-06-17T12:00:00.000Z",
+        "changes": [
+          "Appended 23 database migration verification tasks across 5 sequential levels: L1 (5 tasks: DB file existence, 29 tables, integrity_check, schema v6, self-test DB checks), L2 (5 tasks: 12 substate reads, atomicWriteSubState, DB priority read, JSON fallback, Step 8 cleanup), L3 (5 tasks: createSession, armSession+deliverables, completeSession, drainStaleSessions DB archive, approveDeliverables 6-column constraint), L4 (3 tasks: writeAuditLogEntry DB INSERT, flushAuditTrail DB upsert, JSONL dual-write stopped), L5 (5 tasks: framework-self-test 39/40, framework-doctor 12/13, gate lifecycle E2E, G1-G13 final state, stale dispatch entries).",
+          "Added 5 execution_order groups: db_vfy_level1 through db_vfy_level5 (sequential inter-level, parallel intra-level).",
+          "Source: docs/review/framework-refactor/database-migration-plan.md — P2-A Steps 0-8 + P3 schema v4/v5/v6 + Step 8 cleanup + drain DB-ification.",
+          "Agent assignment: all 23 tasks assigned to @Coder-BE (framework infrastructure verification).",
+          "Tech-debt scan: 5 OPEN items with ≤7d repayment are all in unrelated domains (WV-002 Stryker, WV-007/008, TD-008/009). Existing VALIDATE-SUB-TD-* tasks cover these. No new tech-debt repayment tasks generated.",
+          "Pre-audit baseline: 12 files scanned (DB, db-manager.ts, db-state-manager.ts, substate-manager.ts, gate-core.ts, audit-log.ts, framework-self-test.ts, framework-doctor.ts, .gitignore, TECH_DEBT_REGISTRY.md, Task.DAG.json v5.8.0).",
+          "Coverage: 100% of 5 verification levels from user requirements; 23 atomic tasks; G2 formula N/A (append-only verification DAG)."
+        ]
+      },
       {
         "version": "5.8.0",
         "date": "2026-06-15T23:15:00.000Z",
         "changes": [
-          "Appended 4 plugin system fix verification tasks: PLUGIN-VFY-LOAD (@Coder-BE framework-self-test plugin load), PLUGIN-VFY-ISBUSINESS (@Coder-BE isBusinessSourceFile consistency on 4 test paths), PLUGIN-VFY-ATOMIC (@Coder-BE atomicWriteMachine machine.json integrity), PLUGIN-VFY-SHELL (@Coder-BE safe_shell strategy unification on 3 commands)",
-          "Added execution_order groups: plugin_fix_verify_parallel (LOAD + ISBUSINESS + SHELL) and plugin_fix_verify_atomic (ATOMIC depends on LOAD)",
-          "Source: docs/review/framework-refactor/plugin-system-fix-plan.md, Fix A-I verification methods (§三)",
-          "Tech-debt scan: 8 items within ≤7 days (WV-2026-002 overdue, WV-2026-007/008, TD-2026-008/009/011/013/014). Existing VALIDATE-SUB-TD-* tasks cover these. Recommend @Orchestrator prioritize tech-debt validation group."
-        ]
-      },
-      {
-        "version": "5.7.0",
-        "date": "2026-06-14T02:00:00.000Z",
-        "changes": [
-          "Appended 4 JS-to-TS verification tasks: FW-VERIFY-JS-TS-ARCH (@Architect architecture consistency audit), FW-VERIFY-JS-TS-DISPATCH (@Coder-BE practical dispatch test via bun), FW-VERIFY-JS-TS-AUDIT (@Guardian residue .js/.node audit), FW-VERIFY-JS-TS-INTEGRATION (@CI-CD-Agent pre-execution-hook E2E)",
-          "Added execution_order group: fw_verify_js_to_ts with 4 sequential tasks",
-          "Pre-audit findings: 3 residual .js references in shell scripts (integrity-chain-bundle.sh keystone-validate.js, path-canonical-lint.sh, framework-health-check.sh), 2 residual node fallback references (reconciliation-check.sh). These are verification targets for @Guardian.",
-          "Tech-debt scan: 6 items within ≤7 days (2026-06-14 baseline). WV-2026-002 (0d, Stryker, overdue today), WV-2026-007 (1d, Angular TS), WV-2026-008 (1d, contract.yaml format), TD-2026-008 (1d, config param), TD-2026-009 (1d, rule template), TD-2026-013 (1d, Angular TS). Repayment tasks deferred — existing VALIDATE-SUB-TD-* tasks already cover these. Recommend @Orchestrator prioritize tech-debt validation group."
-        ]
-      },
-      {
-        "version": "5.6.0",
-        "date": "2026-06-09T00:00:00.000Z",
-        "changes": [
-          "Appended 29 SubAgent validation tasks covering all 10 agents with 5-dimension verification matrix (config, dispatch, function, UC7KS, scope)",
-          "Added 2 baseline tasks: VALIDATE-SUB-BASELINE (framework-self-test.js) and VALIDATE-SUB-AUDIT (compliance-audit.sh)",
-          "Added 10 agent config verification tasks (VALIDATE-SUB-{AGENT}-CONFIG): verify YAML frontmatter, mcp_tools, skills, write scope boundaries",
-          "Added 10 agent function verification tasks (VALIDATE-SUB-{AGENT}-FUNC): verify core function execution across dimensions B-E",
-          "Added 6 tech debt repayment verification tasks for items within 7-day deadline window (WV-002 Stryker, WV-007 Angular TS, WV-008 contract format, TD-008 config parameterization, TD-009 rule template resolution, TD-011 deprecated skill cleanup)",
-          "Added VALIDATE-SUB-SUMMARY for comprehensive aggregation of all validation results",
-          "Added 5 new execution_order groups: validate_baseline_parallel, validate_configs_all, validate_func_all, validate_techdebt_parallel, validate_summary",
-          "Tech-debt scan: 7 items within ≤7 days identified. WV-2026-002 (5d), WV-2026-007 (6d), WV-2026-008 (6d), TD-2026-008 (6d), TD-2026-009 (6d), TD-2026-011 (OVERDUE), TD-2026-013 (6d, covered by WV-007). All generated as repayment tasks."
-        ]
-      },
-      {
-        "version": "5.5.2",
-        "date": "2026-06-08T04:47:00.000Z",
-        "changes": [
-          "Appended 2 re-verification tasks: T-RETEST-SCOPE (safe_edit write scope enforcement re-validation), T-RETEST-AUDIT (Write-Time Audit log classification re-validation)",
-          "Added retest_verification execution_order group for parallel dispatch of both re-test tasks",
-          "Tech-debt scan: WV-2026-002 (Stryker, 6 days), WV-2026-007 (7 days), WV-2026-008 (7 days) identified — deferred per task scope (user requested append-only)",
-          "No existing tasks modified; only appended new entries to tasks array and execution_order"
-        ]
-      },
-      {
-        "version": "5.5.1",
-        "date": "2026-06-07T13:35:00.000Z",
-        "changes": [
-          "Appended 3 E2E framework verification tasks: T-VERIFY-KC (knowledge_state auto-sync), T-VERIFY-BE-AUDIT (Write-Time Audit), T-VERIFY-BE-SCOPE (write scope enforcement)",
-          "Tech-debt scan: WV-2026-002 (Stryker, deadline 2026-06-14) identified but excluded per user request",
-          "No existing tasks modified; only appended new entries to tasks array"
+          "Appended 4 plugin system fix verification tasks: PLUGIN-VFY-LOAD, PLUGIN-VFY-ISBUSINESS, PLUGIN-VFY-ATOMIC, PLUGIN-VFY-SHELL"
         ]
       }
     ],
-    "total_tasks": 4,
+    "total_tasks": 27,
     "completed_tasks": 0,
-    "pending_tasks": 0,
-    "coverage_target": "100% plugin system fix verification coverage (4/4 verification steps per plugin-system-fix-plan.md §三)",
-    "progress": "0% (4 tasks skipped as obsolete)",
-    "last_updated": "2026-06-16T12:00:00.000Z",
-    "recent_completed": 0,
+    "pending_tasks": 23,
     "archived_completed": 189,
+    "skipped_tasks": 4,
+    "coverage_target": "100% DB migration verification (23 tasks covering 5 levels: infrastructure → runtime R/W → gate ops → audit log → E2E)",
+    "progress": "0% (23 tasks pending; 4 tasks skipped)",
+    "last_updated": "2026-06-17T12:00:00.000Z",
+    "recent_completed": 0,
     "last_compacted": "2026-06-04T09:04:52.630Z"
   }
 }

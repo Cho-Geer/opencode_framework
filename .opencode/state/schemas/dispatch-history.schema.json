@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/dispatch-history.schema.json",
+  "title": "Dispatch History",
+  "description": "FW-PLAN-FIRST (2026-06-14): Audit trail of dispatch_subagent invocations that passed the PLAN-FIRST pre-flight. Each record captures caller agent, target agent, dag_task_id, dag_entry_source (tasks or execution_order), and whether auto_plan was used.",
+  "type": "object",
+  "required": [
+    "history"
+  ],
+  "properties": {
+    "history": {
+      "type": "array",
+      "description": "Array of dispatch history records.",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "caller_agent",
+          "target_agent",
+          "dag_task_id"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "caller_agent": {
+            "type": "string"
+          },
+          "target_agent": {
+            "type": "string"
+          },
+          "dag_task_id": {
+            "type": "string"
+          },
+          "dag_entry_source": {
+            "type": "string",
+            "enum": [
+              "tasks",
+              "execution_order"
+            ]
+          },
+          "dag_entry_status": {
+            "type": "string"
+          },
+          "auto_plan_used": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

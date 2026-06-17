@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/write-audit-state.schema.json",
+  "title": "Write Audit State",
+  "description": "Write-time audit tracking for every file change.",
+  "type": "object",
+  "required": [
+    "enabled",
+    "current_session",
+    "history"
+  ],
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether write-time audit enforcement is active."
+    },
+    "current_session": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Active write-audit session data populated by code-quality-gate.js updateStates().",
+          "required": [
+            "agent",
+            "task_id",
+            "files_written",
+            "checks_run",
+            "checks_passed",
+            "checks_failed",
+            "violations_found",
+            "violations_resolved",
+            "scope_violations_attempted"
+          ],
+          "properties": {
+            "agent": {
+              "type": "string",
+              "description": "Agent identity (@Coder-BE, @Coder-FE, @Architect, etc.)."
+            },
+            "task_id": {
+              "type": "string",
+              "description": "Current task ID for audit trail."
+            },
+            "files_written": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Paths of files written in this session."
+            },
+            "checks_run": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total checks executed this session."
+            },
+            "checks_passed": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Checks that passed this session."
+            },
+            "checks_failed": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Checks that failed this session."
+            },
+            "violations_found": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total violations found this session."
+            },
+            "violations_resolved": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Violations resolved this session."
+            },
+            "scope_violations_attempted": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Scope violations attempted this session."
+            }
+          },
+          "additionalProperties": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Active write-audit session object, or null when idle."
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "type": "string",
+            "description": "Write-audit session ID."
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files changed in this session."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Session timestamp."
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail"
+            ],
+            "description": "Session audit result."
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "History of write-audit sessions."
+    }
+  },
+  "additionalProperties": true
+}

@@ -565,7 +565,7 @@ function pruneSessionAccess(state: KnowledgeCacheState): KnowledgeCacheState {
 
 | 操作 | Step | 状态 | 备注 |
 |------|:----:|:----:|------|
-| Schema 拆分 | S41-1→S41-4 | ⏸️ 延期 | 低风险，1305 行 JSON 精确对齐，建议独立 PR |
+| Schema 拆分 | S41-1→S41-4 | ✅ 完成 | `machine.schema.json` 1304→64 行 (meta+contracts only)；16 个独立 schema 文件在 `.opencode/state/schemas/`；原始保留为 `machine.schema.full.json`；`code-quality-gate.ts` + docs 引用已更新 |
 | state-transaction.ts DEPRECATED | S52-2, S52-3 | ✅ 完成 | DEPRECATED 注释已添加；CLI 工具保留 |
 | compliance-gate.ts 移除 beginTransaction | S52-1 | ✅ 完成 | DB-first 写入 (dbSaveGateStore)；JSON 保留为 frozen snapshot |
 | DB compaction + WAL 维护 | S63-1, S63-2, S63-5 | ✅ 完成 | nightly-compaction.ts 已接入 dbCleanStaleEntries + WAL TRUNCATE + 周日 vacuum |
@@ -604,7 +604,7 @@ function pruneSessionAccess(state: KnowledgeCacheState): KnowledgeCacheState {
 | state-transaction.ts 活跃调用者 | 1 (compliance-gate.ts) | 0 (DEPRECATED) |
 | DB WAL 维护 | 无 (自动 checkpoint only) | nightly TRUNCATE + weekly VACUUM |
 | DB stale 清理 | 无 (函数存在但零调用) | nightly dbCleanStaleEntries() |
-| Schema 结构 | 1 个单体 (1305 行) | 1 个 meta-schema (~80 行) + 12 个子状态 schema |
+| Schema 结构 | 1 个单体 (1304 行) | **1 个 meta-schema (64 行) + 16 个子状态 schema** ✅ |
 | knowledge-cache session_access | 无上限增长 | per-agent 50 条 LRU + nightly 30d 深度清理 |
 
 **总工时估算：** Phase 1 (1h) + Phase 2 (2h) + Phase 3 (3h) + Phase 4 (4.5h) = **~10.5h**
@@ -700,13 +700,12 @@ G12 方案（S12-1~S12-6）为 `readSubState` / `writeSubState` 建立了 TypeSc
 | P1 | DB Schema v4 | **100%** | G2 ✅ |
 | P2 | G11 跨进程 TOCTOU | **100%** | G11 ✅ |
 | P3 | G12 类型安全 | **100%** | G12 ✅ |
-| P4 | 遗留问题治理 | **94.1%** (16/17) | — |
+| P4 | 遗留问题治理 | **100%** (17/17) | — |
 
 ### 核心结论
 
 - **13/13 G-problem 全部关闭**（P3 核心目标达成）
-- Phase 1-3 全部 100% 完成
-- Phase 4 完成 16/17 Steps (94.1%)，仅 S41 schema 拆分为独立 PR
+- Phase 1-4 全部 100% 完成（34/34 Steps）
 
 ### 验证报告状态修正
 
@@ -716,13 +715,13 @@ G12 方案（S12-1~S12-6）为 `readSubState` / `writeSubState` 建立了 TypeSc
 
 ## 十六、后续行动项
 
-### ⏸️ 唯一延期项（可作为后续独立 PR）
+### ✅ 全部完成 — 无遗留项
 
-| 任务 | 工时 | 备注 |
-|------|:----:|------|
-| S41-1~S41-4: machine.schema.json 拆分为 13 个独立 schema | 1h | 低风险机械性工作；需 G12 接口精确对齐 JSON Schema |
+**P3 总体完成率：34/34 Steps (100%)**。所有 G-problem 关闭，所有遗留问题治理完成。
 
-**P3 总体完成率：33/34 Steps (97.1%)**。仅 S41 schema 拆分延期为独立 PR。
+| 任务 | 工时 | 状态 |
+|------|:----:|:----:|
+| S41-1~S41-4: machine.schema.json 拆分为 meta-only + 16 个独立 schema | 1h | ✅ 已完成 (2026-06-17) |
 
 ---
 

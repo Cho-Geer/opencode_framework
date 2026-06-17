@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/keystone-hashes.schema.json",
+  "title": "Keystone Hashes",
+  "description": "SHA-256 hashes of contract files for integrity verification.",
+  "type": "object",
+  "additionalProperties": {
+    "type": "string",
+    "pattern": "^sha256-[a-f0-9]{64}$",
+    "description": "SHA-256 hash with sha256- prefix."
+  }
+}

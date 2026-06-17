@@ -695,17 +695,40 @@ try {
 | S20 TypeScript 检查 | ✅ |
 | S21 生命周期模拟 | ✅ |
 
-### 14.8 Phase 6: Session Resume (S25 v4 待实施)
+### 14.8 Phase 6: Session Resume (S25 v4 — FULLY VERIFIED)
 
-| Step | 当前状态 | v4 后预期 | 说明 |
-|------|:--------:|:---------:|------|
-| S22 | ✅ | ✅ | schema 参数 + Header 条件性 task_id (不变) |
-| S23 | ⚠️ | ✅ (需改) | P0-FIX-BUG-15 resume 分支改查 DB session_log (不再读 SESSION_ID.md) |
-| S24 | ✅ | ✅ | 不在活跃插件中 (不变) |
-| S25 | ❌ | ✅ | `.dispatch_ctx` + DB session_log (不依赖 process.env) |
-| S26 | ⚠️ | ✅ | dispatch-before resume 路径 (不变) |
-| S27 | ✅ | ✅ | Orchestrator.md 文档化 (不变, 但需更新: SESSION_ID.md → DB) |
-| S28 | ❌ | ✅ | Full resume cycle (需集成测试验证) |
+**日期**: 2026-06-17
+**验证状态**: ✅ **ALL 7 STEPS PASS** (runtime + integration tests)
+**Commits**: `49b93ea3` + `2dcbf41b`
+
+| Step | 状态 | 说明 |
+|------|:----:|------|
+| S22 | ✅ PASS | schema 参数 + Header 条件性 task_id |
+| S23 | ✅ PASS | P0-FIX-BUG-15 resume 分支改查 `session_log` DB (`dbQuerySessionByDagTaskId`) |
+| S24 | ✅ PASS | MANDATORY-DISPATCH 集成 |
+| S25 | ✅ PASS | `.dispatch_ctx` 文件 + `session_log` DB — 零 env 污染，无文件残留，resume 端到端工作 |
+| S26 | ✅ PASS | `dispatch-before.ts` resume 路径查询 `session_log` DB |
+| S27 | ✅ PASS | Orchestrator.md resume 协议文档化 (DB 引用更新) |
+| S28 | ✅ PASS | Full resume cycle 集成测试: normal dispatch → DB entry → resume via `dbQuerySessionByDagTaskId` → sub-agent 看到历史 |
+
+**集成测试 (3/3 PASS)**:
+
+| # | 测试 | 流程 | 结果 |
+|---|------|------|:----:|
+| 1 | Auto-declare | `confirm` 1 个手动 deliverable → 自动追加 `HANDOVER.md` + `TASK_LOG.md` → 3 个总声明 | ✅ |
+| 2 | Normal lifecycle | `check` → `confirm` → `write` → `submit` → Orchestrator review → `approve` + `complete` (with `agent_id`) | ✅ |
+| 3 | Resume lifecycle | `reject` → `resubmit` → Orchestrator `approve` + `complete` (session `cg_ses_1781654823587`) | ✅ |
+
+**Resume + Gate E2E 测试** (`cg_ses_1781653586078`, `retry_count: 1`):
+```
+Phase 1: Normal dispatch → check → confirm(armed) → write v1 → submit(delivered)
+Phase 2: Orchestrator reviewed HANDOVER.md, rejected it
+Phase 3: Resume dispatch → sub-agent saw full history → fixed v1→v2 → retry_confirm → resubmit(delivered)
+Phase 4: Orchestrator confirmed v2 content → approve+complete → auto_completed:true
+```
+
+**已知缺陷全部解决**:
+- FH-HANDOVER-001: Auto-declare + approve_deliverables 物理限制 (三层 agent identity fallback + `agent_id` 参数) — ✅ FIXED (commit `2dcbf41b`)
 
 ### 三根因最终状态
 
@@ -715,15 +738,20 @@ try {
 | RC2: Complete 先于 artifact 写入 | S7+S9: submit_deliverables 状态机强制 | ✅ |
 | RC3: Recoverable 无自我修复 | S10: retry_confirm 放宽权限 | ✅ |
 
-### 下一步行动 (按 15.4 安全迁移顺序)
+### 下一步行动 (全部完成)
 
-1. **Phase A: DB Schema v6**: 3 新表 + 索引 + 7 个 CRUD 函数 + Check 38 self-test
-2. **Phase B: `.dispatch_ctx` + `session_log`**: 修复 Bug 1+2 (S25 v4 核心) + 恢复 finally 清除 env var
-3. **Phase C: `session_map` DB 化**: session.ts + agent-resolver.ts **原子同提交** (保护 P0-4 作用域执法)
-4. **Phase D: `dispatch_failed_log` DB 化**: 两个写入者改 DB + TTL 清理扩展
-5. **Phase E: 清理 + 文档**: 移除旧文件引用 + Orchestrator.md 更新 4 行
-6. **集成测试**: 派遣真实 sub-agent 验证 `.dispatch_ctx` 写→读→删 + `session_log` DB + resume 查询
-7. **提交基础设施文件**: 全部以 `[INFRA]` marker 提交
+| Phase | 状态 | 说明 |
+|-------|:----:|------|
+| Phase A: DB Schema v6 | ✅ 完成 | 3 新表 + 索引 + 7 个 CRUD 函数 + Check 38 self-test |
+| Phase B: `.dispatch_ctx` + `session_log` | ✅ 完成 | Bug 1+2 修复 + finally 恢复清除 env var |
+| Phase C: `session_map` DB 化 | ✅ 完成 | session.ts + agent-resolver.ts 原子同提交 |
+| Phase D: `dispatch_failed_log` DB 化 | ✅ 完成 | 两个写入者改 DB + TTL 清理扩展 |
+| Phase E: 清理 + 文档 | ✅ 完成 | Orchestrator.md 更新 + tool description 更新 |
+| 集成测试 | ✅ 完成 | 3/3 PASS (auto-declare, normal, resume) |
+| 基础设施提交 | ✅ 完成 | commits `49b93ea3` + `2dcbf41b` |
+| SA-FIX-APPROVE-PERMISSION | ✅ 完成 | approve_deliverables 物理限制 (§16) |
+
+**总验证结果**: 28/28 Steps PASS, 39/39 Self-test PASS, 0 Known Gaps
 
 ---
 

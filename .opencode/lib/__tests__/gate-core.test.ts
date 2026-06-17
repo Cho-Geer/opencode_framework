@@ -12,7 +12,6 @@ const {
   readJsonFile,
   fileExists,
   computeSHA256,
-  writeJsonFile,
   getEnforcementMode,
   getGateStatePath,
   getMachinePath,
@@ -75,17 +74,6 @@ describe('gate-core', () => {
       const hash = computeSHA256(tmpFile);
       expect(hash).not.toBeNull();
       expect(hash!.length).toBe(64);
-      fs.rmSync(tmpFile);
-    });
-  });
-
-  describe('writeJsonFile', () => {
-    it('should write valid JSON to disk', () => {
-      const tmpFile = path.join(os.tmpdir(), 'write-test-' + Date.now() + '.json');
-      writeJsonFile(tmpFile, { key: 'value' });
-      expect(fs.existsSync(tmpFile)).toBe(true);
-      const content = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
-      expect(content.key).toBe('value');
       fs.rmSync(tmpFile);
     });
   });

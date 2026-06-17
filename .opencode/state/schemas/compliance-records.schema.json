@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/compliance-records.schema.json",
+  "title": "Compliance Records",
+  "description": "Compliance violation records across role, gate, and TDD enforcement.",
+  "type": "object",
+  "required": [
+    "role_violations",
+    "gate_violations",
+    "tdd_violations"
+  ],
+  "properties": {
+    "role_violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "agent",
+          "violation_file",
+          "status",
+          "severity"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of the violation."
+          },
+          "agent": {
+            "type": "string",
+            "description": "Agent that caused the violation."
+          },
+          "violation_file": {
+            "type": "string",
+            "description": "File path that triggered the violation."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "unresolved",
+              "resolved",
+              "waived"
+            ],
+            "description": "Resolution status."
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "BLOCKER",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "description": "Violation severity level."
+          },
+          "denied_by": {
+            "type": "string",
+            "description": "Deny pattern that matched."
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when resolved."
+          },
+          "resolved_by": {
+            "type": "string",
+            "description": "Agent that resolved the violation."
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "gate_violations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Compliance gate violation records."
+    },
+    "tdd_violations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "TDD enforcement violation records."
+    }
+  },
+  "additionalProperties": true
+}

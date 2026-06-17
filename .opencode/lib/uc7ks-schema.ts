@@ -317,8 +317,6 @@ export function getSufficientDomains(
   return results;
 }
 
-// ATOMIC WRITE (CAS) — Re-exported from state-utils
-
 // ════════════════════════════════════════════════════════════
 // CAP MANAGEMENT
 // ════════════════════════════════════════════════════════════

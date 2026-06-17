@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/type-check-state.schema.json",
+  "title": "Type Check State",
+  "description": "TypeScript incremental type-check state.",
+  "type": "object",
+  "required": [
+    "status",
+    "dirty_files",
+    "incremental_errors"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "clean",
+        "dirty"
+      ],
+      "description": "Current type-check status."
+    },
+    "dirty_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Files with unresolved type errors."
+    },
+    "incremental_errors": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of incremental type errors."
+    },
+    "full_errors": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of full-scan type errors."
+    },
+    "last_full_check": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "ISO 8601 timestamp of last full type check, or null."
+    },
+    "last_incremental_check": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "ISO 8601 timestamp of last incremental type check, or null."
+    }
+  },
+  "additionalProperties": true
+}

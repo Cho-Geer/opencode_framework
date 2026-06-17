@@ -31,7 +31,23 @@ import { readSubState } from './substate-manager';
 import {
   dbLoadGateStore,
   dbSaveGateStore,
+  dbArchiveDrainedSession,
+  dbCountDrainedSessions,
 } from './db-state-manager';
+
+const SRC = 'lib-gate-core';
+
+let _writeLog: ((src: string, level: string, payload: Record<string, unknown>) => void) | null = null;
+function writeLogSafe(src: string, level: string, payload: Record<string, unknown>): void {
+  try {
+    if (!_writeLog) {
+      _writeLog = require('./log-manager').writeLog;
+    }
+    _writeLog!(src, level, payload);
+  } catch {
+    // Circular dependency or module unavailable — swallow silently
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -153,13 +169,6 @@ export interface GateCompleteResult {
 
 export type EnforcementMode = 'advisory' | 'strict' | 'locked';
 
-interface DrainedStore {
-  formatVersion: string;
-  drained_sessions: Record<string, GateSession & { drained_at: string; drain_reason: string; drain_type?: string }>;
-  last_drained: string | null;
-  total_drained?: number;
-}
-
 // ════════════════════════════════════════════════════════════
 // PATH RESOLUTION
 // ════════════════════════════════════════════════════════════
@@ -240,15 +249,6 @@ export function computeSHA256(filePath: string): string | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Write JSON to a file with mkdirp.
- * @internal — Low-level file I/O utility, not intended for external consumption
- */
-export function writeJsonFile(filePath: string, data: unknown): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -399,11 +399,6 @@ export function getMachinePath(root?: string): string {
   return path.join(stateDir, 'machine.json');
 }
 
-/** @public — Drained sessions store path resolver */
-export function getDrainedStorePath(gateStateFile: string): string {
-  return gateStateFile.replace(/\.json$/, '.drained_sessions.json');
-}
-
 /**
  * Create a fresh gate store with default values.
  * @internal — Utility function; external consumers should use loadGateStore()
@@ -538,7 +533,7 @@ export function loadGateStore(root?: string): GateStore {
 
   // 4. If modified, persist back to DB
   if (modified) {
-    try { dbSaveGateStore(store); } catch (e: any) { writeLog(SRC, "WARN", { event: "DB-RECONCILE-WRITE-FAILED", detail: e.message }); }
+    try { dbSaveGateStore(store); } catch (e: any) { writeLogSafe(SRC, "WARN", { event: "DB-RECONCILE-WRITE-FAILED", detail: e.message }); }
   }
 
   // Log source for diagnostics
@@ -616,7 +611,7 @@ export function saveGateStore(store: GateStore, root?: string): void {
   try {
     dbSaveGateStore(store);
   } catch (e: any) {
-    writeLog(SRC, "ERROR", { event: "DB-SAVE-GATE-FAILED", detail: e.message });
+    writeLogSafe(SRC, "ERROR", { event: "DB-SAVE-GATE-FAILED", detail: e.message });
   }
 }
 
@@ -1039,14 +1034,7 @@ export function drainStaleSessions(
   drained_checked: number;
   drained_delivered: number;
 } {
-  const gateFile = getGateStatePath(root);
   const store = loadGateStore(root);
-  const drainedFile = getDrainedStorePath(gateFile);
-  const drainedStore = readJsonFile<DrainedStore>(drainedFile) || {
-    formatVersion: '2.0',
-    drained_sessions: {},
-    last_drained: null,
-  };
 
   const nowTs = Date.now();
   let purged = 0;
@@ -1095,12 +1083,17 @@ export function drainStaleSessions(
     }
 
     if (shouldDrain) {
-      drainedStore.drained_sessions[sid] = {
-        ...ses,
-        drained_at: new Date().toISOString(),
-        drain_reason: reason,
-        drain_type: drainType,
-      };
+      const archived = dbArchiveDrainedSession(
+        sid,
+        ses.task_description || '',
+        reason,
+        drainType,
+        JSON.stringify(ses),
+      );
+      if (!archived) {
+        writeLogSafe(SRC, 'WARN', { event: 'DRAIN-ARCHIVE-SKIPPED', detail: `sid=${sid}` });
+        continue;
+      }
       delete store.sessions[sid];
       store.active_sessions = store.active_sessions.filter((a) => a !== sid);
       purged++;
@@ -1112,11 +1105,12 @@ export function drainStaleSessions(
   }
 
   if (purged > 0) {
-    drainedStore.last_drained = new Date().toISOString();
-    drainedStore.total_drained = Object.keys(drainedStore.drained_sessions).length;
-    writeJsonFile(drainedFile, drainedStore);
     store.last_updated = new Date().toISOString();
     saveGateStore(store, root);
+    writeLogSafe(SRC, 'INFO', {
+      event: 'DRAIN-COMPLETE',
+      detail: `purged=${purged} armed=${drainedArmed} checked=${drainedChecked} delivered=${drainedDelivered} total_archived=${dbCountDrainedSessions()}`,
+    });
   }
 
   return {

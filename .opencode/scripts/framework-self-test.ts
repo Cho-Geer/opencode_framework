@@ -253,41 +253,27 @@ function checkMachineSubStates() {
       );
     }
     
-    // Verify all sub-state files exist
-    const subStateFiles = [
-      "eslint-state.json",
-      "type-check-state.json",
-      "dependency-state.json",
-      "format-state.json",
-      "write-audit-state.json",
-      "compliance-records.json",
-      "tdd-enforcement-state.json",
-      "keystone-hashes.json",
-      "knowledge-state.json",
-      "knowledge-cache-state.json",
-      "knowledge-audit-state.json",
-      "transaction-state.json",
-    ];
-    
-    const stateDir = path.join(OPENCODE_ROOT, ".opencode", "state");
-    const missing = subStateFiles.filter(f => {
-      const fullPath = path.join(stateDir, f);
-      return !fs.existsSync(fullPath);
-    });
-    
-    if (missing.length > 0) {
+    // P2-A v7: Verify substate_kv DB has 12 sub-state entries (JSON snapshots deleted)
+    try {
+      const { getDb } = require("../lib/db-manager");
+      const db = getDb();
+      const row = db.query("SELECT COUNT(*) AS c FROM substate_kv").get() as { c: number } | undefined;
+      const count = row?.c ?? 0;
+      if (count < 12) {
+        return check(
+          3,
+          false,
+          `substate_kv has ${count} rows (expected 12)`,
+        );
+      }
       return check(
         3,
-        false,
-        `Missing sub-state files: ${missing.join(", ")}`,
+        true,
+        `Split architecture OK: machine.json has ${expectedKeys.length} keys, substate_kv has ${count} entries`,
       );
+    } catch (e: any) {
+      return check(3, false, `substate_kv query failed: ${e.message}`);
     }
-    
-    return check(
-      3,
-      true,
-      `Split architecture OK: machine.json has ${expectedKeys.length} keys, ${subStateFiles.length} sub-state files present`,
-    );
   } catch (e) {
     return check(3, false, `JSON parse error: ${e.message}`);
   }
@@ -1795,11 +1781,11 @@ function checkDoctorJsonOutput() {
       return check(25, false, "JSON missing 'checks' array");
     }
 
-    if (parsed.checks.length !== 12) {
+    if (parsed.checks.length !== 13) {
       return check(
         25,
         false,
-        `Expected 12 checks but found ${parsed.checks.length}`,
+        `Expected 13 checks but found ${parsed.checks.length}`,
       );
     }
 
@@ -1993,21 +1979,18 @@ function checkCrossValidation() {
 
 // ───────────────────────────────────────────────────────────────
 // Check 28: UC7KS Schema Integrity
-// Validates knowledge-cache-state.json structure against
-// the schema defined in machine.schema.json. Added FW-HARDEN-UC7KS.
-// Updated for P1-B split architecture.
+// Validates knowledge_cache_state structure from substate_kv DB.
+// Updated for P2-A v7: JSON snapshot deleted, DB is sole source.
 // ───────────────────────────────────────────────────────────────
 function checkUC7KSSchemaIntegrity() {
-  const kcsPath = path.join(
-    OPENCODE_ROOT,
-    ".opencode",
-    "state",
-    "knowledge-cache-state.json",
-  );
-  const raw = readFile(kcsPath);
-  if (!raw) return check(28, false, "knowledge-cache-state.json not found");
   try {
-    const kcs = JSON.parse(raw);
+    const { getDb } = require("../lib/db-manager");
+    const db = getDb();
+    const row = db.query(
+      "SELECT json FROM substate_kv WHERE key = ?",
+    ).get("knowledge_cache_state") as { json: string } | undefined;
+    if (!row) return check(28, false, "knowledge_cache_state not found in substate_kv");
+    const kcs = JSON.parse(row.json);
     if (!kcs || typeof kcs !== "object") {
       return check(28, false, "knowledge_cache_state missing or not an object");
     }
@@ -2684,6 +2667,7 @@ function checkV6DbTables() {
 }
 
 checkV6DbTables();
+checkSchemaFiles();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
@@ -2785,6 +2769,71 @@ function checkPlanFirstConsistency() {
   check(37, issues.length === 0,
     issues.length === 0
       ? "PLAN-FIRST 3-layer stack consistent (dag-policy, dispatch-before, dispatch_subagent, gate-before, project.config)"
+      : issues.length + " issue(s): " + issues.join("; "));
+}
+
+// ─── Check 39: Schema file integrity (S41 split) ───
+// Verifies the 16 sub-state schema files in .opencode/state/schemas/
+// exist, are valid JSON, and have correct JSON Schema structure.
+// Also verifies machine.schema.json is the slim meta+contracts version.
+// No external dependencies (AJV not required).
+function checkSchemaFiles() {
+  const root = process.env.OPENCODE_ROOT || process.cwd();
+  const pathJoin = require("path").join;
+  const schemasDir = pathJoin(root, ".opencode", "state", "schemas");
+  const expected = [
+    "eslint-state", "type-check-state", "dependency-state", "format-state",
+    "write-audit-state", "compliance-records", "knowledge-audit-state",
+    "tdd-enforcement-state", "keystone-hashes", "transaction-state",
+    "knowledge-cache-state", "knowledge-state", "state-segments",
+    "plugin-state", "auto-plan-history", "dispatch-history",
+  ];
+  const issues = [];
+
+  if (!fs.existsSync(schemasDir)) {
+    issues.push("state/schemas/ directory missing");
+  } else {
+    for (const name of expected) {
+      const file = pathJoin(schemasDir, name + ".schema.json");
+      if (!fs.existsSync(file)) {
+        issues.push(name + ".schema.json missing");
+        continue;
+      }
+      try {
+        const schema = JSON.parse(fs.readFileSync(file, "utf8"));
+        if (!schema.$schema) issues.push(name + ": missing $schema");
+        if (!schema.type) issues.push(name + ": missing type");
+      } catch (e) {
+        issues.push(name + ": invalid JSON — " + e.message);
+      }
+    }
+  }
+
+  // Verify machine.schema.json is slim (meta+contracts only, not monolithic)
+  const metaSchemaPath = pathJoin(root, ".opencode", "state", "machine.schema.json");
+  if (fs.existsSync(metaSchemaPath)) {
+    try {
+      const metaSchema = JSON.parse(fs.readFileSync(metaSchemaPath, "utf8"));
+      const props = Object.keys(metaSchema.properties || {});
+      if (props.length > 5) {
+        issues.push("machine.schema.json has " + props.length + " properties (expected ≤5, should be slim meta+contracts)");
+      }
+      if (!metaSchema.required || !metaSchema.required.includes("meta")) {
+        issues.push("machine.schema.json: 'meta' not in required");
+      }
+      if (!metaSchema.required || !metaSchema.required.includes("contracts")) {
+        issues.push("machine.schema.json: 'contracts' not in required");
+      }
+    } catch (e) {
+      issues.push("machine.schema.json: invalid JSON — " + e.message);
+    }
+  } else {
+    issues.push("machine.schema.json missing");
+  }
+
+  check(39, issues.length === 0,
+    issues.length === 0
+      ? "Schema files: " + expected.length + " sub-state schemas valid + machine.schema.json slim (meta+contracts)"
       : issues.length + " issue(s): " + issues.join("; "));
 }
 

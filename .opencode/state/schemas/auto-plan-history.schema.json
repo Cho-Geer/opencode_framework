@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opencode.dev/state/schemas/auto-plan-history.schema.json",
+  "title": "Auto Plan History",
+  "description": "FW-PLAN-FIRST (2026-06-14): Audit trail of autonomous @Meta-Planner dispatches triggered by dispatch_subagent auto_plan. Each record captures caller session, target agent, dag_task_id, planning_dispatch_id, status, and elapsed_ms. Capped at 200 entries by dag-policy.ts.",
+  "type": "object",
+  "required": [
+    "history"
+  ],
+  "properties": {
+    "history": {
+      "type": "array",
+      "description": "Array of auto-plan dispatch history records.",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "caller_session",
+          "caller_agent",
+          "target_agent",
+          "dag_task_id",
+          "planning_dispatch_id",
+          "status"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "caller_session": {
+            "type": "string"
+          },
+          "caller_agent": {
+            "type": "string"
+          },
+          "target_agent": {
+            "type": "string"
+          },
+          "dag_task_id": {
+            "type": "string"
+          },
+          "planning_dispatch_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "attempt",
+              "success",
+              "timeout",
+              "rate_limited",
+              "failure"
+            ]
+          },
+          "elapsed_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -383,6 +383,10 @@ function readJson(p) {
  * using AJV (JSON Schema validator). AJV is loaded dynamically — if not
  * installed, validation is skipped with a notice.
  *
+ * P1-B: machine.schema.json now validates only meta + contracts (307B machine.json).
+ * Sub-state schemas are in .opencode/state/schemas/*.schema.json (S41 split).
+ * Original monolithic schema preserved as machine.schema.full.json.
+ *
  * Returns: { valid: boolean, errors: string[], warnings: string[] }
  */
 function validateMachineSchema(machine) {

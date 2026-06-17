@@ -32,8 +32,8 @@
  * with write-ahead logging (WAL).
  *
  * NOTE (P1-A CAS Unification, 2026-06-16):
- *   All machine.json writes now use atomicWriteMachine() from
- *   lib/state-utils.ts (CAS-on-revision with exponential backoff).
+ *   All sub-state writes now use atomicWriteSubState() from
+ *   lib/state-utils.ts (DB transaction via dbAtomicWriteSubState).
  *   beginTransaction is retained ONLY for non-machine.json state
  *   files (e.g., gate-state.json via compliance-gate.ts).
  *

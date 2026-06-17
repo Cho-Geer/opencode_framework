@@ -771,6 +771,51 @@ export function dbMarkSessionDrained(sessionId: string): boolean {
 }
 
 /**
+ * Archive a drained gate session to the gate_drained_sessions table.
+ * Replaces JSON file archival (writeJsonFile → gate-state.drained_sessions.json).
+ * INSERT OR REPLACE ensures idempotency for repeated drain attempts.
+ */
+export function dbArchiveDrainedSession(
+  sessionId: string,
+  originalTaskDesc: string,
+  drainReason: string,
+  drainType: string,
+  originalData: string,
+): boolean {
+  try {
+    const db = getDb();
+    db.run(
+      `INSERT OR REPLACE INTO gate_drained_sessions
+        (session_id, original_task_desc, drain_reason, drain_type, drained_at, original_data)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [sessionId, originalTaskDesc, drainReason, drainType, Date.now(), originalData],
+    );
+    return true;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-ARCHIVE-DRAINED-FAILED",
+      detail: `sid=${sessionId} err=${e.message}`,
+    });
+    return false;
+  }
+}
+
+/**
+ * Count total archived drained sessions in DB.
+ */
+export function dbCountDrainedSessions(): number {
+  try {
+    const db = getDb();
+    const row = db.query(
+      "SELECT COUNT(*) AS c FROM gate_drained_sessions",
+    ).get() as { c: number } | undefined;
+    return row?.c ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Read compactor hot view directly from DB (S63-4: DB-first read).
  * Returns shape compatible with GateStateHot.
  * Falls back to empty hot state if DB unavailable.

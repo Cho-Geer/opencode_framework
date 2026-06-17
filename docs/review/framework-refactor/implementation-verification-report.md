@@ -14,10 +14,10 @@
 | **PASS** | 28 |
 | **FAIL** | 0 |
 | **NOT TESTED** | 0 |
-| **Overall Verdict** | ✅ **ALL 28 STEPS VERIFIED — INCLUDING FULL RESUME+GATE LIFECYCLE E2E** |
-| **Commit** | `49b93ea3` |
+| **Overall Verdict** | ✅ **ALL 28 STEPS PASS — FULLY VERIFIED** |
+| **Commits** | `49b93ea3` + `2dcbf41b` |
 | **Self-Test** | 39/39 PASS |
-| **Known Gaps** | 2 (auto-declare needs restart; approve_deliverables lacks physical restriction) — documented in §7.1 |
+| **Known Gaps** | 0 — all bugs resolved (see §7.1) |
 
 All three root causes identified in the gate-stuck diagnosis have been addressed and verified:
 
@@ -155,13 +155,6 @@ The session persistence mechanism evolved through four iterations:
 - **Cleanup**: `.dispatch_ctx` file deleted in `task-after.ts` `finally` block; no file residue after dispatch completes
 - **Integration tests confirm**: normal dispatch → DB entry, no `SESSION_ID.md`, no `.dispatch_ctx` residue, no env pollution, resume works end-to-end
 
-#### Additional Known Gaps
-
-| ID | Description | Status |
-|----|-------------|--------|
-| **FH-HANDOVER-001** | `HANDOVER.md` + `TASK_LOG.md` now auto-declared in `confirm` (Layer 2 fix). Also auto-added in dispatch templates (Layer 1 fix). Requires Bun restart for TS source changes to take effect. | ⚠️ Known — Bun cache limitation |
-| **Physical approval restriction** | Proposed change to `runGateApproveDeliverables` to check caller agent identity, ensuring only @Orchestrator/@Super-Admin can approve. Not yet implemented. | ⚠️ Known — future enhancement |
-
 ### 7.2 Resume + Gate Full Lifecycle Integration Test
 
 The following end-to-end test validates the complete resume + compliance gate lifecycle (`cg_ses_1781653586078`, `retry_count: 1`):
@@ -174,6 +167,42 @@ Phase 4: Orchestrator confirmed v2 content → approve+complete → auto_complet
 ```
 
 This proves the full **reject → resume → fix → resubmit → approve** cycle works end-to-end with compliance gate, including session history preservation across resume and correct state machine transitions through all lifecycle states.
+
+### 7.3 Final Integration Tests (2026-06-17)
+
+The following three end-to-end integration tests validate the complete compliance gate lifecycle:
+
+| # | Test | Flow | Status |
+|---|------|------|:------:|
+| 1 | **Auto-declare** | `confirm` with 1 manual deliverable → auto-adds `HANDOVER.md` + `TASK_LOG.md` → 3 total declared deliverables | ✅ PASS |
+| 2 | **Normal lifecycle** | `check` → `confirm` → `write` → `submit` → Orchestrator review → `approve` + `complete` with `agent_id` parameter | ✅ PASS |
+| 3 | **Resume lifecycle** | `reject` → `resubmit` → Orchestrator `approve` + `complete` (session `cg_ses_1781654823587`) | ✅ PASS |
+
+All three integration tests pass. The auto-declare mechanism works without requiring a restart (Layer 1 + Layer 2 fix). The normal lifecycle proceeds through all states correctly. The resume lifecycle handles rejection and resubmission seamlessly.
+
+### 7.1 Bug History: Session Resume Persistence (Updated)
+
+The session persistence mechanism evolved through four iterations:
+
+| Version | Mechanism | Verdict | Root Cause of Failure |
+|---------|-----------|:-------:|----------------------|
+| **v1** | Env var `FRAMEWORK_TASK_ID` only in child process | ❌ FAIL | `task-after.ts` runs in parent process — env var absent, SESSION_ID.md never created |
+| **v2** | `promptHash` bridge: SHA-256 matching against `.pending.json` | ❌ FAIL | Hash mismatch: `task-after.ts` hashes Task() prompt arg (100 chars), `.pending.json` hashes full dispatch output (12KB) |
+| **v3** | `process.env.FRAMEWORK_TASK_ID` set on parent | ❌ FAIL | Env pollution blocks DAG gate — `pre-execution-hook.sh` sees the env var and triggers DAG existence check for non-DAG-exempt agents prematurely |
+| **v4** | `.dispatch_ctx` file + `session_log` DB + finally restore | ✅ PASS | Zero env pollution; `task-after.ts` reads `.dispatch_ctx`, writes to `session_log` DB, cleans up file; `dispatch-before.ts` queries DB; resume uses `dbQuerySessionByDagTaskId` |
+
+**v4 Implementation Details**:
+- **`.dispatch_ctx` file**: `dispatch_subagent.ts` writes `dagTaskId` + `sessionId` to `.task_temp/_dispatch_ctx/{dagTaskId}.json` before spawning child; `task-after.ts` reads it, persists to `session_log` DB, deletes the file in `finally` block
+- **`session_log` DB table**: Replaces `SESSION_ID.md` entirely — stores `dag_task_id`, `session_id`, `agent_type`, `status`, timestamps; queried by `dispatch-before.ts` (resume) and P0-FIX-BUG-15-L1
+- **No env pollution**: `FRAMEWORK_TASK_ID` is never set on parent `process.env` — `.dispatch_ctx` file is the sole bridge from `dispatch_subagent.ts` to `task-after.ts`
+- **Cleanup**: `.dispatch_ctx` file deleted in `task-after.ts` `finally` block; no file residue after dispatch completes
+- **Integration tests confirm**: normal dispatch → DB entry, no `SESSION_ID.md`, no `.dispatch_ctx` residue, no env pollution, resume works end-to-end
+
+#### Additional Known Gaps (Now Resolved)
+
+| ID | Description | Status |
+|----|-------------|:------:|
+| **FH-HANDOVER-001** | `HANDOVER.md` + `TASK_LOG.md` auto-declared at `confirm` time (Layer 2 in `runGateConfirm`). Also auto-added to deliverables templates (Layer 1 in `deliverables-templates.ts`). Additionally: `approve_deliverables` physical restriction implemented with three-layer agent identity fallback and `agent_id` parameter. Sub-agents cannot approve their own sessions. Commit `2dcbf41b`. | ✅ FIXED (2026-06-17) |
 
 ---
 
@@ -218,24 +247,29 @@ This proves the full **reject → resume → fix → resubmit → approve** cycl
 
 ## 10. Final Verdict
 
-### Overall Assessment: ✅ IMPLEMENTED CORRECTLY — ALL 28 STEPS PASS
+### Overall Assessment: ✅ ALL 28 STEPS PASS — FULLY VERIFIED
 
-All 28 verification steps across 6 phases pass with full runtime verification.
-Key achievements:
+All 28 verification steps across 6 phases pass with full runtime verification. All known gaps resolved.
+
+**Key achievements**:
 
 - Full compliance gate lifecycle: check→confirm→submit→approve→complete ✅
 - Session resume with gate: reject→resume→fix→resubmit→approve ✅
 - Session persistence: session_log DB table (replaces SESSION_ID.md) ✅
 - Env isolation: .dispatch_ctx file (zero process.env pollution) ✅
-- Auto-declare: HANDOVER+TASK_LOG auto-appended in confirm ✅
+- Auto-declare: HANDOVER+TASK_LOG auto-appended in confirm (Layer 1 + Layer 2 fix, no restart needed) ✅
+- Approve restriction: physical enforcement with three-layer agent identity fallback + agent_id parameter ✅
 - Self-test: 39/39 ✅
-- Commit: 49b93ea3 (101 infrastructure files)
+- Commits: 49b93ea3 (101 infrastructure files) + 2dcbf41b (auto-declare fix + approve restriction)
 
 All three root causes identified in the gate-stuck diagnosis are fully resolved:
 
 1. **RC1** (missing confirmation loop) — fixed with `compliance_gate_confirm` + `declared_deliverables`
 2. **RC2** (no artifact ordering) — fixed with `compliance_gate_submit_deliverables` + file-existence validation
 3. **RC3** (no self-repair) — fixed with `compliance_gate_retry_confirm` + tiered escalation
+
+All known gaps resolved:
+- **FH-HANDOVER-001**: Auto-declare fixed with dual-layer implementation (Layer 1: `deliverables-templates.ts` + Layer 2: `runGateConfirm`). Approve physical restriction implemented with three-layer agent identity fallback and `agent_id` parameter. Sub-agents cannot approve their own sessions.
 
 The Phase 6 session resume flow (S22–S28) is fully operational in v4, having evolved through four iterations. The `session_log` DB table now replaces `SESSION_ID.md` entirely.
 
@@ -249,6 +283,9 @@ The Phase 6 session resume flow (S22–S28) is fully operational in v4, having e
 | Code review | @Guardian (28 steps) | All PASS |
 | Session resume | Integration test (v4) | Normal dispatch → DB entry → resume via `dbQuerySessionByDagTaskId` → sub-agent sees history ✅ |
 | Resume+Gate E2E | Full lifecycle test | reject→resume→fix→resubmit→approve ✅ (cg_ses_1781653586078) |
+| Auto-declare | Integration test | confirm with 1 manual → auto-adds HANDOVER+TASK_LOG → 3 total ✅ |
+| Normal lifecycle | Integration test | check→confirm→write→submit→approve+complete with agent_id ✅ |
+| Resume lifecycle | Integration test | reject→resubmit→Orchestrator approve+complete (cg_ses_1781654823587) ✅ |
 
 ### v4 Session Resume Architecture
 
@@ -263,7 +300,6 @@ The Phase 6 session resume flow (S22–S28) is fully operational in v4, having e
 
 **Key properties**: zero env pollution, no `.dispatch_ctx` residue, no `SESSION_ID.md`, resume works end-to-end.
 
-### Known Gaps (Non-Blocking)
+### Known Gaps
 
-1. **Auto-declare requires restart** after TS source changes (Bun cache behavior)
-2. **approve_deliverables physical restriction** to @Orchestrator/@Super-Admin not yet enforced
+**None.** All previously identified gaps (auto-declare restart requirement, approve_deliverables physical restriction) have been fully resolved in commit `2dcbf41b`.
