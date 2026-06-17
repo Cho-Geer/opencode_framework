@@ -457,25 +457,40 @@ function checkDagCoverage(taskId) {
  * gate_status is not "failed".
  */
 function checkGateLifecycle(taskId) {
-  const gs = readJSON(GATE_STATE_FILE);
-  if (!gs.ok) {
-    // gate-state.json might not exist on fresh projects
+  // Post-Step-8 DB-only migration: gate-state.json is a frozen snapshot
+  // no longer synced with DB writes. Use dbLoadGateStore() to read
+  // directly from the DB (single source of truth).
+  let store;
+  try {
+    const { dbLoadGateStore } = require("../lib/db-state-manager");
+    store = dbLoadGateStore();
+  } catch (e) {
     const blocked = emitError(
       "Gate Lifecycle",
-      "gate-state.json cannot be read — compliance gate has not been initialized",
-      gs.error,
+      "Cannot read gate sessions from DB — compliance gate has not been initialized",
+      { error: e.message },
     );
     if (blocked) process.exit(1);
     return false;
   }
 
-  const sessions = gs.data.sessions || {};
+  if (!store || !store.sessions) {
+    const blocked = emitError(
+      "Gate Lifecycle",
+      "No gate sessions found in DB — run compliance_gate_check first",
+      { task_id: taskId },
+    );
+    if (blocked) process.exit(1);
+    return false;
+  }
+
+  const sessions = store.sessions;
   const sessionIds = Object.keys(sessions);
 
   if (sessionIds.length === 0) {
     const blocked = emitError(
       "Gate Lifecycle",
-      "No gate sessions found in gate-state.json — run compliance_gate_check first",
+      "No gate sessions found in DB — run compliance_gate_check first",
       { task_id: taskId },
     );
     if (blocked) process.exit(1);
@@ -511,45 +526,27 @@ function checkGateLifecycle(taskId) {
 }
 
 /**
- * Check 3 — Role Violations: no unresolved role violations in machine.json.
+ * Check 4 — Role Violations: no unresolved role violations.
+ * P2-A Step 6: compliance_records migrated to DB via readSubState().
+ * No file-based fallback — directly use readSubState return value.
+ * Matches compliance-gate.ts:826 pattern.
  */
 function checkRoleViolations() {
-  // P1-B split: compliance_records now lives in compliance-records.json sub-state file.
-  // readSubState returns {} if file missing/unreadable; preserve fail-closed
-  // semantics by checking file existence first (same pattern as original).
   const complianceRecords = readSubState("compliance_records");
-  const crPath = path.join(STATE_DIR, "compliance-records.json");
-  if (!fs.existsSync(crPath)) {
-    const blocked = emitError(
-      "Role Violations",
-      "compliance-records.json cannot be read",
-      "File not found: .opencode/state/compliance-records.json",
-    );
-    if (blocked) process.exit(2);
-    return true; // advisory: pass through with empty violations
+  if (!complianceRecords || Object.keys(complianceRecords).length === 0) {
+    gateLog("role_check", "INFO", { status: "no_compliance_records", reason: "empty_or_missing" });
+    return true; // No records → no violations
   }
-
   const violations = complianceRecords.role_violations || [];
-
-  const unresolved = violations.filter((v) => v.status !== "resolved");
-
+  const unresolved = violations.filter((v) => v.status === "unresolved");
   if (unresolved.length > 0) {
-    const blocked = emitError(
-      "Role Violations",
-      `${unresolved.length} unresolved role violation(s) detected`,
-      {
-        violations: unresolved.map((v) => ({
-          agent: v.agent,
-          file: v.violation_file,
-          severity: v.severity,
-          timestamp: v.timestamp,
-        })),
-      },
-    );
+    const blocked = emitError("Role Violations", `${unresolved.length} unresolved role violation(s) detected`, {
+      violations: unresolved.map((v) => ({ agent: v.agent, file: v.violation_file, severity: v.severity, timestamp: v.timestamp })),
+    });
     if (blocked) process.exit(1);
     return false;
   }
-
+  gateLog("role_check", "INFO", { status: "clean", total_violations: violations.length, unresolved: 0 });
   return true;
 }
 

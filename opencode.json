@@ -716,7 +716,8 @@
           "cd *": "allow",
           "diff *": "allow",
           "python3 *": "allow",
-          "git *": "allow"
+          "git *": "allow",
+          "sha256sum *": "allow"
         },
         "safe_delete": {
           ".opencode/**": "allow",
