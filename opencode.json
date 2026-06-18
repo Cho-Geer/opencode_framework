@@ -837,7 +837,9 @@
       }
     ]
   },
-  "plugin": [],
+  "plugin": [
+    "./.opencode/plugins/read-track-after.ts"
+  ],
   "mcp": {
     "compliance-gate": {
       "type": "local",

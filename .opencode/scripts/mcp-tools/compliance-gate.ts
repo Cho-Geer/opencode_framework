@@ -2011,6 +2011,71 @@ function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, e
       };
     }
 
+    // ── READ-BEFORE-APPROVE: Verify approver actually read HANDOVER.md ──
+    //
+    // The handover_sha256 check above proves the approver has access to the
+    // file hash but NOT that they actually read the content. An approver can
+    // obtain the hash from the sub-agent's task_result output without ever
+    // opening HANDOVER.md. This check closes that gap by verifying the
+    // approver called the `read` tool on the HANDOVER.md file within the
+    // valid time window.
+    //
+    // Read events are tracked by read-track-after.ts plugin → read-audit.ts
+    // → read_audit.jsonl. The verifyRead() function scans the audit log for
+    // a matching entry (agent + filePath + timestamp within 5 min window).
+    {
+      try {
+        const { verifyRead } = require("../../lib/read-audit");
+        const resolvedHandoverPath = path2.resolve(
+          OPENCODE_ROOT,
+          `.task_temp/${taskId}/HANDOVER.md`,
+        );
+        const readResult = verifyRead(
+          resolvedAgent,
+          resolvedHandoverPath,
+          sessionId,
+        );
+
+        if (!readResult.verified) {
+          writeLog("mcp-compliance-gate", "ERROR", {
+            sessionID: sessionId,
+            agent: resolvedAgent,
+            level: "ERROR",
+            event: "READ_BEFORE_APPROVE_FAILED",
+            detail: readResult.reason,
+          });
+          return {
+            status: "rejected",
+            reason:
+              `[READ-BEFORE-APPROVE] ${readResult.reason}\n\n` +
+              `Required actions:\n` +
+              `1. Use the \`read\` tool to open and review the HANDOVER.md content\n` +
+              `2. Compute the SHA-256 hash: sha256sum .task_temp/${taskId}/HANDOVER.md\n` +
+              `3. Re-call compliance_gate_approve_deliverables with both:\n` +
+              `   - handover_sha256: <computed hash>\n` +
+              `   - approval_note: <your review findings (min 10 chars)>\n\n` +
+              `This ensures you have actually READ the deliverables, not just obtained the hash.`,
+          };
+        }
+
+        writeLog("mcp-compliance-gate", "INFO", {
+          sessionID: sessionId,
+          agent: resolvedAgent,
+          event: "READ_BEFORE_APPROVE_PASSED",
+          detail: readResult.reason,
+        });
+      } catch (readAuditErr: any) {
+        // read-audit.ts unavailable — fall back to sha256-only check
+        // Graceful degradation: log warning, allow approval to proceed
+        writeLog("mcp-compliance-gate", "WARN", {
+          sessionID: sessionId,
+          agent: resolvedAgent,
+          event: "READ_BEFORE_APPROVE_UNAVAILABLE",
+          detail: `lib/read-audit.ts load failed: ${readAuditErr.message}. Fallback to sha256-only verification.`,
+        });
+      }
+    }
+
     session.deliverables_approved_by = "Orchestrator";
     session.deliverables_approved_at = now;
     session.deliverables_approval_note = approvalNote || null;
