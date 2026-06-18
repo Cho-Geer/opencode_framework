@@ -39,6 +39,7 @@ mcp_tools:
   - compliance_gate_check
   - compliance_gate_confirm
   - compliance_gate_complete
+  - resolve_domain_id
 permission:
   edit: deny
   bash: deny

@@ -14,7 +14,6 @@ skills:
   - context7-first
 mcp_tools:
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
-  - dispatch_subagent
   - safe_edit
   - safe_delete
   - safe_mkdir
@@ -26,6 +25,7 @@ mcp_tools:
   - compliance_gate_check
   - compliance_gate_confirm
   - compliance_gate_complete
+  - resolve_domain_id
 permission:
   edit: deny
   bash: deny

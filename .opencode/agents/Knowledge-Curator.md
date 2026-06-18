@@ -30,6 +30,7 @@ mcp_tools:
   - skill
   - question
   - todowrite
+  - resolve_domain_id
 ---
 
 # @Knowledge-Curator — Universal Context7-First Knowledge System (UC7KS)

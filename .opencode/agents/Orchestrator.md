@@ -17,6 +17,7 @@ mcp_tools:
   - safe_shell
   - safe_diff
   - question
+  - resolve_domain_id
 permission:
   edit: deny
   bash: deny

@@ -26,6 +26,7 @@ mcp_tools:
   - safe_diff
   - question
   - todowrite
+  - resolve_domain_id
 # opencode.json is authoritative for runtime permissions — the below are declarative only
 permission:
   edit: deny
