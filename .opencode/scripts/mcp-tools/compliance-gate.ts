@@ -806,8 +806,8 @@ function runGateCheck(taskDescription, taskId) {
         event: "DISPATCH_TASKID_TAMPER",
         provided_task_id: taskId,
         dispatch_registered_task_ids: dispatchAssignedTaskIds,
-        framework_task_id: process.env.FRAMEWORK_TASK_ID || "—",
-        detail: `sub-agent attempted to use task_id "${taskId}" not registered in any dispatch — fabricated task_id to bypass gate mutual exclusion. Registered: [${dispatchAssignedTaskIds.join(", ")}]. FRAMEWORK_TASK_ID env: ${process.env.FRAMEWORK_TASK_ID || "(empty)"}`,
+        framework_task_id: "removed—FW-CLEANUP-2026-06-18",
+        detail: `sub-agent attempted to use task_id "${taskId}" not registered in any dispatch — fabricated task_id to bypass gate mutual exclusion. Registered: [${dispatchAssignedTaskIds.join(", ")}].`,
       });
       return {
         passed: false,
@@ -1076,7 +1076,9 @@ function runGateCheck(taskDescription, taskId) {
       const knowledgeCacheState = readSubState("knowledge_cache_state");
       const sessionAccess = knowledgeCacheState?.session_access || {};
       const agents = Object.keys(sessionAccess);
-      const currentTaskId = taskId || process.env.FRAMEWORK_TASK_ID || "";
+      // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): env fallback removed.
+      // task_id flows through session_map DB + .dispatch_ctx exclusively.
+      const currentTaskId = taskId || "";
 
       // ── F3: Find pipeline agent — check nested tasks first, then flat ──
       let matchedAgent = null;
@@ -2168,7 +2170,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           task_id: {
             type: "string",
-            description: "Task identifier for artifact directory and active-session mutual exclusion. If not provided, FRAMEWORK_TASK_ID env var is used as fallback.",
+            description: "Task identifier for artifact directory and active-session mutual exclusion. If not provided, the session_map DB is queried for the dispatch-assigned task_id.",
           },
           plan_summary: {
             type: "string",

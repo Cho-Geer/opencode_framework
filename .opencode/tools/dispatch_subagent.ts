@@ -217,8 +217,8 @@ export default tool({
       .optional()
       .describe(
         "Dispatch session identifier with DUAL semantics — read carefully before use.\n" +
-          "(a) Output/audit: used for .task_temp/{dag_task_id}/ path namespacing and passed as FRAMEWORK_TASK_ID env var. The pre-execution gate (pre-execution-gate.ts) skips DAG coverage when --dispatch-session is set.\n" +
-          "(b) DAG audit: the gate-before plugin (P2-1 DAG Task Existence Audit) treats FRAMEWORK_TASK_ID as a DAG task ID and REQUIRES this ID to exist in Task.DAG.json — either in the top-level tasks[] array or inside an execution_order group. If it does not exist, modify tools (safe_shell/safe_edit/safe_mkdir/safe_delete) are blocked with [FW-ENFORCE][DAG] 'Task \"…\" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order)'.\n" +
+          "(a) Output/audit: used for .task_temp/{dag_task_id}/ path namespacing. The pre-execution gate (pre-execution-gate.ts) skips DAG coverage when --dispatch-session is set.\n" +
+          "(b) DAG audit: the gate-before plugin (P2-1 DAG Task Existence Audit) treats the task ID as a DAG task ID and REQUIRES this ID to exist in Task.DAG.json — either in the top-level tasks[] array or inside an execution_order group. If it does not exist, modify tools (safe_shell/safe_edit/safe_mkdir/safe_delete) are blocked with [FW-ENFORCE][DAG] 'Task \"…\" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order)'.\n" +
           "Callers MUST ensure ONE of: (1) the ID already exists in Task.DAG.json; (2) dispatch @Meta-Planner first to add it (Meta-Planner/Orchestrator/Super-Admin/Knowledge-Curator are DAG-exempt); (3) the subagent itself is DAG-exempt. See docs/review/cicd-dag-block/plan-first-redesign.md for the PLAN-FIRST design.",
       ),
     auto_plan: tool.schema
@@ -250,20 +250,14 @@ export default tool({
   async execute(args, context) {
     return withInterruptGuard("dispatch_subagent", async () => {
       // ── P0-1: Agent identity propagated via _dispatch_target.json (v4.0.0: FRAMEWORK_AGENT deprecated) ──
-      // ── FW-REPAIR-DAG-DEADLOCK (2026-06-07): Save/restore FRAMEWORK_TASK_ID ──
-      // Setting process.env.FRAMEWORK_TASK_ID globally on the parent process pollutes the
-      // environment — the stale value persists after the dispatch completes, causing subsequent
-      // tool calls to be blocked by the pre-execution DAG gate (checkDagCoverage fails because
-      // dispatch session IDs are not DAG task IDs).
-      //
-      // Fix: save the original value, set the dispatch session ID, then restore after the
-      // dispatch-subagent.ts child process (execFileSync) completes. The sub-agent spawned by
-      // Task() inherits FRAMEWORK_AGENT/DISPATCH_CONTEXT from the parent (still correct),
-      // while FRAMEWORK_TASK_ID is cleared to prevent pollution. @Meta-Planner/@Orchestrator
-      // sub-agents bypass the DAG gate entirely (pre-execution-gate.ts FW-REPAIR-DAG-DEADLOCK).
-      const savedTaskId = process.env.FRAMEWORK_TASK_ID;
+      // ── FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env var removed from parent process.
+      // FRAMEWORK_TASK_ID was historically set on process.env to communicate the dag_task_id to
+      // the dispatch-subagent.ts child script. This polluted the parent's environment and caused
+      // tool-call blocking (pre-execution DAG gate). The child now reads dag_task_id from
+      // .dispatch_ctx file or --task-id CLI argument instead.
+      // The sub-agent spawned by Task() inherits FRAMEWORK_AGENT/DISPATCH_CONTEXT from the parent
+      // (still correct), but FRAMEWORK_TASK_ID is no longer written to the parent process.
       process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
-      if (args.dag_task_id) process.env.FRAMEWORK_TASK_ID = args.dag_task_id;
 
       // ── FW-PLAN-FIRST LAYER 2 (2026-06-14): Pre-flight DAG-existence check ──
       // Runs BEFORE spawning dispatch-subagent.ts. Defense-in-depth on top of
@@ -302,7 +296,7 @@ export default tool({
                 // Meta-Planner is DAG-exempt, so this nested dispatch bypasses
                 // the pre-flight check. We use execFileSync(bun, dispatch-subagent.ts)
                 // directly rather than re-entering the tool, to avoid recursion limits
-                // and to keep the planning dispatch independent of the outer FRAMEWORK_TASK_ID.
+                // and to keep the planning dispatch independent of the outer dispatch context.
                 const worktree = context.worktree || process.cwd();
                 const scriptPath = require("path").join(
                   worktree, ".opencode", "scripts", "command-tools", "dispatch-subagent.ts"
@@ -317,7 +311,8 @@ export default tool({
                     env: {
                       ...process.env,
                       DISPATCH_TASK_DESC: planningPrompt,
-                      FRAMEWORK_TASK_ID: planningDagId,
+                      // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID removed.
+                      // planningDagId is passed as positional arg to dispatch-subagent.ts.
                     },
                   }
                 );
@@ -359,7 +354,8 @@ export default tool({
         }
       }
 
-      // Wrap the rest in a try/finally so FRAMEWORK_TASK_ID is restored even on interrupt.
+      // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): try/finally restored FRAMEWORK_TASK_ID previously.
+      // Now the env var is no longer written, so the block is kept for structural clarity only.
       try {
         // ── Security: Orchestrator + Super-Admin/UC7KS gate ──
         const caller = context.agent || "";
@@ -527,7 +523,8 @@ export default tool({
               env: {
                 ...process.env,
                 DISPATCH_TASK_DESC: args.task_description,
-                ...(dagTaskId ? { FRAMEWORK_TASK_ID: dagTaskId } : {}),
+                // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID removed from child env.
+                // The child script now reads dag_task_id from .dispatch_ctx file instead.
                 ...(args.resume_session_id ? { DISPATCH_RESUME_SESSION_ID: args.resume_session_id } : {}),
               },
             },
@@ -622,15 +619,10 @@ export default tool({
           `///    Just call: Task({ subagent_type: "${args.agent_type}", description: "..." })`,
         ].join("\n");
       } finally {
-        // ── S25-FIX-V4: Restore FRAMEWORK_TASK_ID (v1 behavior) ──
-        // The env var is no longer needed after dispatch_subagent returns.
+        // ── FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): No-op finally block.
+        // FRAMEWORK_TASK_ID is no longer written to the parent process (L264-266 removed).
         // task-after.ts reads dagTaskId from .dispatch_ctx file instead.
-        // This prevents Bug 2: stale env var causing permanent DAG gate blocking.
-        if (savedTaskId === undefined) {
-          delete process.env.FRAMEWORK_TASK_ID;
-        } else {
-          process.env.FRAMEWORK_TASK_ID = savedTaskId;
-        }
+        // The save/restore dance here is no longer necessary.
       }
     });
   },

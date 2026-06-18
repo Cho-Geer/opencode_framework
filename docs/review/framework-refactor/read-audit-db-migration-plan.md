@@ -4,7 +4,7 @@
 **制定日期**: 2026-06-18  
 **本次复核**: 2026-06-18 23:50，本地框架更新后复审  
 **作者**: @Super-Admin  
-**状态**: v1.2.0 已按当前框架修订，待审批/实施  
+**状态**: v1.3.0 已实施完成/已全面验证
 **关联文档**: [read-audit-db-migration-audit-report.md](./read-audit-db-migration-audit-report.md) | [storage-entity-landscape.md](./storage-entity-landscape.md) | [uc7ks-read-before-write-plan.md](./uc7ks-read-before-write-plan.md)
 
 ---
@@ -368,3 +368,20 @@ Phase 2 才允许：
 ---
 
 *本方案基于当前 `.opencode/lib/read-audit.ts`、`.opencode/tools/knowledge_cache_attest.ts`、`.opencode/plugins/read-track-after.ts`、`.opencode/scripts/mcp-tools/compliance-gate.ts`、`.opencode/lib/db-manager.ts`、`.opencode/scripts/framework-self-test.ts` 和当前 `read_audit.jsonl` 快照复审。*
+
+---
+## 实施完成记录
+
+| 项 | 内容 |
+|---|------|
+| **实施日期** | 2026-06-18 |
+| **实施 Agent** | @Super-Admin (READ-AUDIT-DB-MIGRATE-001) |
+| **验收 Agent** | @Orchestrator |
+| **文档版本** | v1.3.0 |
+| **S1-S7 状态** | ✅ 全部完成 |
+| **迁移脚本** | `.opencode/scripts/migrate-read-audit.ts` 新建（158行） |
+| **DB 行数** | 250（原 JSONL 250 行，幂等迁移） |
+| **Self-test** | Checks 40-43 全部 PASS |
+| **验证结果** | V1-V7 ✅ / N1-N5 ✅ — 12/12 全部通过 |
+| **Phase 2** | 条件已基本满足，待安排 |
+| **HANDOVER** | `.task_temp/READ-AUDIT-DB-MIGRATE-001/HANDOVER.md` |

@@ -10,6 +10,9 @@ import {
 } from "../lib/uc7ks-schema";
 import { atomicWriteSubState } from "../lib/state-utils";
 import { withInterruptGuard } from "../lib";
+import { resolveDomainId } from "../lib/agent-resolver";
+import { dbWriteSessionMap } from "../lib/db-state-manager";
+import { writeLog } from "../lib/log-manager";
 
 var VALID_MODULES = [
   "backend_api",
@@ -111,6 +114,28 @@ export default tool({
       });
     } catch (e) {
       /* non-fatal */
+    }
+    // ── FW-UC7KS-DOMAIN-001-v3: Detect domain mismatch and update session_map DB ──
+    // When the dispatch domain_id (from agent_domain_map) differs from
+    // the agent's declared module, update session_map DB to use the agent's
+    // actual module. This prevents UC7-001 Path B write blocks caused by
+    // domain mismatch between dispatch and agent declaration.
+    // Fix 1 for docs/review/framework-refactor/uc7ks-write-block-root-cause.md
+    try {
+      var sessionId = (context && (context as any).sessionID) || "";
+      if (sessionId) {
+        var dispatchDomain = resolveDomainId(sessionId);
+        if (dispatchDomain && dispatchDomain !== domainName) {
+          writeLog("module_scope_declare", "WARN", {
+            event: "DOMAIN-OVERRIDE",
+            detail: `dispatch domain="${dispatchDomain}" overridden by declare domain="${domainName}"`,
+          });
+          // Update session_map DB to use agent's actual declared domain
+          dbWriteSessionMap(sessionId, agent, undefined, domainName);
+        }
+      }
+    } catch (e) {
+      /* Non-fatal: domain update failure should not block task execution */
     }
 
     return JSON.stringify({

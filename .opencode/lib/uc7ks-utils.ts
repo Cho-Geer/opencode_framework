@@ -347,24 +347,33 @@ export function checkUC7KSWrite(
       });
       return null;
     } else {
-      // Path B: taskId+domainId provided but per-task data missing → block
-      writeLog(SRC, "ERROR", {
-        event: "UC7KS-WRITE-BLOCK-NO-PER-TASK",
-        agent,
-        sessionID: sessionId,
-        taskId,
-        domainId,
-        detail: "taskId+domainId provided but no per-task cache_sufficiency data. " +
-                "Agent must call knowledge_cache_search(domain, task_id) before writing.",
-      });
-      return [
-        `[FW-ENFORCE][UC7-001] Knowledge cache not searched for task "${taskId}" domain "${domainId}".`,
-        `No per-domain cache_sufficiency data found — agent must search knowledge cache before writing.`,
-        `Call knowledge_cache_search("${domainId}", "${taskId}") first.`,
-        `Agent: ${agent}`,
-      ].join(" ");
+      // Path B: taskId+domainId provided but per-task data missing
+      // FW-UC7KS-DOMAIN-001-v3: Check global compliant flag before blocking.
+      // If the agent has already searched SOME cache (uc7_001_compliant=true),
+      // tolerate per-domain data mismatch (e.g., dispatch domain_id differs
+      // from agent-declared module_scope) and fall through to Path C.
+      // Fix 2 for docs/review/framework-refactor/uc7ks-write-block-root-cause.md
+      if (sa?.uc7_001_compliant) {
+        // Fall through to Path C (global check) — tolerate domain mismatch
+      } else {
+        writeLog(SRC, "ERROR", {
+          event: "UC7KS-WRITE-BLOCK-NO-PER-TASK",
+          agent,
+          sessionID: sessionId,
+          taskId,
+          domainId,
+          detail: "taskId+domainId provided but no per-task cache_sufficiency data. " +
+                  "Agent must call knowledge_cache_search(domain, task_id) before writing.",
+        });
+        return [
+          `[FW-ENFORCE][UC7-001] Knowledge cache not searched for task "${taskId}" domain "${domainId}".`,
+          `No per-domain cache_sufficiency data found — agent must search knowledge cache before writing.`,
+          `Call knowledge_cache_search("${domainId}", "${taskId}") first.`,
+          `提示：请检查 module_scope_declare 的 module 参数是否与 dispatch 的 domain 一致`,
+          `Agent: ${agent}`,
+        ].join(" ");
+      }
     }
-  }
 
 /**
  * Phase 0 (2026-06-18): Build formatted UC7-001 block error message.

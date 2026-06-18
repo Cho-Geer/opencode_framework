@@ -10,9 +10,9 @@
  *
  * When 1 positional param follows agent_type → treated as task_description.
  * When 2 positional params follow agent_type → first = task_id, second = task_description.
- * Env vars (FRAMEWORK_TASK_ID, DISPATCH_TASK_DESC) and --task-id flag always take precedence.
+ * --task-id CLI flag and .dispatch_ctx file always take precedence.
  *
- * NOTE: task_id (FRAMEWORK_TASK_ID) is a dispatch session identifier — an ID
+ * NOTE: task_id is a dispatch session identifier — an ID
  * assigned to the background sub-agent process/delegation in OpenCode. It is
  * used for output path namespacing (.task_temp/{taskId}/) and session tracking.
  * It is NOT a DAG task ID and should NOT be validated against Task.DAG.json.
@@ -79,12 +79,13 @@ function logWarn(msg) {
 //   bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>" [--task-id <id>]
 //
 // Resolution priority (highest wins):
-//   1. Env vars: FRAMEWORK_TASK_ID, DISPATCH_TASK_DESC (set by dispatch_subagent.ts)
+//   1. --task-id CLI flag (explicit)
 //   2. Positional args: argv[3]=task_id, argv[4]=task_description (if both present)
-//   3. --task-id CLI flag (legacy)
+//   3. .dispatch_ctx file (written by dispatch_subagent.ts, dag_task_id field)
 //   4. Single positional arg: argv[3]=task_description (backward compatible)
-const _savedFwTaskId = process.env.FRAMEWORK_TASK_ID;
-let taskId = process.env.FRAMEWORK_TASK_ID || null;
+// FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env var removed from all paths.
+// The child script now reads task_id from .dispatch_ctx file or CLI args only.
+let taskId = null;
 
 // NEW: Detect 2+ positional params after agent_type for task_id+task_description
 // Pattern: bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"
@@ -103,7 +104,17 @@ if (!taskId) {
     process.argv.splice(taskIdFlagIdx, 2);
   }
 }
-process.env.FRAMEWORK_TASK_ID = taskId || "";
+
+// Fall back to .dispatch_ctx file (written by parent dispatch_subagent.ts)
+if (!taskId) {
+  try {
+    const ctxPath = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch", ".dispatch_ctx");
+    if (fs.existsSync(ctxPath)) {
+      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
+      taskId = ctx.dag_task_id || null;
+    }
+  } catch { /* file missing or malformed — continue without task_id */ }
+}
 process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
 const agentType = process.argv[2];
@@ -547,7 +558,8 @@ if (fs.existsSync(PREAMBLE_FILE)) {
 }
 
 // P2-FIX R4: Inject dag_task_id into preamble so sub-agent knows its assigned task_id
-// Without this, the LLM cannot read process.env.FRAMEWORK_TASK_ID and fabricates a task_id
+// taskId is resolved from CLI args, .dispatch_ctx file, or positional arguments.
+// This prevents the sub-agent from fabricating a task_id from thin air.
 if (taskId) {
   preamble += `\n> **Your dispatch-assigned task_id**: \`${taskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.\n`;
 }
@@ -848,14 +860,16 @@ queue = queue.filter((e) => {
   return true;
 });
 if (dedupedEntries.length > 0) {
-  const taskId = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
+  // P0-BUG-FIX-TDZ (2026-06-18): Use resolvedTaskId to avoid TDZ with outer let taskId.
+  // FW-CLEANUP-FRAMEWORK-TASK-ID: env fallback removed; taskId comes from CLI/.dispatch_ctx.
+  const resolvedTaskId = taskId || "(unknown)";
   // HARDENED CONSTRAINT: same dag_task_id → different task = BLOCKED.
   // This is NOT just a warning — the dispatch is PHYSICALLY REJECTED.
   // The Orchestrator MUST use a unique dag_task_id per dispatch.
   const fatalMsg =
     `\n╔══════════════════════════════════════════════════════════════════╗\n` +
     `║  HARDENED CONSTRAINT: DAG_TASK_ID REUSE BLOCKED                  ║\n` +
-    `║  dag_task_id: "${taskId}"                                       \n` +
+    `║  dag_task_id: "${resolvedTaskId}"                               \n` +
     `║  This ID was already used for a different task dispatch.         ║\n` +
     `║  Previous dispatch: ${dedupedEntries[0].dispatchId.split("/").pop()}\n` +
     `║                                                                  ║\n` +
@@ -889,7 +903,7 @@ if (dedupedEntries.length > 0) {
   // Verify the prior session exists via session_log DB table to prevent misuse.
   const resumeSessionId = process.env.DISPATCH_RESUME_SESSION_ID || null;
   if (resumeSessionId) {
-    const taskIdForResume = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
+    const taskIdForResume = taskId || "(unknown)";
     const priorSession = dbQueryLatestSessionByDagTaskId(taskIdForResume);
     if (priorSession) {
       logInfo(`RESUME dispatch allowed: dag_task_id=${taskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`);
@@ -921,7 +935,7 @@ queue.push({
   filePath: outputFile,
   createdAt: new Date().toISOString(),
   agentType: agentType,
-  taskId: process.env.FRAMEWORK_TASK_ID || taskId || null, // P0-FIX-BUG-15: audit trail
+  taskId: taskId || null, // FW-CLEANUP-FRAMEWORK-TASK-ID: env fallback removed
 });
 
 // FW-DIAG-D2 (2026-06-10, @Super-Admin): Diagnostic log for entry creation tracing.
@@ -929,7 +943,7 @@ queue.push({
 // track when entries are created and whether they're later consumed.
 logInfo(
   `DIAG-ENTRY-CREATE | agentType=${agentType} | ` +
-  `taskId=${process.env.FRAMEWORK_TASK_ID || taskId || 'null'} | ` +
+  `taskId=${taskId || 'null'} | ` +
   `hash=${promptHash.substring(0, 12)} | ` +
   `queueSize=${queue.length}`,
 );
@@ -994,5 +1008,6 @@ logInfo(`Output: ${outputFile}`);
 // ──────────────────────────────────────────────
 // 7. Output file path to stdout (for the primary agent)
 // ──────────────────────────────────────────────
-process.env.FRAMEWORK_TASK_ID = _savedFwTaskId;
+// FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env restore removed.
+// task_id now flows through .dispatch_ctx file + session_map DB exclusively.
 console.log(outputFile);

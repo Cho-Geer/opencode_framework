@@ -91,14 +91,13 @@ export function resolveAgent(sessionID?: string): string {
 /** P0-FIX-BUG-13-IDEM: Idempotency guard for duplicate Task() calls */
 export const sessionLastDispatched = new Map<string, { agentType: string; ts: number }>();
 
-/** Resolve task ID from env var, session_map DB, .dispatch_ctx, or _dispatch_target.json
+/** Resolve task ID from session_map DB, .dispatch_ctx, or _dispatch_target.json
  *  FW-DISPATCH-TASKID-IMMUTABLE: session_map DB is now primary (per-session,
  *  immune to concurrent race conditions), .dispatch_ctx is fallback.
+ *  FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env Priority 0 removed.
+ *  All dispatch-task-id communication now flows through session_map DB + .dispatch_ctx file.
  */
 export function resolveTaskId(sessionId?: string): string {
-  const envId = process.env.FRAMEWORK_TASK_ID || "";
-  if (envId) return envId;
-
   // Priority 1: session_map DB (per-session dag_task_id, immune to race)
   if (sessionId) {
     try {
