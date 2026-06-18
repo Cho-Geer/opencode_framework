@@ -4260,6 +4260,13 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-18T22:18:04.654Z",
       "archive_ref": "gate-state.history/2026-06-18.jsonl#16"
+    },
+    "cg_ses_1781826209730": {
+      "session_id": "cg_ses_1781826209730",
+      "created_at": "2026-06-18T23:43:29.737Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-18T23:43:51.054Z",
+      "archive_ref": "gate-state.history/2026-06-18.jsonl#17"
     }
   }
 }
