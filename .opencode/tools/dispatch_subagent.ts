@@ -543,32 +543,31 @@ export default tool({
 
         const wrappedPrompt = await readFile(outputFilePath, "utf8");
 
-        // ── Build structured response ──
-        const header = [
-          `/// DISPATCH RESULT`,
-          `/// agent_type: ${args.agent_type}`,
-          `/// dag_task_id: ${dagTaskId || "(none)"}`,
-          `/// output_file: ${outputFilePath}`,
-          `///`,
-          `/// ⚠️  dag_task_id has DUAL semantics (see tool description):`,
-          `///   (a) output path namespace + FRAMEWORK_TASK_ID env var`,
-          `///   (b) MUST exist in Task.DAG.json (tasks[] or execution_order)`,
-          `///       or gate-before P2-1 will block modify tools with`,
-          `///       [FW-ENFORCE][DAG] "Task … not found in Task.DAG.json`,
-          `///       (checked both dag.tasks[] and dag.execution_order)"`,
-          `///`,
-          `/// 🆕 Call Task() to dispatch${args.resume_session_id ? ' (RESUME session)' : ' (new session)'}:`,
-          `///   Task({`,
-          `///     subagent_type: "${args.agent_type}",`,
-          `///     description: "<short description>",`,
-          args.resume_session_id ? `///     task_id: "${args.resume_session_id}",` : null,
-          `///     prompt: <PROMPT BELOW>`,
-          `///   })`,
-          `///`,
-          `/// 💡 Context between dispatches is carried via HANDOVER.md`,
-          `///    (written by sub-agents to .task_temp/{dag_task_id}/HANDOVER.md)`,
-          `///`,
-        ];
+        // ── LLM-FREE BRIDGE: Write .auto-dispatch marker ──
+        // task-before.ts detects this marker, loads the full prompt from
+        // outputFilePath, and substitutes it for DISPATCH_TOKEN hash
+        // verification. The LLM receives only a short confirmation.
+        if (outputFilePath) {
+          try {
+            const autoMarkerPath = path.join(
+              process.env.OPENCODE_ROOT || process.cwd(),
+              ".task_temp", "_dispatch", ".auto-dispatch"
+            );
+            writeFileSync(
+              autoMarkerPath,
+              JSON.stringify({
+                sessionId: context.sessionID || "",
+                agentType: args.agent_type,
+                taskId: dagTaskId || "",
+                filePath: outputFilePath,
+                createdAt: Date.now(),
+              }),
+              "utf8",
+            );
+          } catch {
+            // Best-effort; fall through
+          }
+        }
 
         // ── S25-FIX-V4: Write .dispatch_ctx for task-after.ts ──
         // Replaces process.env.FRAMEWORK_TASK_ID propagation. The file is
@@ -613,7 +612,15 @@ export default tool({
           }
         }
 
-        return [...header, ``, wrappedPrompt].join("\n");
+        return [
+          `/// DISPATCH RESULT`,
+          `/// agent_type: ${args.agent_type}`,
+          `/// dag_task_id: ${dagTaskId || "(none)"}`,
+          `///`,
+          `/// ✅ Auto-dispatched — task-before.ts loads prompt from file.`,
+          `///    LLM does NOT need to pass the prompt to Task().`,
+          `///    Just call: Task({ subagent_type: "${args.agent_type}", description: "..." })`,
+        ].join("\n");
       } finally {
         // ── S25-FIX-V4: Restore FRAMEWORK_TASK_ID (v1 behavior) ──
         // The env var is no longer needed after dispatch_subagent returns.

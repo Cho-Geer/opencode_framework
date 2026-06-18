@@ -43,8 +43,42 @@ async function taskExecuteBefore(input: any, output: any): Promise<void> {
   if (!isTask) return;
 
   const agent = resolveAgent(input.sessionID) || "unknown";
-  const prompt = output?.args?.prompt || "";
+  let prompt = output?.args?.prompt || "";
   const mode = getEnforcementMode();
+
+  // ── LLM-FREE BRIDGE: Auto-dispatch marker ──
+  // When dispatch_subagent writes .auto-dispatch, the LLM receives a
+  // short confirmation instead of the full wrapped prompt. task-before
+  // reads the full prompt from the dispatch file and replaces the
+  // LLM-provided prompt with the original, ensuring DISPATCH_TOKEN
+  // hash verification succeeds.
+  const root = process.env.OPENCODE_ROOT || process.cwd();
+  const markerPath = root + "/.task_temp/_dispatch/.auto-dispatch";
+  if (require("node:fs").existsSync(markerPath)) {
+    try {
+      const marker = JSON.parse(require("node:fs").readFileSync(markerPath, "utf8"));
+      const fullPrompt = require("node:fs").readFileSync(marker.filePath, "utf8");
+      if (fullPrompt) {
+        prompt = fullPrompt;
+        // Also update the output args so the sub-agent receives full protocol
+        if (output?.args) { output.args.prompt = fullPrompt; }
+        writeLog("task-before", "runtime", {
+          sessionID: input.sessionID, callID: input.callID,
+          agent, agentType: agent,
+          event: "AUTO-DISPATCH-CONSUMED",
+          detail: `Loaded full prompt (${fullPrompt.length} bytes) from ${marker.filePath}`,
+        });
+        try { require("node:fs").unlinkSync(markerPath); } catch {}
+      }
+    } catch (e: any) {
+      writeLog("task-before", "runtime", {
+        sessionID: input.sessionID, callID: input.callID,
+        agent, agentType: agent,
+        level: "ERROR", event: "AUTO-DISPATCH-FAILED",
+        detail: `Cannot load dispatch file from marker: ${e.message}`,
+      });
+    }
+  }
 
   // DISPATCH-INTEGRITY v2: Extract token, strip line, verify hash.
   // Upgraded from existence-only check to SHA-256 integrity verification.
