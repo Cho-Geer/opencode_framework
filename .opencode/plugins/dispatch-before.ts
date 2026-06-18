@@ -123,6 +123,55 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
     }
   }
 
+  // ── GATE-APPROVAL-LOCK: Block new dispatches if unapproved sessions exist ──
+  // Hard enforcement for Orchestrator discipline: before dispatching a new
+  // sub-agent, verify ALL previously delivered sessions have been approved.
+  // Without this, the Orchestrator can forget to approve deliverables and
+  // the session just sits in "delivered" until drained 24h later.
+  // Added 2026-06-18 per step-0d-log-audit-mandate.md investigation.
+  {
+    const rootPath = process.env.OPENCODE_ROOT || process.cwd();
+    const gateStatePath = rootPath + "/.opencode/state/gate-state.json";
+    let deliveredSessions: string[] = [];
+    try {
+      if (require("node:fs").existsSync(gateStatePath)) {
+        const gs = JSON.parse(require("node:fs").readFileSync(gateStatePath, "utf8"));
+        const active = gs.active_sessions || {};
+        for (const [sid, s] of Object.entries(active) as any) {
+          if (s.gate_status === "delivered") {
+            deliveredSessions.push(sid);
+          }
+        }
+      }
+    } catch {}
+
+    if (deliveredSessions.length > 0) {
+      const msg =
+        `[FW-ENFORCE][GATE-APPROVAL-LOCK] Cannot dispatch new sub-agent — ` +
+        `${deliveredSessions.length} session(s) awaiting deliverables approval: ` +
+        `${deliveredSessions.join(", ")}. ` +
+        `Call compliance_gate_approve_deliverables(session_id, "approve") first.`;
+      writeLog("dispatch-before", "runtime", {
+        sessionID: input.sessionID, callID: input.callID,
+        agent: caller, agentType: caller,
+        level: "ERROR",
+        event: "GATE-APPROVAL-LOCK",
+        detail: `BLOCKED | ${deliveredSessions.length} unapproved sessions: ${deliveredSessions.join(", ")}`,
+      });
+      if (mode === "strict" || mode === "locked") {
+        throw new Error(msg);
+      }
+      // advisory: warn, allow through
+      writeLog("dispatch-before", "runtime", {
+        sessionID: input.sessionID, callID: input.callID,
+        agent: caller, agentType: caller,
+        level: "WARN",
+        event: "GATE-APPROVAL-LOCK",
+        detail: `advisory mode — ${deliveredSessions.length} unapproved sessions but dispatch allowed`,
+      });
+    }
+  }
+
   if (isDagExempt(target)) {
     writeLog("dispatch-before", "runtime", {
       sessionID: input.sessionID,
