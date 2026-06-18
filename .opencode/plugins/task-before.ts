@@ -109,9 +109,9 @@ async function taskExecuteBefore(input: any, output: any): Promise<void> {
         agent,
         agentType: agent,
         level: "ERROR",
-        event: "TOOL-BEFORE",
+        event: "DISPATCH-INTEGRITY-HASH-MISMATCH",
         detail:
-          "BLOCKED | DISPATCH-INTEGRITY | Task() DISPATCH_TOKEN hash mismatch" +
+          "[FW-ENFORCE][DISPATCH-INTEGRITY] Task() DISPATCH_TOKEN hash mismatch" +
           ` | expected=${expectedHash.slice(0, 16)}...` +
           ` | got=${token.slice(0, 16)}...` +
           ` | subagent_type=${output?.args?.subagent_type || "?"}`,
