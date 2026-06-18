@@ -833,10 +833,9 @@ function initializeTransactionSystem() {
       ts.pending_operations = [];
       tsUpdated = true;
     }
-    if (!ts.transaction_log_path) {
-      ts.transaction_log_path = ".opencode/state/.transaction-log";
-      tsUpdated = true;
-    }
+    // SA-STORAGE-IMPLEMENT-001: transaction_log_path default removed.
+    // .transaction-log is legacy bridge — do NOT auto-set it.
+    // New writes go through DB (atomicWriteSubState/dbSaveGateStore).
     if (tsUpdated) {
       writeSubState("transaction_state", ts);
     }

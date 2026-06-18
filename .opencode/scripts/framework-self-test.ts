@@ -2167,6 +2167,41 @@ function checkKnowledgeSemanticMapCoverage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// M13 (2026-06-19): Knowledge Semantic Map Save Path Uniqueness
+// Verifies that no two domains in knowledge_semantic_map share the
+// same save_path or a prefix of another's save_path.
+// This is a hard prerequisite for M11 (file-level domain check).
+// ═══════════════════════════════════════════════════════════════
+function checkSemanticMapSavePathUniqueness() {
+  const configPath = path.join(OPENCODE_ROOT, ".opencode", "project.config.json");
+  let config: any;
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  } catch {
+    return check(44, false, "project.config.json not found");
+  }
+  const domains = config?.knowledge_semantic_map?.domains;
+  if (!Array.isArray(domains) || domains.length === 0) {
+    return check(44, true, "no domains to check");
+  }
+  const conflicts: string[] = [];
+  for (let i = 0; i < domains.length; i++) {
+    const sp1 = (domains[i].save_path || "").replace(/\/+$/, "") + "/";
+    for (let j = i + 1; j < domains.length; j++) {
+      const sp2 = (domains[j].save_path || "").replace(/\/+$/, "") + "/";
+      if (sp1 === sp2) {
+        conflicts.push(`${domains[i].domain_id}=${domains[j].domain_id} both use save_path "${sp1}"`);
+      } else if (sp1.startsWith(sp2) || sp2.startsWith(sp1)) {
+        conflicts.push(`${domains[i].domain_id} ("${sp1}") and ${domains[j].domain_id} ("${sp2}") are prefix-overlapping`);
+      }
+    }
+  }
+  const ok = conflicts.length === 0;
+  return check(44, ok,
+    ok ? `All ${domains.length} domains have unique save_paths` : `save_path conflicts: ${conflicts.join("; ")}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Check 31: UC7-002 — Agent Config UC7KS Section Presence
 // Verifies all agent config files contain the mandatory UC7KS
 // Knowledge Acquisition (Local-First) section. Every agent except
@@ -2288,6 +2323,37 @@ function checkContext7ToolBlock() {
       : "UC7-004 violation — external query tools found in: " +
           violations.join("; "),
   );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 45 (M8, 2026-06-19): Writable Agent Attestation Tool Check
+// Verifies all writable agents have knowledge_cache_attest registered.
+// ═══════════════════════════════════════════════════════════════
+function checkAgentAttestToolRegistered() {
+  const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
+  let dirEntries;
+  try { dirEntries = fs.readdirSync(agentsDir); }
+  catch { return check(45, false, "agents dir not found"); }
+  const agentFiles = dirEntries.filter(function (f) { return f.endsWith(".md"); });
+  const WRITABLE_AGENTS = new Set([
+    "Super-Admin.md", "Architect.md", "Coder-BE.md", "Coder-FE.md",
+    "CI-CD-Agent.md", "Meta-Planner.md",
+  ]);
+  const REQ = "knowledge_cache_attest";
+  let violations = [];
+  for (const af of agentFiles) {
+    if (!WRITABLE_AGENTS.has(af)) continue;
+    const content = readFile(path.join(agentsDir, af));
+    if (!content) { violations.push(af + ": unreadable"); continue; }
+    // M8-FIX: Use full-content search instead of regex that breaks on YAML comments.
+    // The regex /^mcp_tools:\n((?:\s+- .+\n)*)/m fails when comment lines appear
+    // between mcp_tools: and the first - tool entry (e.g., "# UC7-009 HARDEN: ...").
+    // Fixed: search the entire frontmatter section for "- knowledge_cache_attest".
+    const hasAttest = content.match(/^\s+-\s+knowledge_cache_attest\s*$/m);
+    if (!hasAttest) violations.push(af + ": missing " + REQ);
+  }
+  const ok = violations.length === 0;
+  return check(45, ok, ok ? "All " + WRITABLE_AGENTS.size + " writable agents have " + REQ : violations.join("; "));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2797,8 +2863,10 @@ checkCrossValidation();
 checkUC7KSSchemaIntegrity();
 checkCustomToolRegistration();
 checkKnowledgeSemanticMapCoverage();
+checkSemanticMapSavePathUniqueness(); // M13 (2026-06-19): verify save_path uniqueness
 checkAgentUC7KSSection();
 checkContext7ToolBlock();
+checkAgentAttestToolRegistered(); // M8 (2026-06-19): writable agents must have knowledge_cache_attest
 checkPendingJson();
 checkSessionAccessAgentKeys();
 checkStaleInternalEvidence();

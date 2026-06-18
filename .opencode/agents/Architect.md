@@ -28,6 +28,7 @@ mcp_tools:
   - compliance_gate_confirm
   - compliance_gate_complete
   - resolve_domain_id
+  - knowledge_cache_attest
 # Hardened: safe_edit only — native edit denied
 permission:
   safe_edit: allow

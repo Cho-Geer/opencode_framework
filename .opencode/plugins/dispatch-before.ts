@@ -63,6 +63,54 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       `| policy.auto_plan_enabled=${policy.auto_plan_enabled}`,
   });
 
+  // ── M14: Sub-agent dispatch target restriction ──────────────────
+  // Sub-agents (non-Orchestrator, non-Super-Admin) may only target
+  // @Knowledge-Curator for direct knowledge acquisition without routing
+  // through @Orchestrator. This enables the UC7KS cache-insufficiency
+  // self-healing flow (M9 → M14).
+  // @since 2026-06-19 — M14
+  {
+    const isOrchestratorOrSA = (
+      caller === "Orchestrator" || caller === "@Orchestrator" ||
+      caller === "Super-Admin" || caller === "@Super-Admin"
+    );
+    const isKCTarget = (
+      target === "Knowledge-Curator" || target === "@Knowledge-Curator"
+    );
+    if (!isOrchestratorOrSA && target && !isKCTarget) {
+      writeLog("dispatch-before", "runtime", {
+        sessionID: input.sessionID, callID: input.callID,
+        agent: caller, agentType: caller,
+        level: "ERROR",
+        event: "DISPATCH-TARGET-RESTRICTED",
+        detail: `M14 BLOCKED | caller=${caller} is a sub-agent, only target=Knowledge-Curator is allowed. Attempted target=${target}.`,
+      });
+      if (mode === "strict" || mode === "locked") {
+        throw new Error(
+          `[FW-ENFORCE][M14] Sub-agents may only dispatch to @Knowledge-Curator. ` +
+          `Caller "${caller}" attempted to target "${target}". ` +
+          `To dispatch to @"${target}", route through @Orchestrator.`,
+        );
+      }
+    }
+    if (isOrchestratorOrSA && isKCTarget) {
+      writeLog("dispatch-before", "runtime", {
+        sessionID: input.sessionID, callID: input.callID,
+        agent: caller, agentType: caller,
+        event: "DISPATCH-BEFORE",
+        detail: `M14 pass | caller=${caller} (privileged) dispatching to Knowledge-Curator`,
+      });
+    }
+    if (!isOrchestratorOrSA && isKCTarget) {
+      writeLog("dispatch-before", "runtime", {
+        sessionID: input.sessionID, callID: input.callID,
+        agent: caller, agentType: caller,
+        event: "DISPATCH-BEFORE",
+        detail: `M14 pass | caller=${caller} (sub-agent) dispatching to Knowledge-Curator (allowed per M14)`,
+      });
+    }
+  }
+
   // ── ROUTE VALIDATION: four-layer chain (L1 Verb → L2 Scope → L3 Permission → L4 DAG) ──
   const routeConfig = readRouteConfig();
   if (routeConfig?.enforcement?.dispatch === "block") {

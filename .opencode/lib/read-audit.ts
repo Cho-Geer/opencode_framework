@@ -2,10 +2,13 @@
  * read-audit.ts — Read event audit trail for READ-BEFORE-APPROVE enforcement
  * ═══════════════════════════════════════════════════════════════════════
  * Records every `read` tool invocation (via read-track-after.ts plugin) to
- * a SQLite DB (primary) with JSONL fallback (Phase 1).
+ * a SQLite DB (primary). JSONL is retained ONLY as a read-only fallback for
+ * historical data — no new events are written to it.
  *
- * Phase 1 (current): DB-first writes + reads with JSONL fallback.
- * Phase 2 (future):   DB-only, JSONL archived.
+ * Phase 1 (2026-06-18): DB-first writes + reads with JSONL fallback.
+ * Phase 2 (2026-06-19): DB-only writes; JSONL fallback retained for read.
+ *                      SA-STORAGE-IMPLEMENT-001 removed dual-write.
+ *                      read_audit.jsonl archived as .migrated for audit.
  *
  * Consumers:
  *   - read-track-after.ts  → recordRead() on every read tool invocation
@@ -13,10 +16,11 @@
  *   - knowledge_cache_attest.ts → getReadEventsForSession() for UC7KS attestation
  *
  * @author @Super-Admin
- * @version 2.0.0 — DB-first migration (Phase 1)
+ * @version 2.1.0 — DB-only writes (Phase 2), JSONL read fallback preserved
  * @since 2026-06-18
  *
  * @see docs/review/framework-refactor/read-audit-db-migration-plan.md
+ * @see docs/review/framework-refactor/storage-entity-landscape.md
  */
 
 import * as crypto from "node:crypto";
@@ -132,18 +136,18 @@ function dbEntryToReadAuditEntry(row: any): ReadAuditEntry {
   };
 }
 
-// ── recordRead — DB-first with JSONL fallback ──────────────────
+// ── recordRead — DB-only (Phase 2) ──────────────────────────────
 
 /**
- * Record a read event. DB INSERT first, JSONL append regardless (Phase 1 dual-write).
- * DB and JSONL writes are in SEPARATE try/catch blocks so DB failure
- * never prevents JSONL write (evidence preservation).
+ * Record a read event. DB INSERT only (Phase 2).
+ * JSONL dual-write removed per SA-STORAGE-IMPLEMENT-001.
+ * JSONL read-fallback functions retained for historical data.
+ *
+ * Phase 2 change (2026-06-19): DB-only writes. JSONL fallback
+ * preserved for verifyRead() + getReadEventsForSession() to
+ * support historical data in read_audit.jsonl.migrated.
  */
 export function recordRead(entry: ReadAuditEntry): void {
-  let dbOk = false;
-  let jsonlOk = false;
-
-  // ── DB write ──
   try {
     const db = getDb();
     db.transaction(() => {
@@ -160,44 +164,21 @@ export function recordRead(entry: ReadAuditEntry): void {
         [MAX_RECORDS],
       );
     })();
-    dbOk = true;
+    writeLog("lib-read-audit", "INFO", {
+      event: "READ_RECORDED",
+      agent: entry.agent,
+      filePath: entry.filePath,
+      db: true,
+    });
   } catch (err: any) {
     writeLog("lib-read-audit", "ERROR", {
       event: "READ_AUDIT_DB_WRITE_FAILED",
       detail: err.message,
     });
   }
-
-  // ── JSONL fallback write (always, for Phase 1 dual-write) ──
-  try {
-    appendReadAuditJsonl(entry);
-    cleanupOldRecordsJsonl();
-    jsonlOk = true;
-  } catch (err: any) {
-    writeLog("lib-read-audit", "ERROR", {
-      event: "READ_AUDIT_JSONL_WRITE_FAILED",
-      detail: err.message,
-    });
-  }
-
-  if (!dbOk && !jsonlOk) {
-    writeLog("lib-read-audit", "ERROR", {
-      event: "READ_AUDIT_WRITE_FAILED_BOTH",
-      agent: entry.agent,
-      filePath: entry.filePath,
-    });
-  } else {
-    writeLog("lib-read-audit", "INFO", {
-      event: "READ_RECORDED",
-      agent: entry.agent,
-      filePath: entry.filePath,
-      db: dbOk,
-      jsonl: jsonlOk,
-    });
-  }
 }
 
-// ── JSONL Helpers (Phase 1 fallback) ───────────────────────────
+// ── JSONL Helpers (Phase 2 read-only fallback for historical data) ──
 
 function appendReadAuditJsonl(entry: ReadAuditEntry): void {
   const auditPath = getReadAuditPath();

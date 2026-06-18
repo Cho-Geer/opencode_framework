@@ -1,7 +1,9 @@
 # FRAMEWORK_TASK_ID 残留清单
 
+**版本**: v1.1.0  
 **调查日期**: 2026-06-18  
 **调查 Agent**: @Orchestrator  
+**状态**: ✅ 已清理/已验证  
 
 ---
 
@@ -134,3 +136,37 @@ P1: compliance-gate.ts (改读 DB/文件)
    ↓
 P2: 清理所有注释引用 + 测试文件重写
 ```
+
+---
+
+## 清理实施记录
+
+| 项 | 内容 |
+|---|------|
+| **实施日期** | 2026-06-18 |
+| **实施 Agent** | @Super-Admin (SA-CLEANUP-FW-TASKID-FINAL) |
+| **验收 Agent** | @Orchestrator (VFY-TASKID-PROPAGATION-001) |
+| **文档版本** | v1.1.0 |
+
+### 实施变更（15 处改动，4 个文件）
+
+| 优先级 | 文件 | 改动 |
+|--------|------|------|
+| P0-BUG | `command-tools/dispatch-subagent.ts` L851 | TDZ 修复 |
+| P0 | `tools/dispatch_subagent.ts` L266 | 移除父进程 env 写入 |
+| P0 | `lib/agent-resolver.ts` L99-100 | 删除 Priority 0 env 检查 |
+| P0 | `tools/dispatch_subagent.ts` L629-633 | 删除 finally save/restore |
+| P1 | `command-tools/dispatch-subagent.ts` | 改为 .dispatch_ctx + CLI 读取 |
+| P1 | `tools/dispatch_subagent.ts` L314/530 | 从子进程 env 移除 |
+| P1 | `mcp-tools/compliance-gate.ts` | 改读 session_map DB |
+
+### 验证结果
+
+| 检查项 | 结果 |
+|--------|:----:|
+| compliance_gate_check task_id 解析 | ✅ |
+| safe_shell 写入未被 gate-before 阻断 | ✅ |
+| resolve_domain_id 返回正确 domain | ✅ |
+| session_map DB domain_id 正确 | ✅ |
+| read_audit.jsonl 标记正确 task_id | ✅ |
+| framework-self-test | ✅ 无回归 |

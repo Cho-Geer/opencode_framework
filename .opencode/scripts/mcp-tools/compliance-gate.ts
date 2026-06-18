@@ -1884,8 +1884,8 @@ function enforceMultiSourceAudit(
       ".opencode/state/gate-state.json",
       ".opencode/state/machine.json",
       ".task_temp/_dispatch/",
-      ".opencode/state/.transaction-log",
-      ".opencode/state/session_log/ (SQLite)"
+      ".opencode/state/session_log/ (SQLite)",
+      ".opencode/state/framework-state.db (SQLite)"
     ];
     return {
       id: "step_0d_log_evidence_missing",

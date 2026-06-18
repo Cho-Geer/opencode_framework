@@ -32,6 +32,7 @@
         "webfetch": "deny",
         "websearch": "deny",
         "resolve_domain_id": "allow",
+        "dispatch_subagent": "allow",
         "safe_shell": {
           "*": "allow",
           "sha256sum *": "allow"
@@ -185,6 +186,7 @@
         "websearch": "deny",
         "safe_test": "deny",
         "context7": "deny",
+        "dispatch_subagent": "allow",
         "skill": "allow",
         "pandoc": "allow",
         "resolve_domain_id": "allow",
@@ -298,6 +300,7 @@
         "grep": "allow",
         "bash": "deny",
         "context7": "deny",
+        "dispatch_subagent": "allow",
         "skill": "allow",
         "resolve_domain_id": "allow",
         "safe_edit": {
@@ -386,6 +389,7 @@
         "grep": "allow",
         "bash": "deny",
         "context7": "deny",
+        "dispatch_subagent": "allow",
         "skill": "allow",
         "resolve_domain_id": "allow",
         "safe_edit": {
@@ -459,6 +463,7 @@
         "edit": "deny",
         "webfetch": "deny",
         "context7": "deny",
+        "dispatch_subagent": "allow",
         "skill": "allow",
         "resolve_domain_id": "allow",
         "compliance_gate_check": "allow",
@@ -532,6 +537,7 @@
         "webfetch": "deny",
         "safe_test": "deny",
         "context7": "deny",
+        "dispatch_subagent": "allow",
         "skill": "allow",
         "resolve_domain_id": "allow",
         "compliance_gate_check": "allow",
@@ -604,6 +610,7 @@
         "webfetch": "deny",
         "websearch": "deny",
         "context7": "deny",
+        "dispatch_subagent": "allow",
         "skill": "allow",
         "resolve_domain_id": "allow",
         "compliance_gate_check": "allow",

@@ -18,14 +18,19 @@ alwaysApply: true
 > sufficiency determination. Missing `reason`, `files_read`, or `content_summary`
 > → treated as `"insufficient"`.
 
-**0a.** Call `module_scope_declare(module, task_id)`.
+**0a.** Call `resolve_domain_id()` to get dispatch-assigned domain, then call `module_scope_declare(module, task_id)` with the resolved domain.
 ```
-// 可选：先自查 dispatch 分配的 domain_id
-// const dispatchDomain = resolveDomainId(sessionID);
-// module_scope_declare(module=dispatchDomain)  // 使用分配的 domain 声明
+// **强制**: 先自查 dispatch 分配的 domain_id (FW-UC7KS-DOMAIN-001, M6 HARDEN)
+const dispatchDomain = resolveDomainId(sessionID);
+module_scope_declare(module=dispatchDomain, task_id=taskId)  // 使用 dispatch 分配的 domain 声明
 ```
 **0b.** Call `knowledge_cache_search(domain, task_id)`.
 **0c.** If `status === "insufficient"` → request @Knowledge-Curator dispatch, re-search.
+**0c+.** Call `knowledge_cache_attest(domain, task_id, reason, files_read, content_summary, cache_sufficient, insufficiency_reason)` — **MANDATORY attestation step** (FW-UC7KS-DOMAIN-001-v3, M2).
+   - `cache_sufficient`: `true` if you judge the cached docs are enough for the task, `false` otherwise.
+   - `insufficiency_reason`: required when `cache_sufficient=false` (min 10 chars).
+   - Write-block is enforced by `checkUC7KSWrite()` Path C (M3) + file-level domain check (M11).
+   - When `cache_sufficient=false` → all writes are BLOCKED until re-attested with `cache_sufficient=true`.
 
 ### Step 0d: Multi-Source Investigation Mandate — plugin-enforced
 

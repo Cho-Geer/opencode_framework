@@ -6,7 +6,8 @@
 //
 // FW-PLAN-JS-TO-TS: Unified to TypeScript + Bun; imports gate-core.ts source directly.
 // resolveFrameworkPaths exported from gate-core.ts.
-// Inline paths retained for additional keys (gateIndex, gateArchive, transactionLog).
+// Inline paths retained for additional keys (gateIndex, gateArchive).
+// SA-STORAGE-IMPLEMENT-001: transactionLog path removed — .transaction-log is legacy bridge.
 // V3 gate-state format compatibility (active_sessions as object) retained.
 
 const path = require("path");
@@ -34,7 +35,6 @@ const paths = {
   ),
   machine: path.join(PROJECT_ROOT, ".opencode/state/machine.json"),
   ruleRegistry: path.join(PROJECT_ROOT, ".opencode/state/rule_registry.json"),
-  transactionLog: path.join(PROJECT_ROOT, ".opencode/state/.transaction-log"),
   projectConfig: path.join(PROJECT_ROOT, ".opencode/project.config.json"),
 };
 

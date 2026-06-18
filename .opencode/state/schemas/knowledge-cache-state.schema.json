@@ -166,7 +166,7 @@
                 "items": {
                   "type": "string"
                 },
-                "description": "LEGACY/DEPRECATED: Auto-populated from index.json entries. NOT verified against read_audit.jsonl. Use attestation.files_read for cross-verified read evidence."
+                "description": "LEGACY/DEPRECATED: Auto-populated from index.json entries. NOT verified against read-audit DB/API. Use attestation.files_read for cross-verified read evidence."
               },
               "content_summary": {
                 "type": "string",
@@ -220,7 +220,7 @@
               },
               "attestation": {
                 "type": "object",
-                "description": "PHASE 0 NEW (2026-06-18): Agent-submitted read evidence. Written by knowledge_cache_attest tool after cross-verification against read_audit.jsonl. In strict/locked mode, this is the ONLY authoritative source for UC7-001 write-block decisions. attestation.status='attested' means: (1) discovery.sufficient, (2) files_read ⊆ discovered_files, (3) all files verified in read_audit.jsonl, (4) reason/content_summary non-empty.",
+                "description": "PHASE 0 NEW (2026-06-18): Agent-submitted read evidence. Written by knowledge_cache_attest tool after cross-verification against read-audit DB/API. In strict/locked mode, this is the ONLY authoritative source for UC7-001 write-block decisions. attestation.status='attested' means: (1) discovery.sufficient, (2) files_read ⊆ discovered_files, (3) all files verified through read-audit DB/API, (4) reason/content_summary non-empty.",
                 "required": [
                   "status"
                 ],
@@ -237,7 +237,7 @@
                   "files_read": {
                     "type": "array",
                     "items": { "type": "string" },
-                    "description": "Cache file paths the agent ACTUALLY read (verified against read_audit.jsonl). Must be subset of discovery.discovered_files."
+                    "description": "Cache file paths the agent ACTUALLY read (verified through read-audit DB/API). Must be subset of discovery.discovered_files."
                   },
                   "content_summary": {
                     "type": "string",

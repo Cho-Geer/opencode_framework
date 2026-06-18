@@ -6,6 +6,15 @@
  *   Tier 2 (Warm): gate-state.history/*.jsonl — append-only daily logs
  *   Tier 3 (Cold): gate-state.archive.json — archived sessions (>7 days)
  *
+ * AUTHORITATIVE SOURCE (SA-STORAGE-IMPLEMENT-001, 2026-06-19):
+ *   The DB (gate_sessions, gate_drained_sessions, gate_session_index,
+ *   gate_audit_history tables) is the AUTHORITATIVE source for gate state.
+ *   gate-core.ts is already DB-first (loadGateStore/saveGateStore).
+ *   This compactor currently operates on JSON hot file as primary.
+ *   DB sync is best-effort via dbSyncCompactorHot/dbMarkSessionArchived/
+ *   dbMarkSessionDrained. Future: compactor should prefer DB load/save,
+ *   with JSON hot file as an export cache.
+ *
  * INTEGRATION POINTS:
  * - compliance_gate_complete: Triggers onGateComplete() to move session to history
  * - OpenCode session.compacted event: Triggers onSessionCompacted() hook

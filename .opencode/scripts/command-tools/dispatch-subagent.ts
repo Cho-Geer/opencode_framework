@@ -12,6 +12,13 @@
  * When 2 positional params follow agent_type → first = task_id, second = task_description.
  * --task-id CLI flag and .dispatch_ctx file always take precedence.
  *
+ * M14 (2026-06-19): Extended dispatch permissions — sub-agents (all non-Orchestrator,
+ * non-Super-Admin agents) may now dispatch directly to @Knowledge-Curator for
+ * UC7KS knowledge acquisition without routing through @Orchestrator.
+ * Enforced by dispatch-before.ts plugin (M14 dispatch target restriction).
+ * Sub-agents remain restricted to Knowledge-Curator only; all other targets
+ * must be routed through @Orchestrator or @Super-Admin.
+ *
  * NOTE: task_id is a dispatch session identifier — an ID
  * assigned to the background sub-agent process/delegation in OpenCode. It is
  * used for output path namespacing (.task_temp/{taskId}/) and session tracking.

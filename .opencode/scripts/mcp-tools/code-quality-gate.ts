@@ -216,7 +216,8 @@ function getDefaultMachine() {
       last_operation_id: null,
       last_transaction_at: null,
       pending_operations: [],
-      transaction_log_path: ".opencode/state/.transaction-log",
+      // SA-STORAGE-IMPLEMENT-001: transaction_log_path removed.
+      // .transaction-log is a legacy bridge — new code uses DB transactions.
     },
   };
 }

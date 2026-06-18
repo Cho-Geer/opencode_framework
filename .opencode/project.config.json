@@ -571,7 +571,7 @@
         ],
         "context7_libraries": [],
         "fallback_pattern": "{knowledge.fallback_url_opencode}",
-        "save_path": "opencode/framework/",
+        "save_path": "opencode/state/",
         "ttl_days": 7
       }
     ]

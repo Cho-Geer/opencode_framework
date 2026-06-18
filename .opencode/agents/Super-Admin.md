@@ -27,6 +27,7 @@ mcp_tools:
   - question
   - todowrite
   - resolve_domain_id
+  - knowledge_cache_attest
 # opencode.json is authoritative for runtime permissions — the below are declarative only
 permission:
   edit: deny
