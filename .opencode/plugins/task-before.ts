@@ -127,7 +127,7 @@ async function taskExecuteBefore(input: any, output: any): Promise<void> {
 
   // Strip DISPATCH_TOKEN line to recover clean prompt, then verify integrity.
   // The clean prompt is what dispatch_subagent.ts hashed to produce the token.
-  const cleanPrompt = prompt.replace(/\/\/DISPATCH_TOKEN:[a-f0-9]{64}\s*$/, "");
+  const cleanPrompt = prompt.replace(/\/\/DISPATCH_TOKEN:[a-f0-9]{64}\s*$/, "").replace(/\n+$/, "");
   const expectedHash = require("crypto")
     .createHash("sha256")
     .update(cleanPrompt)
