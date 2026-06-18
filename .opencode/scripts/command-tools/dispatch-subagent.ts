@@ -655,45 +655,24 @@ const projectContext = [
 ].join("\n");
 
 // ──────────────────────────────────────────────
-// Build Permissions Section
+// Build Permissions Section (R1 SLIM, 2026-06-19)
+// Replaces inline ~30 permission lines with a single read() instruction.
+// Agents now self-read their permissions via P0 Step 0e (config_read_attest).
 // ──────────────────────────────────────────────
-const runtimePerms = readRuntimePermissions(agentType);
-
-const configPermSection = permission
-  ? Object.entries(permission)
-      .map(([tool, access]) => `  - ${tool}: ${access}`)
-      .join("\n")
-  : "  - (no permission block declared in agent config)";
-
-const runtimePermSection =
-  runtimePerms && runtimePerms.permission
-    ? Object.entries(runtimePerms.permission)
-        .map(([key, val]) => {
-          const valStr =
-            typeof val === "object"
-              ? JSON.stringify(val, null, 4).replace(/\n/g, "\n    ")
-              : String(val);
-          return `  - ${key}: ${valStr}`;
-        })
-        .join("\n")
-    : "  - (not found in opencode.json — check your permissions manually)";
 
 const permissionsSection = `
 ## 🔑 Your Permissions
 
-### Source 1: Agent Config File (.opencode/agents/${agentFileEntry})
-_A declarative guide — tells you which tools are relevant to your role_
-${configPermSection}
+See your agent config (\`.opencode/agents/${agentFileEntry}\`) + \`opencode.json\` for full permissions.
 
-### Source 2: Runtime Enforcement (opencode.json)
-_The authoritative source — controls what you can actually invoke_
-${runtimePermSection}
+**IMPORTANT**: P0 Step 0e requires you to read these files using the \`read\` tool
+and call \`config_read_attest()\` to unlock writes. The \`scope-before\` plugin
+will BLOCK writes until this attestation is complete.
 
 ### Conflict Resolution
-If Source 1 and Source 2 conflict, **Source 2 (opencode.json) is authoritative**.
+If agent config and opencode.json conflict, **opencode.json is authoritative**.
 - Tools/config declared in your config file but NOT in opencode.json → may be blocked at runtime
 - Permissions granted in opencode.json but NOT in your config file → still usable (opencode.json grants them)
-- Always verify by reading opencode.json directly (see Step 1a of P0 protocol)
 `;
 
 // ── Agent-specific scope line (replaces the full 8-agent table) ──
@@ -762,11 +741,9 @@ Do NOT loop on insufficient attest — acquire, re-attest, complete.` : ""}
 
 **Agent Name**: ${agentName}
 
-**Your Skills** (invoke in this order; P0 skills first):
-${skills.map((s) => `- \`${s}\``).join("\n")}
-
-**Your MCP Tools** (call as needed):
-${mcpTools.map((t) => `- \`${t}\``).join("\n")}
+**IMPORTANT — R1 SLIM (2026-06-19)**: Your skills and MCP tools are defined in your
+agent config file. Read \`.opencode/agents/${agentFileEntry}\` via the \`read\` tool
+as part of P0 Step 0e to see the full list. This saves ~194 lines per dispatch.
 
 ${permissionsSection}
 

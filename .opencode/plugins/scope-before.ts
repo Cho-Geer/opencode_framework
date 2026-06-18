@@ -15,6 +15,7 @@ import { getEnforcementMode } from "../lib/gate-core";
 import { isWriteAllowed } from "../lib/gate-checks";
 import { isSourceFile } from "../lib/state-utils";
 import { checkUC7KSWrite } from "../lib/uc7ks-utils";
+import { readSubState } from "../lib/substate-manager";
 import {
   readRouteConfig,
   isFrameworkInfraFile,
@@ -178,6 +179,66 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
         });
         if (mode === "strict" || mode === "locked") throw new Error(msg);
         return;
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      // R4 (2026-06-19): Config Read Attestation Pre-Gate
+      // Checks that the agent completed Step 0e (read 3 config files +
+      // call config_read_attest) before being allowed to write.
+      // Runs BEFORE UC7-001 knowledge cache check.
+      // Sessions without config_read_state → skip (backward compatible).
+      // ═══════════════════════════════════════════════════════════════
+      const configReadState = readSubState("config_read_state");
+      if (configReadState && configReadState.session_id) {
+        // config_read_state exists for some session. Check if it matches current session.
+        if (configReadState.session_id !== input.sessionID) {
+          const msg =
+            `[FW-ENFORCE][CONFIG-READ-ATTEST] Config read attestation ` +
+            `not completed for this session. ` +
+            `config_read_state.session_id="${configReadState.session_id}" ` +
+            `does not match current session "${input.sessionID}". ` +
+            `Run P0 Step 0e: read your agent config, opencode.json, and ` +
+            `project.config.json using the 'read' tool, then call ` +
+            `config_read_attest() to unlock writes.`;
+          writeLog("scope-before", "runtime", {
+            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+            level: "ERROR", event: "TOOL-BEFORE",
+            detail: `BLOCKED | CONFIG-READ-ATTEST | agent=${agent} | stored_session=${configReadState.session_id}`,
+          });
+          if (mode === "strict" || mode === "locked") throw new Error(msg);
+          return;
+        }
+        // Session matches — config read attestation complete, proceed
+        writeLog("scope-before", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          event: "TOOL-BEFORE",
+          detail: "config_read_state verified — attestation complete",
+        });
+      } else {
+        // No config_read_state entry exists yet.
+        // In strict/locked mode, BLOCK writes until Step 0e is completed.
+        // In advisory mode, warn but allow (backward compatible).
+        if (mode === "strict" || mode === "locked") {
+          const msg =
+            `[FW-ENFORCE][CONFIG-READ-ATTEST] Config read attestation ` +
+            `has not been completed. ` +
+            `Run P0 Step 0e BEFORE writing: read your agent config ` +
+            `(.opencode/agents/{Type}.md), opencode.json, and ` +
+            `project.config.json using the 'read' tool, then call ` +
+            `config_read_attest() to unlock writes.`;
+          writeLog("scope-before", "runtime", {
+            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+            level: "ERROR", event: "TOOL-BEFORE",
+            detail: `BLOCKED | CONFIG-READ-ATTEST-MISSING | agent=${agent}`,
+          });
+          throw new Error(msg);
+        }
+        // advisory: warn only
+        writeLog("scope-before", "runtime", {
+          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          event: "TOOL-BEFORE",
+          detail: "config_read_state not yet attested — advisory mode, allowing writes",
+        });
       }
 
       // ═══════════════════════════════════════════════════════════════

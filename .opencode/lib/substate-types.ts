@@ -120,6 +120,21 @@ export interface KnowledgeState {
   [key: string]: any;
 }
 
+/**
+ * ConfigReadState — 13th sub-state (SA-IMPLEMENT-CONFIG-ATTEST-001, 2026-06-19)
+ * Tracks whether the agent completed config_read_attest() (Step 0e of P0 protocol).
+ * Written by config_read_attest.ts MCP tool; read by scope-before.ts pre-gate check.
+ */
+export interface ConfigReadState {
+  /** OpenCode session ID that completed the attestation */
+  session_id?: string;
+  /** ISO timestamp when attestation was completed */
+  attested_at?: string;
+  /** 3 config files verified as read */
+  files?: string[];
+  [key: string]: any;
+}
+
 // ── Master Type Map ──
 // Maps each substate key (string literal) to its interface type.
 // Used by readSubState<K>() / writeSubState<K>() for compile-time key + value type checking.
@@ -136,6 +151,7 @@ export interface SubStateMap {
   keystone_hashes: KeystoneHashes;
   transaction_state: TransactionState;
   knowledge_state: KnowledgeState;
+  config_read_state: ConfigReadState;
 }
 
 /** Union of all valid sub-state key names. */

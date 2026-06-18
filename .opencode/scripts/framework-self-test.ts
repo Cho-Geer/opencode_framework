@@ -2429,6 +2429,115 @@ function checkKCDispatchSubagentAbsence() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 47 (R5, 2026-06-19): Config Attest Pipeline Integrity
+// Validates config_read_attest tool, schema, state keys, and compilation.
+// SA-IMPLEMENT-CONFIG-ATTEST-001 R5.
+// ═══════════════════════════════════════════════════════════════
+function checkConfigAttestPipeline(): void {
+  const toolsDir = path.join(OPENCODE_ROOT, ".opencode", "tools");
+  const schemasDir = path.join(OPENCODE_ROOT, ".opencode", "state", "schemas");
+
+  // 47a: config_read_attest.ts exists in .opencode/tools/
+  const attestToolPath = path.join(toolsDir, "config_read_attest.ts");
+  if (!fileExists(attestToolPath)) {
+    return check(47, false, "config_read_attest.ts not found at .opencode/tools/");
+  }
+
+  // 47b: Schema file exists
+  const schemaPath = path.join(schemasDir, "config-read-state.schema.json");
+  if (!fileExists(schemaPath)) {
+    return check(47, false, "config-read-state.schema.json not found at .opencode/state/schemas/");
+  }
+
+  // 47c: Schema is valid JSON with required fields
+  let schema: any;
+  try {
+    const schemaRaw = readFile(schemaPath);
+    if (!schemaRaw) return check(47, false, "Cannot read schema file");
+    schema = JSON.parse(schemaRaw);
+    if (!schema.$schema) return check(47, false, "Schema missing $schema field");
+    if (!schema.$id || !schema.$id.includes("config-read-state")) {
+      return check(47, false, `Schema $id mismatch: ${schema.$id}`);
+    }
+  } catch (e: any) {
+    return check(47, false, `Schema parse error: ${e.message}`);
+  }
+
+  // 47d: config_read_state registered in substate-manager.ts SUBSTATE_FILES
+  const mgrPath = path.join(OPENCODE_ROOT, ".opencode", "lib", "substate-manager.ts");
+  const mgrContent = readFile(mgrPath);
+  if (!mgrContent) return check(47, false, "substate-manager.ts not found");
+  if (!mgrContent.includes("config_read_state")) {
+    return check(47, false, "config_read_state not found in SUBSTATE_FILES of substate-manager.ts");
+  }
+
+  // 47e: ConfigReadState interface registered in substate-types.ts
+  const typesPath = path.join(OPENCODE_ROOT, ".opencode", "lib", "substate-types.ts");
+  const typesContent = readFile(typesPath);
+  if (!typesContent) return check(47, false, "substate-types.ts not found");
+  if (!typesContent.includes("ConfigReadState")) {
+    return check(47, false, "ConfigReadState interface not found in substate-types.ts");
+  }
+  if (!typesContent.includes("config_read_state: ConfigReadState")) {
+    return check(47, false, "config_read_state not found in SubStateMap of substate-types.ts");
+  }
+
+  // 47f: Step 0e present in subagent-preamble.md
+  const preamblePath = path.join(OPENCODE_ROOT, ".opencode", "subagent-preamble.md");
+  const preambleContent = readFile(preamblePath);
+  if (!preambleContent) return check(47, false, "subagent-preamble.md not found");
+  if (!preambleContent.includes("Step 0e: Config Read Attestation")) {
+    return check(47, false, "Step 0e not found in subagent-preamble.md");
+  }
+
+  // 47g: config_read_state check present in scope-before.ts
+  const scopePath = path.join(OPENCODE_ROOT, ".opencode", "plugins", "scope-before.ts");
+  const scopeContent = readFile(scopePath);
+  if (!scopeContent) return check(47, false, "scope-before.ts not found");
+  if (!scopeContent.includes("CONFIG-READ-ATTEST")) {
+    return check(47, false, "Config read attest check not found in scope-before.ts");
+  }
+
+  // 47h: Compilation check via bun build
+  try {
+    const { execSync } = require("child_process");
+    execSync(
+      `bun build "${attestToolPath}" --target=bun --outfile=/dev/null`,
+      { stdio: "pipe", timeout: 10000 },
+    );
+  } catch (e: any) {
+    return check(47, false,
+      `config_read_attest.ts compilation failed: ${(e.stderr || e.message).toString().substring(0, 200)}`);
+  }
+
+  // 47i: dispatch_subagent in 7+ agent configs (M14 alignment)
+  const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
+  let agentCount = 0;
+  let withDispatch = 0;
+  try {
+    const dirEntries = fs.readdirSync(agentsDir);
+    for (const af of dirEntries) {
+      if (!af.endsWith(".md")) continue;
+      // Exclude KC and SA (they don't need dispatch_subagent for M14)
+      if (af === "Knowledge-Curator.md" || af === "Super-Admin.md") continue;
+      agentCount++;
+      const content = readFile(path.join(agentsDir, af));
+      if (content && content.match(/^\s+-\s+dispatch_subagent\s*$/m)) {
+        withDispatch++;
+      }
+    }
+  } catch (_) {}
+
+  if (withDispatch < 7) {
+    return check(47, false,
+      `dispatch_subagent found in only ${withDispatch}/${agentCount} agent configs (expected 7+ per M14)`);
+  }
+
+  return check(47, true,
+    `Config attest pipeline OK: tool+compilation+${withDispatch} agent configs+schema+state keys+preamble Step 0e+scope-before check`);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main execution
 /**
  * FW-PROMPT-HARDEN-04: Check 33 — Validate .pending.json FIFO queue integrity.
@@ -2940,6 +3049,7 @@ checkAgentUC7KSSection();
 checkContext7ToolBlock();
 checkAgentAttestToolRegistered(); // M8 (2026-06-19): writable agents must have knowledge_cache_attest
 checkKCDispatchSubagentAbsence(); // M20 (2026-06-19): KC must NOT have dispatch_subagent
+checkConfigAttestPipeline(); // R5 (2026-06-19): config attest pipeline integrity
 checkPendingJson();
 checkSessionAccessAgentKeys();
 checkStaleInternalEvidence();

@@ -14,6 +14,8 @@ skills:
   - cicd-database-seeding
 mcp_tools:
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
+  # M14 (2026-06-19): dispatch_subagent for direct @Knowledge-Curator dispatch
+  - dispatch_subagent
   - PostgreSQL
   - Docker
   - eslint-audit

@@ -17,6 +17,8 @@ skills:
   - context7-first
 mcp_tools:
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
+  # M14 (2026-06-19): dispatch_subagent for direct @Knowledge-Curator dispatch
+  - dispatch_subagent
   - docker_list_containers
   - docker_run_container
   - docker_build_image

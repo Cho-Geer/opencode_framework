@@ -32,6 +32,7 @@ export const SUBSTATE_FILES: Record<SubStateKey, string> = {
   keystone_hashes: "keystone-hashes.json",
   transaction_state: "transaction-state.json",
   knowledge_state: "knowledge-state.json",
+  config_read_state: "config-read-state.json",
 };
 
 const SRC = "lib-substate-manager";

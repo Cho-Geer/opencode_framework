@@ -32,7 +32,33 @@ module_scope_declare(module=dispatchDomain, task_id=taskId)  // 使用 dispatch 
    - Write-block is enforced by `checkUC7KSWrite()` Path C (M3) + file-level domain check (M11).
    - When `cache_sufficient=false` → all writes are BLOCKED until re-attested with `cache_sufficient=true`.
 
-### Step 0d: Multi-Source Investigation Mandate — plugin-enforced
+    - When `cache_sufficient=false` → all writes are BLOCKED until re-attested with `cache_sufficient=true`.
+
+### Step 0e: Config Read Attestation — MANDATORY (R3 scope-before enforced)
+
+> **R3 (2026-06-19)**: The `config_read_attest` tool verifies that you have read the
+> 3 mandatory config files BEFORE you are allowed to write. Without completing
+> this step, `scope-before.ts` will BLOCK all writes in strict/locked mode.
+
+**0e.** Read the 3 config files then call `config_read_attest(task_id)`:
+```
+// Step 0e-1: Read your agent config file (e.g., .opencode/agents/{Type}.md)
+//   → auto-logged to read_audit SQLite by read-track-after.ts
+// Step 0e-2: Read opencode.json (runtime permissions — authoritative source)
+// Step 0e-3: Read .opencode/project.config.json (framework policies)
+// Step 0e-4: Call config_read_attest(task_id) to verify reads and unlock writes
+const configResult = config_read_attest({ task_id: taskId });
+if (!configResult.verified) {
+  // Read the unread_files listed in configResult, then re-run config_read_attest
+}
+```
+
+> **Why 3 files?** (1) Agent config tells you your skills/tools. (2) opencode.json is the
+> authoritative permissions source (P2-D). (3) project.config.json defines framework
+> policies. Reading all 3 replaces the ~30 inline permission lines in dispatch prompts
+> with a lightweight 3-line read() instruction — saving ~194 lines per dispatch (70% reduction).
+
+### Step 0d: Multi-Source Investigation Mandate — plugin-enforced — plugin-enforced
 
 If your task involves any keyword listed below, you are executing an
 **investigation-type task** and the multi-source mandate applies:

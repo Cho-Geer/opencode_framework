@@ -852,7 +852,8 @@
     ]
   },
   "plugin": [
-    "./.opencode/plugins/read-track-after.ts"
+    "./.opencode/plugins/read-track-after.ts",
+    "./.opencode/plugins/scope-before.ts"
   ],
   "mcp": {
     "compliance-gate": {
