@@ -1902,7 +1902,7 @@ function enforceMultiSourceAudit(
  * Approve: delivered → approved (optionally auto-complete with execution_summary).
  * Reject: delivered → armed (sub-agent must re-submit via new dispatch).
  */
-function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, executionSummary, agentId) {
+function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, executionSummary, agentId, handoverSha256) {
   const store = loadStore();
   const session = sessionId ? store.sessions[sessionId] : null;
   if (!session) {
@@ -1976,6 +1976,28 @@ function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, e
         reason:
           `[DELIVERABLES-REVIEW-LOCK] HANDOVER.md missing or empty at ${handoverPath}. ` +
           `Deliverables must exist and have content before approval.`,
+      };
+    }
+
+    // ── DELIVERABLES-REVIEW-LOCK SHA-256: Prove approver actually read HANDOVER.md ──
+    if (!handoverSha256 || typeof handoverSha256 !== "string" || handoverSha256.length !== 64) {
+      return {
+        status: "rejected",
+        reason:
+          `[DELIVERABLES-REVIEW-LOCK] handover_sha256 required. The approver MUST read ` +
+          `${handoverPath} and provide its SHA-256 hash to prove they reviewed the deliverables. ` +
+          `Compute: sha256sum ${handoverPath}`,
+      };
+    }
+    const crypto = require("crypto");
+    const actualHash = crypto.createHash("sha256").update(handoverContent).digest("hex");
+    if (actualHash !== handoverSha256.toLowerCase()) {
+      return {
+        status: "rejected",
+        reason:
+          `[DELIVERABLES-REVIEW-LOCK] HANDOVER.md SHA-256 mismatch at ${handoverPath}. ` +
+          `Provided: ${handoverSha256.substring(0, 16)}... | Actual: ${actualHash.substring(0, 16)}... ` +
+          `The approver must read the actual file and provide its correct hash.`,
       };
     }
 
@@ -2196,8 +2218,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description: "Agent identity of the caller (e.g. 'Orchestrator', '@Super-Admin'). Used for permission enforcement. Restricted to @Orchestrator/@Super-Admin.",
           },
+          handover_sha256: {
+            type: "string",
+            description: "SHA-256 hash of HANDOVER.md content. HARD CONSTRAINT: the approver MUST read HANDOVER.md and provide its SHA-256 hash. The server verifies this matches the actual file. This proves the approver actually read the deliverables before approving. Compute via: sha256sum .task_temp/{taskId}/HANDOVER.md",
+          },
         },
-        required: ["session_id", "approval_decision"],
+        required: ["session_id", "approval_decision", "handover_sha256"],
       },
     },
     {
@@ -2664,6 +2690,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       args.approval_note,
       args.execution_summary,
       args.agent_id,
+      args.handover_sha256,
     );
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

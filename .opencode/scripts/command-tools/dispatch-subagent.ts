@@ -658,30 +658,39 @@ If Source 1 and Source 2 conflict, **Source 2 (opencode.json) is authoritative**
 - Always verify by reading opencode.json directly (see Step 1a of P0 protocol)
 `;
 
+// ── Agent-specific scope line (replaces the full 8-agent table) ──
+function scopeLine(agentType) {
+  const map = {
+    "Architect": "Write: contract.yaml, docs/ | Deny: .opencode/ framework files | Route: @Super-Admin",
+    "Coder-BE": "Write: booking-backend/src/, booking-backend/test/ | Deny: booking-frontend/**, .opencode/ | Route: @Orchestrator",
+    "Coder-FE": "Write: booking-frontend/ | Deny: booking-backend/**, .opencode/ | Route: @Orchestrator",
+    "Orchestrator": "Write: Task.DAG.json, .task_temp/ | Deny: .opencode/ framework files | Route: @Super-Admin",
+    "Super-Admin": "Write: .opencode/**, opencode.json, AGENTS.md | Deny: booking-*/src/ (business code)",
+    "Guardian": "Write: .task_temp/**, .opencode/state/ | Deny: business code, contract.yaml | Route: @Arbiter",
+    "Arbiter": "Write: WAIVE.md, TECH_DEBT_REGISTRY.md | Deny: business code | Route: @Meta-Planner",
+    "CI-CD-Agent": "Write: .github/, Dockerfile*, docker-compose* | Deny: business code (src/), .opencode/agents/ | Route: @Orchestrator",
+    "Knowledge-Curator": "Write: docs/official_docs/**, .task_temp/** | Deny: .opencode/**, business code",
+    "Meta-Planner": "Write: docs/, Task.DAG.json | Deny: .opencode/ framework files, business code",
+  };
+  return map[agentType] || `Execute within your role's declared scope`;
+}
+
+// ── Context7: only inject when stacks are actually matched ──
+const context7Block = relevantStacks.length > 0 ? `
+
+---
+
+### Context7 Technology Lookup Requirements
+
+${context7Section}` : "";
+
 const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
 
 ### P0 Protocol — Read and execute FIRST
 
 ${preamble}
 
-/**
- * Phase 2 R5: Agent-type awareness injection.
- * Injects targeted guidance so code-producing agents (@Coder-BE, @Coder-FE)
- * know that Steps 5a/5b are mandatory; non-coding agents see them as informational.
- */
-${
-  agentType === "Coder-BE" || agentType === "Coder-FE"
-    ? `> **Agent-type note**: As a code-producing agent (@${agentType}), Steps 5a (docs consistency) and 5b (write-time quality) in the P0 protocol above are **MANDATORY** for all source code changes.`
-    : `> **Agent-type note**: As a ${agentType}, Steps 5a and 5b in the P0 protocol above are informational — you may not be writing source code.`
-}
-
-### Deliverables Declaration — MANDATORY
-
-When calling \`compliance_gate_confirm\`, you MUST include \`declared_deliverables\`.
 ${deliverablesTemplateMarkdown(agentType)}
-
-After writing ALL deliverables, call \`compliance_gate_submit_deliverables(session_id, evidence)\`.
-Then your session ends — Orchestrator reviews and approves deliverables to close the gate.
 
 ---
 
@@ -701,39 +710,13 @@ ${permissionsSection}
 
 ### Project Context (from .opencode/project.config.json)
 
-${projectContext}
+${projectContext}${context7Block}
 
 ---
 
-### Context7 Technology Lookup Requirements
+### 📊 Mandatory Audit Trail
 
-${context7Section}
-
----
-
-### 📊 Mandatory Audit Trail — Include in your final output
-
-After task completion, you MUST append a section titled \`## 📊 Invocation Summary\` to your output. Include:
-
-**Skills** (from your agent config above):
-${skills.map((s) => `- \`${s}\`: ✅ Invoked or ❌ Not needed (state reason)`).join("\n")}
-
-**MCP Tools** (from your agent config above):
-${mcpTools.map((t) => `- \`${t}\`: ✅ Called or ❌ Not applicable (state reason)`).join("\n")}
-
-**Context7** (for each tech stack queried):
-- Library resolved: ... → Query: ... → Key finding: ...
-
-**System tools**:
-- \`compliance_gate_check\`: Session ID — status
-- \`compliance_gate_confirm\`: Armed at timestamp
-- \`compliance_gate_complete\`: Completed at timestamp
-- \`context7_resolve-library-id\`: List libraries resolved
-- \`context7_query-docs\`: List queries run with key results
-
-Do NOT skip this section. It is required for audit trail compliance.
-
-**File persistence**: ALSO save a copy to \`.task_temp/_dispatch/INVOCATION_SUMMARY.md\` (append, do not overwrite). This creates a persistent audit trail across all sub-agent invocations.
+Append \`## 📊 Invocation Summary\` to your output: skills invoked, MCP tools called, gate session status (check/confirm/complete). Save to \`.task_temp/_dispatch/INVOCATION_SUMMARY.md\` (append).
 
 ---
 
@@ -742,33 +725,15 @@ Do NOT skip this section. It is required for audit trail compliance.
 **Agent**: ${agentName}
 **Description**: ${resolvedTaskDescription}
 
-
-/**
- * FW-ROUTE-FIX-05: Agent scope routing declaration injected at dispatch.
- * Physical enforcement by framework-enforcer.ts (ROUTE-MISMATCH).
- */
-
-### 🚨 Scope Boundary — Enforced by Framework
-| Agent | Allowed Scope | Denied Scope | Violation Route |
-|-------|--------------|--------------|-----------------|
-| @Architect | contract.yaml, docs/, .opencode/context/ | .opencode/ framework files | @Super-Admin |
-| @Coder-BE | booking-backend/src/, booking-backend/test/ | booking-frontend/**, .opencode/ | @Orchestrator |
-| @Coder-FE | booking-frontend/ | booking-backend/**, .opencode/ | @Orchestrator |
-| @Orchestrator | Task.DAG.json, .task_temp/ | .opencode/ framework files | @Super-Admin |
-| @Super-Admin | .opencode/**, opencode.json, AGENTS.md | booking-*/src/ (business code) | @Coder-BE/FE |
-| @Guardian | .task_temp/**, .opencode/state/ | business code, contract.yaml | @Arbiter |
-| @Arbiter | WAIVE.md, TECH_DEBT_REGISTRY.md | business code, contract.yaml | @Meta-Planner |
-| @CI-CD-Agent | .github/, Dockerfile*, docker-compose* | business code (src/), .opencode/agents/ | @Orchestrator |
-
-**Violating these boundaries in strict/locked mode results in a thrown BLOCKED error from framework-enforcer.ts.**
+### 🚨 Your Scope — Framework-Enforced
+${scopeLine(agentType)}
 
 ### Execution Order
-1. Read your agent configuration above
-2. Execute all P0 protocol steps (skills → context7 → compliance gate → confirm)
-3. Perform the task and produce output
-4. Include \`## 📊 Invocation Summary\` section in your output
+1. Execute all P0 protocol steps (pipeline → skills → gate → deliverables)
+2. Perform the task
+3. Include \`## 📊 Invocation Summary\` in output
 
-Remember: All runtime artifacts (test_report.json, HANDOVER.md, TASK_LOG.md, *_report.json) go to \`.task_temp/{taskId}/\`.`;
+Remember: All runtime artifacts go to \`.task_temp/{taskId}/\`.`;
 
 // ──────────────────────────────────────────────
 // 5.5 Final template resolution pass on the wrapped prompt
