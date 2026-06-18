@@ -1167,12 +1167,6 @@
           "desc": "Interface contract"
         },
         {
-          "scope": "/docs/",
-          "agent": "*",
-          "priority": 2,
-          "desc": "Architecture and design docs"
-        },
-        {
           "scope": ".opencode/context/",
           "agent": "@Architect",
           "priority": 1,
