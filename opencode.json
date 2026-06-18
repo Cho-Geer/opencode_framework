@@ -31,7 +31,10 @@
         "bash": "deny",
         "webfetch": "deny",
         "websearch": "deny",
-        "safe_shell": "allow",
+        "safe_shell": {
+          "*": "allow",
+          "sha256sum *": "allow"
+        },
         "context7": "deny",
         "skill": "allow",
         "pandoc": "allow",
@@ -137,6 +140,7 @@
           "grep *": "allow",
           "which *": "allow",
           "cd *": "allow",
+          "sha256sum *": "allow",
           "npm run *": "deny",
           "npx *": "deny",
           "bun *": "deny",
@@ -219,6 +223,7 @@
           "which *": "allow",
           "cd *": "allow",
           "diff *": "allow",
+          "sha256sum *": "allow",
           "cp *": "deny",
           "mv *": "deny",
           "rm *": "deny",
@@ -320,6 +325,7 @@
           "find *": "allow",
           "cd *": "allow",
           "mkdir *": "allow",
+          "sha256sum *": "allow",
           "rm -rf *": "ask"
         },
         "safe_test": "allow",
@@ -401,6 +407,7 @@
           "find *": "allow",
           "cd *": "allow",
           "mkdir *": "allow",
+          "sha256sum *": "allow",
           "rm -rf *": "ask"
         },
         "safe_test": "allow",
@@ -471,7 +478,8 @@
           "grep *": "allow",
           "git log*": "allow",
           "find *": "allow",
-          "ls *": "allow"
+          "ls *": "allow",
+          "sha256sum *": "allow"
         },
         "safe_delete": {
           ".task_temp/**": "allow",
@@ -540,7 +548,8 @@
           "tail *": "allow",
           "wc *": "allow",
           "find *": "allow",
-          "ls *": "allow"
+          "ls *": "allow",
+          "sha256sum *": "allow"
         },
         "safe_delete": {
           ".task_temp/**": "allow",
@@ -580,7 +589,10 @@
         "grep": "allow",
         "edit": "deny",
         "bash": "deny",
-        "safe_shell": "allow",
+        "safe_shell": {
+          "*": "allow",
+          "sha256sum *": "allow"
+        },
         "safe_test": "deny",
         "webfetch": "deny",
         "websearch": "deny",
