@@ -9,7 +9,7 @@ import {
   armSession,
 } from "../lib/gate-core";
 import { findTaskInDag } from "../lib/gate-checks";
-import { isDagExempt } from "../lib/dag-policy";
+import { isDagExempt, readDispatchPolicy } from "../lib/dag-policy";
 import { isModifyTool } from "../lib/tool-scope";
 import {
   readRouteConfig,
@@ -134,13 +134,21 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     if (taskId && !isExempt) {
       const tc = findTaskInDag(taskId);
       if (!tc.found) {
+        /**
+         * FW-FIX-CONFIG-DAG-02: Read dispatch_policy.require_dag_entry instead of
+         * hardcoded enforcement mode checks. This allows the DAG audit to be
+         * independently controlled via project.config.json regardless of the
+         * enforcement mode. Aligns with dispatch-before.ts and dispatch_subagent.ts
+         * which already use readDispatchPolicy().require_dag_entry.
+         */
+        const dPolicy = readDispatchPolicy();
         writeLog("gate-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-          level: "WARN",
+          level: dPolicy.require_dag_entry ? "ERROR" : "WARN",
           event: "TOOL-BEFORE",
-          detail: `BLOCKED | DAG-TASK-NOT-FOUND | task=${taskId} (searched both dag.tasks[] and dag.execution_order)`,
+          detail: `${dPolicy.require_dag_entry ? "BLOCKED" : "ADVISORY"} | DAG-TASK-NOT-FOUND | task=${taskId} | require_dag_entry=${dPolicy.require_dag_entry}`,
         });
-        if (mode === "strict" || mode === "locked") {
+        if (dPolicy.require_dag_entry) {
           throw new Error(
             `[FW-ENFORCE][DAG] Task "${taskId}" not found in Task.DAG.json ` +
               `(checked both dag.tasks[] and dag.execution_order — neither contains this ID). ` +
@@ -154,13 +162,14 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
           );
         }
       } else if (tc.status !== "pending" && tc.status !== "in_progress") {
+        const dPolicy2 = readDispatchPolicy();
         writeLog("gate-before", "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-          level: "WARN",
+          level: dPolicy2.require_dag_entry ? "ERROR" : "WARN",
           event: "TOOL-BEFORE",
-          detail: `BLOCKED | DAG-TASK-STATUS | task=${taskId} status=${tc.status} source=${tc.source}`,
+          detail: `${dPolicy2.require_dag_entry ? "BLOCKED" : "ADVISORY"} | DAG-TASK-STATUS | task=${taskId} status=${tc.status} source=${tc.source} | require_dag_entry=${dPolicy2.require_dag_entry}`,
         });
-        if (mode === "strict" || mode === "locked") {
+        if (dPolicy2.require_dag_entry) {
           throw new Error(
             `[FW-ENFORCE][DAG] Task "${taskId}" status is "${tc.status}". ` +
             `Expected "pending" or "in_progress".`,

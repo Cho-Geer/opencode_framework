@@ -113,8 +113,20 @@ if (criticalModified.length > 0) {
       'Example: git commit -m "[Green][INFRA] update agent permissions"',
     );
     console.log('═══════════════════════════════════════════════════════');
-    if (mode !== 'advisory') {
+    /**
+     * FW-FIX-CONFIG-DAG-01: Only locked mode requires [INFRA] marker.
+     * Aligned with hook-layers.ts L98 and pre-exec-gate.ts L569 which
+     * already use `mode === 'locked'` for critical-file blocking.
+     * Advisory and strict modes log a warning but do NOT block.
+     */
+    if (mode === 'locked') {
+      console.log('❌ [INFRA] Blocked in locked mode — [INFRA] marker required');
       process.exit(1);
+    } else {
+      console.log(
+        `⚠️  [INFRA] Advisory: ${criticalModified.length} critical file(s) modified — ` +
+        `[INFRA] marker recommended but not enforced in ${mode} mode`,
+      );
     }
   } else if (!isInfraOnly) {
     // Already acknowledged above when isInfraOnly; skip duplicate message when

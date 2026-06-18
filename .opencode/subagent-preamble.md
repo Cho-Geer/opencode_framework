@@ -19,6 +19,11 @@ alwaysApply: true
 > → treated as `"insufficient"`.
 
 **0a.** Call `module_scope_declare(module, task_id)`.
+```
+// 可选：先自查 dispatch 分配的 domain_id
+// const dispatchDomain = resolveDomainId(sessionID);
+// module_scope_declare(module=dispatchDomain)  // 使用分配的 domain 声明
+```
 **0b.** Call `knowledge_cache_search(domain, task_id)`.
 **0c.** If `status === "insufficient"` → request @Knowledge-Curator dispatch, re-search.
 
@@ -46,15 +51,17 @@ in your HANDOVER.md as a section titled `## Logs Checked`.
 
 | Source | Path | Typical Use |
 |--------|------|-------------|
-| Runtime logs | `.opencode/logs/` | Module execution, errors, warnings |
+| Plugin runtime logs | `.task_temp/_logs/{date}/plugin-{name}-runtime.log` | log-manager.ts 插件运行时事件 (权限检查/合规门禁/派遣等) |
 | MCP Gate logs | `.opencode/logs/mcp-compliance-gate/` | compliance_gate call audit |
-| Shell log | `.opencode/logs/safe-bash.log` | safe_shell execution history |
+| Shell audit log | `.opencode/logs/safe-bash.log` | safe_shell 命令审计 (allow/block/执行结果) |
 | Transaction log | `.opencode/state/.transaction-log` | State change transactions |
 | Dispatch output | `.task_temp/_dispatch/dispatch-*.md` | Each dispatch prompt |
 | Dispatch queue | `.task_temp/_dispatch/.pending.json` | Pending dispatch entries |
 | Dispatch failed | `.task_temp/_dispatch/.pending.json.failed` | Failed dispatch records |
 | Invocation summary | `.task_temp/_dispatch/INVOCATION_SUMMARY.md` | Cross-session summary (append) |
-| Archived logs | `.opencode/logs/archive/` | Historical compressed logs |
+| Pre-commit hook log | `.task_temp/_logs/hook-*.log` | pre-commit hook 各层校验结果 |
+| Dispatch audit log | `.task_temp/_dispatch/dispatch.log` | 所有派遣操作详细记录 |
+| Archived logs | `.task_temp/_logs/_archive/` | 历史日志归档 (按日期) |
 
 #### DB/JSON logs (require SQL query or `read`)
 
@@ -73,7 +80,7 @@ in your HANDOVER.md as a section titled `## Logs Checked`.
 
 | # | Source | Path | Key Finding |
 |---|--------|------|-------------|
-| 1 | Runtime logs | `.opencode/logs/...` | ... |
+| 1 | Runtime logs | `.task_temp/_logs/{date}/plugin-{name}-runtime.log` | ... |
 | 2 | Gate state | `.opencode/state/gate-state.json` | ... |
 ```
 
