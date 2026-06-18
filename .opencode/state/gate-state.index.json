@@ -4246,6 +4246,20 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-18T20:34:55.058Z",
       "archive_ref": "gate-state.history/2026-06-18.jsonl#14"
+    },
+    "cg_ses_1781819697201": {
+      "session_id": "cg_ses_1781819697201",
+      "created_at": "2026-06-18T21:54:57.209Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-18T21:56:01.012Z",
+      "archive_ref": "gate-state.history/2026-06-18.jsonl#15"
+    },
+    "cg_ses_1781820905603": {
+      "session_id": "cg_ses_1781820905603",
+      "created_at": "2026-06-18T22:15:05.612Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-18T22:18:04.654Z",
+      "archive_ref": "gate-state.history/2026-06-18.jsonl#16"
     }
   }
 }

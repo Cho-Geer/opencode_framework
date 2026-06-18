@@ -11,6 +11,7 @@ color: "#06B6D4"
 permission:
   edit: deny
   bash: deny
+  task: deny
 skills:
   - execution-preflight-check
   - context7-first

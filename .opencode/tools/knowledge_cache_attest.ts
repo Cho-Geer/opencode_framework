@@ -17,7 +17,11 @@
  * Design: docs/review/framework-refactor/uc7ks-read-before-write-plan.md §2.3
  *
  * @author @Super-Admin
- * @version 1.0.0
+ * @version 1.2.0 — M9-FIX (2026-06-19): Removed cache_sufficient/insufficiency_reason
+ *   from Zod schema due to OpenCode runtime bug (framework caches tool schemas and
+ *   rejects newly-added params with "is not defined"). Workaround: agents prefix
+ *   `reason` with "[SUFFICIENT]" (default) or "[INSUFFICIENT]" to declare cache
+ *   sufficiency. The tool parses this convention from the existing `reason` param.
  * @since 2026-06-18
  */
 
@@ -55,7 +59,7 @@ const SRC = "knowledge-cache-attest";
 
 export default tool({
   description:
-    "Agent-submitted read evidence attestation with self-declared cache sufficiency (M9). Verifies that the agent actually read the declared cache files (via read tool + read_audit cross-check). Writes status 'attested' (cache_sufficient=true) or 'insufficient' (cache_sufficient=false). 'insufficient' blocks all writes until re-attested. REQUIRED before writing source files in strict/locked mode (UC7-001 Phase 0+M3).",
+    "Agent-submitted read evidence attestation with self-declared cache sufficiency (M9). Verifies that the agent actually read the declared cache files (via read tool + read_audit cross-check). Writes status 'attested' (cache sufficient) or 'insufficient' (cache insufficient, writes BLOCKED). REQUIRED before writing source files in strict/locked mode (UC7-001 Phase 0+M3).\n\nM9 CACHE SUFFICIENCY: Prefix the `reason` parameter with '[INSUFFICIENT]' to declare cache insufficiency and BLOCK writes until re-attested. Omit the prefix (or use '[SUFFICIENT]') for normal sufficient-cache attestation. Example: reason='[INSUFFICIENT] Missing v11 Guard patterns' declares insufficiency.",
   args: {
     domain: tool.schema
       .string()
@@ -65,21 +69,13 @@ export default tool({
       .describe("DAG task ID for session tracking"),
     reason: tool.schema
       .string()
-      .describe("Agent-written reason: WHY these cache files are needed for the task"),
+      .describe("Agent-written reason: WHY these cache files are needed for the task. M9: prefix with '[INSUFFICIENT]' to declare cache insufficient and BLOCK writes until re-attested. Default (no prefix) = sufficient. E.g., '[INSUFFICIENT] Missing NestJS v11 guard docs' or just 'Need docs for implementation' (sufficient)."),
     files_read: tool.schema
       .array(tool.schema.string())
       .describe("List of cache file paths the agent ACTUALLY read (relative to docs/official_docs/, e.g. 'opencode/framework/plugins.md')"),
     content_summary: tool.schema
       .string()
       .describe("Agent-written summary: WHAT was learned from the read files"),
-    cache_sufficient: tool.schema
-      .boolean()
-      .optional()
-      .describe("M9 (2026-06-19): Agent's own judgment — are the cached docs SUFFICIENT for this task? true = sufficient (attested), false = insufficient (BLOCK writes until re-attested). Defaults to true for backward compatibility."),
-    insufficiency_reason: tool.schema
-      .string()
-      .optional()
-      .describe("M9: REQUIRED when cache_sufficient=false. Agent-written reason why cache is insufficient (min 10 chars). E.g., 'Cache has NestJS v10 patterns but task needs v11 Guard patterns.'"),
   },
 
   async execute(args, context) {
@@ -89,13 +85,33 @@ export default tool({
       var agentRef = normalizeAgentKey(agent);
       var domain = args.domain;
       var taskId = args.task_id || "";
-      var reason = (args.reason || "").trim();
+      var rawReason = (args.reason || "").trim();
       var filesRead: string[] = args.files_read || [];
       var contentSummary = (args.content_summary || "").trim();
       var attestedAt = new Date().toISOString();
-      // M9 (2026-06-19): Agent self-declared cache sufficiency
-      var cacheSufficient = args.cache_sufficient !== false; // default true for backward compat
-      var insufficiencyReason = (args.insufficiency_reason || "").trim();
+
+      // M9 (2026-06-19): Agent self-declared cache sufficiency via reason prefix.
+      // M9-FIX: Instead of adding cache_sufficient/insufficiency_reason to the
+      // Zod schema (which the OpenCode runtime cache rejects with "is not
+      // defined"), we use a prefix convention on the existing `reason` param:
+      //   "[INSUFFICIENT] <reason>" → cacheSufficient = false
+      //   "[SUFFICIENT] <reason>" or no prefix → cacheSufficient = true
+      var SUFFICIENT_RE = /^\[SUFFICIENT\]\s*/i;   // "i" for case-insensitive
+      var INSUFFICIENT_RE = /^\[INSUFFICIENT\]\s*/i;
+      var insufficiencyReason = "";
+      var cacheSufficient = true;
+      var reason = rawReason;  // cleaned version for attestation
+
+      if (INSUFFICIENT_RE.test(rawReason)) {
+        cacheSufficient = false;
+        reason = rawReason.replace(INSUFFICIENT_RE, "").trim();
+        // Extract insufficiency reason from after the prefix
+        insufficiencyReason = reason;
+      } else {
+        // Strip [SUFFICIENT] prefix if present (explicit sufficient declaration)
+        reason = rawReason.replace(SUFFICIENT_RE, "").trim();
+        cacheSufficient = true;
+      }
 
       // ════════════════════════════════════════════════════
       // Step 1: Verify discovery exists and is sufficient
@@ -248,10 +264,11 @@ export default tool({
       var emptyFields: string[] = [];
       if (!reason || reason.length < 10) emptyFields.push("reason (min 10 chars, got " + (reason?.length || 0) + ")");
       if (!contentSummary || contentSummary.length < 10) emptyFields.push("content_summary (min 10 chars, got " + (contentSummary?.length || 0) + ")");
-      // M9: Validate insufficiency_reason when cache_sufficient=false
+      // M9: When cache insufficient, the reason body (after [INSUFFICIENT] prefix)
+      // serves as the insufficiency_reason and must be >= 10 chars.
       if (!cacheSufficient) {
         if (!insufficiencyReason || insufficiencyReason.length < 10) {
-          emptyFields.push("insufficiency_reason (min 10 chars, REQUIRED when cache_sufficient=false, got " + (insufficiencyReason?.length || 0) + ")");
+          emptyFields.push("insufficiency_reason (min 10 chars after [INSUFFICIENT] prefix, got " + (insufficiencyReason?.length || 0) + ")");
         }
       }
       // M9: Check retry limits
@@ -307,7 +324,7 @@ export default tool({
         content_summary: contentSummary,
         attested_at: attestedAt,
       };
-      if (cache_sufficient !== undefined) {
+      if (cacheSufficient !== undefined) {
         attestation.cache_sufficient = cacheSufficient;
       }
       if (!cacheSufficient && insufficiencyReason) {
@@ -383,12 +400,12 @@ export default tool({
           reason: insufficiencyReason,
           retry_count: currentRetryCount + 1,
           max_retries: MAX_RETRIES,
-          error: "Cache self-declared insufficient. Writes are BLOCKED until re-attested with cache_sufficient=true.",
+          error: "Cache self-declared insufficient. Writes are BLOCKED until re-attested with sufficient cache.",
           remediation: (currentRetryCount + 1) < MAX_RETRIES
-            ? "Dispatch @Knowledge-Curator to fetch missing docs, then re-read and re-attest with cache_sufficient=true."
+            ? "Dispatch @Knowledge-Curator to fetch missing docs, then re-read and re-attest (without [INSUFFICIENT] prefix)."
             : "Retry limit reached. Human intervention required to resolve cache insufficiency.",
           next_step: (currentRetryCount + 1) < MAX_RETRIES
-            ? "1. dispatch_subagent(@Knowledge-Curator, ...) 2. Re-read updated cache 3. knowledge_cache_attest(cache_sufficient=true, ...)"
+            ? "1. dispatch_subagent(@Knowledge-Curator, ...) 2. Re-read updated cache 3. knowledge_cache_attest(reason='...', ...) (omit [INSUFFICIENT] prefix)"
             : "Please manually dispatch @Knowledge-Curator or verify the cached documentation.",
         });
       }

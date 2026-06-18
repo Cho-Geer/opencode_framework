@@ -86,6 +86,14 @@ export function l1_verbCandidates(
   const agents = new Set<string>();
 
   for (const rule of Object.values(verbRules)) {
+    /**
+     * BUG-DISPATCH-KEYWORDS-001: verb_to_agent in project.config.json contains
+     * metadata keys ($description, $description_exempt) with string values.
+     * Object.values() includes these strings, and accessing .keywords on a
+     * string yields undefined — crashing with "undefined is not an object".
+     * Guard: skip entries that lack a keywords array.
+     */
+    if (!rule || !Array.isArray(rule.keywords)) continue;
     for (const kw of rule.keywords) {
       if (lower.includes(kw.toLowerCase())) {
         rule.agents.forEach((a) => agents.add(a));

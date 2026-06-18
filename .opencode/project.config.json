@@ -854,7 +854,6 @@
       "glob",
       "grep",
       "compliance_gate_*",
-      "dispatch_subagent",
       "webfetch",
       "websearch",
       "context7",

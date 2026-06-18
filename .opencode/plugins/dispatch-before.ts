@@ -69,6 +69,14 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
   // through @Orchestrator. This enables the UC7KS cache-insufficiency
   // self-healing flow (M9 → M14).
   // @since 2026-06-19 — M14
+  //
+  // FW-FIX-M14-ROUTE-BYPASS-001 (2026-06-19): m14ApprovedKC flag tracks
+  // whether M14 has already approved a Knowledge-Curator dispatch. When
+  // set, the downstream L1-L4 route validation is skipped to prevent
+  // ROUTE-MISMATCH from overriding M14's approval. Without this fix,
+  // M14 says "M14 pass" but then route validation selects a different
+  // agent (e.g. @Architect) and throws ROUTE-MISMATCH.
+  let m14ApprovedKC = false;
   {
     const isOrchestratorOrSA = (
       caller === "Orchestrator" || caller === "@Orchestrator" ||
@@ -94,6 +102,7 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       }
     }
     if (isOrchestratorOrSA && isKCTarget) {
+      m14ApprovedKC = true;
       writeLog("dispatch-before", "runtime", {
         sessionID: input.sessionID, callID: input.callID,
         agent: caller, agentType: caller,
@@ -102,6 +111,7 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       });
     }
     if (!isOrchestratorOrSA && isKCTarget) {
+      m14ApprovedKC = true;
       writeLog("dispatch-before", "runtime", {
         sessionID: input.sessionID, callID: input.callID,
         agent: caller, agentType: caller,
@@ -112,10 +122,22 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
   }
 
   // ── ROUTE VALIDATION: four-layer chain (L1 Verb → L2 Scope → L3 Permission → L4 DAG) ──
+  // FW-FIX-M14-ROUTE-BYPASS-001: when M14 has already approved a Knowledge-Curator
+  // dispatch, skip L1-L4 route validation entirely. M14 is the higher-authority
+  // approval — route validation must not override it with ROUTE-MISMATCH.
   const routeConfig = readRouteConfig();
+  if (m14ApprovedKC) {
+    writeLog("dispatch-before", "runtime", {
+      sessionID: input.sessionID, callID: input.callID,
+      agent: caller, agentType: caller,
+      event: "DISPATCH-BEFORE",
+      detail: `M14 skip-before-route | KC dispatch pre-approved by M14, bypassing L1-L4 route validation`,
+    });
+  }
   if (routeConfig?.enforcement?.dispatch === "block") {
     // REVISED: Orchestrator/Meta-Planner/Super-Admin exempt — professional judgment authority
-    if (!isDispatchRouteExempt(caller, routeConfig)) {
+    // FW-FIX-M14-ROUTE-BYPASS-001: also skip route when M14 has approved the KC dispatch
+    if (!isDispatchRouteExempt(caller, routeConfig) && !m14ApprovedKC) {
       const taskDesc = output?.args?.task_description || "";
 
       // L1: Verb → Candidate Pool

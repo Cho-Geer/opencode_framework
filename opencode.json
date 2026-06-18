@@ -774,10 +774,7 @@
       "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Knowledge-Curator.md",
       "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
-        },
+        "task": "deny",
         "read": "allow",
         "question": "allow",
         "glob": "allow",

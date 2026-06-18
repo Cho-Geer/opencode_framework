@@ -246,6 +246,12 @@ function resolveProjectPath(relativePath) {
 function findRelevantStacks(description, mapping, stackConfig) {
   const result = [];
   for (const entry of mapping) {
+    /**
+     * BUG-DISPATCH-KEYWORDS-001 (defense-in-depth): Guard against entries
+     * in context7_task_mapping that may lack a keywords array (malformed
+     * or metadata entries). Skip instead of crashing on .some() call.
+     */
+    if (!entry || !Array.isArray(entry.keywords)) continue;
     const match = entry.keywords.some((kw) =>
       description.toLowerCase().includes(kw),
     );
@@ -423,7 +429,20 @@ function readRuntimePermissions(agentType) {
 const agentConfig = parseFrontmatter(agentContent);
 const agentName = agentConfig.name || agentType;
 const skills = agentConfig.skills || [];
-const mcpTools = agentConfig.mcp_tools || [];
+const rawMcpTools = agentConfig.mcp_tools || [];
+/**
+ * M16 (2026-06-19): Filter dispatch_subagent from KC's MCP tools listing.
+ * KC is a documentation curator — it must never see dispatch_subagent as available.
+ * This is defense-in-depth alongside M15 (removal from project.config.json
+ * agent_dispatch_allowed_tools). If the KC agent config frontmatter still lists
+ * dispatch_subagent, this filter removes it from the generated prompt.
+ */
+const mcpTools = agentType.toLowerCase() === "knowledge-curator"
+  ? rawMcpTools.filter(t => t !== "dispatch_subagent")
+  : rawMcpTools;
+if (rawMcpTools.length !== mcpTools.length) {
+  logWarn(`Filtered dispatch_subagent from KC agent config (M16 defense-in-depth)`);
+}
 const permission = extractPermission(agentContent);
 
 // ──────────────────────────────────────────────
@@ -709,7 +728,33 @@ const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
 
 ${preamble}
 
-${deliverablesTemplateMarkdown(agentType)}
+${deliverablesTemplateMarkdown(agentType)}${agentType.toLowerCase() === "knowledge-curator" ? `
+
+### 🚀 KC Combined Gate Flow (M17-M19, 2026-06-19)
+
+**Skip the 3-step gate.** KC uses the **combined check+confirm flow**:
+
+\`\`\`
+compliance_gate_check(
+  task_description="Knowledge acquisition: <topic>",
+  plan_summary="<your knowledge acquisition plan>",
+  task_id="<your-task-id>"
+)  → session_id (gate is ARMED in this single call)
+\`\`\`
+
+**No separate** \`compliance_gate_confirm\` call — the \`plan_summary\` parameter
+handles both check + confirm in one call. This eliminates the user-confirmation
+bottleneck for automated knowledge acquisition.
+
+**After cache update:**
+\`\`\`
+compliance_gate_submit_deliverables(session_id, evidence)
+compliance_gate_complete(session_id, execution_summary)
+\`\`\`
+
+**M17 — [INSUFFICIENT] attest handling**: If \`knowledge_cache_attest\` returns
+\`cache_sufficient=false\`, use the combined flow above to fetch missing docs.
+Do NOT loop on insufficient attest — acquire, re-attest, complete.` : ""}
 
 ---
 

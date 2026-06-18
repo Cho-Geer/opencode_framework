@@ -2357,6 +2357,78 @@ function checkAgentAttestToolRegistered() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// M20 (2026-06-19): Check 46 — KC dispatch_subagent absence
+// Verifies Knowledge-Curator does NOT have dispatch_subagent in:
+//   (a) its agent config YAML frontmatter mcp_tools
+//   (b) project.config.json agent_dispatch_allowed_tools
+//   (c) opencode.json agent permissions
+// KC is a documentation curator, not a workflow orchestrator.
+// Allowing dispatch_subagent creates an identity-confusion risk
+// (KC may try to dispatch other agents instead of fetching docs).
+// ═══════════════════════════════════════════════════════════════
+function checkKCDispatchSubagentAbsence() {
+  const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
+  const kcConfigPath = path.join(agentsDir, "Knowledge-Curator.md");
+  const issues: string[] = [];
+
+  // (a) Agent config mcp_tools — must NOT include dispatch_subagent
+  if (fs.existsSync(kcConfigPath)) {
+    const content = readFile(kcConfigPath);
+    if (content) {
+      const mcpMatch = content.match(/^mcp_tools:\n((?:\s+- .+\n)*)/m);
+      if (mcpMatch) {
+        const tools = mcpMatch[1].match(/^\s+-\s+(.+)$/gm) || [];
+        const hasDispatch = tools.some(function (t: string) {
+          return t.replace(/^\s+-\s+/, "").trim() === "dispatch_subagent";
+        });
+        if (hasDispatch) {
+          issues.push("Knowledge-Curator.md mcp_tools still has dispatch_subagent");
+        }
+      }
+    }
+  }
+
+  // (b) project.config.json agent_dispatch_allowed_tools
+  try {
+    const pcPath = path.join(OPENCODE_ROOT, ".opencode", "project.config.json");
+    const pcRaw = readFile(pcPath);
+    if (pcRaw) {
+      // Use simple string search to avoid JSON parse issues with trailing commas
+      // Look for the @Knowledge-Curator block and check for dispatch_subagent
+      const kcBlock = pcRaw.match(/"@Knowledge-Curator"\s*:\s*\[([\s\S]*?)\]/);
+      if (kcBlock && kcBlock[1].includes("dispatch_subagent")) {
+        issues.push("project.config.json agent_dispatch_allowed_tools.@Knowledge-Curator still has dispatch_subagent");
+      }
+    }
+  } catch (_) { /* parse error — skip */ }
+
+  // (c) opencode.json Knowledge-Curator permissions
+  try {
+    const ocPath = path.join(OPENCODE_ROOT, "opencode.json");
+    const ocRaw = readFile(ocPath);
+    if (ocRaw) {
+      const oc = JSON.parse(ocRaw);
+      const kcPerms = oc?.agent?.["Knowledge-Curator"]?.permission;
+      if (kcPerms) {
+        if (kcPerms.dispatch_subagent && kcPerms.dispatch_subagent !== "deny") {
+          issues.push("opencode.json Knowledge-Curator permission.dispatch_subagent is not deny");
+        }
+        // Also check if it's listed as allow
+        if (typeof kcPerms.dispatch_subagent === "string" && kcPerms.dispatch_subagent === "allow") {
+          issues.push("opencode.json Knowledge-Curator has dispatch_subagent: allow");
+        }
+      }
+    }
+  } catch (_) { /* parse error — skip */ }
+
+  const ok = issues.length === 0;
+  return check(46, ok,
+    ok
+      ? "KC dispatch_subagent absent from agent config, project.config.json, and opencode.json"
+      : "M20 violation — " + issues.join("; "));
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main execution
 /**
  * FW-PROMPT-HARDEN-04: Check 33 — Validate .pending.json FIFO queue integrity.
@@ -2867,6 +2939,7 @@ checkSemanticMapSavePathUniqueness(); // M13 (2026-06-19): verify save_path uniq
 checkAgentUC7KSSection();
 checkContext7ToolBlock();
 checkAgentAttestToolRegistered(); // M8 (2026-06-19): writable agents must have knowledge_cache_attest
+checkKCDispatchSubagentAbsence(); // M20 (2026-06-19): KC must NOT have dispatch_subagent
 checkPendingJson();
 checkSessionAccessAgentKeys();
 checkStaleInternalEvidence();
