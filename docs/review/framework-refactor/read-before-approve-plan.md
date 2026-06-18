@@ -3,7 +3,7 @@
 **版本**: v1.0.0  
 **日期**: 2026-06-18  
 **作者**: @Super-Admin  
-**状态**: draft  
+**状态**: implemented  
 **关联**: DELIVERABLES-REVIEW-LOCK, DISPATCH-INTEGRITY, SUPER-ADMIN-HARDEN-01
 
 ---
@@ -1002,3 +1002,66 @@ Phase 2: 灰度
 ---
 
 *本文档将在实施后根据实际效果更新。*
+
+---
+
+## §11 实施验证结果
+
+### §11.1 实施状态：完整实施已验证
+
+**版本**: v1.1.0  
+**实施日期**: 2026-06-18  
+**状态更新**: draft → implemented
+
+### §11.2 文件改动清单（实际）
+
+| # | 文件 | 操作 | 行数 | 说明 |
+|---|------|:----:|:----:|------|
+| 1 | `.opencode/lib/read-audit.ts` | **新增** | 237 | recordRead() / verifyRead() / pathsMatch() / cleanupOldRecords() |
+| 2 | `.opencode/plugins/read-track-after.ts` | **新增** | 72 | tool.execute.after hook，withPluginLifecycle 模式 |
+| 3 | `.opencode/state/schemas/read-audit.schema.json` | **新增** | 27 | JSON Schema Draft 2020-12 |
+| 4 | `.opencode/scripts/mcp-tools/compliance-gate.ts` | **修改** | +64 | runGateApproveDeliverables 追加 READ-BEFORE-APPROVE 检查块 |
+| 5 | `opencode.json` | **修改** | +1 | plugin 数组追加 read-track-after.ts；10 agent 追加 sha256sum 权限 |
+
+### §11.3 实施过程发现的 Bug 与修复
+
+| # | Bug | 发现时间 | 修复 | Impact |
+|---|-----|:--------:|------|:------:|
+| B1 | `resolveTaskIdFromContext` 使用 `FRAMEWORK_TASK_ID` env 为后备，但 dispatch_subagent 设后立即清除 | 代码审查 | 改为 `agent-resolver.ts.resolveTaskId(input.sessionID)`，与 7 个现有插件对齐 | ❌ 若不修复，read-track-after 无法关联 taskId，日志无上下文 |
+| B2 | `verifyRead()` 传 gate session ID (`cg_ses_*`) 给 `verifyRead(agent, filePath, sessionId)`，但 `read-track-after.ts` 记录的是 OpenCode session ID (`ses_*`) | 实际测试 | 移除 `sessionId` 参数传递，纯靠 `(agent, filePath)` + 5 分钟窗口匹配 | ❌ 若不修复，所有 verifyRead 返回 `NOT READ`，阻塞审批 |
+
+### §11.4 验证结果
+
+| 测试场景 | 结果 | 日志事件 |
+|---------|:----:|---------|
+| **正路**: read HANDOVER.md → approve | ✅ `completed` | `READ_BEFORE_APPROVE_PASSED` |
+| **负路**: 不 read，直接 approve（仅 sha256） | ❌ `rejected` | `READ_BEFORE_APPROVE_FAILED` |
+| **绕过**: bun --eval 算哈希不调 read | ❌ `rejected` | `READ_BEFORE_APPROVE_FAILED` |
+| **sha256 不匹配**: 提供错误哈希 | ❌ `rejected` | `SHA-256 mismatch` (DELIVERABLES-REVIEW-LOCK) |
+| **5 分钟过期**: 读记录超时 | ❌ `rejected` | `READ_BEFORE_APPROVE_FAILED` |
+
+### §11.5 日志系统集成
+
+| 日志源 | 文件 | 记录数 |
+|--------|------|:------:|
+| Plugin loaded | `plugin-read-track-after-loaded.log` | 2 条 |
+| Read 追踪 | `plugin-read-track-after-runtime.log` | 16 条 READ_TRACKED |
+| 审计 JSONL | `read_audit.jsonl` | 10+ 条完整 JSONL |
+| Gate 审计 | `plugin-mcp-compliance-gate-runtime.log` | 4 条 READ_BEFORE_APPROVE_* |
+
+### §11.6 未完成项
+
+| # | 项目 | 优先级 | 状态 |
+|---|------|:------:|:----:|
+| P1 | 在 `state-utils.ts` 添加 `STATE_PATHS.readAudit()` 常量 | 中 | ⏳ 待处置 |
+| P2 | framework-self-test.ts 新增 Check 36 (read-track-after 插件加载自检) | 中 | ⏳ 待处置 |
+| P3 | UC7-003 post-write repair plan 实施 | 高 | ⏳ 待处置 |
+
+### §11.7 提交记录
+
+| Commit | 时间 | 描述 |
+|--------|:----:|------|
+| `eaae7dda` | 2026-06-18 | 精简 dispatch template + handover_sha256 硬约束 |
+| `2d879513` | 2026-06-18 | READ-BEFORE-APPROVE 实施（5 文件） |
+| `84958c4a` | 2026-06-18 | sha256sum 权限 + DAG v5.11.0 |
+

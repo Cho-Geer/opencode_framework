@@ -1,7 +1,7 @@
 /**
  * uc7ks-schema.ts — UC7KS nested session_access schema helpers
  * =============================================================
- * BUN-CACHE-VERSION: 2026-06-11-FW-BATCH-A (nested per-task-per-domain)
+ * BUN-CACHE-VERSION: 2026-06-18-UC7KS-PHASE0 (discovery/attestation dual-structure)
  *
  * Defines the nested `tasks[task_id].domains[domain_id]` schema and
  * backward-compatible reader/writer helpers. All UC7KS pipeline tools
@@ -9,10 +9,16 @@
  *
  * Schema:
  *   session_access[agent].tasks[task_id].domains[domain_id]:
- *     { declared_at, pipeline_status, kc_dispatched, cache_sufficiency }
+ *     { declared_at, pipeline_status, kc_dispatched, cache_sufficiency: {
+ *         discovery: { status, discovered_files, discovered_at },
+ *         attestation: { status, reason, files_read, content_summary, attested_at }
+ *       }
+ *     }
  *
- * Legacy flat fields (pipeline_task_id, declared_scope, cache_sufficiency)
- * are kept as migration bridge but no longer written by new code.
+ * Phase 0 (2026-06-18): Separated machine discovery (knowledge_cache_search)
+ * from agent read evidence (knowledge_cache_attest). Legacy flat fields
+ * (pipeline_task_id, declared_scope, cache_sufficiency) kept for migration
+ * bridge but no longer used as authoritative write-block evidence.
  *
  * @author @Super-Admin
  * @version 1.0.0
@@ -44,6 +50,36 @@ export interface CacheSufficiency {
   reason: string;
   files_read: string[];
   content_summary: string;
+  /** Phase 0 NEW (2026-06-18): Machine-generated cache coverage discovery */
+  discovery?: CacheDiscovery;
+  /** Phase 0 NEW (2026-06-18): Agent-submitted verified read evidence */
+  attestation?: CacheAttestation;
+}
+
+/**
+ * Phase 0 NEW (2026-06-18): Machine-generated cache coverage discovery.
+ * Written by knowledge_cache_search tool. Records what the cache CONTAINS,
+ * not what was read by the agent.
+ */
+export interface CacheDiscovery {
+  status: "sufficient" | "insufficient" | "undeclared";
+  missing_topics: string[];
+  discovered_files: string[];
+  discovered_at: string;
+}
+
+/**
+ * Phase 0 NEW (2026-06-18): Agent-submitted read evidence.
+ * Written by knowledge_cache_attest tool after cross-verification against
+ * read_audit.jsonl. In strict/locked mode, attestation.status="attested"
+ * is the ONLY authoritative source for UC7-001 write-block decisions.
+ */
+export interface CacheAttestation {
+  status: "attested" | "pending" | "skipped" | "legacy_discovered_only";
+  reason: string;
+  files_read: string[];
+  content_summary: string;
+  attested_at: string;
 }
 
 export interface DomainEntry {
@@ -371,4 +407,162 @@ export function evictOldAgents(sa: SessionAccess): void {
   for (const k of toRemove) {
     delete sa[k];
   }
+}
+
+// ════════════════════════════════════════════════════════════
+// PHASE 0 NEW (2026-06-18): Discovery/Attestation Helpers
+// UC7-001 READ-BEFORE-WRITE — separates machine discovery from
+// agent-read evidence. Used by checkUC7KSWrite() in uc7ks-utils.ts
+// and by knowledge_cache_attest tool.
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Read the cache discovery for a specific domain+task.
+ * Tries nested path first, falls back to legacy cache_sufficiency.
+ * Returns null if no discovery exists.
+ */
+export function readCacheDiscovery(
+  sa: SessionAccess,
+  agent: string,
+  taskId: string,
+  domain: string,
+): CacheDiscovery | null {
+  const agentKey = normalizeAgentKey(agent);
+  const a = sa[agentKey] || sa[agent];
+  if (!a) return null;
+
+  // Try nested discovery field
+  const nested = a.tasks?.[taskId]?.domains?.[domain];
+  if (nested?.cache_sufficiency?.discovery) {
+    return nested.cache_sufficiency.discovery;
+  }
+
+  // Fall back to legacy cache_sufficiency as discovery (migration bridge)
+  const legacy = nested?.cache_sufficiency || a.cache_sufficiency;
+  if (legacy && legacy.status && legacy.status !== "undeclared") {
+    return {
+      status: legacy.status,
+      missing_topics: legacy.missing_topics || [],
+      discovered_files: legacy.files_read || [],
+      discovered_at: legacy.declared_at || new Date(0).toISOString(),
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Read the cache attestation for a specific domain+task.
+ * Returns null if no attestation exists (not yet attested by agent).
+ */
+export function readCacheAttestation(
+  sa: SessionAccess,
+  agent: string,
+  taskId: string,
+  domain: string,
+): CacheAttestation | null {
+  const agentKey = normalizeAgentKey(agent);
+  const a = sa[agentKey] || sa[agent];
+  if (!a) return null;
+
+  const nested = a.tasks?.[taskId]?.domains?.[domain];
+  if (nested?.cache_sufficiency?.attestation) {
+    return nested.cache_sufficiency.attestation;
+  }
+
+  // Legacy data: auto-migrate to "legacy_discovered_only" (not "attested")
+  const legacy = nested?.cache_sufficiency;
+  if (legacy?.status === "sufficient") {
+    // Legacy sufficient without attestation → treated as unverified
+    return {
+      status: "legacy_discovered_only",
+      reason: "Auto-migrated from legacy cache_sufficiency (not verified against read_audit.jsonl)",
+      files_read: legacy.files_read || [],
+      content_summary: legacy.content_summary || "",
+      attested_at: legacy.declared_at || "",
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Check if a domain has been attested (verified read evidence).
+ * In strict/locked mode, returns true ONLY for status="attested".
+ * In advisory mode, also accepts legacy_discovered_only.
+ *
+ * §2.7 Legacy compat: only "attested" passes write-block in strict/locked.
+ */
+export function isDomainKnowledgeAttested(
+  sa: SessionAccess,
+  agent: string,
+  taskId: string,
+  domain: string,
+  mode: string,
+): boolean {
+  const att = readCacheAttestation(sa, agent, taskId, domain);
+  if (!att) return false;
+  if (att.status === "attested") return true;
+  // Advisory mode: accept legacy data as attested for transition period
+  if (mode === "advisory" && att.status === "legacy_discovered_only") return true;
+  return false;
+}
+
+/**
+ * Write discovery data to the domain entry. Only updates discovery fields.
+ * Does NOT touch attestation or legacy reason/files_read/content_summary.
+ */
+export function writeCacheDiscovery(
+  sa: SessionAccess,
+  agent: string,
+  taskId: string,
+  domain: string,
+  discovery: CacheDiscovery,
+): void {
+  const entry = getDomainEntry(sa, agent, taskId, domain);
+  entry.cache_sufficiency.discovery = discovery;
+  // Sync legacy status for backward compat display
+  entry.cache_sufficiency.status = discovery.status;
+  entry.cache_sufficiency.missing_topics = discovery.missing_topics;
+  entry.cache_sufficiency.declared_at = discovery.discovered_at;
+  // Legacy reason/files_read/content_summary are NOT set — they must be
+  // agent-written via knowledge_cache_attest tool
+}
+
+/**
+ * Write attestation data to the domain entry. Verifies discovery exists.
+ * Returns true on success, false if discovery is insufficient.
+ */
+export function writeCacheAttestation(
+  sa: SessionAccess,
+  agent: string,
+  taskId: string,
+  domain: string,
+  attestation: CacheAttestation,
+): boolean {
+  const entry = getDomainEntry(sa, agent, taskId, domain);
+  const discovery = entry.cache_sufficiency.discovery;
+  if (!discovery || discovery.status !== "sufficient") {
+    return false;
+  }
+  entry.cache_sufficiency.attestation = attestation;
+  return true;
+}
+
+/**
+ * Read uc7ks_attestation_required from project.config.json.
+ * Defaults to "advisory" for gray-scale rollout. Locked mode
+ * always requires attestation regardless of config.
+ */
+export function readAttestationRequired(): "advisory" | "strict" {
+  try {
+    const root = process.env.OPENCODE_ROOT || ".";
+    const configPath = path.resolve(root, ".opencode", "project.config.json");
+    if (fs.existsSync(configPath)) {
+      const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      const val = cfg.uc7ks_attestation_required;
+      if (val === "strict") return "strict";
+    }
+  } catch { /* fall through */ }
+  return "advisory";
 }

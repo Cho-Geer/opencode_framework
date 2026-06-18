@@ -2580,6 +2580,192 @@ console.log("  🔍 OpenCode Framework Binding Force Self-Test");
 console.log("═══════════════════════════════════════════════════════════════");
 console.log("");
 
+
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// Check 40-43: read-audit DB migration integrity checks
+// Phase 1 of read_audit.jsonl to SQLite migration.
+// Validates: table exists, record/verify roundtrip, session events,
+// knowledge_cache_attest uses shared API.
+// Added FW-READ-AUDIT-DB (2026-06-18, @Super-Admin).
+// @see docs/review/framework-refactor/read-audit-db-migration-plan.md
+
+// ═══════════════════════════════════════════════════════════════
+function checkReadAuditTableExists() {
+  try {
+    var _getDb = require("../lib/db-manager").getDb;
+    var _db = _getDb();
+
+    // 40a: read_audit table exists
+    var _tableRow = _db.query(
+      "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name='read_audit'"
+    ).get();
+    if ((_tableRow && _tableRow.c || 0) === 0) {
+      return check(40, false, "read_audit table not found in SQLite");
+    }
+
+    // 40b: 4 indexes exist
+    var _indexes = ["idx_read_audit_lookup", "idx_read_audit_session_agent", "idx_read_audit_task", "idx_read_audit_created"];
+    var _missingIdx = [];
+    for (var _i = 0; _i < _indexes.length; _i++) {
+      var _idx = _indexes[_i];
+      var _row = _db.query(
+        "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='index' AND name=?"
+      ).get(_idx);
+      if ((_row && _row.c || 0) === 0) _missingIdx.push(_idx);
+    }
+    if (_missingIdx.length > 0) {
+      return check(40, false, "Missing indexes: " + _missingIdx.join(", "));
+    }
+
+    // 40c: schema_version has v10
+    var _sv = _db.query("SELECT version FROM schema_version WHERE version = 10").get();
+    if (!_sv) {
+      return check(40, false, "schema_version v10 entry missing");
+    }
+
+    // 40d: Row count queryable
+    var _countRow = _db.query("SELECT COUNT(*) AS c FROM read_audit").get();
+    var _count = (_countRow && _countRow.c) || 0;
+
+    return check(40, true,
+      "read_audit table + 4 indexes + schema v10 verified (" + _count + " rows)");
+  } catch (_e) {
+    return check(40, false, "read_audit check failed: " + (_e && _e.message || String(_e)));
+  }
+}
+
+function checkReadAuditRecordVerifyRoundtrip() {
+  try {
+    var _lib = require("../lib/read-audit");
+    var _testAgent = "@Super-Admin";
+    var _testFile = path.join(OPENCODE_ROOT, ".tmp_read_audit_test_" + Date.now() + ".md");
+
+    // Write a temp file so the read can be recorded
+    fs.writeFileSync(_testFile, "# test roundtrip", "utf8");
+
+    // Record a read
+    _lib.recordRead({
+      timestamp: new Date().toISOString(),
+      agent: _testAgent,
+      filePath: _testFile,
+      sessionId: "ses_test_roundtrip",
+      taskId: "TEST-ROUNDTRIP",
+    });
+
+    // Verify it
+    var _result = _lib.verifyRead(_testAgent, _testFile);
+    try { fs.unlinkSync(_testFile); } catch (_) {}
+
+    if (!_result.verified) {
+      return check(41, false, "recordRead to verifyRead roundtrip failed: " + _result.reason);
+    }
+
+    // Cleanup DB entry
+    try {
+      var __db = require("../lib/db-manager").getDb();
+      __db.run("DELETE FROM read_audit WHERE task_id = ?", ["TEST-ROUNDTRIP"]);
+    } catch (_) {}
+
+    return check(41, true, "recordRead to verifyRead roundtrip OK (" + (_result.matchedEntry && _result.matchedEntry.timestamp) + ")");
+  } catch (_e2) {
+    return check(41, false, "roundtrip check error: " + (_e2 && _e2.message || String(_e2)));
+  }
+}
+
+function checkReadAuditSessionEventsRoundtrip() {
+  try {
+    var _lib2 = require("../lib/read-audit");
+    var _testSession = "ses_test_session_events";
+    var _testAgent2 = "@Coder-BE";
+    var _testFileA = path.join(OPENCODE_ROOT, ".tmp_read_audit_test_A_" + Date.now() + ".md");
+    var _testFileB = path.join(OPENCODE_ROOT, ".tmp_read_audit_test_B_" + Date.now() + ".md");
+
+    // Create temp files and record reads
+    fs.writeFileSync(_testFileA, "# test session events", "utf8");
+    fs.writeFileSync(_testFileB, "# test session events", "utf8");
+    _lib2.recordRead({
+      timestamp: new Date().toISOString(),
+      agent: _testAgent2,
+      filePath: _testFileA,
+      sessionId: _testSession,
+      taskId: "TEST-SESSION-EVENTS",
+    });
+    _lib2.recordRead({
+      timestamp: new Date().toISOString(),
+      agent: _testAgent2,
+      filePath: _testFileB,
+      sessionId: _testSession,
+      taskId: "TEST-SESSION-EVENTS",
+    });
+
+    // Query by session
+    var _events = _lib2.getReadEventsForSession(_testAgent2, _testSession);
+
+    // Cleanup
+    try { fs.unlinkSync(_testFileA); } catch (_) {}
+    try { fs.unlinkSync(_testFileB); } catch (_) {}
+    try {
+      var __db2 = require("../lib/db-manager").getDb();
+      __db2.run("DELETE FROM read_audit WHERE task_id = ?", ["TEST-SESSION-EVENTS"]);
+    } catch (_) {}
+
+    if (_events.length < 2) {
+      return check(42, false, "getReadEventsForSession returned " + _events.length + " events (expected 2)");
+    }
+
+    return check(42, true, "getReadEventsForSession roundtrip OK (" + _events.length + " events)");
+  } catch (_e3) {
+    return check(42, false, "session events check error: " + (_e3 && _e3.message || String(_e3)));
+  }
+}
+
+function checkKnowledgeAttestUsesSharedApi() {
+  var _attestPath = path.join(OPENCODE_ROOT, ".opencode", "tools", "knowledge_cache_attest.ts");
+  if (!fileExists(_attestPath)) {
+    return check(43, false, "knowledge_cache_attest.ts not found");
+  }
+
+  var _content = readFile(_attestPath);
+  if (!_content) {
+    return check(43, false, "knowledge_cache_attest.ts is empty");
+  }
+
+  // Must NOT contain the old inline functions
+  var _hasOldReadAuditLog = _content.indexOf("function readAuditLog()") !== -1;
+  var _hasOldNormalizePath = _content.indexOf("function normalizePathForAudit(") !== -1;
+  var _hasOldJsonlPath = _content.indexOf(".opencode/state/read_audit.jsonl") !== -1;
+
+  if (_hasOldReadAuditLog || _hasOldNormalizePath || _hasOldJsonlPath) {
+    var _issues = [];
+    if (_hasOldReadAuditLog) _issues.push("readAuditLog()");
+    if (_hasOldNormalizePath) _issues.push("normalizePathForAudit()");
+    if (_hasOldJsonlPath) _issues.push(".opencode/state/read_audit.jsonl direct path");
+    return check(43, false, "knowledge_cache_attest.ts still has old inline functions: " + _issues.join(", "));
+  }
+
+  // Must import the shared API
+  var _hasGetReadImport = _content.indexOf("getReadEventsForSession") !== -1 &&
+    _content.indexOf("../lib/read-audit") !== -1;
+  var _hasNormPathImport = _content.indexOf("normalizeReadAuditPath") !== -1 &&
+    _content.indexOf("../lib/read-audit") !== -1;
+
+  if (!_hasGetReadImport || !_hasNormPathImport) {
+    var _missing = [];
+    if (!_hasGetReadImport) _missing.push("getReadEventsForSession import");
+    if (!_hasNormPathImport) _missing.push("normalizeReadAuditPath import");
+    return check(43, false, "knowledge_cache_attest.ts missing shared API imports: " + _missing.join(", "));
+  }
+
+  return check(43, true, "knowledge_cache_attest.ts uses shared read-audit API (getReadEventsForSession + normalizeReadAuditPath)");
+}
+
+
+checkReadAuditTableExists();
+checkReadAuditRecordVerifyRoundtrip();
+checkReadAuditSessionEventsRoundtrip();
+checkKnowledgeAttestUsesSharedApi();
+
 checkConfigJson();
 checkStateDir();
 checkMachineSubStates();

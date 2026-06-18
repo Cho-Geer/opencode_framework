@@ -1,8 +1,15 @@
 // uc7ks-utils.ts — UC7KS knowledge pipeline compliance utilities (lib)
-// BUN-CACHE-VERSION: 2026-06-11-FW-BATCH-A (nested schema reader)
+// BUN-CACHE-VERSION: 2026-06-18-UC7KS-PHASE0 (dual-state discovery/attestation)
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { readCacheSufficiency, getSufficientDomains } from "./uc7ks-schema";
+import {
+  readCacheSufficiency,
+  getSufficientDomains,
+  readCacheDiscovery,
+  readCacheAttestation,
+  isDomainKnowledgeAttested,
+  normalizeAgentKey,
+} from "./uc7ks-schema";
 import { readSubState } from "./substate-manager";
 import { writeLog } from "./log-manager";
 
@@ -217,47 +224,134 @@ export function checkUC7KSWrite(
   const sa = readCachedSessionAccess(agentKey);
 
   // ── FW-UC7KS-DOMAIN-001: Per-task per-domain check (priority) ──
-  // 3-path design (fixed after Appendix A gap discovery):
-  //   Path A: taskId+domainId present AND per-domain data exists → check sufficiency
+  // Phase 0 (2026-06-18) dual-state: discovery (machine-generated) +
+  // attestation (agent-submitted, verified against read_audit.jsonl).
+  // 3-path design:
+  //   Path A: taskId+domainId present AND per-domain data exists → dual-state verify
   //   Path B: taskId+domainId present BUT per-domain data missing → BLOCK
   //   Path C: no taskId/domainId → global check (backward compat)
   if (taskId && domainId) {
     if (sa?.tasks?.[taskId]?.domains?.[domainId]) {
-      // Path A: per-domain data exists → check sufficiency
-      const suff = sa.tasks[taskId].domains[domainId].cache_sufficiency;
-      if (suff?.status === "sufficient") {
-        writeLog(SRC, "INFO", {
-          event: "UC7KS-WRITE-PASS-PER-DOMAIN",
+      // Path A: per-domain data exists → dual-state check (discovery + attestation)
+      var disc = readCacheDiscovery(sa, agentKey, taskId, domainId);
+      var att = readCacheAttestation(sa, agentKey, taskId, domainId);
+
+      // Sub-path A1: discovery insufficient → BLOCK
+      if (!disc || disc.status !== "sufficient") {
+        writeLog(SRC, "ERROR", {
+          event: "UC7KS-WRITE-BLOCK-DISCOVERY",
           agent,
+          sessionID: sessionId,
           taskId,
           domainId,
-          detail: `per-task per-domain check passed`,
+          detail: `discovery ${disc?.status || "missing"}. Missing topics: ${disc?.missing_topics?.join(", ") || "none"}`,
+        });
+        return buildBlockMessage(
+          "UC7-001: 知识缓存不足",
+          agent,
+          `Missing topics: ${disc?.missing_topics?.join(", ") || "unknown"}.`,
+          "1. 调 knowledge_cache_search(domain, task_id) 换 domain\n2. 如仍不足 → 通知 @Orchestrator 派遣 @Knowledge-Curator"
+        );
+      }
+
+      // Sub-path A2: discovery sufficient but attestation missing/pending → BLOCK in strict/locked
+      // §2.7 Legacy compat: advisory mode accepts legacy_discovered_only
+      if (mode === "advisory") {
+        // Advisory: pass if legacy cache_sufficiency was sufficient (grace period)
+        if (att && (att.status === "legacy_discovered_only" || att.status === "attested")) {
+          writeLog(SRC, "WARN", {
+            event: "UC7KS-WRITE-PASS-LEGACY",
+            agent,
+            sessionID: sessionId,
+            taskId,
+            domainId,
+            detail: `advisory mode: accepting attestation status=${att.status}`,
+          });
+          return null;
+        }
+        // Advisory: also accept discovery-only (no attestation) with warning
+        writeLog(SRC, "WARN", {
+          event: "UC7KS-WRITE-WARN-NO-ATTEST",
+          agent,
+          sessionID: sessionId,
+          taskId,
+          domainId,
+          detail: `advisory mode: discovery sufficient but no attestation — WARN only`,
         });
         return null;
       }
-      // Per-domain insufficient → block
-      writeLog(SRC, "ERROR", {
-        event: "UC7KS-WRITE-BLOCK-PER-DOMAIN",
+
+      // Strict/Locked: attestation is REQUIRED
+      if (!att || (att.status !== "attested" && att.status !== "legacy_discovered_only")) {
+        // Missing attestation entirely
+        if (!att) {
+          writeLog(SRC, "ERROR", {
+            event: "UC7KS-WRITE-BLOCK-ATTEST",
+            agent,
+            sessionID: sessionId,
+            taskId,
+            domainId,
+            detail: "discovery sufficient but no attestation — must call knowledge_cache_attest",
+          });
+          return buildBlockMessage(
+            "UC7-001: 缓存已搜索但未证明已读",
+            agent,
+            `Discovery sufficient (${disc.discovered_files.length} files discovered) but no read attestation.`,
+            `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`
+          );
+        }
+        // Has attestation but status is pending/skipped
+        if (att.status === "pending" || att.status === "skipped") {
+          writeLog(SRC, "ERROR", {
+            event: "UC7KS-WRITE-BLOCK-ATTEST",
+            agent,
+            sessionID: sessionId,
+            taskId,
+            domainId,
+            detail: `attestation status=${att.status} — must be "attested"`,
+          });
+          return buildBlockMessage(
+            "UC7-001: 阅读证明未完成",
+            agent,
+            `Attestation status is "${att.status}" (requires "attested").`,
+            `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`
+          );
+        }
+        // legacy_discovered_only in strict/locked → BLOCK (§2.7: no implicit pass)
+        if (att.status === "legacy_discovered_only") {
+          writeLog(SRC, "ERROR", {
+            event: "UC7KS-WRITE-BLOCK-LEGACY",
+            agent,
+            sessionID: sessionId,
+            taskId,
+            domainId,
+            detail: `strict/locked: legacy_discovered_only rejected — must re-read and attest`,
+          });
+          return buildBlockMessage(
+            "UC7-001: 遗留缓存数据未经验证",
+            agent,
+            `Cache was previously marked sufficient but has NOT been verified against read_audit.jsonl (§2.7: legacy data requires re-attestation in ${mode} mode).`,
+            `1. 用 read 工具打开相关缓存文件\n2. 调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", ...)`
+          );
+        }
+      }
+
+      // Sub-path A3: discovery sufficient + attestation attested → PASS
+      writeLog(SRC, "INFO", {
+        event: "UC7KS-WRITE-PASS-ATTESTED",
         agent,
+        sessionID: sessionId,
         taskId,
         domainId,
-        missing_topics: suff?.missing_topics || [],
-        detail: `Task ${taskId} domain ${domainId} cache insufficient: ${suff?.reason || "unknown"}`,
+        detail: `discovery sufficient + attestation attested (${att.files_read.length} files verified)`,
       });
-      return [
-        `[FW-ENFORCE][UC7-001] Knowledge cache insufficient for task "${taskId}" domain "${domainId}".`,
-        `Status: ${suff?.status || "unknown"}.`,
-        `Missing topics: ${suff?.missing_topics?.join(", ") || "unknown"}.`,
-        `Search knowledge cache for this domain before writing source files.`,
-        `Agent: ${agent}`,
-      ].join(" ");
+      return null;
     } else {
       // Path B: taskId+domainId provided but per-task data missing → block
-      // This catches the case where agent skips knowledge_cache_search entirely
-      // but still has a valid taskId/domainId from dispatch.
       writeLog(SRC, "ERROR", {
         event: "UC7KS-WRITE-BLOCK-NO-PER-TASK",
         agent,
+        sessionID: sessionId,
         taskId,
         domainId,
         detail: "taskId+domainId provided but no per-task cache_sufficiency data. " +
@@ -271,6 +365,24 @@ export function checkUC7KSWrite(
       ].join(" ");
     }
   }
+
+/**
+ * Phase 0 (2026-06-18): Build formatted UC7-001 block error message.
+ * Replaces the old buildUC7KSError for write-time blocks.
+ */
+function buildBlockMessage(title: string, agent: string, detail: string, remediation: string): string {
+  return [
+    `╔══════════════════════════════════════════════════════════════╗`,
+    `║  ${title.padEnd(56)}║`,
+    `║  Agent: ${(agent || "unknown").padEnd(48)}║`,
+    `║  ${detail.substring(0, 54).padEnd(54)}║`,
+    `║  修复:${' '.repeat(56)}║`,
+  ].concat(
+    remediation.split("\n").map(function (l) { return `║  ${l.substring(0, 54).padEnd(54)}║`; })
+  ).concat([
+    `╚══════════════════════════════════════════════════════════════╝`,
+  ]).join("\n");
+}
 
   // ── Path C: Backward compat — no taskId/domainId → global check ──
   if (!sa?.uc7_001_compliant) {

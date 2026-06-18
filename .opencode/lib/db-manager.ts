@@ -516,6 +516,48 @@ export function initializeSchema(db: Database): void {
     writeLog(SRC, "WARN", { event: "DB-SCHEMA-MIGRATION-SKIPPED", detail: `v9: ${e.message}` });
   }
 
+  // ════════════════════════════════════════════════════════════
+  // v10: FW-READ-AUDIT-DB — read_audit table for READ-BEFORE-APPROVE
+  //      and UC7KS attestation. Replaces JSONL-only read_audit.jsonl
+  //      with DB-first access + JSONL fallback (Phase 1 dual-write).
+  //
+  // event_key = sha256(timestampagentfile_pathsessiontaskcall)
+  // ensures idempotent INSERT OR IGNORE across migration and runtime.
+  //
+  // @see docs/review/framework-refactor/read-audit-db-migration-plan.md §四
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS read_audit (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_key           TEXT    NOT NULL UNIQUE,
+        timestamp           TEXT    NOT NULL,
+        agent               TEXT    NOT NULL,
+        file_path           TEXT    NOT NULL,
+        opencode_session_id TEXT,
+        task_id             TEXT,
+        call_id             TEXT,
+        raw_agent           TEXT,
+        raw_file_path       TEXT,
+        created_at          INTEGER NOT NULL
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_read_audit_lookup
+      ON read_audit(agent, file_path, timestamp DESC)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_read_audit_session_agent
+      ON read_audit(opencode_session_id, agent, timestamp DESC)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_read_audit_task
+      ON read_audit(task_id, timestamp DESC)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_read_audit_created
+      ON read_audit(created_at)`);
+    db.run(`
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (10, ?, 'FW-READ-AUDIT-DB: add read_audit table for read-before-approve + UC7KS attestation')
+    `, [Date.now()]);
+    writeLog(SRC, "INFO", { event: "DB-SCHEMA-MIGRATION", detail: "v10: read_audit table + 4 indexes created" });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", { event: "DB-SCHEMA-MIGRATION-SKIPPED", detail: `v10: ${e.message}` });
+  }
 }
 
 // ════════════════════════════════════════════════════════════

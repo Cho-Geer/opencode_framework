@@ -2033,7 +2033,6 @@ function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, e
         const readResult = verifyRead(
           resolvedAgent,
           resolvedHandoverPath,
-          sessionId,
         );
 
         if (!readResult.verified) {
