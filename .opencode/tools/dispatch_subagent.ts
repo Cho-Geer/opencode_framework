@@ -334,6 +334,15 @@ export default tool({
             tc = findTaskInDag(dagTaskId);  // re-verify
           }
           if (!tc.found) {
+            if (args.auto_plan === true && !policy.auto_plan_enabled) {
+              throw new Error(
+                `[FW-ENFORCE][PLAN-FIRST][LAYER-2] auto_plan=true was set but ` +
+                  `dispatch_policy.auto_plan_enabled=false in project.config.json. ` +
+                  `Self-healing is blocked during rollout. ` +
+                  `ACTION: dispatch @Meta-Planner to add "${dagTaskId}" to Task.DAG.json, ` +
+                  `then re-dispatch ${targetAgent} with the same dag_task_id.`
+              );
+            }
             throw new Error(
               `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dag_task_id "${dagTaskId}" not in ` +
                 `Task.DAG.json (checked both dag.tasks[] and dag.execution_order). ` +
