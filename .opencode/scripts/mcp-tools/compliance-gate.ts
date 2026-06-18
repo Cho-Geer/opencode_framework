@@ -1959,6 +1959,36 @@ function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, e
       };
     }
 
+    // ── DELIVERABLES-REVIEW-LOCK: Verify Orchestrator reviewed deliverables ──
+    const taskId = session.task_id;
+    const handoverPath = `.task_temp/${taskId}/HANDOVER.md`;
+    let handoverContent = "";
+    try {
+      const fs = require("fs");
+      if (fs.existsSync(handoverPath)) {
+        handoverContent = fs.readFileSync(handoverPath, "utf8");
+      }
+    } catch {}
+
+    if (!handoverContent || handoverContent.trim().length === 0) {
+      return {
+        status: "rejected",
+        reason:
+          `[DELIVERABLES-REVIEW-LOCK] HANDOVER.md missing or empty at ${handoverPath}. ` +
+          `Deliverables must exist and have content before approval.`,
+      };
+    }
+
+    const note = (approvalNote || executionSummary || "").trim();
+    if (note.length < 10) {
+      return {
+        status: "rejected",
+        reason:
+          `[DELIVERABLES-REVIEW-LOCK] approval_note too short (${note.length} chars, minimum 10). ` +
+          `Provide a meaningful review note referencing what was found in the deliverables.`,
+      };
+    }
+
     session.deliverables_approved_by = "Orchestrator";
     session.deliverables_approved_at = now;
     session.deliverables_approval_note = approvalNote || null;
