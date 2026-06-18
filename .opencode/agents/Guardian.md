@@ -3,7 +3,7 @@ name: Guardian
 description: Quality Gate – code standards, security vulnerability, and architectural constraint review, plus test execution evidence verification (DoD mandatory check). Read‑only permission.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-pro
+model: deepseek/deepseek-v4-pro
 temperature: 0.1
 steps: 25
 color: "#F59E0B"

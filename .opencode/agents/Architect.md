@@ -3,7 +3,7 @@ name: Architect
 description: System Architect – technology selection, interface contracts, directory structure and architectural specification definitions. Read‑only on business source code.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-pro
+model: deepseek/deepseek-v4-pro
 temperature: 0.4
 color: "#10B981"
 top_p: 0.6

@@ -3,7 +3,7 @@ name: Meta-Planner
 description: Project CTO – top‑level requirement decomposition, DAG planning, and global project decisions. May only write planning documents, never business code or configuration files.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-pro
+model: deepseek/deepseek-v4-pro
 temperature: 0.3
 color: "#3B82F6"
 top_p: 0.5

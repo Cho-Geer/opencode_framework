@@ -3,7 +3,7 @@ name: Knowledge-Curator
 description: Knowledge Management Specialist — acquires, caches, and organizes technical documentation for all agents via the UC7KS pipeline. Invoke when agents need latest docs, API references, framework best practices, or any external technical information. Always check local cache first (docs/official_docs/).
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-flash
+model: deepseek/deepseek-v4-flash
 temperature: 0.1
 color: "#06B6D4"
 permission:

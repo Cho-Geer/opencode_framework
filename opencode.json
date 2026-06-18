@@ -16,7 +16,7 @@
   "agent": {
     "Meta-Planner": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Meta-Planner.md",
       "permission": {
         "task": {
@@ -83,7 +83,7 @@
     },
     "Orchestrator": {
       "mode": "primary",
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Orchestrator.md",
       "permission": {
         "task": "allow",
@@ -161,7 +161,7 @@
     },
     "Architect": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Architect.md",
       "hidden": true,
       "permission": {
@@ -275,7 +275,7 @@
     },
     "Coder-BE": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Coder-BE.md",
       "hidden": true,
       "permission": {
@@ -361,7 +361,7 @@
     },
     "Coder-FE": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Coder-FE.md",
       "hidden": true,
       "permission": {
@@ -431,7 +431,7 @@
     },
     "Guardian": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Guardian.md",
       "hidden": true,
       "permission": {
@@ -501,7 +501,7 @@
     },
     "Arbiter": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Arbiter.md",
       "hidden": true,
       "permission": {
@@ -566,7 +566,7 @@
     },
     "CI-CD-Agent": {
       "mode": "subagent",
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/CI-CD-Agent.md",
       "hidden": true,
       "permission": {
@@ -644,7 +644,7 @@
     },
     "Super-Admin": {
       "mode": "all",
-      "model": "DeepSeek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Super-Admin.md",
       "permission": {
         "task": "allow",
@@ -743,7 +743,7 @@
     "Knowledge-Curator": {
       "mode": "subagent",
       "hidden": true,
-      "model": "DeepSeek/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Knowledge-Curator.md",
       "permission": {
         "task": {

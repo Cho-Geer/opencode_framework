@@ -3,7 +3,7 @@ name: Arbiter
 description: Technical Committee – conflict arbitration, tech‑debt waiver approval. Read‑only on business code and contracts; allowed to create arbitration artefacts and update the tech‑debt registry.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-flash
+model: deepseek/deepseek-v4-flash
 temperature: 0.2
 steps: 10
 color: "#EF4444"

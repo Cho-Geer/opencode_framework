@@ -3,7 +3,7 @@ name: Coder-BE
 description: Backend/server‑side development engineer – API implementation, business logic, database mapping, following interface contracts.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-pro
+model: deepseek/deepseek-v4-pro
 temperature: 0.6
 steps: 50
 color: "#059669"
