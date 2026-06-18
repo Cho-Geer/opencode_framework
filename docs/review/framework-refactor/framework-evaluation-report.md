@@ -296,6 +296,28 @@ Step 5: Orchestrator 调用 compliance_gate_approve_deliverables (delivered → 
 2. **保留 enforcement mode 作为控制开关**
 3. **deliverables 模板注入**：`dispatch-subagent.ts` 在 wrapped prompt 中按 agent type 注入典型成果物清单（`deliverables-templates.ts`），降低 sub-agent 声明成本
 
+#### 4c-2. DISPATCH-INTEGRITY 缺陷（2026-06-18 发现）
+
+**问题发现：** CI-CD-Agent 作为子 Agent 派遣时，compliance_gate_check 返回 DISPATCH-INTEGRITY 失败。子 Agent 不知道自己被分配的 dag_task_id，LLM 自行编造了 "CI-CD-VERIFY-BUG2"（全项目 grep 零匹配，确认为 LLM 幻觉）。
+
+**根因链路（5 层）：**
+
+| # | 根因 | 位置 | 严重度 |
+|---|------|------|:------:|
+| R1 | LIMIT 1 查询返回任意单个 task_id | compliance-gate.ts L748 | HIGH |
+| R2 | session_map INSERT 与子 Agent 启动存在竞态窗口 | dispatch-subagent.ts | HIGH |
+| R3 | session_map 无定期 TTL 清理 | dbCleanStaleEntries 未调度 | MEDIUM |
+| R4 | dispatch_subagent 包装 Prompt 不注入 dag_task_id 值 | dispatch-subagent.ts P0 协议模板 | HIGH |
+| R5 | DISPATCH_TASKID_TAMPER 日志缺失 sessionID/agent 上下文 | compliance-gate.ts L781-786 | MEDIUM |
+
+**日志证据：** plugin-mcp-compliance-gate-runtime.log 中 4 条 DISPATCH_TASKID_TAMPER 事件，所有身份字段为 —（空），无法追溯。
+
+**修复方案：** 详见 compliance-gate-dispatch-integrity-fix.md。4 项修复共 ~21 行改动。
+
+**关联修复（已完成）：**
+- Bug 1: task-before.ts DISPATCH_TOKEN 校验（防止绕过 dispatch_subagent）
+- Bug 2: dispatch-subagent.ts FRAMEWORK_TASK_ID save/restore（防止环境变量泄漏）
+
 #### 4d. Rule Registry（已优化：SHA-256 → git diff + [INFRA] 标记）
 
 **已解决（rule-registry-optimization-plan.md，已完成）：**
@@ -595,6 +617,45 @@ DAG-exempt agents（无需 DAG 条目）：Meta-Planner、Orchestrator、Super-A
 - state-transaction.ts 可评估进一步简化（统一由 substate_kv DB 事务代理）
 
 **结论：** 脚本系统覆盖全面，但核心文件复杂度需要治理。P2-A 后所有状态写入已通过 `atomicWriteSubState` → DB 事务，state-transaction 引擎的实际使用率进一步降低。
+
+---
+
+### 13. Framework DB Management System
+
+**评价：**
+SQLite (bun:sqlite, WAL 模式) 作为框架唯一状态存储后端，替代了原 JSON 文件方案。Schema 演进至 v7（16 张表），所有读写路径已切换为 DB-only。
+
+**DB 架构：**
+
+| 组件 | 说明 |
+|------|------|
+| 存储引擎 | SQLite + WAL 模式 (framework-state.db, 1.2MB + 4.2MB WAL) |
+| Schema 版本 | v7 (7 次迁移：initial → substate_kv → eslint_state.last_full_scan → file_baseline_kv → deliverables columns → session/dispatch tables → drop 13 unused typed tables) |
+| 表数量 | 16 张 (12 active typed + 4 auxiliary + sqlite_sequence) |
+| 子状态存储 | substate_kv 表 (12 行，JSON blob 全量替换模式) |
+| Gate 会话 | gate_sessions 表 (v5: 6 列 deliverables 硬约束) + gate_drained_sessions 表 |
+| Session 基础设施 | session_log + dispatch_failed_log + session_map (v6 新增) |
+| 审计日志 | audit_log 表 (DB INSERT) + audit_trail 表 (DB upsert) |
+| 文件基线 | file_baseline_kv 表 (v4, 跨进程基线注册) |
+
+**问题：**
+1. **session_map LIMIT 1 Bug** (R1): compliance-gate.ts L748 使用 LIMIT 1 返回任意单个 dag_task_id，导致错误消息误导子 Agent。**修复方案已制定**（compliance-gate-dispatch-integrity-fix.md）。
+2. **session_map 竞态** (R2): dispatch-subagent.ts 写 session_map 与子 Agent 启动存在时序窗口。**修复方案已制定**。
+3. **session_map 无定期 TTL 清理** (R3): dbCleanStaleEntries() 已覆盖 session_map（7天TTL + 50条上限），但 nightly-compaction 未定期执行。
+4. **substate_kv JSON blob 全量替换**: 大子状态（knowledge-cache-state 588KB）每次写入全量替换，性能可接受（1-2ms）但非最优。
+5. **DB WAL 文件增长**: 当前 4.2MB，需定期 checkpoint。
+
+**潜在风险：**
+- session_map 积累导致 LIMIT 1 Bug 影响放大
+- WAL 文件无限增长可能影响 DB 性能
+
+**优化方向：**
+- Fix 1: LIMIT 1 → SELECT DISTINCT（3 字符改动）
+- Fix 4: session_map INSERT 提前到 Prompt 生成之前（消除竞态）
+- 定期执行 nightly-compaction.ts 或集成到 CI pipeline
+- 长期评估 substate_kv 结构化查询（P3-B）
+
+**结论：** DB 管理系统整体健康（WAL + integrity ok），但 session_map 相关的 3 个缺陷（R1/R2/R3）需要在 DISPATCH-INTEGRITY 修复中一并解决。
 
 ---
 

@@ -607,6 +607,204 @@
         "tests_pass": "Check 33 failure is pre-existing; v6 dispatch tables exist; 0 new stale entries from verification",
         "guardian_approved": false
       }
+    },
+    {
+      "id": "PHASE0-S0",
+      "name": "Phase 0 Step 0: Freeze Baseline Window",
+      "description": "Record the current commit (P2-D completion, 816b00b5), confirm that no structural optimizations (P3-E, A3, DAG storage refactor) are performed during the baseline collection window, define sample requirements: minimum 5 complete tasks, target 10, covering framework/doc/review, backend, frontend, and at least 1 permission/dispatch task.",
+      "agent": "@Orchestrator",
+      "dependencies": [],
+      "outputs": [".task_temp/PHASE0-S0/baseline-window-declaration.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md",
+        "section": "6. 实施步骤 > Step 0",
+        "clause": "冻结基线窗口: 记录P2-D完成commit, 确认窗口内不实施结构性优化, 定义样本5-10个任务覆盖4类"
+      },
+      "target_files": [".opencode/state/baseline-metrics.json", "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/PHASE0-S0/baseline-window-declaration.json"],
+        "logic_complete": "baseline_window.start set; framework_snapshot.commit = '816b00b5'; p2d_status = 'completed'; sample requirements documented (min 5 tasks, target 10, covering framework/backend/frontend/permission types); structural optimization freeze confirmed",
+        "tests_pass": "N/A —纯协调任务",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PHASE0-S1",
+      "name": "Phase 0 Step 1: Define Schema + Create baseline-metrics.json",
+      "description": "Define the baseline-metrics.json schema covering 4 metric categories (end-to-end duration, token usage, rework rate, gate MCP call count). Create .opencode/state/baseline-metrics.json with schema_version=1.0, framework_snapshot, and empty tasks array. Nullable fields must use null (not 0) for uncollected data. collection_status semantics: auto/manual/unavailable.",
+      "agent": "@Architect",
+      "dependencies": ["PHASE0-S0"],
+      "outputs": [".opencode/state/baseline-metrics.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md",
+        "section": "4. 指标定义 + 5.1 + 6. Step 1",
+        "clause": "定义基线指标schema: 端到端耗时/Token使用量/返工率/合规门MCP调用次数; 创建baseline-metrics.json schema_version 1.0"
+      },
+      "target_files": [".opencode/state/baseline-metrics.json"],
+      "definition_of_done": {
+        "files_exist": [".opencode/state/baseline-metrics.json"],
+        "logic_complete": "JSON可被标准解析器解析; schema覆盖4类核心指标 (duration/token/rework/gate_mcp_calls); nullable字段显式使用null; collection_status枚举定义 (auto/manual/unavailable); framework_snapshot包含commit/agent_count/enforcement_mode/dag_mode",
+        "tests_pass": "node -e \"JSON.parse(require('fs').readFileSync('.opencode/state/baseline-metrics.json','utf8'))\" 无错误",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PHASE0-S2-RED",
+      "name": "Phase 0 Step 2 RED: Collection Script Test Cases",
+      "description": "TDD-RED phase: Write failing test cases for framework-baseline-metrics.ts covering 4 collectors (collectGateSessions, collectDispatchSessions, collectTaskLogs, collectGitEvidence), --dry-run mode (no file writes), --write mode (writes only baseline-metrics.json), and edge cases (empty DB, missing token fields, graceful degradation). Tests must fail before implementation.",
+      "agent": "@Coder-BE",
+      "dependencies": ["PHASE0-S1"],
+      "outputs": [".task_temp/PHASE0-S2-RED/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md",
+        "section": "6. Step 2 + 7. 验证命令",
+        "clause": "实现只读采集脚本: 4个采集器; --dry-run不写文件; --write只写baseline-metrics.json; 重复执行结果稳定"
+      },
+      "target_files": [".opencode/scripts/__tests__/framework-baseline-metrics.test.ts"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/PHASE0-S2-RED/test_report.json", ".opencode/scripts/__tests__/framework-baseline-metrics.test.ts"],
+        "logic_complete": "Test cases cover: (1) collectGateSessions reads from gate_sessions DB, (2) collectDispatchSessions reads from session_log+dispatch_failed_log, (3) collectTaskLogs reads from .task_temp/_logs, (4) collectGitEvidence reads from git log, (5) --dry-run produces preview output without writing, (6) --write produces valid baseline-metrics.json, (7) empty DB returns empty tasks array, (8) missing token data produces collection_status='unavailable'",
+        "tests_pass": "ALL tests FAIL (RED phase) — confirms test validity before implementation",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PHASE0-S2-GREEN",
+      "name": "Phase 0 Step 2 GREEN: Implement Collection Script",
+      "description": "TDD-GREEN phase: Implement .opencode/scripts/framework-baseline-metrics.ts with 4 collectors (collectGateSessions, collectDispatchSessions, collectTaskLogs, collectGitEvidence). Read-only: queries DB state manager (dbReadSubState), reads .task_temp/_logs, queries git log. Supports --dry-run (preview) and --write .opencode/state/baseline-metrics.json (snapshot). Does NOT modify gate/dispatch/permission/DAG runtime state. Handles missing token data gracefully with collection_status.",
+      "agent": "@Coder-BE",
+      "dependencies": ["PHASE0-S2-RED"],
+      "outputs": [".opencode/scripts/framework-baseline-metrics.ts", ".task_temp/PHASE0-S2-GREEN/test_report.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md",
+        "section": "6. Step 2 + 3.2 代码与状态输入 + 8. 风险与应对",
+        "clause": "脚本只读DB和日志, 只允许写baseline JSON; 找不到token字段时写入collection_status='unavailable'"
+      },
+      "target_files": [".opencode/scripts/framework-baseline-metrics.ts", ".opencode/lib/db-state-manager.ts", ".opencode/state/framework-state.db"],
+      "definition_of_done": {
+        "files_exist": [".opencode/scripts/framework-baseline-metrics.ts", ".task_temp/PHASE0-S2-GREEN/test_report.json"],
+        "logic_complete": "4 collectors functional: collectGateSessions queries gate_sessions table, collectDispatchSessions queries session_log+dispatch_failed_log, collectTaskLogs parses .task_temp/_logs, collectGitEvidence runs git log --oneline; --dry-run outputs JSON to stdout without file writes; --write produces valid baseline-metrics.json at target path; script repeatable — same input produces stable output; missing token: collection_status='unavailable', no fabricated data",
+        "tests_pass": "ALL PHASE0-S2-RED tests PASS (GREEN phase); 8/8 test scenarios pass",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PHASE0-S3",
+      "name": "Phase 0 Step 3: Collect 5-10 Task Samples",
+      "description": "Run the collection script after each of 5-10 complete task executions. Each sample must have: started_at, completed_at, duration_ms, gate_mcp_calls, rework fields, and evidence (session/log/commit). Token fields populated with collection_status (auto or manual). Execute: bun .opencode/scripts/framework-baseline-metrics.ts --write .opencode/state/baseline-metrics.json after each task.",
+      "agent": "@Orchestrator",
+      "dependencies": ["PHASE0-S2-GREEN"],
+      "outputs": [".opencode/state/baseline-metrics.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md",
+        "section": "6. Step 3",
+        "clause": "采集5-10个完整任务样本: 每个任务有started_at/completed_at/duration_ms; evidence指向session/log/commit; token明确collection_status"
+      },
+      "target_files": [".opencode/state/baseline-metrics.json", ".opencode/scripts/framework-baseline-metrics.ts"],
+      "definition_of_done": {
+        "files_exist": [".opencode/state/baseline-metrics.json"],
+        "logic_complete": "至少5个任务拥有完整started_at/completed_at/duration_ms; 每个任务有evidence指向至少一种证据源; 每个任务有gate_mcp_calls和rework字段; token缺失显式标记collection_status; 样本覆盖framework/backend/frontend/permission类型",
+        "tests_pass": "≥5/10 tasks with complete duration data; ≥1 task each of framework/backend/frontend types",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PHASE0-S4",
+      "name": "Phase 0 Step 4: Aggregate Metrics + Generate Report",
+      "description": "Compute aggregate metrics from baseline-metrics.json: task_count, median_duration_ms, p95_duration_ms, avg_gate_mcp_calls, avg_dispatch_count, avg_rework_score, token_coverage. Generate phase0-baseline-metrics-report.md listing: sample coverage, auto/manual/unavailable breakdown, rework cause distribution, and threshold recommendations for P3-E/A3/B/C-line optimizations.",
+      "agent": "@Architect",
+      "dependencies": ["PHASE0-S3"],
+      "outputs": ["docs/review/framework-refactor/phase0-baseline-metrics-report.md", ".opencode/state/baseline-metrics.json"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md",
+        "section": "6. Step 4 + 5.3 基线报告",
+        "clause": "聚合指标: task_count/median_duration/p95_duration/avg_gate_mcp_calls/avg_dispatch_count/avg_rework_score/token_coverage; 报告: 样本列表/聚合指标/token覆盖率/返工原因分布/阈值建议"
+      },
+      "target_files": ["docs/review/framework-refactor/phase0-baseline-metrics-report.md", ".opencode/state/baseline-metrics.json", "docs/review/framework-refactor/framework-architecture-optimization-proposal.md"],
+      "definition_of_done": {
+        "files_exist": ["docs/review/framework-refactor/phase0-baseline-metrics-report.md"],
+        "logic_complete": "报告列出样本覆盖范围; 明确auto/manual/unavailable指标比例; 返工原因分布 (failed_reviews/failed_tests/dispatch_failures/permission_denials); 给出P3-E/A3/B/C线优化阈值建议; aggregate字段全部填充",
+        "tests_pass": "baseline-metrics.json.aggregate所有字段非null; 报告≥4节 (样本/聚合/token/建议)",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "PHASE0-S5",
+      "name": "Phase 0 Step 5: Subsequent Phase Unlock Decision",
+      "description": "Evaluate Phase 0 completion against unlock criteria: (1) if sample tasks < 5 → block A3 agent merge verification, (2) if token coverage = 0 → allow P3-E but declare token baseline unavailable, (3) if missing backend/frontend samples → block A3 BE/FE A/B verification, (4) if many fields unavailable → strengthen collection script first. Document decision and next-phase recommendation.",
+      "agent": "@Orchestrator",
+      "dependencies": ["PHASE0-S4"],
+      "outputs": [".task_temp/PHASE0-S5/unlock-decision.json"],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md",
+        "section": "6. Step 5 + 10. P3-E的位置",
+        "clause": "后续阶段解锁判定: 样本<5→禁止A3; token覆盖率0→可进P3-E但声明不可用; 缺backend/frontend样本→禁止A3 BE/FE A/B验证; 采集字段大面积不可用→先补强脚本"
+      },
+      "target_files": ["docs/review/framework-refactor/phase0-baseline-metrics-report.md", ".opencode/state/baseline-metrics.json"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/PHASE0-S5/unlock-decision.json"],
+        "logic_complete": "4项解锁条件逐项检查; 给出P3-E/A3进入建议; 若阻塞则明确阻塞条件和补采方案; 决策记录包含时间戳和依据",
+        "tests_pass": "4/4 unlock criteria evaluated; decision documented with rationale",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-WV011",
+      "name": "Tech-Debt Repayment: WV-2026-011 — @Coder-BE Write Scope Expansion",
+      "description": "WV-2026-011 (deadline 2026-06-24): Grant @Coder-BE write access to .opencode/scripts/**, .opencode/plugins/**, .opencode/tools/** for Safe Optimization Plan framework infrastructure work. Update project.config.json agent_write_scopes for @Coder-BE to add these paths to the allowed list. This consolidates the precedent set by WV-2026-010.",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-WV011/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "WV-2026-011",
+        "clause": "Grant @Coder-BE write access to .opencode/scripts/** .opencode/plugins/** .opencode/tools/** for Safe Optimization Plan"
+      },
+      "target_files": [".opencode/project.config.json"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/T-TECHDEBT-WV011/HANDOVER.md"],
+        "logic_complete": "project.config.json updated: @Coder-BE agent_write_scopes.allowed includes .opencode/scripts/**, .opencode/plugins/**, .opencode/tools/**; denied list adjusted accordingly if needed; WV-2026-011 marked repaid in TECH_DEBT_REGISTRY.md",
+        "tests_pass": "framework-self-test.ts agent scope check passes for @Coder-BE",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-WV012",
+      "name": "Tech-Debt Repayment: WV-2026-012 — @Coder-BE Hooks Write Scope",
+      "description": "WV-2026-012 (deadline 2026-06-24): Add .opencode/hooks/** and .opencode/hooks/pre-commit to @Coder-BE write scopes for pre-commit hook Layer 1.5 registry verification per Optimization Plan R1.4. Update project.config.json agent_write_scopes for @Coder-BE.",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-WV012/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "WV-2026-012",
+        "clause": "Add .opencode/hooks/** and .opencode/hooks/pre-commit to @Coder-BE write scopes for pre-commit hook Layer 1.5"
+      },
+      "target_files": [".opencode/project.config.json"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/T-TECHDEBT-WV012/HANDOVER.md"],
+        "logic_complete": "project.config.json updated: @Coder-BE agent_write_scopes.allowed includes .opencode/hooks/** and .opencode/hooks/pre-commit; WV-2026-012 marked repaid in TECH_DEBT_REGISTRY.md",
+        "tests_pass": "framework-self-test.ts agent scope check passes for @Coder-BE with hooks access",
+        "guardian_approved": false
+      }
     }
   ],
   "execution_order": {
@@ -689,15 +887,30 @@
     "db_vfy_level2": ["DB-VFY-L2-01", "DB-VFY-L2-02", "DB-VFY-L2-03", "DB-VFY-L2-04", "DB-VFY-L2-05"],
     "db_vfy_level3": ["DB-VFY-L3-01", "DB-VFY-L3-02", "DB-VFY-L3-03", "DB-VFY-L3-04", "DB-VFY-L3-05"],
     "db_vfy_level4": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
-    "db_vfy_level5": ["DB-VFY-L5-01", "DB-VFY-L5-02", "DB-VFY-L5-03", "DB-VFY-L5-04", "DB-VFY-L5-05"]
+    "db_vfy_level5": ["DB-VFY-L5-01", "DB-VFY-L5-02", "DB-VFY-L5-03", "DB-VFY-L5-04", "DB-VFY-L5-05"],
+    "phase0_baseline_s0": ["PHASE0-S0"],
+    "phase0_baseline_sequential": ["PHASE0-S1", "PHASE0-S2-RED", "PHASE0-S2-GREEN", "PHASE0-S3", "PHASE0-S4", "PHASE0-S5"],
+    "phase0_techdebt_parallel": ["T-TECHDEBT-WV011", "T-TECHDEBT-WV012"]
   },
   "meta": {
-    "version": "5.9.0",
+    "version": "5.10.0",
     "project": "booking-system",
     "generated_by": "@Meta-Planner",
-    "generated_at": "2026-06-17T12:00:00.000Z",
-    "description": "DB-VFY: Database migration runtime verification — appended 23 verification tasks across 5 sequential levels (L1 DB infra → L2 runtime R/W → L3 gate ops → L4 audit log → L5 E2E). Verifies P2-A Steps 0-8 + P3 schema v4/v5/v6 + Step 8 cleanup + drain DB-ification claims against actual runtime state. Total: 269 tasks (4 archived + 23 new + 242 historical).",
+    "generated_at": "2026-06-18T08:30:00.000Z",
+    "description": "PHASE0-BASELINE: Appended 7 Phase 0 baseline measurement tasks (S0→S1→S2-RED→S2-GREEN→S3→S4→S5) + 2 tech-debt repayment tasks (WV-2026-011/WV-2026-012). Phase 0 establishes repeatable baseline metrics (duration, token, rework, gate MCP calls) before P3-E/A3/B/C-line structural optimizations. Total: 278 tasks (4 archived + 32 active + 242 historical).",
     "changelog": [
+      {
+        "version": "5.10.0",
+        "date": "2026-06-18T08:30:00.000Z",
+        "changes": [
+          "PHASE0-BASELINE: Appended 7 Phase 0 baseline measurement tasks across 5 steps per phase0-baseline-metrics-implementation-plan.md: PHASE0-S0 (@Orchestrator, freeze window), PHASE0-S1 (@Architect, schema + baseline-metrics.json), PHASE0-S2-RED (@Coder-BE, TDD-RED test cases for collection script), PHASE0-S2-GREEN (@Coder-BE, GREEN implementation of 4 collectors), PHASE0-S3 (@Orchestrator, collect 5-10 task samples), PHASE0-S4 (@Architect, aggregate + report), PHASE0-S5 (@Orchestrator, unlock decision gate).",
+          "Appended 2 tech-debt repayment tasks for items ≤7 days from deadline: T-TECHDEBT-WV011 (WV-2026-011, 2026-06-24, @Coder-BE write scope expansion to .opencode/scripts/plugins/tools), T-TECHDEBT-WV012 (WV-2026-012, 2026-06-24, @Coder-BE hooks write scope). Both independent P0 tasks assigned to @Architect.",
+          "Added 3 execution_order groups: phase0_baseline_s0 (S0), phase0_baseline_sequential (S1→S2-RED→S2-GREEN→S3→S4→S5 linear), phase0_techdebt_parallel (WV011, WV012并行).",
+          "Tech-debt scan: 10 items with DEADLINE ≤ 2026-06-25 identified. 8 items (WV-002/TD-008/TD-009/TD-011/TD-013/TD-014/WV-007/WV-008) already covered by existing UNIV-P6-O, VALIDATE-SUB-TD-*, or in unrelated domains. 2 items (WV-011/WV-012) generated as new tasks.",
+          "Source: docs/review/framework-refactor/phase0-baseline-metrics-implementation-plan.md (417 lines, Steps 0-5); TECH_DEBT_REGISTRY.md (216 lines, scanned ≤7-day repayment items).",
+          "Compliance: dag-generation-standard.md C1-C6/T1-T4/G1-G4/D1-D4 met. G1: max 5 target_files per task (S2-RED=1, S2-GREEN=3). G2: 9 tasks ≥ minimum formula (this is an append-only framework DAG, not a full application DAG). TDD: S2 split into RED+GREEN phases. Baseline commit: 816b00b5 (P2-D completion)."
+        ]
+      },
       {
         "version": "5.9.0",
         "date": "2026-06-17T12:00:00.000Z",
@@ -719,14 +932,14 @@
         ]
       }
     ],
-    "total_tasks": 27,
+    "total_tasks": 36,
     "completed_tasks": 0,
-    "pending_tasks": 23,
+    "pending_tasks": 32,
     "archived_completed": 189,
     "skipped_tasks": 4,
-    "coverage_target": "100% DB migration verification (23 tasks covering 5 levels: infrastructure → runtime R/W → gate ops → audit log → E2E)",
-    "progress": "0% (23 tasks pending; 4 tasks skipped)",
-    "last_updated": "2026-06-17T12:00:00.000Z",
+    "coverage_target": "100% Phase 0 baseline measurement (7 Phase 0 tasks covering Steps 0-5: freeze window → schema → RED test → GREEN script → collect samples → aggregate report → unlock decision) + 100% DB migration verification (23 tasks covering 5 levels) + 2 tech-debt repayment (WV-011/WV-012)",
+    "progress": "0% (32 tasks pending; 4 tasks skipped)",
+    "last_updated": "2026-06-18T08:30:00.000Z",
     "recent_completed": 0,
     "last_compacted": "2026-06-04T09:04:52.630Z"
   }

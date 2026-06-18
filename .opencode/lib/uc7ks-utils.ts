@@ -217,41 +217,62 @@ export function checkUC7KSWrite(
   const sa = readCachedSessionAccess(agentKey);
 
   // ── FW-UC7KS-DOMAIN-001: Per-task per-domain check (priority) ──
-  // When taskId + domainId are available (from session_map DB), check the
-  // nested schema's cache_sufficiency instead of the flat uc7_001_compliant
-  // boolean. This prevents the bypass where reading ANY cache file sets the
-  // global flag and all subsequent writes pass regardless of domain.
-  if (taskId && domainId && sa?.tasks?.[taskId]?.domains?.[domainId]) {
-    const suff = sa.tasks[taskId].domains[domainId].cache_sufficiency;
-    if (suff?.status === "sufficient") {
-      writeLog(SRC, "INFO", {
-        event: "UC7KS-WRITE-PASS-PER-DOMAIN",
+  // 3-path design (fixed after Appendix A gap discovery):
+  //   Path A: taskId+domainId present AND per-domain data exists → check sufficiency
+  //   Path B: taskId+domainId present BUT per-domain data missing → BLOCK
+  //   Path C: no taskId/domainId → global check (backward compat)
+  if (taskId && domainId) {
+    if (sa?.tasks?.[taskId]?.domains?.[domainId]) {
+      // Path A: per-domain data exists → check sufficiency
+      const suff = sa.tasks[taskId].domains[domainId].cache_sufficiency;
+      if (suff?.status === "sufficient") {
+        writeLog(SRC, "INFO", {
+          event: "UC7KS-WRITE-PASS-PER-DOMAIN",
+          agent,
+          taskId,
+          domainId,
+          detail: `per-task per-domain check passed`,
+        });
+        return null;
+      }
+      // Per-domain insufficient → block
+      writeLog(SRC, "ERROR", {
+        event: "UC7KS-WRITE-BLOCK-PER-DOMAIN",
         agent,
         taskId,
         domainId,
-        detail: `per-task per-domain check passed`,
+        missing_topics: suff?.missing_topics || [],
+        detail: `Task ${taskId} domain ${domainId} cache insufficient: ${suff?.reason || "unknown"}`,
       });
-      return null;
+      return [
+        `[FW-ENFORCE][UC7-001] Knowledge cache insufficient for task "${taskId}" domain "${domainId}".`,
+        `Status: ${suff?.status || "unknown"}.`,
+        `Missing topics: ${suff?.missing_topics?.join(", ") || "unknown"}.`,
+        `Search knowledge cache for this domain before writing source files.`,
+        `Agent: ${agent}`,
+      ].join(" ");
+    } else {
+      // Path B: taskId+domainId provided but per-task data missing → block
+      // This catches the case where agent skips knowledge_cache_search entirely
+      // but still has a valid taskId/domainId from dispatch.
+      writeLog(SRC, "ERROR", {
+        event: "UC7KS-WRITE-BLOCK-NO-PER-TASK",
+        agent,
+        taskId,
+        domainId,
+        detail: "taskId+domainId provided but no per-task cache_sufficiency data. " +
+                "Agent must call knowledge_cache_search(domain, task_id) before writing.",
+      });
+      return [
+        `[FW-ENFORCE][UC7-001] Knowledge cache not searched for task "${taskId}" domain "${domainId}".`,
+        `No per-domain cache_sufficiency data found — agent must search knowledge cache before writing.`,
+        `Call knowledge_cache_search("${domainId}", "${taskId}") first.`,
+        `Agent: ${agent}`,
+      ].join(" ");
     }
-    // Per-domain insufficient → block
-    writeLog(SRC, "ERROR", {
-      event: "UC7KS-WRITE-BLOCK-PER-DOMAIN",
-      agent,
-      taskId,
-      domainId,
-      missing_topics: suff?.missing_topics || [],
-      detail: `Task ${taskId} domain ${domainId} cache insufficient: ${suff?.reason || "unknown"}`,
-    });
-    return [
-      `[FW-ENFORCE][UC7-001] Knowledge cache insufficient for task "${taskId}" domain "${domainId}".`,
-      `Status: ${suff?.status || "unknown"}.`,
-      `Missing topics: ${suff?.missing_topics?.join(", ") || "unknown"}.`,
-      `Search knowledge cache for this domain before writing source files.`,
-      `Agent: ${agent}`,
-    ].join(" ");
   }
 
-  // ── Backward compat: no taskId/domainId → global check ──
+  // ── Path C: Backward compat — no taskId/domainId → global check ──
   if (!sa?.uc7_001_compliant) {
     writeLog(SRC, "WARN", {
       event: "UC7KS-WRITE-BLOCK-GLOBAL",

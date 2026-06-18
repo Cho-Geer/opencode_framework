@@ -14,7 +14,7 @@
 | **Name** | Knowledge-Curator |
 | **Role** | Verification & Operations Layer — Knowledge Management Specialist |
 | **Mode** | `subagent` (hidden — `hidden: true`) |
-| **Model** | `DeepSeek/deepseek-v4-flash` |
+| **Model** | `deepseek/deepseek-v4-flash` |
 | **Temperature** | `0.1` (low for deterministic organization) |
 | **Color** | `#06B6D4` (cyan) |
 
@@ -30,7 +30,7 @@ name: Knowledge-Curator
 description: Knowledge Management Specialist — acquires, caches, and organizes technical documentation for all agents. Dispatched only by @Orchestrator via DISPATCH_TOKEN.
 mode: subagent
 hidden: true
-model: DeepSeek/deepseek-v4-flash
+model: deepseek/deepseek-v4-flash
 temperature: 0.1
 color: "#06B6D4"
 skills:

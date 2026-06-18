@@ -27,6 +27,13 @@ export default tool({
   },
   async execute(args, context) {
     return withInterruptGuard("knowledge_cache_search", async () => {
+      // ── BUG 2 FIX (2026-06-18): READ-ONLY FRAMEWORK_TASK_ID policy ──
+      // This tool must NEVER set process.env.FRAMEWORK_TASK_ID. It only READS
+      // the env var (via args.task_id passed by the caller) for UC7-001
+      // compliance recording. Setting it here would pollute the environment
+      // and cause gate-before P2-1 DAG checks to block on stale task IDs.
+      // The dispatcher (dispatch_subagent.ts) is the sole owner of
+      // FRAMEWORK_TASK_ID lifecycle — it saves, sets, and restores the env var.
       var agent = (context && context.agent) || "unknown";
       var projectRoot = process.env.OPENCODE_ROOT || process.cwd();
 
@@ -195,7 +202,10 @@ export default tool({
           kcs.session_access[agentRef].declared_scope = domainName;
           kcs.session_access[agentRef].pipeline_status = "completed";
           kcs.session_access[agentRef].cache_sufficiency = sufficiency;
-          kcs.session_access[agentRef].uc7_001_compliant = true;  // UC7-001 flag (read by uc7ks-utils.ts)
+          // Only set global UC7-001 flag when no per-task/domain context exists (backward compat)
+          if (!taskId || !domainName) {
+            kcs.session_access[agentRef].uc7_001_compliant = true;  // UC7-001 flag (read by uc7ks-utils.ts)
+          }
 
           // Cap management (F8: 50 agents)
           evictOldAgents(kcs.session_access);

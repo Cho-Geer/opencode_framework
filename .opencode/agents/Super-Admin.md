@@ -4,8 +4,9 @@ description: Emergency framework administrator – repairs broken enforcement, m
 mode: all
 model: deepseek/deepseek-v4-pro
 temperature: 0.1
-color: "#8B5CF6"
 top_p: 0.1
+reasoning_effort: max
+color: "#8B5CF6"
 skills:
   - execution-preflight-check
   - context7-first

@@ -5,9 +5,9 @@ mode: subagent
 hidden: true
 model: deepseek/deepseek-v4-pro
 temperature: 0.6
-steps: 50
-color: "#34D399"
 top_p: 0.7
+reasoning_effort: max
+color: "#34D399"
 skills:
   - execution-preflight-check
   - context7-first

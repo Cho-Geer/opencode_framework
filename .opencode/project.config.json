@@ -974,7 +974,7 @@
   },
   "dispatch_policy": {
     "$description": "FW-PLAN-FIRST (2026-06-14): Policy governing PLAN-FIRST dispatch constraint and autonomous @Meta-Planner self-healing. Read by the dispatch-before plugin (Layer 1) and dispatch_subagent.ts (Layer 2). Orchestrator cannot override this block — framework-enforcer DISPATCH-POLICY-TAMPER check rejects edits from non-@Super-Admin sessions.",
-    "require_dag_entry": false,
+    "require_dag_entry": true,
     "auto_plan_enabled": false,
     "auto_plan_max_per_session": 5,
     "auto_plan_timeout_ms": 120000
@@ -1168,7 +1168,7 @@
         },
         {
           "scope": "/docs/",
-          "agent": "@Architect",
+          "agent": "*",
           "priority": 2,
           "desc": "Architecture and design docs"
         },

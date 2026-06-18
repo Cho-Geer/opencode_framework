@@ -5,9 +5,9 @@ mode: subagent
 hidden: true
 model: deepseek/deepseek-v4-flash
 temperature: 0.2
-steps: 30
-color: "#EC4899"
 top_p: 0.4
+reasoning_effort: max
+color: "#EC4899"
 skills:
   - execution-preflight-check
   - devops-ci-cd-guardrails

@@ -12,7 +12,7 @@ export function getModifyPath(args: Record<string, unknown>): string {
 }
 
 export function isModifyShell(args: Record<string, unknown>): boolean {
-  return /^(cp|mv|rm)\b/.test((args?.command || "") as string);
+  return /^(cp|mv|rm|python3|node|bun|npx|tee|cat|sed|dd|sh|bash)\b/.test((args?.command || "") as string);
 }
 
 /**

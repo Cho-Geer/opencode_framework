@@ -134,14 +134,29 @@ describe('gate-core', () => {
       const testSessionId = 'test-session-' + Date.now();
       const testAgent = 'Coder-BE';
 
+      beforeEach(() => {
+        // Ensure DB is completely clean before each test.
+        // The "no entries" test requires zero dag_task_id rows, so we must
+        // remove ALL rows, not just pattern-matched ones.
+        try {
+          const { getDb } = require('../db-manager');
+          const db = getDb();
+          db.run(`DELETE FROM session_map`);
+        } catch {}
+      });
+
       afterEach(() => {
-        // Clean up test DB entries to prevent test contamination
+        // Clean up ALL dag_task_id entries from session_map DB to prevent
+        // test contamination across test suites (uc7ks-domain tests share DB)
         try {
           const { getDb } = require('../db-manager');
           const db = getDb();
           db.run(`DELETE FROM session_map WHERE session_id = ?`, [testSessionId]);
-          db.run(`DELETE FROM session_map WHERE dag_task_id = 'GAP-FIX-ALL-001'`);
-          db.run(`DELETE FROM session_map WHERE dag_task_id = 'GAP-FIX-ALL-002'`);
+          db.run(`DELETE FROM session_map WHERE session_id = 'session-1'`);
+          db.run(`DELETE FROM session_map WHERE session_id = 'session-2'`);
+          // Remove any leftover dag_task_id entries from other test suites
+          db.run(`DELETE FROM session_map WHERE dag_task_id LIKE 'GAP-FIX-%'`);
+          db.run(`DELETE FROM session_map WHERE dag_task_id LIKE 'TASK-%'`);
         } catch {}
         // Also clean .dispatch_ctx if left over
         const testRoot = getProjectRoot();

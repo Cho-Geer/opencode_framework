@@ -2,7 +2,7 @@
 
 > **编号**: FW-UC7KS-DOMAIN-001
 > **日期**: 2026-06-17
-> **状态**: DRAFT — 待 @Orchestrator 调度审批
+> **状态**: ✅ **COMPLETED** — 12/12 Phases 已实施并通过验证（详见 `uc7ks-domain-verification-report.md`）
 > **前置依赖**: FW-DISPATCH-TASKID-IMMUTABLE（已完成 — session_map DB dag_task_id 列已上线）
 
 ---
@@ -532,7 +532,86 @@ describe('checkUC7KSWrite per-domain', () => {
 | `UC7KS-WRITE-PASS-GLOBAL` | INFO | uc7ks-utils.ts | 全局 fallback 通过 |
 | `UC7KS-WRITE-BLOCK-GLOBAL` | WARN | uc7ks-utils.ts | 全局 fallback 拒绝 |
 | `UC7KS-SA-EMERGENCY-BYPASS` | WARN | uc7ks-utils.ts | SA emergency bypass（现有） |
+| `UC7KS-WRITE-BLOCK-NO-PER-TASK` | ERROR | uc7ks-utils.ts | taskId+domainId 有但 per-task 数据缺失→阻断（Path B） |
 | `DB-SESSION-MAP-DOMAIN-WRITE` | INFO | db-state-manager.ts | domain_id 写入 session_map |
 | `DB-SESSION-MAP-DOMAIN-QUERY` | INFO | db-state-manager.ts | domain_id 查询 |
 
 所有日志通过 `writeLog()` / `writeLogSafe()` 写入，遵循框架日志系统 v2.0 标准。
+
+---
+
+## 八、实施验证结果
+
+> 验证报告: `docs/review/framework-refactor/uc7ks-domain-verification-report.md`
+> 验证人: @Orchestrator | 审核人: @Super-Admin（派遣验证）
+
+### 总体判定
+
+| 维度 | 结果 |
+|---|---|
+| 12 Phases | ✅ **12/12 全部实施** |
+| Path B gap fix | ✅ **已实施**（Appendix A 缺口修复） |
+| 测试 | ✅ **13/13 PASS**（`uc7ks-domain.test.ts`）+ **24/24 PASS**（`gate-core.test.ts`）= **36/36** |
+| 向后兼容 | ✅ 保证（COALESCE + global fallback） |
+| 最终判定 | ✅ **通过 — 已投入实际使用** |
+
+### Phase 实施状态
+
+| Phase | 文件 | 状态 |
+|---|---|:---:|
+| P1 DB migration v9 | db-manager.ts | ✅ |
+| P2 CRUD 扩展 | db-state-manager.ts | ✅ |
+| P3 Dispatch domain_id 写入 | dispatch_subagent.ts | ✅ |
+| P4 session.ts 同步 | session.ts | ✅ |
+| P5 agent-resolver.ts 扩展 | agent-resolver.ts | ✅ |
+| P6 agent_domain_map 配置 | project.config.json | ✅ |
+| P7 .dispatch_ctx 扩展 | dispatch_subagent.ts | ✅ |
+| P8 checkUC7KSWrite 核心修复 | uc7ks-utils.ts | ✅ |
+| P9 scope-before.ts 调用点 | scope-before.ts | ✅ |
+| P10 uc7ks-after.ts 改造 | uc7ks-after.ts | ✅ |
+| P11 knowledge_cache_search.ts | knowledge_cache_search.ts | ✅ |
+| P12 测试 | uc7ks-domain.test.ts | ✅ |
+
+### @Super-Admin 追加修复
+
+验证过程中 @Super-Admin 修复了以下额外问题：
+
+| # | 文件 | 修复 |
+|---|---|---|
+| 1 | `tsconfig.json` | `types` 添加 `"jest"` |
+| 2 | `uc7ks-domain.test.ts` | `require()` → ES `import` |
+| 3 | `knowledge_cache_search.ts` L198 | `uc7_001_compliant = true` 改为条件 fallback `if (!taskId \|\| !domainName)` |
+| 4 | `substate-types.ts` | `session_access` 类型嵌套修正 |
+| 5 | `db-state-manager.ts` | 重复函数重命名 |
+| 6 | `dispatch-subagent.ts` (command-tools) | 函数名引用更新 |
+
+### Appendix A Path B gap fix (UC7KS-WRITE-BLOCK-NO-PER-TASK)
+
+验证报告附录 A 发现 `checkUC7KSWrite()` 存在静默 fallthrough 缺口：当 `taskId+domainId` 已提供但 per-task 数据不存在时（Agent 未调用 `knowledge_cache_search`），代码跳过 per-domain 检查直接 fallthrough 到全局 `uc7_001_compliant` 检查。若全局标志已被前次 session 设置为 `true`，写入操作绕过阻断。
+
+**修复方案**：将 L224 的条件判断拆为 3 路独立路径：
+
+```ts
+if (taskId && domainId) {
+  if (sa?.tasks?.[taskId]?.domains?.[domainId]) {
+    // Path A: per-domain 数据存在 → 正常检查 sufficiency
+  } else {
+    // Path B: taskId+domainId 有但 per-task 数据缺失 → 阻断
+    // 新日志事件: UC7KS-WRITE-BLOCK-NO-PER-TASK
+  }
+}
+// Path C: 无 taskId/domainId → 全局检查（向后兼容）
+```
+
+**涉及修改**:
+| # | 文件 | 变更 |
+|---|---|---|
+| 1 | `uc7ks-utils.ts` L224-252 | 2-path 改为 3-path，新增 Path B 阻断逻辑 |
+| 2 | `uc7ks-domain.test.ts` | 新增 2 个 Path B 测试用例 |
+| 3 | `gate-core.test.ts` | beforeEach 清理改为 `DELETE FROM session_map`（修复测试隔离） |
+
+**新增测试用例**:
+- `should block via Path B when taskId+domainId present but per-task data missing`
+- `should block via Path B even when global uc7_001_compliant is true (Appendix A gap fix)` — 验证即使全局标志为 `true`，Path B 仍阻断
+
+**测试结果**: 36/36 PASS（`bun test`, 0 fail）

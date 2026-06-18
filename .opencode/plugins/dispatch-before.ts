@@ -215,6 +215,26 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
 
   const tc = findTaskInDag(dagTaskId);
   if (!tc.found) {
+    if (autoPlanRequested && !policy.auto_plan_enabled) {
+      writeLog("dispatch-before", "runtime", {
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent: caller,
+        agentType: caller,
+        level: "ERROR",
+        event: "DISPATCH-BEFORE",
+        detail:
+          `BLOCKED | PLAN-FIRST | auto_plan=true but policy.auto_plan_enabled=false | ` +
+          `dag_task_id=${dagTaskId} not in DAG`,
+      });
+      throw new Error(
+        `[FW-ENFORCE][PLAN-FIRST][LAYER-1] auto_plan=true was set but ` +
+          `dispatch_policy.auto_plan_enabled=false in project.config.json. ` +
+          `Self-healing is blocked during rollout. ` +
+          `ACTION: dispatch @Meta-Planner to add "${dagTaskId}" to Task.DAG.json, ` +
+          `then re-dispatch with the same dag_task_id.`,
+      );
+    }
     if (autoPlanRequested && policy.auto_plan_enabled) {
       writeLog("dispatch-before", "runtime", {
         sessionID: input.sessionID,

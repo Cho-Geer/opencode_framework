@@ -9,7 +9,7 @@
     "strict": false,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "types": ["node", "bun-types"]
+    "types": ["node", "bun-types", "jest"]
   },
   "include": [
     ".opencode/lib/**/*.ts",

@@ -2690,6 +2690,7 @@ function checkV6DbTables() {
 
 checkV6DbTables();
 checkSchemaFiles();
+checkStep0dTriggerWords();
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
@@ -2799,6 +2800,69 @@ function checkPlanFirstConsistency() {
 // exist, are valid JSON, and have correct JSON Schema structure.
 // Also verifies machine.schema.json is the slim meta+contracts version.
 // No external dependencies (AJV not required).
+// ═══════════════════════════════════════════════════════════════
+// Check 34: Step 0d — Verify investigation task trigger words in
+// subagent-preamble.md. The preamble's Step 0d defines the multi-source
+// investigation mandate (log audit + code search). This check validates
+// that the preamble contains the Step 0d section with the mandatory
+// English and Chinese trigger words.
+// Added (2026-06-18).
+function checkStep0dTriggerWords(): void {
+  const preamblePath = path.join(OPENCODE_ROOT, ".opencode", "subagent-preamble.md");
+  if (!fs.existsSync(preamblePath)) {
+    check(34, false, "subagent-preamble.md not found");
+    return;
+  }
+  const preamble = readFile(preamblePath);
+  if (!preamble) {
+    check(34, false, "subagent-preamble.md is empty");
+    return;
+  }
+
+  const issues = [];
+
+  // Step 0d section must exist
+  if (!/Step 0d[:\s]/.test(preamble)) {
+    issues.push("Step 0d section missing");
+  }
+
+  // Required English trigger words
+  const requiredEn = ["investigation", "audit", "analysis", "diagnose", "debug", "troubleshoot", "root-cause", "trace", "forensic"];
+  const missingEn = requiredEn.filter(function (kw: string) {
+    return preamble.indexOf(kw) === -1;
+  });
+  if (missingEn.length > 0) {
+    issues.push("EN trigger words missing: " + missingEn.join(", "));
+  }
+
+  // Required Chinese trigger words
+  const requiredCn = ["调查", "排查", "调试", "诊断", "根因", "审计", "追溯", "排错", "定位"];
+  const missingCn = requiredCn.filter(function (kw: string) {
+    return preamble.indexOf(kw) === -1;
+  });
+  if (missingCn.length > 0) {
+    issues.push("CN trigger words missing: " + missingCn.join(", "));
+  }
+
+  // ## Logs Checked section template must exist
+  if (!/##\s+Logs\s+Checked/i.test(preamble)) {
+    issues.push("'## Logs Checked' section missing");
+  }
+
+  // Verify log paths are referenced
+  if (!/.opencode\/logs/.test(preamble)) {
+    issues.push(".opencode/logs/ not referenced");
+  }
+  if (!/gate-state\.json/.test(preamble)) {
+    issues.push("gate-state.json not referenced");
+  }
+
+  check(34, issues.length === 0,
+    issues.length === 0
+      ? "Step 0d: subagent-preamble.md contains investigation mandate with EN+CN trigger words, ## Logs Checked section, and log paths"
+      : "Step 0d: " + issues.join("; "));
+}
+
 function checkSchemaFiles() {
   const root = process.env.OPENCODE_ROOT || process.cwd();
   const pathJoin = require("path").join;

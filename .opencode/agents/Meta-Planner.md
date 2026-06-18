@@ -5,8 +5,9 @@ mode: subagent
 hidden: true
 model: deepseek/deepseek-v4-pro
 temperature: 0.3
-color: "#3B82F6"
 top_p: 0.5
+reasoning_effort: max
+color: "#3B82F6"
 skills:
   - brainstorming
   - execution-preflight-check

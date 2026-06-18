@@ -5,6 +5,8 @@ mode: subagent
 hidden: true
 model: deepseek/deepseek-v4-flash
 temperature: 0.1
+top_p: 0.1
+reasoning_effort: max
 color: "#06B6D4"
 permission:
   edit: deny

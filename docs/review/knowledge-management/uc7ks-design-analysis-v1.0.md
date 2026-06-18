@@ -293,7 +293,7 @@ The token is validated by `@Knowledge-Curator` before executing any external que
 
 **Mode**: Subagent (hidden, `@Orchestrator`-dispatched only)
 
-**Model**: `DeepSeek/deepseek-v4-flash` (fast, low temperature for deterministic organization)
+**Model**: `deepseek/deepseek-v4-flash` (fast, low temperature for deterministic organization)
 
 **Temperature**: 0.1
 

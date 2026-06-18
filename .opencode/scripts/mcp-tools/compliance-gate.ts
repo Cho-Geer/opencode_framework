@@ -745,7 +745,7 @@ function runGateCheck(taskDescription, taskId) {
           const { getDb } = require("../../lib/db-manager");
           const db = getDb();
           const anyRegistered = db.query(
-            `SELECT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL LIMIT 1`
+            `SELECT DISTINCT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL`
           ).all() as { dag_task_id: string }[];
           if (anyRegistered.length > 0) {
             // Dispatch context exists but this taskId is NOT registered
@@ -778,11 +778,36 @@ function runGateCheck(taskDescription, taskId) {
 
   if (hasDispatchContext && taskId && dispatchAssignedTaskIds.length > 0) {
     if (!dispatchAssignedTaskIds.includes(taskId)) {
+      // Fix 3b: Resolve caller identity from session_map DB (primary) with
+      // _dispatch_target.json fallback. session_map has per-session rows so
+      // there is NO overwrite race condition between parallel dispatches,
+      // unlike _dispatch_target.json which is a single shared file.
+      let _resolvedAgent = "—";
+      let _resolvedSessionId = "—";
+      try {
+        const _db = require("../../lib/db-manager").getDb();
+        const latestCaller = _db.query(
+          `SELECT agent, session_id FROM session_map ORDER BY created_at DESC LIMIT 1`
+        ).get() as { agent: string; session_id: string } | null;
+        if (latestCaller) {
+          _resolvedAgent = latestCaller.agent || "—";
+          _resolvedSessionId = latestCaller.session_id || "—";
+        }
+      } catch {}
+      if (_resolvedAgent === "—") {
+        _resolvedAgent = resolveDispatchTargetAgentDirect() || "—";
+      }
+
       writeLog("mcp-compliance-gate", "ERROR", {
+        sessionID: _resolvedSessionId,
+        callID: "—",
+        agent: _resolvedAgent,
+        agentType: _resolvedAgent,
         event: "DISPATCH_TASKID_TAMPER",
         provided_task_id: taskId,
         dispatch_registered_task_ids: dispatchAssignedTaskIds,
-        detail: "sub-agent attempted to use a task_id not registered in any dispatch — fabricated task_id to bypass gate mutual exclusion",
+        framework_task_id: process.env.FRAMEWORK_TASK_ID || "—",
+        detail: `sub-agent attempted to use task_id "${taskId}" not registered in any dispatch — fabricated task_id to bypass gate mutual exclusion. Registered: [${dispatchAssignedTaskIds.join(", ")}]. FRAMEWORK_TASK_ID env: ${process.env.FRAMEWORK_TASK_ID || "(empty)"}`,
       });
       return {
         passed: false,
@@ -1804,6 +1829,74 @@ function runGateSubmitDeliverables(sessionId, deliverablesEvidence) {
 }
 
 /**
+ * Step 0d enforcement: Multi-source investigation audit.
+ * For investigation-type tasks, validates that HANDOVER.md contains
+ * a "## Logs Checked" section with log/audit evidence.
+ *
+ * @param session - The gate session object from gate-state.json
+ * @param taskId  - DAG task ID for artifact path resolution
+ * @returns null if OK; error object if HANDOVER.md lacks log evidence
+ */
+function enforceMultiSourceAudit(
+  session: Record<string, any> | null,
+  taskId: string | null
+): { id: string; desc: string; severity: string } | null {
+  if (!session || !taskId) return null;
+
+  // ── 1. Determine if investigation-type task ──
+  const ANALYSIS_EN = [
+    "investigation", "audit", "analysis", "diagnosis", "diagnose",
+    "debug", "troubleshoot", "root-cause", "trace", "tracing", "forensic"
+  ];
+  const ANALYSIS_CN = [
+    "调查", "排查", "调试", "诊断", "根因", "审计", "追溯", "排错", "定位"
+  ];
+
+  const desc = (session.plan_summary || session.task_description || "").toLowerCase();
+  const isInvestigation =
+    ANALYSIS_EN.some((kw: string) => desc.includes(kw)) ||
+    ANALYSIS_CN.some((kw: string) => desc.includes(kw));
+
+  if (!isInvestigation) return null;
+
+  // ── 2. Read HANDOVER.md ──
+  const fs = require("fs");
+  const handoverPath = `.task_temp/${taskId}/HANDOVER.md`;
+  let handover = "";
+  try { handover = fs.readFileSync(handoverPath, "utf-8"); } catch { handover = ""; }
+
+  if (!handover) {
+    return {
+      id: "step_0d_handover_missing",
+      desc: `[Step 0d] Investigation task requires HANDOVER.md at ${handoverPath}`,
+      severity: "HIGH"
+    };
+  }
+
+  // ── 3. Check for ## Logs Checked section ──
+  const hasLogsSection = /##\s+Logs\s+Checked/i.test(handover);
+  if (!hasLogsSection) {
+    const logPaths = [
+      ".opencode/logs/",
+      ".opencode/logs/mcp-compliance-gate/",
+      ".opencode/state/gate-state.json",
+      ".opencode/state/machine.json",
+      ".task_temp/_dispatch/",
+      ".opencode/state/.transaction-log",
+      ".opencode/state/session_log/ (SQLite)"
+    ];
+    return {
+      id: "step_0d_log_evidence_missing",
+      desc: `[Step 0d] Investigation task HANDOVER.md lacks "## Logs Checked" ` +
+            `section with ≥2 log/audit sources. Check: ${logPaths.join(", ")}`,
+      severity: "HIGH"
+    };
+  }
+
+  return null;
+}
+
+/**
  * Approve or reject submitted deliverables.
  * RESTRICTED to @Orchestrator / @Super-Admin.
  * Approve: delivered → approved (optionally auto-complete with execution_summary).
@@ -1849,6 +1942,23 @@ function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, e
   const now = new Date().toISOString();
 
   if (approvalDecision === "approve") {
+    // ▶ Step 0d: Multi-source investigation audit — block approval if
+    //    investigation-type task lacks log evidence in HANDOVER.md
+    const step0dResult = enforceMultiSourceAudit(session, session.task_id);
+    if (step0dResult) {
+      writeLog("mcp-compliance-gate", "runtime", {
+        sessionID: sessionId,
+        agent: session.agent || "—",
+        level: "ERROR",
+        event: "STEP_0D_LOG_EVIDENCE_MISSING",
+        detail: step0dResult.desc,
+      });
+      return {
+        status: "rejected",
+        reason: step0dResult.desc,
+      };
+    }
+
     session.deliverables_approved_by = "Orchestrator";
     session.deliverables_approved_at = now;
     session.deliverables_approval_note = approvalNote || null;

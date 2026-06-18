@@ -1,10 +1,12 @@
 # gate-state.json Post-Step-8 同步断裂分析报告
 
 **日期**: 2026-06-17
-**状态**: ✅ 全部修复完成 (framework-self-test 39/40 PASS + framework-doctor 13/13 PASS)
-**修复提交**: `14875666` — `chore(infra): [INFRA] fix all gate-state.json sync gaps`
-**影响范围**: 4 HIGH + 2 MEDIUM + 1 EXTRA 严重级运行时功能缺陷（已全部修复）
-**修复文件数**: 5 files + 3 already-fixed (confirmed)
+**状态**: ✅ **gate-state.json 同步相关修复全部完成**（8 个文件迁移；framework-doctor **13/13 PASS**；framework-self-test **36/40 PASS** — 4 项 FAIL check / 6 个独立 issue 均与 gate-state.json 同步**无关**，详见 §七）
+**修复提交**: `14875666` — `chore(infra): [INFRA] fix all gate-state.json sync gaps`（已入 `work-one` 分支历史）
+**影响范围**: 4 HIGH + 2 MEDIUM + 1 EXTRA + 1 额外发现（pre-execution-gate.ts）严重级运行时功能缺陷（**全部已修复**）
+**修复文件数**: **8 个文件迁移到 `dbLoadGateStore()` / `dbSaveGateStore()`**
+
+> **v7 清理注记（2026-06-17 后）**：本报告编写时 `gate-state.json` 被定位为"冻结快照"；随后 schema v7 清理已**删除** `.opencode/state/gate-state.json`（连同 `gate-state.index.json` / `gate-state.drained_sessions.json` / 13 个其他 JSON 快照），`substate_kv` + `gate_sessions` / `gate_drained_sessions` DB 表为唯一存储。本报告描述的"JSON 不再同步"断裂已随文件删除彻底消失，但历史修复记录保留为参考。
 
 ---
 
@@ -16,8 +18,8 @@ P2-A Step 8 完成 DB-only 迁移后，`gate-core.saveGateStore()` 仅写 DB（�
 |---------|------|:----:|
 | `compliance_gate_confirm` → `armSession()` → `dbSaveGateStore()` | DB | ✅ 正常 |
 | `saveGateStore()` (gate-core) | DB-only | ✅ 已迁移 |
-| `state-compactor.ts` `writeHotState()` | JSON | ⚠️ 仅在 complete/nightly/drain 时触发 |
-| **pre-execution-gate.ts** | **直接读 JSON** | ❌ **永远读到过期数据** |
+| `lib/state-compactor.ts` `writeHotState()` | JSON | ⚠️ 仅在 complete/nightly/drain 时触发（**v7 后 `gate-state.json` 已删除，此路径不再写此文件**） |
+| **pre-execution-gate.ts** | **直接读 JSON** | ✅ **本次已修复**（`dbLoadGateStore()` + "frozen snapshot" 注释） |
 
 **核心断裂**：DB 已武装 → JSON 未同步 → pre-execution-gate 找不到 session → `process.exit(1)` 阻断派遣。
 
@@ -29,7 +31,7 @@ P2-A Step 8 完成 DB-only 迁移后，`gate-core.saveGateStore()` 仅写 DB（�
 
 | 文件 | 读取方式 | V3 兼容 | 写 JSON | 严重级 |
 |------|---------|:------:|:------:|:-----:|
-| `scripts/pre-execution-gate.ts` | `readJSON(GATE_STATE_FILE)` | ❌ 前版有 bug | 否 | **HIGH** |
+| `scripts/pre-execution-gate.ts` | `readJSON(GATE_STATE_FILE)` → `dbLoadGateStore()` (line 466) | ✅ **本次已修** | 否 | **HIGH** |
 | `hooks/lib/hook-layers.ts:69` | `readFileSync` → `JSON.parse` | ❌ 前版有 bug | 否 | **HIGH** |
 | `lib/gate-checks.ts:182-216` | `readJsonFile` | ❌ 前版有 bug | **是** (line 216) | **HIGH** |
 | `scripts/gate-lifecycle-audit.ts` | `readJsonFile` | ❌ 前版有 bug | **是** (line 177) | **HIGH** |
@@ -172,9 +174,9 @@ dbArchiveDrainedSession(sessionId, reason, data);
 ### 5.3 验证方法
 
 修复后运行：
-1. `bun .opencode/scripts/framework-self-test.ts` — 确认 **39/40+ PASS**（Check 36 因 safe_edit 备份文件未提交显示 FAIL，提交后自动通过）。零新增回归。
+1. `bun .opencode/scripts/framework-self-test.ts` — 确认**无 gate-state.json 同步相关回归**。当前总览 36/40 PASS（4 项 FAIL check / 6 个独立 issue 详见 §七）。
 2. `bun .opencode/scripts/framework-doctor.ts --strict` — 确认 **13/13 ALL PASS**。Check 3 输出 `(DB)` 标记确认从 DB 读取，不再依赖冻结 JSON 快照。
-3. 手动触发 `compliance_gate_confirm` + `dispatch_subagent` — 确认派遣不再被阻断。
+3. 手动触发 `compliance_gate_confirm` + `dispatch_subagent` — 确认派遣不再被阻断（v7 清理后 `gate-state.json` 已不存在，pre-execution-gate 完全依赖 DB）。
 
 ---
 
@@ -183,3 +185,18 @@ dbArchiveDrainedSession(sessionId, reason, data);
 - `database-migration-plan.md` — P2-A DB 迁移方案（Step 8 DB-only 策略）
 - `framework-evaluation-report.md` — 框架评估报告（DB schema v7, 16 张表）
 - `gate-stuck-fix-and-deliverables-plan.md` — 合规门卡死修复方案（含 deliverables 硬约束）
+
+---
+
+## 七、当前 Self-Test FAIL 分析（2026-06-17 实测，36/40 PASS）
+
+> 本节记录实测发现的 4 项 FAIL check（含 6 个独立 issue），明确每项与本报告主题（gate-state.json 同步断裂）的关系。**结论：4 项均与 gate-state.json 同步无关**，本报告的修复目标已达成。
+
+| Check | FAIL 信息 | 与 gate-state.json 同步关系 | 后续处置 |
+|:-----:|-----------|:--------------------------:|---------|
+| 28 | `knowledge_cache_state not found in substate_kv` | ❌ 无关（UC7KS 知识缓存维度） | v7 清理后 substate_kv 行可能被清理，需恢复或调整 Check 28 断言 |
+| 33 | `.pending.json` 4 pending entries 含 3 stale（160/152/140min 前） | ❌ 无关（dispatch 队列维度） | stale entries 应被 `dispatch-after.ts` 自动 drain；排查自动 drain 未触发原因 |
+| 37 | 2 issue(s)：`lib/dag-policy.ts` 缺失 + `plugins/dispatch-before.ts` (Layer 1) 缺失 | ❌ 无关（PLAN-FIRST 维度） | Check 37 期望路径与当前代码路径不匹配；更新 Check 37 断言或检查文件迁移 |
+| 39 | 2 issue(s)：`state/schemas/` 目录缺失 + `machine.schema.json` 缺失 | ❌ 无关（S41 schema 拆分维度） | v7 清理后 schema 文件未恢复；需重建 `.opencode/state/schemas/` 16 个子状态 schema + 64 行 `machine.schema.json` |
+
+**结论**：本报告修复的 8 个文件迁移到 DB API 全部工作正常；4 项 FAIL check（含 6 个独立 issue）分属 4 个不同维度（UC7KS / dispatch / PLAN-FIRST / S41 schema），需分别建立独立 issue 跟踪。

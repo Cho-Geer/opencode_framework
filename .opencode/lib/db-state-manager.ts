@@ -25,7 +25,6 @@
 // @see docs/review/framework-refactor/database-migration-plan.md (Step 1)
 // ═══════════════════════════════════════════════════════════════════════
 
-import { Database } from "bun:sqlite";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "./log-manager";
@@ -965,7 +964,7 @@ export function dbAppendSessionLog(
  * Query the latest session_id for a given dagTaskId (for resume).
  * Replaces reading SESSION_ID.md from .task_temp/{taskId}/.
  */
-export function dbQuerySessionByDagTaskId(dagTaskId: string): string | null {
+export function dbQueryLatestSessionByDagTaskId(dagTaskId: string): string | null {
   try {
     const db = getDb();
     const row = db.query(

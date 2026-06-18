@@ -3,7 +3,10 @@
  * Tests for session_map domain_id integration and per-domain UC7KS write checks.
  */
 
-const { dbWriteSessionMap, dbReadSessionMap, dbQuerySessionByDomain } = require('../db-state-manager');
+import { dbWriteSessionMap, dbReadSessionMap, dbQuerySessionByDomain } from '../db-state-manager';
+import { checkUC7KSWrite } from '../uc7ks-utils';
+import { atomicWriteSubState } from '../state-utils';
+import { getDb } from '../db-manager';
 
 describe('FW-UC7KS-DOMAIN-001', () => {
   const testSessionId = 'test-uc7ks-domain-' + Date.now();
@@ -12,7 +15,6 @@ describe('FW-UC7KS-DOMAIN-001', () => {
 
   afterEach(() => {
     try {
-      const { getDb } = require('../db-manager');
       const db = getDb();
       db.run(`DELETE FROM session_map WHERE session_id LIKE 'test-uc7ks-domain-%'`);
       db.run(`DELETE FROM session_map WHERE domain_id = 'frontend_ui' AND session_id LIKE 'test-%'`);
@@ -76,8 +78,6 @@ describe('FW-UC7KS-DOMAIN-001', () => {
   });
 
   describe('checkUC7KSWrite per-domain integration', () => {
-    const { checkUC7KSWrite } = require('../uc7ks-utils');
-    const { atomicWriteSubState } = require('../state-utils');
 
     afterEach(() => {
       // Clean up knowledge cache state
@@ -172,7 +172,7 @@ describe('FW-UC7KS-DOMAIN-001', () => {
       expect(result).toBeNull(); // Global flag is true → pass
     });
 
-    it('should block when no domain entry exists and global flag is false', () => {
+    it('should block via Path B when taskId+domainId present but per-task data missing', () => {
       atomicWriteSubState('knowledge_cache_state', (state) => {
         state.session_access = state.session_access || {};
         const ak = testAgent.replace(/^@/, '');
@@ -181,12 +181,36 @@ describe('FW-UC7KS-DOMAIN-001', () => {
         };
       });
 
-      // taskId/domainId provided but no matching nested entry → global fallback
+      // taskId/domainId provided but no matching nested entry → Path B block
       const result = checkUC7KSWrite(
         testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
       );
-      expect(result).not.toBeNull(); // Global flag false → block
+      expect(result).not.toBeNull();
       expect(result).toContain('UC7-001');
+      expect(result).toContain('not searched');
+    });
+
+    it('should block via Path B even when global uc7_001_compliant is true (Appendix A gap fix)', () => {
+      // This is the critical test: agent has global flag set from a previous
+      // session but never searched cache for THIS task/domain. Path B should
+      // block regardless of the global flag.
+      atomicWriteSubState('knowledge_cache_state', (state) => {
+        state.session_access = state.session_access || {};
+        const ak = testAgent.replace(/^@/, '');
+        state.session_access[ak] = {
+          uc7_001_compliant: true, // Global flag is TRUE from previous session
+          // But NO tasks[TASK-001].domains[backend_api] entry
+        };
+      });
+
+      const result = checkUC7KSWrite(
+        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+      );
+      expect(result).not.toBeNull(); // Should block via Path B
+      expect(result).toContain('UC7-001');
+      expect(result).toContain('not searched');
+      expect(result).toContain('TASK-001');
+      expect(result).toContain('backend_api');
     });
 
     it('should pass in advisory mode regardless of domain state', () => {

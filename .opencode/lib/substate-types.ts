@@ -79,7 +79,7 @@ export interface KnowledgeCacheState {
   last_fetch_at?: string;
   compliance?: Record<string, any>;
   pipeline_integrity?: Record<string, any>;
-  session_access?: Record<string, Record<string, Record<string, any>>>;
+  session_access?: Record<string, Record<string, any>>;
   total_docs_count?: number;
   total_size_bytes?: number;
   last_verified?: string;

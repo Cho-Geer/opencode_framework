@@ -83,6 +83,7 @@ function logWarn(msg) {
 //   2. Positional args: argv[3]=task_id, argv[4]=task_description (if both present)
 //   3. --task-id CLI flag (legacy)
 //   4. Single positional arg: argv[3]=task_description (backward compatible)
+const _savedFwTaskId = process.env.FRAMEWORK_TASK_ID;
 let taskId = process.env.FRAMEWORK_TASK_ID || null;
 
 // NEW: Detect 2+ positional params after agent_type for task_id+task_description
@@ -545,6 +546,37 @@ if (fs.existsSync(PREAMBLE_FILE)) {
   );
 }
 
+// P2-FIX R4: Inject dag_task_id into preamble so sub-agent knows its assigned task_id
+// Without this, the LLM cannot read process.env.FRAMEWORK_TASK_ID and fabricates a task_id
+if (taskId) {
+  preamble += `\n> **Your dispatch-assigned task_id**: \`${taskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.\n`;
+}
+
+// P2-FIX R2: Pre-write session_map BEFORE generating prompt to eliminate race condition
+// Without this, session.ts chat.message hook may write session_map AFTER sub-agent's
+// compliance_gate_check, causing DISPATCH_TASKID_TAMPER false positive
+if (taskId) {
+  try {
+    const { dbWriteSessionMap, dbReadSessionMap } = require("../../lib/db-state-manager");
+    const sessionId = process.env.OPENCODE_SESSION_ID || "";
+    if (sessionId) {
+      dbWriteSessionMap(sessionId, agentType, taskId);
+      const verify = dbReadSessionMap(sessionId);
+      if (!verify?.dag_task_id) {
+        writeLog("dispatch-subagent", "ERROR", {
+          event: "SESSION_MAP_WRITE_FAILED",
+          detail: `dbWriteSessionMap succeeded but read-back failed for sessionId=${sessionId} taskId=${taskId}`,
+        });
+      }
+    }
+  } catch (e: any) {
+    writeLog("dispatch-subagent", "ERROR", {
+      event: "SESSION_MAP_WRITE_ERROR",
+      detail: `Failed to pre-write session_map: ${e?.message ?? e}`,
+    });
+  }
+}
+
 // ──────────────────────────────────────────────
 // 5. Build the wrapped prompt
 // ──────────────────────────────────────────────
@@ -829,19 +861,19 @@ try {
  *   file and verify the entry is present. If not, exit with an error message
  *   identifying the missing entry.
  */
-// Layer 1: Deduplicate — remove existing entries for the same agentType + dagTaskId
+// Layer 1: Deduplicate — remove existing entries for the same agentType + taskId
 // P0-FIX-BUG-15-L1 (2026-06-09): HARDENED dag_task_id reuse BLOCK.
-//   Same agentType + same dagTaskId + same promptHash → idempotent re-dispatch → silent dedup ✅
-//   Same agentType + same dagTaskId + different promptHash → dag_task_id REUSED → FATAL EXIT ❌
-//   Same agentType + DIFFERENT dagTaskId → parallel dispatch → entry KEPT ✅
+//   Same agentType + same taskId + same promptHash → idempotent re-dispatch → silent dedup ✅
+//   Same agentType + same taskId + different promptHash → dag_task_id REUSED → FATAL EXIT ❌
+//   Same agentType + DIFFERENT taskId → parallel dispatch → entry KEPT ✅
 //   The Orchestrator MUST use a unique dag_task_id per dispatch. No warnings — block.
 // SA-FIX-PARALLEL-DISPATCH-20260611 (@Super-Admin): Clarified that dedup key is
-//   agentType+dagTaskId composite, NOT agentType alone. Parallel dispatches for the
-//   same agentType with different dagTaskIds are allowed and preserved in the queue.
+//   agentType+taskId composite, NOT agentType alone. Parallel dispatches for the
+//   same agentType with different taskIds are allowed and preserved in the queue.
 const beforeDedup = queue.length;
 const dedupedEntries: any[] = [];
 queue = queue.filter((e) => {
-  if (e.agentType === agentType && e.dagTaskId === taskId) {
+  if (e.agentType === agentType && e.taskId === taskId) {
     // Same agent type AND same dag_task_id → deduplicate old entry
     if (e.promptHash && e.promptHash !== promptHash) {
       dedupedEntries.push(e);
@@ -851,14 +883,14 @@ queue = queue.filter((e) => {
   return true;
 });
 if (dedupedEntries.length > 0) {
-  const dagTaskId = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
+  const taskId = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
   // HARDENED CONSTRAINT: same dag_task_id → different task = BLOCKED.
   // This is NOT just a warning — the dispatch is PHYSICALLY REJECTED.
   // The Orchestrator MUST use a unique dag_task_id per dispatch.
   const fatalMsg =
     `\n╔══════════════════════════════════════════════════════════════════╗\n` +
     `║  HARDENED CONSTRAINT: DAG_TASK_ID REUSE BLOCKED                  ║\n` +
-    `║  dag_task_id: "${dagTaskId}"                                       \n` +
+    `║  dag_task_id: "${taskId}"                                       \n` +
     `║  This ID was already used for a different task dispatch.         ║\n` +
     `║  Previous dispatch: ${dedupedEntries[0].dispatchId.split("/").pop()}\n` +
     `║                                                                  ║\n` +
@@ -871,17 +903,17 @@ if (dedupedEntries.length > 0) {
   writeLog("dispatch-subagent", "runtime", {
     level: "ERROR",
     event: "DAG-TASK-ID-REUSE-BLOCKED",
-    detail: `DAG_TASK_ID reuse blocked: ${dagTaskId} (agentType=${agentType})`,
+    detail: `DAG_TASK_ID reuse blocked: ${taskId} (agentType=${agentType})`,
   });
   console.error(fatalMsg);
-  logWarn(`DAG-TASK-ID REUSE BLOCKED: ${dagTaskId} (agentType=${agentType})`);
+  logWarn(`DAG-TASK-ID REUSE BLOCKED: ${taskId} (agentType=${agentType})`);
   // FW-DIAG-D1 (2026-06-10, @Super-Admin): Diagnostic log for dedup block tracing.
-  // Captures agentType, both dagTaskIds, and both promptHashes to verify
+  // Captures agentType, both taskIds, and both promptHashes to verify
   // whether stale .pending.json entries are blocking legitimate re-dispatches.
   logInfo(
     `DIAG-DEDUP-BLOCK | agentType=${agentType} | ` +
-    `blockedDagTaskId=${dedupedEntries[0].dagTaskId || '?'} | ` +
-    `newDagTaskId=${dagTaskId} | ` +
+    `blockedDagTaskId=${dedupedEntries[0].taskId || '?'} | ` +
+    `newDagTaskId=${taskId} | ` +
     `prevHash=${(dedupedEntries[0].promptHash || '').substring(0, 12)} | ` +
     `newHash=${promptHash.substring(0, 12)}`,
   );
@@ -892,19 +924,19 @@ if (dedupedEntries.length > 0) {
   // Verify the prior session exists via session_log DB table to prevent misuse.
   const resumeSessionId = process.env.DISPATCH_RESUME_SESSION_ID || null;
   if (resumeSessionId) {
-    const dagTaskIdForResume = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
-    const priorSession = dbQuerySessionByDagTaskId(dagTaskIdForResume);
+    const taskIdForResume = process.env.FRAMEWORK_TASK_ID || taskId || "(unknown)";
+    const priorSession = dbQueryLatestSessionByDagTaskId(taskIdForResume);
     if (priorSession) {
-      logInfo(`RESUME dispatch allowed: dag_task_id=${dagTaskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`);
+      logInfo(`RESUME dispatch allowed: dag_task_id=${taskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`);
       // Continue — skip fatal exit, proceed to push new entry
     } else {
       writeLog("dispatch-subagent", "runtime", {
         level: "ERROR",
         event: "DAG-TASK-ID-REUSE-BLOCKED",
-        detail: `DAG_TASK_ID reuse blocked (no session_log entry): ${dagTaskIdForResume}`,
+        detail: `DAG_TASK_ID reuse blocked (no session_log entry): ${taskIdForResume}`,
       });
       console.error(fatalMsg);
-      logWarn(`DAG-TASK-ID REUSE BLOCKED (no session_log entry): ${dagTaskIdForResume}`);
+      logWarn(`DAG-TASK-ID REUSE BLOCKED (no session_log entry): ${taskIdForResume}`);
       process.exit(1);
     }
   } else {
@@ -914,7 +946,7 @@ if (dedupedEntries.length > 0) {
 }
 if (queue.length < beforeDedup) {
   logInfo(
-    `Deduped ${beforeDedup - queue.length} stale .pending.json entries for agentType="${agentType}" dagTaskId="${taskId}"`,
+    `Deduped ${beforeDedup - queue.length} stale .pending.json entries for agentType="${agentType}" taskId="${taskId}"`,
   );
 }
 
@@ -924,15 +956,15 @@ queue.push({
   filePath: outputFile,
   createdAt: new Date().toISOString(),
   agentType: agentType,
-  dagTaskId: process.env.FRAMEWORK_TASK_ID || taskId || null, // P0-FIX-BUG-15: audit trail
+  taskId: process.env.FRAMEWORK_TASK_ID || taskId || null, // P0-FIX-BUG-15: audit trail
 });
 
 // FW-DIAG-D2 (2026-06-10, @Super-Admin): Diagnostic log for entry creation tracing.
-// Captures agentType, dagTaskId, hash prefix, and queue size so we can
+// Captures agentType, taskId, hash prefix, and queue size so we can
 // track when entries are created and whether they're later consumed.
 logInfo(
   `DIAG-ENTRY-CREATE | agentType=${agentType} | ` +
-  `dagTaskId=${process.env.FRAMEWORK_TASK_ID || taskId || 'null'} | ` +
+  `taskId=${process.env.FRAMEWORK_TASK_ID || taskId || 'null'} | ` +
   `hash=${promptHash.substring(0, 12)} | ` +
   `queueSize=${queue.length}`,
 );
@@ -997,4 +1029,5 @@ logInfo(`Output: ${outputFile}`);
 // ──────────────────────────────────────────────
 // 7. Output file path to stdout (for the primary agent)
 // ──────────────────────────────────────────────
+process.env.FRAMEWORK_TASK_ID = _savedFwTaskId;
 console.log(outputFile);

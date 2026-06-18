@@ -22,6 +22,65 @@ alwaysApply: true
 **0b.** Call `knowledge_cache_search(domain, task_id)`.
 **0c.** If `status === "insufficient"` → request @Knowledge-Curator dispatch, re-search.
 
+### Step 0d: Multi-Source Investigation Mandate — plugin-enforced
+
+If your task involves any keyword listed below, you are executing an
+**investigation-type task** and the multi-source mandate applies:
+
+**English trigger words**:
+`investigation`, `audit`, `analysis`, `diagnosis`, `diagnose`, `debug`,
+`troubleshoot`, `root-cause`, `trace`, `tracing`, `forensic`
+
+**中文触发词**:
+`调查`, `排查`, `调试`, `诊断`, `根因`, `审计`, `追溯`, `排错`, `定位`
+
+> ⚠️ `verify` / `examine` / `inspect` are intentionally excluded —
+> these are too broad and would falsely trigger on TDD verification
+> and deployment health checks.
+
+**MANDATORY**: You MUST search BOTH source code AND at least 2 of the
+following runtime log/audit sources. Evidence of log review MUST appear
+in your HANDOVER.md as a section titled `## Logs Checked`.
+
+#### Text logs (readable via `read` / `grep` / `safe_shell`)
+
+| Source | Path | Typical Use |
+|--------|------|-------------|
+| Runtime logs | `.opencode/logs/` | Module execution, errors, warnings |
+| MCP Gate logs | `.opencode/logs/mcp-compliance-gate/` | compliance_gate call audit |
+| Shell log | `.opencode/logs/safe-bash.log` | safe_shell execution history |
+| Transaction log | `.opencode/state/.transaction-log` | State change transactions |
+| Dispatch output | `.task_temp/_dispatch/dispatch-*.md` | Each dispatch prompt |
+| Dispatch queue | `.task_temp/_dispatch/.pending.json` | Pending dispatch entries |
+| Dispatch failed | `.task_temp/_dispatch/.pending.json.failed` | Failed dispatch records |
+| Invocation summary | `.task_temp/_dispatch/INVOCATION_SUMMARY.md` | Cross-session summary (append) |
+| Archived logs | `.opencode/logs/archive/` | Historical compressed logs |
+
+#### DB/JSON logs (require SQL query or `read`)
+
+| Source | Path | Typical Use |
+|--------|------|-------------|
+| Session DB | `.opencode/state/session_log/` (SQLite) | session_map, audit trails |
+| Gate state (JSON) | `.opencode/state/gate-state.json` | Session lifecycle history |
+| Gate history | `.opencode/state/gate-state.history/` | Historical session records |
+| Gate archive | `.opencode/state/gate-state.archive.json` | Archived session records |
+| Machine state | `.opencode/state/machine.json` | Agent state, keystone hashes |
+
+#### HANDOVER.md required section:
+
+```markdown
+## Logs Checked
+
+| # | Source | Path | Key Finding |
+|---|--------|------|-------------|
+| 1 | Runtime logs | `.opencode/logs/...` | ... |
+| 2 | Gate state | `.opencode/state/gate-state.json` | ... |
+```
+
+**Violation**: If your HANDOVER.md lacks a `## Logs Checked` section
+with at least 2 entries, the compliance gate will REJECT your
+submission with `step_0d_log_evidence_missing`.
+
 ### Step 1: Invoke Skills (no plugin enforcement)
 
 Invoke all skills listed in your agent config in order. P0 skills (`execution-preflight-check`, `context7-first`) MUST be called first.
