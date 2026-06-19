@@ -25,6 +25,7 @@ import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { getEnforcementMode } from "../lib/gate-core";
 import { resolveAgent } from "../lib/agent-resolver";
+import { atomicWriteJson } from "../lib/state-utils";
 
 export default withPluginLifecycle("task-before", {
   "tool.execute.before": taskExecuteBefore,
@@ -180,11 +181,7 @@ async function taskExecuteBefore(input: any, output: any): Promise<void> {
           } catch {}
         } else {
           try {
-            require("node:fs").writeFileSync(
-              markerPath,
-              JSON.stringify(queue),
-              "utf8",
-            );
+            atomicWriteJson(markerPath, queue);
           } catch {}
         }
       }

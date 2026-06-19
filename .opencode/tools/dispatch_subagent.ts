@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { withInterruptGuard } from "../lib";
-import { atomicWriteSubState } from "../lib/state-utils";
+import { atomicWriteSubState, atomicWriteJson } from "../lib/state-utils";
 import { writeAuditLogEntry } from "../lib/audit-log";
 import { writeLog } from "../lib/log-manager";
 import { isDagExempt, readDispatchPolicy, autoPlan } from "../lib/dag-policy";
@@ -654,7 +654,7 @@ export default tool({
               });
             }
 
-            writeFileSync(autoMarkerPath, JSON.stringify(queue), "utf8");
+            atomicWriteJson(autoMarkerPath, queue);
           } catch {
             // Best-effort; fall through
           }

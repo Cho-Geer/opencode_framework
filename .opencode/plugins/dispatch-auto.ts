@@ -21,6 +21,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
+import { atomicWriteJson } from "../lib/state-utils";
 
 const QUEUE_NAME = ".auto-dispatch.json";
 const LEGACY_NAME = ".auto-dispatch";
@@ -65,7 +66,7 @@ async function toolExecuteAfter(input: any, _output: any): Promise<void> {
           detail: `Removed ${staleCount} stale entries, ${fresh.length} remain`,
         });
         if (fresh.length > 0) {
-          fs.writeFileSync(queuePath, JSON.stringify(fresh), "utf8");
+          atomicWriteJson(queuePath, fresh);
         } else {
           try {
             fs.unlinkSync(queuePath);
