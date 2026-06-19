@@ -46,35 +46,158 @@ async function taskExecuteBefore(input: any, output: any): Promise<void> {
   let prompt = output?.args?.prompt || "";
   const mode = getEnforcementMode();
 
-  // ── LLM-FREE BRIDGE: Auto-dispatch marker ──
-  // When dispatch_subagent writes .auto-dispatch, the LLM receives a
+  // ── LLM-FREE BRIDGE: Auto-dispatch marker (QUEUE-BASED v2) ──
+  // When dispatch_subagent writes .auto-dispatch.json, the LLM receives a
   // short confirmation instead of the full wrapped prompt. task-before
   // reads the full prompt from the dispatch file and replaces the
   // LLM-provided prompt with the original, ensuring DISPATCH_TOKEN
   // hash verification succeeds.
+  //
+  // FIX v2 (2026-06-19, @Super-Admin, SA-REVIEW-AUTO-DISPATCH-BUG):
+  // Changed from single-entry read-and-delete to FIFO queue dequeue.
+  // Now matches the correct entry by subagent_type + sessionId instead of
+  // blindly consuming whichever entry happens to be in the file.
+  // Agent-type mismatch is logged and blocked in strict/locked mode.
   const root = process.env.OPENCODE_ROOT || process.cwd();
-  const markerPath = root + "/.task_temp/_dispatch/.auto-dispatch";
-  if (require("node:fs").existsSync(markerPath)) {
+  const dispatchDir = root + "/.task_temp/_dispatch";
+  const queuePath = dispatchDir + "/.auto-dispatch.json";
+  const legacyPath = dispatchDir + "/.auto-dispatch";
+  const subagentType = output?.args?.subagent_type || "";
+
+  // Check queue file first, then legacy
+  const markerPath = require("node:fs").existsSync(queuePath)
+    ? queuePath
+    : require("node:fs").existsSync(legacyPath)
+      ? legacyPath
+      : null;
+
+  if (markerPath) {
     try {
-      const marker = JSON.parse(require("node:fs").readFileSync(markerPath, "utf8"));
-      const fullPrompt = require("node:fs").readFileSync(marker.filePath, "utf8");
-      if (fullPrompt) {
-        prompt = fullPrompt;
-        // Also update the output args so the sub-agent receives full protocol
-        if (output?.args) { output.args.prompt = fullPrompt; }
+      const raw = require("node:fs").readFileSync(markerPath, "utf8");
+      let queue = JSON.parse(raw);
+
+      // Normalize: single entry → wrap in array (legacy compat)
+      if (!Array.isArray(queue)) {
+        queue = [queue];
+      }
+
+      /** Queue entry for auto-dispatch marker */
+      interface AutoDispatchEntry {
+        sessionId: string;
+        agentType: string;
+        taskId: string;
+        filePath: string;
+        createdAt: number;
+      }
+      let entry: AutoDispatchEntry | null = null;
+      let matchQuality = "";
+
+      // Strategy 1: Exact match by agentType + sessionId
+      for (let i = 0; i < queue.length; i++) {
+        if (
+          queue[i].agentType === subagentType &&
+          queue[i].sessionId === input.sessionID
+        ) {
+          entry = queue.splice(i, 1)[0];
+          matchQuality = "exact (agentType+sessionId)";
+          break;
+        }
+      }
+
+      // Strategy 2: Match by agentType only (cross-session)
+      if (!entry) {
+        for (let i = 0; i < queue.length; i++) {
+          if (queue[i].agentType === subagentType) {
+            entry = queue.splice(i, 1)[0];
+            matchQuality = "agentType-only (session mismatch)";
+            writeLog("task-before", "runtime", {
+              sessionID: input.sessionID,
+              callID: input.callID,
+              agent,
+              agentType: agent,
+              level: "WARN",
+              event: "AUTO-DISPATCH-SESSION-MISMATCH",
+              detail: `Matched by agentType only. Marker sessionId=${entry.sessionId} != current=${input.sessionID}`,
+            });
+            break;
+          }
+        }
+      }
+
+      // Strategy 3: Take oldest entry (last resort — agent mismatch)
+      if (!entry && queue.length > 0) {
+        entry = queue.shift()!;
+        matchQuality = "fallback-oldest (agent MISMATCH)";
         writeLog("task-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID,
-          agent, agentType: agent,
-          event: "AUTO-DISPATCH-CONSUMED",
-          detail: `Loaded full prompt (${fullPrompt.length} bytes) from ${marker.filePath}`,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
+          level: "ERROR",
+          event: "AUTO-DISPATCH-AGENT-MISMATCH",
+          detail: `No matching entry for ${subagentType}. Used oldest: ${entry.agentType}:${entry.taskId} from session ${entry.sessionId}`,
         });
-        try { require("node:fs").unlinkSync(markerPath); } catch {}
+
+        // Block agent-type mismatch in strict/locked mode
+        if (
+          (mode === "strict" || mode === "locked") &&
+          entry.agentType !== subagentType
+        ) {
+          throw new Error(
+            `[FW-ENFORCE][AUTO-DISPATCH-AGENT-MISMATCH] ` +
+              `Task() subagent_type="${subagentType}" but marker is for "${entry.agentType}". ` +
+              `This means the auto-dispatch marker queue is out of sync — ` +
+              `the wrong agent's prompt would be loaded. ` +
+              `Re-dispatch with matching agent_type.`,
+          );
+        }
+      }
+
+      if (entry) {
+        const fullPrompt = require("node:fs").readFileSync(
+          entry.filePath,
+          "utf8",
+        );
+        if (fullPrompt) {
+          prompt = fullPrompt;
+          if (output?.args) {
+            output.args.prompt = fullPrompt;
+          }
+          writeLog("task-before", "runtime", {
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            event: "AUTO-DISPATCH-CONSUMED",
+            detail: `Loaded full prompt (${fullPrompt.length} bytes) from ${entry.filePath} | match=${matchQuality} | queue=${queue.length} remaining`,
+          });
+        }
+
+        // Write back remaining queue or delete if empty
+        if (markerPath === legacyPath || queue.length === 0) {
+          try {
+            require("node:fs").unlinkSync(markerPath);
+          } catch {}
+        } else {
+          try {
+            require("node:fs").writeFileSync(
+              markerPath,
+              JSON.stringify(queue),
+              "utf8",
+            );
+          } catch {}
+        }
       }
     } catch (e: any) {
+      // Rethrow enforcement errors
+      if (e.message && e.message.includes("[FW-ENFORCE]")) throw e;
       writeLog("task-before", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent, agentType: agent,
-        level: "ERROR", event: "AUTO-DISPATCH-FAILED",
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agentType: agent,
+        level: "ERROR",
+        event: "AUTO-DISPATCH-FAILED",
         detail: `Cannot load dispatch file from marker: ${e.message}`,
       });
     }
@@ -127,7 +250,9 @@ async function taskExecuteBefore(input: any, output: any): Promise<void> {
 
   // Strip DISPATCH_TOKEN line to recover clean prompt, then verify integrity.
   // The clean prompt is what dispatch_subagent.ts hashed to produce the token.
-  const cleanPrompt = prompt.replace(/\/\/DISPATCH_TOKEN:[a-f0-9]{64}\s*$/, "").replace(/\n+$/, "");
+  const cleanPrompt = prompt
+    .replace(/\/\/DISPATCH_TOKEN:[a-f0-9]{64}\s*$/, "")
+    .replace(/\n+$/, "");
   const expectedHash = require("crypto")
     .createHash("sha256")
     .update(cleanPrompt)

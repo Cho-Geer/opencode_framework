@@ -209,5 +209,5 @@ docs/official_docs/
 - The `websearch` tool requires the OpenCode provider or `OPENCODE_ENABLE_EXA=1` — degrade gracefully to webfetch-only if unavailable
 - `todowrite` is disabled for subagents by default — this config explicitly allows it for progress tracking
 - The `safe_*` tools are project-specific custom tools for atomic file operations — they replace OpenCode's native `edit`/`write`/`bash` for reliability
-- `agent_write_scopes` in the frontmatter is a project-specific field enforced by `code-quality-gate` and `framework-enforcer.ts`
+- `agent_write_scopes` in the frontmatter is a project-specific field enforced by `scope-before.ts` and `framework-enforcer.ts`
 - All Context7 MCP tool names follow the `<mcp-server-name>_<tool-name>` convention per `opencode.json` MCP configuration

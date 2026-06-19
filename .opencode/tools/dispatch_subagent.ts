@@ -7,13 +7,14 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { withInterruptGuard } from "../lib";
 import { atomicWriteSubState } from "../lib/state-utils";
 import { writeAuditLogEntry } from "../lib/audit-log";
-import {
-  isDagExempt,
-  readDispatchPolicy,
-  autoPlan,
-} from "../lib/dag-policy";
+import { writeLog } from "../lib/log-manager";
+import { isDagExempt, readDispatchPolicy, autoPlan } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
-import { dbWriteSessionMap, dbReadSessionMap, dbQuerySessionByDagTaskId } from "../lib/db-state-manager";
+import {
+  dbWriteSessionMap,
+  dbReadSessionMap,
+  dbQuerySessionByDagTaskId,
+} from "../lib/db-state-manager";
 
 // ── UC7KS Dispatch Bypass Helpers (FW-DISPATCH-BYPASS) ──
 
@@ -120,8 +121,7 @@ function logOrchestratorSADispatch(opts: {
     );
     if (existsSync(machinePath)) {
       atomicWriteSubState("compliance_records", (cr) => {
-        cr.orchestrator_sa_dispatches =
-          cr.orchestrator_sa_dispatches || [];
+        cr.orchestrator_sa_dispatches = cr.orchestrator_sa_dispatches || [];
         cr.orchestrator_sa_dispatches.push({
           timestamp: new Date().toISOString(),
           caller: opts.caller,
@@ -184,7 +184,7 @@ function inferDomainId(agentType: string): string | null {
         // Case-insensitive lookup
         for (const [key, val] of Object.entries(map)) {
           if (key.toLowerCase() === normalized.toLowerCase()) {
-            return (typeof val === "string" && val) ? val : null;
+            return typeof val === "string" && val ? val : null;
           }
         }
       }
@@ -276,7 +276,7 @@ export default tool({
             `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dispatch_subagent to ${targetAgent} ` +
               `requires a dag_task_id that exists in Task.DAG.json (dispatch_policy.require_dag_entry=true). ` +
               `Either provide a planned DAG ID, or set auto_plan=true to let the framework plan automatically, ` +
-              `or dispatch @Meta-Planner first to plan the task.`
+              `or dispatch @Meta-Planner first to plan the task.`,
           );
         }
         let tc = findTaskInDag(dagTaskId);
@@ -299,11 +299,21 @@ export default tool({
                 // and to keep the planning dispatch independent of the outer dispatch context.
                 const worktree = context.worktree || process.cwd();
                 const scriptPath = require("path").join(
-                  worktree, ".opencode", "scripts", "command-tools", "dispatch-subagent.ts"
+                  worktree,
+                  ".opencode",
+                  "scripts",
+                  "command-tools",
+                  "dispatch-subagent.ts",
                 );
                 require("child_process").execFileSync(
                   "bun",
-                  ["--no-cache", scriptPath, "Meta-Planner", planningDagId, planningPrompt],
+                  [
+                    "--no-cache",
+                    scriptPath,
+                    "Meta-Planner",
+                    planningDagId,
+                    planningPrompt,
+                  ],
                   {
                     encoding: "utf8",
                     timeout: policy.auto_plan_timeout_ms,
@@ -314,7 +324,7 @@ export default tool({
                       // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID removed.
                       // planningDagId is passed as positional arg to dispatch-subagent.ts.
                     },
-                  }
+                  },
                 );
                 return planningDagId;
               },
@@ -323,10 +333,10 @@ export default tool({
               throw new Error(
                 `[FW-ENFORCE][PLAN-FIRST][LAYER-2] auto_plan failed for dag_task_id ` +
                   `"${dagTaskId}" within ${policy.auto_plan_timeout_ms}ms. ` +
-                  `Dispatch @Meta-Planner manually to plan the task, then retry.`
+                  `Dispatch @Meta-Planner manually to plan the task, then retry.`,
               );
             }
-            tc = findTaskInDag(dagTaskId);  // re-verify
+            tc = findTaskInDag(dagTaskId); // re-verify
           }
           if (!tc.found) {
             if (args.auto_plan === true && !policy.auto_plan_enabled) {
@@ -335,13 +345,13 @@ export default tool({
                   `dispatch_policy.auto_plan_enabled=false in project.config.json. ` +
                   `Self-healing is blocked during rollout. ` +
                   `ACTION: dispatch @Meta-Planner to add "${dagTaskId}" to Task.DAG.json, ` +
-                  `then re-dispatch ${targetAgent} with the same dag_task_id.`
+                  `then re-dispatch ${targetAgent} with the same dag_task_id.`,
               );
             }
             throw new Error(
               `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dag_task_id "${dagTaskId}" not in ` +
                 `Task.DAG.json (checked both dag.tasks[] and dag.execution_order). ` +
-                `Dispatch @Meta-Planner first, or set auto_plan=true.`
+                `Dispatch @Meta-Planner first, or set auto_plan=true.`,
             );
           }
         }
@@ -349,7 +359,7 @@ export default tool({
         if (tc.status !== "pending" && tc.status !== "in_progress") {
           throw new Error(
             `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dag_task_id "${dagTaskId}" has ` +
-              `status "${tc.status}"; expected "pending" or "in_progress".`
+              `status "${tc.status}"; expected "pending" or "in_progress".`,
           );
         }
       }
@@ -361,7 +371,8 @@ export default tool({
         const caller = context.agent || "";
         const isOrchestrator =
           caller === "Orchestrator" || caller === "@Orchestrator";
-        const isSuperAdmin = caller === "Super-Admin" || caller === "@Super-Admin";
+        const isSuperAdmin =
+          caller === "Super-Admin" || caller === "@Super-Admin";
         const isKC =
           args.agent_type === "Knowledge-Curator" ||
           args.agent_type === "@Knowledge-Curator";
@@ -414,7 +425,8 @@ export default tool({
         // Task must match repair patterns. Enforcement mode gating:
         //   advisory: unrestricted, strict: repair patterns required, locked: human-only
         const isSATarget =
-          args.agent_type === "Super-Admin" || args.agent_type === "@Super-Admin";
+          args.agent_type === "Super-Admin" ||
+          args.agent_type === "@Super-Admin";
         if (isSATarget) {
           const repairPatterns = loadSARepairPatterns(
             context.worktree || process.cwd(),
@@ -525,7 +537,9 @@ export default tool({
                 DISPATCH_TASK_DESC: args.task_description,
                 // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID removed from child env.
                 // The child script now reads dag_task_id from .dispatch_ctx file instead.
-                ...(args.resume_session_id ? { DISPATCH_RESUME_SESSION_ID: args.resume_session_id } : {}),
+                ...(args.resume_session_id
+                  ? { DISPATCH_RESUME_SESSION_ID: args.resume_session_id }
+                  : {}),
               },
             },
           );
@@ -540,27 +554,107 @@ export default tool({
 
         const wrappedPrompt = await readFile(outputFilePath, "utf8");
 
-        // ── LLM-FREE BRIDGE: Write .auto-dispatch marker ──
+        // ── LLM-FREE BRIDGE: Write .auto-dispatch marker (QUEUE-BASED v2) ──
         // task-before.ts detects this marker, loads the full prompt from
         // outputFilePath, and substitutes it for DISPATCH_TOKEN hash
         // verification. The LLM receives only a short confirmation.
+        //
+        // FIX v2 (2026-06-19, @Super-Admin, SA-REVIEW-AUTO-DISPATCH-BUG):
+        // Changed from single-file overwrite to FIFO queue append.
+        // The old design used a single .auto-dispatch file shared across ALL
+        // dispatches — sequential dispatches would overwrite each other's
+        // markers. Now each dispatch appends to a queue (.auto-dispatch.json)
+        // and task-before.ts dequeues the matching entry.
         if (outputFilePath) {
           try {
+            const root = process.env.OPENCODE_ROOT || process.cwd();
+            const dispatchDir = path.join(root, ".task_temp", "_dispatch");
             const autoMarkerPath = path.join(
-              process.env.OPENCODE_ROOT || process.cwd(),
-              ".task_temp", "_dispatch", ".auto-dispatch"
+              dispatchDir,
+              ".auto-dispatch.json",
             );
-            writeFileSync(
-              autoMarkerPath,
-              JSON.stringify({
-                sessionId: context.sessionID || "",
-                agentType: args.agent_type,
-                taskId: dagTaskId || "",
-                filePath: outputFilePath,
-                createdAt: Date.now(),
-              }),
-              "utf8",
-            );
+            const legacyPath = path.join(dispatchDir, ".auto-dispatch");
+
+            /** Queue entry for auto-dispatch marker */
+            interface AutoDispatchEntry {
+              sessionId: string;
+              agentType: string;
+              taskId: string;
+              filePath: string;
+              createdAt: number;
+            }
+            let queue: AutoDispatchEntry[] = [];
+
+            // Check new queue file first, then legacy single file
+            if (existsSync(autoMarkerPath)) {
+              try {
+                const raw = readFileSync(autoMarkerPath, "utf8");
+                queue = JSON.parse(raw);
+                if (!Array.isArray(queue)) {
+                  queue = [queue];
+                }
+              } catch {
+                queue = [];
+              }
+            } else if (existsSync(legacyPath)) {
+              // Migrate legacy single-entry format
+              try {
+                const raw = readFileSync(legacyPath, "utf8");
+                const legacy = JSON.parse(raw);
+                if (
+                  legacy &&
+                  typeof legacy === "object" &&
+                  !Array.isArray(legacy)
+                ) {
+                  queue = [legacy];
+                  writeLog("dispatch_subagent", "runtime", {
+                    sessionID: context.sessionID || "",
+                    agent: args.agent_type,
+                    level: "INFO",
+                    event: "AUTO-DISPATCH-LEGACY-MIGRATED",
+                    detail: `Migrated legacy .auto-dispatch entry (agentType=${legacy.agentType})`,
+                  });
+                }
+                try {
+                  unlinkSync(legacyPath);
+                } catch {}
+              } catch {
+                queue = [];
+              }
+            }
+
+            // Log if queue already has entries (overwrite is now detected as queue buildup)
+            if (queue.length > 0) {
+              writeLog("dispatch_subagent", "runtime", {
+                sessionID: context.sessionID || "",
+                agent: args.agent_type,
+                level: "WARN",
+                event: "AUTO-DISPATCH-QUEUE-APPEND",
+                detail: `Appending to queue (${queue.length} existing). New: ${args.agent_type}:${dagTaskId || "?"}`,
+              });
+            }
+
+            queue.push({
+              sessionId: context.sessionID || "",
+              agentType: args.agent_type,
+              taskId: dagTaskId || "",
+              filePath: outputFilePath,
+              createdAt: Date.now(),
+            });
+
+            // Cap at 50 entries to prevent unbounded growth
+            if (queue.length > 50) {
+              const removed = queue.splice(0, queue.length - 50);
+              writeLog("dispatch_subagent", "runtime", {
+                sessionID: context.sessionID || "",
+                agent: args.agent_type,
+                level: "WARN",
+                event: "AUTO-DISPATCH-QUEUE-TRUNCATED",
+                detail: `Trimmed ${removed.length} oldest entries`,
+              });
+            }
+
+            writeFileSync(autoMarkerPath, JSON.stringify(queue), "utf8");
           } catch {
             // Best-effort; fall through
           }
@@ -581,7 +675,11 @@ export default tool({
             }
             writeFileSync(
               dispatchCtxPath,
-              JSON.stringify({ dagTaskId, domainId: inferredDomainId, createdAt: Date.now() }),
+              JSON.stringify({
+                dagTaskId,
+                domainId: inferredDomainId,
+                createdAt: Date.now(),
+              }),
               "utf8",
             );
           } catch {

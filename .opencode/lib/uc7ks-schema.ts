@@ -428,7 +428,7 @@ export function readCacheDiscovery(
   domain: string,
 ): CacheDiscovery | null {
   const agentKey = normalizeAgentKey(agent);
-  const a = sa[agentKey] || sa[agent];
+  const a = sa[agentKey] || sa[agent] || sa;
   if (!a) return null;
 
   // Try nested discovery field
@@ -462,7 +462,7 @@ export function readCacheAttestation(
   domain: string,
 ): CacheAttestation | null {
   const agentKey = normalizeAgentKey(agent);
-  const a = sa[agentKey] || sa[agent];
+  const a = sa[agentKey] || sa[agent] || sa;
   if (!a) return null;
 
   const nested = a.tasks?.[taskId]?.domains?.[domain];

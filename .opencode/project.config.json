@@ -765,7 +765,7 @@
       "docker",
       "postgre_sql",
       "eslint_audit",
-      "code_quality_gate"
+      "code_quality_check"
     ],
     "@Coder-FE": [
       "task",
@@ -785,7 +785,7 @@
       "dispatch_subagent",
       "playwright",
       "eslint_audit",
-      "code_quality_gate"
+      "code_quality_check"
     ],
     "@Guardian": [
       "task",
@@ -804,7 +804,7 @@
       "compliance_gate_*",
       "dispatch_subagent",
       "eslint_audit",
-      "code_quality_gate"
+      "code_quality_check"
     ],
     "@Arbiter": [
       "task",

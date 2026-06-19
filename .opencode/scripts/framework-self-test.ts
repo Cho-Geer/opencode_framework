@@ -465,7 +465,7 @@ function checkAgentSkillsClean() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 9: architect has code-quality-gate
+// Check 9: architect has code-quality-check
 
 // ═══════════════════════════════════════════════════════════════
 function checkArchitectCQG() {
@@ -478,13 +478,13 @@ function checkArchitectCQG() {
   const content = readFile(archPath);
   if (!content) return check(9, false, "architect.md not found");
 
-  const hasCQG = content.includes("code-quality-gate");
+  const hasCQC = content.includes("code-quality-check");
   return check(
     9,
-    hasCQG,
-    hasCQG
-      ? "code-quality-gate found in architect.md mcp_tools"
-      : "MISSING! code-quality-gate not in architect.md",
+    hasCQC,
+    hasCQC
+      ? "code-quality-check found in architect.md mcp_tools"
+      : "MISSING! code-quality-check not in architect.md",
   );
 }
 
@@ -618,62 +618,40 @@ function checkThreeLayersEightRoles() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 15: code-quality-gate.ts bootstrap
+// Check 15: code-quality-check.ts bootstrap (replaces deprecated code-quality-gate.ts)
 
 // ═══════════════════════════════════════════════════════════════
 function checkCQGBootstrap() {
-  const cqgPath = path.join(
+  const cqcPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
     "scripts",
     "mcp-tools",
-    "code-quality-gate.ts",
+    "code-quality-check.ts",
   );
-  const content = readFile(cqgPath);
-  if (!content) return check(15, false, "code-quality-gate.ts not found");
+  const content = readFile(cqcPath);
+  if (!content) return check(15, false, "code-quality-check.ts not found");
 
-  // Check getStatePath() calls ensureStateDir()
-  const hasEnsureStateDirCall =
-    content.includes("ensureStateDir(stateDir)") ||
-    content.includes("ensureStateDir(");
-  const hasEnsureStateDirInGetStatePath =
-    content.indexOf("function getStatePath") <
-      content.indexOf("ensureStateDir") &&
-    content.indexOf("ensureStateDir") <
-      content.indexOf("return path.join(stateDir");
+  // Verify MCP server bootstrap structure
+  const hasServer = content.includes("new Server(") || content.includes("new Server (");
+  const hasTransport = content.includes("StdioServerTransport") && content.includes("connect(transport)");
+  const hasToolsSchema = content.includes("ListToolsRequestSchema");
+  const hasCallTool = content.includes("CallToolRequestSchema");
+  const hasCodeQualityLib = content.includes("code-quality-lib");
+  
+  const actualIssues: string[] = [];
+  if (!hasServer) actualIssues.push("missing Server() init");
+  if (!hasTransport) actualIssues.push("missing transport.connect()");
+  if (!hasToolsSchema) actualIssues.push("missing ListToolsRequestSchema");
+  if (!hasCallTool) actualIssues.push("missing CallToolRequestSchema");
+  if (!hasCodeQualityLib) actualIssues.push("missing code-quality-lib import");
 
-  // More robust: check that getStatePath contains ensureStateDir
-  const getStatePathFunc = content.match(
-    /function getStatePath\(\)\s*\{[^}]+\}/,
-  );
-  let getStatePathCallsEnsure = false;
-  if (getStatePathFunc) {
-    getStatePathCallsEnsure = getStatePathFunc[0].includes("ensureStateDir");
-  }
-
-  // Check getMachine() bootstraps on null
-  const getMachineFunc = content.match(
-    /function getMachine\(\)\s*\{[\s\S]*?^function|\}[\s\S]*?^export/m,
-  );
-  let getMachineBootstrap = false;
-  if (getMachineFunc) {
-    getMachineBootstrap =
-      getMachineFunc[0].includes("getDefaultMachine()") &&
-      getMachineFunc[0].includes("writeMachine");
-  }
-
-  const ok = getStatePathCallsEnsure && getMachineBootstrap;
-  let detail = "";
-  if (!getStatePathCallsEnsure)
-    detail += " getStatePath() missing ensureStateDir() call";
-  if (!getMachineBootstrap)
-    detail += " getMachine() missing getDefaultMachine() bootstrap";
   return check(
     15,
-    ok,
-    ok
-      ? "getStatePath() calls ensureStateDir(), getMachine() bootstraps with getDefaultMachine() on null"
-      : detail.trim(),
+    actualIssues.length === 0,
+    actualIssues.length === 0
+      ? "code-quality-check.ts MCP server structure verified"
+      : `code-quality-check.ts issues: ${actualIssues.join("; ")}`,
   );
 }
 

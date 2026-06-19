@@ -17,7 +17,7 @@ mcp_tools:
   - dispatch_subagent
   - safe_test
   - eslint-audit
-  - code-quality-gate
+  - code-quality-check
   - safe_edit
   - safe_delete
   - safe_mkdir
@@ -85,7 +85,7 @@ When reviewing code, the following must be verified for `test_report.json`:
 
 ### Layer A — Auto Gate (Read machine.json, transparent, non-negotiable)
 
-Before any manual review, read `machine.json` via `code_quality_gate.get_audit_status()`:
+Before any manual review, read `machine.json` sub-states directly (code_quality_gate MCP removed — use `read` tool or `code_quality_check.run_full_scan()` for quality checks):
 
 - [ ] **`machine.json.eslint_state.aggregate.dirty_modules` is empty** → if non-empty: **AUTO FAIL** (CAT3.7)
 - [ ] **`machine.json.type_check_state.status` is `clean`** → if `dirty`: **AUTO FAIL**

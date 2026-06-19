@@ -16,7 +16,7 @@ mcp_tools:
   # webfetch/websearch/Github REMOVED — dispatch @Knowledge-Curator instead.
   # FW-DISPATCH-BYPASS: Super-Admin may dispatch @Knowledge-Curator directly
   - dispatch_subagent
-  - code-quality-gate
+  - code-quality-check
   - compliance-gate
   - safe_edit
   - safe_shell

@@ -9,6 +9,11 @@
 // marker, reads the full prompt from the dispatch file, and uses that
 // for DISPATCH_TOKEN hash verification instead of the LLM-provided prompt.
 //
+// FIX v2 (2026-06-19, @Super-Admin, SA-REVIEW-AUTO-DISPATCH-BUG):
+// Changed from single-entry whole-file delete to per-entry stale cleanup.
+// The queue-based marker (.auto-dispatch.json) requires per-entry aging,
+// not whole-file deletion. Also added legacy format support.
+//
 // @since 2026-06-18
 // @author @Super-Admin
 
@@ -17,7 +22,8 @@ import * as path from "node:path";
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 
-const MARKER_NAME = ".auto-dispatch";
+const QUEUE_NAME = ".auto-dispatch.json";
+const LEGACY_NAME = ".auto-dispatch";
 const MAX_AGE_MS = 300_000; // 5 minutes — stale marker cleanup
 
 export default withPluginLifecycle("dispatch-auto", {
@@ -26,30 +32,83 @@ export default withPluginLifecycle("dispatch-auto", {
 
 async function toolExecuteAfter(input: any, _output: any): Promise<void> {
   const root = process.env.OPENCODE_ROOT || process.cwd();
-  const markerPath = path.join(root, ".task_temp", "_dispatch", MARKER_NAME);
+  const queuePath = path.join(root, ".task_temp", "_dispatch", QUEUE_NAME);
+  const legacyPath = path.join(root, ".task_temp", "_dispatch", LEGACY_NAME);
 
-  if (!fs.existsSync(markerPath)) return;
+  // ── Queue-based marker (.auto-dispatch.json) ──
+  if (fs.existsSync(queuePath)) {
+    try {
+      const raw = fs.readFileSync(queuePath, "utf8");
+      let queue = JSON.parse(raw);
+      if (!Array.isArray(queue)) {
+        queue = [queue];
+      }
 
-  // Marker exists — check if it's stale
+      const now = Date.now();
+      const fresh: any[] = [];
+      let staleCount = 0;
+
+      for (const entry of queue) {
+        if (entry.createdAt && now - entry.createdAt > MAX_AGE_MS) {
+          staleCount++;
+        } else {
+          fresh.push(entry);
+        }
+      }
+
+      if (staleCount > 0) {
+        writeLog("dispatch-auto", "runtime", {
+          sessionID: input.sessionID,
+          callID: input.callID,
+          level: "WARN",
+          event: "AUTO-DISPATCH-STALE-CLEANUP",
+          detail: `Removed ${staleCount} stale entries, ${fresh.length} remain`,
+        });
+        if (fresh.length > 0) {
+          fs.writeFileSync(queuePath, JSON.stringify(fresh), "utf8");
+        } else {
+          try {
+            fs.unlinkSync(queuePath);
+          } catch {}
+        }
+      }
+
+      // If all entries fresh, log nothing — marker is expected to exist
+      return;
+    } catch {
+      // Malformed queue — cleanup
+      try {
+        fs.unlinkSync(queuePath);
+      } catch {}
+      return;
+    }
+  }
+
+  // ── Legacy single-entry marker (.auto-dispatch) — backward compat ──
+  if (!fs.existsSync(legacyPath)) return;
+
   let createdAt = 0;
   try {
-    const raw = fs.readFileSync(markerPath, "utf8");
+    const raw = fs.readFileSync(legacyPath, "utf8");
     const entry = JSON.parse(raw);
     createdAt = entry.createdAt || 0;
   } catch {
     // Malformed — remove
   }
 
-  if (createdAt && (Date.now() - createdAt) > MAX_AGE_MS) {
+  if (createdAt && Date.now() - createdAt > MAX_AGE_MS) {
     writeLog("dispatch-auto", "runtime", {
-      sessionID: input.sessionID, callID: input.callID,
-      level: "WARN", event: "AUTO-DISPATCH-STALE",
-      detail: `.auto-dispatch marker aged ${Math.round((Date.now() - createdAt) / 1000)}s — auto-cleaning`,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      level: "WARN",
+      event: "AUTO-DISPATCH-STALE",
+      detail: `Legacy .auto-dispatch marker aged ${Math.round((Date.now() - createdAt) / 1000)}s — auto-cleaning`,
     });
-    try { fs.unlinkSync(markerPath); } catch {}
+    try {
+      fs.unlinkSync(legacyPath);
+    } catch {}
     return;
   }
 
-  // Marker is fresh — LLM should call Task() soon. Don't clean yet.
-  // It will be cleaned by task-before.ts when consumed.
+  // Fresh legacy marker — LLM should call Task() soon. Don't clean yet.
 }

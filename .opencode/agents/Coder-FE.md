@@ -17,7 +17,7 @@ mcp_tools:
   - dispatch_subagent
   - Playwright
   - eslint-audit
-  - code-quality-gate
+  - code-quality-check
   - safe_edit
   - safe_shell
   - safe_test
@@ -91,7 +91,7 @@ Before any investigation or external query:
 
 **Immediately after each `Write` or `Edit` operation, before any subsequent work:**
 
-1. Call `code_quality_gate.run_write_check({ changed_file: "<file>", agent_type: "@Coder-FE", task_id: "<current_task_id>" })` *(deprecated wrapper — delegates to code-quality-lib.ts internally)*
+1. (Auto-format runs via `format-after` plugin. For manual checks, use `code_quality_check`: `code_quality_check.run_tsc_check()` / `code_quality_check.run_depcruise_check()` / `code_quality_check.run_full_scan()`) *(code-quality-gate removed — see code-quality-lib.ts)*
 2. Check the response:
    - `overall: "pass"` → continue
    - `overall: "fail"` → handle violations:

@@ -193,7 +193,7 @@
         "compliance_gate_check": "allow",
         "compliance_gate_confirm": "allow",
         "compliance_gate_complete": "allow",
-        "code_quality_gate": "allow",
+        "code_quality_check": "allow",
         "safe_diff": "allow",
         "safe_edit": {
           "contract.yaml": "allow",
@@ -342,7 +342,7 @@
         "docker": "allow",
         "postgre_sql": "allow",
         "eslint_audit": "allow",
-        "code_quality_gate": "allow",
+        "code_quality_check": "allow",
         "safe_diff": "allow",
         "safe_delete": {
           "booking_system_refactor/booking-backend/src/**": "allow",
@@ -425,7 +425,7 @@
         "compliance_gate_complete": "allow",
         "playwright": "allow",
         "eslint_audit": "allow",
-        "code_quality_gate": "allow",
+        "code_quality_check": "allow",
         "safe_diff": "allow",
         "safe_delete": {
           "booking_system_refactor/booking-frontend/**": "allow",
@@ -470,7 +470,7 @@
         "compliance_gate_confirm": "allow",
         "compliance_gate_complete": "allow",
         "eslint_audit": "allow",
-        "code_quality_gate": "allow",
+        "code_quality_check": "allow",
         "safe_diff": "allow",
         "safe_test": "allow",
         "safe_edit": {
@@ -693,7 +693,7 @@
         "compliance_gate_check": "allow",
         "compliance_gate_confirm": "allow",
         "compliance_gate_complete": "allow",
-        "code_quality_gate": "allow",
+        "code_quality_check": "allow",
         "safe_diff": "allow",
         "safe_restore": {
           ".opencode/**": "allow",
@@ -853,7 +853,8 @@
   },
   "plugin": [
     "./.opencode/plugins/read-track-after.ts",
-    "./.opencode/plugins/scope-before.ts"
+    "./.opencode/plugins/scope-before.ts",
+    "./.opencode/plugins/format-after.ts"
   ],
   "mcp": {
     "compliance-gate": {
@@ -873,6 +874,15 @@
       "command": [
         "bun",
         "./.opencode/scripts/mcp-tools/eslint-audit.ts"
+      ],
+      "timeout": 60000,
+      "enabled": true
+    },
+    "code-quality-check": {
+      "type": "local",
+      "command": [
+        "bun",
+        "./.opencode/scripts/mcp-tools/code-quality-check.ts"
       ],
       "timeout": 60000,
       "enabled": true
