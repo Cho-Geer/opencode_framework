@@ -162,6 +162,11 @@
       "path": ".opencode/context/requirements/接口设计规范文档.md",
       "category": "requirement",
       "description": "API design specification document"
+    },
+    "tools/dispatch_subagent.ts": {
+      "path": ".opencode/tools/dispatch_subagent.ts",
+      "category": "tool",
+      "description": "Dispatch sub-agent prompt wrapper — P0 protocol injection, template resolution, UC7KS pipeline"
     }
   }
 }

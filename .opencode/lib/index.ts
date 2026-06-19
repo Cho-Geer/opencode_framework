@@ -16,11 +16,11 @@
  * @version 1.0.0
  */
 
-export * from './safe-edit-core';
-export * from './safe-bash-core';
-export * from './safe-test-core';
-export * from './permission-isolation-core';
-export * from './critical-files';
+export * from "./safe-edit-core";
+export * from "./safe-bash-core";
+export * from "./safe-test-core";
+export * from "./permission-isolation-core";
+export * from "./critical-files";
 
 // gate-core is exported separately since it has dependencies
 // on the compliance gate MCP tool infrastructure
@@ -30,7 +30,7 @@ export {
   safeBashTool,
   ALLOWED_SCRIPT_PATHS,
   WRITE_PATTERNS,
-} from './safe-bash-core';
+} from "./safe-bash-core";
 
 // FW-INTERRUPT-GUARD (2026-06-14): Cooperative interrupt trap.
 // Prevents the upstream TUI from rendering raw "Unexpected {interrupt}"
@@ -39,7 +39,18 @@ export {
   withInterruptGuard,
   installSigintCleanup,
   isInterruptError,
-} from './interrupt-guard';
-export type { InterruptTrapPayload } from './interrupt-guard';
+} from "./interrupt-guard";
+export type { InterruptTrapPayload } from "./interrupt-guard";
 
-export * from './hook-lifecycle';
+export * from "./hook-lifecycle";
+
+// Agent resolution utilities (re-export)
+export {
+  resolveAgent,
+  resolveAgentFromSessionMap,
+  resolveTaskId,
+  resolveDomainId,
+  resolveLatestDispatchAgent,
+  getSessionMapPath,
+  sessionLastDispatched,
+} from "./agent-resolver";

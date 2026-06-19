@@ -20,6 +20,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { findTaskInDag } from "./gate-checks";
 import { writeAuditLogEntry } from "./audit-log";
+import { writeLog } from "./log-manager";
 import { atomicWriteSubState } from "./state-utils";
 import { readSubState } from "./substate-manager";
 
@@ -169,11 +170,16 @@ function isLockedMode(): boolean {
   try {
     const root = process.env.OPENCODE_ROOT || process.cwd();
     const cfg = JSON.parse(
-      fs.readFileSync(path.join(root, ".opencode", "project.config.json"), "utf8"),
+      fs.readFileSync(
+        path.join(root, ".opencode", "project.config.json"),
+        "utf8",
+      ),
     );
     const tr = cfg?.template_resolution || {};
     const mode =
-      tr.develop_enforcement_mode || tr.runtime_enforcement_mode || tr.enforcement_mode;
+      tr.develop_enforcement_mode ||
+      tr.runtime_enforcement_mode ||
+      tr.enforcement_mode;
     return mode === "locked";
   } catch {
     return false;
@@ -214,7 +220,16 @@ function appendAutoPlanRecord(rec: AutoPlanRecord): void {
   });
 
   if (!ok) {
-    process.stderr.write("[dag-policy] Failed to write auto_plan_history after 3 retries\n");
+    /**
+     * FW-STDERR-POLLUTION-FIX: Replaced process.stderr.write with writeLog
+     * to stop TUI pollution. writeLog writes to buffered file-based logs
+     * (.task_temp/_logs/) instead of stderr which leaks to the TUI.
+     * See: docs/official_docs/opencode/findings/01-log-central-management.md
+     */
+    writeLog("dag-policy", "ERROR", {
+      event: "AUTO-PLAN-HISTORY-FAILED",
+      detail: "Failed to write auto_plan_history after 3 retries",
+    });
   }
 
   writeAuditLogEntry({
@@ -247,7 +262,10 @@ export interface AutoPlanOptions {
    * circular import with dispatch_subagent.ts. The callback must return the
    * dispatch session ID (e.g. "PLAN-<dagTaskId>") or throw.
    */
-  dispatchMetaPlanner: (planningPrompt: string, planningDagId: string) => Promise<string>;
+  dispatchMetaPlanner: (
+    planningPrompt: string,
+    planningDagId: string,
+  ) => Promise<string>;
 }
 
 /**

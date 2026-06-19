@@ -53,12 +53,46 @@ visibility of modified files.
 
 ### §2.1 Modification 1 — `.opencode/lib/agent-resolver.ts`
 
-**Purpose**: Add `resolveLatestDispatchAgent()` function that queries the
-`session_map` DB for the most recently created agent entry.
+**Purpose**: (1) Replace all 6 existing `demoLog()` calls with direct `writeLog()`
+calls for richer semantics and proper source attribution; (2) Add
+`resolveLatestDispatchAgent()` function that queries the `session_map` DB for
+the most recently created agent entry.
 
-**Location**: Append after line 160 (end of file), before any closing constructs.
+**Location**: Edit the entire file. New function appended after existing
+`resolveDomainId` (line 160).
 
-#### Complete Code
+#### Step 1a: Replace imports and add SRC constant
+
+```diff
+- import { demoLog } from "./shared-infra";
++ import { writeLog } from "./log-manager";
++ const SRC = "lib-agent-resolver";
+```
+
+**Rationale**: `demoLog` is a thin wrapper that always logs with source
+`"lib-shared-infra"` and event `"demo"`, hiding the actual caller. Replacing
+with `writeLog` enables proper source identification (`"lib-agent-resolver"`)
+and semantically meaningful event names (e.g. `"SESSION-MAP-HIT"`,
+`"AGENT-RESOLVED"`, `"TASKID-RESOLVED"`, `"DOMAIN-RESOLVED"`).
+
+#### Step 1b: Replace existing demoLog calls with writeLog
+
+Replace all 6 `demoLog("INFO", ...)` calls with `writeLog(SRC, "INFO", {...})`:
+
+| #   | Original (demoLog)                                                           | Replacement (writeLog)                                                                                                                                   |
+| --- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `demoLog("INFO", \`session map hit: ${sessionID} → ${entry.agent}\`);`       | `writeLog(SRC, "INFO", { event: "SESSION-MAP-HIT", agent: entry.agent, detail: \`session map hit: ${sessionID} → ${entry.agent}\` });`                   |
+| 2   | `demoLog("INFO", \`resolveAgent: session map → ${agent}\`);`                 | `writeLog(SRC, "INFO", { event: "AGENT-RESOLVED", agent, detail: \`resolveAgent: session map → ${agent}\` });`                                           |
+| 3   | `demoLog("INFO", \`resolveAgent: dispatch target → ${d.agent}\`);`           | `writeLog(SRC, "INFO", { event: "AGENT-RESOLVED-DISPATCH", agent: d.agent, detail: \`resolveAgent: dispatch target → ${d.agent}\` });`                   |
+| 4   | `demoLog("INFO", \`resolveAgent: dispatch target → ${d.agent}\`);`           | `writeLog(SRC, "INFO", { event: "AGENT-RESOLVED-DISPATCH", agent: d.agent, detail: \`resolveAgent: dispatch target → ${d.agent}\` });`                   |
+| 5   | `demoLog("INFO", \`resolveTaskId: session_map DB → ${entry.dag_task_id}\`);` | `writeLog(SRC, "INFO", { event: "TASKID-RESOLVED", dag_task_id: entry.dag_task_id, detail: \`resolveTaskId: session_map DB → ${entry.dag_task_id}\` });` |
+| 6   | `demoLog("INFO", \`resolveDomainId: session_map DB → ${entry.domain_id}\`);` | `writeLog(SRC, "INFO", { event: "DOMAIN-RESOLVED", domain_id: entry.domain_id, detail: \`resolveDomainId: session_map DB → ${entry.domain_id}\` });`     |
+
+**Safety**: `demoLog` internally calls `writeLog("lib-shared-infra", level, { event: "demo", detail: message })` — same function, same log-manager pipeline. The replacement is functionally equivalent but with richer metadata: proper source identifier (`"lib-agent-resolver"` instead of `"lib-shared-infra"`) and semantically meaningful event types. `writeLog` has its own try/catch internally, preserving the non-blocking behavior.
+
+#### Step 1c: Add resolveLatestDispatchAgent function
+
+Append after `resolveDomainId` (line 160).
 
 ```typescript
 /**
@@ -111,7 +145,7 @@ export function resolveLatestDispatchAgent(taskId?: string): string {
     }
   } catch (e: any) {
     // Non-blocking: if DB unavailable, return empty (bypass not applied)
-    writeLog("agent-resolver", "runtime", {
+    writeLog(SRC, "ERROR", {
       event: "SESSION-MAP-READ-FAILED",
       detail: `resolveLatestDispatchAgent: ${e.message}`,
     });
@@ -147,7 +181,14 @@ export {
 #### Dependencies
 
 - `db-manager.ts` — already imported by existing functions (`getDb()`)
-- `log-manager.ts` — `writeLog` used for error path (same as existing `demoLog`)
+- `log-manager.ts` — `writeLog` imported at top of file (replaces `demoLog` from `shared-infra.ts`)
+
+#### Impact on shared-infra.ts
+
+After this change, `agent-resolver.ts` no longer depends on `shared-infra.ts`.
+The `demoLog()` function in `shared-infra.ts` will have one fewer consumer.
+Future work (separate task) can evaluate removing `demoLog` entirely if no
+other callers remain.
 
 ---
 
@@ -506,16 +547,18 @@ describe("compliance_gate_check — critical file bypass", () => {
 
 ## §7 Implementation Sequence
 
-| Step | File                 | Action                                                                              | Estimated Lines |
-| ---- | -------------------- | ----------------------------------------------------------------------------------- | :-------------: |
-| 1    | `agent-resolver.ts`  | Add `resolveLatestDispatchAgent(taskId?)` function + `writeLog` import              |       ~45       |
-| 2    | `lib/index.ts`       | Add `resolveLatestDispatchAgent` to named exports                                   |       ~1        |
-| 3a   | `compliance-gate.ts` | Delete lines 788-794 (inline duplicate of same query)                               |       ~-7       |
-| 3b   | `compliance-gate.ts` | Insert bypass logic block (lines 970-972) + `require()` import at fn top            |       ~25       |
-| 4    | `docs/`              | This plan document                                                                  |        —        |
-| 5    | `__tests__/`         | Unit + integration tests (optional, framework files have no test suite requirement) |        —        |
+| Step | File                 | Action                                                                                      | Estimated Lines |
+| ---- | -------------------- | ------------------------------------------------------------------------------------------- | :-------------: |
+| 1a   | `agent-resolver.ts`  | Replace `import { demoLog }` → `import { writeLog }`; add `const SRC`                       |       ~2        |
+| 1b   | `agent-resolver.ts`  | Replace 6 existing `demoLog()` calls with `writeLog(SRC, ...)`                              |       ~18       |
+| 1c   | `agent-resolver.ts`  | Add `resolveLatestDispatchAgent(taskId?)` function (uses `writeLog(SRC, ...)` from Step 1a) |       ~42       |
+| 2    | `lib/index.ts`       | Add `resolveLatestDispatchAgent` to named exports                                           |       ~1        |
+| 3a   | `compliance-gate.ts` | Delete lines 788-794 (inline duplicate of same query)                                       |       ~-7       |
+| 3b   | `compliance-gate.ts` | Insert bypass logic block (lines 970-972) + `require()` import at fn top                    |       ~25       |
+| 4    | `docs/`              | This plan document                                                                          |        —        |
+| 5    | `__tests__/`         | Unit + integration tests (optional, framework files have no test suite requirement)         |        —        |
 
-**Total**: ~64 lines added, 7 lines removed, 2 files modified + 1 export updated.
+**Total**: ~81 lines modified (6 replacements + 42 new + 2 import), 7 lines removed, 2 files modified + 1 export updated.
 
 ---
 
