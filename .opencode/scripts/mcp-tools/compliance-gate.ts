@@ -1899,12 +1899,75 @@ function enforceMultiSourceAudit(
 }
 
 /**
+ * Parse the ## Findings table from HANDOVER.md content.
+ * Extracts Finding categories for cross-checking with findings_reported parameter.
+ *
+ * Logic:
+ * 1. Find `## Findings` header using exact regex: /^##\s+Findings\s*$/im
+ * 2. Parse subsequent table rows until next `##` header or EOF
+ * 3. Extract Category column (second column in `| S | C | D |` format)
+ * 4. Validate each category against /^[a-z][a-z0-9_-]*$/
+ * 5. Return { categories: string[], count: number, error: string|null }
+ *
+ * Edge cases:
+ * - No `## Findings` section → { categories: [], count: 0, error: null }
+ * - Empty Findings table (header only) → { categories: [], count: 0, error: null }
+ * - Malformed table → extracts what can be parsed; invalid categories skipped
+ * 
+ * @param {string} handoverContent - Full HANDOVER.md file content
+ * @returns {{ categories: string[], count: number, error: string|null }}
+ */
+function parseFindingsTable(handoverContent) {
+  if (!handoverContent || typeof handoverContent !== "string") {
+    return { categories: [], count: 0, error: null };
+  }
+
+  const lines = handoverContent.split(/\r?\n/);
+  let inFindingsSection = false;
+  const categories = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // Detect ## Findings header (case-insensitive, anchored to line start)
+    if (/^##\s+Findings\s*$/im.test(line)) {
+      inFindingsSection = true;
+      continue;
+    }
+
+    // Stop at next `##` section header
+    if (inFindingsSection && /^##\s+/.test(line)) {
+      break;
+    }
+
+    // Skip header/separator rows (| --- | --- | --- |)
+    if (inFindingsSection && /^\|[\s\-:]+\|[\s\-:]+\|/.test(line)) {
+      continue;
+    }
+
+    // Parse data rows: | Severity | Category | Description |
+    if (inFindingsSection && /^\|.*\|.*\|/.test(line)) {
+      const cols = line.split("|").map(c => c.trim()).filter(Boolean);
+      if (cols.length >= 2) {
+        const category = cols[1]; // Second column = Category
+        // Validate category format (kebab-case or snake_case identifiers)
+        if (/^[a-z][a-z0-9_-]*$/.test(category)) {
+          categories.push(category);
+        }
+      }
+    }
+  }
+
+  return { categories, count: categories.length, error: null };
+}
+
+/**
  * Approve or reject submitted deliverables.
  * RESTRICTED to @Orchestrator / @Super-Admin.
  * Approve: delivered → approved (optionally auto-complete with execution_summary).
  * Reject: delivered → armed (sub-agent must re-submit via new dispatch).
  */
-function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, executionSummary, agentId, handoverSha256) {
+function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, executionSummary, agentId, handoverSha256, findings_reported) {
   const store = loadStore();
   const session = sessionId ? store.sessions[sessionId] : null;
   if (!session) {
@@ -2001,6 +2064,39 @@ function runGateApproveDeliverables(sessionId, approvalDecision, approvalNote, e
           `Provided: ${handoverSha256.substring(0, 16)}... | Actual: ${actualHash.substring(0, 16)}... ` +
           `The approver must read the actual file and provide its correct hash.`,
       };
+    }
+
+    // ── FINDINGS-REPORT-ENFORCE: Verify every Finding category is reported ──
+    const findingsResult = parseFindingsTable(handoverContent);
+    if (findingsResult.count > 0 && findings_reported) {
+      const reported = findings_reported.split("|").map(s => s.trim()).filter(Boolean);
+      const missing = findingsResult.categories.filter(c => !reported.includes(c));
+      if (missing.length > 0) {
+        writeLog("mcp-compliance-gate", "ERROR", {
+          sessionID: sessionId,
+          agent: session.agent || "—",
+          event: "FINDINGS_REPORT_ENFORCE_REJECTED",
+          detail:
+            `HANDOVER.md has ${findingsResult.count} finding(s) ` +
+            `but findings_reported is missing: ${missing.join(", ")}. ` +
+            `Must report all: ${findingsResult.categories.join("|")}`,
+        });
+        return {
+          status: "rejected",
+          reason:
+            `[FINDINGS-REPORT-ENFORCE] HANDOVER.md has ${findingsResult.count} finding(s) ` +
+            `but findings_reported is missing: ${missing.join(", ")}. ` +
+            `Must report all: ${findingsResult.categories.join("|")}`,
+        };
+      }
+      writeLog("mcp-compliance-gate", "INFO", {
+        sessionID: sessionId,
+        agent: session.agent || "—",
+        event: "FINDINGS_REPORT_ENFORCE_PASSED",
+        detail:
+          `All ${findingsResult.count} finding(s) verified: ` +
+          `${findingsResult.categories.join("|")}`,
+      });
     }
 
     const note = (approvalNote || executionSummary || "").trim();
@@ -2287,6 +2383,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           handover_sha256: {
             type: "string",
             description: "SHA-256 hash of HANDOVER.md content. HARD CONSTRAINT: the approver MUST read HANDOVER.md and provide its SHA-256 hash. The server verifies this matches the actual file. This proves the approver actually read the deliverables before approving. Compute via: sha256sum .task_temp/{taskId}/HANDOVER.md",
+          },
+          findings_reported: {
+            type: "string",
+            description: "PIPE-SEPARATED list of Finding categories. Only enforced when both findings_reported is provided AND ## Findings table exists.",
           },
         },
         required: ["session_id", "approval_decision", "handover_sha256"],
@@ -2757,6 +2857,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       args.execution_summary,
       args.agent_id,
       args.handover_sha256,
+      args.findings_reported,
     );
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],

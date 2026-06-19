@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-18T15:30:18.520Z",
-  "total_entries": 51,
+  "last_updated": "2026-06-19T00:35:51.252Z",
+  "total_entries": 54,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -1618,6 +1618,110 @@
           "size_bytes": 3366,
           "created_at": "2026-06-18T15:30:00Z",
           "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode plugin enforcement: scope-before write blocking, R4 CONFIG-READ-ATTEST, plugin enforcement architecture, multi-path scope resolution",
+      "domain": "opencode",
+      "tags": [
+        "opencode",
+        "plugins",
+        "scope-before",
+        "scope-after",
+        "write-blocking",
+        "CONFIG-READ-ATTEST",
+        "enforcement",
+        "R4",
+        "uc7-001",
+        "uc7-005",
+        "uc7-008",
+        "uc7-009",
+        "route-mismatch",
+        "tool-scope",
+        "uc7ks-utils",
+        "gate-before",
+        "hook-lifecycle",
+        "write-scope",
+        "permissions",
+        "agent-scope",
+        "write-audit"
+      ],
+      "files": [
+        {
+          "path": "opencode/plugins/scope-before-write-blocking.md",
+          "source": "webfetch+source-analysis",
+          "original_url": "file://.opencode/plugins/scope-before.ts",
+          "sha256": "16cbd8087dcc5f3434cf404f9804eb8848dbca9b6a3fdb07a7678d7552ae2b05",
+          "size_bytes": 18865,
+          "created_at": "2026-06-19T00:34:30Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode plugin system official documentation: events, hooks, examples, load order, structure",
+      "domain": "opencode",
+      "tags": [
+        "opencode",
+        "plugins",
+        "documentation",
+        "official",
+        "hooks",
+        "events",
+        "tool.execute.before",
+        "tool.execute.after",
+        "load-order",
+        "examples"
+      ],
+      "files": [
+        {
+          "path": "opencode/plugins/official-plugins-docs.md",
+          "source": "webfetch",
+          "original_url": "https://opencode.ai/docs/plugins/",
+          "sha256": "2863cbfe43ecb19629b750d0732ce1a09e1c7eaed13e92ccf69f1c705c4be669",
+          "size_bytes": 3468,
+          "created_at": "2026-06-19T00:34:30Z",
+          "ttl_days": 7,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode permissions official documentation: allow, ask, deny, granular rules, agent overrides, available permissions",
+      "domain": "opencode",
+      "tags": [
+        "opencode",
+        "permissions",
+        "allow",
+        "ask",
+        "deny",
+        "agents",
+        "granular-rules",
+        "wildcard",
+        "external-directory",
+        "doom-loop"
+      ],
+      "files": [
+        {
+          "path": "opencode/plugins/official-permissions-docs.md",
+          "source": "webfetch",
+          "original_url": "https://opencode.ai/docs/permissions/",
+          "sha256": "5d73127c918669283ca88e5256811cd52645feeaf21e2f59af2a630f21624a14",
+          "size_bytes": 1865,
+          "created_at": "2026-06-19T00:34:30Z",
+          "ttl_days": 7,
           "access_count": 0,
           "last_accessed": null,
           "status": "active"

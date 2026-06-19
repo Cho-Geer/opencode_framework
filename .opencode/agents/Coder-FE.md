@@ -81,7 +81,7 @@ Before any investigation or external query:
 - Frontend type definition files
 - Frontend build configuration (if any)
 - **TASK_LOG.md** – working memory scratchpad, recording the current modification plan, new components, type definitions, etc., to prevent context drift (not committed to Git; unified path `.task_temp/{taskId}/TASK_LOG.md`)
-- **HANDOVER.md** – task handover summary, containing core changes, key assumptions, potential pitfalls, and testing reminders (unified path `.task_temp/{taskId}/HANDOVER.md`)
+- **HANDOVER.md** – task handover summary, containing core changes, key assumptions, potential pitfalls, testing reminders, and mandatory ## Findings table (unified path `.task_temp/{taskId}/HANDOVER.md`)
 - **TDD Evidence** – Commit messages must include the `[Red] {task_id}` or `[Green] {task_id}` tag.
 - **test_report.json** – test execution report, must contain the `execution_evidence` field (key summary or assertion results from test command output; unified path `.task_temp/{taskId}/test_report.json`)
 

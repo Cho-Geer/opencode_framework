@@ -589,8 +589,22 @@ function checkAllDomainsAttested(
   );
 }
 
+// closes checkAllDomainsAttested
+
+}
+// closes checkUC7KSWrite (SA-FIX-UC7KS-UNCLOSED-BRACE)
+
 /**
  * M11 (2026-06-19): File-level domain attestation check.
+ * 
+ * Fix SA-FIX-UC7KS-UNCLOSED-BRACE: Added missing closing brace for checkUC7KSWrite function.
+ * This function opens at line 205 and spans 3 nested functions:
+ *   - buildBlockMessage (line 433-445)
+ *   - hasAtLeastOneAttestedDomain (line 486-495)  
+ *   - checkAllDomainsAttested (line 504-590)
+ * The closing brace at line 590 only closed checkAllDomainsAttested - the outer
+ * checkUC7KSWrite function body had no matching closing brace, causing a syntax error
+ * that prevented scope-before.ts plugin from loading.
  * Prevents bypass: "attest domain A, write domain B files".
  * Matches filePath against knowledge_semantic_map.save_path.
  * Returns null (PASS) or block message (BLOCK in strict/locked).

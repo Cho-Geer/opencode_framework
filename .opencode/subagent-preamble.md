@@ -119,6 +119,17 @@ in your HANDOVER.md as a section titled `## Logs Checked`.
 with at least 2 entries, the compliance gate will REJECT your
 submission with `step_0d_log_evidence_missing`.
 
+#### HANDOVER.md required section:
+
+## Findings
+
+| Severity | Category | Description |
+|----------|----------|-------------|
+| ⚠️ | missing_state | knowledge_cache_state absent from root machine.json |
+| ⚠️ | over_blocking | TDD enforcement blocks .ts writes |
+
+Violation: If HANDOVER.md lacks ## Findings section, approval is rejected.
+
 ### Step 1: Invoke Skills (no plugin enforcement)
 
 Invoke all skills listed in your agent config in order. P0 skills (`execution-preflight-check`, `context7-first`) MUST be called first.
