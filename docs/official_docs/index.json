@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-19T00:35:51.252Z",
-  "total_entries": 54,
+  "last_updated": "2026-06-19T01:09:50.000Z",
+  "total_entries": 55,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -1722,6 +1722,41 @@
           "size_bytes": 1865,
           "created_at": "2026-06-19T00:34:30Z",
           "ttl_days": 7,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-framework",
+      "query_topic": "OpenCode plugin development reference: tool.execute.after hook patterns, plugin registration in opencode.json, MCP server tool naming conventions, custom tool naming, scope-before enforcement pipeline",
+      "domain": "opencode_framework",
+      "tags": [
+        "opencode",
+        "plugins",
+        "hooks",
+        "tool.execute.before",
+        "tool.execute.after",
+        "plugin-registration",
+        "opencode.json",
+        "mcp",
+        "tool-naming",
+        "custom-tools",
+        "export-default",
+        "hook-chaining",
+        "scope-before",
+        "enforcement"
+      ],
+      "files": [
+        {
+          "path": "opencode/plugins/plugin-hook-reference.md",
+          "source": "webfetch+source-analysis",
+          "original_url": "https://opencode.ai/docs/plugins/, https://opencode.ai/docs/mcp-servers/, https://opencode.ai/docs/custom-tools/",
+          "sha256": "sha256:4cda5629336baeecb91e97a17cb282729aae3630355c5150085c664895b96fd8",
+          "size_bytes": 25529,
+          "created_at": "2026-06-19T01:09:00Z",
+          "ttl_days": 30,
           "access_count": 0,
           "last_accessed": null,
           "status": "active"
