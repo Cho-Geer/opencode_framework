@@ -14,6 +14,7 @@ import {
   normalizeAgentKey,
   writeCacheDiscovery,
 } from "../lib/uc7ks-schema";
+import { writeLog } from "../lib/log-manager";
 const { readSubState } = require("../lib/substate-manager");
 import { atomicWriteSubState } from "../lib/state-utils";
 import { withInterruptGuard } from "../lib";
@@ -46,30 +47,59 @@ export default tool({
       // P1-B: read knowledge_cache_state via readSubState (split from machine.json)
       var pipelineValid = true;
       try {
-        process.stderr.write("[knowledge_cache_search] P1-B: reading knowledge_cache_state via readSubState\n");
+        writeLog("knowledge_cache_search", "DEBUG", {
+          event: "P1B-READ-KCS",
+          detail: "reading knowledge_cache_state via readSubState",
+        });
         var preKCS = readSubState("knowledge_cache_state");
         var preSA = (preKCS.session_access || {}) as Record<string, any>;
         var preAgent = normalizeAgentKey(agent);
         // Check nested domain declaration
-        if (!isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)) {
+        if (
+          !isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)
+        ) {
           // Also check legacy flat for backward compat
           var flat = preSA[preAgent] || preSA[agent] || {};
-          if (flat.pipeline_task_id !== args.task_id || flat.pipeline_status !== "declared") {
+          if (
+            flat.pipeline_task_id !== args.task_id ||
+            flat.pipeline_status !== "declared"
+          ) {
             pipelineValid = false;
           }
         }
-      } catch (e) { /* non-fatal */ }
+      } catch (e) {
+        /* non-fatal */
+      }
 
       if (!pipelineValid && args.task_id) {
         return JSON.stringify({
           cache_available: true,
-          error: "Pipeline chain broken: module_scope_declare must be called first with same task_id (" + args.task_id + ") and domain (" + args.domain + ").",
-          next_step: "Call module_scope_declare(module: \"" + args.domain + "\", task_id: \"" + args.task_id + "\") first.",
+          error:
+            "Pipeline chain broken: module_scope_declare must be called first with same task_id (" +
+            args.task_id +
+            ") and domain (" +
+            args.domain +
+            ").",
+          next_step:
+            'Call module_scope_declare(module: "' +
+            args.domain +
+            '", task_id: "' +
+            args.task_id +
+            '") first.',
         });
       }
 
-      var indexPath = path.resolve(projectRoot, "docs", "official_docs", "index.json");
-      var configPath = path.resolve(projectRoot, ".opencode", "project.config.json");
+      var indexPath = path.resolve(
+        projectRoot,
+        "docs",
+        "official_docs",
+        "index.json",
+      );
+      var configPath = path.resolve(
+        projectRoot,
+        ".opencode",
+        "project.config.json",
+      );
 
       if (!fs.existsSync(indexPath)) {
         return JSON.stringify({
@@ -104,7 +134,10 @@ export default tool({
       try {
         if (fs.existsSync(configPath)) {
           var config = tolerantParse(fs.readFileSync(configPath, "utf8"));
-          var domains = (config.knowledge_semantic_map && config.knowledge_semantic_map.domains) || [];
+          var domains =
+            (config.knowledge_semantic_map &&
+              config.knowledge_semantic_map.domains) ||
+            [];
           for (var i = 0; i < domains.length; i++) {
             if (domains[i].domain_id === args.domain) {
               domainKeywords = domains[i].keywords || [];
@@ -112,7 +145,9 @@ export default tool({
             }
           }
         }
-      } catch (e) { /* non-fatal */ }
+      } catch (e) {
+        /* non-fatal */
+      }
 
       var hitEntries: Array<{
         library_id: string;
@@ -165,9 +200,9 @@ export default tool({
         status: cacheSufficient ? "sufficient" : "insufficient",
         missing_topics: cacheSufficient
           ? []
-          : (domainKeywords.length > 0
-              ? domainKeywords.slice(0, 5)
-              : ["No domain keywords found for: " + (args.domain || "unknown")]),
+          : domainKeywords.length > 0
+            ? domainKeywords.slice(0, 5)
+            : ["No domain keywords found for: " + (args.domain || "unknown")],
         discovered_files: discoveredFiles,
         discovered_at: discoveredAt,
       };
@@ -180,13 +215,15 @@ export default tool({
         status: cacheSufficient ? "sufficient" : "insufficient",
         missing_topics: cacheSufficient
           ? []
-          : (domainKeywords.length > 0
-              ? domainKeywords.slice(0, 5)
-              : ["No domain keywords found for: " + (args.domain || "unknown")]),
+          : domainKeywords.length > 0
+            ? domainKeywords.slice(0, 5)
+            : ["No domain keywords found for: " + (args.domain || "unknown")],
         declared_at: discoveredAt,
-        reason: "[DEPRECATED] Auto-generated from index.json — NOT authoritative. Use knowledge_cache_attest for verified read evidence.",
+        reason:
+          "[DEPRECATED] Auto-generated from index.json — NOT authoritative. Use knowledge_cache_attest for verified read evidence.",
         files_read: [],
-        content_summary: "[DEPRECATED] Auto-generated from index.json — NOT authoritative. Use knowledge_cache_attest for verified read evidence.",
+        content_summary:
+          "[DEPRECATED] Auto-generated from index.json — NOT authoritative. Use knowledge_cache_attest for verified read evidence.",
         discovery: discovery,
       };
 
@@ -198,79 +235,104 @@ export default tool({
         var agentRef = normalizeAgentKey(agent);
 
         // Write knowledge_cache_state
-        var cacheWriteOk = atomicWriteSubState("knowledge_cache_state", function (kcs: any) {
-          kcs.session_access = kcs.session_access || {};
-          kcs.compliance = kcs.compliance || {};
+        var cacheWriteOk = atomicWriteSubState(
+          "knowledge_cache_state",
+          function (kcs: any) {
+            kcs.session_access = kcs.session_access || {};
+            kcs.compliance = kcs.compliance || {};
 
-          // Ensure agent entry
-          var agentKey = agentRef;
-          var existing = kcs.session_access[agentRef] || {};
-          kcs.session_access[agentRef] = existing;
+            // Ensure agent entry
+            var agentKey = agentRef;
+            var existing = kcs.session_access[agentRef] || {};
+            kcs.session_access[agentRef] = existing;
 
-          // Phase 0 (2026-06-18): Write discovery via helper.
-          // This writes discovery fields to the nested domain entry.
-          // Legacy sufficiency is synced for backward compat display only.
-          // uc7_001_compliant global flag is NOT set — attestation is now
-          // the authoritative write-block evidence (see uc7ks-utils.ts).
-          var domainEntry = getDomainEntry(kcs.session_access, agentRef, taskId, domainName);
-          domainEntry.pipeline_status = "completed";
-          domainEntry.declared_at = new Date().toISOString();
-          domainEntry.cache_sufficiency = sufficiency;
-          // Also write discovery explicitly via helper (ensures schema compliance)
-          writeCacheDiscovery(kcs.session_access, agentRef, taskId, domainName, discovery);
+            // Phase 0 (2026-06-18): Write discovery via helper.
+            // This writes discovery fields to the nested domain entry.
+            // Legacy sufficiency is synced for backward compat display only.
+            // uc7_001_compliant global flag is NOT set — attestation is now
+            // the authoritative write-block evidence (see uc7ks-utils.ts).
+            var domainEntry = getDomainEntry(
+              kcs.session_access,
+              agentRef,
+              taskId,
+              domainName,
+            );
+            domainEntry.pipeline_status = "completed";
+            domainEntry.declared_at = new Date().toISOString();
+            domainEntry.cache_sufficiency = sufficiency;
+            // Also write discovery explicitly via helper (ensures schema compliance)
+            writeCacheDiscovery(
+              kcs.session_access,
+              agentRef,
+              taskId,
+              domainName,
+              discovery,
+            );
 
-          // Update agent rollups (legacy + new)
-          updateAgentRollups(kcs.session_access, agentRef);
+            // Update agent rollups (legacy + new)
+            updateAgentRollups(kcs.session_access, agentRef);
 
-          // Legacy flat fields (backward compat bridge)
-          kcs.session_access[agentRef].pipeline_task_id = taskId;
-          kcs.session_access[agentRef].declared_scope = domainName;
-          kcs.session_access[agentRef].pipeline_status = "completed";
-          kcs.session_access[agentRef].cache_sufficiency = sufficiency;
-          // Phase 0: uc7_001_compliant is no longer set by cache_search alone.
-          // Attestation via knowledge_cache_attest is now required for write-block
-          // pass in strict/locked mode. Advisory mode still accepts legacy sufficient.
+            // Legacy flat fields (backward compat bridge)
+            kcs.session_access[agentRef].pipeline_task_id = taskId;
+            kcs.session_access[agentRef].declared_scope = domainName;
+            kcs.session_access[agentRef].pipeline_status = "completed";
+            kcs.session_access[agentRef].cache_sufficiency = sufficiency;
+            // Phase 0: uc7_001_compliant is no longer set by cache_search alone.
+            // Attestation via knowledge_cache_attest is now required for write-block
+            // pass in strict/locked mode. Advisory mode still accepts legacy sufficient.
 
-          // Cap management (F8: 50 agents)
-          evictOldAgents(kcs.session_access);
+            // Cap management (F8: 50 agents)
+            evictOldAgents(kcs.session_access);
 
-          // P3/S85-1: Per-agent session_access LRU pruning (max 50 domain entries per agent).
-          // Prevents unbounded growth between nightly cleanupStaleSessionAccessStep() runs.
-          // Each agent's entries are sorted by accessed_at (declared_at fallback) descending,
-          // keeping the 50 most recent.
-          const MAX_DOMAINS_PER_AGENT = 50;
-          if (kcs.session_access) {
-            for (const ak of Object.keys(kcs.session_access)) {
-              const agentEntries = kcs.session_access[ak];
-              if (!agentEntries || typeof agentEntries !== "object") continue;
-              const keys = Object.keys(agentEntries);
-              if (keys.length > MAX_DOMAINS_PER_AGENT) {
-                const sorted = keys
-                  .map((k) => ({
-                    key: k,
-                    ts: new Date(agentEntries[k]?.last_read_at || agentEntries[k]?.declared_at || 0).getTime() || 0,
-                  }))
-                  .sort((a, b) => b.ts - a.ts);
-                const keep = new Set(sorted.slice(0, MAX_DOMAINS_PER_AGENT).map((x) => x.key));
-                for (const k of keys) {
-                  if (!keep.has(k)) delete agentEntries[k];
+            // P3/S85-1: Per-agent session_access LRU pruning (max 50 domain entries per agent).
+            // Prevents unbounded growth between nightly cleanupStaleSessionAccessStep() runs.
+            // Each agent's entries are sorted by accessed_at (declared_at fallback) descending,
+            // keeping the 50 most recent.
+            const MAX_DOMAINS_PER_AGENT = 50;
+            if (kcs.session_access) {
+              for (const ak of Object.keys(kcs.session_access)) {
+                const agentEntries = kcs.session_access[ak];
+                if (!agentEntries || typeof agentEntries !== "object") continue;
+                const keys = Object.keys(agentEntries);
+                if (keys.length > MAX_DOMAINS_PER_AGENT) {
+                  const sorted = keys
+                    .map((k) => ({
+                      key: k,
+                      ts:
+                        new Date(
+                          agentEntries[k]?.last_read_at ||
+                            agentEntries[k]?.declared_at ||
+                            0,
+                        ).getTime() || 0,
+                    }))
+                    .sort((a, b) => b.ts - a.ts);
+                  const keep = new Set(
+                    sorted.slice(0, MAX_DOMAINS_PER_AGENT).map((x) => x.key),
+                  );
+                  for (const k of keys) {
+                    if (!keep.has(k)) delete agentEntries[k];
+                  }
                 }
               }
             }
-          }
 
-          // Compliance rollup
-          kcs.compliance.cache_hits = (kcs.compliance.cache_hits || 0) + hitEntries.length;
-        });
+            // Compliance rollup
+            kcs.compliance.cache_hits =
+              (kcs.compliance.cache_hits || 0) + hitEntries.length;
+          },
+        );
 
         // Write knowledge_state
-        var stateWriteOk = atomicWriteSubState("knowledge_state", function (ks: any) {
-          var newCount = entries.length;
-          var oldCount = ks.total_docs_count || 0;
-          if (oldCount < newCount) {
-            ks.total_docs_count = newCount;
-          }
-        });
+        var stateWriteOk = atomicWriteSubState(
+          "knowledge_state",
+          function (ks: any) {
+            var newCount = entries.length;
+            var oldCount = ks.total_docs_count || 0;
+            if (oldCount < newCount) {
+              ks.total_docs_count = newCount;
+            }
+          },
+        );
 
         uc7Recorded = cacheWriteOk && stateWriteOk;
       } catch (e) {
