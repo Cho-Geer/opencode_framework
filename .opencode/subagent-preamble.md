@@ -44,7 +44,7 @@ module_scope_declare(module=dispatchDomain, task_id=taskId)  // 使用 dispatch 
 ```
 // Step 0e-1: Read your agent config file (e.g., .opencode/agents/{Type}.md)
 //   → auto-logged to read_audit SQLite by read-track-after.ts
-// Step 0e-2: Read opencode.json (runtime permissions — authoritative source)
+// Step 0e-2: Read opencode.json at project root (./opencode.json, not under .opencode/) — runtime permissions, authoritative source
 // Step 0e-3: Read .opencode/project.config.json (framework policies)
 // Step 0e-4: Call config_read_attest(task_id) to verify reads and unlock writes
 const configResult = config_read_attest({ task_id: taskId });
