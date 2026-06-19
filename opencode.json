@@ -604,7 +604,8 @@
         "bash": "deny",
         "safe_shell": {
           "*": "allow",
-          "sha256sum *": "allow"
+          "sha256sum *": "allow",
+          "gh *": "allow"
         },
         "safe_test": "deny",
         "webfetch": "deny",

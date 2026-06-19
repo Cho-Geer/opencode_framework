@@ -51,6 +51,7 @@ export {
   resolveTaskId,
   resolveDomainId,
   resolveLatestDispatchAgent,
+  writeDispatchCtx,
   getSessionMapPath,
   sessionLastDispatched,
 } from "./agent-resolver";

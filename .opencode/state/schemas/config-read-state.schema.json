@@ -1,26 +1,31 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "config-read-state.schema.json",
-  "title": "Config Read State Schema",
-  "description": "Sub-state for config_read_attest MCP tool — tracks whether the agent has read the 3 mandatory config files (agent config, opencode.json, project.config.json) per session before being allowed to write.",
+  "title": "ConfigReadState",
+  "description": "Sub-state for config_read_attest MCP tool. Stores per-session attestation records in a nested sessions map (keyed by sessionID) to prevent race conditions under concurrent multi-agent execution. Uses dbAtomicWriteSubState for atomic append within a SQLite transaction.",
   "type": "object",
   "properties": {
-    "session_id": {
-      "type": "string",
-      "description": "OpenCode session ID that completed config read attestation"
-    },
-    "attested_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "ISO 8601 timestamp when the config read attestation was completed"
-    },
-    "files": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "List of 3 config file paths that were verified as read",
-      "minItems": 3,
-      "maxItems": 3
+    "sessions": {
+      "type": "object",
+      "description": "Per-session attestation records. Key = sessionID, value = attestation data",
+      "additionalProperties": {
+        "$ref": "#/$defs/ConfigReadSession"
+      }
     }
   },
-  "required": ["session_id", "attested_at", "files"]
+  "required": ["sessions"],
+  "$defs": {
+    "ConfigReadSession": {
+      "type": "object",
+      "properties": {
+        "session_id": { "type": "string" },
+        "agent": { "type": "string" },
+        "attested_at": { "type": "string", "format": "date-time" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "verified": { "type": "boolean" },
+        "unread_files": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["session_id", "attested_at", "files", "verified"]
+    }
+  }
 }

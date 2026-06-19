@@ -123,11 +123,67 @@ export const sessionLastDispatched = new Map<
   { agentType: string; ts: number }
 >();
 
-/** Resolve task ID from session_map DB, .dispatch_ctx, or _dispatch_target.json
- *  FW-DISPATCH-TASKID-IMMUTABLE: session_map DB is now primary (per-session,
- *  immune to concurrent race conditions), .dispatch_ctx is fallback.
+/**
+ * Write per-dispatch context to a dagTaskId-keyed file.
+ * Replaces overwriting the shared .dispatch_ctx file.
+ * Each dispatch gets its own file — no cross-dispatch overwrites.
+ *
+ * Files: .task_temp/_dispatch/ctx/{dagTaskId}.json
+ *
+ * IMPLEMENT-DISPATCH-CTX-FIX (2026-06-19, @Super-Admin):
+ *   Eliminates the session_map race condition caused by the shared
+ *   .dispatch_ctx singleton being overwritten by concurrent dispatches.
+ */
+export function writeDispatchCtx(
+  dagTaskId: string,
+  agentType: string,
+  domainId?: string,
+): void {
+  try {
+    const ctxDir = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      "ctx",
+    );
+    fs.mkdirSync(ctxDir, { recursive: true });
+    const ctxFile = path.join(ctxDir, dagTaskId + ".json");
+    fs.writeFileSync(
+      ctxFile,
+      JSON.stringify({
+        dagTaskId,
+        agentType,
+        domainId: domainId || null,
+        createdAt: Date.now(),
+      }),
+    );
+    writeLog(SRC, "INFO", {
+      event: "DISPATCH-CTX-WRITE",
+      dagTaskId,
+      agentType,
+      domainId: domainId || null,
+      detail: `Per-dispatch context written: ctx/${dagTaskId}.json`,
+    });
+  } catch (e: any) {
+    // Best-effort; never block dispatch
+    writeLog(SRC, "ERROR", {
+      event: "DISPATCH-CTX-WRITE-ERROR",
+      dagTaskId,
+      detail: `Failed to write per-dispatch ctx: ${e?.message ?? e}`,
+    });
+  }
+}
+
+/** Resolve task ID from session_map DB, per-dispatch ctx/ files, .dispatch_ctx, or _dispatch_target.json
+ *  FW-DISPATCH-TASKID-IMMUTABLE: session_map DB is primary (per-session,
+ *  immune to concurrent race conditions). Per-dispatch ctx/ is next (isolated
+ *  per dagTaskId, no overwrites). .dispatch_ctx is legacy fallback.
  *  FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env Priority 0 removed.
- *  All dispatch-task-id communication now flows through session_map DB + .dispatch_ctx file.
+ *  All dispatch-task-id communication now flows through session_map DB + ctx/ files.
+ *
+ *  IMPLEMENT-DISPATCH-CTX-FIX (2026-06-19, @Super-Admin): Priority 2 inserts
+ *  per-dispatch ctx/ directory scan to eliminate the race condition from
+ *  the shared .dispatch_ctx file.
  */
 export function resolveTaskId(sessionId?: string): string {
   // Priority 1: session_map DB (per-session dag_task_id, immune to race)
@@ -145,8 +201,66 @@ export function resolveTaskId(sessionId?: string): string {
     } catch {}
   }
 
-  // Priority 2: .dispatch_ctx file (shared, legacy fallback — has race condition
-  // with concurrent dispatches but still used by task-after.ts)
+  // Priority 2 (NEW): Per-dispatch context files (dagTaskId-keyed, no overwrites)
+  // Each dispatch writes its own {dagTaskId}.json — no race condition possible.
+  try {
+    const ctxDir = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      "ctx",
+    );
+    if (fs.existsSync(ctxDir)) {
+      const files = fs.readdirSync(ctxDir).filter((f) => f.endsWith(".json"));
+      if (files.length > 0) {
+        // If only one dispatch context, use it directly
+        if (files.length === 1) {
+          const ctx = JSON.parse(
+            fs.readFileSync(path.join(ctxDir, files[0]), "utf8"),
+          );
+          if (ctx?.dagTaskId) {
+            writeLog(SRC, "INFO", {
+              event: "DISPATCH-CTX-READ",
+              dagTaskId: ctx.dagTaskId,
+              detail: `resolveTaskId: ctx/ single file → ${ctx.dagTaskId}`,
+            });
+            return ctx.dagTaskId;
+          }
+        }
+        // Multiple dispatch contexts: return the newest by createdAt
+        let newest: { dagTaskId: string; createdAt: number } | null = null;
+        for (const file of files) {
+          try {
+            const ctx = JSON.parse(
+              fs.readFileSync(path.join(ctxDir, file), "utf8"),
+            );
+            if (
+              ctx?.dagTaskId &&
+              (!newest || ctx.createdAt > newest.createdAt)
+            ) {
+              newest = ctx;
+            }
+          } catch {}
+        }
+        if (newest?.dagTaskId) {
+          writeLog(SRC, "INFO", {
+            event: "DISPATCH-CTX-READ",
+            dagTaskId: newest.dagTaskId,
+            detail: `resolveTaskId: ctx/ newest → ${newest.dagTaskId}`,
+          });
+          return newest.dagTaskId;
+        }
+      }
+    }
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DISPATCH-CTX-READ-ERROR",
+      detail: `resolveTaskId ctx/ scan failed: ${e?.message ?? e}`,
+    });
+  }
+
+  // Priority 3: .dispatch_ctx file (legacy fallback, subject to race condition
+  // with concurrent dispatches but preserved for backward compatibility)
   try {
     const ctxPath = path.join(
       process.env.OPENCODE_ROOT || ".",
@@ -156,11 +270,18 @@ export function resolveTaskId(sessionId?: string): string {
     );
     if (fs.existsSync(ctxPath)) {
       const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      if (ctx && ctx.dagTaskId) return ctx.dagTaskId;
+      if (ctx && ctx.dagTaskId) {
+        writeLog(SRC, "WARN", {
+          event: "DISPATCH-CTX-FALLBACK",
+          dagTaskId: ctx.dagTaskId,
+          detail: `resolveTaskId: LEGACY .dispatch_ctx fallback → ${ctx.dagTaskId}`,
+        });
+        return ctx.dagTaskId;
+      }
     }
   } catch {}
 
-  // Priority 3: _dispatch_target.json (legacy, no longer written)
+  // Priority 4: _dispatch_target.json (legacy, no longer written)
   try {
     const p = path.join(
       process.env.OPENCODE_ROOT || ".",
@@ -175,10 +296,16 @@ export function resolveTaskId(sessionId?: string): string {
   return "";
 }
 
-/** Resolve domain ID from session_map DB or .dispatch_ctx file.
+/** Resolve domain ID from session_map DB, per-dispatch ctx/ files, or .dispatch_ctx file.
  *  FW-UC7KS-DOMAIN-001: session_map DB is primary (per-session, immune to
- *  concurrent dispatch race conditions), .dispatch_ctx is legacy fallback.
+ *  concurrent dispatch race conditions). Per-dispatch ctx/ is next (isolated
+ *  per dagTaskId, no overwrites). .dispatch_ctx is legacy fallback.
  *  Returns null if no domain context is available.
+ *
+ *  GAP-1 (IMPLEMENT-DISPATCH-CTX-FIX, 2026-06-19, @Super-Admin):
+ *    resolveDomainId() had the SAME race condition as resolveTaskId() —
+ *    the shared .dispatch_ctx singleton was overwritten by concurrent
+ *    dispatches. Fixed with ctx/ directory scan at Priority 2.
  */
 export function resolveDomainId(sessionId?: string): string | null {
   // Priority 1: session_map DB (per-session domain_id, immune to race)
@@ -196,7 +323,59 @@ export function resolveDomainId(sessionId?: string): string | null {
     } catch {}
   }
 
-  // Priority 2: .dispatch_ctx file (shared, legacy fallback)
+  // Priority 2 (NEW): Per-dispatch context files (dagTaskId-keyed, no overwrites)
+  // Same ctx/ directory scan pattern as resolveTaskId() Priority 2.
+  try {
+    const ctxDir = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      "ctx",
+    );
+    if (fs.existsSync(ctxDir)) {
+      const files = fs.readdirSync(ctxDir).filter((f) => f.endsWith(".json"));
+      if (files.length === 1) {
+        const ctx = JSON.parse(
+          fs.readFileSync(path.join(ctxDir, files[0]), "utf8"),
+        );
+        if (ctx?.domainId) {
+          writeLog(SRC, "INFO", {
+            event: "DISPATCH-CTX-READ-DOMAIN",
+            domainId: ctx.domainId,
+            detail: `resolveDomainId: ctx/ single file → ${ctx.domainId}`,
+          });
+          return ctx.domainId;
+        }
+      }
+      // Multiple: return newest by createdAt
+      let newest: { domainId: string; createdAt: number } | null = null;
+      for (const file of files) {
+        try {
+          const ctx = JSON.parse(
+            fs.readFileSync(path.join(ctxDir, file), "utf8"),
+          );
+          if (ctx?.domainId && (!newest || ctx.createdAt > newest.createdAt)) {
+            newest = ctx;
+          }
+        } catch {}
+      }
+      if (newest?.domainId) {
+        writeLog(SRC, "INFO", {
+          event: "DISPATCH-CTX-READ-DOMAIN",
+          domainId: newest.domainId,
+          detail: `resolveDomainId: ctx/ newest → ${newest.domainId}`,
+        });
+        return newest.domainId;
+      }
+    }
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DISPATCH-CTX-READ-ERROR",
+      detail: `resolveDomainId ctx/ scan failed: ${e?.message ?? e}`,
+    });
+  }
+
+  // Priority 3: .dispatch_ctx file (legacy fallback, subject to race)
   try {
     const ctxPath = path.join(
       process.env.OPENCODE_ROOT || ".",
@@ -206,7 +385,14 @@ export function resolveDomainId(sessionId?: string): string | null {
     );
     if (fs.existsSync(ctxPath)) {
       const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      if (ctx && ctx.domainId) return ctx.domainId;
+      if (ctx && ctx.domainId) {
+        writeLog(SRC, "WARN", {
+          event: "DISPATCH-CTX-FALLBACK-DOMAIN",
+          domainId: ctx.domainId,
+          detail: `resolveDomainId: LEGACY .dispatch_ctx fallback → ${ctx.domainId}`,
+        });
+        return ctx.domainId;
+      }
     }
   } catch {}
 

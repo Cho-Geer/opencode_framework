@@ -18,12 +18,15 @@
 
 export interface EslintState {
   last_full_scan?: string;
-  modules?: Record<string, {
-    status?: string;
-    violations?: Array<Record<string, any>>;
-    last_check?: string;
-    [key: string]: any;
-  }>;
+  modules?: Record<
+    string,
+    {
+      status?: string;
+      violations?: Array<Record<string, any>>;
+      last_check?: string;
+      [key: string]: any;
+    }
+  >;
   aggregate?: {
     total_violations?: number;
     dirty_modules?: string[];
@@ -121,17 +124,37 @@ export interface KnowledgeState {
 }
 
 /**
+ * ConfigReadSessionEntry — Individual session attestation record.
+ * Each session's config_read_attest() result is stored as one entry
+ * in ConfigReadState.sessions. Used by dbAtomicWriteSubState for
+ * atomic append within SQLite transaction (prevents cross-agent overwrites).
+ * Follows the same pattern as KnowledgeCacheState.session_access.
+ * @since 2026-06-19 (config-attest-race-fix-plan v1.1.0)
+ */
+export interface ConfigReadSessionEntry {
+  session_id: string;
+  agent?: string;
+  attested_at: string;
+  files: string[];
+  verified: boolean;
+  unread_files?: string[];
+  [key: string]: any;
+}
+
+/**
  * ConfigReadState — 13th sub-state (SA-IMPLEMENT-CONFIG-ATTEST-001, 2026-06-19)
  * Tracks whether the agent completed config_read_attest() (Step 0e of P0 protocol).
  * Written by config_read_attest.ts MCP tool; read by scope-before.ts pre-gate check.
+ *
+ * ⚠️ RACE CONDITION FIX (2026-06-19): Uses nested sessions map instead of a single
+ * per-key session. Each session's attestation is stored in the `sessions` map keyed
+ * by sessionID. dbAtomicWriteSubState() provides atomic read-modify-write within a
+ * SQLite transaction to prevent cross-agent overwrites. Follows the same pattern as
+ * KnowledgeCacheState.session_access.
  */
 export interface ConfigReadState {
-  /** OpenCode session ID that completed the attestation */
-  session_id?: string;
-  /** ISO timestamp when attestation was completed */
-  attested_at?: string;
-  /** 3 config files verified as read */
-  files?: string[];
+  /** Per-session attestation records, keyed by OpenCode session ID */
+  sessions?: Record<string, ConfigReadSessionEntry>;
   [key: string]: any;
 }
 

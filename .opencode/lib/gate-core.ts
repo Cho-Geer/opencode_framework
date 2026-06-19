@@ -24,24 +24,30 @@
  * @public — All exported functions are public API for framework consumers
  */
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as crypto from 'node:crypto';
-import { readSubState } from './substate-manager';
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as crypto from "node:crypto";
+import { readSubState } from "./substate-manager";
 import {
   dbLoadGateStore,
   dbSaveGateStore,
   dbArchiveDrainedSession,
   dbCountDrainedSessions,
-} from './db-state-manager';
+} from "./db-state-manager";
 
-const SRC = 'lib-gate-core';
+const SRC = "lib-gate-core";
 
-let _writeLog: ((src: string, level: string, payload: Record<string, unknown>) => void) | null = null;
-function writeLogSafe(src: string, level: string, payload: Record<string, unknown>): void {
+let _writeLog:
+  | ((src: string, level: string, payload: Record<string, unknown>) => void)
+  | null = null;
+function writeLogSafe(
+  src: string,
+  level: string,
+  payload: Record<string, unknown>,
+): void {
   try {
     if (!_writeLog) {
-      _writeLog = require('./log-manager').writeLog;
+      _writeLog = require("./log-manager").writeLog;
     }
     _writeLog!(src, level, payload);
   } catch {
@@ -80,7 +86,15 @@ export interface GateSession {
   created_at: string;
   task_description?: string;
   enforcement_mode?: string;
-  gate_status: 'checked' | 'armed' | 'delivered' | 'approved' | 'completed' | 'failed' | 'recoverable' | 'drained';
+  gate_status:
+    | "checked"
+    | "armed"
+    | "delivered"
+    | "approved"
+    | "completed"
+    | "failed"
+    | "recoverable"
+    | "drained";
   last_check_passed?: boolean;
   last_check_failed_items?: GateCheckItem[];
   plan_summary?: string | null;
@@ -106,7 +120,7 @@ export interface GateSession {
 export interface GateCheckItem {
   id: string;
   desc: string;
-  severity: 'HIGH' | 'WARNING' | 'INFO';
+  severity: "HIGH" | "WARNING" | "INFO";
 }
 
 export interface GateStore {
@@ -143,7 +157,7 @@ export interface GateCheckResult {
 }
 
 export interface GateConfirmResult {
-  status: 'armed' | 'rejected';
+  status: "armed" | "rejected";
   reason?: string;
   session_id?: string;
   confirmed_at?: string;
@@ -152,7 +166,7 @@ export interface GateConfirmResult {
 }
 
 export interface GateCompleteResult {
-  status: 'completed' | 'failed' | 'rejected';
+  status: "completed" | "failed" | "rejected";
   reason?: string;
   audit?: {
     session_id: string;
@@ -167,7 +181,7 @@ export interface GateCompleteResult {
   missing_artifacts?: string[];
 }
 
-export type EnforcementMode = 'advisory' | 'strict' | 'locked';
+export type EnforcementMode = "advisory" | "strict" | "locked";
 
 // ════════════════════════════════════════════════════════════
 // PATH RESOLUTION
@@ -189,20 +203,20 @@ export function getProjectRoot(): string {
  */
 export function resolveStateDir(root?: string): string {
   const projectRoot = root || getProjectRoot();
-  const cfgPath = path.join(projectRoot, '.opencode', 'project.config.json');
+  const cfgPath = path.join(projectRoot, ".opencode", "project.config.json");
   try {
     if (fs.existsSync(cfgPath)) {
-      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
       const pr = cfg.project_root;
-      if (pr && pr !== '.') {
-        const stateDir = path.join(projectRoot, pr, '.opencode', 'state');
+      if (pr && pr !== ".") {
+        const stateDir = path.join(projectRoot, pr, ".opencode", "state");
         if (fs.existsSync(stateDir)) return stateDir;
       }
     }
   } catch {
     // fall through
   }
-  return path.join(projectRoot, '.opencode', 'state');
+  return path.join(projectRoot, ".opencode", "state");
 }
 
 // ════════════════════════════════════════════════════════════
@@ -216,7 +230,7 @@ export function resolveStateDir(root?: string): string {
 export function readJsonFile<T>(filePath: string): T | null {
   try {
     if (!fs.existsSync(filePath)) return null;
-    const raw = fs.readFileSync(filePath, 'utf8');
+    const raw = fs.readFileSync(filePath, "utf8");
     return JSON.parse(raw) as T;
   } catch {
     return null;
@@ -243,9 +257,9 @@ export function fileExists(filePath: string): boolean {
 export function computeSHA256(filePath: string): string | null {
   try {
     const content = fs.readFileSync(filePath);
-    const hash = crypto.createHash('sha256');
+    const hash = crypto.createHash("sha256");
     hash.update(content);
-    return hash.digest('hex');
+    return hash.digest("hex");
   } catch {
     return null;
   }
@@ -256,9 +270,9 @@ export function computeSHA256(filePath: string): string | null {
 // ════════════════════════════════════════════════════════════
 
 const VALID_MODES: ReadonlySet<string> = new Set([
-  'advisory',
-  'strict',
-  'locked',
+  "advisory",
+  "strict",
+  "locked",
 ]);
 
 /**
@@ -273,20 +287,20 @@ const VALID_MODES: ReadonlySet<string> = new Set([
  * creating a circular import (log-manager imports getEnforcementMode).
  */
 function isEnforcementDebugEnabled(root?: string): boolean {
-  const debug = process.env.DEBUG || '';
-  if (debug.includes('enforcement') || debug.includes('gate-core')) {
+  const debug = process.env.DEBUG || "";
+  if (debug.includes("enforcement") || debug.includes("gate-core")) {
     return true;
   }
-  if (process.env.OPENCODE_ENFORCEMENT_DEBUG === '1') {
+  if (process.env.OPENCODE_ENFORCEMENT_DEBUG === "1") {
     return true;
   }
   try {
     const projectRoot = root || getProjectRoot();
-    const cfgPath = path.join(projectRoot, '.opencode', 'project.config.json');
+    const cfgPath = path.join(projectRoot, ".opencode", "project.config.json");
     if (fs.existsSync(cfgPath)) {
-      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-      const level = cfg?.template_resolution?.['logs.level'];
-      if (typeof level === 'string' && level.toUpperCase() === 'DEBUG') {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
+      const level = cfg?.template_resolution?.["logs.level"];
+      if (typeof level === "string" && level.toUpperCase() === "DEBUG") {
         return true;
       }
     }
@@ -320,16 +334,15 @@ export function getEnforcementMode(root?: string): EnforcementMode {
   const projectRoot = root || getProjectRoot();
 
   // Read from project.config.json
-  const cfgPath = path.join(projectRoot, '.opencode', 'project.config.json');
-  let configMode: EnforcementMode = 'advisory';
+  const cfgPath = path.join(projectRoot, ".opencode", "project.config.json");
+  let configMode: EnforcementMode = "advisory";
 
   try {
     if (fs.existsSync(cfgPath)) {
-      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
       const tr = cfg.template_resolution;
       // Two-tier enforcement: prefer develop mode, fall back to runtime mode
-      const mode = tr?.develop_enforcement_mode ||
-                   tr?.runtime_enforcement_mode;
+      const mode = tr?.develop_enforcement_mode || tr?.runtime_enforcement_mode;
       if (mode && VALID_MODES.has(mode)) {
         configMode = mode;
       }
@@ -347,27 +360,29 @@ export function getEnforcementMode(root?: string): EnforcementMode {
       const cfgExists = fs.existsSync(cfgPath);
       const devMode = (() => {
         if (cfgExists) {
-          const c = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-          return c?.template_resolution?.develop_enforcement_mode || '(unset)';
+          const c = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
+          return c?.template_resolution?.develop_enforcement_mode || "(unset)";
         }
-        return '(cfg not found)';
+        return "(cfg not found)";
       })();
       const runMode = (() => {
         if (cfgExists) {
-          const c = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
-          return c?.template_resolution?.runtime_enforcement_mode || '(unset)';
+          const c = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
+          return c?.template_resolution?.runtime_enforcement_mode || "(unset)";
         }
-        return '(cfg not found)';
+        return "(cfg not found)";
       })();
-      const resolvedMode = envMode && VALID_MODES.has(envMode)
-        ? (configMode === 'locked' ? 'locked' : envMode)
-        : configMode;
+      const resolvedMode =
+        envMode && VALID_MODES.has(envMode)
+          ? configMode === "locked"
+            ? "locked"
+            : envMode
+          : configMode;
       /**
        * FW-LOG-UNIFY-P1-D3 (2026-06-12, @Super-Admin): Migrated from
        * console.error to direct appendFileSync to avoid circular import
        * (log-manager imports gate-core, so gate-core cannot import log-manager).
        */
-      
     } catch (_diagErr) {
       // Diagnostic failure is non-blocking
     }
@@ -375,7 +390,7 @@ export function getEnforcementMode(root?: string): EnforcementMode {
 
   // Environment variable override (locked mode is protected)
   if (envMode && VALID_MODES.has(envMode)) {
-    if (configMode === 'locked') return 'locked'; // locked cannot be overridden
+    if (configMode === "locked") return "locked"; // locked cannot be overridden
     return envMode as EnforcementMode;
   }
 
@@ -389,14 +404,13 @@ export function getEnforcementMode(root?: string): EnforcementMode {
 /** @public — Primary gate state file path resolver */
 export function getGateStatePath(root?: string): string {
   const stateDir = resolveStateDir(root);
-  return process.env.GATE_STATE_PATH ||
-    path.join(stateDir, 'gate-state.json');
+  return process.env.GATE_STATE_PATH || path.join(stateDir, "gate-state.json");
 }
 
 /** @public — Machine state file path resolver */
 export function getMachinePath(root?: string): string {
   const stateDir = resolveStateDir(root);
-  return path.join(stateDir, 'machine.json');
+  return path.join(stateDir, "machine.json");
 }
 
 /**
@@ -405,7 +419,7 @@ export function getMachinePath(root?: string): string {
  */
 export function createFreshStore(): GateStore {
   return {
-    formatVersion: '2.0',
+    formatVersion: "2.0",
     sessions: {},
     active_sessions: [],
     last_updated: null as unknown as string,
@@ -422,9 +436,9 @@ function loadGateStoreJson(root?: string): GateStore {
 
   if (
     s &&
-    s.formatVersion === '2.0' &&
+    s.formatVersion === "2.0" &&
     s.sessions &&
-    typeof s.sessions === 'object'
+    typeof s.sessions === "object"
   ) {
     if (!Array.isArray(s.active_sessions)) {
       s.active_sessions = [];
@@ -452,11 +466,22 @@ function reconcileGateStore(s: GateStore): boolean {
   // Remove completed/failed/drained sessions from active_sessions
   s.active_sessions = s.active_sessions.filter((sid) => {
     const ses = s.sessions[sid];
-    if (!ses) { reconciled = true; return false; }
-    if (ses.gate_status === 'completed' || ses.gate_status === 'failed' || ses.gate_status === 'drained') {
-      reconciled = true; return false;
+    if (!ses) {
+      reconciled = true;
+      return false;
     }
-    if (ses.consumed_at) { reconciled = true; return false; }
+    if (
+      ses.gate_status === "completed" ||
+      ses.gate_status === "failed" ||
+      ses.gate_status === "drained"
+    ) {
+      reconciled = true;
+      return false;
+    }
+    if (ses.consumed_at) {
+      reconciled = true;
+      return false;
+    }
     return true;
   });
 
@@ -466,15 +491,18 @@ function reconcileGateStore(s: GateStore): boolean {
   s.active_sessions = s.active_sessions.filter((sid) => {
     const ses = s.sessions[sid];
     if (!ses) return false;
-    if (ses.gate_status === 'armed' && !ses.consumed_at && ses.confirmed_at) {
+    if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
       const age = nowTs - new Date(ses.confirmed_at).getTime();
-      if (age > STALE_MS) { reconciled = true; return false; }
+      if (age > STALE_MS) {
+        reconciled = true;
+        return false;
+      }
     }
     return true;
   });
 
   // Add armed/delivered/approved sessions missing from active_sessions
-  const LIVE_STATUSES = ['armed', 'delivered', 'approved'];
+  const LIVE_STATUSES = ["armed", "delivered", "approved"];
   for (const [sid, ses] of Object.entries(s.sessions)) {
     if (
       LIVE_STATUSES.includes(ses.gate_status) &&
@@ -533,7 +561,14 @@ export function loadGateStore(root?: string): GateStore {
 
   // 4. If modified, persist back to DB
   if (modified) {
-    try { dbSaveGateStore(store); } catch (e: any) { writeLogSafe(SRC, "WARN", { event: "DB-RECONCILE-WRITE-FAILED", detail: e.message }); }
+    try {
+      dbSaveGateStore(store);
+    } catch (e: any) {
+      writeLogSafe(SRC, "WARN", {
+        event: "DB-RECONCILE-WRITE-FAILED",
+        detail: e.message,
+      });
+    }
   }
 
   // Log source for diagnostics
@@ -593,9 +628,7 @@ export function findAnyGateSession(root?: string): {
   const gate = loadGateStore(root);
   const sessions = Object.values(gate.sessions);
   const valid = sessions.find(
-    (s) =>
-      s.consumed_at === null &&
-      s.gate_status !== "drained",
+    (s) => s.consumed_at === null && s.gate_status !== "drained",
   );
   return valid
     ? { found: true, sessionId: valid.session_id }
@@ -611,7 +644,10 @@ export function saveGateStore(store: GateStore, root?: string): void {
   try {
     dbSaveGateStore(store);
   } catch (e: any) {
-    writeLogSafe(SRC, "ERROR", { event: "DB-SAVE-GATE-FAILED", detail: e.message });
+    writeLogSafe(SRC, "ERROR", {
+      event: "DB-SAVE-GATE-FAILED",
+      detail: e.message,
+    });
   }
 }
 
@@ -624,7 +660,7 @@ export function saveGateStore(store: GateStore, root?: string): void {
  * @internal — Internal helper; external consumers use createSession() which calls this
  */
 export function generateSessionId(): string {
-  return 'cg_ses_' + Date.now();
+  return "cg_ses_" + Date.now();
 }
 
 /**
@@ -641,14 +677,14 @@ export function createSession(
 ): { session: GateSession; store: GateStore } {
   const store = loadGateStore(root);
   const sessionId = generateSessionId();
-  const hasHighSeverity = failedItems.some((f) => f.severity === 'HIGH');
+  const hasHighSeverity = failedItems.some((f) => f.severity === "HIGH");
 
   const session: GateSession = {
     session_id: sessionId,
     created_at: new Date().toISOString(),
-    task_description: taskDescription || '',
+    task_description: taskDescription || "",
     enforcement_mode: mode,
-    gate_status: 'checked',
+    gate_status: "checked",
     last_check_passed: !hasHighSeverity,
     last_check_failed_items: failedItems,
     plan_summary: null,
@@ -688,7 +724,7 @@ export function armSession(
   let dispatchAssignedTaskIds: string[] = [];
   try {
     if (taskId) {
-      const { dbQuerySessionByDagTaskId } = require('./db-state-manager');
+      const { dbQuerySessionByDagTaskId } = require("./db-state-manager");
       const sessions = dbQuerySessionByDagTaskId(taskId);
       if (sessions.length > 0) {
         hasDispatchContext = true;
@@ -696,32 +732,76 @@ export function armSession(
       } else {
         // taskId not found — check if ANY dispatch context exists
         try {
-          const { getDb } = require('./db-manager');
+          const { getDb } = require("./db-manager");
           const db = getDb();
-          const anyRegistered = db.query(
-            `SELECT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL LIMIT 1`
-          ).all() as { dag_task_id: string }[];
+          const anyRegistered = db
+            .query(
+              `SELECT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL LIMIT 1`,
+            )
+            .all() as { dag_task_id: string }[];
           if (anyRegistered.length > 0) {
             hasDispatchContext = true;
-            dispatchAssignedTaskIds = anyRegistered.map(r => r.dag_task_id);
+            dispatchAssignedTaskIds = anyRegistered.map((r) => r.dag_task_id);
           }
-        } catch { /* DB failure — fall through */ }
+        } catch {
+          /* DB failure — fall through */
+        }
       }
     } else {
-      // No taskId — fallback to .dispatch_ctx (legacy path)
+      // No taskId — fallback to ctx/ directory first (per-dispatch, no race)
+      // IMPLEMENT-DISPATCH-CTX-FIX (GAP-2, 2026-06-19, @Super-Admin):
+      //   Per-dispatch ctx/{dagTaskId}.json files are immune to overwrite
+      //   race conditions. .dispatch_ctx is legacy fallback only.
       const projectRoot = root || getProjectRoot();
-      const dispatchCtxPath = path.join(projectRoot, '.task_temp', '_dispatch', '.dispatch_ctx');
+      const ctxDir = path.join(projectRoot, ".task_temp", "_dispatch", "ctx");
       try {
-        if (fs.existsSync(dispatchCtxPath)) {
-          const ctx = JSON.parse(fs.readFileSync(dispatchCtxPath, 'utf8'));
-          if (ctx && ctx.dagTaskId) {
-            dispatchAssignedTaskIds = [ctx.dagTaskId];
-            hasDispatchContext = true;
+        if (fs.existsSync(ctxDir)) {
+          const files = fs
+            .readdirSync(ctxDir)
+            .filter((f) => f.endsWith(".json"));
+          if (files.length > 0) {
+            const latest = files.reduce((a, b) => {
+              const sa = fs.statSync(path.join(ctxDir, a));
+              const sb = fs.statSync(path.join(ctxDir, b));
+              return sa.mtimeMs > sb.mtimeMs ? a : b;
+            });
+            const ctx = JSON.parse(
+              fs.readFileSync(path.join(ctxDir, latest), "utf8"),
+            );
+            if (ctx?.dagTaskId) {
+              dispatchAssignedTaskIds = [ctx.dagTaskId];
+              hasDispatchContext = true;
+            }
           }
         }
-      } catch { /* unreadable — fall through */ }
+      } catch {
+        /* ctx/ scan failed — fall through to .dispatch_ctx */
+      }
+
+      // Legacy: .dispatch_ctx (if ctx/ scan missed)
+      if (!hasDispatchContext) {
+        const dispatchCtxPath = path.join(
+          projectRoot,
+          ".task_temp",
+          "_dispatch",
+          ".dispatch_ctx",
+        );
+        try {
+          if (fs.existsSync(dispatchCtxPath)) {
+            const ctx = JSON.parse(fs.readFileSync(dispatchCtxPath, "utf8"));
+            if (ctx && ctx.dagTaskId) {
+              dispatchAssignedTaskIds = [ctx.dagTaskId];
+              hasDispatchContext = true;
+            }
+          }
+        } catch {
+          /* unreadable — fall through */
+        }
+      }
     }
-  } catch { /* DB failure — fall through */ }
+  } catch {
+    /* DB failure — fall through */
+  }
 
   if (hasDispatchContext && taskId && dispatchAssignedTaskIds.length > 0) {
     if (!dispatchAssignedTaskIds.includes(taskId)) {
@@ -729,10 +809,11 @@ export function armSession(
         event: "DISPATCH_TASKID_TAMPER_AT_ARM",
         provided_task_id: taskId,
         dispatch_registered_task_ids: dispatchAssignedTaskIds,
-        detail: "sub-agent attempted to use a task_id not registered in any dispatch at arm phase",
+        detail:
+          "sub-agent attempted to use a task_id not registered in any dispatch at arm phase",
       });
       return {
-        status: 'rejected',
+        status: "rejected",
         reason: `DISPATCH-INTEGRITY: taskId "${taskId}" is not registered in any dispatch session. Registered: ${dispatchAssignedTaskIds.join(", ")}. The dispatch-assigned task_id is immutable.`,
       };
     }
@@ -748,49 +829,63 @@ export function armSession(
 
   if (!session) {
     return {
-      status: 'rejected',
-      reason: `session not found: ${sessionId || '(missing)'}. Must call compliance_gate_check first.`,
+      status: "rejected",
+      reason: `session not found: ${sessionId || "(missing)"}. Must call compliance_gate_check first.`,
     };
   }
 
-  if (session.gate_status === 'armed') {
-    return { status: 'rejected', reason: `session ${sessionId} is already armed. Cannot re-arm.` };
+  if (session.gate_status === "armed") {
+    return {
+      status: "rejected",
+      reason: `session ${sessionId} is already armed. Cannot re-arm.`,
+    };
   }
 
-  if (session.gate_status !== 'checked') {
+  if (session.gate_status !== "checked") {
     return {
-      status: 'rejected',
+      status: "rejected",
       reason: `session ${sessionId} is not in "checked" state (current: ${session.gate_status}). Must call compliance_gate_check first.`,
     };
   }
 
   if (!planSummary || planSummary.trim().length < 10) {
-    return { status: 'rejected', reason: 'plan_summary must be at least 10 characters' };
+    return {
+      status: "rejected",
+      reason: "plan_summary must be at least 10 characters",
+    };
   }
 
   const mode = getEnforcementMode(root);
-  if (session.last_check_passed === false && mode !== 'advisory') {
+  if (session.last_check_passed === false && mode !== "advisory") {
     return {
-      status: 'rejected',
+      status: "rejected",
       reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${sessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${mode} enforcement mode.`,
     };
   }
 
   // ── Deliverables hard constraint validation ──
-  const EXEMPT_AGENTS = ['@Orchestrator', '@Super-Admin', 'Orchestrator', 'Super-Admin'];
-  const resolvedAgent = agent || session.agent || 'unknown';
+  const EXEMPT_AGENTS = [
+    "@Orchestrator",
+    "@Super-Admin",
+    "Orchestrator",
+    "Super-Admin",
+  ];
+  const resolvedAgent = agent || session.agent || "unknown";
   const isExempt = EXEMPT_AGENTS.some(
     (exempt) => resolvedAgent === exempt || `@${resolvedAgent}` === exempt,
   );
 
-  if (!isExempt && (!declaredDeliverables || declaredDeliverables.length === 0)) {
+  if (
+    !isExempt &&
+    (!declaredDeliverables || declaredDeliverables.length === 0)
+  ) {
     return {
-      status: 'rejected',
+      status: "rejected",
       reason: `declared_deliverables is REQUIRED for agent "${resolvedAgent}". Exempt agents: @Orchestrator, @Super-Admin.`,
     };
   }
 
-  session.gate_status = 'armed';
+  session.gate_status = "armed";
   session.plan_summary = planSummary.trim();
   session.confirmed_at = new Date().toISOString();
   session.last_check_failed_items = [];
@@ -804,7 +899,7 @@ export function armSession(
   // Clean active_sessions
   store.active_sessions = store.active_sessions.filter((sid) => {
     const s = store.sessions[sid];
-    return s && s.gate_status === 'armed' && !s.consumed_at;
+    return s && s.gate_status === "armed" && !s.consumed_at;
   });
 
   if (!store.active_sessions.includes(sessionId)) {
@@ -815,7 +910,7 @@ export function armSession(
   saveGateStore(store, root);
 
   return {
-    status: 'armed',
+    status: "armed",
     session_id: sessionId,
     confirmed_at: session.confirmed_at,
     expires_at: session.expires_at,
@@ -837,31 +932,32 @@ export function completeSession(
 
   if (!session) {
     return {
-      status: 'rejected',
-      reason: `session not found: ${sessionId || '(missing)'}. Must call compliance_gate_check and compliance_gate_confirm first.`,
+      status: "rejected",
+      reason: `session not found: ${sessionId || "(missing)"}. Must call compliance_gate_check and compliance_gate_confirm first.`,
     };
   }
 
   // ── State gate: approval_required sessions must be 'approved', exempt can be 'armed' ──
   if (session.approval_required) {
-    if (session.gate_status !== 'approved') {
-      let guidance = '';
-      if (session.gate_status === 'armed') {
-        guidance = 'Must call submitDeliverables first, then wait for Orchestrator approval.';
-      } else if (session.gate_status === 'delivered') {
-        guidance = 'Awaiting Orchestrator approval.';
+    if (session.gate_status !== "approved") {
+      let guidance = "";
+      if (session.gate_status === "armed") {
+        guidance =
+          "Must call submitDeliverables first, then wait for Orchestrator approval.";
+      } else if (session.gate_status === "delivered") {
+        guidance = "Awaiting Orchestrator approval.";
       } else {
-        guidance = 'Must call compliance_gate_confirm first.';
+        guidance = "Must call compliance_gate_confirm first.";
       }
       return {
-        status: 'rejected',
+        status: "rejected",
         reason: `session ${sessionId} requires Orchestrator approval (status: ${session.gate_status}). ${guidance}`,
       };
     }
   } else {
-    if (session.gate_status !== 'armed') {
+    if (session.gate_status !== "armed") {
       return {
-        status: 'rejected',
+        status: "rejected",
         reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
       };
     }
@@ -869,7 +965,7 @@ export function completeSession(
 
   if (session.consumed_at) {
     return {
-      status: 'rejected',
+      status: "rejected",
       reason: `session ${sessionId} already completed at ${session.consumed_at}. Cannot re-complete.`,
     };
   }
@@ -891,46 +987,59 @@ export function completeSession(
     // Non-blocking
   }
 
-  if (eslintFailed && mode !== 'advisory') {
+  if (eslintFailed && mode !== "advisory") {
     const now = new Date().toISOString();
-    session.gate_status = 'failed';
+    session.gate_status = "failed";
     session.consumed_at = now;
-    session.fail_reason = 'ESLint mock-audit violations found in modules: ' + dirtyModules.join(', ');
-    store.active_sessions = store.active_sessions.filter((sid) => sid !== sessionId);
+    session.fail_reason =
+      "ESLint mock-audit violations found in modules: " +
+      dirtyModules.join(", ");
+    store.active_sessions = store.active_sessions.filter(
+      (sid) => sid !== sessionId,
+    );
     store.last_updated = new Date().toISOString();
     saveGateStore(store, root);
     return {
-      status: 'failed',
-      reason: 'CAT3.7: ESLint mock-audit violations in modules: ' + dirtyModules.join(', '),
+      status: "failed",
+      reason:
+        "CAT3.7: ESLint mock-audit violations in modules: " +
+        dirtyModules.join(", "),
       dirty_modules: dirtyModules,
     };
   }
 
   // Task artifact validation — @super-admin-handover-enforcement: pass
   // sessionId as fallback so sessions without DAG task_id still get validated.
-  const missing = validateTaskArtifacts(session.task_id || null, root, sessionId);
-  if (missing.length > 0 && mode !== 'advisory') {
+  const missing = validateTaskArtifacts(
+    session.task_id || null,
+    root,
+    sessionId,
+  );
+  if (missing.length > 0 && mode !== "advisory") {
     const now = new Date().toISOString();
-    session.gate_status = 'failed';
+    session.gate_status = "failed";
     session.consumed_at = now;
-    session.fail_reason = 'Missing required task artifacts: ' + missing.join(', ');
+    session.fail_reason =
+      "Missing required task artifacts: " + missing.join(", ");
     session.missing_artifacts = missing;
-    store.active_sessions = store.active_sessions.filter((sid) => sid !== sessionId);
+    store.active_sessions = store.active_sessions.filter(
+      (sid) => sid !== sessionId,
+    );
     store.last_updated = new Date().toISOString();
     saveGateStore(store, root);
     return {
-      status: 'failed',
-      reason: 'Missing required task artifacts: ' + missing.join(', '),
+      status: "failed",
+      reason: "Missing required task artifacts: " + missing.join(", "),
       missing_artifacts: missing,
     };
   }
 
   // Success
   const now = new Date().toISOString();
-  session.gate_status = 'completed';
+  session.gate_status = "completed";
   session.consumed_at = now;
   session.audit = {
-    execution_summary: (executionSummary || '').substring(0, 1000),
+    execution_summary: (executionSummary || "").substring(0, 1000),
     completed_at: now,
   };
 
@@ -946,8 +1055,8 @@ export function completeSession(
     task_id: session.task_id,
     confirmed_at: session.confirmed_at,
     consumed_at: now,
-    execution_summary: (executionSummary || '').substring(0, 200),
-    gate_status: 'completed',
+    execution_summary: (executionSummary || "").substring(0, 200),
+    gate_status: "completed",
   });
 
   // Keep only last 500 audit entries
@@ -955,12 +1064,14 @@ export function completeSession(
     store.audit_history = store.audit_history.slice(-500);
   }
 
-  store.active_sessions = store.active_sessions.filter((sid) => sid !== sessionId);
+  store.active_sessions = store.active_sessions.filter(
+    (sid) => sid !== sessionId,
+  );
   store.last_updated = now;
   saveGateStore(store, root);
 
   return {
-    status: 'completed',
+    status: "completed",
     audit: {
       session_id: sessionId,
       task_description: session.task_description,
@@ -987,13 +1098,25 @@ export function submitDeliverables(
   const session = sessionId ? store.sessions[sessionId] : undefined;
 
   if (!session) {
-    return { status: 'rejected', session_id: sessionId, reason: `session not found: ${sessionId}` };
+    return {
+      status: "rejected",
+      session_id: sessionId,
+      reason: `session not found: ${sessionId}`,
+    };
   }
-  if (session.gate_status !== 'armed') {
-    return { status: 'rejected', session_id: sessionId, reason: `session ${sessionId} is not armed (status: ${session.gate_status})` };
+  if (session.gate_status !== "armed") {
+    return {
+      status: "rejected",
+      session_id: sessionId,
+      reason: `session ${sessionId} is not armed (status: ${session.gate_status})`,
+    };
   }
   if (!deliverablesEvidence || deliverablesEvidence.length === 0) {
-    return { status: 'rejected', session_id: sessionId, reason: 'deliverables_evidence must be non-empty' };
+    return {
+      status: "rejected",
+      session_id: sessionId,
+      reason: "deliverables_evidence must be non-empty",
+    };
   }
 
   const now = new Date().toISOString();
@@ -1004,27 +1127,33 @@ export function submitDeliverables(
 
   // Validate artifacts exist (HANDOVER.md + TASK_LOG.md)
   const taskId = session.task_id || sessionId;
-  const taskDir = path.join(getProjectRoot(), '.task_temp', taskId || '');
+  const taskDir = path.join(getProjectRoot(), ".task_temp", taskId || "");
   const missing: string[] = [];
 
-  if (!fs.existsSync(path.join(taskDir, 'HANDOVER.md'))) missing.push('HANDOVER.md');
-  if (!fs.existsSync(path.join(taskDir, 'TASK_LOG.md'))) missing.push('TASK_LOG.md');
+  if (!fs.existsSync(path.join(taskDir, "HANDOVER.md")))
+    missing.push("HANDOVER.md");
+  if (!fs.existsSync(path.join(taskDir, "TASK_LOG.md")))
+    missing.push("TASK_LOG.md");
 
   if (missing.length > 0) {
-    session.gate_status = 'recoverable';
+    session.gate_status = "recoverable";
     session.submitted_deliverables = evidenceWithTimestamps;
-    session.fail_reason = `Missing deliverable artifacts: ${missing.join(', ')}`;
+    session.fail_reason = `Missing deliverable artifacts: ${missing.join(", ")}`;
     session.missing_artifacts = missing;
     store.last_updated = now;
     saveGateStore(store, root);
-    return { status: 'recoverable', session_id: sessionId, reason: `Missing: ${missing.join(', ')}` };
+    return {
+      status: "recoverable",
+      session_id: sessionId,
+      reason: `Missing: ${missing.join(", ")}`,
+    };
   }
 
-  session.gate_status = 'delivered';
+  session.gate_status = "delivered";
   session.submitted_deliverables = evidenceWithTimestamps;
   store.last_updated = now;
   saveGateStore(store, root);
-  return { status: 'delivered', session_id: sessionId };
+  return { status: "delivered", session_id: sessionId };
 }
 
 /**
@@ -1033,7 +1162,7 @@ export function submitDeliverables(
  */
 export function approveDeliverables(
   sessionId: string,
-  decision: 'approve' | 'reject',
+  decision: "approve" | "reject",
   approvalNote?: string,
   executionSummary?: string,
   root?: string,
@@ -1042,25 +1171,38 @@ export function approveDeliverables(
   const session = sessionId ? store.sessions[sessionId] : undefined;
 
   if (!session) {
-    return { status: 'rejected', session_id: sessionId, reason: `session not found: ${sessionId}` };
+    return {
+      status: "rejected",
+      session_id: sessionId,
+      reason: `session not found: ${sessionId}`,
+    };
   }
-  if (session.gate_status !== 'delivered') {
-    return { status: 'rejected', session_id: sessionId, reason: `session ${sessionId} is not in delivered state` };
+  if (session.gate_status !== "delivered") {
+    return {
+      status: "rejected",
+      session_id: sessionId,
+      reason: `session ${sessionId} is not in delivered state`,
+    };
   }
 
   const now = new Date().toISOString();
 
-  if (decision === 'approve') {
-    session.deliverables_approved_by = 'Orchestrator';
+  if (decision === "approve") {
+    session.deliverables_approved_by = "Orchestrator";
     session.deliverables_approved_at = now;
     session.deliverables_approval_note = approvalNote || null;
-    session.gate_status = 'approved';
+    session.gate_status = "approved";
 
     if (executionSummary) {
-      session.gate_status = 'completed';
+      session.gate_status = "completed";
       session.consumed_at = now;
-      session.audit = { execution_summary: executionSummary.substring(0, 1000), completed_at: now };
-      store.active_sessions = store.active_sessions.filter((sid) => sid !== sessionId);
+      session.audit = {
+        execution_summary: executionSummary.substring(0, 1000),
+        completed_at: now,
+      };
+      store.active_sessions = store.active_sessions.filter(
+        (sid) => sid !== sessionId,
+      );
     }
 
     store.last_updated = now;
@@ -1068,16 +1210,24 @@ export function approveDeliverables(
     return { status: session.gate_status, session_id: sessionId };
   }
 
-  if (decision === 'reject') {
-    session.gate_status = 'armed';
-    session.deliverables_approval_note = approvalNote || 'rejected';
+  if (decision === "reject") {
+    session.gate_status = "armed";
+    session.deliverables_approval_note = approvalNote || "rejected";
     session.submitted_deliverables = undefined;
     store.last_updated = now;
     saveGateStore(store, root);
-    return { status: 'rejected', session_id: sessionId, reason: approvalNote || 'rejected' };
+    return {
+      status: "rejected",
+      session_id: sessionId,
+      reason: approvalNote || "rejected",
+    };
   }
 
-  return { status: 'rejected', session_id: sessionId, reason: `Invalid decision: ${decision}` };
+  return {
+    status: "rejected",
+    session_id: sessionId,
+    reason: `Invalid decision: ${decision}`,
+  };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1115,35 +1265,35 @@ export function drainStaleSessions(
     if (!ses) continue;
 
     let shouldDrain = false;
-    let reason = '';
-    let drainType = '';
+    let reason = "";
+    let drainType = "";
 
-    if (ses.gate_status === 'armed' && !ses.consumed_at && ses.confirmed_at) {
+    if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
       const age = nowTs - new Date(ses.confirmed_at).getTime();
       if (age > armedHours * 3600000) {
         shouldDrain = true;
-        drainType = 'STALE_ARMED';
+        drainType = "STALE_ARMED";
         reason = `armed for ${Math.floor(age / 3600000)}h without completion (threshold: ${armedHours}h)`;
       }
     }
 
-    if (ses.gate_status === 'checked' && !ses.confirmed_at) {
+    if (ses.gate_status === "checked" && !ses.confirmed_at) {
       const age = nowTs - new Date(ses.created_at).getTime();
       if (age > checkedHours * 3600000) {
         shouldDrain = true;
-        drainType = 'STALE_CHECKED';
+        drainType = "STALE_CHECKED";
         reason = `checked for ${Math.floor(age / 3600000)}h without confirmation (threshold: ${checkedHours}h)`;
       }
     }
 
     // Delivered state: drain after 4 hours without Orchestrator approval
-    if (ses.gate_status === 'delivered' && ses.submitted_deliverables) {
+    if (ses.gate_status === "delivered" && ses.submitted_deliverables) {
       const submittedAt = ses.submitted_deliverables[0]?.submitted_at;
       if (submittedAt) {
         const age = nowTs - new Date(submittedAt).getTime();
         if (age > 4 * 3600000) {
           shouldDrain = true;
-          drainType = 'STALE_DELIVERED';
+          drainType = "STALE_DELIVERED";
           reason = `delivered for ${Math.floor(age / 3600000)}h without Orchestrator approval (threshold: 4h)`;
         }
       }
@@ -1152,30 +1302,33 @@ export function drainStaleSessions(
     if (shouldDrain) {
       const archived = dbArchiveDrainedSession(
         sid,
-        ses.task_description || '',
+        ses.task_description || "",
         reason,
         drainType,
         JSON.stringify(ses),
       );
       if (!archived) {
-        writeLogSafe(SRC, 'WARN', { event: 'DRAIN-ARCHIVE-SKIPPED', detail: `sid=${sid}` });
+        writeLogSafe(SRC, "WARN", {
+          event: "DRAIN-ARCHIVE-SKIPPED",
+          detail: `sid=${sid}`,
+        });
         continue;
       }
       delete store.sessions[sid];
       store.active_sessions = store.active_sessions.filter((a) => a !== sid);
       purged++;
       drainedIds.push(sid);
-      if (drainType === 'STALE_ARMED') drainedArmed++;
-      if (drainType === 'STALE_CHECKED') drainedChecked++;
-      if (drainType === 'STALE_DELIVERED') drainedDelivered++;
+      if (drainType === "STALE_ARMED") drainedArmed++;
+      if (drainType === "STALE_CHECKED") drainedChecked++;
+      if (drainType === "STALE_DELIVERED") drainedDelivered++;
     }
   }
 
   if (purged > 0) {
     store.last_updated = new Date().toISOString();
     saveGateStore(store, root);
-    writeLogSafe(SRC, 'INFO', {
-      event: 'DRAIN-COMPLETE',
+    writeLogSafe(SRC, "INFO", {
+      event: "DRAIN-COMPLETE",
       detail: `purged=${purged} armed=${drainedArmed} checked=${drainedChecked} delivered=${drainedDelivered} total_archived=${dbCountDrainedSessions()}`,
     });
   }
@@ -1218,21 +1371,21 @@ export function validateTaskArtifacts(
   const resolvedId = taskId || sessionId;
   if (!resolvedId) return [];
   const projectRoot = root || getProjectRoot();
-  const taskDir = path.join(projectRoot, '.task_temp', resolvedId);
+  const taskDir = path.join(projectRoot, ".task_temp", resolvedId);
   const missing: string[] = [];
 
   // Check HANDOVER.md: primary path first, then fallback to immediate subdirectories.
   // Dispatch sessions may nest artifacts under .task_temp/{taskId}/_dispatch/ or similar.
-  if (!fileExists(path.join(taskDir, 'HANDOVER.md'))) {
-    if (!scanSubdirForArtifact(taskDir, 'HANDOVER.md')) {
-      missing.push('HANDOVER.md');
+  if (!fileExists(path.join(taskDir, "HANDOVER.md"))) {
+    if (!scanSubdirForArtifact(taskDir, "HANDOVER.md")) {
+      missing.push("HANDOVER.md");
     }
   }
 
   // Check TASK_LOG.md: same primary+fallback strategy as HANDOVER.md.
-  if (!fileExists(path.join(taskDir, 'TASK_LOG.md'))) {
-    if (!scanSubdirForArtifact(taskDir, 'TASK_LOG.md')) {
-      missing.push('TASK_LOG.md');
+  if (!fileExists(path.join(taskDir, "TASK_LOG.md"))) {
+    if (!scanSubdirForArtifact(taskDir, "TASK_LOG.md")) {
+      missing.push("TASK_LOG.md");
     }
   }
 
@@ -1272,11 +1425,14 @@ function scanSubdirForArtifact(baseDir: string, artifact: string): boolean {
  * compatible with the keystone hash convention.
  * @public — Keystone hash computation for contract/rule validation
  */
-export function computeDigest(filePath: string): { digest: string | null; error: string | null } {
+export function computeDigest(filePath: string): {
+  digest: string | null;
+  error: string | null;
+} {
   try {
     const content = fs.readFileSync(filePath);
-    const hash = crypto.createHash('sha256').update(content).digest('hex');
-    return { digest: 'sha256-' + hash, error: null };
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
+    return { digest: "sha256-" + hash, error: null };
   } catch (err: unknown) {
     return { digest: null, error: (err as Error).message };
   }
@@ -1288,12 +1444,14 @@ export function computeDigest(filePath: string): { digest: string | null; error:
  */
 export function extractSemver(filePath: string): string | null {
   try {
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = fs.readFileSync(filePath, "utf8");
     // Pattern 1: YAML frontmatter `version: "1.2.3"`
     const fmMatch = content.match(/^version:\s*"?(\d+\.\d+\.\d+)"?/m);
     if (fmMatch) return fmMatch[1];
     // Pattern 2: Markdown header `## Version 1.2.3`
-    const hdrMatch = content.match(/^#{1,3}\s+(?:Version|v)\s*(\d+\.\d+\.\d+)/im);
+    const hdrMatch = content.match(
+      /^#{1,3}\s+(?:Version|v)\s*(\d+\.\d+\.\d+)/im,
+    );
     if (hdrMatch) return hdrMatch[1];
     // Pattern 3: Inline `v1.2.3`
     const inlineMatch = content.match(/v(\d+\.\d+\.\d+)/);
@@ -1332,7 +1490,7 @@ export interface FrameworkPaths {
 function deriveOpenCodeRoot(): string {
   let current = path.resolve(process.cwd());
   for (let i = 0; i < 10; i++) {
-    const dotOpenCode = path.join(current, '.opencode');
+    const dotOpenCode = path.join(current, ".opencode");
     if (fs.existsSync(dotOpenCode)) return current;
     const parent = path.dirname(current);
     if (parent === current) break;
@@ -1353,18 +1511,27 @@ export function resolveFrameworkPaths(rootDir?: string): FrameworkPaths {
   const resolvedRoot = rootDir ? path.resolve(rootDir) : deriveOpenCodeRoot();
   return {
     root: resolvedRoot,
-    dag: path.join(resolvedRoot, 'Task.DAG.json'),
-    gateState: path.join(resolvedRoot, '.opencode', 'state', 'gate-state.json'),
-    machine: path.join(resolvedRoot, '.opencode', 'state', 'machine.json'),
-    projectConfig: path.join(resolvedRoot, '.opencode', 'project.config.json'),
-    ruleRegistry: path.join(resolvedRoot, '.opencode', 'state', 'rule_registry.json'),
-    ruleRegistryFallback: path.join(resolvedRoot, '.opencode', 'rule_registry.json'),
-    pluginsDir: path.join(resolvedRoot, '.opencode', 'plugins'),
-    hooksDir: path.join(resolvedRoot, '.opencode', 'hooks'),
-    stateDir: path.join(resolvedRoot, '.opencode', 'state'),
-    scriptsDir: path.join(resolvedRoot, '.opencode', 'scripts'),
-    agentsDir: path.join(resolvedRoot, '.opencode', 'agents'),
-    rulesDir: path.join(resolvedRoot, '.opencode', 'rules'),
+    dag: path.join(resolvedRoot, "Task.DAG.json"),
+    gateState: path.join(resolvedRoot, ".opencode", "state", "gate-state.json"),
+    machine: path.join(resolvedRoot, ".opencode", "state", "machine.json"),
+    projectConfig: path.join(resolvedRoot, ".opencode", "project.config.json"),
+    ruleRegistry: path.join(
+      resolvedRoot,
+      ".opencode",
+      "state",
+      "rule_registry.json",
+    ),
+    ruleRegistryFallback: path.join(
+      resolvedRoot,
+      ".opencode",
+      "rule_registry.json",
+    ),
+    pluginsDir: path.join(resolvedRoot, ".opencode", "plugins"),
+    hooksDir: path.join(resolvedRoot, ".opencode", "hooks"),
+    stateDir: path.join(resolvedRoot, ".opencode", "state"),
+    scriptsDir: path.join(resolvedRoot, ".opencode", "scripts"),
+    agentsDir: path.join(resolvedRoot, ".opencode", "agents"),
+    rulesDir: path.join(resolvedRoot, ".opencode", "rules"),
   };
 }
 
@@ -1397,14 +1564,22 @@ export interface DagExistsResult {
  *     - Task lookup    → `findTaskInDag(taskId)` in ./gate-checks.ts (scans
  *                        BOTH `dag.tasks[]` and `dag.execution_order`).
  */
-export function checkDagExists(dagPath?: string, verbose?: boolean): DagExistsResult {
+export function checkDagExists(
+  dagPath?: string,
+  verbose?: boolean,
+): DagExistsResult {
   const fp = dagPath ? { dag: dagPath } : resolveFrameworkPaths();
-  const dag = readJsonFile<{ tasks?: unknown[] }>(fp.dag || (fp as FrameworkPaths).dag);
+  const dag = readJsonFile<{ tasks?: unknown[] }>(
+    fp.dag || (fp as FrameworkPaths).dag,
+  );
   if (verbose) {
     // diagnostic output — silent in production
   }
   if (!dag || !Array.isArray(dag.tasks)) {
-    return { found: fileExists(fp.dag || (fp as FrameworkPaths).dag), taskCount: 0 };
+    return {
+      found: fileExists(fp.dag || (fp as FrameworkPaths).dag),
+      taskCount: 0,
+    };
   }
   return { found: true, taskCount: dag.tasks.length };
 }
@@ -1429,15 +1604,18 @@ export interface TaskInDagResult {
  *   returns `{ found, status, source }` where source distinguishes which
  *   structure the match came from).
  */
-export function checkTaskInDag(dag: { tasks?: Array<{ id: string; status: string; owner?: string }> }, taskId: string): TaskInDagResult {
+export function checkTaskInDag(
+  dag: { tasks?: Array<{ id: string; status: string; owner?: string }> },
+  taskId: string,
+): TaskInDagResult {
   if (!dag || !Array.isArray(dag.tasks)) {
-    return { found: false, status: 'unknown', owner: '' };
+    return { found: false, status: "unknown", owner: "" };
   }
   const task = dag.tasks.find((t) => t.id === taskId);
   if (!task) {
-    return { found: false, status: 'unknown', owner: '' };
+    return { found: false, status: "unknown", owner: "" };
   }
-  return { found: true, status: task.status, owner: task.owner || '' };
+  return { found: true, status: task.status, owner: task.owner || "" };
 }
 
 export interface DagProgressResult {
@@ -1460,14 +1638,18 @@ export interface DagProgressResult {
  *   No direct replacement (progress reporting belongs in framework-doctor.ts
  *   and state-integrity-scan.ts, which both handle both DAG layouts).
  */
-export function checkDagProgress(dag: { tasks?: Array<{ status: string }> }): DagProgressResult {
+export function checkDagProgress(dag: {
+  tasks?: Array<{ status: string }>;
+}): DagProgressResult {
   if (!dag || !Array.isArray(dag.tasks)) {
     return { total: 0, completed: 0, pending: 0, progressPercent: 0 };
   }
   const tasks = dag.tasks;
   const total = tasks.length;
-  const completed = tasks.filter((t) => t.status === 'completed').length;
-  const pending = tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress').length;
+  const completed = tasks.filter((t) => t.status === "completed").length;
+  const pending = tasks.filter(
+    (t) => t.status === "pending" || t.status === "in_progress",
+  ).length;
   const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
   return { total, completed, pending, progressPercent };
 }
@@ -1490,13 +1672,18 @@ export interface ArmedSessionResult {
  * @returns { found, sessionId }
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
  */
-export function checkArmedSession(gateState: { sessions?: Record<string, { gate_status?: string; consumed_at?: string | null; session_id?: string }> }): ArmedSessionResult {
+export function checkArmedSession(gateState: {
+  sessions?: Record<
+    string,
+    { gate_status?: string; consumed_at?: string | null; session_id?: string }
+  >;
+}): ArmedSessionResult {
   if (!gateState || !gateState.sessions) {
     return { found: false, sessionId: null };
   }
   const sessions = Object.values(gateState.sessions);
   const armed = sessions.find(
-    (s) => s.gate_status === 'armed' && s.consumed_at === null,
+    (s) => s.gate_status === "armed" && s.consumed_at === null,
   );
   return armed
     ? { found: true, sessionId: armed.session_id || null }
@@ -1523,7 +1710,17 @@ export interface StaleSessionsResult {
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
  */
 export function checkStaleSessions(
-  gateState: { sessions?: Record<string, { session_id?: string; created_at?: string; confirmed_at?: string | null; gate_status?: string }> },
+  gateState: {
+    sessions?: Record<
+      string,
+      {
+        session_id?: string;
+        created_at?: string;
+        confirmed_at?: string | null;
+        gate_status?: string;
+      }
+    >;
+  },
   thresholdHours?: number,
 ): StaleSessionsResult {
   const now = Date.now();
@@ -1535,12 +1732,22 @@ export function checkStaleSessions(
     const createdAt = s.created_at ? new Date(s.created_at).getTime() : 0;
     if (!createdAt) continue;
     const ageHours = (now - createdAt) / (60 * 60 * 1000);
-    if (s.gate_status === 'drained' && ageHours * 60 * 60 * 1000 > THRESHOLD) {
-      stale.push({ id: s.session_id || '', age: Math.round(ageHours * 10) / 10 });
+    if (s.gate_status === "drained" && ageHours * 60 * 60 * 1000 > THRESHOLD) {
+      stale.push({
+        id: s.session_id || "",
+        age: Math.round(ageHours * 10) / 10,
+      });
       continue;
     }
-    if (s.gate_status === 'checked' && !s.confirmed_at && ageHours * 60 * 60 * 1000 > THRESHOLD) {
-      stale.push({ id: s.session_id || '', age: Math.round(ageHours * 10) / 10 });
+    if (
+      s.gate_status === "checked" &&
+      !s.confirmed_at &&
+      ageHours * 60 * 60 * 1000 > THRESHOLD
+    ) {
+      stale.push({
+        id: s.session_id || "",
+        age: Math.round(ageHours * 10) / 10,
+      });
     }
   }
   return { stale, count: stale.length };
@@ -1559,28 +1766,45 @@ export interface GateIntegrityResult {
  * @returns Integrity check result
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
  */
-export function checkGateIntegrity(gateState: { formatVersion?: string; sessions?: Record<string, { session_id?: string; gate_status?: string }>; active_sessions?: unknown[] }): GateIntegrityResult {
+export function checkGateIntegrity(gateState: {
+  formatVersion?: string;
+  sessions?: Record<string, { session_id?: string; gate_status?: string }>;
+  active_sessions?: unknown[];
+}): GateIntegrityResult {
   const issues: string[] = [];
   if (!gateState) {
-    issues.push('gate-state.json exists but cannot be parsed as JSON');
+    issues.push("gate-state.json exists but cannot be parsed as JSON");
     return { valid: false, issues };
   }
   if (!gateState.formatVersion) {
-    issues.push('gate-state.json missing formatVersion field');
+    issues.push("gate-state.json missing formatVersion field");
   }
-  if (!gateState.sessions || typeof gateState.sessions !== 'object') {
+  if (!gateState.sessions || typeof gateState.sessions !== "object") {
     issues.push("gate-state.json missing 'sessions' object");
   } else {
     const sessions = Object.values(gateState.sessions);
-    if (sessions.length === 0 && (Array.isArray(gateState.active_sessions) && gateState.active_sessions.length > 0)) {
-      issues.push('gate-state.json: active_sessions non-empty but sessions object is empty');
+    if (
+      sessions.length === 0 &&
+      Array.isArray(gateState.active_sessions) &&
+      gateState.active_sessions.length > 0
+    ) {
+      issues.push(
+        "gate-state.json: active_sessions non-empty but sessions object is empty",
+      );
     }
     for (const s of sessions) {
       if (!s.session_id) {
-        issues.push('gate-state.json: session entry missing session_id');
+        issues.push("gate-state.json: session entry missing session_id");
       }
-      if (s.gate_status && !['checked', 'armed', 'completed', 'failed', 'drained'].includes(s.gate_status)) {
-        issues.push(`gate-state.json: unknown gate_status '${s.gate_status}' in session ${s.session_id || '(unknown)'}`);
+      if (
+        s.gate_status &&
+        !["checked", "armed", "completed", "failed", "drained"].includes(
+          s.gate_status,
+        )
+      ) {
+        issues.push(
+          `gate-state.json: unknown gate_status '${s.gate_status}' in session ${s.session_id || "(unknown)"}`,
+        );
       }
     }
   }
@@ -1615,22 +1839,30 @@ export function checkMachineCleanliness(): MachineCleanlinessResult {
   try {
     const eslintAgg = readSubState("eslint_state")?.aggregate;
     if (eslintAgg?.dirty_modules?.length > 0) {
-      dirty.push(`eslint_state: ${eslintAgg.dirty_modules.length} dirty module(s) — ${eslintAgg.dirty_modules.join(', ')}`);
+      dirty.push(
+        `eslint_state: ${eslintAgg.dirty_modules.length} dirty module(s) — ${eslintAgg.dirty_modules.join(", ")}`,
+      );
     }
 
     const tcs = readSubState("type_check_state");
-    if (tcs?.status && tcs.status !== 'clean') {
-      dirty.push(`type_check_state: status=${tcs.status}, ${(tcs.dirty_files || []).length} dirty file(s)`);
+    if (tcs?.status && tcs.status !== "clean") {
+      dirty.push(
+        `type_check_state: status=${tcs.status}, ${(tcs.dirty_files || []).length} dirty file(s)`,
+      );
     }
 
     const ds = readSubState("dependency_state");
-    if (ds?.status && ds.status !== 'clean') {
-      dirty.push(`dependency_state: status=${ds.status}, ${(ds.violations || []).length} violation(s)`);
+    if (ds?.status && ds.status !== "clean") {
+      dirty.push(
+        `dependency_state: status=${ds.status}, ${(ds.violations || []).length} violation(s)`,
+      );
     }
 
     const fs2 = readSubState("format_state");
-    if (fs2?.status && fs2.status !== 'clean') {
-      dirty.push(`format_state: status=${fs2.status}, ${(fs2.unformatted_files || []).length} unformatted file(s)`);
+    if (fs2?.status && fs2.status !== "clean") {
+      dirty.push(
+        `format_state: status=${fs2.status}, ${(fs2.unformatted_files || []).length} unformatted file(s)`,
+      );
     }
   } catch {
     // Non-blocking — readSubState returns {} on failure, so sub-states
@@ -1646,7 +1878,7 @@ export function checkMachineCleanliness(): MachineCleanlinessResult {
 
 export interface RegistryMismatch {
   file: string;
-  severity: 'HIGH' | 'WARNING';
+  severity: "HIGH" | "WARNING";
 }
 
 export interface RuleRegistryResult {
@@ -1664,11 +1896,11 @@ export interface RuleRegistryResult {
  */
 export function checkRuleRegistryIntegrity(): RuleRegistryResult {
   try {
-    const { getModifiedCriticalFiles } = require('./critical-files');
+    const { getModifiedCriticalFiles } = require("./critical-files");
     const modified = getModifiedCriticalFiles();
     const mismatches: RegistryMismatch[] = modified.map((f: string) => ({
       file: f,
-      severity: 'HIGH' as const,
+      severity: "HIGH" as const,
     }));
     return {
       valid: mismatches.length === 0,
@@ -1693,13 +1925,13 @@ export function checkRuleRegistryIntegrity(): RuleRegistryResult {
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
  */
 export function pathMatchesGlob(filePath: string, pattern: string): boolean {
-  const normalized = filePath.replace(/\\/g, '/');
-  const pat = pattern.replace(/\\/g, '/');
+  const normalized = filePath.replace(/\\/g, "/");
+  const pat = pattern.replace(/\\/g, "/");
   const regexStr = pat
-    .replace(/\./g, '\\.')
-    .replace(/\*\*/g, '{{GLOBSTAR}}')
-    .replace(/\*/g, '[^/]*')
-    .replace(/{{GLOBSTAR}}/g, '.*');
+    .replace(/\./g, "\\.")
+    .replace(/\*\*/g, "{{GLOBSTAR}}")
+    .replace(/\*/g, "[^/]*")
+    .replace(/{{GLOBSTAR}}/g, ".*");
   return new RegExp(`^${regexStr}$`).test(normalized);
 }
 
@@ -1750,7 +1982,7 @@ export class FrameworkEnforcementError extends Error {
   /** Which check failed (e.g., "DAG Coverage", "Gate Lifecycle") */
   check: string;
   /** Severity level: "HIGH", "WARNING", or "INFO" */
-  severity: 'HIGH' | 'WARNING' | 'INFO';
+  severity: "HIGH" | "WARNING" | "INFO";
   /** Agent type that triggered the violation (e.g., "@Coder-BE") */
   agent: string;
   /** Task ID associated with the violation */
@@ -1761,13 +1993,13 @@ export class FrameworkEnforcementError extends Error {
   constructor(
     check: string,
     message: string,
-    severity: 'HIGH' | 'WARNING' | 'INFO' = 'HIGH',
-    agent: string = '',
-    taskId: string = '',
-    mode: string = 'strict',
+    severity: "HIGH" | "WARNING" | "INFO" = "HIGH",
+    agent: string = "",
+    taskId: string = "",
+    mode: string = "strict",
   ) {
     super(message);
-    this.name = 'FrameworkEnforcementError';
+    this.name = "FrameworkEnforcementError";
     this.check = check;
     this.severity = severity;
     this.agent = agent;

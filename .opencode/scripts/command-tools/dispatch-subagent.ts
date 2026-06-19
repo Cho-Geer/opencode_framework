@@ -42,7 +42,10 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { deliverablesTemplateMarkdown, isExemptAgent } = require("../../lib/deliverables-templates");
+const {
+  deliverablesTemplateMarkdown,
+  isExemptAgent,
+} = require("../../lib/deliverables-templates");
 const { dbQuerySessionByDagTaskId } = require("../../lib/db-state-manager");
 const { writeLog } = require("../../lib/log-manager");
 
@@ -115,12 +118,19 @@ if (!taskId) {
 // Fall back to .dispatch_ctx file (written by parent dispatch_subagent.ts)
 if (!taskId) {
   try {
-    const ctxPath = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch", ".dispatch_ctx");
+    const ctxPath = path.join(
+      OPENCODE_ROOT,
+      ".task_temp",
+      "_dispatch",
+      ".dispatch_ctx",
+    );
     if (fs.existsSync(ctxPath)) {
       const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      taskId = ctx.dag_task_id || null;
+      taskId = ctx.dagTaskId || null;
     }
-  } catch { /* file missing or malformed — continue without task_id */ }
+  } catch {
+    /* file missing or malformed — continue without task_id */
+  }
 }
 process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
@@ -135,9 +145,12 @@ if (!agentType) {
   writeLog("dispatch-subagent", "runtime", {
     level: "ERROR",
     event: "CLI-ARGUMENT-ERROR",
-    detail: 'Missing agent_type. Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
+    detail:
+      'Missing agent_type. Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
   });
-  console.error('Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"');
+  console.error(
+    'Usage: bun dispatch-subagent.ts <agent_type> "<task_description>"',
+  );
   process.exit(1);
 }
 
@@ -182,8 +195,13 @@ if (taskId) {
       logWarn(`Pre-execution gate failed: ${errMsg.substring(0, 300)}`);
 
       // Smart detection: check if failure is ONLY due to rule_registry digest mismatch
-      const isCriticalFileModified = /critical.*(file|infrastructure)/i.test(errMsg);
-      const hasOtherBlockers = /DAG.*missing|task.*not found|gate.*not armed|TDD.*violation/i.test(errMsg);
+      const isCriticalFileModified = /critical.*(file|infrastructure)/i.test(
+        errMsg,
+      );
+      const hasOtherBlockers =
+        /DAG.*missing|task.*not found|gate.*not armed|TDD.*violation/i.test(
+          errMsg,
+        );
 
       if (isCriticalFileModified && !hasOtherBlockers) {
         writeLog("dispatch-subagent", "runtime", {
@@ -198,16 +216,21 @@ if (taskId) {
         event: "PRE-EXECUTION-GATE-FAILED",
         detail: `Pre-execution gate BLOCKED dispatch for task '${taskId}'. Exit code: ${e.status}, Signal: ${e.signal || "none"}`,
       });
-      console.error(`[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`);
+      console.error(
+        `[dispatch] ❌ Pre-execution gate BLOCKED dispatch for task '${taskId}'.`,
+      );
       process.exit(e.status || 1);
     }
   } else {
     writeLog("dispatch-subagent", "runtime", {
       level: "WARN",
       event: "GATE-SCRIPT-MISSING",
-      detail: "pre-execution-gate.ts not found — skipping gate check. Install with: bun .opencode/scripts/install-hooks.ts",
+      detail:
+        "pre-execution-gate.ts not found — skipping gate check. Install with: bun .opencode/scripts/install-hooks.ts",
     });
-    console.error(`[dispatch] ⚠️  pre-execution-gate.ts not found — skipping gate check.`);
+    console.error(
+      `[dispatch] ⚠️  pre-execution-gate.ts not found — skipping gate check.`,
+    );
   }
 }
 
@@ -223,7 +246,9 @@ if (taskId) {
  * ALL sub-agent dispatches.
  */
 function tolerantParse(raw) {
-  try { return JSON.parse(raw); } catch (e) {
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
     var cleaned = raw.replace(/,(\s*[}\]])/g, "$1");
     if (cleaned === raw) throw e;
     return JSON.parse(cleaned);
@@ -437,11 +462,14 @@ const rawMcpTools = agentConfig.mcp_tools || [];
  * agent_dispatch_allowed_tools). If the KC agent config frontmatter still lists
  * dispatch_subagent, this filter removes it from the generated prompt.
  */
-const mcpTools = agentType.toLowerCase() === "knowledge-curator"
-  ? rawMcpTools.filter(t => t !== "dispatch_subagent")
-  : rawMcpTools;
+const mcpTools =
+  agentType.toLowerCase() === "knowledge-curator"
+    ? rawMcpTools.filter((t) => t !== "dispatch_subagent")
+    : rawMcpTools;
 if (rawMcpTools.length !== mcpTools.length) {
-  logWarn(`Filtered dispatch_subagent from KC agent config (M16 defense-in-depth)`);
+  logWarn(
+    `Filtered dispatch_subagent from KC agent config (M16 defense-in-depth)`,
+  );
 }
 const permission = extractPermission(agentContent);
 
@@ -595,7 +623,10 @@ if (taskId) {
 // compliance_gate_check, causing DISPATCH_TASKID_TAMPER false positive
 if (taskId) {
   try {
-    const { dbWriteSessionMap, dbReadSessionMap } = require("../../lib/db-state-manager");
+    const {
+      dbWriteSessionMap,
+      dbReadSessionMap,
+    } = require("../../lib/db-state-manager");
     const sessionId = process.env.OPENCODE_SESSION_ID || "";
     if (sessionId) {
       dbWriteSessionMap(sessionId, agentType, taskId);
@@ -611,6 +642,27 @@ if (taskId) {
     writeLog("dispatch-subagent", "ERROR", {
       event: "SESSION_MAP_WRITE_ERROR",
       detail: `Failed to pre-write session_map: ${e?.message ?? e}`,
+    });
+  }
+}
+
+// IMPLEMENT-DISPATCH-CTX-FIX: Per-dispatch context file (dagTaskId-keyed, no overwrites)
+// Eliminates the session_map race condition caused by concurrent dispatches
+// overwriting the shared .dispatch_ctx singleton.
+if (taskId) {
+  try {
+    const { writeDispatchCtx } = require("../../lib/agent-resolver");
+    // Infer domainId from agent_domain_map in project config
+    let inferredDomainId: string | null = null;
+    try {
+      const agentDomainMap = projectConfig.agent_domain_map || {};
+      inferredDomainId = agentDomainMap[agentType] || null;
+    } catch {}
+    writeDispatchCtx(taskId, agentType, inferredDomainId || undefined);
+  } catch (e: any) {
+    writeLog("dispatch-subagent", "ERROR", {
+      event: "DISPATCH_CTX_WRITE_ERROR",
+      detail: `Failed to write per-dispatch ctx: ${e?.message ?? e}`,
     });
   }
 }
@@ -678,28 +730,41 @@ If agent config and opencode.json conflict, **opencode.json is authoritative**.
 // ── Agent-specific scope line (replaces the full 8-agent table) ──
 function scopeLine(agentType) {
   const map = {
-    "Architect": "Write: contract.yaml, docs/ | Deny: .opencode/ framework files | Route: @Super-Admin",
-    "Coder-BE": "Write: booking-backend/src/, booking-backend/test/ | Deny: booking-frontend/**, .opencode/ | Route: @Orchestrator",
-    "Coder-FE": "Write: booking-frontend/ | Deny: booking-backend/**, .opencode/ | Route: @Orchestrator",
-    "Orchestrator": "Write: Task.DAG.json, .task_temp/ | Deny: .opencode/ framework files | Route: @Super-Admin",
-    "Super-Admin": "Write: .opencode/**, opencode.json, AGENTS.md | Deny: booking-*/src/ (business code)",
-    "Guardian": "Write: .task_temp/**, .opencode/state/ | Deny: business code, contract.yaml | Route: @Arbiter",
-    "Arbiter": "Write: WAIVE.md, TECH_DEBT_REGISTRY.md | Deny: business code | Route: @Meta-Planner",
-    "CI-CD-Agent": "Write: .github/, Dockerfile*, docker-compose* | Deny: business code (src/), .opencode/agents/ | Route: @Orchestrator",
-    "Knowledge-Curator": "Write: docs/official_docs/**, .task_temp/** | Deny: .opencode/**, business code",
-    "Meta-Planner": "Write: docs/, Task.DAG.json | Deny: .opencode/ framework files, business code",
+    Architect:
+      "Write: contract.yaml, docs/ | Deny: .opencode/ framework files | Route: @Super-Admin",
+    "Coder-BE":
+      "Write: booking-backend/src/, booking-backend/test/ | Deny: booking-frontend/**, .opencode/ | Route: @Orchestrator",
+    "Coder-FE":
+      "Write: booking-frontend/ | Deny: booking-backend/**, .opencode/ | Route: @Orchestrator",
+    Orchestrator:
+      "Write: Task.DAG.json, .task_temp/ | Deny: .opencode/ framework files | Route: @Super-Admin",
+    "Super-Admin":
+      "Write: .opencode/**, opencode.json, AGENTS.md | Deny: booking-*/src/ (business code)",
+    Guardian:
+      "Write: .task_temp/**, .opencode/state/ | Deny: business code, contract.yaml | Route: @Arbiter",
+    Arbiter:
+      "Write: WAIVE.md, TECH_DEBT_REGISTRY.md | Deny: business code | Route: @Meta-Planner",
+    "CI-CD-Agent":
+      "Write: .github/, Dockerfile*, docker-compose* | Deny: business code (src/), .opencode/agents/ | Route: @Orchestrator",
+    "Knowledge-Curator":
+      "Write: docs/official_docs/**, .task_temp/** | Deny: .opencode/**, business code",
+    "Meta-Planner":
+      "Write: docs/, Task.DAG.json | Deny: .opencode/ framework files, business code",
   };
   return map[agentType] || `Execute within your role's declared scope`;
 }
 
 // ── Context7: only inject when stacks are actually matched ──
-const context7Block = relevantStacks.length > 0 ? `
+const context7Block =
+  relevantStacks.length > 0
+    ? `
 
 ---
 
 ### Context7 Technology Lookup Requirements
 
-${context7Section}` : "";
+${context7Section}`
+    : "";
 
 const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
 
@@ -707,7 +772,9 @@ const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
 
 ${preamble}
 
-${deliverablesTemplateMarkdown(agentType)}${agentType.toLowerCase() === "knowledge-curator" ? `
+${deliverablesTemplateMarkdown(agentType)}${
+  agentType.toLowerCase() === "knowledge-curator"
+    ? `
 
 ### 🚀 KC Combined Gate Flow (M17-M19, 2026-06-19)
 
@@ -733,7 +800,9 @@ compliance_gate_complete(session_id, execution_summary)
 
 **M17 — [INSUFFICIENT] attest handling**: If \`knowledge_cache_attest\` returns
 \`cache_sufficient=false\`, use the combined flow above to fetch missing docs.
-Do NOT loop on insufficient attest — acquire, re-attest, complete.` : ""}
+Do NOT loop on insufficient attest — acquire, re-attest, complete.`
+    : ""
+}
 
 ---
 
@@ -920,10 +989,10 @@ if (dedupedEntries.length > 0) {
   // whether stale .pending.json entries are blocking legitimate re-dispatches.
   logInfo(
     `DIAG-DEDUP-BLOCK | agentType=${agentType} | ` +
-    `blockedDagTaskId=${dedupedEntries[0].taskId || '?'} | ` +
-    `newDagTaskId=${taskId} | ` +
-    `prevHash=${(dedupedEntries[0].promptHash || '').substring(0, 12)} | ` +
-    `newHash=${promptHash.substring(0, 12)}`,
+      `blockedDagTaskId=${dedupedEntries[0].taskId || "?"} | ` +
+      `newDagTaskId=${taskId} | ` +
+      `prevHash=${(dedupedEntries[0].promptHash || "").substring(0, 12)} | ` +
+      `newHash=${promptHash.substring(0, 12)}`,
   );
 
   // ── P6/S23: RESUME BRANCH (S25 v4: DB query replaces SESSION_ID.md) ──
@@ -935,7 +1004,9 @@ if (dedupedEntries.length > 0) {
     const taskIdForResume = taskId || "(unknown)";
     const priorSession = dbQueryLatestSessionByDagTaskId(taskIdForResume);
     if (priorSession) {
-      logInfo(`RESUME dispatch allowed: dag_task_id=${taskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`);
+      logInfo(
+        `RESUME dispatch allowed: dag_task_id=${taskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`,
+      );
       // Continue — skip fatal exit, proceed to push new entry
     } else {
       writeLog("dispatch-subagent", "runtime", {
@@ -944,7 +1015,9 @@ if (dedupedEntries.length > 0) {
         detail: `DAG_TASK_ID reuse blocked (no session_log entry): ${taskIdForResume}`,
       });
       console.error(fatalMsg);
-      logWarn(`DAG-TASK-ID REUSE BLOCKED (no session_log entry): ${taskIdForResume}`);
+      logWarn(
+        `DAG-TASK-ID REUSE BLOCKED (no session_log entry): ${taskIdForResume}`,
+      );
       process.exit(1);
     }
   } else {
@@ -972,9 +1045,9 @@ queue.push({
 // track when entries are created and whether they're later consumed.
 logInfo(
   `DIAG-ENTRY-CREATE | agentType=${agentType} | ` +
-  `taskId=${taskId || 'null'} | ` +
-  `hash=${promptHash.substring(0, 12)} | ` +
-  `queueSize=${queue.length}`,
+    `taskId=${taskId || "null"} | ` +
+    `hash=${promptHash.substring(0, 12)} | ` +
+    `queueSize=${queue.length}`,
 );
 
 // Layer 2: Retry + fatal on write failure
@@ -1016,7 +1089,9 @@ if (writeOk) {
         event: "PENDING-READBACK-FAIL",
         detail: `.pending.json written but entry not found on read-back. Dispatch file: ${outputFile}. Expected hash: ${promptHash}`,
       });
-      console.error(`FATAL: .pending.json written but entry not found on read-back.`);
+      console.error(
+        `FATAL: .pending.json written but entry not found on read-back.`,
+      );
       process.exit(1);
     }
     logInfo(

@@ -20,12 +20,9 @@
 
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
-import { resolveAgent } from "../lib/agent-resolver";
+import { resolveAgent, resolveDomainId } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
-import {
-  isDagExempt,
-  readDispatchPolicy,
-} from "../lib/dag-policy";
+import { isDagExempt, readDispatchPolicy } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
 import {
   readRouteConfig,
@@ -33,11 +30,14 @@ import {
   l1_verbCandidates,
   l2_scopeFilter,
   l3_permissionFilter,
+  l4_heuristicSelect,
   l4_dagCheck,
   isDispatchRouteExempt,
 } from "../lib/route-validator";
 
-export default withPluginLifecycle("dispatch-before", { "tool.execute.before": dispatchExecuteBefore });
+export default withPluginLifecycle("dispatch-before", {
+  "tool.execute.before": dispatchExecuteBefore,
+});
 
 async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
   if (input.tool !== "dispatch_subagent") return;
@@ -78,17 +78,19 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
   // agent (e.g. @Architect) and throws ROUTE-MISMATCH.
   let m14ApprovedKC = false;
   {
-    const isOrchestratorOrSA = (
-      caller === "Orchestrator" || caller === "@Orchestrator" ||
-      caller === "Super-Admin" || caller === "@Super-Admin"
-    );
-    const isKCTarget = (
-      target === "Knowledge-Curator" || target === "@Knowledge-Curator"
-    );
+    const isOrchestratorOrSA =
+      caller === "Orchestrator" ||
+      caller === "@Orchestrator" ||
+      caller === "Super-Admin" ||
+      caller === "@Super-Admin";
+    const isKCTarget =
+      target === "Knowledge-Curator" || target === "@Knowledge-Curator";
     if (!isOrchestratorOrSA && target && !isKCTarget) {
       writeLog("dispatch-before", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent: caller, agentType: caller,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent: caller,
+        agentType: caller,
         level: "ERROR",
         event: "DISPATCH-TARGET-RESTRICTED",
         detail: `M14 BLOCKED | caller=${caller} is a sub-agent, only target=Knowledge-Curator is allowed. Attempted target=${target}.`,
@@ -96,16 +98,18 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       if (mode === "strict" || mode === "locked") {
         throw new Error(
           `[FW-ENFORCE][M14] Sub-agents may only dispatch to @Knowledge-Curator. ` +
-          `Caller "${caller}" attempted to target "${target}". ` +
-          `To dispatch to @"${target}", route through @Orchestrator.`,
+            `Caller "${caller}" attempted to target "${target}". ` +
+            `To dispatch to @"${target}", route through @Orchestrator.`,
         );
       }
     }
     if (isOrchestratorOrSA && isKCTarget) {
       m14ApprovedKC = true;
       writeLog("dispatch-before", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent: caller, agentType: caller,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent: caller,
+        agentType: caller,
         event: "DISPATCH-BEFORE",
         detail: `M14 pass | caller=${caller} (privileged) dispatching to Knowledge-Curator`,
       });
@@ -113,8 +117,10 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
     if (!isOrchestratorOrSA && isKCTarget) {
       m14ApprovedKC = true;
       writeLog("dispatch-before", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent: caller, agentType: caller,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent: caller,
+        agentType: caller,
         event: "DISPATCH-BEFORE",
         detail: `M14 pass | caller=${caller} (sub-agent) dispatching to Knowledge-Curator (allowed per M14)`,
       });
@@ -128,8 +134,10 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
   const routeConfig = readRouteConfig();
   if (m14ApprovedKC) {
     writeLog("dispatch-before", "runtime", {
-      sessionID: input.sessionID, callID: input.callID,
-      agent: caller, agentType: caller,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent: caller,
+      agentType: caller,
       event: "DISPATCH-BEFORE",
       detail: `M14 skip-before-route | KC dispatch pre-approved by M14, bypassing L1-L4 route validation`,
     });
@@ -141,7 +149,10 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       const taskDesc = output?.args?.task_description || "";
 
       // L1: Verb → Candidate Pool
-      const l1Candidates = l1_verbCandidates(taskDesc, routeConfig.verb_to_agent);
+      const l1Candidates = l1_verbCandidates(
+        taskDesc,
+        routeConfig.verb_to_agent,
+      );
       if (l1Candidates.length > 0) {
         // REVISED: L2 uses Task.DAG.json target_files[] when dag_task_id available
         let targetFiles: string[] = [];
@@ -152,24 +163,37 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
           }
         }
 
-        const l2Candidates = l2_scopeFilter(l1Candidates, targetFiles, routeConfig.scope_to_agent);
+        const l2Candidates = l2_scopeFilter(
+          l1Candidates,
+          targetFiles,
+          routeConfig.scope_to_agent,
+        );
 
         // L3: Permission → Veto (P2-D v2.1: real target_files + pathMatchesGlob)
         // L3 receives concrete target files (not route-scope fragments) and applies
         // safe_edit glob matching via pathMatchesGlob(). If no concrete files are
         // available, skip L3 veto and rely on PLAN-FIRST/DAG enforcement.
         const opencodeConfig = readOpencodeConfig();
-        const l3Candidates = targetFiles.length > 0
-          ? l3_permissionFilter(l2Candidates, targetFiles, opencodeConfig)
-          : l2Candidates; // no concrete files: skip L3 veto, rely on PLAN-FIRST/DAG
+        const l3Candidates =
+          targetFiles.length > 0
+            ? l3_permissionFilter(l2Candidates, targetFiles, opencodeConfig)
+            : l2Candidates; // no concrete files: skip L3 veto, rely on PLAN-FIRST/DAG
 
-        // L4: DAG (selection step)
-        const finalAgent = l4_dagCheck(l3Candidates, dagTaskId, isDagExempt);
+        // L4: Heuristic Selection (L4-HEURISTIC, 2026-06-19)
+        // Replaced naive l4_dagCheck(candidates[0]) with weighted scoring:
+        // scope×35% + permission×40% + domain×25%
+        const domainId = resolveDomainId(input.sessionID) || "";
+        const finalAgent =
+          targetFiles.length > 0
+            ? l4_heuristicSelect(l3Candidates, targetFiles, domainId)
+            : l4_dagCheck(l3Candidates, dagTaskId, isDagExempt); // fallback when no target files
 
         if (finalAgent && target !== finalAgent) {
           writeLog("dispatch-before", "runtime", {
-            sessionID: input.sessionID, callID: input.callID,
-            agent: caller, agentType: caller,
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent: caller,
+            agentType: caller,
             level: "ERROR",
             event: "DISPATCH-BEFORE",
             detail:
@@ -181,11 +205,11 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
           if (mode === "strict" || mode === "locked") {
             throw new Error(
               `[FW-ENFORCE][ROUTE-MISMATCH] dispatch_subagent to @${target} is incorrect. ` +
-              `Four-layer route: L1(verb) [${l1Candidates.join(",")}] → ` +
-              `L2(scope) [${l2Candidates.join(",")}] → ` +
-              `L3(permission) [${l3Candidates.join(",")}] → ` +
-              `Selected: @${finalAgent}. ` +
-              `Task: "${taskDesc.substring(0, 100)}..."`,
+                `Four-layer route: L1(verb) [${l1Candidates.join(",")}] → ` +
+                `L2(scope) [${l2Candidates.join(",")}] → ` +
+                `L3(permission) [${l3Candidates.join(",")}] → ` +
+                `Selected: @${finalAgent}. ` +
+                `Task: "${taskDesc.substring(0, 100)}..."`,
             );
           }
         }
@@ -203,9 +227,9 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       const { getDb } = require("../lib/db-manager");
       const db = getDb();
       if (db) {
-        const rows = db.query(
-          "SELECT session_id FROM gate_sessions WHERE status = ?"
-        ).all("delivered") as Array<{ session_id: string }>;
+        const rows = db
+          .query("SELECT session_id FROM gate_sessions WHERE status = ?")
+          .all("delivered") as Array<{ session_id: string }>;
         deliveredSessions = rows.map((r: any) => r.session_id);
       }
     } catch {}
@@ -217,8 +241,10 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
         `${deliveredSessions.join(", ")}. ` +
         `Call compliance_gate_approve_deliverables(session_id, "approve") first.`;
       writeLog("dispatch-before", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent: caller, agentType: caller,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent: caller,
+        agentType: caller,
         level: "ERROR",
         event: "GATE-APPROVAL-LOCK",
         detail: `BLOCKED | ${deliveredSessions.length} unapproved sessions: ${deliveredSessions.join(", ")}`,
@@ -227,8 +253,10 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
         throw new Error(msg);
       }
       writeLog("dispatch-before", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent: caller, agentType: caller,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent: caller,
+        agentType: caller,
         level: "WARN",
         event: "GATE-APPROVAL-LOCK",
         detail: `advisory mode — ${deliveredSessions.length} unapproved but allowed`,
@@ -271,8 +299,7 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       agentType: caller,
       level: "WARN",
       event: "DISPATCH-BEFORE",
-      detail:
-        `exit (pass) | dispatch_policy.require_dag_entry=false (rollout observation mode)`,
+      detail: `exit (pass) | dispatch_policy.require_dag_entry=false (rollout observation mode)`,
     });
     return;
   }
@@ -298,8 +325,7 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
           agentType: caller,
           level: "WARN",
           event: "DISPATCH-BEFORE",
-          detail:
-            `exit (pass, advisory) | dag_task_id=${dagTaskId} NOT in DAG (would block in strict/locked)`,
+          detail: `exit (pass, advisory) | dag_task_id=${dagTaskId} NOT in DAG (would block in strict/locked)`,
         });
       }
     }
@@ -369,8 +395,7 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       agentType: caller,
       level: "ERROR",
       event: "DISPATCH-BEFORE",
-      detail:
-        `BLOCKED | PLAN-FIRST | dag_task_id=${dagTaskId} not in DAG (searched tasks[] and execution_order)`,
+      detail: `BLOCKED | PLAN-FIRST | dag_task_id=${dagTaskId} not in DAG (searched tasks[] and execution_order)`,
     });
     throw new Error(
       `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" not found ` +
@@ -388,8 +413,7 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
       agentType: caller,
       level: "ERROR",
       event: "DISPATCH-BEFORE",
-      detail:
-        `BLOCKED | PLAN-FIRST | dag_task_id=${dagTaskId} status=${tc.status} (expected pending/in_progress)`,
+      detail: `BLOCKED | PLAN-FIRST | dag_task_id=${dagTaskId} status=${tc.status} (expected pending/in_progress)`,
     });
     throw new Error(
       `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" has status ` +

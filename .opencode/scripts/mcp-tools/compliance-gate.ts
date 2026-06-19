@@ -35,6 +35,13 @@ const {
  */
 const { writeLog } = require("../../lib/log-manager");
 
+// IMPLEMENT-DISPATCH-CTX-FIX: Self-registration imports
+const {
+  dbReadSessionMap,
+  dbWriteSessionMap,
+} = require("../../lib/db-state-manager");
+const { resolveAgent } = require("../../lib/agent-resolver");
+
 const fs2 = require("fs");
 const path2 = require("path");
 /**
@@ -805,28 +812,101 @@ function runGateCheck(taskDescription, taskId) {
         }
       }
     } else {
-      // No taskId provided — check .dispatch_ctx for fallback
-      // (legacy path for pre-FW-DISPATCH-TASKID-IMMUTABLE callers)
-      const dispatchCtxPath = path2.join(
+      // No taskId provided — check ctx/ directory first (per-dispatch, no race)
+      // IMPLEMENT-DISPATCH-CTX-FIX (GAP-4, 2026-06-19, @Super-Admin):
+      //   Per-dispatch ctx/{dagTaskId}.json files are immune to overwrite
+      //   race conditions. .dispatch_ctx is legacy fallback only.
+      const ctxDir = path2.join(
         OPENCODE_ROOT,
         ".task_temp",
         "_dispatch",
-        ".dispatch_ctx",
+        "ctx",
       );
+      let foundCtx = false;
       try {
-        if (fs2.existsSync(dispatchCtxPath)) {
-          const ctx = JSON.parse(fs2.readFileSync(dispatchCtxPath, "utf8"));
-          if (ctx && ctx.dagTaskId) {
-            dispatchAssignedTaskIds = [ctx.dagTaskId];
-            hasDispatchContext = true;
+        if (fs2.existsSync(ctxDir)) {
+          const files = fs2
+            .readdirSync(ctxDir)
+            .filter((f) => f.endsWith(".json"));
+          if (files.length > 0) {
+            const latest = files.reduce((a: string, b: string) => {
+              const sa = fs2.statSync(path2.join(ctxDir, a));
+              const sb = fs2.statSync(path2.join(ctxDir, b));
+              return sa.mtimeMs > sb.mtimeMs ? a : b;
+            });
+            const ctx = JSON.parse(
+              fs2.readFileSync(path2.join(ctxDir, latest), "utf8"),
+            );
+            if (ctx?.dagTaskId) {
+              dispatchAssignedTaskIds = [ctx.dagTaskId];
+              hasDispatchContext = true;
+              foundCtx = true;
+            }
           }
         }
       } catch {
-        // .dispatch_ctx unreadable — fall through
+        // ctx/ scan failed — fall through to .dispatch_ctx
+      }
+
+      // Legacy: .dispatch_ctx (if ctx/ scan missed)
+      if (!foundCtx) {
+        const dispatchCtxPath = path2.join(
+          OPENCODE_ROOT,
+          ".task_temp",
+          "_dispatch",
+          ".dispatch_ctx",
+        );
+        try {
+          if (fs2.existsSync(dispatchCtxPath)) {
+            const ctx = JSON.parse(fs2.readFileSync(dispatchCtxPath, "utf8"));
+            if (ctx && ctx.dagTaskId) {
+              dispatchAssignedTaskIds = [ctx.dagTaskId];
+              hasDispatchContext = true;
+            }
+          }
+        } catch {
+          // .dispatch_ctx unreadable — fall through
+        }
       }
     }
   } catch {
     // DB query failure — fall through to no dispatch context
+  }
+
+  // ── IMPLEMENT-DISPATCH-CTX-FIX: Self-Registration (Defense-in-Depth) ──
+  // If taskId matches a dispatch context but session_map doesn't yet have
+  // an entry for the current session, self-register now. This corrects
+  // the case where session.ts's chat.message hook couldn't resolve the
+  // correct dagTaskId due to timing (legacy .dispatch_ctx overwrite race).
+  if (
+    hasDispatchContext &&
+    taskId &&
+    dispatchAssignedTaskIds.includes(taskId)
+  ) {
+    try {
+      const contextSessionId = context?.sessionID || "";
+      if (contextSessionId) {
+        const existing = dbReadSessionMap(contextSessionId);
+        if (!existing?.dag_task_id || existing.dag_task_id !== taskId) {
+          // Self-register: write the correct dag_task_id for this session
+          const agentNorm = resolveAgent(contextSessionId) || "unknown";
+          dbWriteSessionMap(contextSessionId, agentNorm, taskId);
+          writeLog("mcp-compliance-gate", "INFO", {
+            sessionID: contextSessionId,
+            event: "DISPATCH_TASKID_SELF_REGISTER",
+            agent: agentNorm,
+            dag_task_id: taskId,
+            detail: `Self-registered session_map entry: ${contextSessionId} → ${taskId}`,
+          });
+        }
+      }
+    } catch (e: any) {
+      // Best-effort; gate validation is the primary concern
+      writeLog("mcp-compliance-gate", "WARN", {
+        event: "DISPATCH_TASKID_SELF_REGISTER_FAILED",
+        detail: `Self-registration failed: ${e?.message ?? e}`,
+      });
+    }
   }
 
   if (hasDispatchContext && taskId && dispatchAssignedTaskIds.length > 0) {
@@ -1050,6 +1130,27 @@ function runGateCheck(taskDescription, taskId) {
         item.severity = "WARNING";
         item.desc = "[SA-BYPASS] " + item.desc;
         bypassedCount++;
+      }
+    }
+    /**
+     * SA-BYPASS: When critical files were bypassed, also downgrade
+     * rule_registry_summary. Without this, the summary item remains at
+     * severity HIGH when registryResult.passed=false, causing
+     * hasHighSeverityItems to be true and the gate to fail despite the bypass.
+     * E2E-TEST-BYPASS-SA caught this gap.
+     */
+    if (bypassedCount > 0) {
+      for (const item of failed) {
+        if (item.id === "rule_registry_summary") {
+          writeLog("mcp-compliance-gate", "runtime", {
+            event: "RULE-REGISTRY-SUMMARY-BYPASS",
+            agent: bypassAgent,
+            sessionID: sessionId,
+            detail: "Downgraded rule_registry_summary from HIGH to INFO",
+          });
+          item.severity = "INFO";
+          item.desc = "[SA-BYPASS] " + item.desc;
+        }
       }
     }
   } else if (bypassAgent && enforcementMode === "locked") {

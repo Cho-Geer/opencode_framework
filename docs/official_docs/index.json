@@ -1,7 +1,7 @@
 {
-  "manifest_version": "1.5.0",
-  "last_updated": "2026-06-19T01:09:50.000Z",
-  "total_entries": 55,
+  "manifest_version": "1.5.0-tmp",
+  "last_updated": "2026-06-19T03:53:00.000Z",
+  "total_entries": 59,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -442,13 +442,7 @@
       "library_id": "web-fallback",
       "query_topic": "opencode release notes latest version changes",
       "domain": "opencode",
-      "tags": [
-        "opencode",
-        "release",
-        "changelog",
-        "v1.16.0",
-        "version"
-      ],
+      "tags": ["opencode", "release", "changelog", "v1.16.0", "version"],
       "files": [
         {
           "path": "opencode/releases/v1.16.0-release-notes.md",
@@ -1331,14 +1325,7 @@
       "library_id": "bun",
       "query_topic": "Bun overview and installation: all-in-one JavaScript runtime, bundler, test runner, package manager, JavaScriptCore engine",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-overview.md",
@@ -1358,14 +1345,7 @@
       "library_id": "bun",
       "query_topic": "Bun TypeScript native support: require(.ts) works natively without transpilation, type-stripping, tsconfig paths",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-typescript-support.md",
@@ -1385,14 +1365,7 @@
       "library_id": "bun",
       "query_topic": "Bun module resolution: CJS/ESM freely mixable, require and import both supported, Node.js-compatible resolution algorithm",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-module-resolution.md",
@@ -1756,6 +1729,168 @@
           "sha256": "sha256:4cda5629336baeecb91e97a17cb282729aae3630355c5150085c664895b96fd8",
           "size_bytes": 25529,
           "created_at": "2026-06-19T01:09:00Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-tools",
+      "query_topic": "OpenCode custom tools API for CI/DevOps: tool() helper, context.sessionID, Zod schema args, Python/Bash invocation, naming conventions",
+      "domain": "devops_ci",
+      "tags": [
+        "opencode",
+        "custom-tools",
+        "tool()",
+        "context.sessionID",
+        "zod",
+        "schema",
+        "args",
+        "execute",
+        "multiple-exports",
+        "naming",
+        "devops",
+        "ci",
+        "pipeline",
+        "plugin",
+        "mcp",
+        "config-read-attest"
+      ],
+      "files": [
+        {
+          "path": "opencode/framework/custom-tools.md",
+          "source": "webfetch",
+          "original_url": "https://opencode.ai/docs/custom-tools/",
+          "sha256": "sha256:5fd3f780db5d91926d147b48f053bf63664b433a0e501263f5ea51d6acf86402",
+          "size_bytes": 2728,
+          "created_at": "2026-06-05T23:45:00Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-plugins",
+      "query_topic": "OpenCode plugin hook system for CI/DevOps: withPluginLifecycle, tool.execute.before/after, hook chaining, MCP tool naming, plugin registration",
+      "domain": "devops_ci",
+      "tags": [
+        "opencode",
+        "plugins",
+        "hooks",
+        "tool.execute.before",
+        "tool.execute.after",
+        "withPluginLifecycle",
+        "plugin-registration",
+        "opencode.json",
+        "mcp",
+        "tool-naming",
+        "custom-tools",
+        "export-default",
+        "hook-chaining",
+        "scope-before",
+        "enforcement",
+        "devops",
+        "ci",
+        "pipeline",
+        "config-read-attest",
+        "uc7ks"
+      ],
+      "files": [
+        {
+          "path": "opencode/plugins/plugin-hook-reference.md",
+          "source": "webfetch+source-analysis",
+          "original_url": "https://opencode.ai/docs/plugins/, https://opencode.ai/docs/mcp-servers/, https://opencode.ai/docs/custom-tools/",
+          "sha256": "sha256:4cda5629336baeecb91e97a17cb282729aae3630355c5150085c664895b96fd8",
+          "size_bytes": 25529,
+          "created_at": "2026-06-19T01:09:00Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-scope-before",
+      "query_topic": "OpenCode scope-before enforcement for CI/DevOps: write blocking, R4 CONFIG-READ-ATTEST, multi-path scope resolution, UC7KS pipeline enforcement",
+      "domain": "devops_ci",
+      "tags": [
+        "opencode",
+        "plugins",
+        "scope-before",
+        "scope-after",
+        "write-blocking",
+        "CONFIG-READ-ATTEST",
+        "enforcement",
+        "R4",
+        "uc7-001",
+        "uc7-005",
+        "uc7-008",
+        "uc7-009",
+        "route-mismatch",
+        "tool-scope",
+        "uc7ks-utils",
+        "gate-before",
+        "hook-lifecycle",
+        "write-scope",
+        "permissions",
+        "agent-scope",
+        "write-audit",
+        "devops",
+        "ci",
+        "pipeline",
+        "config-read-attest"
+      ],
+      "files": [
+        {
+          "path": "opencode/plugins/scope-before-write-blocking.md",
+          "source": "webfetch+source-analysis",
+          "original_url": "file://.opencode/plugins/scope-before.ts",
+          "sha256": "16cbd8087dcc5f3434cf404f9804eb8848dbca9b6a3fdb07a7678d7552ae2b05",
+          "size_bytes": 18865,
+          "created_at": "2026-06-19T00:34:30Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode-sessions",
+      "query_topic": "OpenCode session management API for CI/DevOps: SessionStore file-based JSON, Task() tool task_id parameter, Tool.Context sessionID, sessions.create/prompt/interrupt",
+      "domain": "devops_ci",
+      "tags": [
+        "opencode",
+        "sessions",
+        "session-storage",
+        "sessionId",
+        "task_id",
+        "SessionStore",
+        "file-based",
+        "JSON",
+        "Tool.Context",
+        "session-resume",
+        "session-create",
+        "session-prompt",
+        "devops",
+        "ci",
+        "pipeline",
+        "config-read-attest",
+        "uc7ks"
+      ],
+      "files": [
+        {
+          "path": "opencode/sessions/opencode-session-api.md",
+          "source": "context7+webfetch",
+          "original_url": "https://github.com/anomalyco/opencode",
+          "sha256": "sha256:ac481363c1f86cf06acd48be8a319e386277bacbcbef5e8b04812fd3ec13ab61",
+          "size_bytes": 11509,
+          "created_at": "2026-06-17T08:00:00Z",
           "ttl_days": 30,
           "access_count": 0,
           "last_accessed": null,

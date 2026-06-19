@@ -27,6 +27,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { verifyRead, normalizeReadAuditPath } from "../lib/read-audit";
 import { writeSubState } from "../lib/substate-manager";
+import { dbAtomicWriteSubState } from "../lib/db-state-manager";
 import { writeLog } from "../lib/log-manager";
 
 const SRC = "tool-config-read-attest";
@@ -34,7 +35,10 @@ const SRC = "tool-config-read-attest";
 // ── Constants ──────────────────────────────────────────────────
 
 /** 3 config files that MUST be read before write permission is granted */
-const MANDATORY_CONFIG_FILES = ["opencode.json", ".opencode/project.config.json"];
+const MANDATORY_CONFIG_FILES = [
+  "opencode.json",
+  ".opencode/project.config.json",
+];
 
 /**
  * Compute the agent config path from the agent type.
@@ -47,10 +51,7 @@ function resolveAgentConfigPath(agentType: string, worktree: string): string {
 /**
  * Resolve all 3 config file paths for the given agent.
  */
-function resolveConfigPaths(
-  agentType: string,
-  worktree: string,
-): string[] {
+function resolveConfigPaths(agentType: string, worktree: string): string[] {
   return [
     resolveAgentConfigPath(agentType, worktree),
     path.join(worktree, MANDATORY_CONFIG_FILES[0]),
@@ -69,9 +70,7 @@ export default tool({
     "Called by agents during P0 Step 0e.",
 
   args: {
-    task_id: tool.schema
-      .string()
-      .describe("DAG task ID for session tracking"),
+    task_id: tool.schema.string().describe("DAG task ID for session tracking"),
   },
 
   async execute(args: { task_id?: string }, context: any) {
@@ -79,8 +78,12 @@ export default tool({
     const taskId = args.task_id || null;
 
     if (!agent) {
-      const msg = "config_read_attest: agent identity not available from context";
-      writeLog(SRC, "ERROR", { event: "CONFIG-READ-ATTEST-FAILED", detail: msg });
+      const msg =
+        "config_read_attest: agent identity not available from context";
+      writeLog(SRC, "ERROR", {
+        event: "CONFIG-READ-ATTEST-FAILED",
+        detail: msg,
+      });
       return JSON.stringify({ verified: false, error: msg });
     }
 
@@ -95,7 +98,8 @@ export default tool({
     });
 
     const unreadFiles: string[] = [];
-    const readVerifications: Array<{ file: string; timestamp: string | null }> = [];
+    const readVerifications: Array<{ file: string; timestamp: string | null }> =
+      [];
 
     for (const filePath of configPaths) {
       // Normalize path for read_audit matching
@@ -116,15 +120,24 @@ export default tool({
 
     const allRead = unreadFiles.length === 0;
 
-    // ── Write to config_read_state sub-state ──
+    // ── Write to config_read_state sub-state (atomic append to sessions map) ──
     if (allRead) {
-      const stateValue = {
+      const sessionEntry = {
         session_id: sessionID,
+        agent,
         attested_at: new Date().toISOString(),
         files: configPaths.map((f) => normalizeReadAuditPath(f, worktree)),
+        verified: true,
       };
 
-      const written = writeSubState("config_read_state", stateValue);
+      // Atomic append within SQLite transaction — prevents cross-agent overwrites
+      // RACE CONDITION FIX (2026-06-19): Uses dbAtomicWriteSubState for concurrent-safe
+      // read-modify-write. Each session's attestation is stored in sessions[sessionID].
+      // Follows the same pattern as KnowledgeCacheState.session_access.
+      const written = dbAtomicWriteSubState("config_read_state", (current) => {
+        current.sessions = current.sessions || {};
+        current.sessions[sessionID] = sessionEntry;
+      });
 
       writeLog(SRC, "INFO", {
         event: "CONFIG-READ-ATTEST",
@@ -136,7 +149,7 @@ export default tool({
       return JSON.stringify({
         verified: true,
         session_id: sessionID,
-        attested_at: stateValue.attested_at,
+        attested_at: sessionEntry.attested_at,
         files_verified: readVerifications,
         state_written: written,
       });

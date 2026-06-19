@@ -1,7 +1,11 @@
 // scope-before.ts — "tool.execute.before" plugin: write scope enforcement
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
-import { resolveAgent, resolveTaskId, resolveDomainId } from "../lib/agent-resolver";
+import {
+  resolveAgent,
+  resolveTaskId,
+  resolveDomainId,
+} from "../lib/agent-resolver";
 import {
   isModifyTool,
   getModifyPath,
@@ -23,7 +27,9 @@ import {
   findRouteAgentForFile,
 } from "../lib/route-validator";
 
-export default withPluginLifecycle("scope-before", { "tool.execute.before": toolExecuteBefore });
+export default withPluginLifecycle("scope-before", {
+  "tool.execute.before": toolExecuteBefore,
+});
 
 async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);
@@ -41,7 +47,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // Only enforce scope for modify tools
   if (!isModifyTool(input.tool)) {
     writeLog("scope-before", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agentType: agent,
       event: "TOOL-BEFORE",
       detail: "exit (pass) non-modify tool",
     });
@@ -51,7 +60,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const filePath = getModifyPath(output.args || {});
   if (!filePath) {
     writeLog("scope-before", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agentType: agent,
       event: "TOOL-BEFORE",
       detail: "exit (pass) no file path",
     });
@@ -69,7 +81,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   if (!isToolAllowed(allowedTools, input.tool)) {
     const msg = `[FW-ENFORCE] Agent "${agent}" not allowed to use tool "${input.tool}"`;
     writeLog("scope-before", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agentType: agent,
       level: "ERROR",
       event: "TOOL-BEFORE",
       detail: `BLOCKED | ${msg}`,
@@ -89,8 +104,12 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       `for write target paths. Use safe_edit/safe_mkdir instead of shell commands. ` +
       `Command: "${(output.args?.command || "").toString().substring(0, 80)}".`;
     writeLog("scope-before", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-      level: "ERROR", event: "TOOL-BEFORE",
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agentType: agent,
+      level: "ERROR",
+      event: "TOOL-BEFORE",
       detail: `BLOCKED | UNPARSEABLE-MODIFY-SHELL | agent=${agent}`,
     });
     if (mode === "strict" || mode === "locked") throw new Error(msg);
@@ -119,8 +138,12 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
               `"${scopePath}". This file should be handled by ${expectedAgent}. ` +
               `Route rules defined in project.config.json route_rules.scope_to_agent.`;
             writeLog("scope-before", "runtime", {
-              sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-              level: "ERROR", event: "TOOL-BEFORE",
+              sessionID: input.sessionID,
+              callID: input.callID,
+              agent,
+              agentType: agent,
+              level: "ERROR",
+              event: "TOOL-BEFORE",
               detail: `BLOCKED | ROUTE-MISMATCH | agent=${agent} file=${scopePath} expected=${expectedAgent}`,
             });
             if (mode === "strict" || mode === "locked") throw new Error(msg);
@@ -143,8 +166,12 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
             `cannot write to "${scopePath}". ` +
             `Allowed: docs/official_docs/**, .metadata/**, .task_temp/**.`;
           writeLog("scope-before", "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-            level: "ERROR", event: "TOOL-BEFORE",
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            level: "ERROR",
+            event: "TOOL-BEFORE",
             detail: `BLOCKED | UC7-008 | file=${scopePath}`,
           });
           if (mode === "strict" || mode === "locked") throw new Error(msg);
@@ -160,8 +187,12 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
           `[FW-ENFORCE] Agent identity unresolved — write to "${scopePath}" ` +
           `BLOCKED. Use human dispatch (@Super-Admin) to repair.`;
         writeLog("scope-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-          level: "ERROR", event: "TOOL-BEFORE",
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
+          level: "ERROR",
+          event: "TOOL-BEFORE",
           detail: `BLOCKED | UNRESOLVED-AGENT | file=${scopePath}`,
         });
         if (mode === "strict" || mode === "locked") throw new Error(msg);
@@ -173,8 +204,12 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
           `[FW-ENFORCE][WRITE-SCOPE] Agent "${agent}" write to "${scopePath}" ` +
           `blocked by permission.safe_edit in opencode.json (P2-D: authoritative source).`;
         writeLog("scope-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-          level: "ERROR", event: "TOOL-BEFORE",
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
+          level: "ERROR",
+          event: "TOOL-BEFORE",
           detail: `BLOCKED | WRITE-SCOPE | agent=${agent} file=${scopePath}`,
         });
         if (mode === "strict" || mode === "locked") throw new Error(msg);
@@ -182,40 +217,30 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       }
 
       // ═══════════════════════════════════════════════════════════════
-      // R4 (2026-06-19): Config Read Attestation Pre-Gate
-      // Checks that the agent completed Step 0e (read 3 config files +
-      // call config_read_attest) before being allowed to write.
+      // R4 (2026-06-19): Config Read Attestation Pre-Gate — FIXED
+      // RACE CONDITION FIX: Uses nested sessions map (sessions[sessionID])
+      // instead of global singleton session_id. Each session's attestation
+      // is independently stored and looked up — no cross-agent overwrites.
+      // dbAtomicWriteSubState provides atomic append within SQLite transaction.
       // Runs BEFORE UC7-001 knowledge cache check.
       // Sessions without config_read_state → skip (backward compatible).
       // ═══════════════════════════════════════════════════════════════
       const configReadState = readSubState("config_read_state");
-      if (configReadState && configReadState.session_id) {
-        // config_read_state exists for some session. Check if it matches current session.
-        if (configReadState.session_id !== input.sessionID) {
-          const msg =
-            `[FW-ENFORCE][CONFIG-READ-ATTEST] Config read attestation ` +
-            `not completed for this session. ` +
-            `config_read_state.session_id="${configReadState.session_id}" ` +
-            `does not match current session "${input.sessionID}". ` +
-            `Run P0 Step 0e: read your agent config, opencode.json, and ` +
-            `project.config.json using the 'read' tool, then call ` +
-            `config_read_attest() to unlock writes.`;
-          writeLog("scope-before", "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-            level: "ERROR", event: "TOOL-BEFORE",
-            detail: `BLOCKED | CONFIG-READ-ATTEST | agent=${agent} | stored_session=${configReadState.session_id}`,
-          });
-          if (mode === "strict" || mode === "locked") throw new Error(msg);
-          return;
-        }
-        // Session matches — config read attestation complete, proceed
+      const sessions = configReadState?.sessions || {};
+      const myAttestation = sessions[input.sessionID];
+
+      if (myAttestation && myAttestation.session_id === input.sessionID) {
+        // Session-specific attestation found in sessions map — attestation complete
         writeLog("scope-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
           event: "TOOL-BEFORE",
-          detail: "config_read_state verified — attestation complete",
+          detail: `config_read_state verified (sessions map) — attestation complete`,
         });
       } else {
-        // No config_read_state entry exists yet.
+        // No config_read_state attestation for this session.
         // In strict/locked mode, BLOCK writes until Step 0e is completed.
         // In advisory mode, warn but allow (backward compatible).
         if (mode === "strict" || mode === "locked") {
@@ -227,17 +252,24 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
             `project.config.json using the 'read' tool, then call ` +
             `config_read_attest() to unlock writes.`;
           writeLog("scope-before", "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-            level: "ERROR", event: "TOOL-BEFORE",
-            detail: `BLOCKED | CONFIG-READ-ATTEST-MISSING | agent=${agent}`,
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            level: "ERROR",
+            event: "TOOL-BEFORE",
+            detail: `BLOCKED | CONFIG-READ-ATTEST-MISSING | agent=${agent} | session=${input.sessionID}`,
           });
           throw new Error(msg);
         }
         // advisory: warn only
         writeLog("scope-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
           event: "TOOL-BEFORE",
-          detail: "config_read_state not yet attested — advisory mode, allowing writes",
+          detail: `config_read_state not yet attested (session=${input.sessionID}) — advisory mode, allowing writes`,
         });
       }
 
@@ -248,11 +280,21 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       // Uses isUC7KSWriteTarget() instead of isSourceFile().
       // ═══════════════════════════════════════════════════════════════
       if (isUC7KSWriteTarget(scopePath)) {
-        const uc7Block = checkUC7KSWrite(agent, mode, input.sessionID, taskId, domainId || undefined);
+        const uc7Block = checkUC7KSWrite(
+          agent,
+          mode,
+          input.sessionID,
+          taskId,
+          domainId || undefined,
+        );
         if (uc7Block) {
           writeLog("scope-before", "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-            level: "ERROR", event: "TOOL-BEFORE",
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            level: "ERROR",
+            event: "TOOL-BEFORE",
             detail: `BLOCKED | UC7-001-WRITE | agent=${agent} file=${scopePath} | ${uc7Block.substring(0, 120)}`,
           });
           if (mode === "strict" || mode === "locked") throw new Error(uc7Block);
@@ -264,15 +306,21 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       // P1-4 UC7-005: Knowledge Cache Size Cap
       // ═══════════════════════════════════════════════════════════════
       if (scopePath.includes("docs/official_docs/")) {
-        const content = ((output.args?.content || output.args?.newString || "") as string);
+        const content = (output.args?.content ||
+          output.args?.newString ||
+          "") as string;
         if (content && content.length > 524288) {
           const msg =
             `[FW-ENFORCE][UC7-005] Knowledge cache file exceeds 500KB limit: ` +
             `"${scopePath}" (${content.length} bytes > 524288). ` +
             `Split into smaller chunks or compress.`;
           writeLog("scope-before", "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-            level: "ERROR", event: "TOOL-BEFORE",
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            level: "ERROR",
+            event: "TOOL-BEFORE",
             detail: `BLOCKED | UC7-005 | size=${content.length} | file=${scopePath}`,
           });
           if (mode === "strict" || mode === "locked") throw new Error(msg);
@@ -283,7 +331,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   } // end if (applyPathScope) else if unparseable_modify_shell — handled above
 
   writeLog("scope-before", "runtime", {
-    sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+    sessionID: input.sessionID,
+    callID: input.callID,
+    agent,
+    agentType: agent,
     event: "TOOL-BEFORE",
     detail: `exit (ok) tool=${input.tool} file=${filePath} scopePaths=${scopeResult.paths.length}`,
   });
