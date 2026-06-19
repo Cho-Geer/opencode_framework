@@ -4,7 +4,7 @@
 **Created**: 2026-06-19  
 **Author**: @Orchestrator  
 **Reviewed by**: @Super-Admin (RVW-FINDINGS-PLAN-V2, 2026-06-19)  
-**Status**: reviewed — all §1.4 findings applied and verified  
+**Status**: implemented — all §1.4 findings applied and verified; §7 Implementation Status documents completion evidence  
 **Applies To**: `.opencode/subagent-preamble.md`, `.opencode/scripts/mcp-tools/compliance-gate.ts`, `.opencode/agents/Coder-BE.md`, `.opencode/agents/Coder-FE.md`, `.opencode/agents/Architect.md`
 
 ---
@@ -217,3 +217,53 @@ Same change as §3.3 (if Architect sessions produce HANDOVER.md with findings).
 | `subagent-preamble.md` | Template source for HANDOVER.md requirements |
 | `compliance-gate.ts` | MCP tool implementation for `approve_deliverables` |
 | `read-before-approve-plan.md` | Earlier fix for HANDOVER.md read tracking (SHA-256 + read-audit) |
+
+---
+
+## §7 Implementation Status
+
+**Status**: ✅ All 6 steps implemented  
+**Date**: 2026-06-19  
+**Implemented by**: @Super-Admin  
+
+### Implementation Summary
+
+All 6 steps from §4 Implementation Order have been completed:
+
+| Step | File | Change | Status |
+|------|------|--------|--------|
+| 1 | `subagent-preamble.md` | Add `## Findings` template after `## Logs Checked` | ✅ |
+| 2 | `compliance-gate.ts` | Define `parseFindingsTable()` before `runGateApproveDeliverables` | ✅ |
+| 3 | `compliance-gate.ts` | Add `findings_reported` as optional schema param | ✅ |
+| 4 | `compliance-gate.ts` | Insert enforcement block with `writeLog` calls | ✅ |
+| 5 | `Coder-BE.md`, `Coder-FE.md` | Update HANDOVER.md descriptions | ✅ |
+| 6 | `Architect.md` | Update HANDOVER.md description | ✅ |
+
+### E2E Test Results
+
+Two integration tests validate the enforcement flow:
+
+| Test | Scenario | Expected | Result |
+|------|----------|----------|--------|
+| Test 1 | Findings reported but missing categories | `REJECT` + `writeLog("ERROR", ...)` | ✅ PASS |
+| Test 2 | All findings properly reported | `APPROVED` + `writeLog("INFO", ...)` | ✅ PASS |
+
+**Test 1** (REJECT path): When `handover_sha256` matches but `findings_reported` omits categories present in `## Findings` table, the gate returns `rejected` with `[FINDINGS-REPORT-ENFORCE]` reason and calls `writeLog("mcp-compliance-gate", "ERROR", ...)`.
+
+**Test 2** (APPROVED path): When all finding categories from `## Findings` table are present in `findings_reported`, the gate approves normally and calls `writeLog("mcp-compliance-gate", "INFO", ...)`.
+
+### Commit History
+
+| Commit | Description |
+|--------|-------------|
+| `ce593240` | Step 1-4: Core enforcement — preamble template + parseFindingsTable + findings_reported param + enforcement block with writeLog |
+| `1efb4978` | Step 5-6: Agent config updates — Coder-BE.md, Coder-FE.md, Architect.md HANDOVER.md descriptions |
+
+### Post-Implementation Verification
+
+- [x] `compliance_gate_approve_deliverables` accepts `findings_reported` as optional parameter (backward compatible)
+- [x] `parseFindingsTable()` correctly extracts categories from `## Findings` markdown tables
+- [x] Enforcement block triggers only when BOTH `findings_reported` is provided AND `## Findings` table exists
+- [x] Rejection produces `writeLog("mcp-compliance-gate", "ERROR", ...)` with category details
+- [x] Approval produces `writeLog("mcp-compliance-gate", "INFO", ...)` with verified categories
+- [x] No backward-compatibility breakage: existing callers without `findings_reported` continue to work
