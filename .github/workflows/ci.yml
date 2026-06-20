@@ -93,25 +93,94 @@ jobs:
             console.log('✅ All 13 sub-states initialized');
           "
 
-      - name: Create CI gate session
+      - name: Create CI gate session (SQLite DB)
         run: |
           bun -e "
-            const fs = require('fs');
-            const path = '.opencode/state/gate-state.json';
-            const gateState = JSON.parse(fs.readFileSync(path, 'utf-8'));
-            const now = new Date();
-            const sessionId = 'cg_ses_' + now.getTime();
-            gateState.active_sessions[sessionId] = {
-              session_id: sessionId,
-              created_at: now.toISOString(),
-              gate_status: 'armed',
-              task_description: 'CI framework self-test gate session',
-              plan_summary: 'Automatic gate session for framework-self-test compliance check in strict mode'
-            };
-            gateState.meta.total_sessions += 1;
-            gateState.meta.active_count = Object.keys(gateState.active_sessions).length;
-            fs.writeFileSync(path, JSON.stringify(gateState, null, 2));
-            console.log('✅ CI gate session created: ' + sessionId);
+            const {Database} = require('bun:sqlite');
+            const DB_PATH = '.opencode/state/framework-state.db';
+            const db = new Database(DB_PATH, {create: true});
+            
+            // Ensure gate tables exist
+            db.run(\`CREATE TABLE IF NOT EXISTS gate_store_meta (
+              key        TEXT PRIMARY KEY,
+              value      TEXT NOT NULL,
+              updated_at INTEGER NOT NULL
+            )\`);
+            db.run(\`CREATE TABLE IF NOT EXISTS gate_sessions (
+              session_id        TEXT PRIMARY KEY,
+              task_desc         TEXT NOT NULL,
+              status            TEXT NOT NULL,
+              agent             TEXT,
+              task_id           TEXT,
+              plan_summary      TEXT,
+              execution_summary TEXT,
+              created_at        INTEGER NOT NULL,
+              updated_at        INTEGER NOT NULL
+            )\`);
+            db.run(\`CREATE TABLE IF NOT EXISTS gate_session_index (
+              session_id   TEXT PRIMARY KEY,
+              status       TEXT NOT NULL,
+              last_updated INTEGER NOT NULL
+            )\`);
+            
+            const now = Date.now();
+            const nowISO = new Date(now).toISOString();
+            const sessionId = 'cg_ses_' + now;
+            
+            // Read current active_sessions from gate_store_meta
+            let activeSessions = [];
+            const metaRow = db.query(
+              \"SELECT value FROM gate_store_meta WHERE key = ?\"
+            ).get('active_sessions');
+            if (metaRow) {
+              try { activeSessions = JSON.parse(metaRow.value); } catch {}
+            }
+            
+            // Add new session ID to active_sessions list
+            activeSessions.push(sessionId);
+            
+            // Write to gate_sessions table
+            db.run(
+              \`INSERT OR REPLACE INTO gate_sessions
+                (session_id, task_desc, status, agent, task_id,
+                 plan_summary, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)\`,
+              [
+                sessionId,
+                'CI framework self-test gate session',
+                'armed',
+                null,
+                null,
+                'Automatic gate session for framework-self-test compliance check in strict mode',
+                now,
+                now
+              ]
+            );
+            
+            // Update gate_store_meta with active_sessions array
+            db.run(
+              \"INSERT OR REPLACE INTO gate_store_meta (key, value, updated_at) VALUES (?, ?, ?)\",
+              ['active_sessions', JSON.stringify(activeSessions), now]
+            );
+            
+            // Update gate_store_meta with formatVersion and last_updated
+            db.run(
+              \"INSERT OR REPLACE INTO gate_store_meta (key, value, updated_at) VALUES (?, ?, ?)\",
+              ['formatVersion', JSON.stringify('3.0'), now]
+            );
+            db.run(
+              \"INSERT OR REPLACE INTO gate_store_meta (key, value, updated_at) VALUES (?, ?, ?)\",
+              ['last_updated', JSON.stringify(nowISO), now]
+            );
+            
+            // Update gate_session_index
+            db.run(
+              \"INSERT OR REPLACE INTO gate_session_index (session_id, status, last_updated) VALUES (?, ?, ?)\",
+              [sessionId, 'armed', now]
+            );
+            
+            db.close();
+            console.log('✅ CI gate session created (SQLite): ' + sessionId);
           "
 
       - name: Run framework self-test
