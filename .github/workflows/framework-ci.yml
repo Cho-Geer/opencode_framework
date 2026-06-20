@@ -220,6 +220,9 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install dependencies
+        run: bun install
+
       - name: Verify WAL transaction integrity
         run: |
           echo "Running state-transaction.ts verify..."

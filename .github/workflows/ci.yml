@@ -57,6 +57,42 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install dependencies
+        run: bun install
+
+      - name: Pre-flight setup
+        run: |
+          chmod +x .opencode/scripts/reconciliation-check.sh .opencode/scripts/pre-execution-gate.ts
+          git config core.hooksPath .opencode/hooks
+          mkdir -p .opencode/state
+          bun -e "
+            const {Database} = require('bun:sqlite');
+            const db = new Database('.opencode/state/framework-state.db', {create: true});
+            db.run('CREATE TABLE IF NOT EXISTS substate_kv (key TEXT PRIMARY KEY, json TEXT NOT NULL, updated_at INTEGER NOT NULL)');
+            const now = Date.now();
+            const states = {
+              eslint_state: {modules:{}, aggregate:{total_violations:0, dirty_modules:[], waived_modules:[]}},
+              type_check_state: {status:'clean', dirty_files:[], last_checked:null, errors:[]},
+              dependency_state: {status:'clean', dirty_files:[], last_checked:null, packages:{}},
+              format_state: {status:'clean', dirty_files:[], last_checked:null, formatter:'prettier'},
+              write_audit_state: {sessions:{}, history:[]},
+              knowledge_cache_state: {cache_status:'empty', total_entries:0, last_index_check:null, last_fetch_at:null, compliance:{}, pipeline_integrity:{}, session_access:{}, total_docs_count:0, total_size_bytes:0, last_verified:null},
+              compliance_records: {role_violations:[], gate_violations:[], tdd_violations:[], super_admin_dispatch_bypasses:[], orchestrator_sa_dispatches:[]},
+              knowledge_audit_state: {last_audit:null, total_accesses:0, coverage_score:0},
+              tdd_enforcement_state: {enabled:true, current_session:{}, violations:[], history:[]},
+              keystone_hashes: {},
+              transaction_state: {last_operation_id:null, last_transaction_at:null, pending_operations:[]},
+              knowledge_state: {domains_covered:[], last_updated:null, coverage_score:0},
+              config_read_state: {sessions:{}}
+            };
+            const stmt = db.prepare('INSERT OR REPLACE INTO substate_kv (key, json, updated_at) VALUES (?, ?, ?)');
+            for (const [key, val] of Object.entries(states)) {
+              stmt.run(key, JSON.stringify(val), now);
+            }
+            db.close();
+            console.log('✅ All 13 sub-states initialized');
+          "
+
       - name: Run framework self-test
         run: bun .opencode/scripts/framework-self-test.ts
 
