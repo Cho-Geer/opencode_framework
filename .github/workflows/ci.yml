@@ -52,6 +52,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Clean up framework state DB
+        run: rm -f .opencode/state/framework-state.db
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
