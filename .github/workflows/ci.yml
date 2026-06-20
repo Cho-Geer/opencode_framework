@@ -60,6 +60,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Pre-flight setup
+        run: |
+          chmod +x .opencode/scripts/reconciliation-check.sh .opencode/scripts/pre-execution-gate.ts
+          git config core.hooksPath .opencode/hooks
+          bun .opencode/scripts/state-transaction.ts init
+
       - name: Run framework self-test
         run: bun .opencode/scripts/framework-self-test.ts
 
