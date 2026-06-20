@@ -93,6 +93,27 @@ jobs:
             console.log('✅ All 13 sub-states initialized');
           "
 
+      - name: Create CI gate session
+        run: |
+          bun -e "
+            const fs = require('fs');
+            const path = '.opencode/state/gate-state.json';
+            const gateState = JSON.parse(fs.readFileSync(path, 'utf-8'));
+            const now = new Date();
+            const sessionId = 'cg_ses_' + now.getTime();
+            gateState.active_sessions[sessionId] = {
+              session_id: sessionId,
+              created_at: now.toISOString(),
+              gate_status: 'armed',
+              task_description: 'CI framework self-test gate session',
+              plan_summary: 'Automatic gate session for framework-self-test compliance check in strict mode'
+            };
+            gateState.meta.total_sessions += 1;
+            gateState.meta.active_count = Object.keys(gateState.active_sessions).length;
+            fs.writeFileSync(path, JSON.stringify(gateState, null, 2));
+            console.log('✅ CI gate session created: ' + sessionId);
+          "
+
       - name: Run framework self-test
         run: bun .opencode/scripts/framework-self-test.ts
 
