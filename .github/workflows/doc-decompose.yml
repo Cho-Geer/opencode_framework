@@ -1,0 +1,308 @@
+# =============================================================================
+# doc-decompose.yml — Document Decomposition Workflow
+# =============================================================================
+# Description:
+#   When design docs under docs/review/ are pushed, parse their YAML frontmatter
+#   and automatically create Issues (for problem analysis) and/or Pull Requests
+#   (for solution proposals) based on the `type` field.
+#
+# Architecture:
+#   See docs/review/gh-workflow/architecture-design.md §3 for complete spec.
+#
+# Frontmatter Template:
+#   ---
+#   title: "<title>"
+#   type: problem | solution | problem+solution
+#   severity: critical | high | medium | low
+#   timing: "<when it occurs>"         # (required when type includes "problem")
+#   components: [component1, ...]
+#   labels: [label1, ...]
+#   assignees: [user1, ...]
+#   pr_base_branch: "develop"          # (optional, default: develop)
+#   ---
+#
+# Content Decomposition:
+#   ## Problem Background  → Issue body
+#   ## Timing / Trigger    → Issue body
+#   ## Root Cause Analysis → PR body
+#   ## Solution Design     → PR body
+#   ## Verification        → PR body
+#   ## Implementation      → PR body
+#
+# Required Secrets:
+#   GITHUB_TOKEN  (built-in, sufficient for issues:write + pull_requests:write)
+# =============================================================================
+name: Doc Decompose — Auto Issue & PR
+
+on:
+  push:
+    branches:
+      - work-one
+    paths:
+      - "docs/review/**/*.md"
+      - "docs/review/**/*.yaml"
+      - "docs/review/**/*.yml"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  decompose-doc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get changed docs in docs/review/
+        id: changed-docs
+        run: |
+          CHANGED_FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- 'docs/review/' || git diff --name-only HEAD~1 HEAD -- 'docs/review/')
+          echo "$CHANGED_FILES" > /tmp/changed_docs.txt
+          COUNT=$(echo "$CHANGED_FILES" | grep -cve '^\s*$' || true)
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Changed files ($COUNT):"
+          echo "$CHANGED_FILES"
+
+      - name: Process each changed document
+        if: steps.changed-docs.outputs.count > 0
+        shell: bash
+        run: |
+          set -e
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo ""
+            echo "=========================================="
+            echo "Processing: $file"
+            echo "=========================================="
+
+            # Verify file exists
+            if [ ! -f "$file" ]; then
+              echo "⚠️  File not found (may have been deleted): $file — skipping"
+              continue
+            fi
+
+            # ──────────────────────────────────────────────
+            # Step 1: Parse YAML frontmatter
+            # ──────────────────────────────────────────────
+            sed -n '/^---$/,/^---$/p' "$file" | sed '1d;$d' > /tmp/frontmatter.yaml 2>/dev/null || true
+
+            if [ ! -s /tmp/frontmatter.yaml ]; then
+              echo "⚠️  No YAML frontmatter found in $file — skipping"
+              continue
+            fi
+
+            TITLE=$(yq '.title // ""' /tmp/frontmatter.yaml 2>/dev/null | sed 's/^"//;s/"$//')
+            TYPE=$(yq '.type // ""' /tmp/frontmatter.yaml 2>/dev/null | sed 's/^"//;s/"$//')
+            SEVERITY=$(yq '.severity // ""' /tmp/frontmatter.yaml 2>/dev/null | sed 's/^"//;s/"$//')
+            TIMING=$(yq '.timing // ""' /tmp/frontmatter.yaml 2>/dev/null | sed 's/^"//;s/"$//')
+            LABELS=$(yq '.labels // [] | join(",")' /tmp/frontmatter.yaml 2>/dev/null | sed 's/^"//;s/"$//')
+            ASSIGNEES=$(yq '.assignees // [] | join(",")' /tmp/frontmatter.yaml 2>/dev/null | sed 's/^"//;s/"$//')
+            PR_BASE=$(yq '.pr_base_branch // "develop"' /tmp/frontmatter.yaml 2>/dev/null | sed 's/^"//;s/"$//')
+
+            echo "  title: $TITLE"
+            echo "  type: $TYPE  severity: $SEVERITY"
+
+            # Validate required fields
+            if [ -z "$TITLE" ]; then
+              echo "❌ Missing required field 'title' — skipping $file"
+              continue
+            fi
+            if [ -z "$TYPE" ] || ! echo "$TYPE" | grep -qE '^(problem|solution|problem\+solution)$'; then
+              echo "❌ Invalid or missing 'type' field (must be problem|solution|problem+solution) — skipping $file"
+              continue
+            fi
+
+            # Validate timing requirement for problem types
+            if echo "$TYPE" | grep -q "problem"; then
+              if [ -z "$TIMING" ]; then
+                echo "⚠️  Warning: type includes 'problem' but 'timing' is empty in frontmatter"
+              fi
+            fi
+
+            # ──────────────────────────────────────────────
+            # Step 2: Extract document sections
+            # ──────────────────────────────────────────────
+            CONTENT=$(sed '1,/^---$/d' "$file" | sed '1,/^---$/d')
+
+            extract_section() {
+              local section="$1"
+              local content="$2"
+              echo "$content" | awk -v section="$section" '
+                BEGIN { in_section = 0; printed = 0; }
+                /^## / {
+                  $1 = ""; sub(/^[[:space:]]+/, "", $0);
+                  if (tolower($0) ~ tolower(section)) {
+                    in_section = 1; next;
+                  }
+                  if (in_section) exit;
+                }
+                in_section { print; printed = 1; }
+                END { if (!printed && in_section) print "(empty section)"; }
+              '
+            }
+
+            PROBLEM_BG=$(extract_section "Problem Background" "$CONTENT")
+            TIMING_SECTION=$(extract_section "Timing" "$CONTENT")
+            [ -z "$TIMING_SECTION" ] && TIMING_SECTION=$(extract_section "Trigger" "$CONTENT")
+
+            RCA=$(extract_section "Root Cause Analysis" "$CONTENT")
+            SOLUTION=$(extract_section "Solution Design" "$CONTENT")
+            [ -z "$SOLUTION" ] && SOLUTION=$(extract_section "Solution" "$CONTENT")
+            VERIFICATION=$(extract_section "Verification" "$CONTENT")
+            IMPLEMENTATION=$(extract_section "Implementation" "$CONTENT")
+
+            # ──────────────────────────────────────────────
+            # Step 3: Create Issue (for problem / problem+solution)
+            # ──────────────────────────────────────────────
+            ISSUE_NUMBER=""
+
+            if [ "$TYPE" = "problem" ] || [ "$TYPE" = "problem+solution" ]; then
+              echo "→ Creating Issue for problem analysis..."
+
+              ISSUE_BODY="## Document\n\n**File**: \`$file\`"
+              [ -n "$SEVERITY" ] && ISSUE_BODY="$ISSUE_BODY\n**Severity**: $SEVERITY"
+              [ -n "$TIMING" ] && ISSUE_BODY="$ISSUE_BODY\n**Timing**: $TIMING"
+
+              if [ -n "$PROBLEM_BG" ]; then
+                ISSUE_BODY="$ISSUE_BODY\n\n## Problem Background\n\n$PROBLEM_BG"
+              fi
+              if [ -n "$TIMING_SECTION" ]; then
+                ISSUE_BODY="$ISSUE_BODY\n\n## Timing / Trigger\n\n$TIMING_SECTION"
+              fi
+              if [ -z "$PROBLEM_BG" ] && [ -z "$TIMING_SECTION" ]; then
+                ISSUE_BODY="$ISSUE_BODY\n\n> Auto-extracted from $file\n\n$CONTENT"
+              fi
+
+              # Build label/assignee args
+              LABEL_ARGS=""
+              if [ -n "$LABELS" ]; then
+                IFS=',' read -ra LL <<< "$LABELS"
+                for l in "${LL[@]}"; do
+                  l=$(echo "$l" | xargs)
+                  [ -n "$l" ] && LABEL_ARGS="$LABEL_ARGS --label \"$l\""
+                done
+              fi
+
+              ASSIGNEE_ARGS=""
+              if [ -n "$ASSIGNEES" ]; then
+                IFS=',' read -ra AA <<< "$ASSIGNEES"
+                for a in "${AA[@]}"; do
+                  a=$(echo "$a" | xargs)
+                  [ -n "$a" ] && ASSIGNEE_ARGS="$ASSIGNEE_ARGS --assignee \"$a\""
+                done
+              fi
+
+              # Create the Issue
+              ISSUE_OUTPUT=$(gh issue create \
+                --title "[Doc] $TITLE" \
+                --body "$ISSUE_BODY" \
+                $LABEL_ARGS \
+                $ASSIGNEE_ARGS \
+                --json number,url \
+                --jq '{number: .number, url: .url}' 2>/dev/null || echo "{}")
+
+              ISSUE_NUM=$(echo "$ISSUE_OUTPUT" | sed 's/.*"number":\([0-9]*\).*/\1/')
+              ISSUE_URL=$(echo "$ISSUE_OUTPUT" | sed 's/.*"url":"\([^"]*\)".*/\1/')
+
+              if [ -n "$ISSUE_NUM" ] && [ "$ISSUE_NUM" != "0" ]; then
+                echo "✅ Issue #$ISSUE_NUM created: $ISSUE_URL"
+                ISSUE_NUMBER="$ISSUE_NUM"
+              else
+                echo "⚠️  Issue creation returned no number — continuing"
+              fi
+            fi
+
+            # ──────────────────────────────────────────────
+            # Step 4: Create PR (for solution / problem+solution)
+            # ──────────────────────────────────────────────
+            if [ "$TYPE" = "solution" ] || [ "$TYPE" = "problem+solution" ]; then
+              echo "→ Creating Pull Request for solution..."
+
+              PR_BODY="## Document\n\n**File**: \`$file\`"
+              [ -n "$SEVERITY" ] && PR_BODY="$PR_BODY\n**Severity**: $SEVERITY"
+
+              # Link to Issue if problem+solution
+              if [ "$TYPE" = "problem+solution" ] && [ -n "$ISSUE_NUMBER" ]; then
+                PR_BODY="$PR_BODY\n\n---\n\nCloses #$ISSUE_NUMBER"
+              fi
+
+              if [ -n "$RCA" ]; then
+                PR_BODY="$PR_BODY\n\n## Root Cause Analysis\n\n$RCA"
+              fi
+              if [ -n "$SOLUTION" ]; then
+                PR_BODY="$PR_BODY\n\n## Solution Design\n\n$SOLUTION"
+              fi
+              if [ -n "$VERIFICATION" ]; then
+                PR_BODY="$PR_BODY\n\n## Verification\n\n$VERIFICATION"
+              fi
+              if [ -n "$IMPLEMENTATION" ]; then
+                PR_BODY="$PR_BODY\n\n## Implementation\n\n$IMPLEMENTATION"
+              fi
+              if [ -z "$RCA" ] && [ -z "$SOLUTION" ] && [ -z "$VERIFICATION" ] && [ -z "$IMPLEMENTATION" ]; then
+                PR_BODY="$PR_BODY\n\n> Auto-extracted from $file\n\n$CONTENT"
+              fi
+
+              # Build label args
+              PR_LABEL_ARGS=""
+              if [ -n "$LABELS" ]; then
+                IFS=',' read -ra LL <<< "$LABELS"
+                for l in "${LL[@]}"; do
+                  l=$(echo "$l" | xargs)
+                  [ -n "$l" ] && PR_LABEL_ARGS="$PR_LABEL_ARGS --label \"$l\""
+                done
+              fi
+
+              # For solution-only type, check for existing PR
+              PR_EXISTS=0
+              if [ "$TYPE" = "solution" ]; then
+                PR_EXISTS=$(gh pr list --base "$PR_BASE" --head work-one --json number --jq 'length' 2>/dev/null || echo "0")
+              fi
+
+              if [ "$TYPE" = "solution" ] && [ "$PR_EXISTS" -gt 0 ]; then
+                echo "ℹ️  PR(s) already exist from work-one → $PR_BASE. Adding comment."
+                EXISTING_PR_NUM=$(gh pr list --base "$PR_BASE" --head work-one --json number --jq '.[0].number' 2>/dev/null || echo "")
+                if [ -n "$EXISTING_PR_NUM" ]; then
+                  gh pr comment "$EXISTING_PR_NUM" \
+                    --body "📄 **Document referenced**: \`$file\`\n\n**Title**: $TITLE\n\n$PR_BODY" 2>/dev/null || true
+                fi
+              else
+                PR_OUTPUT=$(gh pr create \
+                  --title "[Solution] $TITLE" \
+                  --body "$PR_BODY" \
+                  --base "$PR_BASE" \
+                  --head work-one \
+                  $PR_LABEL_ARGS \
+                  --json number,url \
+                  --jq '{number: .number, url: .url}' 2>/dev/null || echo "")
+
+                PR_NUM=$(echo "$PR_OUTPUT" | sed 's/.*"number":\([0-9]*\).*/\1/')
+                PR_URL=$(echo "$PR_OUTPUT" | sed 's/.*"url":"\([^"]*\)".*/\1/')
+
+                if [ -n "$PR_NUM" ]; then
+                  echo "✅ Pull Request #$PR_NUM created: $PR_URL"
+                else
+                  echo "ℹ️  PR creation skipped (may already exist from other workflow)"
+                fi
+              fi
+            fi
+
+            echo "✅ Finished processing: $file"
+
+          done < /tmp/changed_docs.txt
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "═══════════════════════════════════════════"
+          echo "  Doc Decompose — Execution Summary"
+          echo "═══════════════════════════════════════════"
+          echo ""
+          echo "Changed files: ${{ steps.changed-docs.outputs.count || 0 }}"
+          echo "Status: ${{ job.status }}"

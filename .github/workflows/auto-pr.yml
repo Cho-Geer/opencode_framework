@@ -1,0 +1,48 @@
+name: Auto PR — work-one → develop
+on:
+  push:
+    branches:
+      - work-one
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: auto-pr-work-one
+  cancel-in-progress: false
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/work-one'
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check if PR already exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          existing=$(gh pr list \
+            --base develop \
+            --head work-one \
+            --json number \
+            --jq 'length')
+          echo "existing=$existing" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.existing == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base develop \
+            --head work-one \
+            --title "Auto PR: work-one → develop" \
+            --body "Automated PR created by CI from work-one branch push."
+
+      - name: Skip (PR already exists)
+        if: steps.check-pr.outputs.existing != '0'
+        run: echo "PR already exists, skipping creation."
