@@ -22,7 +22,7 @@
 name: State Sync — Project ↔ Repository
 
 on:
-  project_v2_item:
+  projects_v2_item:
     types:
       - edited
       - converted
@@ -59,17 +59,17 @@ permissions:
 # ═══════════════════════════════════════════════════════════════════════════
 env:
   # Identifies which direction triggered this run — used for loop prevention
-  SYNC_SOURCE: ${{ github.event_name == 'project_v2_item' && 'project' || 'repository' }}
+  SYNC_SOURCE: ${{ github.event_name == 'projects_v2_item' && 'project' || 'repository' }}
 
 jobs:
   # ═════════════════════════════════════════════════════════════════════════
   # Job 1: sync-project-to-repo
-  # Trigger: project_v2_item event (Project field updated)
+  # Trigger: projects_v2_item event (Project field updated)
   # Action: Propagate Project field changes back to the source Issue/PR
   # ═════════════════════════════════════════════════════════════════════════
   sync-project-to-repo:
     if: |
-      github.event_name == 'project_v2_item' &&
+      github.event_name == 'projects_v2_item' &&
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     env:
@@ -173,7 +173,7 @@ jobs:
           typename=$(echo "$CONTENT" | jq -r '.__typename')
 
           # Check if status-related change occurred
-          # This uses the project_v2_item event changes fields
+          # This uses the projects_v2_item event changes fields
           # For a complete implementation, compare old/new status option IDs
           changed_section="${{ github.event.changes.field_values.field_node_id }}"
 
@@ -188,7 +188,7 @@ jobs:
   # ═════════════════════════════════════════════════════════════════════════
   sync-repo-to-project:
     if: |
-      github.event_name != 'project_v2_item' &&
+      github.event_name != 'projects_v2_item' &&
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     env:
