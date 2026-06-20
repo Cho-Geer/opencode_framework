@@ -401,6 +401,10 @@ REPO="Cho-Geer/opencode_framework"
 echo "=== GitHub Workflow Configuration Health Check ==="
 echo ""
 
+echo "--- gh auth check ---"
+gh auth status 2>&1 || { echo "❌ gh not authenticated"; exit 1; }
+echo ""
+
 # Check Secrets
 echo "--- Secrets ---"
 gh secret list --repo "$REPO"
