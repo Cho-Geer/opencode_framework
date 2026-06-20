@@ -685,6 +685,42 @@ export default tool({
           } catch {
             // Best-effort; never block dispatch
           }
+
+          // §3.3: Per-dispatch ctx file (dagTaskId-keyed, no overwrites)
+          // Eliminates the session_map race condition caused by concurrent dispatches
+          // overwriting the shared .dispatch_ctx singleton. Each dispatch gets its own
+          // ctx/{dagTaskId}.json file — isolated, race-free.
+          // Phase 1 dual-write: legacy .dispatch_ctx above + per-dispatch ctx/ below.
+          // Phase 2 (future): migrate all readers to ctx/ files, then remove .dispatch_ctx.
+          try {
+            const ctxPerDispatchDir = path.join(
+              root,
+              ".task_temp",
+              "_dispatch",
+              "ctx",
+            );
+            if (!existsSync(ctxPerDispatchDir)) {
+              require("node:fs").mkdirSync(ctxPerDispatchDir, {
+                recursive: true,
+              });
+            }
+            const ctxPerDispatchPath = path.join(
+              ctxPerDispatchDir,
+              dagTaskId + ".json",
+            );
+            writeFileSync(
+              ctxPerDispatchPath,
+              JSON.stringify({
+                dagTaskId,
+                agentType: args.agent_type,
+                domainId: inferredDomainId,
+                createdAt: Date.now(),
+              }),
+              "utf8",
+            );
+          } catch {
+            // Best-effort; never block dispatch
+          }
         }
 
         // ── FW-DISPATCH-TASKID-IMMUTABLE + FW-UC7KS-DOMAIN-001 ──
