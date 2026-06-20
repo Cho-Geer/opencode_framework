@@ -130,8 +130,8 @@ jobs:
             const nowISO = new Date(now).toISOString();
             const sessionId = 'cg_ses_' + now;
             
-            // Read current active_sessions from gate_store_meta
-            let activeSessions = [];
+            // Read current active_sessions from gate_store_meta (V3 format)
+            let activeSessions = {};
             const metaRow = db.query(
               \"SELECT value FROM gate_store_meta WHERE key = ?\"
             ).get('active_sessions');
@@ -139,8 +139,12 @@ jobs:
               try { activeSessions = JSON.parse(metaRow.value); } catch {}
             }
             
-            // Add new session ID to active_sessions list
-            activeSessions.push(sessionId);
+            // Add new session ID to active_sessions object (V3 format)
+            activeSessions[sessionId] = {
+              session_id: sessionId,
+              gate_status: "armed",
+              created_at: nowISO
+            };
             
             // Write to gate_sessions table
             db.run(
