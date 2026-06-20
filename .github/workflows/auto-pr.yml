@@ -1,8 +1,9 @@
-name: Auto PR — work-one → develop
+name: Auto PR — feature → develop
 on:
   push:
-    branches:
-      - work-one
+    branches-ignore:
+      - develop
+      - main
 
 permissions:
   contents: read
@@ -16,8 +17,11 @@ concurrency:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/work-one'
     steps:
+      - name: Get current branch name
+        id: branch
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
       - uses: actions/checkout@v6
 
       - name: Check if PR already exists
@@ -27,7 +31,7 @@ jobs:
         run: |
           existing=$(gh pr list \
             --base develop \
-            --head work-one \
+            --head ${{ steps.branch.outputs.branch }} \
             --json number \
             --jq 'length')
           echo "existing=$existing" >> $GITHUB_OUTPUT
@@ -39,9 +43,9 @@ jobs:
         run: |
           gh pr create \
             --base develop \
-            --head work-one \
-            --title "Auto PR: work-one → develop" \
-            --body "Automated PR created by CI from work-one branch push."
+            --head ${{ steps.branch.outputs.branch }} \
+            --title "Auto PR: ${{ steps.branch.outputs.branch }} → develop" \
+            --body "Automated PR created by CI from ${{ steps.branch.outputs.branch }} branch push."
 
       - name: Skip (PR already exists)
         if: steps.check-pr.outputs.existing != '0'

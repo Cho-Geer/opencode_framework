@@ -37,7 +37,7 @@ name: Doc Decompose — Auto Issue & PR
 on:
   push:
     branches:
-      - work-one
+      - "*"
     paths:
       - "docs/review/**/*.md"
       - "docs/review/**/*.yaml"
