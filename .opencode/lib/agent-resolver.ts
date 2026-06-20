@@ -124,15 +124,25 @@ export const sessionLastDispatched = new Map<
 >();
 
 /**
- * Write per-dispatch context to a dagTaskId-keyed file.
- * Replaces overwriting the shared .dispatch_ctx file.
- * Each dispatch gets its own file — no cross-dispatch overwrites.
+ * Write per-dispatch context to a dagTaskId-keyed file (§3.3 dual-write).
  *
- * Files: .task_temp/_dispatch/ctx/{dagTaskId}.json
+ * Phase 1 (current): Writes BOTH:
+ *   a) .task_temp/_dispatch/ctx/{dagTaskId}.json — per-dispatch, race-free (NEW)
+ *   b) .task_temp/_dispatch/.dispatch_ctx — shared singleton (LEGACY compat)
+ *
+ * Phase 2 (future): After all consumers migrate to per-dispatch ctx/ files,
+ *   remove the legacy .dispatch_ctx write.
+ *
+ * Each dispatch gets its own ctx/ file — no cross-dispatch overwrites.
  *
  * IMPLEMENT-DISPATCH-CTX-FIX (2026-06-19, @Super-Admin):
  *   Eliminates the session_map race condition caused by the shared
  *   .dispatch_ctx singleton being overwritten by concurrent dispatches.
+ *
+ * §3.3 DUAL-WRITE (2026-06-20, @Super-Admin):
+ *   Added legacy .dispatch_ctx write alongside per-dispatch ctx/ file.
+ *   Consumers (gate-core.ts, dispatch-subagent.ts, task-after.ts) still
+ *   rely on .dispatch_ctx as fallback for single-dispatch scenarios.
  */
 export function writeDispatchCtx(
   dagTaskId: string,
@@ -163,6 +173,33 @@ export function writeDispatchCtx(
       agentType,
       domainId: domainId || null,
       detail: `Per-dispatch context written: ctx/${dagTaskId}.json`,
+    });
+
+    // §3.3: Dual-write legacy .dispatch_ctx for backward compatibility.
+    // The per-dispatch ctx/{dagTaskId}.json is the new race-free format,
+    // but existing consumers (gate-core.ts, dispatch-subagent.ts fallback,
+    // task-after.ts) still read the shared .dispatch_ctx singleton.
+    // Phase 1: write BOTH. Phase 2: migrate readers, then remove this block.
+    const legacyCtxPath = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      ".dispatch_ctx",
+    );
+    fs.writeFileSync(
+      legacyCtxPath,
+      JSON.stringify({
+        dagTaskId,
+        agentType,
+        domainId: domainId || null,
+        createdAt: Date.now(),
+      }),
+    );
+    writeLog(SRC, "INFO", {
+      event: "DISPATCH-CTX-LEGACY-WRITE",
+      dagTaskId,
+      agentType,
+      detail: "Legacy .dispatch_ctx dual-write for backward compat (§3.3)",
     });
   } catch (e: any) {
     // Best-effort; never block dispatch
