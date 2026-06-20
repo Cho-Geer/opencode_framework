@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0-tmp",
   "last_updated": "2026-06-20T06:20:00.000Z",
-  "total_entries": 61,
+  "total_entries": 62,
   "entries": [
     {
       "library_id": "opencode-framework",
