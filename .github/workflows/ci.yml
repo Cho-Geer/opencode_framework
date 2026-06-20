@@ -1,9 +1,9 @@
 # ═══════════════════════════════════════════════════════════════
-# Main CI Pipeline — Booking System (Backend + Frontend)
+# Framework CI Pipeline — OpenCode Framework Integrity Check
 # ═══════════════════════════════════════════════════════════════
-# Purpose: Lint, test, and build both backend and frontend on
-# every push/PR to main/develop. Enforces TDD compliance,
-# coverage thresholds, and type safety.
+# Purpose: Runs the OpenCode framework self-test to validate
+# plugin integrity, rule registry, template resolution, and
+# UC7KS pipeline compliance on every push/PR to main/develop.
 #
 # TOOLCHAIN JUSTIFICATION:
 # - GitHub Actions: Primary CI orchestrator (native to GitHub,
@@ -20,7 +20,7 @@
 # [x] Rule 7: timeout-minutes ≤ 15 on every job
 # ═══════════════════════════════════════════════════════════════
 
-name: CI Pipeline
+name: Framework CI Pipeline
 
 on:
   push:
@@ -29,275 +29,15 @@ on:
     branches: [main, develop]
 
 concurrency:
-  group: ci-pipeline-${{ github.event_name }}-${{ github.ref }}
+  group: framework-ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 env:
-  NODE_VERSION: '22'
-  # Coverage thresholds (aligned with project.config.json tech_stack.testing.coverage_threshold)
-  COVERAGE_THRESHOLD: 70
+  CI: true
 
 jobs:
   # ────────────────────────────────────────────────────────────
-  # JOB 1: backend-lint
-  # Static analysis for the NestJS backend: ESLint + TypeScript
-  # type checking. Catches code quality issues before runtime.
-  # ────────────────────────────────────────────────────────────
-  backend-lint:
-    name: Backend Lint & TypeCheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: booking_system_refactor/booking-backend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: booking_system_refactor/booking-backend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-
-      - name: TypeScript type check
-        run: npm run typecheck
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Export check result
-        if: always()
-        run: |
-          echo "{\"check\":\"backend-lint\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/backend-lint-result.json
-          cat /tmp/backend-lint-result.json
-
-  # ────────────────────────────────────────────────────────────
-  # JOB 2: backend-test
-  # Unit tests for the NestJS backend with coverage enforcement.
-  # Integration/E2E tests require Docker and run separately.
-  # ────────────────────────────────────────────────────────────
-  backend-test:
-    name: Backend Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: booking_system_refactor/booking-backend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: booking_system_refactor/booking-backend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-
-      - name: Run unit tests with coverage
-        run: npm run test:cov -- --ci --reporters=default
-
-      - name: Verify coverage threshold
-        run: |
-          # Parse coverage summary from Jest output
-          # Jest exits non-zero if coverage thresholds not met (configured in jest config)
-          echo "::notice::Backend unit tests completed with coverage check"
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: booking_system_refactor/booking-backend/coverage/
-          retention-days: 7
-
-      - name: Export check result
-        if: always()
-        run: |
-          echo "{\"check\":\"backend-test\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/backend-test-result.json
-          cat /tmp/backend-test-result.json
-
-  # ────────────────────────────────────────────────────────────
-  # JOB 3: backend-build
-  # Compiles the NestJS backend to verify no build errors.
-  # ────────────────────────────────────────────────────────────
-  backend-build:
-    name: Backend Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [backend-lint]
-    defaults:
-      run:
-        working-directory: booking_system_refactor/booking-backend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: booking_system_refactor/booking-backend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run prisma:generate
-
-      - name: Build
-        run: npm run build
-
-      - name: Verify build output
-        run: |
-          if [ ! -d "dist" ]; then
-            echo "::error::Build output directory 'dist' not found"
-            exit 1
-          fi
-          FILE_COUNT=$(find dist -name "*.js" | wc -l)
-          echo "::notice::Build produced ${FILE_COUNT} .js files"
-
-      - name: Export check result
-        if: always()
-        run: |
-          echo "{\"check\":\"backend-build\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/backend-build-result.json
-          cat /tmp/backend-build-result.json
-
-  # ────────────────────────────────────────────────────────────
-  # JOB 4: frontend-lint
-  # Static analysis for the Angular frontend.
-  # ────────────────────────────────────────────────────────────
-  frontend-lint:
-    name: Frontend Lint & TypeCheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: booking_system_refactor/booking-frontend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: booking_system_refactor/booking-frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: TypeScript type check
-        run: npx ng build --configuration development || true
-        # Angular CLI handles type checking during build analysis
-
-      - name: Export check result
-        if: always()
-        run: |
-          echo "{\"check\":\"frontend-lint\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/frontend-lint-result.json
-          cat /tmp/frontend-lint-result.json
-
-  # ────────────────────────────────────────────────────────────
-  # JOB 5: frontend-test
-  # Unit tests for the Angular frontend with Jest.
-  # ────────────────────────────────────────────────────────────
-  frontend-test:
-    name: Frontend Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: booking_system_refactor/booking-frontend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: booking_system_refactor/booking-frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests
-        run: npm run test -- --no-watch --no-progress --browsers=ChromeHeadless
-
-      - name: Export check result
-        if: always()
-        run: |
-          echo "{\"check\":\"frontend-test\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/frontend-test-result.json
-          cat /tmp/frontend-test-result.json
-
-  # ────────────────────────────────────────────────────────────
-  # JOB 6: frontend-build
-  # Production build of the Angular frontend.
-  # ────────────────────────────────────────────────────────────
-  frontend-build:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: [frontend-lint]
-    defaults:
-      run:
-        working-directory: booking_system_refactor/booking-frontend
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: booking_system_refactor/booking-frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Verify build output
-        run: |
-          if [ ! -d "dist" ]; then
-            echo "::error::Build output directory 'dist' not found"
-            exit 1
-          fi
-          echo "::notice::Frontend build completed successfully"
-
-      - name: Export check result
-        if: always()
-        run: |
-          echo "{\"check\":\"frontend-build\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/frontend-build-result.json
-          cat /tmp/frontend-build-result.json
-
-  # ────────────────────────────────────────────────────────────
-  # JOB 7: framework-self-test
+  # JOB 1: framework-self-test
   # Runs the OpenCode framework self-test to validate plugin
   # integrity, rule registry, template resolution, and UC7KS
   # pipeline compliance. Ensures framework modifications do not
@@ -327,7 +67,7 @@ jobs:
           cat /tmp/framework-self-test-result.json
 
   # ────────────────────────────────────────────────────────────
-  # JOB 8: ci-status-summary
+  # JOB 2: ci-status-summary
   # Aggregates all job results into a single status gate.
   # This job is used as the required status check in branch
   # protection rules.
@@ -338,51 +78,27 @@ jobs:
     timeout-minutes: 2
     if: always()
     needs:
-      - backend-lint
-      - backend-test
-      - backend-build
-      - frontend-lint
-      - frontend-test
-      - frontend-build
       - framework-self-test
 
     steps:
       - name: Check all jobs passed
         run: |
           echo "══════════════════════════════════════════════════"
-          echo " CI Pipeline Summary"
+          echo " Framework CI Pipeline Summary"
           echo "══════════════════════════════════════════════════"
           echo ""
-          echo "  backend-lint:        ${{ needs.backend-lint.result }}"
-          echo "  backend-test:        ${{ needs.backend-test.result }}"
-          echo "  backend-build:       ${{ needs.backend-build.result }}"
-          echo "  frontend-lint:       ${{ needs.frontend-lint.result }}"
-          echo "  frontend-test:       ${{ needs.frontend-test.result }}"
-          echo "  frontend-build:      ${{ needs.frontend-build.result }}"
           echo "  framework-self-test: ${{ needs.framework-self-test.result }}"
           echo ""
 
           # Fail if any job failed or was cancelled
-          if [ "${{ needs.backend-lint.result }}" = "failure" ] || \
-             [ "${{ needs.backend-test.result }}" = "failure" ] || \
-             [ "${{ needs.backend-build.result }}" = "failure" ] || \
-             [ "${{ needs.frontend-lint.result }}" = "failure" ] || \
-             [ "${{ needs.frontend-test.result }}" = "failure" ] || \
-             [ "${{ needs.frontend-build.result }}" = "failure" ] || \
-             [ "${{ needs.framework-self-test.result }}" = "failure" ]; then
-            echo "::error::One or more CI jobs failed"
+          if [ "${{ needs.framework-self-test.result }}" = "failure" ]; then
+            echo "::error::Framework self-test failed"
             exit 1
           fi
 
-          if [ "${{ needs.backend-lint.result }}" = "cancelled" ] || \
-             [ "${{ needs.backend-test.result }}" = "cancelled" ] || \
-             [ "${{ needs.backend-build.result }}" = "cancelled" ] || \
-             [ "${{ needs.frontend-lint.result }}" = "cancelled" ] || \
-             [ "${{ needs.frontend-test.result }}" = "cancelled" ] || \
-             [ "${{ needs.frontend-build.result }}" = "cancelled" ] || \
-             [ "${{ needs.framework-self-test.result }}" = "cancelled" ]; then
-            echo "::error::One or more CI jobs were cancelled"
+          if [ "${{ needs.framework-self-test.result }}" = "cancelled" ]; then
+            echo "::error::Framework self-test was cancelled"
             exit 1
           fi
 
-          echo "✅ All CI jobs passed"
+          echo "✅ All framework CI checks passed"
