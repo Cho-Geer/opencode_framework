@@ -1,0 +1,31 @@
+name: Auto-Add to Project
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add Issue/PR to Project
+        env:
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          PROJECT_ID: ${{ vars.PROJECT_ID }}
+          CONTENT_ID: ${{ github.event.issue.node_id || github.event.pull_request.node_id }}
+          ITEM_TYPE: ${{ github.event.issue && 'issue' || 'pr' }}
+        run: |
+          # Add Issue/PR to Opencode_framework Project #2
+          item_id=$(gh api graphql -f query='
+            mutation($project:ID!, $content:ID!) {
+              addProjectV2ItemById(input: {projectId: $project, contentId: $content}) {
+                item { id }
+              }
+            }' -f project="$PROJECT_ID" -f content="$CONTENT_ID" \
+            --jq '.data.addProjectV2ItemById.item.id')
+
+          echo "✅ Added $ITEM_TYPE to Project. Item ID: $item_id"

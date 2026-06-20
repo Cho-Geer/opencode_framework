@@ -1,8 +1,8 @@
 {
-  "version": "5.12.0",
+  "version": "5.13.0",
   "project": "booking-system",
-  "feature": "UC7KS-FINAL: Commit UC7-001 read-before-write hardening + read_audit.jsonl→SQLite migration",
-  "description": "Appended COMMIT-UC7KS-FINAL: @CI-CD-Agent commits all .opencode/ framework changes from UC7-001 read-before-write hardening + read_audit.jsonl→SQLite migration. Single commit, no business code changes. 38 active tasks.",
+  "feature": "GH-WORKFLOW: GitHub Workflow 实施方案 DAG (auto-PR, doc分解, Project关联, 状态同步)",
+  "description": "Appended GH-WORKFLOW tasks: 7 GitHub Workflow implementation tasks (auto-PR, doc decomposition into Issues/PRs, auto Project association, state sync) + 7 tech-debt repayment tasks. Now 52 active tasks.",
   "generated_by": "@Meta-Planner",
   "generated_at": "2026-06-19T00:10:00.000Z",
   "tasks": [
@@ -12,9 +12,7 @@
       "description": "Run bun .opencode/scripts/framework-self-test.ts to verify all 16 plugins still load correctly without import errors after Fix A-I migrations: capFailedEntries extraction (Fix A), TDD constants unification (Fix B+C), isBusinessSourceFile unification (Fix D), safe_shell strategy unification (Fix E), hook-lifecycle.ts HOF adoption (Fix F), atomicWriteMachine migration (Fix G), findLatestBackup extraction (Fix H), machine.json path unification (Fix I), barrel export update.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-LOAD/test_report.json"
-      ],
+      "outputs": [".task_temp/PLUGIN-VFY-LOAD/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -30,9 +28,7 @@
         ".opencode/lib/safe-edit-core.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-LOAD/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-LOAD/test_report.json"],
         "logic_complete": "framework-self-test.ts executes without import errors; all plugin loading checks pass; no UNRESOLVED placeholders; all 9 sub-state segments valid",
         "tests_pass": "framework-self-test.ts all checks pass (0 failures, 0 import errors)",
         "guardian_approved": false
@@ -46,9 +42,7 @@
       "description": "Verify the unified isBusinessSourceFile function (regex implementation from tdd-after.ts, deployed to state-utils.ts per Fix D) returns identical results to the old includes()-based implementation on 4 canonical test paths. Also verify tdd-after.ts correctly imports from lib instead of using local copy.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"
-      ],
+      "outputs": [".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -61,9 +55,7 @@
         ".opencode/plugins/tdd-after.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-ISBUSINESS/test_report.json"],
         "logic_complete": "For all 4 test paths (booking-backend/src/main.ts→true, .opencode/lib/gate-core.ts→false, src/app.spec.ts→false, booking-frontend/src/app.ts→true), the unified regex implementation returns results identical to the old includes() implementation",
         "tests_pass": "4/4 test paths produce identical true/false results between old and new implementations",
         "guardian_approved": false
@@ -76,12 +68,8 @@
       "name": "atomicWriteMachine Integrity Verification",
       "description": "Verify that after migrating 6 plugins (audit-after, cache-after, scope-after, tdd-after, uc7ks-after, session.ts) from fs.writeFileSync to atomicWriteMachine() per Fix G, the machine.json file has zero structural changes. Run git diff .opencode/state/machine.json and confirm no differences.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "PLUGIN-VFY-LOAD"
-      ],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"
-      ],
+      "dependencies": ["PLUGIN-VFY-LOAD"],
+      "outputs": [".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -97,9 +85,7 @@
         ".opencode/plugins/tdd-after.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-ATOMIC/test_report.json"],
         "logic_complete": "git diff .opencode/state/machine.json produces empty output; machine.json structure unchanged after atomicWriteMachine migration",
         "tests_pass": "0 lines changed in machine.json; atomicWriteMachine CAS-on-revision functions correctly",
         "guardian_approved": false
@@ -113,9 +99,7 @@
       "description": "Verify that scope-before.ts and audit-before.ts produce identical path-scope decisions after both adopting getEffectivePathScopeFilePath() from tool-scope.ts per Fix E. Test with 3 canonical shell commands: 'cp file.ts /tmp/' (should accept path check), 'bun .opencode/scripts/test.ts' (should skip), 'cat .opencode/state/machine.json' (should skip).",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/PLUGIN-VFY-SHELL/test_report.json"
-      ],
+      "outputs": [".task_temp/PLUGIN-VFY-SHELL/test_report.json"],
       "priority": "P1",
       "status": "skipped",
       "requirement_source": {
@@ -129,9 +113,7 @@
         ".opencode/plugins/audit-before.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PLUGIN-VFY-SHELL/test_report.json"
-        ],
+        "files_exist": [".task_temp/PLUGIN-VFY-SHELL/test_report.json"],
         "logic_complete": "For all 3 test commands, scope-before.ts and audit-before.ts produce identical path-scope decisions; both use getEffectivePathScopeFilePath() from tool-scope.ts",
         "tests_pass": "3/3 test commands produce identical scope decisions across both plugins",
         "guardian_approved": false
@@ -145,9 +127,7 @@
       "description": "Verify DB file (.opencode/state/framework-state.db) exists, is readable, and WAL mode is active. Check for WAL/SHM companion files. Run PRAGMA journal_mode and confirm return value is 'wal'.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/DB-VFY-L1-01/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L1-01/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -162,9 +142,7 @@
         ".opencode/lib/db-manager.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L1-01/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L1-01/test_report.json"],
         "logic_complete": "framework-state.db exists and is readable; framework-state.db-wal and -shm companion files present; PRAGMA journal_mode returns 'wal'; getDb() singleton returns valid Database instance",
         "tests_pass": "4/4 checks: file exists + WAL companion files + journal_mode=wal + getDb() connects",
         "guardian_approved": false
@@ -179,9 +157,7 @@
       "description": "Verify all 29 tables exist in the database. Query sqlite_master for all table names and compare against the expected list from the migration plan: 24 typed tables (machine_meta, machine_contracts, eslint_state, write_audit_state, compliance_records, knowledge_session_access, knowledge_cache_meta, tdd_enforcement_state, keystone_hashes, transaction_state, knowledge_state, knowledge_audit_state, type_check_state, format_state, dependency_state, gate_sessions, gate_drained_sessions, gate_session_index, gate_store_meta, gate_audit_history, substate_kv, schema_version, audit_log, audit_trail) + 4 auxiliary + sqlite_sequence.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/DB-VFY-L1-02/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L1-02/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -194,9 +170,7 @@
         ".opencode/lib/db-manager.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L1-02/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L1-02/test_report.json"],
         "logic_complete": "SELECT name FROM sqlite_master WHERE type='table' returns exactly 29 table names matching the expected list; all 24 typed tables confirmed present; schema_version table contains v6",
         "tests_pass": "29/29 expected tables found; 0 missing; 0 unexpected",
         "guardian_approved": false
@@ -211,9 +185,7 @@
       "description": "Run PRAGMA integrity_check on the database and confirm the result is 'ok'. This verifies no data corruption has occurred during the 9-step migration.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/DB-VFY-L1-03/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L1-03/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -226,9 +198,7 @@
         ".opencode/lib/db-manager.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L1-03/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L1-03/test_report.json"],
         "logic_complete": "PRAGMA integrity_check returns 'ok'; free_list count reported; page_count reported; no corruption detected",
         "tests_pass": "integrity_check result = 'ok'; 0 errors",
         "guardian_approved": false
@@ -243,9 +213,7 @@
       "description": "Query the schema_version table and confirm the latest applied version is 6. Verify all version entries (v1 through v6) are present with correct applied_at timestamps and comments.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/DB-VFY-L1-04/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L1-04/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -258,9 +226,7 @@
         ".opencode/lib/db-manager.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L1-04/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L1-04/test_report.json"],
         "logic_complete": "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1 returns 6; versions 1-6 all present with correct comments: v1=initial, v2=substate_kv, v3=eslint_state.last_full_scan, v4=file_baseline_kv, v5=deliverables columns, v6=session_log+dispatch_failed_log+session_map",
         "tests_pass": "Latest schema version = 6; all 6 migration entries present",
         "guardian_approved": false
@@ -275,9 +241,7 @@
       "description": "Run framework-self-test.ts and verify all DB-related checks pass: Check 14 (DB WAL mode), Check 15 (DB tables), Check 24 (DB size), Check 38 (v6 DB schema), Check 39 (S41 schema file integrity). This consolidates the infrastructure health baseline.",
       "agent": "@Coder-BE",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/DB-VFY-L1-05/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L1-05/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -290,9 +254,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L1-05/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L1-05/test_report.json"],
         "logic_complete": "framework-self-test.ts checks 14, 15, 24, 38, 39 all return PASS; any failure must be explained in test_report.json",
         "tests_pass": "5/5 DB-related self-test checks PASS (14, 15, 24, 38, 39)",
         "guardian_approved": false
@@ -313,9 +275,7 @@
         "DB-VFY-L1-04",
         "DB-VFY-L1-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L2-01/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L2-01/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -329,9 +289,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L2-01/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L2-01/test_report.json"],
         "logic_complete": "All 12 sub-state reads return non-null typed objects; no SUBSTATE-READ-FAILED log events; readSubState uses DB-only path (no JSON fallback invocation)",
         "tests_pass": "12/12 sub-state reads successful; 0 fallback to JSON",
         "guardian_approved": false
@@ -352,9 +310,7 @@
         "DB-VFY-L1-04",
         "DB-VFY-L1-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L2-02/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L2-02/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -368,9 +324,7 @@
         ".opencode/lib/state-utils.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L2-02/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L2-02/test_report.json"],
         "logic_complete": "dbAtomicWriteSubState on eslint_state and write_audit_state performs transactional read-modify-write; modified data persists and is readable; concurrent modification retry works (maxRetries=3); G3 CAS weak validation resolved; G4 busy-spin replaced by busy_timeout=5000",
         "tests_pass": "2/2 sub-states test: eslint_state atomic write + write_audit_state atomic write; data integrity confirmed post-write",
         "guardian_approved": false
@@ -391,9 +345,7 @@
         "DB-VFY-L1-04",
         "DB-VFY-L1-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L2-03/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L2-03/test_report.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -407,9 +359,7 @@
         ".opencode/state/"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L2-03/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L2-03/test_report.json"],
         "logic_complete": "DB read returns data for all 12 keys; JSON frozen snapshots exist and are readable; DB data is structurally consistent with JSON snapshots (DB may have newer data); no structural corruption",
         "tests_pass": "12/12 substate DB reads produce structurally valid objects; JSON snapshots present on disk",
         "guardian_approved": false
@@ -430,9 +380,7 @@
         "DB-VFY-L1-04",
         "DB-VFY-L1-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L2-04/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L2-04/test_report.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -445,9 +393,7 @@
         ".opencode/lib/db-state-manager.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L2-04/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L2-04/test_report.json"],
         "logic_complete": "DB unavailable → readSubState returns empty {} (no throw); writeSubState returns false; no crash; DB-READ-FALLBACK or DB-READ-SUBSTATE-FAILED log event recorded; DB restored successfully after test",
         "tests_pass": "Graceful degradation confirmed: no crash on DB unavailability; read returns {}, write returns false",
         "guardian_approved": false
@@ -468,9 +414,7 @@
         "DB-VFY-L1-04",
         "DB-VFY-L1-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L2-05/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L2-05/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -489,9 +433,7 @@
         ".opencode/lib/state-transaction.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L2-05/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L2-05/test_report.json"],
         "logic_complete": "grep for 'atomicWriteMachine' returns 0 result (deleted); grep for 'readMachine\\(|writeMachine\\(' returns 0 business-code result; uc7ks-schema.ts has no re-export; audit-log.ts has no 'appendFileSync'; gate-core.ts uses writeLogSafe (not writeLog directly); safe-bash-core.ts uses writeLog(); state-transaction.ts references atomicWriteSubState (not atomicWriteMachine); substate-manager.ts is 104 lines DB-only (no JSON write)",
         "tests_pass": "8/8 cleanup items verified; 0 regression references found",
         "guardian_approved": false
@@ -512,9 +454,7 @@
         "DB-VFY-L2-04",
         "DB-VFY-L2-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L3-01/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L3-01/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -528,9 +468,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L3-01/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L3-01/test_report.json"],
         "logic_complete": "createSession called → gate_sessions DB table has new row with gate_status='checked'; SQL query SELECT * FROM gate_sessions WHERE session_id = ? returns the created session; session_id format matches expected pattern (cg_ses_*)",
         "tests_pass": "1/1 createSession DB write verified; gate_sessions row exists with correct status",
         "guardian_approved": false
@@ -551,9 +489,7 @@
         "DB-VFY-L2-04",
         "DB-VFY-L2-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L3-02/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L3-02/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -567,9 +503,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L3-02/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L3-02/test_report.json"],
         "logic_complete": "armSession with declared_deliverables succeeds for @Coder-BE (non-exempt); armSession without declared_deliverables is rejected; @Orchestrator (exempt) works without deliverables; gate_sessions row updated: status='armed', confirmed_at not null, expires_at = confirmed_at + 24h, plan_summary stored, declared_deliverables JSON stored",
         "tests_pass": "3/3 scenarios: non-exempt with deliverables ✅, non-exempt without ❌, exempt without ✅",
         "guardian_approved": false
@@ -590,9 +524,7 @@
         "DB-VFY-L2-04",
         "DB-VFY-L2-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L3-03/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L3-03/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -606,9 +538,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L3-03/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L3-03/test_report.json"],
         "logic_complete": "completeSession updates gate_sessions row: status='completed', consumed_at populated, execution_summary stored; completing a non-armed session returns 'rejected'; gate_audit_history table has audit entry for the complete event",
         "tests_pass": "Correct state machine transition: armed→completed; rejection for invalid state (non-armed); audit trail recorded",
         "guardian_approved": false
@@ -629,9 +559,7 @@
         "DB-VFY-L2-04",
         "DB-VFY-L2-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L3-04/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L3-04/test_report.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -645,9 +573,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L3-04/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L3-04/test_report.json"],
         "logic_complete": "drainStaleSessions identifies sessions stale >48h (checked) or >24h (armed); drained session removed from gate_sessions; drained session inserted into gate_drained_sessions with drain_reason; drainStaleSessions returns count of drained sessions; gate-store-meta active_sessions updated",
         "tests_pass": "Drain operation moves session from gate_sessions → gate_drained_sessions; gate_sessions count decremented; gate_drained_sessions count incremented",
         "guardian_approved": false
@@ -668,9 +594,7 @@
         "DB-VFY-L2-04",
         "DB-VFY-L2-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L3-05/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L3-05/test_report.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -684,9 +608,7 @@
         ".opencode/scripts/mcp-tools/compliance-gate.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L3-05/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L3-05/test_report.json"],
         "logic_complete": "approveDeliverables populates: submitted_deliverables (from submit step), deliverables_approved_by='@Orchestrator', deliverables_approved_at ISO timestamp, deliverables_approved_note, approval_required=false; all 6 deliverable columns present in gate_sessions row after flow; query confirms column values",
         "tests_pass": "Full deliverables flow: declare → submit → approve; all 6 columns populated; SQL verification of each column",
         "guardian_approved": false
@@ -707,9 +629,7 @@
         "DB-VFY-L3-04",
         "DB-VFY-L3-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L4-01/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L4-01/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -723,9 +643,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L4-01/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L4-01/test_report.json"],
         "logic_complete": "writeAuditLogEntry writes to audit_log DB table; query returns the inserted row with correct event_type, session_id, detail JSON, timestamp; no appendFileSync call in audit-log.ts (Step 8); logAuditEntry delegates to writeAuditLogEntry",
         "tests_pass": "Audit log entry written to DB; SQL SELECT confirms correct data; G6 resolved",
         "guardian_approved": false
@@ -746,9 +664,7 @@
         "DB-VFY-L3-04",
         "DB-VFY-L3-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L4-02/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L4-02/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -762,9 +678,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L4-02/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L4-02/test_report.json"],
         "logic_complete": "flushAuditTrail upserts to audit_trail DB table; query returns the row with correct session_id, trail_data contains the flushed entry, updated_at reflects flush time; repeat flush appends to trail_data array; G7 non-atomic write resolved",
         "tests_pass": "Audit trail flushed to DB; upsert behavior correct (INSERT on first call, UPDATE on subsequent); G7 resolved",
         "guardian_approved": false
@@ -785,9 +699,7 @@
         "DB-VFY-L3-04",
         "DB-VFY-L3-05"
       ],
-      "outputs": [
-        ".task_temp/DB-VFY-L4-03/test_report.json"
-      ],
+      "outputs": [".task_temp/DB-VFY-L4-03/test_report.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -801,9 +713,7 @@
         ".opencode/lib/framework-enforcer.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L4-03/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L4-03/test_report.json"],
         "logic_complete": "audit-log.ts has 0 references to appendFileSync; 0 references to 'audit_log.jsonl' in writeFileSync; audit_log table is sole destination for writeAuditLogEntry; any JSONL file is stale (pre-Step 8) and should be tagged as frozen",
         "tests_pass": "0 appendFileSync in audit-log.ts; 0 JSONL write paths; audit_log.jsonl file state documented (frozen or absent)",
         "guardian_approved": false
@@ -817,14 +727,8 @@
       "name": "E2E — framework-self-test.ts 39/40 PASS",
       "description": "Run the full framework-self-test.ts (all 40 checks) and verify: (a) 39/40 PASS as documented in migration plan §11.1, (b) only Check 33 (stale dispatch entries) fails — this is a pre-existing failure unrelated to DB migration, (c) all DB-related checks (14, 15, 24, 38, 39) pass. Capture the full output for the verification report.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "DB-VFY-L4-01",
-        "DB-VFY-L4-02",
-        "DB-VFY-L4-03"
-      ],
-      "outputs": [
-        ".task_temp/DB-VFY-L5-01/test_report.json"
-      ],
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-01/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -832,13 +736,9 @@
         "section": "11.1 DB 运行时状态 + 11.2 G1-G13 问题矩阵",
         "clause": "Self-test 基线: framework-self-test.ts — 39/40 PASS（Check 33 为预先存在的 stale dispatch entries）"
       },
-      "target_files": [
-        ".opencode/scripts/framework-self-test.ts"
-      ],
+      "target_files": [".opencode/scripts/framework-self-test.ts"],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L5-01/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L5-01/test_report.json"],
         "logic_complete": "bun .opencode/scripts/framework-self-test.ts runs to completion; 39/40 checks PASS; only Check 33 fails (pre-existing stale dispatch entries); all DB checks (14,15,24,38,39) PASS; exit code 1 (expected due to Check 33)",
         "tests_pass": "39/40 PASS; 0 new failures introduced by DB migration",
         "guardian_approved": false
@@ -852,14 +752,8 @@
       "name": "E2E — framework-doctor.ts --strict 12/13 PASS",
       "description": "Run framework-doctor.ts --strict and verify 12/13 checks pass. Check 6 (uncommitted changes detection) may fail if there are uncommitted files; this is expected and should auto-recover after commit. Verify DB integrity check (doctor check for PRAGMA integrity_check) passes.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "DB-VFY-L4-01",
-        "DB-VFY-L4-02",
-        "DB-VFY-L4-03"
-      ],
-      "outputs": [
-        ".task_temp/DB-VFY-L5-02/test_report.json"
-      ],
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-02/test_report.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -872,9 +766,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L5-02/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L5-02/test_report.json"],
         "logic_complete": "framework-doctor.ts --strict runs; 12/13 PASS (or 13/13 if committed); Check 6 is the only possible failure (uncommitted files); DB integrity check passes; no critical health issues",
         "tests_pass": "≥12/13 PASS; DB health PASS; exit code 0 if 13/13, 1 if Check 6 fails",
         "guardian_approved": false
@@ -888,14 +780,8 @@
       "name": "E2E — Complete Gate Lifecycle End-to-End",
       "description": "Execute the full compliance gate lifecycle end-to-end: (1) compliance_gate_check → gate_sessions row created, (2) compliance_gate_confirm → armed with deliverables, (3) compliance_gate_submit_deliverables → submitted, (4) compliance_gate_approve_deliverables → approved, (5) compliance_gate_complete → completed. Verify every step writes correctly to gate_sessions DB table. This is the single most comprehensive integration test for the DB migration.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "DB-VFY-L4-01",
-        "DB-VFY-L4-02",
-        "DB-VFY-L4-03"
-      ],
-      "outputs": [
-        ".task_temp/DB-VFY-L5-03/test_report.json"
-      ],
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-03/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -910,9 +796,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L5-03/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L5-03/test_report.json"],
         "logic_complete": "Full gate lifecycle executes without error; each step verified via DB query: (1) check → gate_sessions row with status='checked', (2) confirm → status='armed' with deliverables, (3) submit → submitted_deliverables populated, (4) approve → approved columns populated, (5) complete → status='completed'; gate-state.json.index.json updated; gate_audit_history has entries for all steps",
         "tests_pass": "5/5 lifecycle steps pass; DB state correct at each step; full chain intact",
         "guardian_approved": false
@@ -926,14 +810,8 @@
       "name": "E2E — G1-G13 Final State Verification",
       "description": "Audit the G1-G13 problem matrix against the migration plan §11.2 claims: 12/13 resolved (G1, G3-G13) + 1/13 mitigated (G2). For each resolved G-problem, verify the resolution mechanism is in place: G1 (gate_sessions DB table), G3 (dbAtomicWriteSubState), G4 (busy_timeout=5000), G5 (writeMachineMeta+writeSubState dual-write proxy), G6 (DB INSERT), G7 (DB upsert), G8 (writeLog unified), G9 (DB intermediate layer), G10 (dead code removed), G11 (file_baseline_kv table), G12 (substate-types.ts SubStateMap), G13 (readSubState DB-first). For G2, confirm machine_meta.last_updated is cleaned in DB but compatible field exists in JSON.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "DB-VFY-L4-01",
-        "DB-VFY-L4-02",
-        "DB-VFY-L4-03"
-      ],
-      "outputs": [
-        ".task_temp/DB-VFY-L5-04/test_report.json"
-      ],
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-04/test_report.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -950,9 +828,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L5-04/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L5-04/test_report.json"],
         "logic_complete": "G1: gate_sessions table exists with atomic writes → resolved; G2: machine_meta.last_updated DB-only, JSON field preserved (307B) → mitigated; G3: dbAtomicWriteSubState replaces CAS → resolved; G4: busy_timeout=5000 in db-manager.ts → resolved; G5: writeMachineMeta+writeSubState used in code-quality-gate.ts → resolved; G6: DB INSERT in audit-log.ts → resolved; G7: DB upsert in audit-log.ts → resolved; G8: writeLog in safe-bash-core.ts → resolved; G9: DB as intermediate layer → resolved; G10: 0 references to atomicWriteMachine → resolved; G11: file_baseline_kv table exists → resolved; G12: SubStateMap type in substate-types.ts → resolved; G13: readSubState DB-first in substate-manager.ts → resolved",
         "tests_pass": "12/13 resolved verified; 1/13 mitigated (G2) verified as low-impact",
         "guardian_approved": false
@@ -966,14 +842,8 @@
       "name": "E2E — Stale Dispatch Entries State Check",
       "description": "Document the current state of Check 33 (stale dispatch entries) from framework-self-test.ts. This is a pre-existing failure unrelated to DB migration. Verify: (a) Check 33 is the ONLY failing check, (b) no new stale entries were introduced by the verification tasks, (c) the dispatch_failed_log table (v6 schema) exists and is functional for tracking failed dispatches.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "DB-VFY-L4-01",
-        "DB-VFY-L4-02",
-        "DB-VFY-L4-03"
-      ],
-      "outputs": [
-        ".task_temp/DB-VFY-L5-05/test_report.json"
-      ],
+      "dependencies": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
+      "outputs": [".task_temp/DB-VFY-L5-05/test_report.json"],
       "priority": "P2",
       "status": "completed",
       "requirement_source": {
@@ -986,9 +856,7 @@
         ".opencode/state/framework-state.db"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/DB-VFY-L5-05/test_report.json"
-        ],
+        "files_exist": [".task_temp/DB-VFY-L5-05/test_report.json"],
         "logic_complete": "Check 33 is confirmed as the only failing self-test check; dispatch_failed_log table exists (v6 schema); session_log and session_map tables exist (v6 schema); stale dispatch entries count documented; no new stale entries introduced",
         "tests_pass": "Check 33 failure is pre-existing; v6 dispatch tables exist; 0 new stale entries from verification",
         "guardian_approved": false
@@ -1003,9 +871,7 @@
       "description": "Record the current commit (P2-D completion, 816b00b5), confirm that no structural optimizations (P3-E, A3, DAG storage refactor) are performed during the baseline collection window, define sample requirements: minimum 5 complete tasks, target 10, covering framework/doc/review, backend, frontend, and at least 1 permission/dispatch task.",
       "agent": "@Orchestrator",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/PHASE0-S0/baseline-window-declaration.json"
-      ],
+      "outputs": [".task_temp/PHASE0-S0/baseline-window-declaration.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -1034,12 +900,8 @@
       "name": "Phase 0 Step 1: Define Schema + Create baseline-metrics.json",
       "description": "Define the baseline-metrics.json schema covering 4 metric categories (end-to-end duration, token usage, rework rate, gate MCP call count). Create .opencode/state/baseline-metrics.json with schema_version=1.0, framework_snapshot, and empty tasks array. Nullable fields must use null (not 0) for uncollected data. collection_status semantics: auto/manual/unavailable.",
       "agent": "@Architect",
-      "dependencies": [
-        "PHASE0-S0"
-      ],
-      "outputs": [
-        ".opencode/state/baseline-metrics.json"
-      ],
+      "dependencies": ["PHASE0-S0"],
+      "outputs": [".opencode/state/baseline-metrics.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -1047,13 +909,9 @@
         "section": "4. 指标定义 + 5.1 + 6. Step 1",
         "clause": "定义基线指标schema: 端到端耗时/Token使用量/返工率/合规门MCP调用次数; 创建baseline-metrics.json schema_version 1.0"
       },
-      "target_files": [
-        ".opencode/state/baseline-metrics.json"
-      ],
+      "target_files": [".opencode/state/baseline-metrics.json"],
       "definition_of_done": {
-        "files_exist": [
-          ".opencode/state/baseline-metrics.json"
-        ],
+        "files_exist": [".opencode/state/baseline-metrics.json"],
         "logic_complete": "JSON可被标准解析器解析; schema覆盖4类核心指标 (duration/token/rework/gate_mcp_calls); nullable字段显式使用null; collection_status枚举定义 (auto/manual/unavailable); framework_snapshot包含commit/agent_count/enforcement_mode/dag_mode",
         "tests_pass": "node -e \"JSON.parse(require('fs').readFileSync('.opencode/state/baseline-metrics.json','utf8'))\" 无错误",
         "guardian_approved": false
@@ -1067,12 +925,8 @@
       "name": "Phase 0 Step 2 RED: Collection Script Test Cases",
       "description": "TDD-RED phase: Write failing test cases for framework-baseline-metrics.ts covering 4 collectors (collectGateSessions, collectDispatchSessions, collectTaskLogs, collectGitEvidence), --dry-run mode (no file writes), --write mode (writes only baseline-metrics.json), and edge cases (empty DB, missing token fields, graceful degradation). Tests must fail before implementation.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "PHASE0-S1"
-      ],
-      "outputs": [
-        ".task_temp/PHASE0-S2-RED/test_report.json"
-      ],
+      "dependencies": ["PHASE0-S1"],
+      "outputs": [".task_temp/PHASE0-S2-RED/test_report.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -1101,9 +955,7 @@
       "name": "Phase 0 Step 2 GREEN: Implement Collection Script",
       "description": "TDD-GREEN phase: Implement .opencode/scripts/framework-baseline-metrics.ts with 4 collectors (collectGateSessions, collectDispatchSessions, collectTaskLogs, collectGitEvidence). Read-only: queries DB state manager (dbReadSubState), reads .task_temp/_logs, queries git log. Supports --dry-run (preview) and --write .opencode/state/baseline-metrics.json (snapshot). Does NOT modify gate/dispatch/permission/DAG runtime state. Handles missing token data gracefully with collection_status.",
       "agent": "@Coder-BE",
-      "dependencies": [
-        "PHASE0-S2-RED"
-      ],
+      "dependencies": ["PHASE0-S2-RED"],
       "outputs": [
         ".opencode/scripts/framework-baseline-metrics.ts",
         ".task_temp/PHASE0-S2-GREEN/test_report.json"
@@ -1138,12 +990,8 @@
       "name": "Phase 0 Step 3: Collect 5-10 Task Samples",
       "description": "Run the collection script after each of 5-10 complete task executions. Each sample must have: started_at, completed_at, duration_ms, gate_mcp_calls, rework fields, and evidence (session/log/commit). Token fields populated with collection_status (auto or manual). Execute: bun .opencode/scripts/framework-baseline-metrics.ts --write .opencode/state/baseline-metrics.json after each task.",
       "agent": "@Orchestrator",
-      "dependencies": [
-        "PHASE0-S2-GREEN"
-      ],
-      "outputs": [
-        ".opencode/state/baseline-metrics.json"
-      ],
+      "dependencies": ["PHASE0-S2-GREEN"],
+      "outputs": [".opencode/state/baseline-metrics.json"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -1156,9 +1004,7 @@
         ".opencode/scripts/framework-baseline-metrics.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".opencode/state/baseline-metrics.json"
-        ],
+        "files_exist": [".opencode/state/baseline-metrics.json"],
         "logic_complete": "至少5个任务拥有完整started_at/completed_at/duration_ms; 每个任务有evidence指向至少一种证据源; 每个任务有gate_mcp_calls和rework字段; token缺失显式标记collection_status; 样本覆盖framework/backend/frontend/permission类型",
         "tests_pass": "≥5/10 tasks with complete duration data; ≥1 task each of framework/backend/frontend types",
         "guardian_approved": false
@@ -1172,9 +1018,7 @@
       "name": "Phase 0 Step 4: Aggregate Metrics + Generate Report",
       "description": "Compute aggregate metrics from baseline-metrics.json: task_count, median_duration_ms, p95_duration_ms, avg_gate_mcp_calls, avg_dispatch_count, avg_rework_score, token_coverage. Generate phase0-baseline-metrics-report.md listing: sample coverage, auto/manual/unavailable breakdown, rework cause distribution, and threshold recommendations for P3-E/A3/B/C-line optimizations.",
       "agent": "@Architect",
-      "dependencies": [
-        "PHASE0-S3"
-      ],
+      "dependencies": ["PHASE0-S3"],
       "outputs": [
         "docs/review/framework-refactor/phase0-baseline-metrics-report.md",
         ".opencode/state/baseline-metrics.json"
@@ -1208,12 +1052,8 @@
       "name": "Phase 0 Step 5: Subsequent Phase Unlock Decision",
       "description": "Evaluate Phase 0 completion against unlock criteria: (1) if sample tasks < 5 → block A3 agent merge verification, (2) if token coverage = 0 → allow P3-E but declare token baseline unavailable, (3) if missing backend/frontend samples → block A3 BE/FE A/B verification, (4) if many fields unavailable → strengthen collection script first. Document decision and next-phase recommendation.",
       "agent": "@Orchestrator",
-      "dependencies": [
-        "PHASE0-S4"
-      ],
-      "outputs": [
-        ".task_temp/PHASE0-S5/unlock-decision.json"
-      ],
+      "dependencies": ["PHASE0-S4"],
+      "outputs": [".task_temp/PHASE0-S5/unlock-decision.json"],
       "priority": "P1",
       "status": "completed",
       "requirement_source": {
@@ -1226,9 +1066,7 @@
         ".opencode/state/baseline-metrics.json"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/PHASE0-S5/unlock-decision.json"
-        ],
+        "files_exist": [".task_temp/PHASE0-S5/unlock-decision.json"],
         "logic_complete": "4项解锁条件逐项检查; 给出P3-E/A3进入建议; 若阻塞则明确阻塞条件和补采方案; 决策记录包含时间戳和依据",
         "tests_pass": "4/4 unlock criteria evaluated; decision documented with rationale",
         "guardian_approved": false
@@ -1243,9 +1081,7 @@
       "description": "WV-2026-011 (deadline 2026-06-24): Grant @Coder-BE write access to .opencode/scripts/**, .opencode/plugins/**, .opencode/tools/** for Safe Optimization Plan framework infrastructure work. Update project.config.json agent_write_scopes for @Coder-BE to add these paths to the allowed list. This consolidates the precedent set by WV-2026-010.",
       "agent": "@Architect",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/T-TECHDEBT-WV011/HANDOVER.md"
-      ],
+      "outputs": [".task_temp/T-TECHDEBT-WV011/HANDOVER.md"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -1253,13 +1089,9 @@
         "section": "WV-2026-011",
         "clause": "Grant @Coder-BE write access to .opencode/scripts/** .opencode/plugins/** .opencode/tools/** for Safe Optimization Plan"
       },
-      "target_files": [
-        ".opencode/project.config.json"
-      ],
+      "target_files": [".opencode/project.config.json"],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/T-TECHDEBT-WV011/HANDOVER.md"
-        ],
+        "files_exist": [".task_temp/T-TECHDEBT-WV011/HANDOVER.md"],
         "logic_complete": "project.config.json updated: @Coder-BE agent_write_scopes.allowed includes .opencode/scripts/**, .opencode/plugins/**, .opencode/tools/**; denied list adjusted accordingly if needed; WV-2026-011 marked repaid in TECH_DEBT_REGISTRY.md",
         "tests_pass": "framework-self-test.ts agent scope check passes for @Coder-BE",
         "guardian_approved": false
@@ -1274,9 +1106,7 @@
       "description": "WV-2026-012 (deadline 2026-06-24): Add .opencode/hooks/** and .opencode/hooks/pre-commit to @Coder-BE write scopes for pre-commit hook Layer 1.5 registry verification per Optimization Plan R1.4. Update project.config.json agent_write_scopes for @Coder-BE.",
       "agent": "@Architect",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/T-TECHDEBT-WV012/HANDOVER.md"
-      ],
+      "outputs": [".task_temp/T-TECHDEBT-WV012/HANDOVER.md"],
       "priority": "P0",
       "status": "completed",
       "requirement_source": {
@@ -1284,13 +1114,9 @@
         "section": "WV-2026-012",
         "clause": "Add .opencode/hooks/** and .opencode/hooks/pre-commit to @Coder-BE write scopes for pre-commit hook Layer 1.5"
       },
-      "target_files": [
-        ".opencode/project.config.json"
-      ],
+      "target_files": [".opencode/project.config.json"],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/T-TECHDEBT-WV012/HANDOVER.md"
-        ],
+        "files_exist": [".task_temp/T-TECHDEBT-WV012/HANDOVER.md"],
         "logic_complete": "project.config.json updated: @Coder-BE agent_write_scopes.allowed includes .opencode/hooks/** and .opencode/hooks/pre-commit; WV-2026-012 marked repaid in TECH_DEBT_REGISTRY.md",
         "tests_pass": "framework-self-test.ts agent scope check passes for @Coder-BE with hooks access",
         "guardian_approved": false
@@ -1324,9 +1150,7 @@
         "docs/review/framework-refactor/read-before-approve-plan.md"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/REVIEW-READ-APPROVE-PLAN/HANDOVER.md"
-        ],
+        "files_exist": [".task_temp/REVIEW-READ-APPROVE-PLAN/HANDOVER.md"],
         "logic_complete": "5维度审核完成：(1) 方案完整性 — 确认方案A选择合理，§0→§10 结构完整无遗漏；(2) 11子系统兼容性 — §4 全部11个子系统逐项验证，确认每个检查项的正确性；(3) 现有约束交互 — §7 状态机交互分析正确，不破坏现有约束；(4) 代码质量 — §3 代码审查通过，错误处理/边界条件/降级容错完备；(5) 风险场景 — §5+§8 风险覆盖充分，测试策略可验证。文档中的问题已直接修正，重大争议记录在 HANDOVER.md 中。",
         "tests_pass": "N/A — design document review task",
         "guardian_approved": false
@@ -1341,9 +1165,7 @@
       "description": "@CI-CD-Agent commits all .opencode/ framework changes from UC7-001 read-before-write hardening + read_audit.jsonl→SQLite migration. Single commit: git add .opencode/ docs/review/ && git commit with message 'feat(framework): UC7-001 read-before-write hardening + read_audit.jsonl→SQLite migration [Green] COMMIT-UC7KS-FINAL'. No business code changes (booking-backend/ and booking-frontend/ excluded). Commit should include all .opencode/ plugins (read-track-before.ts, etc.), lib files, scripts, rules, state files, and docs/review/ documentation from the UC7-001 hardening work.",
       "agent": "@CI-CD-Agent",
       "dependencies": [],
-      "outputs": [
-        ".task_temp/COMMIT-UC7KS-FINAL/HANDOVER.md"
-      ],
+      "outputs": [".task_temp/COMMIT-UC7KS-FINAL/HANDOVER.md"],
       "priority": "P0",
       "status": "pending",
       "requirement_source": {
@@ -1359,19 +1181,394 @@
         ".opencode/lib/db-state-manager.ts"
       ],
       "definition_of_done": {
-        "files_exist": [
-          ".task_temp/COMMIT-UC7KS-FINAL/HANDOVER.md"
-        ],
+        "files_exist": [".task_temp/COMMIT-UC7KS-FINAL/HANDOVER.md"],
         "logic_complete": "git status shows all .opencode/ changes staged; git commit executed with TDD-conformant message; commit hash recorded in HANDOVER.md; no booking-backend/ or booking-frontend/ files in commit",
         "tests_pass": "framework-self-test.ts baseline preserved (39/40 with pre-existing Check 33 failure); no new failures introduced",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-GH-WF-DESIGN-001",
+      "name": "GitHub Workflow Architecture Design",
+      "description": "@Architect 设计 4 个 GitHub Workflow 的整体架构：(1) auto-PR creation on work-one push→develop、(2) docs/review/**/*.md → Issue(背景+时机) + PR(根因+方案+验证) 分解、(3) Issue/PR → GitHub Project Item 自动关联、(4) Project Item ↔ Repository Issue/PR 双向状态同步。产出：workflow 文件结构规划、触发器条件矩阵、Job 分解图、Secrets 需求清单、依赖关系图。参考：github-actions-workflow-syntax.md (triggers/permissions/jobs)、github-projects-overview.md (Item类型/双向同步/自动添加)。",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [
+        "docs/review/gh-workflow/architecture-design.md",
+        ".task_temp/T-GH-WF-DESIGN-001/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "用户需求",
+        "section": "N/A — 用户直接需求",
+        "clause": "设计一个 GitHub Workflow 实施方案，包含自动PR、文档分解、Project关联、状态同步"
+      },
+      "target_files": [
+        ".github/workflows/",
+        "docs/review/gh-workflow/architecture-design.md"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "docs/review/gh-workflow/architecture-design.md",
+          ".task_temp/T-GH-WF-DESIGN-001/HANDOVER.md"
+        ],
+        "logic_complete": "4个workflow的架构设计完成：触发条件矩阵、Job分解、YAML文件结构、Secrets清单、依赖关系图均已定义且可执行",
+        "tests_pass": "N/A — 设计任务",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-GH-WF-IMPL-002",
+      "name": "Auto PR Creation Workflow Implementation",
+      "description": "@CI-CD-Agent 实现自动 PR 创建 Workflow：监听 work-one 分支 push → 自动创建指向 develop 分支的 Pull Request。使用 GitHub CLI (gh pr create) 或 actions/github-script。配置权限 `pull-requests: write`。workflow 文件：.github/workflows/auto-pr.yml。",
+      "agent": "@CI-CD-Agent",
+      "dependencies": ["T-GH-WF-DESIGN-001"],
+      "outputs": [
+        ".github/workflows/auto-pr.yml",
+        ".task_temp/T-GH-WF-IMPL-002/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "用户需求",
+        "section": "1. 自动PR生成",
+        "clause": "当本地 work-one branch push 到远程后，自动创建指向 develop 分支的 Pull Request"
+      },
+      "target_files": [".github/workflows/auto-pr.yml"],
+      "definition_of_done": {
+        "files_exist": [
+          ".github/workflows/auto-pr.yml",
+          ".task_temp/T-GH-WF-IMPL-002/HANDOVER.md"
+        ],
+        "logic_complete": "work-one push → PR指向develop 自动创建；PR title/body包含分支信息和commit摘要；duplicate PR检查避免重复创建",
+        "tests_pass": "workflow syntax验证通过 (github actions validator)；dry-run测试PR创建逻辑",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-GH-WF-IMPL-003",
+      "name": "Document Decomposition Workflow Implementation",
+      "description": "@CI-CD-Agent 实现文档分解 Workflow：扫描 docs/review/**/*.md → 解析 Markdown 内容 → 提取「问题背景」和「问题发生时机」创建 Issue；提取「根因分析」「实施方案」「验证结果」创建 PR。使用 GitHub CLI 或 GraphQL API。workflow 文件：.github/workflows/doc-decompose.yml。",
+      "agent": "@CI-CD-Agent",
+      "dependencies": ["T-GH-WF-DESIGN-001"],
+      "outputs": [
+        ".github/workflows/doc-decompose.yml",
+        ".task_temp/T-GH-WF-IMPL-003/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "用户需求",
+        "section": "2. 文档分解",
+        "clause": "docs/review/**/*.md → Issue(问题背景+时机) + PR(根因+方案+验证)"
+      },
+      "target_files": [".github/workflows/doc-decompose.yml"],
+      "definition_of_done": {
+        "files_exist": [
+          ".github/workflows/doc-decompose.yml",
+          ".task_temp/T-GH-WF-IMPL-003/HANDOVER.md"
+        ],
+        "logic_complete": "Markdown 解析器正确提取背景/时机/根因/方案/验证章节；Issue(title=问题背景, body=问题发生时机)创建成功；PR(title=问题摘要, body=根因+方案+验证)创建成功；已处理文档(old→new)标记避免重复分解",
+        "tests_pass": "workflow syntax验证通过；mock doc分解测试",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-GH-WF-IMPL-004",
+      "name": "Auto Project Association Workflow Implementation",
+      "description": "@CI-CD-Agent 实现自动 Project 关联 Workflow：(1) Issue 创建 → 自动添加到 GitHub Project 作为 Project Item；(2) PR 创建 → 自动添加到 GitHub Project 作为 Project Item。使用 actions/add-to-project@v1 或 GraphQL addProjectV2ItemById mutation。需要 PROJECT_ID 和 Project 写入权限 token。workflow 文件：.github/workflows/auto-project.yml。",
+      "agent": "@CI-CD-Agent",
+      "dependencies": ["T-GH-WF-DESIGN-001"],
+      "outputs": [
+        ".github/workflows/auto-project.yml",
+        ".task_temp/T-GH-WF-IMPL-004/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "用户需求",
+        "section": "3. 自动Project关联",
+        "clause": "Issue提交到远程 → 自动创建Project Issue；代码提交到远程 → 自动生成指向develop的PR → PR自动生成Project PR"
+      },
+      "target_files": [".github/workflows/auto-project.yml"],
+      "definition_of_done": {
+        "files_exist": [
+          ".github/workflows/auto-project.yml",
+          ".task_temp/T-GH-WF-IMPL-004/HANDOVER.md"
+        ],
+        "logic_complete": "Issue opened → Project Item自动创建；PR opened/reopened → Project Item自动创建；支持自定义字段(Status/Labels)初始值",
+        "tests_pass": "workflow syntax验证通过；GraphQL mutation dry-run测试",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-GH-WF-IMPL-005",
+      "name": "State Synchronization Workflow Implementation",
+      "description": "@CI-CD-Agent 实现状态同步 Workflow：Project Item ↔ Repository Issue/PR 双向同步 (title, description, label, status)。监听 issue.opened/edited/closed/transferred, pull_request.opened/edited/closed → 通过 GraphQL API 更新对应 Project Item 字段。利用 GitHub 内置双向同步机制 + GraphQL updateProjectV2ItemFieldValue。workflow 文件：.github/workflows/state-sync.yml。",
+      "agent": "@CI-CD-Agent",
+      "dependencies": ["T-GH-WF-DESIGN-001"],
+      "outputs": [
+        ".github/workflows/state-sync.yml",
+        ".task_temp/T-GH-WF-IMPL-005/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "用户需求",
+        "section": "4. 状态同步",
+        "clause": "Project Issue和PR能随着Repository Issue和PR的title/description/label/status等字段状态变化而同步变化"
+      },
+      "target_files": [".github/workflows/state-sync.yml"],
+      "definition_of_done": {
+        "files_exist": [
+          ".github/workflows/state-sync.yml",
+          ".task_temp/T-GH-WF-IMPL-005/HANDOVER.md"
+        ],
+        "logic_complete": "Issue title/description变更 → Project Item同步更新；PR label变更 → Project Item标签同步；Issue/PR status变更(open→closed) → Project Item Status字段同步；避免循环触发(workflow自触发拦截)",
+        "tests_pass": "workflow syntax验证通过；同步逻辑mock测试",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-GH-WF-CFG-006",
+      "name": "GitHub Secrets & Token Configuration",
+      "description": "@CI-CD-Agent 配置所有 Workflow 所需的凭证：(1) GH_TOKEN / GITHUB_TOKEN — 用于 `gh` CLI 或 actions/github-script；(2) PROJECT_ID — GitHub Project 的全局 ID；(3) ADD_TO_PROJECT_PAT — actions/add-to-project@v1 需要的 Personal Access Token (scopes: repo, project, org:read)；(4) GitHub App Token (如有必要)。配置位置：Repository Settings → Secrets and variables → Actions。输出配置文档。target_files: .github/workflows/ 下的 secrets 引用。",
+      "agent": "@CI-CD-Agent",
+      "dependencies": ["T-GH-WF-DESIGN-001"],
+      "outputs": [".task_temp/T-GH-WF-CFG-006/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "用户需求",
+        "section": "涉及知识领域",
+        "clause": "GitHub Secret — 所有workflow需要的token和凭证配置"
+      },
+      "target_files": ["docs/review/gh-workflow/secrets-guide.md"],
+      "definition_of_done": {
+        "files_exist": [
+          "docs/review/gh-workflow/secrets-guide.md",
+          ".task_temp/T-GH-WF-CFG-006/HANDOVER.md"
+        ],
+        "logic_complete": "所有workflow需要的Secrets清单完整；每个Secret的scope/permissions已明确；PAT创建步骤文档化；Secrets命名规范统一(ADD_TO_PROJECT_PAT, PROJECT_ID等)",
+        "tests_pass": "workflow syntax验证 — secrets引用语法正确",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-GH-WF-TEST-007",
+      "name": "GitHub Workflow Integration Test & Validation",
+      "description": "@CI-CD-Agent 执行端到端集成测试：(1) push work-one分支 → 验证auto-pr.yml创建PR；(2) 验证auto-project.yml将PR添加到Project；(3) 模拟docs/review/文档变更 → 验证doc-decompose.yml创建Issue和PR；(4) 验证auto-project.yml将Issue添加到Project；(5) 修改Issue title → 验证state-sync.yml同步Project Item；(6) 验证所有4个workflow的联动无误。产出test_report.json。",
+      "agent": "@CI-CD-Agent",
+      "dependencies": [
+        "T-GH-WF-IMPL-002",
+        "T-GH-WF-IMPL-003",
+        "T-GH-WF-IMPL-004",
+        "T-GH-WF-IMPL-005",
+        "T-GH-WF-CFG-006"
+      ],
+      "outputs": [
+        ".task_temp/T-GH-WF-TEST-007/test_report.json",
+        ".task_temp/T-GH-WF-TEST-007/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "用户需求",
+        "section": "全局",
+        "clause": "端到端验证4个workflow的联动：auto-PR + doc分解 + Project关联 + 状态同步"
+      },
+      "target_files": [
+        ".github/workflows/auto-pr.yml",
+        ".github/workflows/doc-decompose.yml",
+        ".github/workflows/auto-project.yml",
+        ".github/workflows/state-sync.yml"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/T-GH-WF-TEST-007/test_report.json",
+          ".task_temp/T-GH-WF-TEST-007/HANDOVER.md"
+        ],
+        "logic_complete": "6个测试场景全部验证：(1) push→PR、(2) PR→Project、(3) doc→Issue+PR、(4) Issue→Project、(5) title→sync、(6) 联动无误。所有workflow正常运行无错误",
+        "tests_pass": "6/6 integration test scenarios pass；0 workflow syntax errors；0 runtime failures",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-STRIKER",
+      "name": "Tech-Debt Repayment: WV-2026-002 — Stryker Mutation Testing CI Integration",
+      "description": "WV-2026-002 (deadline 2026-06-14, 已逾期5天): Stryker mutation testing not yet integrated in CI — mutation_kill_rate in x-coverage-matrix requires Stryker; jest.config.js alone cannot enforce this threshold. @Coder-BE must integrate Stryker into CI pipeline and verify mutation_kill_rate enforcement.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-STRIKER/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "WV-2026-002",
+        "clause": "Stryker mutation testing not yet integrated in CI — deadline 2026-06-14 (OVERDUE)"
+      },
+      "target_files": [
+        ".github/workflows/",
+        "booking_system_refactor/booking-backend/stryker.conf.js"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "booking_system_refactor/booking-backend/stryker.conf.js",
+          ".task_temp/T-TECHDEBT-STRIKER/HANDOVER.md"
+        ],
+        "logic_complete": "Stryker配置完成；CI pipeline集成完成；mutation_kill_rate ≥ 80%验证通过；WV-2026-002标记repaid",
+        "tests_pass": "Stryker mutation test run成功；CI pipeline中Stryker job通过",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-ANGULAR-TS",
+      "name": "Tech-Debt Repayment: WV-2026-007/TD-2026-013 — Angular Frontend TypeScript Errors",
+      "description": "WV-2026-007/TD-2026-013 (deadline 2026-06-15, 已逾期4天): 7 Angular前端 .ts 文件存在预存TypeScript编译错误 (booking_system_refactor/booking-frontend/)。@Coder-FE 需修复这些编译错误。",
+      "agent": "@Coder-FE",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-ANGULAR-TS/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "WV-2026-007 / TD-2026-013",
+        "clause": "7 Angular前端.ts文件存在预存TypeScript错误 — deadline 2026-06-15 (OVERDUE)"
+      },
+      "target_files": ["booking_system_refactor/booking-frontend/src/"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/T-TECHDEBT-ANGULAR-TS/HANDOVER.md"],
+        "logic_complete": "ng build --prod 通过 (0 TypeScript errors)；7个之前有错误的文件均已修复；WV-2026-007和TD-2026-013标记repaid",
+        "tests_pass": "ng build --prod → 0 errors；ng test → 全量通过",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-CONTRACT-FMT",
+      "name": "Tech-Debt Repayment: WV-2026-008/TD-2026-014 — contract.yaml Formatting",
+      "description": "WV-2026-008/TD-2026-014 (deadline 2026-06-15, 已逾期4天): contract.yaml 格式化问题 — pre-existing cosmetic issue。@Architect 修复 contract.yaml 格式。",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [
+        "contract.yaml",
+        ".task_temp/T-TECHDEBT-CONTRACT-FMT/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "WV-2026-008 / TD-2026-014",
+        "clause": "contract.yaml 格式化问题 — pre-existing cosmetic issue; deadline 2026-06-15 (OVERDUE)"
+      },
+      "target_files": ["contract.yaml"],
+      "definition_of_done": {
+        "files_exist": [
+          "contract.yaml",
+          ".task_temp/T-TECHDEBT-CONTRACT-FMT/HANDOVER.md"
+        ],
+        "logic_complete": "contract.yaml 格式修复 (YAML lint通过)；WV-2026-008和TD-2026-014标记repaid",
+        "tests_pass": "YAML format lint通过；yaml结构完整性验证通过",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-AGENT-CFG",
+      "name": "Tech-Debt Repayment: TD-2026-008 — Agent Config Parameterization",
+      "description": "TD-2026-008 (deadline 2026-06-15, 已逾期4天): Framework Agent Config Parameterization — agent configs (coder-be.md, coder-fe.md) now use {placeholder} patterns. Every new project must resolve these before use. @Architect verify zero unresolved placeholders via framework-self-test.js.",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-AGENT-CFG/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "TD-2026-008",
+        "clause": "Agent Config Parameterization — deadline 2026-06-15 (OVERDUE)"
+      },
+      "target_files": [
+        ".opencode/agents/coder-be.md",
+        ".opencode/agents/coder-fe.md"
+      ],
+      "definition_of_done": {
+        "files_exist": [".task_temp/T-TECHDEBT-AGENT-CFG/HANDOVER.md"],
+        "logic_complete": "framework-self-test.ts Check 17 — 0 UNRESOLVED placeholders；所有占位符正确解析；TD-2026-008标记repaid",
+        "tests_pass": "framework-self-test.ts Check 17/18 all pass；dispatch-subagent.ts placeholder resolution verified",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-RULE-TPL",
+      "name": "Tech-Debt Repayment: TD-2026-009 — Rule File Template Resolution",
+      "description": "TD-2026-009 (deadline 2026-06-15, 已逾期4天): Backend + frontend coding standards are now tiered templates with {placeholder}s. @Architect verify all template_resolution entries resolve correctly and no visible fallback placeholders remain in rendered rules.",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-RULE-TPL/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "TD-2026-009",
+        "clause": "Rule File Template Resolution — deadline 2026-06-15 (OVERDUE)"
+      },
+      "target_files": [
+        ".opencode/rules/backend-coding-standard.md",
+        ".opencode/rules/frontend-coding-standard.md"
+      ],
+      "definition_of_done": {
+        "files_exist": [".task_temp/T-TECHDEBT-RULE-TPL/HANDOVER.md"],
+        "logic_complete": "所有template_resolution占位符正确解析；规则文件渲染后无UNRESOLVED占位符；TD-2026-009标记repaid",
+        "tests_pass": "dispatch-subagent.ts 对Architect/Coder-BE/Coder-FE执行placeholder resolution验证；0错误",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-WV011-FIX",
+      "name": "Tech-Debt Repayment: WV-2026-011 — Coder-BE Write Scope (Recheck)",
+      "description": "WV-2026-011 (deadline 2026-06-24, 剩余5天): Grant @Coder-BE write access to .opencode/scripts/**, .opencode/plugins/**, .opencode/tools/** for Safe Optimization Plan. 请注意之前的 T-TECHDEBT-WV011 已被 @Super-Admin 标记为 completed — 此任务验证并确认 WV-2026-011 的修复是否真正落地。",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-WV011-FIX/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "WV-2026-011",
+        "clause": "Grant @Coder-BE write access to .opencode/scripts/** .opencode/plugins/** .opencode/tools/** — deadline 2026-06-24"
+      },
+      "target_files": [".opencode/project.config.json"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/T-TECHDEBT-WV011-FIX/HANDOVER.md"],
+        "logic_complete": "确认 project.config.json 中 @Coder-BE agent_write_scopes 已包含 .opencode/scripts/** .opencode/plugins/** .opencode/tools/**；WV-2026-011标记repaid",
+        "tests_pass": "framework-self-test.ts agent scope check passes for @Coder-BE",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "T-TECHDEBT-WV012-FIX",
+      "name": "Tech-Debt Repayment: WV-2026-012 — Coder-BE Hooks Write Scope (Recheck)",
+      "description": "WV-2026-012 (deadline 2026-06-24, 剩余5天): Add .opencode/hooks/** and .opencode/hooks/pre-commit to @Coder-BE write scopes. 请注意之前的 T-TECHDEBT-WV012 已被 @Super-Admin 标记为 completed — 此任务验证并确认 WV-2026-012 的修复是否真正落地。",
+      "agent": "@Architect",
+      "dependencies": [],
+      "outputs": [".task_temp/T-TECHDEBT-WV012-FIX/HANDOVER.md"],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "WV-2026-012",
+        "clause": "Add .opencode/hooks/** and .opencode/hooks/pre-commit to @Coder-BE write scopes — deadline 2026-06-24"
+      },
+      "target_files": [".opencode/project.config.json"],
+      "definition_of_done": {
+        "files_exist": [".task_temp/T-TECHDEBT-WV012-FIX/HANDOVER.md"],
+        "logic_complete": "确认 project.config.json 中 @Coder-BE agent_write_scopes 已包含 .opencode/hooks/**；WV-2026-012标记repaid",
+        "tests_pass": "framework-self-test.ts agent scope check passes for @Coder-BE with hooks access",
         "guardian_approved": false
       }
     }
   ],
   "execution_order": {
-    "review_read_approve": [
-      "REVIEW-READ-APPROVE-PLAN"
-    ],
+    "review_read_approve": ["REVIEW-READ-APPROVE-PLAN"],
     "validate_baseline_parallel": [
       "VALIDATE-SUB-BASELINE",
       "VALIDATE-SUB-AUDIT"
@@ -1408,141 +1605,56 @@
       "VALIDATE-SUB-TD-009",
       "VALIDATE-SUB-TD-011"
     ],
-    "validate_summary": [
-      "VALIDATE-SUB-SUMMARY"
-    ],
-    "retest_verification": [
-      "T-RETEST-SCOPE",
-      "T-RETEST-AUDIT"
-    ],
-    "phase_0_bugfix": [
-      "BUG-SENDCODE-ANALYSIS"
-    ],
-    "phase_0b_bugfix_red": [
-      "BUG-SENDCODE-RED"
-    ],
-    "phase_0c_bugfix_green": [
-      "BUG-SENDCODE-GREEN"
-    ],
-    "phase_0d_bugfix_review": [
-      "BUG-SENDCODE-REVIEW"
-    ],
-    "phase_1_backend": [
-      "B-MSG-CONTRACT",
-      "B-MSG-RED-001"
-    ],
+    "validate_summary": ["VALIDATE-SUB-SUMMARY"],
+    "retest_verification": ["T-RETEST-SCOPE", "T-RETEST-AUDIT"],
+    "phase_0_bugfix": ["BUG-SENDCODE-ANALYSIS"],
+    "phase_0b_bugfix_red": ["BUG-SENDCODE-RED"],
+    "phase_0c_bugfix_green": ["BUG-SENDCODE-GREEN"],
+    "phase_0d_bugfix_review": ["BUG-SENDCODE-REVIEW"],
+    "phase_1_backend": ["B-MSG-CONTRACT", "B-MSG-RED-001"],
     "phase_2_parallel": {
-      "backend": [
-        "B-MSG-GREEN-001"
-      ],
-      "frontend": [
-        "B-MSG-RED-FE"
-      ]
+      "backend": ["B-MSG-GREEN-001"],
+      "frontend": ["B-MSG-RED-FE"]
     },
-    "phase_3_frontend": [
-      "B-MSG-GREEN-FE-COMPONENT",
-      "B-MSG-GREEN-FE-SERVICE"
-    ],
-    "phase_4_integration": [
-      "B-MSG-GREEN-FE-HEADER",
-      "B-MSG-GREEN-FE-STORE"
-    ],
-    "phase_5_review": [
-      "B-MSG-GUARDIAN"
-    ],
-    "phase_fw_optimization": [
-      "OPC-FW-ACL",
-      "OPC-FW-DAG-GATE"
-    ],
-    "phase_fw_selfcheck_audit": [
-      "OPC-FW-SELFCHECK",
-      "OPC-FW-AUDIT"
-    ],
-    "univ_phase_0": [
-      "UNIV-P0-E"
-    ],
-    "univ_phase_1": [
-      "UNIV-P1-C",
-      "UNIV-P1-D"
-    ],
-    "univ_phase_2": [
-      "UNIV-P2-A",
-      "UNIV-P2-B",
-      "UNIV-P2-J"
-    ],
-    "univ_phase_3": [
-      "UNIV-P3-F",
-      "UNIV-P3-G"
-    ],
-    "univ_phase_4_parallel": [
-      "UNIV-P4-H",
-      "UNIV-P4-I"
-    ],
+    "phase_3_frontend": ["B-MSG-GREEN-FE-COMPONENT", "B-MSG-GREEN-FE-SERVICE"],
+    "phase_4_integration": ["B-MSG-GREEN-FE-HEADER", "B-MSG-GREEN-FE-STORE"],
+    "phase_5_review": ["B-MSG-GUARDIAN"],
+    "phase_fw_optimization": ["OPC-FW-ACL", "OPC-FW-DAG-GATE"],
+    "phase_fw_selfcheck_audit": ["OPC-FW-SELFCHECK", "OPC-FW-AUDIT"],
+    "univ_phase_0": ["UNIV-P0-E"],
+    "univ_phase_1": ["UNIV-P1-C", "UNIV-P1-D"],
+    "univ_phase_2": ["UNIV-P2-A", "UNIV-P2-B", "UNIV-P2-J"],
+    "univ_phase_3": ["UNIV-P3-F", "UNIV-P3-G"],
+    "univ_phase_4_parallel": ["UNIV-P4-H", "UNIV-P4-I"],
     "univ_phase_5_parallel": [
       "UNIV-P5-K",
       "UNIV-P5-L",
       "UNIV-P5-M",
       "UNIV-P5-N"
     ],
-    "univ_phase_6": [
-      "UNIV-P6-O"
-    ],
-    "fw_repair_p0": [
-      "FW-REPAIR-01",
-      "FW-REPAIR-02",
-      "FW-REPAIR-04"
-    ],
-    "fw_repair_p0_dep": [
-      "FW-REPAIR-03"
-    ],
+    "univ_phase_6": ["UNIV-P6-O"],
+    "fw_repair_p0": ["FW-REPAIR-01", "FW-REPAIR-02", "FW-REPAIR-04"],
+    "fw_repair_p0_dep": ["FW-REPAIR-03"],
     "fw_repair_p1": [
       "FW-REPAIR-05",
       "FW-REPAIR-06",
       "FW-REPAIR-07",
       "FW-REPAIR-08"
     ],
-    "fw_repair_p2": [
-      "FW-REPAIR-09",
-      "FW-REPAIR-10",
-      "FW-REPAIR-11"
-    ],
-    "phase_review_p0": [
-      "RVW-REVIEW-01",
-      "RVW-REVIEW-02",
-      "RVW-REVIEW-03"
-    ],
-    "phase_review_p1": [
-      "RVW-REVIEW-04",
-      "RVW-REVIEW-05",
-      "RVW-REVIEW-06"
-    ],
-    "phase_review_p2": [
-      "RVW-REVIEW-07",
-      "RVW-REVIEW-08",
-      "RVW-REVIEW-09"
-    ],
-    "rvw2_p0_independent": [
-      "RVW2-INSTALL-HOOKS",
-      "TD-2026-010-REPAY"
-    ],
-    "rvw2_p0_dependent": [
-      "RVW2-ENFORCE-STRICT",
-      "RVW2-PURGE-SESSIONS"
-    ],
+    "fw_repair_p2": ["FW-REPAIR-09", "FW-REPAIR-10", "FW-REPAIR-11"],
+    "phase_review_p0": ["RVW-REVIEW-01", "RVW-REVIEW-02", "RVW-REVIEW-03"],
+    "phase_review_p1": ["RVW-REVIEW-04", "RVW-REVIEW-05", "RVW-REVIEW-06"],
+    "phase_review_p2": ["RVW-REVIEW-07", "RVW-REVIEW-08", "RVW-REVIEW-09"],
+    "rvw2_p0_independent": ["RVW2-INSTALL-HOOKS", "TD-2026-010-REPAY"],
+    "rvw2_p0_dependent": ["RVW2-ENFORCE-STRICT", "RVW2-PURGE-SESSIONS"],
     "rvw2_p1_independent": [
       "RVW2-FIX-CRLF",
       "RVW2-REGEN-DIGESTS",
       "RVW2-INSTALL-MCP-DEPS",
       "RVW2-FIX-WAL-DUP"
     ],
-    "rvw2_p1_dependent": [
-      "RVW2-FIX-SELFTEST",
-      "RVW2-FIX-PATHS"
-    ],
-    "rvw2_p2": [
-      "RVW2-FIX-DAG-TRACE",
-      "RVW2-CI-CHECKS"
-    ],
+    "rvw2_p1_dependent": ["RVW2-FIX-SELFTEST", "RVW2-FIX-PATHS"],
+    "rvw2_p2": ["RVW2-FIX-DAG-TRACE", "RVW2-CI-CHECKS"],
     "rvw_review_01_txnfix": [
       "RVW-REVIEW-01-TXNFIX-RED",
       "RVW-REVIEW-01-TXNFIX-GREEN",
@@ -1567,52 +1679,25 @@
       "FW-HARDEN-F6-TEST",
       "FW-HARDEN-CROSS"
     ],
-    "fw_governance_p2_audit": [
-      "FW-GOVERN-AUDIT"
-    ],
-    "fw_safe_phase1_independent": [
-      "FW-SAFE-P1-001",
-      "T-TECHDEBT-016"
-    ],
-    "fw_safe_phase1_sequential": [
-      "FW-SAFE-P1-002",
-      "FW-SAFE-P1-003"
-    ],
-    "fw_safe_phase2": [
-      "FW-SAFE-P2-001",
-      "FW-SAFE-P2-002"
-    ],
+    "fw_governance_p2_audit": ["FW-GOVERN-AUDIT"],
+    "fw_safe_phase1_independent": ["FW-SAFE-P1-001", "T-TECHDEBT-016"],
+    "fw_safe_phase1_sequential": ["FW-SAFE-P1-002", "FW-SAFE-P1-003"],
+    "fw_safe_phase2": ["FW-SAFE-P2-001", "FW-SAFE-P2-002"],
     "fw_safe_phase3_independent": [
       "FW-SAFE-P3-001",
       "FW-SAFE-P5-001",
       "FW-SAFE-P5-002"
     ],
-    "fw_safe_phase3_sequential": [
-      "FW-SAFE-P3-002",
-      "FW-SAFE-P3-003"
-    ],
+    "fw_safe_phase3_sequential": ["FW-SAFE-P3-002", "FW-SAFE-P3-003"],
     "fw_safe_phase4_parallel": [
       "FW-SAFE-P4-001",
       "FW-SAFE-P4-002",
       "FW-SAFE-P4-003"
     ],
-    "fw_safe_phase5_sequential": [
-      "FW-SAFE-P5-003",
-      "FW-SAFE-P5-004"
-    ],
-    "fw_safe_phase6": [
-      "FW-SAFE-P6-001",
-      "FW-SAFE-P6-002",
-      "FW-SAFE-P6-003"
-    ],
-    "fw_safe_phase7": [
-      "FW-SAFE-P7-001",
-      "FW-SAFE-P7-002",
-      "FW-SAFE-P7-003"
-    ],
-    "fw_safe_audit": [
-      "FW-SAFE-AUDIT"
-    ],
+    "fw_safe_phase5_sequential": ["FW-SAFE-P5-003", "FW-SAFE-P5-004"],
+    "fw_safe_phase6": ["FW-SAFE-P6-001", "FW-SAFE-P6-002", "FW-SAFE-P6-003"],
+    "fw_safe_phase7": ["FW-SAFE-P7-001", "FW-SAFE-P7-002", "FW-SAFE-P7-003"],
+    "fw_safe_audit": ["FW-SAFE-AUDIT"],
     "fw_crash_fix": [
       "FW-CRASH-MITIGATE",
       "FW-CRASH-ANALYSIS",
@@ -1658,14 +1743,8 @@
       "FW-HARNESS-SCOPE-LOG",
       "FW-HARNESS-AUDIT-TRAIL"
     ],
-    "fw_harness_techdebt": [
-      "T-TECHDEBT-017"
-    ],
-    "fix_console_residual": [
-      "FIX-CONSOLE-1",
-      "FIX-CONSOLE-2",
-      "FIX-CONSOLE-3"
-    ],
+    "fw_harness_techdebt": ["T-TECHDEBT-017"],
+    "fix_console_residual": ["FIX-CONSOLE-1", "FIX-CONSOLE-2", "FIX-CONSOLE-3"],
     "harness_auto_run": [
       "HARNESS-RESTRUCTURE",
       "HARNESS-BUILD",
@@ -1673,13 +1752,8 @@
       "AGENT-MODE-FIX",
       "HARNESS-SMOKE"
     ],
-    "bug_5894_fix": [
-      "BUG-5894-ENV-PROPAGATE"
-    ],
-    "ci_embed_phase1_independent": [
-      "CI-EMBED-001",
-      "CI-EMBED-007"
-    ],
+    "bug_5894_fix": ["BUG-5894-ENV-PROPAGATE"],
+    "ci_embed_phase1_independent": ["CI-EMBED-001", "CI-EMBED-007"],
     "ci_embed_phase1_sequential": [
       "CI-EMBED-002",
       "CI-EMBED-003",
@@ -1692,9 +1766,7 @@
       "CI-STRENGTHEN-002",
       "CI-STRENGTHEN-004"
     ],
-    "ci_strengthen_phase2_sequential": [
-      "CI-STRENGTHEN-003"
-    ],
+    "ci_strengthen_phase2_sequential": ["CI-STRENGTHEN-003"],
     "ci_unify_phase3": [
       "CI-UNIFY-001",
       "CI-UNIFY-002",
@@ -1706,10 +1778,7 @@
       "CI-HARDEN-002",
       "CI-HARDEN-003"
     ],
-    "ci_harden_phase4_sequential": [
-      "CI-HARDEN-004",
-      "CI-HARDEN-005"
-    ],
+    "ci_harden_phase4_sequential": ["CI-HARDEN-004", "CI-HARDEN-005"],
     "verify_diagnostics": [
       "VERIFY-DIAG-BUG-1",
       "VERIFY-DIAG-BUG-2",
@@ -1748,17 +1817,13 @@
       "FW-VERIFY-JS-TS-AUDIT",
       "FW-VERIFY-JS-TS-INTEGRATION"
     ],
-    "fw_fix_commit_execorder": [
-      "COMMIT-EXECORDER-FIX-001"
-    ],
+    "fw_fix_commit_execorder": ["COMMIT-EXECORDER-FIX-001"],
     "plugin_fix_verify_parallel": [
       "PLUGIN-VFY-LOAD",
       "PLUGIN-VFY-ISBUSINESS",
       "PLUGIN-VFY-SHELL"
     ],
-    "plugin_fix_verify_atomic": [
-      "PLUGIN-VFY-ATOMIC"
-    ],
+    "plugin_fix_verify_atomic": ["PLUGIN-VFY-ATOMIC"],
     "db_vfy_level1": [
       "DB-VFY-L1-01",
       "DB-VFY-L1-02",
@@ -1780,11 +1845,7 @@
       "DB-VFY-L3-04",
       "DB-VFY-L3-05"
     ],
-    "db_vfy_level4": [
-      "DB-VFY-L4-01",
-      "DB-VFY-L4-02",
-      "DB-VFY-L4-03"
-    ],
+    "db_vfy_level4": ["DB-VFY-L4-01", "DB-VFY-L4-02", "DB-VFY-L4-03"],
     "db_vfy_level5": [
       "DB-VFY-L5-01",
       "DB-VFY-L5-02",
@@ -1792,9 +1853,7 @@
       "DB-VFY-L5-04",
       "DB-VFY-L5-05"
     ],
-    "phase0_baseline_s0": [
-      "PHASE0-S0"
-    ],
+    "phase0_baseline_s0": ["PHASE0-S0"],
     "phase0_baseline_sequential": [
       "PHASE0-S1",
       "PHASE0-S2-RED",
@@ -1803,21 +1862,46 @@
       "PHASE0-S4",
       "PHASE0-S5"
     ],
-    "phase0_techdebt_parallel": [
-      "T-TECHDEBT-WV011",
-      "T-TECHDEBT-WV012"
+    "phase0_techdebt_parallel": ["T-TECHDEBT-WV011", "T-TECHDEBT-WV012"],
+    "commit_uc7ks_final": ["COMMIT-UC7KS-FINAL"],
+    "gh_wf_design": ["T-GH-WF-DESIGN-001"],
+    "gh_wf_impl_parallel": [
+      "T-GH-WF-IMPL-002",
+      "T-GH-WF-IMPL-003",
+      "T-GH-WF-IMPL-004",
+      "T-GH-WF-IMPL-005"
     ],
-    "commit_uc7ks_final": [
-      "COMMIT-UC7KS-FINAL"
-    ]
+    "gh_wf_config": ["T-GH-WF-CFG-006"],
+    "gh_wf_test": ["T-GH-WF-TEST-007"],
+    "techdebt_overdue_repayment": [
+      "T-TECHDEBT-STRIKER",
+      "T-TECHDEBT-ANGULAR-TS",
+      "T-TECHDEBT-CONTRACT-FMT",
+      "T-TECHDEBT-AGENT-CFG",
+      "T-TECHDEBT-RULE-TPL"
+    ],
+    "techdebt_wv_recheck": ["T-TECHDEBT-WV011-FIX", "T-TECHDEBT-WV012-FIX"]
   },
   "meta": {
-    "version": "5.12.0",
+    "version": "5.13.0",
     "project": "booking-system",
     "generated_by": "@Meta-Planner",
-    "generated_at": "2026-06-19T00:10:00.000Z",
-    "description": "Appended COMMIT-UC7KS-FINAL: @CI-CD-Agent commits all .opencode/ framework changes from UC7-001 read-before-write hardening + read_audit.jsonl→SQLite migration. No business code changes.",
+    "generated_at": "2026-06-19T06:46:00.000Z",
+    "description": "Appended 7 GH-WF tasks (auto-PR, doc decomposition, Project association, state sync) + 7 tech-debt repayment tasks. Now 52 active tasks.",
     "changelog": [
+      {
+        "version": "5.13.0",
+        "date": "2026-06-19T06:46:00.000Z",
+        "changes": [
+          "GH-WORKFLOW: Appended 7 GitHub Workflow implementation tasks: T-GH-WF-DESIGN-001 (@Architect, architecture design), T-GH-WF-IMPL-002 (@CI-CD-Agent, auto-PR creation), T-GH-WF-IMPL-003 (@CI-CD-Agent, doc decomposition→Issue/PR), T-GH-WF-IMPL-004 (@CI-CD-Agent, auto Project association), T-GH-WF-IMPL-005 (@CI-CD-Agent, state sync), T-GH-WF-CFG-006 (@CI-CD-Agent, secrets/token config), T-GH-WF-TEST-007 (@CI-CD-Agent, integration test).",
+          "Appended 7 tech-debt repayment tasks for items ≤7 days from deadline: T-TECHDEBT-STRIKER (WV-2026-002, overdue), T-TECHDEBT-ANGULAR-TS (WV-007/TD-013, overdue), T-TECHDEBT-CONTRACT-FMT (WV-008/TD-014, overdue), T-TECHDEBT-AGENT-CFG (TD-008, overdue), T-TECHDEBT-RULE-TPL (TD-009, overdue), T-TECHDEBT-WV011-FIX (WV-011, 2026-06-24), T-TECHDEBT-WV012-FIX (WV-012, 2026-06-24).",
+          "Added 7 execution_order groups: gh_wf_design, gh_wf_impl_parallel, gh_wf_config, gh_wf_test, techdebt_overdue_repayment, techdebt_wv_recheck.",
+          "Dependency graph: T-GH-WF-DESIGN-001→impl tasks (parallel)→T-GH-WF-CFG-006→T-GH-WF-TEST-007. Tech-debt tasks are independent P0 repayments.",
+          "Tech-debt scan: TECH_DEBT_REGISTRY.md (216 lines). 7 OPEN items with deadline ≤ 2026-06-24 identified and converted to tasks.",
+          "Source: user requirement for GitHub Workflow implementation. Referenced cached docs: github-actions-workflow-syntax.md, github-projects-overview.md, ci-test-pipeline-integration.md.",
+          "Compliance: dag-generation-standard.md G1-G4/T1-T4/C1-C6/D1-D4 met. G1: max 5 target_files per task. G2: N/A (append-only DAG). All 14 new tasks at pending status."
+        ]
+      },
       {
         "version": "5.12.0",
         "date": "2026-06-19T00:10:00.000Z",
@@ -1879,14 +1963,14 @@
         ]
       }
     ],
-    "total_tasks": 38,
+    "total_tasks": 52,
     "completed_tasks": 33,
-    "pending_tasks": 1,
+    "pending_tasks": 15,
     "archived_completed": 189,
     "skipped_tasks": 4,
-    "coverage_target": "UC7KS-FINAL commit of UC7-001 hardening (1 task)",
-    "progress": "87%",
-    "last_updated": "2026-06-19T00:10:00.000Z",
+    "coverage_target": "GH-WORKFLOW: 7 implementation tasks + 7 tech-debt repayment tasks",
+    "progress": "63%",
+    "last_updated": "2026-06-19T06:46:00.000Z",
     "recent_completed": 0,
     "last_compacted": "2026-06-04T09:04:52.630Z",
     "in_progress_tasks": 0
