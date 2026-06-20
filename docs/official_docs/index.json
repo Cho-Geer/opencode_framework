@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0-tmp",
-  "last_updated": "2026-06-19T07:15:30.000Z",
-  "total_entries": 60,
+  "last_updated": "2026-06-20T06:20:00.000Z",
+  "total_entries": 61,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -1964,6 +1964,42 @@
           "sha256": "sha256:c1847838ba17738fcd139d8070221792b5f2e074e8a9f2097c9929c6a32cfcfd",
           "size_bytes": 21078,
           "created_at": "2026-06-19T07:15:30.000Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "github-fine-grained-pat-deep",
+      "query_topic": "GitHub Fine-grained PAT deep knowledge: X-Accepted-GitHub-Permissions header, error troubleshooting, org approval flow, permission precedence, GraphQL permissions, REST API endpoint-to-permission mapping, actions/add-to-project",
+      "domain": "devops_ci",
+      "tags": [
+        "github",
+        "pat",
+        "fine-grained-pat",
+        "permissions",
+        "X-Accepted-GitHub-Permissions",
+        "error-troubleshooting",
+        "org-approval",
+        "graphql",
+        "add-to-project",
+        "resource-not-accessible",
+        "404",
+        "403",
+        "endpoint-mapping",
+        "token-security",
+        "rest-api"
+      ],
+      "files": [
+        {
+          "path": "devops/github/github-fine-grained-pat-permissions-deep.md",
+          "source": "webfetch",
+          "original_url": "https://docs.github.com/en/rest/overview/permissions-required-for-fine-grained-personal-access-tokens",
+          "sha256": "sha256:748b92f05971fcf6ffedd1d2593a72712804ef2e1c1c161b27ab7eadfcb0cee5",
+          "size_bytes": 21534,
+          "created_at": "2026-06-20T06:20:00.000Z",
           "ttl_days": 30,
           "access_count": 0,
           "last_accessed": null,
