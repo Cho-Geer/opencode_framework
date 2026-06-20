@@ -57,6 +57,9 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install dependencies
+        run: bun install
+
       - name: Run framework self-test
         run: bun .opencode/scripts/framework-self-test.ts
 
