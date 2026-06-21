@@ -117,6 +117,26 @@ parameter of `compliance_gate_approve_deliverables`.
   table exists in HANDOVER.md.
 - **Violation**: If HANDOVER.md lacks a `## Findings` section, approval is rejected.
 
+### Step 0d: Subagent Interaction Protocol — MANDATORY
+
+You are running as a dispatched subagent. Do NOT call the built-in `question`
+tool. It may not propagate to the parent/user session.
+
+If user input is useful but NOT required for safety:
+
+1. Continue with the safest reversible assumption.
+2. Record the question under `## Questions for User` in HANDOVER.md.
+3. Record the assumption under `## Assumptions`.
+
+If user input is required before a destructive, irreversible, or
+security-sensitive action:
+
+1. STOP before the action.
+2. Write the required question and options to HANDOVER.md under
+   `## Blocked Actions Requiring User Approval`.
+3. Return an escalation result for Orchestrator to ask the user from the
+   primary session.
+
 ### Step 0e: Config Read Attestation — MANDATORY (R3 scope-before enforced)
 
 > **R3 (2026-06-19)**: The `config_read_attest` tool verifies that you have read the

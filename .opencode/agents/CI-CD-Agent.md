@@ -37,7 +37,6 @@ mcp_tools:
   - safe_diff
   - glob
   - grep
-  - question
   - compliance_gate_check
   - compliance_gate_confirm
   - compliance_gate_complete
@@ -55,6 +54,7 @@ permission:
 ## UC7KS Knowledge Acquisition (Local-First)
 
 Before any investigation or external query:
+
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator

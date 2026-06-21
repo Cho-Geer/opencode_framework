@@ -1478,6 +1478,46 @@ function checkGitHooksPath() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// Check 49: Hook implementation integrity (FIX-009)
+// ═══════════════════════════════════════════════════════════════
+function checkHookIntegrity() {
+  const hooksDir = path.join(OPENCODE_ROOT, ".opencode", "hooks");
+  const libDir = path.join(hooksDir, "lib");
+  const issues = [];
+  try {
+    if (
+      !fs
+        .readFileSync(path.join(hooksDir, "pre-commit"), "utf8")
+        .includes("hook-layers")
+    )
+      issues.push("pre-commit wrapper does NOT delegate to hook-layers.ts");
+  } catch (e) {
+    issues.push("pre-commit unreadable: " + e.message);
+  }
+  try {
+    if (
+      !fs
+        .readFileSync(path.join(hooksDir, "commit-msg"), "utf8")
+        .includes("hook-commit-msg")
+    )
+      issues.push("commit-msg wrapper does NOT delegate to hook-commit-msg.ts");
+  } catch (e) {
+    issues.push("commit-msg unreadable: " + e.message);
+  }
+  if (!fs.existsSync(path.join(libDir, "hook-layers.ts")))
+    issues.push("hook-layers.ts not found");
+  if (!fs.existsSync(path.join(libDir, "hook-commit-msg.ts")))
+    issues.push("hook-commit-msg.ts not found");
+  return check(
+    49,
+    issues.length === 0,
+    issues.length === 0
+      ? "Hook integrity OK"
+      : issues.length + " hook integrity issue(s): " + issues.join("; "),
+  );
+}
+
 // Check 22: opencode.json adapter non-competing validation
 
 // ═══════════════════════════════════════════════════════════════
@@ -2994,6 +3034,273 @@ function checkReadTrackPluginIntegrity(): void {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 60 (Phase 3, P3-1A, 2026-06-21): Sub-agent Question Deny in opencode.json
+// Verifies all 8 subagent entries in opencode.json have question: "deny"
+// and that Orchestrator + Super-Admin have question: "allow".
+// This ensures P2-1 stays enforced for sub-agent question propagation mitigation.
+// @see docs/review/framework-refactor/sub-agent-question-propagation-issue.md §7
+// ═══════════════════════════════════════════════════════════════
+function checkOpencodeJsonQuestionDeny(): void {
+  const ocPath = path.join(OPENCODE_ROOT, "opencode.json");
+  const raw = readFile(ocPath);
+  if (!raw) {
+    check(60, false, "opencode.json not found at project root");
+    return;
+  }
+
+  let oc: any;
+  try {
+    oc = JSON.parse(raw);
+  } catch (e: any) {
+    check(60, false, `opencode.json is not valid JSON: ${e.message}`);
+    return;
+  }
+
+  if (!oc.agent || typeof oc.agent !== "object") {
+    check(60, false, "opencode.json missing 'agent' section");
+    return;
+  }
+
+  const AGENTS_MUST_DENY_QUESTION = [
+    "Meta-Planner",
+    "Architect",
+    "Coder-BE",
+    "Coder-FE",
+    "Guardian",
+    "Arbiter",
+    "CI-CD-Agent",
+    "Knowledge-Curator",
+  ];
+  const AGENTS_MUST_ALLOW_QUESTION = ["Orchestrator", "Super-Admin"];
+
+  const violations: string[] = [];
+
+  for (const agentName of AGENTS_MUST_DENY_QUESTION) {
+    const agentCfg = oc.agent[agentName];
+    if (!agentCfg) {
+      violations.push(`${agentName}: agent entry missing`);
+      continue;
+    }
+    const questionPerm = agentCfg?.permission?.question;
+    if (questionPerm !== "deny") {
+      violations.push(
+        `${agentName}: question permission is "${questionPerm}" (expected "deny")`,
+      );
+    }
+  }
+
+  for (const agentName of AGENTS_MUST_ALLOW_QUESTION) {
+    const agentCfg = oc.agent[agentName];
+    if (!agentCfg) {
+      violations.push(`${agentName}: agent entry missing`);
+      continue;
+    }
+    const questionPerm = agentCfg?.permission?.question;
+    if (questionPerm !== "allow") {
+      violations.push(
+        `${agentName}: question permission is "${questionPerm}" (expected "allow")`,
+      );
+    }
+  }
+
+  check(
+    60,
+    violations.length === 0,
+    violations.length === 0
+      ? `All ${AGENTS_MUST_DENY_QUESTION.length} subagents have question:deny; Orchestrator+Super-Admin have question:allow`
+      : "Question permission violations: " + violations.join("; "),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 61 (Phase 3, P3-1B, 2026-06-21): Sub-agent Frontmatter
+// question Absence. Verifies `question` is NOT present in the
+// mcp_tools YAML frontmatter of 8 subagents. Orchestrator and
+// Super-Admin may still list question. This ensures P2-2 stays
+// enforced for sub-agent question propagation mitigation.
+// ═══════════════════════════════════════════════════════════════
+function checkSubagentFrontmatterQuestionAbsence(): void {
+  const agentsDir = path.join(OPENCODE_ROOT, ".opencode", "agents");
+  let dirEntries: string[];
+  try {
+    dirEntries = fs.readdirSync(agentsDir);
+  } catch {
+    check(61, false, "agents directory not found");
+    return;
+  }
+
+  const agentFiles = dirEntries.filter((f: string) => f.endsWith(".md"));
+
+  const AGENTS_MUST_NOT_HAVE_QUESTION = new Set([
+    "Meta-Planner.md",
+    "Architect.md",
+    "Coder-BE.md",
+    "Coder-FE.md",
+    "Guardian.md",
+    "Arbiter.md",
+    "CI-CD-Agent.md",
+    "Knowledge-Curator.md",
+  ]);
+
+  const violations: string[] = [];
+
+  for (const af of agentFiles) {
+    if (!AGENTS_MUST_NOT_HAVE_QUESTION.has(af)) continue;
+
+    const content = readFile(path.join(agentsDir, af));
+    if (!content) {
+      violations.push(af + ": file unreadable");
+      continue;
+    }
+
+    const mcpToolsMatch = content.match(/^mcp_tools:\n((?:\s+- .+\n)*)/m);
+    if (!mcpToolsMatch) continue;
+
+    const toolsSection = mcpToolsMatch[1];
+    const toolNames = toolsSection.match(/^\s+-\s+(.+)$/gm) || [];
+
+    for (const t of toolNames) {
+      const clean = t.replace(/^\s+-\s+/, "").trim();
+      if (clean === "question") {
+        violations.push(af + ": question found in mcp_tools frontmatter");
+      }
+    }
+  }
+
+  const totalChecked = AGENTS_MUST_NOT_HAVE_QUESTION.size;
+
+  check(
+    61,
+    violations.length === 0,
+    violations.length === 0
+      ? `No "question" in mcp_tools of ${totalChecked} subagent configs`
+      : "mcp_tools question violations: " + violations.join("; "),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 62 (Phase 3, P3-1C, 2026-06-21): Question Policy Plugin
+// Integrity. Verifies that question-policy-before.ts exists,
+// is registered in opencode.json plugin array, exports with
+// withPluginLifecycle, and has a "tool.execute.before" hook.
+// This ensures P1-1 stays enforced.
+// ═══════════════════════════════════════════════════════════════
+function checkQuestionPolicyPluginIntegrity(): void {
+  const pluginPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "plugins",
+    "question-policy-before.ts",
+  );
+  const issues: string[] = [];
+
+  if (!fileExists(pluginPath)) {
+    issues.push("question-policy-before.ts not found at .opencode/plugins/");
+  } else {
+    const content = readFile(pluginPath);
+    if (!content) {
+      issues.push("question-policy-before.ts is empty or unreadable");
+    } else {
+      if (!content.includes("withPluginLifecycle")) {
+        issues.push("missing withPluginLifecycle export");
+      }
+      if (!content.includes('"tool.execute.before"')) {
+        issues.push("missing tool.execute.before hook");
+      }
+      if (!content.includes("Orchestrator")) {
+        issues.push("Orchestrator not in ALLOWED_QUESTION_AGENTS");
+      }
+      if (!content.includes("Super-Admin")) {
+        issues.push("Super-Admin not in ALLOWED_QUESTION_AGENTS");
+      }
+    }
+  }
+
+  try {
+    const ocPath = path.join(OPENCODE_ROOT, "opencode.json");
+    if (fileExists(ocPath)) {
+      const oc = JSON.parse(fs.readFileSync(ocPath, "utf8"));
+      const plugins: string[] = oc.plugin || [];
+      const registered = plugins.some((p: string) =>
+        p.includes("question-policy-before.ts"),
+      );
+      if (!registered) {
+        issues.push(
+          "question-policy-before.ts not found in opencode.json plugin array",
+        );
+      }
+    } else {
+      issues.push("opencode.json not found");
+    }
+  } catch (e: any) {
+    issues.push("opencode.json read failed: " + e.message);
+  }
+
+  check(
+    62,
+    issues.length === 0,
+    issues.length === 0
+      ? "question-policy-before.ts exists, registered in opencode.json, exports withPluginLifecycle, has tool.execute.before hook"
+      : "Plugin integrity issues: " + issues.join("; "),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Check 63 (Phase 3, P3-1D, 2026-06-21): Subagent Preamble Step 0d
+// Interaction Protocol. Verifies subagent-preamble.md contains
+// the "Subagent Interaction Protocol" section with the required
+// optional HANDOVER sections: ## Questions for User,
+// ## Assumptions, ## Blocked Actions Requiring User Approval.
+// This ensures P0-1 stays enforced.
+// ═══════════════════════════════════════════════════════════════
+function checkPreambleStep0dProtocol(): void {
+  const preamblePath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "subagent-preamble.md",
+  );
+  const content = readFile(preamblePath);
+
+  if (!content) {
+    check(63, false, "subagent-preamble.md not found or unreadable");
+    return;
+  }
+
+  const issues: string[] = [];
+
+  if (!content.includes("Subagent Interaction Protocol")) {
+    issues.push("missing 'Subagent Interaction Protocol' marker");
+  }
+
+  if (!content.includes("## Questions for User")) {
+    issues.push("missing '## Questions for User' section");
+  }
+
+  if (!content.includes("## Assumptions")) {
+    issues.push("missing '## Assumptions' section");
+  }
+
+  if (!content.includes("## Blocked Actions Requiring User Approval")) {
+    issues.push("missing '## Blocked Actions Requiring User Approval' section");
+  }
+
+  if (
+    !content.includes("Do NOT call the built-in `question`") &&
+    !content.includes("Do NOT call the built-in question")
+  ) {
+    issues.push("missing 'Do NOT call question' guidance for subagents");
+  }
+
+  check(
+    63,
+    issues.length === 0,
+    issues.length === 0
+      ? "subagent-preamble.md Step 0d: Subagent Interaction Protocol present with ## Questions for User, ## Assumptions, ## Blocked Actions sections"
+      : "Step 0d issues: " + issues.join("; "),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main execution
 /**
  * FW-PROMPT-HARDEN-04: Check 33 — Validate .pending.json FIFO queue integrity.
@@ -3890,6 +4197,7 @@ checkAbsolutePathLeakage();
 checkReconciliationInfra();
 checkDocsManifestIntegrity();
 checkGitHooksPath();
+checkHookIntegrity(); // FIX-009: hook implementation files + wrapper delegation
 checkOpenCodeJsonAdapter();
 checkPreExecGate();
 checkFrameworkDoctorExists();
@@ -4006,6 +4314,10 @@ checkIndexerCliCommands(); // Phase 4, Check 56: Issue #56
 checkKnowledgeDbTables(); // Phase 4, Check 57: Issue #56
 checkSearchByTagsUsage(); // Phase 4, Check 58: Issue #56
 checkReadTrackPluginIntegrity(); // read-before-approve-plan §11.6 P2, Check 59
+checkOpencodeJsonQuestionDeny(); // Phase 3 P3-1A, Check 60: subagent question deny in opencode.json
+checkSubagentFrontmatterQuestionAbsence(); // Phase 3 P3-1B, Check 61: question absent from subagent mcp_tools
+checkQuestionPolicyPluginIntegrity(); // Phase 3 P3-1C, Check 62: question-policy-before.ts plugin integrity
+checkPreambleStep0dProtocol(); // Phase 3 P3-1D, Check 63: preamble Step 0d interaction protocol
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
