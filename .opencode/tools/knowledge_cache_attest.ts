@@ -18,6 +18,11 @@
  * Design: docs/review/framework-refactor/uc7ks-read-before-write-plan.md §2.3
  *
  * @author @Super-Admin
+ * @version 1.3.1 — FW-FIX-EMPTY-FILES-READ (2026-06-21): Added Step 1.5 validation to reject
+ *   empty files_read arrays ([]). Previously an empty array passed all validation steps
+ *   (Step 2 subset check trivially true, Step 3 read_audit cross-check trivially true),
+ *   allowing attestation without actually reading any cache files. Step 1.5 returns
+ *   `attested: false, step: "1.5"` with detailed remediation instructions.
  * @version 1.3.0 — KC-07 (2026-06-21): Replaced direct file reads with knowledgeStore.searchByDomain()
  *   + readManifest() APIs. Added Step 2.5 (non-fatal manifest cross-validation). Added
  *   non-fatal knowledge_attestation DB table write after successful attestation.
@@ -76,7 +81,7 @@ export default tool({
     files_read: tool.schema
       .array(tool.schema.string())
       .describe(
-        "List of cache file paths the agent ACTUALLY read (relative to docs/official_docs/, e.g. 'opencode/framework/plugins.md')",
+        "NON-EMPTY list of cache file paths the agent ACTUALLY read (relative to docs/official_docs/, e.g. 'opencode/framework/plugins.md'). Empty array [] will be rejected by Step 1.5 validation.",
       ),
     content_summary: tool.schema
       .string()
@@ -165,6 +170,38 @@ export default tool({
             taskId +
             ") first.",
           discovery_status: discovery?.status || "missing",
+        });
+      }
+
+      // ════════════════════════════════════════════════════
+      // Step 1.5 (FW-FIX-EMPTY-FILES-READ): Reject empty files_read array
+      // M11 + M3-HARDEN (2026-06-21): An empty files_read array means the agent
+      // did NOT actually read any cache files. This MUST be rejected to prevent
+      // attestation bypass. The agent must use the `read` tool on at least one
+      // discovered cache file before attestation.
+      // ════════════════════════════════════════════════════
+      if (!filesRead || filesRead.length === 0) {
+        writeLog(SRC, "ERROR", {
+          sessionID: sessionId,
+          agent,
+          taskId,
+          domainId: domain,
+          event: "UC7KS-ATTEST-FAIL-EMPTY-FILES",
+          detail:
+            "files_read is empty. Agent must read at least one cache file via 'read' tool before attesting.",
+        });
+        return JSON.stringify({
+          attested: false,
+          step: "1.5",
+          error:
+            "files_read is empty or missing. You MUST read at least one cache file (via the 'read' tool) from the discovered_files list before calling knowledge_cache_attest. An empty array is invalid — it indicates no documentation was actually reviewed.",
+          cache_sufficient: false,
+          remediation:
+            "Step 1: Use the 'read' tool to open relevant cache files from discovered_files.\nStep 2: knowledge_cache_attest(domain='" +
+            domain +
+            "', task_id='" +
+            taskId +
+            "', reason='...', files_read=[...], content_summary='...')",
         });
       }
 
