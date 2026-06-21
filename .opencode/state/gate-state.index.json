@@ -102,6 +102,13 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-21T08:32:37.133Z",
       "archive_ref": "gate-state.history/2026-06-21.jsonl#8"
+    },
+    "cg_ses_1782034432274": {
+      "session_id": "cg_ses_1782034432274",
+      "created_at": "2026-06-21T09:33:52.280Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-21T09:36:56.976Z",
+      "archive_ref": "gate-state.history/2026-06-21.jsonl#9"
     }
   }
 }

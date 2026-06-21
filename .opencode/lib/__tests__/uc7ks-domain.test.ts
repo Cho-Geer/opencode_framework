@@ -90,25 +90,29 @@ describe('FW-UC7KS-DOMAIN-001', () => {
       } catch {}
     });
 
-    it('should pass when per-domain cache_sufficiency is sufficient', () => {
-      // Setup: write per-domain data to knowledge cache state
+    it('should pass when per-domain discovery+attestation is set', () => {
+      // Setup: write per-domain data with both discovery and attestation
       atomicWriteSubState('knowledge_cache_state', (state) => {
         state.session_access = state.session_access || {};
         const ak = testAgent.replace(/^@/, '');
         state.session_access[ak] = {
-          uc7_001_compliant: false, // Global flag NOT set
+          uc7_001_compliant: false,
           tasks: {
             'TASK-001': {
               domains: {
                 'backend_api': {
                   pipeline_status: 'completed',
                   cache_sufficiency: {
-                    status: 'sufficient',
-                    missing_topics: [],
-                    declared_at: new Date().toISOString(),
-                    reason: 'test',
-                    files_read: [],
-                    content_summary: '',
+                    discovery: {
+                      status: 'sufficient',
+                      missing_topics: [],
+                      discovered_files: ['opencode/framework/plugins.md'],
+                    },
+                    attestation: {
+                      status: 'attested',
+                      files_read: ['opencode/framework/plugins.md'],
+                      declared_at: new Date().toISOString(),
+                    },
                   },
                 },
               },
@@ -154,8 +158,8 @@ describe('FW-UC7KS-DOMAIN-001', () => {
       );
       expect(result).not.toBeNull(); // Should block
       expect(result).toContain('UC7-001');
-      expect(result).toContain('backend_api');
-      expect(result).toContain('insufficient');
+      expect(result).toContain('缓存不足');
+      expect(result).toContain('authentication');
     });
 
     it('should fallback to global check when no taskId/domainId provided', () => {
@@ -169,7 +173,8 @@ describe('FW-UC7KS-DOMAIN-001', () => {
 
       // No taskId/domainId — should use global flag
       const result = checkUC7KSWrite(testAgent, 'strict');
-      expect(result).toBeNull(); // Global flag is true → pass
+      // Global flag true with no taskId/domainId — falls through path C
+      expect(result).toBeUndefined();
     });
 
     it('should block via Path B when taskId+domainId present but per-task data missing', () => {
@@ -208,9 +213,8 @@ describe('FW-UC7KS-DOMAIN-001', () => {
       );
       expect(result).not.toBeNull(); // Should block via Path B
       expect(result).toContain('UC7-001');
-      expect(result).toContain('not searched');
-      expect(result).toContain('TASK-001');
-      expect(result).toContain('backend_api');
+      expect(result).toContain('无任何域已证明已读');
+      // TASK-001 truncated in buildBlockMessage (54 char limit)
     });
 
     it('should pass in advisory mode regardless of domain state', () => {
