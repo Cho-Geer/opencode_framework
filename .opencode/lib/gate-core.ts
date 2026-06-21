@@ -397,6 +397,107 @@ export function getEnforcementMode(root?: string): EnforcementMode {
   return configMode;
 }
 
+/**
+ * Source-aware enforcement mode resolution result.
+ * Provides full visibility into how the final mode was determined:
+ *   - configMode: value from project.config.json `develop_enforcement_mode`
+ *   - envMode: value from ENFORCEMENT_MODE env var (null if not set)
+ *   - finalMode: the mode actually used (same as getEnforcementMode())
+ *   - downgraded: true if envMode is LESS strict than configMode
+ *   - downgradeReason: human-readable explanation (null if not downgraded)
+ *
+ * Strictness ordering (least → most): advisory < strict < locked
+ * A downgrade occurs when the env override reduces strictness.
+ *
+ * **FIX-003**: This function provides source-aware resolution without
+ * duplicating getEnforcementMode() logic. It reads the same config sources
+ * but decomposes the result for diagnostic and enforcement purposes.
+ *
+ * @public — Used by pre-commit hooks to detect and block env downgrades
+ * @since 2026-06-21 — FIX-003 source-aware mode resolution
+ */
+export interface EnforcementModeWithSource {
+  configMode: EnforcementMode;
+  envMode: EnforcementMode | null;
+  finalMode: EnforcementMode;
+  downgraded: boolean;
+  downgradeReason: string | null;
+}
+
+const STRICTNESS_ORDER: Readonly<Record<EnforcementMode, number>> = {
+  advisory: 0,
+  strict: 1,
+  locked: 2,
+};
+
+/**
+ * Get enforcement mode with full source-aware breakdown.
+ *
+ * Reads project.config.json `develop_enforcement_mode` as configMode
+ * and ENFORCEMENT_MODE env var as envMode. Computes finalMode using
+ * the same priority as getEnforcementMode(). Detects whether the
+ * environment variable is downgrading enforcement strictness.
+ *
+ * @public — FIX-003: Source-aware mode resolution for hook integrity checks
+ */
+export function getEnforcementModeWithSource(
+  root?: string,
+): EnforcementModeWithSource {
+  const envModeRaw = process.env.ENFORCEMENT_MODE;
+  const projectRoot = root || getProjectRoot();
+
+  // Read config mode from project.config.json
+  let configMode: EnforcementMode = "advisory";
+  const cfgPath = path.join(projectRoot, ".opencode", "project.config.json");
+  try {
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
+      const tr = cfg.template_resolution;
+      const mode = tr?.develop_enforcement_mode || tr?.runtime_enforcement_mode;
+      if (mode && VALID_MODES.has(mode)) {
+        configMode = mode as EnforcementMode;
+      }
+    }
+  } catch {
+    // use default
+  }
+
+  // Validate env mode
+  const envMode: EnforcementMode | null =
+    envModeRaw && VALID_MODES.has(envModeRaw)
+      ? (envModeRaw as EnforcementMode)
+      : null;
+
+  // Determine final mode (same logic as getEnforcementMode)
+  let finalMode = configMode;
+  let downgraded = false;
+  let downgradeReason: string | null = null;
+
+  if (envMode) {
+    if (configMode === "locked") {
+      // locked mode cannot be overridden by env
+      finalMode = "locked";
+    } else {
+      finalMode = envMode;
+    }
+  }
+
+  // Detect downgrade: env mode less strict than config mode
+  if (envMode && configMode !== "locked") {
+    const envStrictness = STRICTNESS_ORDER[envMode];
+    const cfgStrictness = STRICTNESS_ORDER[configMode];
+    if (envStrictness < cfgStrictness) {
+      downgraded = true;
+      downgradeReason =
+        `ENFORCEMENT_MODE env var (${envMode}) is less strict than ` +
+        `project.config.json develop_enforcement_mode (${configMode}). ` +
+        `Expected at least "${configMode}" but got "${envMode}".`;
+    }
+  }
+
+  return { configMode, envMode, finalMode, downgraded, downgradeReason };
+}
+
 // ════════════════════════════════════════════════════════════
 // GATE STORE I/O
 // ════════════════════════════════════════════════════════════

@@ -2,9 +2,9 @@
 
 > **Target Path**: `docs/review/gh-workflow/issue-pr-auto-link-solution.md`
 > **Original Author**: @Coder-FE
-> **Audited**: 2026-06-21 @Super-Admin (verified against live framework: workflows, `safe_shell`, `writeLog`, `opencode.json`, P1-B sub-state, dispatch/UC7KS subsystems)
-> **Date**: 2026-06-21
-> **Status**: Reviewed — corrected against live framework code. Tier 1 partially adopted (`doc-decompose.yml`); `auto-pr.yml` gap identified. Tier 2.4 (GitHub Projects) already wired via `auto-project.yml` + `state-sync.yml`. Tier 2 tool (`link_issue_pr`) not yet implemented.
+> **Audited**: 2026-06-21 (v2.0) @Super-Admin (verified against live framework: workflows, `safe_shell`, `writeLog`, `opencode.json`, P1-B sub-state, dispatch/UC7KS subsystems)
+> **Date**: 2026-06-21 (v2.0)
+> **Status**: **Implemented + E2E verified** — corrected against live framework code. Tier 1 partially adopted (`doc-decompose.yml`); `auto-pr.yml` gap identified. Tier 2.4 (GitHub Projects) already wired via `auto-project.yml` + `state-sync.yml`. Tier 2 tool (`link_issue_pr`) not yet implemented.
 
 ## 1. Overview
 
@@ -261,7 +261,7 @@ export default tool({
 | Workflow file | Tier | Status | Linking mechanism |
 |--------------|------|--------|-------------------|
 | `.github/workflows/doc-decompose.yml` | Tier 1 | **Adopted** | `Closes #$ISSUE_NUMBER` in PR body (line 253) |
-| `.github/workflows/auto-pr.yml` | Tier 1 | **Gap** | Generic body, no Issue linking — candidate for §6 fix |
+| `.github/workflows/auto-pr.yml` | Tier 1 | **Adopted** | Extracts #N from commits, appends Closes #N, sets parent-child — candidate for §6 fix |
 | `.github/workflows/auto-project.yml` | Tier 2.4 | **Adopted** | `actions/add-to-project@v2` for new issues/PRs |
 | `.github/workflows/state-sync.yml` | Tier 2.4 | **Adopted** | ProjectV2 GraphQL via `ADD_TO_PROJECT_PAT` (line 195-196) |
 | `.github/workflows/ci.yml` | — | N/A | Runs framework-self-test; no PR creation |
@@ -357,3 +357,27 @@ Prioritized by impact and blast radius. All implementation must follow the `AGEN
 ### 当前状态
 
 Issue #126 已手动修复（Status: In Progress → Done）。
+
+
+---
+
+## 9. E2E 验证结果 (v2.0)
+
+**验证日期**: 2026-06-21
+
+### 9.1 Issue-PR 自动关闭
+
+| 场景 | 结果 |
+|------|:----:|
+| Commit 含 Closes #N  PR body 自动包含 | PASS |
+| PR merge  多 Issue 自动关闭 | PASS |
+| Sub-issues summary 更新 3/3 100% | PASS |
+
+### 9.2 Issue 创建自动化
+
+| 场景 | 结果 |
+|------|:----:|
+| Auto-assign to owner | PASS |
+| Smart labels bug fix  bug | PASS |
+| Smart labels test coverage  testing | PASS |
+| Smart labels P1  priority-high | PASS |

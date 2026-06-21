@@ -18,9 +18,9 @@
  * @updated 2026-06-19 — M10: domain-aware auto-generation
  */
 
-import { execSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { execSync } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 
 // ── Path resolution ──────────────────────────────────────────
 // OPENCODE_ROOT is resolved in priority order:
@@ -33,16 +33,17 @@ function resolveOpenCodeRoot(): string {
   if (process.env.OPENCODE_ROOT) return resolve(process.env.OPENCODE_ROOT);
 
   // Priority 2: Walk up from module directory
-  const modDir = typeof __dirname !== 'undefined'
-    ? resolve(__dirname)
-    : resolve(dirname(new URL(import.meta.url).pathname));
+  const modDir =
+    typeof __dirname !== "undefined"
+      ? resolve(__dirname)
+      : resolve(dirname(new URL(import.meta.url).pathname));
 
   let current = modDir;
   for (let i = 0; i < 6; i++) {
-    if (existsSync(resolve(current, '.opencode', 'project.config.json'))) {
+    if (existsSync(resolve(current, ".opencode", "project.config.json"))) {
       return current;
     }
-    const parent = resolve(current, '..');
+    const parent = resolve(current, "..");
     if (parent === current) break; // Reached filesystem root
     current = parent;
   }
@@ -50,22 +51,31 @@ function resolveOpenCodeRoot(): string {
   // Priority 3: Fallback to cwd
   let cwd = process.cwd();
   for (let i = 0; i < 6; i++) {
-    if (existsSync(resolve(cwd, '.opencode', 'project.config.json'))) {
+    if (existsSync(resolve(cwd, ".opencode", "project.config.json"))) {
       return cwd;
     }
-    const parent = resolve(cwd, '..');
+    const parent = resolve(cwd, "..");
     if (parent === cwd) break;
     cwd = parent;
   }
 
   // Last resort: 3 levels up from modDir
-  return resolve(modDir, '..', '..', '..');
+  return resolve(modDir, "..", "..", "..");
 }
 
 const OPENCODE_ROOT = resolveOpenCodeRoot();
 
-const PROJECT_CONFIG_PATH = resolve(OPENCODE_ROOT, '.opencode', 'project.config.json');
-const INDEX_JSON_PATH = resolve(OPENCODE_ROOT, 'docs', 'official_docs', 'index.json');
+const PROJECT_CONFIG_PATH = resolve(
+  OPENCODE_ROOT,
+  ".opencode",
+  "project.config.json",
+);
+const INDEX_JSON_PATH = resolve(
+  OPENCODE_ROOT,
+  "docs",
+  "official_docs",
+  "index.json",
+);
 
 // ── Type definitions ─────────────────────────────────────────
 interface KnowledgeDomain {
@@ -82,7 +92,12 @@ interface IndexEntry {
   query_topic: string;
   domain: string;
   tags: string[];
-  files: Array<{ path: string; source: string; sha256?: string; [key: string]: unknown }>;
+  files: Array<{
+    path: string;
+    source: string;
+    sha256?: string;
+    [key: string]: unknown;
+  }>;
 }
 
 interface CriticalFileSummary {
@@ -96,30 +111,48 @@ interface CriticalFileSummary {
   coverage_pct: number;
 }
 
-/** Files whose modification should trigger the [INFRA] commit marker. */
+/** Files whose modification should trigger the [INFRA] commit marker.
+ *
+ * FIX-006 (2026-06-21 @Super-Admin): Expanded from 22 to 30 entries.
+ * Added hook implementation files, critical-files.ts self-protection,
+ * framework scripts, and governance CI workflow.
+ * These were previously blind spots — modifications to hook-layers.ts
+ * or framework-self-test.ts could bypass critical-file detection.
+ */
 export const CRITICAL_FILES = [
-  '.opencode/rules/common-project.md',
-  '.opencode/rules/mcp-compliance-guide.md',
-  '.opencode/rules/skill-compliance-guide.md',
-  '.opencode/agents/Meta-Planner.md',
-  '.opencode/agents/Orchestrator.md',
-  '.opencode/agents/Coder-BE.md',
-  '.opencode/agents/Coder-FE.md',
-  '.opencode/agents/Guardian.md',
-  '.opencode/agents/Arbiter.md',
-  '.opencode/agents/CI-CD-Agent.md',
-  '.opencode/agents/Super-Admin.md',
-  '.opencode/agents/Knowledge-Curator.md',
-  '.opencode/agents/Architect.md',
-  '.opencode/project.config.json',
-  '.opencode/lib/gate-core.ts',
-  '.opencode/lib/dag-policy.ts',
-  '.opencode/lib/permission-isolation-core.ts',
-  '.opencode/tools/dispatch_subagent.ts',
-  '.opencode/hooks/pre-commit',
-  '.opencode/hooks/commit-msg',
-  'opencode.json',
-  'AGENTS.md',
+  ".opencode/rules/common-project.md",
+  ".opencode/rules/mcp-compliance-guide.md",
+  ".opencode/rules/skill-compliance-guide.md",
+  ".opencode/agents/Meta-Planner.md",
+  ".opencode/agents/Orchestrator.md",
+  ".opencode/agents/Coder-BE.md",
+  ".opencode/agents/Coder-FE.md",
+  ".opencode/agents/Guardian.md",
+  ".opencode/agents/Arbiter.md",
+  ".opencode/agents/CI-CD-Agent.md",
+  ".opencode/agents/Super-Admin.md",
+  ".opencode/agents/Knowledge-Curator.md",
+  ".opencode/agents/Architect.md",
+  ".opencode/project.config.json",
+  // ── FIX-006: Hook implementation files ──
+  ".opencode/hooks/lib/hook-layers.ts",
+  ".opencode/hooks/lib/hook-commit-msg.ts",
+  ".opencode/hooks/lib/hook-critical-files.ts",
+  ".opencode/lib/critical-files.ts",
+  ".opencode/lib/gate-core.ts",
+  ".opencode/lib/dag-policy.ts",
+  ".opencode/lib/permission-isolation-core.ts",
+  ".opencode/tools/dispatch_subagent.ts",
+  ".opencode/hooks/pre-commit",
+  ".opencode/hooks/commit-msg",
+  // ── FIX-006: Framework scripts ──
+  ".opencode/scripts/install-hooks.ts",
+  ".opencode/scripts/framework-self-test.ts",
+  ".opencode/scripts/framework-doctor.ts",
+  // ── FIX-006: Governance CI workflow ──
+  ".github/workflows/framework-ci.yml",
+  "opencode.json",
+  "AGENTS.md",
 ];
 
 /**
@@ -127,9 +160,9 @@ export const CRITICAL_FILES = [
  * Uses `git diff --cached --name-only` (commit-time check).
  */
 export function getStagedCriticalFiles(): string[] {
-  const staged = execSync('git diff --cached --name-only', { encoding: 'utf8' })
+  const staged = execSync("git diff --cached --name-only", { encoding: "utf8" })
     .trim()
-    .split('\n')
+    .split("\n")
     .filter(Boolean);
   return staged.filter((f) => CRITICAL_FILES.includes(f));
 }
@@ -141,9 +174,9 @@ export function getStagedCriticalFiles(): string[] {
  */
 export function getModifiedCriticalFiles(): string[] {
   try {
-    const modified = execSync('git diff HEAD --name-only', { encoding: 'utf8' })
+    const modified = execSync("git diff HEAD --name-only", { encoding: "utf8" })
       .trim()
-      .split('\n')
+      .split("\n")
       .filter(Boolean);
     return modified.filter((f) => CRITICAL_FILES.includes(f));
   } catch {
@@ -163,7 +196,7 @@ let _cachedEntries: IndexEntry[] | null = null;
 function getDomains(): KnowledgeDomain[] {
   if (_cachedDomains) return _cachedDomains;
   try {
-    const raw = readFileSync(PROJECT_CONFIG_PATH, 'utf-8');
+    const raw = readFileSync(PROJECT_CONFIG_PATH, "utf-8");
     const config = JSON.parse(raw);
     _cachedDomains = config.knowledge_semantic_map?.domains ?? [];
   } catch {
@@ -176,7 +209,7 @@ function getIndexEntries(): IndexEntry[] {
   if (_cachedEntries) return _cachedEntries;
   try {
     if (!existsSync(INDEX_JSON_PATH)) return [];
-    const raw = readFileSync(INDEX_JSON_PATH, 'utf-8');
+    const raw = readFileSync(INDEX_JSON_PATH, "utf-8");
     const index = JSON.parse(raw);
     _cachedEntries = index.entries ?? [];
   } catch {
@@ -240,7 +273,9 @@ export function getCriticalFileSummary(
 
   // Normalize paths: strip leading docs/official_docs/ prefix if present
   const normalizedRead = files_read.map((f) =>
-    f.startsWith('docs/official_docs/') ? f.slice('docs/official_docs/'.length) : f,
+    f.startsWith("docs/official_docs/")
+      ? f.slice("docs/official_docs/".length)
+      : f,
   );
 
   const matched = criticalFiles.filter((cf) => normalizedRead.includes(cf));
@@ -251,15 +286,16 @@ export function getCriticalFileSummary(
 
   return {
     domain_id,
-    save_path: domain?.save_path ?? '',
+    save_path: domain?.save_path ?? "",
     total_critical: criticalFiles.length,
     critical_files: criticalFiles,
     files_read: files_read,
     matched,
     missing,
-    coverage_pct: criticalFiles.length > 0
-      ? Math.round((matched.length / criticalFiles.length) * 100)
-      : 100,
+    coverage_pct:
+      criticalFiles.length > 0
+        ? Math.round((matched.length / criticalFiles.length) * 100)
+        : 100,
   };
 }
 

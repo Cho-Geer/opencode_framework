@@ -1,11 +1,282 @@
 {
   "formatVersion": "3.0",
-  "active_sessions": {},
+  "active_sessions": {
+    "cg_ses_1782047135366": {
+      "session_id": "cg_ses_1782047135366",
+      "created_at": "2026-06-21T13:05:35.374Z",
+      "task_description": "E2E Test: Knowledge-Curator Updated Prompt Verification",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Retrying deliverables - environment issue with file writes. Providing findings via inline summary.",
+      "confirmed_at": "2026-06-21T13:06:31.376Z",
+      "consumed_at": null,
+      "expires_at": "2026-06-22T13:06:31.376Z",
+      "task_id": "E2E-KC-PROMPT-VERIFY",
+      "agent": "Knowledge-Curator",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "audit": null,
+      "fail_reason": "Missing deliverable artifacts: HANDOVER.md, TASK_LOG.md",
+      "missing_artifacts": [
+        "HANDOVER.md",
+        "TASK_LOG.md"
+      ],
+      "declared_deliverables": [
+        {
+          "name": "HANDOVER.md",
+          "description": "E2E test verification results - KC HANDOVER routing confirmation",
+          "artifact_path": ".task_temp/E2E-KC-PROMPT-VERIFY/HANDOVER.md",
+          "required": true
+        },
+        {
+          "name": "TASK_LOG.md",
+          "description": "Working memory log with verification details",
+          "artifact_path": ".task_temp/E2E-KC-PROMPT-VERIFY/TASK_LOG.md",
+          "required": true
+        }
+      ],
+      "submitted_deliverables": [
+        {
+          "name": "HANDOVER.md",
+          "artifact_path": ".task_temp/E2E-KC-PROMPT-VERIFY/HANDOVER.md",
+          "content_summary": "E2E verification results - confirmed HANDOVER routing at line 47, line 63 residual issue noted",
+          "submitted_at": "2026-06-21T13:06:25.732Z"
+        }
+      ],
+      "deliverables_approved_at": null,
+      "approval_required": true
+    },
+    "cg_ses_1782047450679": {
+      "session_id": "cg_ses_1782047450679",
+      "created_at": "2026-06-21T13:10:50.687Z",
+      "task_description": "Implement Phase 2 fixes from pre-commit-hook-bypass-root-cause.md: FIX-011 (Log Central integration for hooks), FIX-012 (branch protection doc), FIX-013 (pre-receive doc), FIX-014 (signed enforcement mode doc). Modify hook-layers.ts and hook-commit-msg.ts to integrate with log-manager.ts writeLog(). Create 3 documentation files. Run framework-self-test.ts to verify.",
+      "enforcement_mode": "strict",
+      "gate_status": "armed",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": "Phase 2 Pre-Commit Hook Fixes (FIX-011 to FIX-014): 1) Integrate Git hooks with Log Central by adding writeLog() calls in hook-layers.ts and hook-commit-msg.ts for high-severity events (reject, skip, env-downgrade, break-glass, hook-integrity-fail). 2) Create docs/review/hook-bypass-fixes/branch-protection-requirements.md (FIX-012). 3) Create docs/review/hook-bypass-fixes/pre-receive-enforcement.md (FIX-013). 4) Create docs/review/hook-bypass-fixes/signed-enforcement-mode.md (FIX-014). 5) Run framework-self-test.ts to verify no regression. All changes are within .opencode/ and docs/ scope.",
+      "confirmed_at": "2026-06-21T13:10:50.696Z",
+      "consumed_at": null,
+      "expires_at": "2026-06-22T13:10:50.696Z",
+      "task_id": "PHASE2-LOG-BRANCHv2",
+      "agent": "Super-Admin",
+      "worktree": "/home/zhaoge/workspace/opencode/work-one",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782035844048": {
+      "session_id": "cg_ses_1782035844048",
+      "created_at": "2026-06-21T09:57:24.048Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782040305831": {
+      "session_id": "cg_ses_1782040305831",
+      "created_at": "2026-06-21T11:11:45.831Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782044991304": {
+      "session_id": "cg_ses_1782044991304",
+      "created_at": "2026-06-21T12:29:51.304Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782045072956": {
+      "session_id": "cg_ses_1782045072956",
+      "created_at": "2026-06-21T12:31:12.956Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782046912593": {
+      "session_id": "cg_ses_1782046912593",
+      "created_at": "2026-06-21T13:01:52.593Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": true,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782047115230": {
+      "session_id": "cg_ses_1782047115230",
+      "created_at": "2026-06-21T13:05:15.239Z",
+      "task_description": "E2E HANDOVER test: Verify Subagent Interaction Protocol (Step 0d) — produce HANDOVER.md with all optional sections (Logs Checked, Findings, Questions, Assumptions, Blocked Actions). No source code modifications.",
+      "enforcement_mode": "strict",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__github_workflows_framework_ci_yml",
+          "desc": "[Gate Preflight v2] .github/workflows/framework-ci.yml: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Arbiter_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Arbiter.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Architect_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Architect.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_CI_CD_Agent_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/CI-CD-Agent.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_BE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-BE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Coder_FE_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Coder-FE.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Guardian_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Guardian.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Knowledge_Curator_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Knowledge-Curator.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Meta_Planner_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Meta-Planner.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_agents_Super_Admin_md",
+          "desc": "[Gate Preflight v2] .opencode/agents/Super-Admin.md: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_hooks_lib_hook_commit_msg_ts",
+          "desc": "[Gate Preflight v2] .opencode/hooks/lib/hook-commit-msg.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_hooks_lib_hook_layers_ts",
+          "desc": "[Gate Preflight v2] .opencode/hooks/lib/hook-layers.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_critical_files_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/critical-files.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_lib_gate_core_ts",
+          "desc": "[Gate Preflight v2] .opencode/lib/gate-core.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_scripts_framework_doctor_ts",
+          "desc": "[Gate Preflight v2] .opencode/scripts/framework-doctor.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified__opencode_scripts_framework_self_test_ts",
+          "desc": "[Gate Preflight v2] .opencode/scripts/framework-self-test.ts: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 17 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (63 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "E2E-CODER-BE-HANDOVER",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    }
+  },
   "recent_sessions": {},
   "meta": {
-    "total_sessions": 0,
-    "active_count": 0,
+    "total_sessions": 8,
+    "active_count": 8,
     "recent_count": 0,
-    "last_compacted": "2026-06-21T09:36:56.978Z"
+    "last_compacted": "2026-06-21T13:16:51.096Z"
   }
 }

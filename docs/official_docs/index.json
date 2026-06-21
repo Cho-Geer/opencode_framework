@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-21T01:52:00.000Z",
+  "last_updated": "2026-06-20T16:37:01.901Z",
   "total_entries": 63,
   "entries": [
     {
@@ -429,13 +429,7 @@
       "library_id": "web-fallback",
       "query_topic": "opencode release notes latest version changes",
       "domain": "opencode",
-      "tags": [
-        "opencode",
-        "release",
-        "changelog",
-        "v1.16.0",
-        "version"
-      ],
+      "tags": ["opencode", "release", "changelog", "v1.16.0", "version"],
       "files": [
         {
           "path": "opencode/releases/v1.16.0-release-notes.md",
@@ -1289,14 +1283,7 @@
       "library_id": "bun",
       "query_topic": "Bun overview and installation: all-in-one JavaScript runtime, bundler, test runner, package manager, JavaScriptCore engine",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-overview.md",
@@ -1315,14 +1302,7 @@
       "library_id": "bun",
       "query_topic": "Bun TypeScript native support: require(.ts) works natively without transpilation, type-stripping, tsconfig paths",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-typescript-support.md",
@@ -1341,14 +1321,7 @@
       "library_id": "bun",
       "query_topic": "Bun module resolution: CJS/ESM freely mixable, require and import both supported, Node.js-compatible resolution algorithm",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-module-resolution.md",
