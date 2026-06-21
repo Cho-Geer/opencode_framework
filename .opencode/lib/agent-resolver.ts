@@ -343,6 +343,12 @@ export function resolveTaskId(sessionId?: string): string {
  *    resolveDomainId() had the SAME race condition as resolveTaskId() —
  *    the shared .dispatch_ctx singleton was overwritten by concurrent
  *    dispatches. Fixed with ctx/ directory scan at Priority 2.
+ *
+ *  P2 FIX (fix_resolveDomainId_P2_v1, 2026-06-21, @Super-Admin):
+ *    Priority 2 returned "newest by createdAt" when multiple ctx/ files
+ *    existed — a heuristic that could return the wrong domain during
+ *    concurrent dispatches. Fixed with dagTaskId exact match from
+ *    session_map DB. If no match, returns null instead of guessing.
  */
 export function resolveDomainId(sessionId?: string): string | null {
   // Priority 1: session_map DB (per-session domain_id, immune to race)
@@ -384,25 +390,46 @@ export function resolveDomainId(sessionId?: string): string | null {
           return ctx.domainId;
         }
       }
-      // Multiple: return newest by createdAt
-      let newest: { domainId: string; createdAt: number } | null = null;
-      for (const file of files) {
-        try {
-          const ctx = JSON.parse(
-            fs.readFileSync(path.join(ctxDir, file), "utf8"),
-          );
-          if (ctx?.domainId && (!newest || ctx.createdAt > newest.createdAt)) {
-            newest = ctx;
+      // Multiple: try dagTaskId exact match instead of returning newest by createdAt.
+      // P2 FIX (fix_resolveDomainId_P2_v1, @Super-Admin): The "newest-by-createdAt"
+      // heuristic could return the wrong domain when concurrent dispatches write
+      // multiple ctx files. Instead: (a) try exact dagTaskId match from session_map DB,
+      // (b) if no match, return null rather than guessing.
+      if (files.length > 1) {
+        // Look up dagTaskId from session_map DB using the sessionId
+        let dagTaskId: string | null = null;
+        if (sessionId) {
+          try {
+            const entry = dbReadSessionMap(sessionId);
+            dagTaskId = entry?.dag_task_id || null;
+          } catch {}
+        }
+        if (dagTaskId) {
+          // ctx files are named {dagTaskId}.json — try exact match
+          const exactFile = files.find((f) => f === dagTaskId + ".json");
+          if (exactFile) {
+            try {
+              const ctx = JSON.parse(
+                fs.readFileSync(path.join(ctxDir, exactFile), "utf8"),
+              );
+              if (ctx?.domainId) {
+                writeLog(SRC, "INFO", {
+                  event: "DISPATCH-CTX-READ-DOMAIN",
+                  domainId: ctx.domainId,
+                  detail: `resolveDomainId: ctx/ exact match → ${ctx.domainId} (dagTaskId=${dagTaskId})`,
+                });
+                return ctx.domainId;
+              }
+            } catch {}
           }
-        } catch {}
-      }
-      if (newest?.domainId) {
-        writeLog(SRC, "INFO", {
-          event: "DISPATCH-CTX-READ-DOMAIN",
-          domainId: newest.domainId,
-          detail: `resolveDomainId: ctx/ newest → ${newest.domainId}`,
+        }
+        // No dagTaskId match found: ambiguous — return null instead of guessing
+        writeLog(SRC, "WARN", {
+          event: "DISPATCH-CTX-AMBIGUOUS",
+          fileCount: files.length,
+          detail: `resolveDomainId: ctx/ AMBIGUOUS (${files.length} files, no dagTaskId match)`,
         });
-        return newest.domainId;
+        return null;
       }
     }
   } catch (e: any) {
