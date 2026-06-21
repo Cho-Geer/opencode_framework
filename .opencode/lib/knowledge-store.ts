@@ -1,0 +1,1565 @@
+// knowledge-store.ts — UC7KS Knowledge Store API v3.0.0 (KC-15)
+// ═══════════════════════════════════════════════════════════════
+// Unified knowledge manifest/search/materialization API.
+// v3.0.0 (KC-15): DB-FIRST — v11/v12 SQLite typed tables are the
+//   canonical source. docs/official_docs/index.json is a materialized
+//   view generated from the DB (atomic tmp+rename per UC7-007).
+//   readManifest() → DB-first, file fallback with UC7KS-DB-FALLBACK log.
+//   addEntry() → upsert DB → materialize file.
+//   searchManifest() → query DB directly.
+//
+// Design: docs/review/knowledge/KC-01-knowledge-store-design.md
+//
+// @author @Super-Admin (KC-01, KC-11, KC-15)
+// @version 3.0.0
+// @since 2026-06-21
+//
+// Integrates with log-manager.ts for writeLog-based audit trail
+// and db-manager.ts for SQLite access.
+// ═══════════════════════════════════════════════════════════════
+
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { createHash } from "node:crypto";
+import { writeLog } from "./log-manager";
+import { getDb, closeDb } from "./db-manager";
+
+// ── Types ──────────────────────────────────────────────────────
+
+/** A single cached file within a knowledge entry */
+export interface KnowledgeFile {
+  /** Relative path within docs/official_docs/ (e.g. "opencode/framework/plugins.md") */
+  path: string;
+  /** Source of the file: "webfetch", "context7", "github-api", "curated", "webfetch+cache-compile", etc. */
+  source: string;
+  /** Original URL the file was fetched from (optional) */
+  original_url?: string;
+  /** SHA-256 hash of the file content */
+  sha256: string;
+  /** File size in bytes */
+  size_bytes: number;
+  /** ISO-8601 creation timestamp */
+  created_at: string;
+  /** TTL in days before the file is considered stale (default: 30) */
+  ttl_days?: number;
+  /** Number of times this file has been accessed */
+  access_count?: number;
+  /** ISO-8601 timestamp of last access, or null if never accessed */
+  last_accessed?: string | null;
+  /** Status: "active", "archived", or "evicted" */
+  status?: string;
+}
+
+/** A knowledge entry in the manifest (one library + topic + tags → N files) */
+export interface KnowledgeEntry {
+  /** Identifies the library or domain (e.g. "opencode-framework", "nestjs") */
+  library_id: string;
+  /** Human-readable topic summary */
+  query_topic: string;
+  /** Knowledge domain (e.g. "opencode_framework", "backend_api") */
+  domain: string;
+  /** Searchable tags */
+  tags: string[];
+  /** Cached files for this entry */
+  files: KnowledgeFile[];
+}
+
+/** The top-level manifest (docs/official_docs/index.json) */
+export interface KnowledgeManifest {
+  /** Manifest format version (e.g. "1.2.0") */
+  manifest_version: string;
+  /** ISO-8601 timestamp of last update, or null if never updated */
+  last_updated: string | null;
+  /** Total number of entries (auto-computed on write) */
+  total_entries: number;
+  /** All knowledge entries */
+  entries: KnowledgeEntry[];
+}
+
+/** Statistics about the knowledge cache */
+export interface ManifestStats {
+  /** Manifest format version */
+  manifest_version: string;
+  /** Total number of entries */
+  total_entries: number;
+  /** Total number of files across all entries */
+  total_files: number;
+  /** Total size in bytes */
+  total_size_bytes: number;
+  /** Total size in MB (formatted string, 1 decimal) */
+  total_size_mb: string;
+  /** Per-domain breakdown */
+  per_domain: Record<string, { size_bytes: number; file_count: number }>;
+}
+
+/** Result of an addEntry operation */
+export interface AddEntryResult {
+  /** What happened: "added" (new entry), "updated" (merged files), or "dedup" (SHA-256 match) */
+  action: "added" | "updated" | "dedup";
+  /** The resulting entry */
+  entry: KnowledgeEntry;
+}
+
+/** Search options */
+export interface SearchOptions {
+  /** Filter by domain */
+  domain?: string;
+  /** Filter by tags (any match) */
+  tags?: string[];
+  /** Search by keyword in library_id, query_topic, or tags */
+  keyword?: string;
+}
+
+/** Parameters for addEntry */
+export interface AddEntryParams {
+  /** Library identifier */
+  library_id: string;
+  /** Topic description */
+  query_topic: string;
+  /** Knowledge domain (default: "fallback") */
+  domain?: string;
+  /** Tags for searchability */
+  tags?: string[];
+  /** The file to add */
+  file: KnowledgeFile;
+}
+
+// ── Source identifier for logging ──────────────────────────────
+
+const SRC = "lib-knowledge-store";
+
+// ── Path Resolution ────────────────────────────────────────────
+
+/**
+ * KC-11: Resolve the index.json path. Self-contained — no indexer dependency.
+ */
+function getIndexPath(): string {
+  const projectRoot = process.env.OPENCODE_ROOT || process.cwd();
+  return path.join(projectRoot, "docs", "official_docs", "index.json");
+}
+
+/**
+ * KC-11: Resolve the docs directory path.
+ */
+function getDocsDir(): string {
+  const projectRoot = process.env.OPENCODE_ROOT || process.cwd();
+  return path.join(projectRoot, "docs", "official_docs");
+}
+
+// ── Materialization Lock (Phase 3) ─────────────────────────────
+/**
+ * Phase 3 (2026-06-21): File-based lock to prevent concurrent
+ * materialization from multiple sessions/dispatches.
+ *
+ * Design:
+ * - Lock path: .task_temp/_locks/knowledge-materialization.lock
+ * - Lock TTL: configurable via project.config.json
+ *   template_resolution["knowledge.materialization_lock_ttl_ms"],
+ *   default 60000 (60 seconds)
+ * - Stale locks (age > TTL) are automatically reclaimed
+ * - Lock is acquired before any materialization and released after
+ *
+ * @see docs/review/framework-refactor/knowledge-store-api-integration-plan.md
+ */
+const LOCK_DIR = ".task_temp/_locks";
+const LOCK_FILE = "knowledge-materialization.lock";
+const DEFAULT_LOCK_TTL_MS = 60000;
+
+function getLockPath(): string {
+  const projectRoot = process.env.OPENCODE_ROOT || process.cwd();
+  return path.join(projectRoot, LOCK_DIR, LOCK_FILE);
+}
+
+function getLockTtlMs(): number {
+  try {
+    const projectRoot = process.env.OPENCODE_ROOT || process.cwd();
+    const configPath = path.join(
+      projectRoot,
+      ".opencode",
+      "project.config.json",
+    );
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      const ttl =
+        config.template_resolution?.["knowledge.materialization_lock_ttl_ms"];
+      if (typeof ttl === "number" && ttl > 0) return ttl;
+    }
+  } catch {
+    // Fall through to default
+  }
+  return DEFAULT_LOCK_TTL_MS;
+}
+
+function acquireMaterializationLock(operation: string): boolean {
+  const lockPath = getLockPath();
+  const lockTtlMs = getLockTtlMs();
+  const now = Date.now();
+  const lockDir = path.dirname(lockPath);
+
+  if (!fs.existsSync(lockDir)) {
+    fs.mkdirSync(lockDir, { recursive: true });
+  }
+
+  if (fs.existsSync(lockPath)) {
+    try {
+      const lockData = JSON.parse(fs.readFileSync(lockPath, "utf-8"));
+      const lockAge = now - lockData.timestamp;
+      if (lockAge > lockTtlMs) {
+        writeLog(SRC, "WARN", {
+          event: "KC-MATERIALIZE-LOCK-STALE",
+          detail: `lock_age_ms=${lockAge} pid=${lockData.pid} — reclaiming`,
+        });
+      } else {
+        writeLog(SRC, "WARN", {
+          event: "KC-MATERIALIZE-LOCK-BUSY",
+          detail: `op=${operation} lock_age_ms=${lockAge} pid=${lockData.pid}`,
+        });
+        return false;
+      }
+    } catch {
+      writeLog(SRC, "WARN", {
+        event: "KC-MATERIALIZE-LOCK-CORRUPT",
+        detail: "Corrupt lock file — reclaiming",
+      });
+    }
+  }
+
+  const lockData = { pid: process.pid, timestamp: now };
+  fs.writeFileSync(lockPath, JSON.stringify(lockData), "utf-8");
+  writeLog(SRC, "DEBUG", {
+    event: "KC-MATERIALIZE-LOCK-ACQUIRED",
+    detail: `pid=${process.pid} op=${operation}`,
+  });
+  return true;
+}
+
+function releaseMaterializationLock(): void {
+  const lockPath = getLockPath();
+  try {
+    if (fs.existsSync(lockPath)) {
+      fs.unlinkSync(lockPath);
+    }
+  } catch (err: any) {
+    writeLog(SRC, "WARN", {
+      event: "KC-MATERIALIZE-LOCK-RELEASE-FAILED",
+      detail: err.message || String(err),
+    });
+  }
+}
+
+// ── DB Row Types ───────────────────────────────────────────────
+
+/** Row shape from knowledge_entries table */
+interface DbEntryRow {
+  id: number;
+  library_id: string;
+  query_topic: string;
+  domain: string;
+  tags: string | null; // JSON array string
+  source: string | null;
+  status: string;
+  created_at: number;
+  updated_at: number;
+}
+
+/** Row shape from knowledge_files table */
+interface DbFileRow {
+  id: number;
+  entry_id: number;
+  file_path: string;
+  sha256: string | null;
+  size_bytes: number;
+  source: string | null;
+  ttl_days: number;
+  status: string;
+  access_count: number;
+  last_accessed: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+/** Row shape from knowledge_entry_tags table */
+interface DbTagRow {
+  id: number;
+  entry_id: number;
+  tag: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRIVATE: DB-First Core Functions (KC-15)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * KC-15: Read the knowledge manifest from v11 typed DB tables.
+ * JOINs knowledge_entries + knowledge_files + knowledge_entry_tags.
+ * This is the canonical read path. Returns null if DB is unavailable
+ * or empty, triggering file fallback in readManifest().
+ *
+ * @returns The parsed manifest, or null if DB read failed/empty
+ */
+function readManifestFromDb(): KnowledgeManifest | null {
+  // Try-catch the entire function to handle DB connection failures gracefully
+  try {
+    const db = getDb({ skipSchema: true });
+
+    // ── Check if knowledge_entries table exists ──────────────────
+    const tableCheck = db
+      .query(
+        "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name='knowledge_entries'",
+      )
+      .get() as { c: number } | null;
+    if (!tableCheck || tableCheck.c === 0) {
+      writeLog(SRC, "INFO", {
+        event: "KC-DB-READ-NO-TABLE",
+        detail: "knowledge_entries table not found — triggering file fallback",
+      });
+      return null;
+    }
+
+    // ── Step 1: Query all active entries ─────────────────────────
+    const entryRows = db
+      .query(
+        `SELECT id, library_id, query_topic, domain, tags, source, status,
+                created_at, updated_at
+         FROM knowledge_entries
+         WHERE status = 'active'
+         ORDER BY id`,
+      )
+      .all() as DbEntryRow[];
+
+    if (entryRows.length === 0) {
+      // DB has the table but no rows — may not have been backfilled yet
+      writeLog(SRC, "INFO", {
+        event: "KC-DB-READ-EMPTY",
+        detail:
+          "knowledge_entries table has 0 active rows — triggering file fallback",
+      });
+      return null;
+    }
+
+    // ── Step 2: Batch-query all files for these entries ──────────
+    // Collect entry IDs for batch file query
+    const entryIds = entryRows.map((r) => r.id);
+    const fileRows: DbFileRow[] = [];
+    // SQLite supports up to 999 parameters; batch in chunks of 500
+    const BATCH = 500;
+    for (let i = 0; i < entryIds.length; i += BATCH) {
+      const batch = entryIds.slice(i, i + BATCH);
+      const placeholders = batch.map(() => "?").join(",");
+      const batchRows = db
+        .query(
+          `SELECT id, entry_id, file_path, sha256, size_bytes, source,
+                  ttl_days, status, access_count, last_accessed,
+                  created_at, updated_at
+           FROM knowledge_files
+           WHERE entry_id IN (${placeholders}) AND status = 'active'
+           ORDER BY entry_id, id`,
+        )
+        .all(...batch) as DbFileRow[];
+      fileRows.push(...batchRows);
+    }
+
+    // ── Step 3: Batch-query all tags — prefer normalized table ───
+    // Fall back to parsed JSON from knowledge_entries.tags if
+    // knowledge_entry_tags table is empty
+    const tagRows: DbTagRow[] = [];
+    for (let i = 0; i < entryIds.length; i += BATCH) {
+      const batch = entryIds.slice(i, i + BATCH);
+      const placeholders = batch.map(() => "?").join(",");
+      const batchRows = db
+        .query(
+          `SELECT id, entry_id, tag
+           FROM knowledge_entry_tags
+           WHERE entry_id IN (${placeholders})
+           ORDER BY entry_id, id`,
+        )
+        .all(...batch) as DbTagRow[];
+      tagRows.push(...batchRows);
+    }
+
+    // ── Step 4: Build KnowledgeEntry objects ─────────────────────
+    // Index files and tags by entry_id for O(1) lookup
+    const filesByEntry = new Map<number, KnowledgeFile[]>();
+    for (const fr of fileRows) {
+      const list = filesByEntry.get(fr.entry_id) || [];
+      list.push({
+        path: fr.file_path,
+        source: fr.source || "unknown",
+        sha256: fr.sha256 || "",
+        size_bytes: fr.size_bytes || 0,
+        created_at: new Date(fr.created_at).toISOString(),
+        ttl_days: fr.ttl_days || 30,
+        access_count: fr.access_count || 0,
+        last_accessed: fr.last_accessed
+          ? new Date(fr.last_accessed).toISOString()
+          : null,
+        status: fr.status || "active",
+      });
+      filesByEntry.set(fr.entry_id, list);
+    }
+
+    const tagsByEntry = new Map<number, string[]>();
+    for (const tr of tagRows) {
+      const list = tagsByEntry.get(tr.entry_id) || [];
+      list.push(tr.tag);
+      tagsByEntry.set(tr.entry_id, list);
+    }
+
+    const entries: KnowledgeEntry[] = [];
+    let latestTimestamp: string | null = null;
+
+    for (const er of entryRows) {
+      // Tags: prefer normalized table, fall back to parsed JSON
+      let tags: string[] = tagsByEntry.get(er.id) || [];
+      if (tags.length === 0 && er.tags) {
+        try {
+          const parsed = JSON.parse(er.tags);
+          if (Array.isArray(parsed)) tags = parsed;
+        } catch {
+          // corrupt JSON — leave empty
+        }
+      }
+
+      const fileList = filesByEntry.get(er.id) || [];
+
+      // Track latest updated_at for manifest-level timestamp
+      const entryDate = new Date(er.updated_at).toISOString();
+      if (!latestTimestamp || entryDate > latestTimestamp) {
+        latestTimestamp = entryDate;
+      }
+
+      entries.push({
+        library_id: er.library_id,
+        query_topic: er.query_topic,
+        domain: er.domain || "fallback",
+        tags,
+        files: fileList,
+      });
+    }
+
+    writeLog(SRC, "INFO", {
+      event: "KC-DB-READ-SUCCESS",
+      detail: `entries=${entries.length} db-rows=${entryRows.length}`,
+    });
+
+    return {
+      manifest_version: "1.5.0",
+      last_updated: latestTimestamp || new Date().toISOString(),
+      total_entries: entries.length,
+      entries,
+    };
+  } catch (err: any) {
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-DB-FALLBACK",
+      detail: `DB read failed: ${err.message || String(err)} — falling back to file`,
+    });
+    return null;
+  }
+}
+
+/**
+ * KC-15: Upsert a knowledge entry into v11 typed DB tables.
+ * Uses a single transaction: INSERT OR REPLACE into knowledge_entries,
+ * then upsert files (INSERT OR IGNORE by unique entry_id+file_path),
+ * then replace tags (DELETE old + INSERT new into knowledge_entry_tags).
+ *
+ * Deduplication: checks SHA-256 hash across all files first.
+ *
+ * @param data - Entry data: library_id, query_topic, domain, tags, file
+ * @returns The action taken and the resulting entry
+ */
+function upsertEntryInDb(data: AddEntryParams): AddEntryResult | null {
+  try {
+    const db = getDb({ skipSchema: true });
+    const now = Date.now();
+    const file = data.file;
+    const domain = data.domain || "fallback";
+    const tags = Array.isArray(data.tags) ? data.tags : [];
+
+    return db.transaction((d: AddEntryParams) => {
+      // ── Dedup check by SHA-256 ──────────────────────────────────
+      const dupRow = db
+        .query(
+          `SELECT kf.entry_id
+           FROM knowledge_files kf
+           WHERE kf.sha256 = ? AND kf.status = 'active'
+           LIMIT 1`,
+        )
+        .get(file.sha256) as { entry_id: number } | null;
+
+      if (dupRow) {
+        // Update access count on existing file
+        db.run(
+          `UPDATE knowledge_files
+           SET access_count = access_count + 1,
+               last_accessed = ?,
+               updated_at = ?
+           WHERE sha256 = ?`,
+          [now, now, file.sha256],
+        );
+
+        // Add new tags as aliases via knowledge_entry_tags
+        if (tags.length > 0) {
+          const insertTagStmt = db.prepare(
+            `INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)`,
+          );
+          for (const tag of tags) {
+            insertTagStmt.run(dupRow.entry_id, tag);
+          }
+        }
+
+        // Read the entry to return
+        const er = db
+          .query(
+            `SELECT id, library_id, query_topic, domain, tags
+             FROM knowledge_entries WHERE id = ?`,
+          )
+          .get(dupRow.entry_id) as DbEntryRow | null;
+        const existingTags = getEntryTagsFromDb(db, dupRow.entry_id, er?.tags);
+        const existingFiles = getEntryFilesFromDb(db, dupRow.entry_id);
+
+        writeLog(SRC, "INFO", {
+          event: "KC-DB-DEDUP",
+          detail: `action=dedup library=${d.library_id} topic="${d.query_topic}"`,
+        });
+
+        return {
+          action: "dedup" as const,
+          entry: {
+            library_id: er?.library_id || d.library_id,
+            query_topic: er?.query_topic || d.query_topic,
+            domain: er?.domain || domain,
+            tags: existingTags,
+            files: existingFiles,
+          },
+        };
+      }
+
+      // ── Upsert entry ────────────────────────────────────────────
+      const fileCreated = file.created_at
+        ? new Date(file.created_at).getTime()
+        : now;
+
+      // Try existing entry
+      const existing = db
+        .query(
+          `SELECT id FROM knowledge_entries
+           WHERE library_id = ? AND query_topic = ?`,
+        )
+        .get(d.library_id, d.query_topic) as { id: number } | null;
+
+      let entryId: number;
+
+      if (existing) {
+        // Update existing entry
+        db.run(
+          `UPDATE knowledge_entries
+           SET domain = ?, tags = ?, updated_at = ?
+           WHERE id = ?`,
+          [domain, JSON.stringify(tags), now, existing.id],
+        );
+        entryId = existing.id;
+      } else {
+        // Insert new entry
+        const result = db.run(
+          `INSERT INTO knowledge_entries
+             (library_id, query_topic, domain, tags, source, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 'active', ?, ?)`,
+          [
+            d.library_id,
+            d.query_topic,
+            domain,
+            JSON.stringify(tags),
+            file.source || null,
+            fileCreated,
+            now,
+          ],
+        );
+        entryId = Number(result.lastInsertRowid);
+      }
+
+      // ── Upsert file ─────────────────────────────────────────────
+      // UNIQUE index on (entry_id, file_path) enables INSERT OR IGNORE
+      db.run(
+        `INSERT OR IGNORE INTO knowledge_files
+           (entry_id, file_path, sha256, size_bytes, source, ttl_days,
+            status, access_count, last_accessed, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'active', 0, NULL, ?, ?)`,
+        [
+          entryId,
+          file.path,
+          file.sha256 || null,
+          file.size_bytes || 0,
+          file.source || null,
+          file.ttl_days ?? 30,
+          fileCreated,
+          now,
+        ],
+      );
+
+      // ── Replace tags ────────────────────────────────────────────
+      db.run("DELETE FROM knowledge_entry_tags WHERE entry_id = ?", [entryId]);
+      if (tags.length > 0) {
+        const insertTagStmt = db.prepare(
+          `INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)`,
+        );
+        for (const tag of tags) {
+          insertTagStmt.run(entryId, tag);
+        }
+      }
+
+      const action = existing ? "updated" : "added";
+      writeLog(SRC, "INFO", {
+        event: "KC-DB-UPSERT",
+        detail: `action=${action} library=${d.library_id} topic="${d.query_topic}"`,
+      });
+
+      return {
+        action: action as "added" | "updated",
+        entry: {
+          library_id: d.library_id,
+          query_topic: d.query_topic,
+          domain,
+          tags,
+          files: [
+            {
+              ...file,
+              created_at:
+                file.created_at || new Date(fileCreated).toISOString(),
+              access_count: 0,
+              status: "active",
+            },
+          ],
+        },
+      };
+    })(data);
+  } catch (err: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-DB-UPSERT-FAILED",
+      detail: `library=${data.library_id} err=${err.message || String(err)}`,
+    });
+    return null;
+  }
+}
+
+/**
+ * A6: Insert a row into knowledge_materialization_jobs table.
+ * Non-fatal helper — failures are logged but never thrown,
+ * so job tracking never blocks the primary materialization path.
+ *
+ * @param params - job_type, status, file_path, sha256, error_msg, entry_id, retry_count
+ */
+function insertMaterializationJob(params: {
+  job_type: string;
+  status: string;
+  file_path?: string;
+  sha256?: string;
+  error_msg?: string;
+  entry_id?: number;
+  retry_count?: number;
+}): void {
+  try {
+    const db = getDb({ skipSchema: true });
+    const now = Date.now();
+    db.run(
+      `INSERT INTO knowledge_materialization_jobs
+         (entry_id, job_type, status, file_path, sha256, error_msg, retry_count, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        params.entry_id || null,
+        params.job_type,
+        params.status,
+        params.file_path || null,
+        params.sha256 || null,
+        params.error_msg || null,
+        params.retry_count || 0,
+        now,
+        now,
+      ],
+    );
+    writeLog(SRC, "INFO", {
+      event: "KC-JOB-INSERTED",
+      detail: `job_type=${params.job_type} status=${params.status} sha256=${params.sha256 || "none"}`,
+    });
+  } catch (dbErr: any) {
+    // Non-fatal: never let job tracking prevent materialization
+    writeLog(SRC, "ERROR", {
+      event: "KC-JOB-INSERT-FAILED",
+      detail: `job_type=${params.job_type} status=${params.status} err=${dbErr.message || String(dbErr)}`,
+    });
+  }
+}
+
+/**
+ * KC-15: Materialize the current DB state to docs/official_docs/index.json.
+ * Uses atomic tmp+rename per UC7-007. Called after every DB mutation.
+ *
+ * A6 (2026-06-21): Every materialization now creates a job row in
+ * knowledge_materialization_jobs (status='written' on success,
+ * status='failed' on error) for observability and retry support.
+ *
+ * @returns true on success, false on failure
+ */
+function materializeManifestFromDb(): boolean {
+  writeLog(SRC, "INFO", {
+    event: "KC-MATERIALIZE-REQUESTED",
+    detail: `pid=${process.pid}`,
+  });
+
+  // Phase 3: Acquire materialization lock to prevent concurrent writes
+  if (!acquireMaterializationLock("materializeManifestFromDb")) {
+    return false; // Lock busy — another materialization is in progress
+  }
+
+  try {
+    const manifest = readManifestFromDb();
+    if (!manifest) {
+      const msg = "readManifestFromDb returned null — nothing to materialize";
+      writeLog(SRC, "WARN", {
+        event: "KC-MATERIALIZE-SKIP",
+        detail: msg,
+      });
+      insertMaterializationJob({
+        job_type: "index_json",
+        status: "failed",
+        error_msg: msg,
+      });
+      return false;
+    }
+
+    const indexPath = getIndexPath();
+    // Phase 3: Unique tmp path per process to avoid collisions
+    const tmp = `${indexPath}.${process.pid}.${Date.now()}.tmp`;
+
+    // Ensure directory exists
+    const dir = path.dirname(indexPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    const json = JSON.stringify(manifest, null, 2);
+    // A6: Compute SHA-256 of the materialized content BEFORE writing
+    const sha256 = createHash("sha256").update(json).digest("hex");
+
+    fs.writeFileSync(tmp, json, "utf-8");
+    fs.renameSync(tmp, indexPath); // Atomic rename (UC7-007)
+
+    // Clean up stale unique tmp files from previous failed writes
+    // (non-fatal — do not block materialization)
+    try {
+      const docDir = path.dirname(indexPath);
+      const baseName = path.basename(indexPath);
+      for (const entry of fs.readdirSync(docDir)) {
+        if (
+          entry.startsWith(`${baseName}.`) &&
+          entry.endsWith(".tmp") &&
+          entry !== path.basename(tmp)
+        ) {
+          try {
+            fs.unlinkSync(path.join(docDir, entry));
+          } catch {
+            // Non-fatal cleanup
+          }
+        }
+      }
+    } catch {
+      // Non-fatal cleanup
+    }
+
+    // A6: Insert success job row
+    insertMaterializationJob({
+      job_type: "index_json",
+      status: "written",
+      file_path: indexPath,
+      sha256,
+    });
+
+    writeLog(SRC, "INFO", {
+      event: "KC-MATERIALIZED",
+      detail: `entries=${manifest.total_entries} version=${manifest.manifest_version} path=${indexPath} sha256=${sha256} job_status=written`,
+    });
+    return true;
+  } catch (err: any) {
+    // A6: Insert failed job row
+    insertMaterializationJob({
+      job_type: "index_json",
+      status: "failed",
+      error_msg: err.message || String(err),
+    });
+    writeLog(SRC, "ERROR", {
+      event: "KC-MATERIALIZE-FAILED",
+      detail: err.message || String(err),
+    });
+    return false;
+  } finally {
+    releaseMaterializationLock();
+  }
+}
+
+// ── DB Helper Functions ────────────────────────────────────────
+
+/**
+ * Read files for a given entry_id from knowledge_files table.
+ */
+function getEntryFilesFromDb(
+  db: ReturnType<typeof getDb>,
+  entryId: number,
+): KnowledgeFile[] {
+  const rows = db
+    .query(
+      `SELECT file_path, sha256, size_bytes, source, ttl_days,
+              status, access_count, last_accessed, created_at
+       FROM knowledge_files
+       WHERE entry_id = ? AND status = 'active'
+       ORDER BY id`,
+    )
+    .all(entryId) as DbFileRow[];
+
+  return rows.map((fr) => ({
+    path: fr.file_path,
+    source: fr.source || "unknown",
+    sha256: fr.sha256 || "",
+    size_bytes: fr.size_bytes || 0,
+    created_at: new Date(fr.created_at).toISOString(),
+    ttl_days: fr.ttl_days || 30,
+    access_count: fr.access_count || 0,
+    last_accessed: fr.last_accessed
+      ? new Date(fr.last_accessed).toISOString()
+      : null,
+    status: fr.status || "active",
+  }));
+}
+
+/**
+ * Read tags for a given entry_id. Prefers normalized knowledge_entry_tags
+ * table, falling back to parsed JSON from the tags column.
+ */
+function getEntryTagsFromDb(
+  db: ReturnType<typeof getDb>,
+  entryId: number,
+  jsonTags?: string | null,
+): string[] {
+  const tagRows = db
+    .query(
+      "SELECT tag FROM knowledge_entry_tags WHERE entry_id = ? ORDER BY id",
+    )
+    .all(entryId) as { tag: string }[];
+
+  if (tagRows.length > 0) {
+    return tagRows.map((r) => r.tag);
+  }
+
+  // Fall back to JSON
+  if (jsonTags) {
+    try {
+      const parsed = JSON.parse(jsonTags);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // corrupt JSON
+    }
+  }
+  return [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PUBLIC API (KC-15 DB-First)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Read the knowledge manifest. DB-first with file fallback.
+ *
+ * KC-15: Tries readManifestFromDb() (v11 typed tables) first.
+ * Falls back to reading docs/official_docs/index.json directly
+ * if the DB is unavailable, missing, or empty — logging
+ * UC7KS-DB-FALLBACK.
+ *
+ * @returns The parsed manifest, or a default empty manifest
+ */
+export function readManifest(): KnowledgeManifest {
+  // ── Try DB first (canonical source) ───────────────────────────
+  const dbManifest = readManifestFromDb();
+  if (dbManifest) {
+    return dbManifest;
+  }
+
+  // ── Fallback: read index.json directly ────────────────────────
+  const indexPath = getIndexPath();
+  try {
+    if (!fs.existsSync(indexPath)) {
+      writeLog(SRC, "WARN", {
+        event: "UC7KS-DB-FALLBACK",
+        detail:
+          "entries=0 version=1.2.0 (file fallback — index.json not found, DB unavailable)",
+      });
+      return {
+        manifest_version: "1.2.0",
+        last_updated: null,
+        total_entries: 0,
+        entries: [],
+      };
+    }
+    const raw = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-DB-FALLBACK",
+      detail: `entries=${raw.total_entries || 0} version=${raw.manifest_version || "unknown"} (file fallback)`,
+    });
+    return raw as KnowledgeManifest;
+  } catch (err: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-MANIFEST-READ-FAILED",
+      detail: `Both DB and file failed: ${err.message || String(err)}`,
+    });
+    return {
+      manifest_version: "1.2.0",
+      last_updated: null,
+      total_entries: 0,
+      entries: [],
+    };
+  }
+}
+
+/**
+ * Write the knowledge manifest.
+ *
+ * KC-15: This operation imports/upserts entries into the DB and then
+ * materializes the manifest to docs/official_docs/index.json.
+ * For direct file write (legacy), use materializeManifestFromDb().
+ *
+ * @param manifest - The manifest to write (upserted into DB, then materialized)
+ */
+export function writeManifest(manifest: KnowledgeManifest): void {
+  // KC-15: Write manifest entries to DB, then materialize
+  try {
+    const db = getDb({ skipSchema: true });
+    const now = Date.now();
+
+    // For each entry, upsert into DB
+    let upserted = 0;
+    for (const entry of manifest.entries) {
+      try {
+        // Find or create entry
+        const existing = db
+          .query(
+            `SELECT id FROM knowledge_entries
+             WHERE library_id = ? AND query_topic = ?`,
+          )
+          .get(entry.library_id, entry.query_topic) as { id: number } | null;
+
+        let entryId: number;
+        const entryNow = entry.files?.[0]?.created_at
+          ? new Date(entry.files[0].created_at).getTime()
+          : now;
+
+        if (existing) {
+          db.run(
+            `UPDATE knowledge_entries
+             SET domain = ?, tags = ?, updated_at = ?
+             WHERE id = ?`,
+            [
+              entry.domain || "fallback",
+              JSON.stringify(entry.tags || []),
+              now,
+              existing.id,
+            ],
+          );
+          entryId = existing.id;
+        } else {
+          const result = db.run(
+            `INSERT INTO knowledge_entries
+               (library_id, query_topic, domain, tags, source, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, 'active', ?, ?)`,
+            [
+              entry.library_id,
+              entry.query_topic,
+              entry.domain || "fallback",
+              JSON.stringify(entry.tags || []),
+              entry.files?.[0]?.source || null,
+              entryNow,
+              now,
+            ],
+          );
+          entryId = Number(result.lastInsertRowid);
+        }
+
+        // Upsert files
+        for (const file of entry.files || []) {
+          const fileCreated = file.created_at
+            ? new Date(file.created_at).getTime()
+            : now;
+          db.run(
+            `INSERT OR IGNORE INTO knowledge_files
+               (entry_id, file_path, sha256, size_bytes, source, ttl_days,
+                status, access_count, last_accessed, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+            [
+              entryId,
+              file.path,
+              file.sha256 || null,
+              file.size_bytes || 0,
+              file.source || null,
+              file.ttl_days ?? 30,
+              file.access_count || 0,
+              file.last_accessed
+                ? new Date(file.last_accessed).getTime()
+                : null,
+              fileCreated,
+              now,
+            ],
+          );
+        }
+
+        // Replace tags
+        db.run("DELETE FROM knowledge_entry_tags WHERE entry_id = ?", [
+          entryId,
+        ]);
+        if ((entry.tags || []).length > 0) {
+          const insertTagStmt = db.prepare(
+            `INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)`,
+          );
+          for (const tag of entry.tags) {
+            insertTagStmt.run(entryId, tag);
+          }
+        }
+
+        upserted++;
+      } catch (entryErr: any) {
+        writeLog(SRC, "ERROR", {
+          event: "KC-MANIFEST-WRITE-ENTRY-FAILED",
+          detail: `library=${entry.library_id} err=${entryErr.message}`,
+        });
+      }
+    }
+
+    // Materialize to file
+    if (upserted > 0) {
+      materializeManifestFromDb();
+    }
+
+    writeLog(SRC, "INFO", {
+      event: "KC-MANIFEST-WRITTEN",
+      detail: `entries=${upserted} version=${manifest.manifest_version}`,
+    });
+  } catch (err: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-MANIFEST-WRITE-FAILED",
+      detail: err.message || String(err),
+    });
+  }
+}
+
+/**
+ * Get statistics about the knowledge cache.
+ *
+ * KC-15: Uses DB directly — more efficient than file I/O.
+ *
+ * @returns Manifest statistics with size breakdown
+ */
+export function getStats(): ManifestStats {
+  try {
+    const manifest = readManifest();
+    let totalSize = 0;
+    let totalFiles = 0;
+    const perDomain: Record<
+      string,
+      { size_bytes: number; file_count: number }
+    > = {};
+    for (const entry of manifest.entries) {
+      for (const file of entry.files || []) {
+        totalSize += file.size_bytes || 0;
+        totalFiles++;
+        const d = entry.domain || "unknown";
+        if (!perDomain[d]) perDomain[d] = { size_bytes: 0, file_count: 0 };
+        perDomain[d].size_bytes += file.size_bytes || 0;
+        perDomain[d].file_count++;
+      }
+    }
+    const result: ManifestStats = {
+      manifest_version: manifest.manifest_version,
+      total_entries: manifest.total_entries,
+      total_files: totalFiles,
+      total_size_bytes: totalSize,
+      total_size_mb: (totalSize / 1048576).toFixed(1),
+      per_domain: perDomain,
+    };
+    writeLog(SRC, "INFO", {
+      event: "KC-STATS-COMPUTED",
+      detail: `entries=${result.total_entries} size=${result.total_size_mb}MB`,
+    });
+    return result;
+  } catch (err: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-STATS-FAILED",
+      detail: err.message || String(err),
+    });
+    return {
+      manifest_version: "1.2.0",
+      total_entries: 0,
+      total_files: 0,
+      total_size_bytes: 0,
+      total_size_mb: "0.0",
+      per_domain: {},
+    };
+  }
+}
+
+/**
+ * Search the knowledge manifest with optional domain, tags, and keyword filters.
+ *
+ * KC-15: Query DB first via knowledge_entries + knowledge_entry_tags.
+ * Falls back to manifest-based search if DB unavailable.
+ *
+ * @param opts - Search options: domain, tags, keyword (all optional)
+ * @returns Matching entries
+ */
+export function searchManifest(opts: SearchOptions = {}): KnowledgeEntry[] {
+  // ── Try DB search first ──────────────────────────────────────
+  try {
+    const db = getDb({ skipSchema: true });
+
+    // Check table existence
+    const tableCheck = db
+      .query(
+        "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name='knowledge_entries'",
+      )
+      .get() as { c: number } | null;
+    if (!tableCheck || tableCheck.c === 0) {
+      // Fall through to manifest-based search
+      throw new Error("knowledge_entries table not found");
+    }
+
+    // Build WHERE clauses
+    const conditions: string[] = ["ke.status = 'active'"];
+    const params: any[] = [];
+
+    if (opts.domain) {
+      conditions.push("LOWER(ke.domain) = LOWER(?)");
+      params.push(opts.domain);
+    }
+
+    if (opts.keyword) {
+      const kw = `%${opts.keyword.toLowerCase()}%`;
+      conditions.push(
+        "(LOWER(ke.library_id) LIKE ? OR LOWER(ke.query_topic) LIKE ? OR EXISTS (SELECT 1 FROM knowledge_entry_tags kt2 WHERE kt2.entry_id = ke.id AND LOWER(kt2.tag) LIKE ?))",
+      );
+      params.push(kw, kw, kw);
+    }
+
+    if (opts.tags && opts.tags.length > 0) {
+      // Tag filter via knowledge_entry_tags — entry must have at least one matching tag
+      const tagPlaceholders = opts.tags.map(() => "LOWER(?)").join(",");
+      const lowerTags = opts.tags.map((t) => t.toLowerCase());
+      conditions.push(
+        `EXISTS (SELECT 1 FROM knowledge_entry_tags kt3
+                  WHERE kt3.entry_id = ke.id
+                    AND LOWER(kt3.tag) IN (${tagPlaceholders}))`,
+      );
+      params.push(...lowerTags);
+    }
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const entryRows = db
+      .query(
+        `SELECT id, library_id, query_topic, domain, tags, source, status
+         FROM knowledge_entries ke
+         ${whereClause}
+         ORDER BY id`,
+      )
+      .all(...params) as DbEntryRow[];
+
+    // Build results with files and tags
+    const results: KnowledgeEntry[] = [];
+    for (const er of entryRows) {
+      const fileRows = getEntryFilesFromDb(db, er.id);
+      const tagList = getEntryTagsFromDb(db, er.id, er.tags);
+
+      results.push({
+        library_id: er.library_id,
+        query_topic: er.query_topic,
+        domain: er.domain || "fallback",
+        tags: tagList,
+        files: fileRows,
+      });
+    }
+
+    writeLog(SRC, "INFO", {
+      event: "KC-SEARCH-PERFORMED",
+      detail: `domain=${opts.domain || "all"} tags=[${(opts.tags || []).join(",")}] keyword=${opts.keyword || "none"} hits=${results.length} source=db`,
+    });
+    return results;
+  } catch (dbErr: any) {
+    // ── Fallback: manifest-based search ─────────────────────────
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-DB-FALLBACK",
+      detail: `searchManifest DB query failed: ${dbErr.message || String(dbErr)} — falling back to file`,
+    });
+
+    try {
+      const manifest = readManifest();
+      let results = manifest.entries;
+
+      if (opts.domain) {
+        const d = opts.domain.toLowerCase();
+        results = results.filter((e) => (e.domain || "").toLowerCase() === d);
+      }
+
+      if (opts.tags && opts.tags.length > 0) {
+        const lowerTags = opts.tags.map((t) => t.toLowerCase());
+        results = results.filter((e) =>
+          (e.tags || []).some((t) => lowerTags.includes(t.toLowerCase())),
+        );
+      }
+
+      if (opts.keyword) {
+        const kw = opts.keyword.toLowerCase();
+        results = results.filter(
+          (e) =>
+            (e.library_id || "").toLowerCase().includes(kw) ||
+            (e.query_topic || "").toLowerCase().includes(kw) ||
+            (e.tags || []).some((t) => t.toLowerCase().includes(kw)),
+        );
+      }
+
+      writeLog(SRC, "INFO", {
+        event: "KC-SEARCH-PERFORMED",
+        detail: `domain=${opts.domain || "all"} tags=[${(opts.tags || []).join(",")}] keyword=${opts.keyword || "none"} hits=${results.length} source=file-fallback`,
+      });
+      return results;
+    } catch (fallbackErr: any) {
+      writeLog(SRC, "ERROR", {
+        event: "KC-SEARCH-FAILED",
+        detail: fallbackErr.message || String(fallbackErr),
+      });
+      return [];
+    }
+  }
+}
+
+/**
+ * Add a knowledge entry.
+ *
+ * KC-15: DB-first — upsertEntryInDb() (single transaction), then
+ * materializeManifestFromDb() to update index.json.
+ * Falls back to file-based write if DB upsert fails.
+ *
+ * @param data - Entry data: library_id, query_topic, domain, tags, file
+ * @returns Result with action type ("added"|"updated"|"dedup") and the entry
+ */
+export function addEntry(data: AddEntryParams): AddEntryResult {
+  // ── Try DB upsert first ──────────────────────────────────────
+  const dbResult = upsertEntryInDb(data);
+  if (dbResult) {
+    // Materialize the updated DB to index.json
+    materializeManifestFromDb();
+    return dbResult;
+  }
+
+  // ── Fallback: file-based write (legacy path) ─────────────────
+  writeLog(SRC, "WARN", {
+    event: "UC7KS-DB-FALLBACK",
+    detail: `upsertEntryInDb failed — falling back to file-based addEntry`,
+  });
+
+  try {
+    const manifest = readManifest();
+    const file = data.file;
+
+    // Dedup check: same SHA-256?
+    const existingByHash = manifest.entries.find(
+      (e) => e.files && e.files.some((f) => f.sha256 === file.sha256),
+    );
+    if (existingByHash) {
+      const ef = existingByHash.files.find((f) => f.sha256 === file.sha256);
+      if (ef) {
+        ef.access_count = (ef.access_count || 0) + 1;
+        ef.last_accessed = new Date().toISOString();
+      }
+      if (Array.isArray(data.tags)) {
+        existingByHash.tags = [
+          ...new Set([...(existingByHash.tags || []), ...data.tags]),
+        ];
+      }
+      writeManifestViaFile(manifest);
+      writeLog(SRC, "INFO", {
+        event: "KC-ENTRY-DEDUP",
+        detail: `action=dedup library=${data.library_id} topic="${data.query_topic}" (file fallback)`,
+      });
+      return { action: "dedup", entry: existingByHash };
+    }
+
+    let entry = manifest.entries.find(
+      (e) =>
+        e.library_id === data.library_id && e.query_topic === data.query_topic,
+    );
+    if (entry) {
+      entry.files.push({
+        ...file,
+        created_at: file.created_at || new Date().toISOString(),
+        access_count: 0,
+        status: "active",
+      });
+      if (Array.isArray(data.tags))
+        entry.tags = [...new Set([...(entry.tags || []), ...data.tags])];
+      writeManifestViaFile(manifest);
+      writeLog(SRC, "INFO", {
+        event: "KC-ENTRY-UPDATED",
+        detail: `action=updated library=${data.library_id} topic="${data.query_topic}" (file fallback)`,
+      });
+      return { action: "updated", entry };
+    }
+
+    entry = {
+      library_id: data.library_id,
+      query_topic: data.query_topic,
+      domain: data.domain || "fallback",
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      files: [
+        {
+          ...file,
+          created_at: file.created_at || new Date().toISOString(),
+          access_count: 0,
+          status: "active",
+        },
+      ],
+    };
+    manifest.entries.push(entry);
+    writeManifestViaFile(manifest);
+    writeLog(SRC, "INFO", {
+      event: "KC-ENTRY-ADDED",
+      detail: `action=added library=${data.library_id} topic="${data.query_topic}" (file fallback)`,
+    });
+    return { action: "added", entry };
+  } catch (err: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-ENTRY-ADD-FAILED",
+      detail: `library=${data.library_id} err=${err.message || String(err)}`,
+    });
+    return {
+      action: "added",
+      entry: {
+        library_id: data.library_id,
+        query_topic: data.query_topic,
+        domain: data.domain || "fallback",
+        tags: data.tags || [],
+        files: [{ ...data.file, status: "active" }],
+      },
+    };
+  }
+}
+
+/**
+ * KC-15: Direct file-based write (legacy path for fallback only).
+ * Uses atomic tmp+rename per UC7-007.
+ */
+function writeManifestViaFile(manifest: KnowledgeManifest): void {
+  const indexPath = getIndexPath();
+  try {
+    manifest.last_updated = new Date().toISOString();
+    manifest.total_entries = (manifest.entries || []).length;
+    // Phase 3: Unique tmp path per process to avoid collisions
+    const tmp = `${indexPath}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2), "utf-8");
+    fs.renameSync(tmp, indexPath);
+    writeLog(SRC, "INFO", {
+      event: "KC-MANIFEST-WRITTEN-VIA-FILE",
+      detail: `entries=${manifest.total_entries}`,
+    });
+  } catch (err: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-MANIFEST-WRITE-VIA-FILE-FAILED",
+      detail: err.message || String(err),
+    });
+  }
+}
+
+// ── Convenience Helpers ────────────────────────────────────────
+
+/** Search entries by domain (exact match, case-insensitive) */
+export function searchByDomain(domain: string): KnowledgeEntry[] {
+  return searchManifest({ domain });
+}
+
+/** Search entries matching any of the given tags */
+export function searchByTags(tags: string[]): KnowledgeEntry[] {
+  return searchManifest({ tags });
+}
+
+/** Get a single entry by its library_id (exact match) */
+export function getEntryByLibraryId(
+  libraryId: string,
+): KnowledgeEntry | undefined {
+  const manifest = readManifest();
+  return manifest.entries.find((e) => e.library_id === libraryId);
+}
+
+/** Search entries by keyword */
+export function searchByKeyword(keyword: string): KnowledgeEntry[] {
+  return searchManifest({ keyword });
+}
+
+// ── Materialization Export (for scripts that need explicit materialization) ──
+
+/**
+ * KC-15: Explicitly materialize the DB state to index.json.
+ * Used by maintainer scripts to force a file regeneration.
+ *
+ * @returns true on success
+ */
+export function materializeToFile(): boolean {
+  return materializeManifestFromDb();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// A6: Materialization Job Tracking (KC-15 extend)
+// ═══════════════════════════════════════════════════════════════
+
+/** A row from the knowledge_materialization_jobs table */
+export interface MaterializationJob {
+  id: number;
+  entry_id: number | null;
+  job_type: string;
+  status: string;
+  file_path: string | null;
+  sha256: string | null;
+  error_msg: string | null;
+  retry_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+/**
+ * A6: Get all pending or failed materialization jobs.
+ * Queries knowledge_materialization_jobs WHERE status IN ('pending', 'failed').
+ *
+ * @returns Array of pending/failed job rows (empty array if none or DB error)
+ */
+export function getPendingMaterializationJobs(): MaterializationJob[] {
+  try {
+    const db = getDb({ skipSchema: true });
+    const rows = db
+      .query(
+        `SELECT * FROM knowledge_materialization_jobs
+         WHERE status IN ('pending', 'failed')
+         ORDER BY created_at DESC`,
+      )
+      .all() as MaterializationJob[];
+    writeLog(SRC, "INFO", {
+      event: "KC-JOBS-QUERIED",
+      detail: `pending_failed=${rows.length}`,
+    });
+    return rows;
+  } catch (err: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-JOBS-QUERY-FAILED",
+      detail: err.message || String(err),
+    });
+    return [];
+  }
+}
+
+/**
+ * A6: Retry all failed materialization jobs.
+ * For each job with status='failed' or 'pending':
+ *   1. Increments retry_count and sets status='pending'
+ *   2. Re-attempts materializeManifestFromDb()
+ *   3. On success: materializeManifestFromDb() inserts a new 'written' job row,
+ *      and the original row is marked 'superseded'
+ *   4. On failure: the job row already gets a new 'failed' row from
+ *      materializeManifestFromDb(), and the original remains 'pending'
+ *
+ * @returns Summary: { attempted, succeeded, failed }
+ */
+export function retryFailedJobs(): {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+} {
+  writeLog(SRC, "INFO", {
+    event: "KC-MATERIALIZE-REQUESTED",
+    detail: "retryFailedJobs invoked",
+  });
+
+  // Phase 3: Acquire lock before retrying to avoid concurrent materialization.
+  // If lock is busy, return zero-attempted result (do not process the same
+  // batch while another materialization is in progress).
+  if (!acquireMaterializationLock("retryFailedJobs")) {
+    writeLog(SRC, "INFO", {
+      event: "KC-JOBS-RETRIED",
+      detail:
+        "skipped — materialization lock busy (concurrent materialization in progress)",
+    });
+    return { attempted: 0, succeeded: 0, failed: 0 };
+  }
+
+  try {
+    const jobs = getPendingMaterializationJobs();
+    let succeeded = 0;
+    let failed = 0;
+
+    for (const job of jobs) {
+      try {
+        const db = getDb({ skipSchema: true });
+        const now = Date.now();
+
+        // Increment retry_count and mark as pending
+        db.run(
+          `UPDATE knowledge_materialization_jobs
+           SET status = 'pending', retry_count = retry_count + 1, updated_at = ?
+           WHERE id = ?`,
+          [now, job.id],
+        );
+
+        // Re-attempt materialization (lock already held by retryFailedJobs,
+        // so materializeManifestFromDb's internal lock acquire will see
+        // the same PID and reclaim via stale detection)
+        const result = materializeManifestFromDb();
+
+        if (result) {
+          succeeded++;
+          // materializeManifestFromDb() already inserted a new 'written' job row.
+          // Mark this original row as superseded.
+          db.run(
+            `UPDATE knowledge_materialization_jobs
+             SET status = 'superseded', updated_at = ?
+             WHERE id = ?`,
+            [now, job.id],
+          );
+        } else {
+          failed++;
+          // materializeManifestFromDb() already inserted a new 'failed' job row.
+        }
+      } catch (err: any) {
+        failed++;
+        writeLog(SRC, "ERROR", {
+          event: "KC-JOB-RETRY-FAILED",
+          detail: `job_id=${job.id} err=${err.message || String(err)}`,
+        });
+      }
+    }
+
+    writeLog(SRC, "INFO", {
+      event: "KC-JOBS-RETRIED",
+      detail: `attempted=${jobs.length} succeeded=${succeeded} failed=${failed}`,
+    });
+
+    return { attempted: jobs.length, succeeded, failed };
+  } finally {
+    releaseMaterializationLock();
+  }
+}
+
+// ── Index Path Export (for backward compat) ────────────────────
+
+/** KC-11: Export the index.json path for scripts that need it directly. */
+export function getIndexJsonPath(): string {
+  return getIndexPath();
+}
+
+// ── Re-export for backward compat ──────────────────────────────
+
+/**
+ * KC-15: Import manifest file to DB (migration/fallback only).
+ * Delegates to db-manager.backfillKnowledgeFromManifest().
+ */
+export { backfillKnowledgeFromManifest as importManifestFileToDb } from "./db-manager";
