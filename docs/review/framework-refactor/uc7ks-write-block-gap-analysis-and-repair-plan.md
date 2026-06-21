@@ -2,7 +2,54 @@
 
 **生成日期**: 2026-06-19
 **基于**: SA-STORAGE-LANDSCAPE-EXEC-001 → SA-STORAGE-IMPLEMENT-001 → SA-DIAG-DOMAIN-ATTEST-001 → SA-DIAG-WRITE-BLOCK-GAP-001 四次诊断派遣 + 后续讨论
-**状态**: 修复计划（尚未实施）
+**状态**: ✅ 已完成实施 — 全部 14 项修复(M1-M14)实施完毕，代码已提交至仓库 (2026-06-21)
+
+---
+
+## 实施摘要：全部 14 项修复已完成 (2026-06-21)
+
+以下 M1–M14 修复项已全部实施，对应代码已提交至仓库。原始四层缺口（G1–G4）、域不匹配问题、save_path 冲突均已修复。详细验证方案见 [uc7ks-write-block-verification-plan.md](./uc7ks-write-block-verification-plan.md)。
+
+### P0 — Write-Block 绕过级（全部完成）
+
+|    #    | 状态 | 修改文件                          | 实施内容                                                                     |
+| :-----: | :--: | --------------------------------- | ---------------------------------------------------------------------------- |
+| **M1**  |  ✅  | `.opencode/agents/Super-Admin.md` | mcp_tools 添加 `knowledge_cache_attest`                                      |
+| **M2**  |  ✅  | `.opencode/subagent-preamble.md`  | 新增 Step 0b+ 强制 `knowledge_cache_attest()`                                |
+| **M3**  |  ✅  | `.opencode/lib/uc7ks-utils.ts`    | Path C 遍历所有 domain，每个 domain attestation.status === "attested" 才放行 |
+| **M11** |  ✅  | `.opencode/lib/uc7ks-utils.ts`    | 新增文件级 domain 检查（filePath → save_path → domain attestation）          |
+
+### P1 — 域一致性 + 数据完整性（全部完成）
+
+|    #    | 状态 | 修改文件                                                                     | 实施内容                                                                 |
+| :-----: | :--: | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **M4**  |  ✅  | `.opencode/tools/module_scope_declare.ts`                                    | 调用时同步更新 DB session_map.domain_id（早期已完成）                    |
+| **M5**  |  ✅  | `.opencode/lib/uc7ks-utils.ts`                                               | Path B Fix v3：仅当已有 >=1 attested domain 时才容忍域不匹配             |
+| **M6**  |  ✅  | `.opencode/subagent-preamble.md`                                             | Step 0a：resolve_domain_id 从可选升级为强制执行                          |
+| **M7**  |  ✅  | `.opencode/agents/{Architect,Coder-BE,Coder-FE,CI-CD-Agent,Meta-Planner}.md` | 审计并添加 `knowledge_cache_attest` 到所有 writable agent mcp_tools      |
+| **M12** |  ✅  | `.opencode/project.config.json`                                              | knowledge_semantic_map.state_management.save_path 改为 "opencode/state/" |
+| **M13** |  ✅  | `.opencode/scripts/framework-self-test.ts`                                   | 新增 save_path 唯一性检查（相同/前缀检测）                               |
+
+### P2 — 自动化质量门禁（全部完成）
+
+|    #    | 状态 | 修改文件                                    | 实施内容                                                      |
+| :-----: | :--: | ------------------------------------------- | ------------------------------------------------------------- |
+| **M8**  |  ✅  | `.opencode/scripts/framework-self-test.ts`  | 新增 writable agent knowledge_cache_attest 注册检查           |
+| **M9**  |  ✅  | `.opencode/tools/knowledge_cache_attest.ts` | 追加 cache_sufficient/insufficiency_reason 字段 + 重试上限    |
+| **M10** |  ✅  | 新建 `.opencode/lib/critical-files.ts`      | 实现 `getCriticalFilesForDomain()`                            |
+| **M14** |  ✅  | `dispatch_subagent.ts` + `opencode.json`    | 扩展 dispatch 权限，子 agent 可直接 target @Knowledge-Curator |
+
+### 缺口关闭状态
+
+|        缺口        | 描述                                                      |    修复项    |   状态    |
+| :----------------: | --------------------------------------------------------- | :----------: | :-------: |
+|       **G1**       | resolve_domain_id 标注为"可选"                            |      M6      | ✅ 已关闭 |
+|       **G2**       | Super-Admin + 其他 agent 缺少 knowledge_cache_attest 注册 |    M1, M7    | ✅ 已关闭 |
+|       **G3**       | Path C 只检查 uc7_001_compliant 布尔                      |      M3      | ✅ 已关闭 |
+|       **G4**       | Path B 任何 compliant=true 都 fallthrough                 |   M5, M11    | ✅ 已关闭 |
+|    **域不匹配**    | DB session_map 与 agent 声明的 domain 不一致              |      M4      | ✅ 已关闭 |
+| **save_path 冲突** | state_management 与 opencode_framework 共用 save_path     |   M12, M13   | ✅ 已关闭 |
+|  **cache 充分性**  | Agent 无法自主判定 cache 是否足够                         | M9, M10, M14 | ✅ 已关闭 |
 
 ---
 
@@ -18,13 +65,13 @@ SA-STORAGE-IMPLEMENT-001 执行时，@Super-Admin 对 .opencode/ 框架文件执
 
 ### 1.2 诊断过程
 
-| 步骤 | 派遣任务 | 发现 |
-|:----:|----------|------|
-| 1 | SA-STORAGE-LANDSCAPE-EXEC-001 | 全景图审查，read_audit Phase 1 一致性确认 |
-| 2 | SA-STORAGE-IMPLEMENT-001 | 实施全景图计划（修改 6 个文件、删除 2 个文件） |
-| 3 | SA-DIAG-DOMAIN-ATTEST-001 | 诊断 resolve_domain_id 和 knowledge_cache_attest 为何未调用 |
-| 4 | SA-DIAG-WRITE-BLOCK-GAP-001 | 诊断 write-block 为何未生效 |
-| 5 | 后续讨论 | 完善修复方案（所有域 attest、文件级 domain 检查、save_path 唯一性、agent 自主 cache 充分性判断） |
+| 步骤 | 派遣任务                      | 发现                                                                                             |
+| :--: | ----------------------------- | ------------------------------------------------------------------------------------------------ |
+|  1   | SA-STORAGE-LANDSCAPE-EXEC-001 | 全景图审查，read_audit Phase 1 一致性确认                                                        |
+|  2   | SA-STORAGE-IMPLEMENT-001      | 实施全景图计划（修改 6 个文件、删除 2 个文件）                                                   |
+|  3   | SA-DIAG-DOMAIN-ATTEST-001     | 诊断 resolve_domain_id 和 knowledge_cache_attest 为何未调用                                      |
+|  4   | SA-DIAG-WRITE-BLOCK-GAP-001   | 诊断 write-block 为何未生效                                                                      |
+|  5   | 后续讨论                      | 完善修复方案（所有域 attest、文件级 domain 检查、save_path 唯一性、agent 自主 cache 充分性判断） |
 
 ### 1.3 诊断结论摘要
 
@@ -37,47 +84,47 @@ checkUC7KSWrite() 的 **3-path 架构**中，Path A（有完整域数据）是�
 ### 2.1 旁路链条
 
 派遣分配 domain_id="state_management"（DB session_map）
-       ↓
-Agent 调用 module_scope_declare("opencode_framework")     ← 域不匹配
-       ↓
+↓
+Agent 调用 module_scope_declare("opencode_framework") ← 域不匹配
+↓
 Agent 调用 knowledge_cache_search("opencode_framework") → true
-       ↓
+↓
 Agent 写文件（9+ safe_edit）但从未调 knowledge_cache_attest
-       ↓
+↓
 checkUC7KSWrite(domainId="state_management")
-       ↓
+↓
 Path A: 按 "state_management" 找数据 → 找不到
-       ↓
+↓
 Path B Fix v3: uc7_001_compliant=true → "容忍域不匹配"
-       ↓
+↓
 Path C: uc7_001_compliant=true → PASS（无 attestation 要求！）
-       ↓
+↓
 ❌ 9 次写操作全部通过
 
 ### 2.2 四层缺口
 
-| 缺口 | 位置 | 描述 |
-|:----:|------|------|
-| **G1** | subagent-preamble.md Step 0a | resolve_domain_id 标注为"可选"注释，agent 跳过 |
-| **G2** | Super-Admin.md mcp_tools | knowledge_cache_attest 从未注册到 agent config |
-| **G3** | checkUC7KSWrite() Path C | 只检查全局 uc7_001_compliant 布尔，无 attestation 要求 |
-| **G4** | checkUC7KSWrite() Path B Fix v3 | 任何 uc7_001_compliant=true 都允许 fallthrough |
+|  缺口  | 位置                            | 描述                                                   |
+| :----: | ------------------------------- | ------------------------------------------------------ |
+| **G1** | subagent-preamble.md Step 0a    | resolve_domain_id 标注为"可选"注释，agent 跳过         |
+| **G2** | Super-Admin.md mcp_tools        | knowledge_cache_attest 从未注册到 agent config         |
+| **G3** | checkUC7KSWrite() Path C        | 只检查全局 uc7_001_compliant 布尔，无 attestation 要求 |
+| **G4** | checkUC7KSWrite() Path B Fix v3 | 任何 uc7_001_compliant=true 都允许 fallthrough         |
 
 ### 2.3 域不匹配根因
 
-| 来源 | 值 | 问题 |
-|:-----|:----|:------|
-| agent_domain_map（config） | Super-Admin → "opencode_framework" | ✅ 正确 |
-| DB session_map.domain_id | "state_management" | ❌ 与 config 不一致 |
-| module_scope_declare() 声明 | "opencode_framework" | ✅ 正确 |
-| checkUC7KSWrite() 查的 | DB 的值 "state_management" | ❌ 过时快照 |
+| 来源                        | 值                                 | 问题                |
+| :-------------------------- | :--------------------------------- | :------------------ |
+| agent_domain_map（config）  | Super-Admin → "opencode_framework" | ✅ 正确             |
+| DB session_map.domain_id    | "state_management"                 | ❌ 与 config 不一致 |
+| module_scope_declare() 声明 | "opencode_framework"               | ✅ 正确             |
+| checkUC7KSWrite() 查的      | DB 的值 "state_management"         | ❌ 过时快照         |
 
 ### 2.4 save_path 冲突
 
-| domain_id | save_path | 问题 |
-|:----------|:----------|:-----|
-| opencode_framework | opencode/framework/ | ✅ |
-| state_management | opencode/framework/ | ❌ **与 opencode_framework 完全相同** |
+| domain_id          | save_path           | 问题                                  |
+| :----------------- | :------------------ | :------------------------------------ |
+| opencode_framework | opencode/framework/ | ✅                                    |
+| state_management   | opencode/framework/ | ❌ **与 opencode_framework 完全相同** |
 
 两个 domain 的 save_path 相同，文件级 domain 检查无法区分文件归属。
 
@@ -96,32 +143,32 @@ knowledge_cache_search 的 sufficient/insufficient 判定是**纯机械的**—�
 
 ### P0 — write-block 绕过级（必须立即修复）
 
-| # | 文件 | 修改内容 | 对应缺口 |
-|:-:|------|----------|:--------:|
-| **M1** | .opencode/agents/Super-Admin.md | mcp_tools 添加 knowledge_cache_attest | G2 |
-| **M2** | .opencode/subagent-preamble.md | Step 0b 后新增 **Step 0b+**：强制调用 knowledge_cache_attest() | G1（部分） |
-| **M3** | .opencode/lib/uc7ks-utils.ts → checkUC7KSWrite() Path C | 遍历 session 所有 domain，**每个 domain 的 attestation.status === "attested"** 才放行写操作。strict/locked 模式阻断写，advisory 模式记录 WARNING 日志并放行 | G3 |
-| **M11** | .opencode/lib/uc7ks-utils.ts → checkUC7KSWrite() | **新增文件级 domain 检查**：根据 filePath 匹配 save_path 找到目标 domain，若该 domain 无 attestation 则阻断写。防止"attest 域 A，写域 B 文件"的绕过 | G4（补充） |
+|    #    | 文件                                                    | 修改内容                                                                                                                                                    |  对应缺口  |
+| :-----: | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------: |
+| **M1**  | .opencode/agents/Super-Admin.md                         | mcp_tools 添加 knowledge_cache_attest                                                                                                                       |     G2     |
+| **M2**  | .opencode/subagent-preamble.md                          | Step 0b 后新增 **Step 0b+**：强制调用 knowledge_cache_attest()                                                                                              | G1（部分） |
+| **M3**  | .opencode/lib/uc7ks-utils.ts → checkUC7KSWrite() Path C | 遍历 session 所有 domain，**每个 domain 的 attestation.status === "attested"** 才放行写操作。strict/locked 模式阻断写，advisory 模式记录 WARNING 日志并放行 |     G3     |
+| **M11** | .opencode/lib/uc7ks-utils.ts → checkUC7KSWrite()        | **新增文件级 domain 检查**：根据 filePath 匹配 save_path 找到目标 domain，若该 domain 无 attestation 则阻断写。防止"attest 域 A，写域 B 文件"的绕过         | G4（补充） |
 
 ### P1 — 域一致性 + 数据完整性
 
-| # | 文件 | 修改内容 | 对应缺口 |
-|:-:|------|----------|:--------:|
-| **M4** | .opencode/tools/module_scope_declare.ts | 调用时同步更新 DB session_map.domain_id 为 agent 声明的值（**✅ 已完成**） | 域不匹配 |
-| **M5** | .opencode/lib/uc7ks-utils.ts → Path B Fix v3 | 仅当 agent **已有 >=1 个 attested domain** 时才容忍域不匹配 | G4 |
-| **M6** | .opencode/subagent-preamble.md | Step 0a：resolve_domain_id 从可选注释升级为**强制执行步骤** | G1 |
-| **M7** | 所有 writable agent configs（Architect, Coder-BE, Coder-FE, CI-CD-Agent, Meta-Planner） | 审计 mcp_tools 是否包含 knowledge_cache_attest，缺失则添加 | G2（扩展） |
-| **M12** | .opencode/project.config.json | knowledge_semantic_map.state_management.save_path 从 "opencode/framework/" 改为 **"opencode/state/"** | save_path 重叠 |
-| **M13** | .opencode/scripts/framework-self-test.ts | 新增 Check：knowledge_semantic_map 中所有 domain 的 save_path **不得相同、不得互为前缀** | save_path 重叠 |
+|    #    | 文件                                                                                    | 修改内容                                                                                              |    对应缺口    |
+| :-----: | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | :------------: |
+| **M4**  | .opencode/tools/module_scope_declare.ts                                                 | 调用时同步更新 DB session_map.domain_id 为 agent 声明的值（**✅ 已完成**）                            |    域不匹配    |
+| **M5**  | .opencode/lib/uc7ks-utils.ts → Path B Fix v3                                            | 仅当 agent **已有 >=1 个 attested domain** 时才容忍域不匹配                                           |       G4       |
+| **M6**  | .opencode/subagent-preamble.md                                                          | Step 0a：resolve_domain_id 从可选注释升级为**强制执行步骤**                                           |       G1       |
+| **M7**  | 所有 writable agent configs（Architect, Coder-BE, Coder-FE, CI-CD-Agent, Meta-Planner） | 审计 mcp_tools 是否包含 knowledge_cache_attest，缺失则添加                                            |   G2（扩展）   |
+| **M12** | .opencode/project.config.json                                                           | knowledge_semantic_map.state_management.save_path 从 "opencode/framework/" 改为 **"opencode/state/"** | save_path 重叠 |
+| **M13** | .opencode/scripts/framework-self-test.ts                                                | 新增 Check：knowledge_semantic_map 中所有 domain 的 save_path **不得相同、不得互为前缀**              | save_path 重叠 |
 
 ### P2 — 自动化质量门禁
 
-| # | 文件 | 修改内容 |
-|:-:|------|----------|
-| **M8** | .opencode/scripts/framework-self-test.ts | 新增 Check：所有 writable agent 的 mcp_tools 已注册 knowledge_cache_attest |
-| **M9** | .opencode/tools/knowledge_cache_attest.ts | 追加 cache_sufficient 字段 + insufficiency_reason 字段。当 agent 判断 cache 不足时，写入 attestation.status="insufficient"，阻断写操作（M3/M11 天然生效） |
-| **M10** | 新建 .opencode/lib/critical-files.ts | 函数 getCriticalFilesForDomain(domain_id)：从 knowledge_semantic_map 拿 save_path → 匹配 index.json 中 files[].path.startsWith(save_path) → 返回文件列表 |
-| **M14** | dispatch_subagent.ts + opencode.json | 扩展 dispatch_subagent 权限，允许所有子 agent 以 @Knowledge-Curator 为 target 直接派遣（无需回 Orchestrator 中转） |
+|    #    | 文件                                      | 修改内容                                                                                                                                                  |
+| :-----: | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M8**  | .opencode/scripts/framework-self-test.ts  | 新增 Check：所有 writable agent 的 mcp_tools 已注册 knowledge_cache_attest                                                                                |
+| **M9**  | .opencode/tools/knowledge_cache_attest.ts | 追加 cache_sufficient 字段 + insufficiency_reason 字段。当 agent 判断 cache 不足时，写入 attestation.status="insufficient"，阻断写操作（M3/M11 天然生效） |
+| **M10** | 新建 .opencode/lib/critical-files.ts      | 函数 getCriticalFilesForDomain(domain_id)：从 knowledge_semantic_map 拿 save_path → 匹配 index.json 中 files[].path.startsWith(save_path) → 返回文件列表  |
+| **M14** | dispatch_subagent.ts + opencode.json      | 扩展 dispatch_subagent 权限，允许所有子 agent 以 @Knowledge-Curator 为 target 直接派遣（无需回 Orchestrator 中转）                                        |
 
 ---
 
@@ -221,10 +268,10 @@ retry_count >= max_retries → 不再自动路由到 KC，
 
 无需额外阻断逻辑。M3（Path C 所有域 attest）和 M11（文件级 domain 检查）天然生效：
 
-| attestation.status | M3/M11 行为 |
-|:-----------------:|:-----------:|
-| "attested" | ✅ 写操作放行 |
-| "insufficient" | ❌ 阻断写操作 |
+|    attestation.status    |  M3/M11 行为  |
+| :----------------------: | :-----------: |
+|        "attested"        | ✅ 写操作放行 |
+|      "insufficient"      | ❌ 阻断写操作 |
 | undefined（未调 attest） | ❌ 阻断写操作 |
 
 ---
@@ -268,11 +315,11 @@ dispatch_subagent 的权限描述限制为 @Orchestrator 和 @Super-Admin 可用
 
 ### 修改方案
 
-| 文件 | 修改内容 |
-|------|----------|
-| opencode.json | dispatch_subagent 权限扩展为所有 agent 允许以 Knowledge-Curator 为 target |
-| dispatch_subagent.ts | tool 描述 + 权限检查更新：非 @Orchestrator/@Super-Admin 仅允许 target Knowledge-Curator |
-| 各 agent config mcp_tools | 添加 dispatch_subagent（如有缺失） |
+| 文件                      | 修改内容                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| opencode.json             | dispatch_subagent 权限扩展为所有 agent 允许以 Knowledge-Curator 为 target               |
+| dispatch_subagent.ts      | tool 描述 + 权限检查更新：非 @Orchestrator/@Super-Admin 仅允许 target Knowledge-Curator |
+| 各 agent config mcp_tools | 添加 dispatch_subagent（如有缺失）                                                      |
 
 ### 安全约束
 
@@ -307,11 +354,11 @@ checkUC7KSWrite() → 通过后
 
 ### 协作效果
 
-| 场景 | 纯 M3 | M3 + M11 |
-|:-----|:-----:|:--------:|
-| 写了域 A 文件，域 A 已 attest | ✅ 通过 | ✅ 通过 |
-| 写了域 B 文件，域 B 在状态中存在但未 attest | ❌ 阻断 | ❌ 阻断 |
-| 写了域 B 文件，但域 B 在状态中完全没出现过 | ✅ **通过（绕过）** | ❌ **阻断** |
+| 场景                                        |        纯 M3        |  M3 + M11   |
+| :------------------------------------------ | :-----------------: | :---------: |
+| 写了域 A 文件，域 A 已 attest               |       ✅ 通过       |   ✅ 通过   |
+| 写了域 B 文件，域 B 在状态中存在但未 attest |       ❌ 阻断       |   ❌ 阻断   |
+| 写了域 B 文件，但域 B 在状态中完全没出现过  | ✅ **通过（绕过）** | ❌ **阻断** |
 
 **M3 只能拦截"状态中存在但未 attest"的域，M11 拦截"状态中不存在"的域。两者缺一不可。**
 
@@ -319,24 +366,24 @@ checkUC7KSWrite() → 通过后
 
 ## 八、修改文件总表
 
-| P | 文件 | M# | 修改性质 |
-|:-:|------|:--:|:--------:|
-| **P0** | .opencode/agents/Super-Admin.md | M1 | 添加一行 |
-| **P0** | .opencode/subagent-preamble.md | M2 | 新增一个步骤 |
-| **P0** | .opencode/lib/uc7ks-utils.ts | M3, M11 | 修改 Path C 逻辑 + 新增文件级检查 |
-| ✅ 已完成 | .opencode/tools/module_scope_declare.ts | M4 | 加 DB 同步（已实现） |
-| P1 | .opencode/subagent-preamble.md | M6 | 升级为强制执行 |
-| P1 | .opencode/agents/Architect.md | M7 | 审计 + 添加 |
-| P1 | .opencode/agents/Coder-BE.md | M7 | 审计 + 添加 |
-| P1 | .opencode/agents/Coder-FE.md | M7 | 审计 + 添加 |
-| P1 | .opencode/agents/CI-CD-Agent.md | M7 | 审计 + 添加 |
-| P1 | .opencode/agents/Meta-Planner.md | M7 | 审计 + 添加 |
-| P1 | .opencode/project.config.json | M12 | 修改 save_path |
-| P1 | .opencode/scripts/framework-self-test.ts | M13 | 新增 Check |
-| P2 | .opencode/scripts/framework-self-test.ts | M8 | 新增 Check |
-| P2 | .opencode/tools/knowledge_cache_attest.ts | M9 | 追加 cache_sufficient 字段 + insufficiency_reason 字段 |
-| P2 | 新建 .opencode/lib/critical-files.ts | M10 | 新文件 |
-| P2 | .opencode/lib/dispatch_subagent.ts + opencode.json | M14 | 扩展 dispatch 权限，子 agent 可派遣 KC |
+|     P     | 文件                                               |   M#    |                        修改性质                        |
+| :-------: | -------------------------------------------------- | :-----: | :----------------------------------------------------: |
+|  **P0**   | .opencode/agents/Super-Admin.md                    |   M1    |                        添加一行                        |
+|  **P0**   | .opencode/subagent-preamble.md                     |   M2    |                      新增一个步骤                      |
+|  **P0**   | .opencode/lib/uc7ks-utils.ts                       | M3, M11 |           修改 Path C 逻辑 + 新增文件级检查            |
+| ✅ 已完成 | .opencode/tools/module_scope_declare.ts            |   M4    |                  加 DB 同步（已实现）                  |
+|    P1     | .opencode/subagent-preamble.md                     |   M6    |                     升级为强制执行                     |
+|    P1     | .opencode/agents/Architect.md                      |   M7    |                      审计 + 添加                       |
+|    P1     | .opencode/agents/Coder-BE.md                       |   M7    |                      审计 + 添加                       |
+|    P1     | .opencode/agents/Coder-FE.md                       |   M7    |                      审计 + 添加                       |
+|    P1     | .opencode/agents/CI-CD-Agent.md                    |   M7    |                      审计 + 添加                       |
+|    P1     | .opencode/agents/Meta-Planner.md                   |   M7    |                      审计 + 添加                       |
+|    P1     | .opencode/project.config.json                      |   M12   |                     修改 save_path                     |
+|    P1     | .opencode/scripts/framework-self-test.ts           |   M13   |                       新增 Check                       |
+|    P2     | .opencode/scripts/framework-self-test.ts           |   M8    |                       新增 Check                       |
+|    P2     | .opencode/tools/knowledge_cache_attest.ts          |   M9    | 追加 cache_sufficient 字段 + insufficiency_reason 字段 |
+|    P2     | 新建 .opencode/lib/critical-files.ts               |   M10   |                         新文件                         |
+|    P2     | .opencode/lib/dispatch_subagent.ts + opencode.json |   M14   |         扩展 dispatch 权限，子 agent 可派遣 KC         |
 
 **总计：4 个 P0 + 5 个 P1（M4 已完成）+ 4 个 P2 = 13 项待执行修改，涉及最多 13 个文件。**
 
@@ -344,11 +391,11 @@ checkUC7KSWrite() → 通过后
 
 ## 九、相关文档
 
-| 文档 | 用途 |
-|------|------|
-| storage-entity-landscape.md | 框架存储实体全景图 |
+| 文档                            | 用途                             |
+| ------------------------------- | -------------------------------- |
+| storage-entity-landscape.md     | 框架存储实体全景图               |
 | uc7ks-write-block-root-cause.md | write-block 根因分析（先前诊断） |
-| uc7ks-read-before-write-plan.md | UC7KS read-before-write 设计 |
-| UC7KS-PIPELINE-STANDARD.md | UC7KS 知识获取管道标准 |
-| enforcement-modes-standard.md | advisory/strict/locked 模式定义 |
-| TEMPLATE_VARIABLE_STANDARD.md | 模板变量标准 |
+| uc7ks-read-before-write-plan.md | UC7KS read-before-write 设计     |
+| UC7KS-PIPELINE-STANDARD.md      | UC7KS 知识获取管道标准           |
+| enforcement-modes-standard.md   | advisory/strict/locked 模式定义  |
+| TEMPLATE_VARIABLE_STANDARD.md   | 模板变量标准                     |

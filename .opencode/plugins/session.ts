@@ -10,9 +10,10 @@
 //   - session.idle:     Clear interrupt sentinel when session idles
 //
 // @author @Super-Admin
-// @version 2.1.0
+// @version 2.2.0
 // @since 2026-06-10
 // @since 2026-06-14  FW-INTERRUPT-GUARD — added session.error / compacted / idle
+// @since 2026-06-21  FW-SESSION-HOOK-WRITE-CONSTRAINT — check resolved_from before writing dagTaskId/domainId
 // ═══════════════════════════════════════════════════════════════
 
 import { writeLog } from "../lib/log-manager";
@@ -20,7 +21,10 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isInterruptError } from "../lib/interrupt-guard";
 import { atomicWriteJson } from "../lib/state-utils";
 import { dbWriteSessionMap } from "../lib/db-state-manager";
-import { resolveTaskId, resolveDomainId } from "../lib/agent-resolver";
+import {
+  resolveTaskIdWithSource,
+  resolveDomainIdWithSource,
+} from "../lib/agent-resolver";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
@@ -71,12 +75,51 @@ async function chatMessageHook(input: any, _output: any) {
   try {
     // S25-v4: Write session → agent mapping to DB (replaces .session_map.json)
     // dbWriteSessionMap handles upsert (INSERT OR REPLACE) and preserves created_at.
-    // FW-DISPATCH-TASKID-IMMUTABLE: Also persist dagTaskId so compliance-gate MCP
-    // server can validate sub-agent task_id integrity without session context.
-    // FW-UC7KS-DOMAIN-001: Also persist domainId for per-domain UC7KS write checks.
-    const dagTaskId = resolveTaskId(sid);
-    const domainId = resolveDomainId(sid);
-    dbWriteSessionMap(sid, agent, dagTaskId || undefined, domainId || undefined);
+    //
+    // FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
+    //   dagTaskId and domainId are supplementary metadata that MUST come from
+    //   the session_map DB itself (exact per-session match). We must NOT write
+    //   dagTaskId/domainId resolved from ambiguous sources (ctx_newest, dispatch_ctx,
+    //   dispatch_target) because these could belong to a concurrent dispatch
+    //   and would pollute the per-session mapping. Only 'session_map' source
+    //   guarantees the data belongs to THIS specific session.
+    //
+    //   The agent mapping (sid → agent) is always written because it comes from
+    //   the hook input directly — no resolution ambiguity.
+    const taskIdResult = resolveTaskIdWithSource(sid);
+    const domainResult = resolveDomainIdWithSource(sid);
+
+    const dagTaskId =
+      taskIdResult.resolved_from === "session_map"
+        ? taskIdResult.value || undefined
+        : undefined;
+    const domainId =
+      domainResult.resolved_from === "session_map"
+        ? domainResult.value || undefined
+        : undefined;
+
+    if (taskIdResult.resolved_from !== "session_map" && taskIdResult.value) {
+      writeLog("session", "runtime", {
+        sessionID: sid,
+        agent,
+        agentType: agent,
+        level: "WARN",
+        event: "CHAT-HOOK",
+        detail: `dagTaskId skipped: resolved_from=${taskIdResult.resolved_from} (value=${taskIdResult.value}) — only session_map source accepted`,
+      });
+    }
+    if (domainResult.resolved_from !== "session_map" && domainResult.value) {
+      writeLog("session", "runtime", {
+        sessionID: sid,
+        agent,
+        agentType: agent,
+        level: "WARN",
+        event: "CHAT-HOOK",
+        detail: `domainId skipped: resolved_from=${domainResult.resolved_from} (value=${domainResult.value}) — only session_map source accepted`,
+      });
+    }
+
+    dbWriteSessionMap(sid, agent, dagTaskId, domainId);
 
     // Keep in-memory map for session.compacted reset
     _sessionMap[sid] = { agent, ts: new Date().toISOString() };

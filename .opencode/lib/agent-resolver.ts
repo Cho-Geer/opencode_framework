@@ -21,6 +21,67 @@ export function getSessionMapPath(): string {
   );
 }
 
+/**
+ * FW-FIX-CHILD-SESSION-MAP (2026-06-21, @Super-Admin, Issue #117):
+ * Helper to find the dag_task_id for a child agent that doesn't yet have its
+ * own session_map row. Scans ctx/ files (per-dispatch, dagTaskId-keyed) and
+ * falls back to the legacy .dispatch_ctx file.
+ *
+ * This enables the Priority 1.5 child slot lookup in resolveTaskIdWithSource
+ * and resolveDomainIdWithSource: the child slot at session_id=
+ * "dispatch:child:{dag_task_id}" stores domain_id and agent type proactively.
+ *
+ * Returns dag_task_id string or null if not found.
+ */
+function _findChildDagTaskId(): string | null {
+  const dispatchDir = path.join(
+    process.env.OPENCODE_ROOT || ".",
+    ".task_temp",
+    "_dispatch",
+  );
+  // Try ctx/ files first (per-dispatch, no race condition)
+  try {
+    const ctxDir = path.join(dispatchDir, "ctx");
+    if (fs.existsSync(ctxDir)) {
+      const files = fs.readdirSync(ctxDir).filter((f) => f.endsWith(".json"));
+      if (files.length === 1) {
+        const ctx = JSON.parse(
+          fs.readFileSync(path.join(ctxDir, files[0]), "utf8"),
+        );
+        if (ctx?.dagTaskId) return ctx.dagTaskId;
+      }
+      // Multiple ctx files: return the newest by createdAt as a best guess
+      // (the child dispatch slot lookup will verify it exists)
+      if (files.length > 1) {
+        let newest: { dagTaskId: string; createdAt: number } | null = null;
+        for (const file of files) {
+          try {
+            const ctx = JSON.parse(
+              fs.readFileSync(path.join(ctxDir, file), "utf8"),
+            );
+            if (
+              ctx?.dagTaskId &&
+              (!newest || ctx.createdAt > newest.createdAt)
+            ) {
+              newest = { dagTaskId: ctx.dagTaskId, createdAt: ctx.createdAt };
+            }
+          } catch {}
+        }
+        if (newest?.dagTaskId) return newest.dagTaskId;
+      }
+    }
+  } catch {}
+  // Fall back to .dispatch_ctx (legacy)
+  try {
+    const ctxPath = path.join(dispatchDir, ".dispatch_ctx");
+    if (fs.existsSync(ctxPath)) {
+      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
+      if (ctx?.dagTaskId) return ctx.dagTaskId;
+    }
+  } catch {}
+  return null;
+}
+
 export function resolveAgentFromSessionMap(sessionID: string): string {
   if (!sessionID) return "";
   try {
@@ -211,6 +272,30 @@ export function writeDispatchCtx(
   }
 }
 
+/**
+ * Metadata type for resolution source tracking.
+ * FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
+ *   Added to allow callers to distinguish exact per-session matches
+ *   (session_map) from ambiguous/legacy sources (ctx_newest, dispatch_ctx,
+ *   dispatch_target). The chat.message hook must only write dagTaskId/domainId
+ *   to session_map when resolved_from === 'session_map' — writing from
+ *   ambiguous sources could pollute the per-session mapping with data from
+ *   a concurrent dispatch.
+ */
+export interface ResolvedWithSource<T> {
+  value: T;
+  resolved_from:
+    | "session_map" // Exact per-session match from dbReadSessionMap()
+    | "ctx_single" // Single ctx/ file — likely this session's dispatch
+    | "ctx_exact" // Multiple ctx/ files, exact dagTaskId match found
+    | "ctx_newest" // Multiple ctx/ files, picked newest (ambiguous!)
+    | "dispatch_ctx" // Legacy .dispatch_ctx singleton (race condition!)
+    | "dispatch_target" // Legacy _dispatch_target.json (even less reliable)
+    | "child_slot" // dispatch:child:{dagTaskId} synthetic slot
+    | "ctx_ambiguous" // Multiple ctx/ files, no exact match (returned null)
+    | "none"; // No resolution — returned empty/null
+}
+
 /** Resolve task ID from session_map DB, per-dispatch ctx/ files, .dispatch_ctx, or _dispatch_target.json
  *  FW-DISPATCH-TASKID-IMMUTABLE: session_map DB is primary (per-session,
  *  immune to concurrent race conditions). Per-dispatch ctx/ is next (isolated
@@ -221,8 +306,28 @@ export function writeDispatchCtx(
  *  IMPLEMENT-DISPATCH-CTX-FIX (2026-06-19, @Super-Admin): Priority 2 inserts
  *  per-dispatch ctx/ directory scan to eliminate the race condition from
  *  the shared .dispatch_ctx file.
+ *
+ *  FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
+ *    Wraps resolveTaskIdWithSource() for backward compatibility.
  */
 export function resolveTaskId(sessionId?: string): string {
+  return resolveTaskIdWithSource(sessionId).value;
+}
+
+/**
+ * Source-aware version of resolveTaskId — returns resolution metadata
+ * so callers can distinguish exact session_map matches from ambiguous
+ * ctx/ or legacy .dispatch_ctx sources.
+ *
+ * FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
+ *   Chat.message hook MUST NOT write dagTaskId to session_map when
+ *   resolved_from is anything other than 'session_map'. Writing from
+ *   ctx_newest/dispatch_ctx/dispatch_target could pollute the per-session
+ *   mapping with data from a concurrent dispatch.
+ */
+export function resolveTaskIdWithSource(
+  sessionId?: string,
+): ResolvedWithSource<string> {
   // Priority 1: session_map DB (per-session dag_task_id, immune to race)
   if (sessionId) {
     try {
@@ -231,12 +336,36 @@ export function resolveTaskId(sessionId?: string): string {
         writeLog(SRC, "INFO", {
           event: "TASKID-RESOLVED",
           dag_task_id: entry.dag_task_id,
-          detail: `resolveTaskId: session_map DB → ${entry.dag_task_id}`,
+          detail: `resolveTaskIdWithSource: session_map DB → ${entry.dag_task_id}`,
         });
-        return entry.dag_task_id;
+        return { value: entry.dag_task_id, resolved_from: "session_map" };
       }
     } catch {}
   }
+
+  // Priority 1.5: FW-FIX-CHILD-SESSION-MAP (2026-06-21, @Super-Admin, Issue #117)
+  // When a child agent starts, its own session_map row hasn't been written yet.
+  // Check the "dispatch:child:{dag_task_id}" synthetic slot that dispatch-subagent.ts
+  // writes proactively at dispatch time.
+  try {
+    const childDagTaskId = _findChildDagTaskId();
+    if (childDagTaskId) {
+      const childSlotEntry = dbReadSessionMap(
+        `dispatch:child:${childDagTaskId}`,
+      );
+      if (childSlotEntry?.dag_task_id) {
+        writeLog(SRC, "INFO", {
+          event: "TASKID-RESOLVED-CHILD-SLOT",
+          dag_task_id: childSlotEntry.dag_task_id,
+          detail: `resolveTaskIdWithSource: child slot ${childDagTaskId} → ${childSlotEntry.dag_task_id}`,
+        });
+        return {
+          value: childSlotEntry.dag_task_id,
+          resolved_from: "child_slot",
+        };
+      }
+    }
+  } catch {}
 
   // Priority 2 (NEW): Per-dispatch context files (dagTaskId-keyed, no overwrites)
   // Each dispatch writes its own {dagTaskId}.json — no race condition possible.
@@ -259,12 +388,15 @@ export function resolveTaskId(sessionId?: string): string {
             writeLog(SRC, "INFO", {
               event: "DISPATCH-CTX-READ",
               dagTaskId: ctx.dagTaskId,
-              detail: `resolveTaskId: ctx/ single file → ${ctx.dagTaskId}`,
+              detail: `resolveTaskIdWithSource: ctx/ single file → ${ctx.dagTaskId}`,
             });
-            return ctx.dagTaskId;
+            return { value: ctx.dagTaskId, resolved_from: "ctx_single" };
           }
         }
-        // Multiple dispatch contexts: return the newest by createdAt
+        // FW-SESSION-HOOK-WRITE-CONSTRAINT: Multiple dispatch contexts
+        // → mark as ctx_newest (ambiguous). The chat.message hook
+        // SHOULD NOT write this to session_map because we cannot
+        // guarantee which dispatch this session belongs to.
         let newest: { dagTaskId: string; createdAt: number } | null = null;
         for (const file of files) {
           try {
@@ -283,16 +415,16 @@ export function resolveTaskId(sessionId?: string): string {
           writeLog(SRC, "INFO", {
             event: "DISPATCH-CTX-READ",
             dagTaskId: newest.dagTaskId,
-            detail: `resolveTaskId: ctx/ newest → ${newest.dagTaskId}`,
+            detail: `resolveTaskIdWithSource: ctx/ newest → ${newest.dagTaskId}`,
           });
-          return newest.dagTaskId;
+          return { value: newest.dagTaskId, resolved_from: "ctx_newest" };
         }
       }
     }
   } catch (e: any) {
     writeLog(SRC, "ERROR", {
       event: "DISPATCH-CTX-READ-ERROR",
-      detail: `resolveTaskId ctx/ scan failed: ${e?.message ?? e}`,
+      detail: `resolveTaskIdWithSource ctx/ scan failed: ${e?.message ?? e}`,
     });
   }
 
@@ -311,9 +443,9 @@ export function resolveTaskId(sessionId?: string): string {
         writeLog(SRC, "WARN", {
           event: "DISPATCH-CTX-FALLBACK",
           dagTaskId: ctx.dagTaskId,
-          detail: `resolveTaskId: LEGACY .dispatch_ctx fallback → ${ctx.dagTaskId}`,
+          detail: `resolveTaskIdWithSource: LEGACY .dispatch_ctx fallback → ${ctx.dagTaskId}`,
         });
-        return ctx.dagTaskId;
+        return { value: ctx.dagTaskId, resolved_from: "dispatch_ctx" };
       }
     }
   } catch {}
@@ -327,10 +459,11 @@ export function resolveTaskId(sessionId?: string): string {
     );
     if (fs.existsSync(p)) {
       const d = JSON.parse(fs.readFileSync(p, "utf8"));
-      if (d.task_id) return d.task_id;
+      if (d.task_id)
+        return { value: d.task_id, resolved_from: "dispatch_target" };
     }
   } catch {}
-  return "";
+  return { value: "", resolved_from: "none" };
 }
 
 /** Resolve domain ID from session_map DB, per-dispatch ctx/ files, or .dispatch_ctx file.
@@ -343,8 +476,28 @@ export function resolveTaskId(sessionId?: string): string {
  *    resolveDomainId() had the SAME race condition as resolveTaskId() —
  *    the shared .dispatch_ctx singleton was overwritten by concurrent
  *    dispatches. Fixed with ctx/ directory scan at Priority 2.
+ *
+ *  FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
+ *    Wraps resolveDomainIdWithSource() for backward compatibility.
  */
 export function resolveDomainId(sessionId?: string): string | null {
+  return resolveDomainIdWithSource(sessionId).value;
+}
+
+/**
+ * Source-aware version of resolveDomainId — returns resolution metadata
+ * so callers can distinguish exact session_map matches from ambiguous
+ * ctx/ or legacy .dispatch_ctx sources.
+ *
+ * FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
+ *   Chat.message hook MUST NOT write domainId to session_map when
+ *   resolved_from is anything other than 'session_map'. Writing from
+ *   ctx_single/dispatch_ctx could pollute the per-session mapping
+ *   with data from a concurrent dispatch.
+ */
+export function resolveDomainIdWithSource(
+  sessionId?: string,
+): ResolvedWithSource<string | null> {
   // Priority 1: session_map DB (per-session domain_id, immune to race)
   if (sessionId) {
     try {
@@ -353,12 +506,41 @@ export function resolveDomainId(sessionId?: string): string | null {
         writeLog(SRC, "INFO", {
           event: "DOMAIN-RESOLVED",
           domain_id: entry.domain_id,
-          detail: `resolveDomainId: session_map DB → ${entry.domain_id}`,
+          detail: `resolveDomainIdWithSource: session_map DB → ${entry.domain_id}`,
         });
-        return entry.domain_id;
+        return { value: entry.domain_id, resolved_from: "session_map" };
       }
     } catch {}
   }
+
+  // Priority 1.5: FW-FIX-CHILD-SESSION-MAP (2026-06-21, @Super-Admin, Issue #117)
+  // When a child agent starts, its own session_map row hasn't been written yet
+  // (session.ts chatMessageHook writes it later). But dispatch-subagent.ts writes
+  // a "child dispatch slot" at session_id="dispatch:child:{dag_task_id}" that
+  // contains the agent type and domain_id. This enables the child to resolve
+  // its domain_id via session_map (Priority 1 semantics) before its own row exists.
+  //
+  // Strategy: Get dag_task_id from ctx/ files or .dispatch_ctx, construct the
+  // synthetic session_id, and look it up in session_map.
+  try {
+    const childDagTaskId = _findChildDagTaskId();
+    if (childDagTaskId) {
+      const childSlotEntry = dbReadSessionMap(
+        `dispatch:child:${childDagTaskId}`,
+      );
+      if (childSlotEntry?.domain_id) {
+        writeLog(SRC, "INFO", {
+          event: "DOMAIN-RESOLVED-CHILD-SLOT",
+          domain_id: childSlotEntry.domain_id,
+          detail: `resolveDomainIdWithSource: child slot ${childDagTaskId} → ${childSlotEntry.domain_id}`,
+        });
+        return {
+          value: childSlotEntry.domain_id,
+          resolved_from: "child_slot",
+        };
+      }
+    }
+  } catch {}
 
   // Priority 2 (NEW): Per-dispatch context files (dagTaskId-keyed, no overwrites)
   // Same ctx/ directory scan pattern as resolveTaskId() Priority 2.
@@ -379,30 +561,51 @@ export function resolveDomainId(sessionId?: string): string | null {
           writeLog(SRC, "INFO", {
             event: "DISPATCH-CTX-READ-DOMAIN",
             domainId: ctx.domainId,
-            detail: `resolveDomainId: ctx/ single file → ${ctx.domainId}`,
+            detail: `resolveDomainIdWithSource: ctx/ single file → ${ctx.domainId}`,
           });
-          return ctx.domainId;
+          return { value: ctx.domainId, resolved_from: "ctx_single" };
         }
       }
-      // Multiple: return newest by createdAt
-      let newest: { domainId: string; createdAt: number } | null = null;
-      for (const file of files) {
-        try {
-          const ctx = JSON.parse(
-            fs.readFileSync(path.join(ctxDir, file), "utf8"),
-          );
-          if (ctx?.domainId && (!newest || ctx.createdAt > newest.createdAt)) {
-            newest = ctx;
+      // Multiple: try dagTaskId exact match instead of returning newest by createdAt.
+      // P2 FIX (fix_resolveDomainId_P2_v1, @Super-Admin): The "newest-by-createdAt"
+      // heuristic could return the wrong domain when concurrent dispatches write
+      // multiple ctx files. Instead: (a) try exact dagTaskId match from session_map DB,
+      // (b) if no match, return null rather than guessing.
+      if (files.length > 1) {
+        // Look up dagTaskId from session_map DB using the sessionId
+        let dagTaskId: string | null = null;
+        if (sessionId) {
+          try {
+            const entry = dbReadSessionMap(sessionId);
+            dagTaskId = entry?.dag_task_id || null;
+          } catch {}
+        }
+        if (dagTaskId) {
+          // ctx files are named {dagTaskId}.json — try exact match
+          const exactFile = files.find((f) => f === dagTaskId + ".json");
+          if (exactFile) {
+            try {
+              const ctx = JSON.parse(
+                fs.readFileSync(path.join(ctxDir, exactFile), "utf8"),
+              );
+              if (ctx?.domainId) {
+                writeLog(SRC, "INFO", {
+                  event: "DISPATCH-CTX-READ-DOMAIN",
+                  domainId: ctx.domainId,
+                  detail: `resolveDomainIdWithSource: ctx/ exact match → ${ctx.domainId} (dagTaskId=${dagTaskId})`,
+                });
+                return { value: ctx.domainId, resolved_from: "ctx_exact" };
+              }
+            } catch {}
           }
-        } catch {}
-      }
-      if (newest?.domainId) {
-        writeLog(SRC, "INFO", {
-          event: "DISPATCH-CTX-READ-DOMAIN",
-          domainId: newest.domainId,
-          detail: `resolveDomainId: ctx/ newest → ${newest.domainId}`,
+        }
+        // No dagTaskId match found: ambiguous — return null instead of guessing
+        writeLog(SRC, "WARN", {
+          event: "DISPATCH-CTX-AMBIGUOUS",
+          fileCount: files.length,
+          detail: `resolveDomainIdWithSource: ctx/ AMBIGUOUS (${files.length} files, no dagTaskId match)`,
         });
-        return newest.domainId;
+        return { value: null, resolved_from: "ctx_ambiguous" };
       }
     }
   } catch (e: any) {
@@ -426,14 +629,14 @@ export function resolveDomainId(sessionId?: string): string | null {
         writeLog(SRC, "WARN", {
           event: "DISPATCH-CTX-FALLBACK-DOMAIN",
           domainId: ctx.domainId,
-          detail: `resolveDomainId: LEGACY .dispatch_ctx fallback → ${ctx.domainId}`,
+          detail: `resolveDomainIdWithSource: LEGACY .dispatch_ctx fallback → ${ctx.domainId}`,
         });
-        return ctx.domainId;
+        return { value: ctx.domainId, resolved_from: "dispatch_ctx" };
       }
     }
   } catch {}
 
-  return null;
+  return { value: null, resolved_from: "none" };
 }
 
 /**

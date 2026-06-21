@@ -2,14 +2,16 @@
  * read-track-after.ts — READ-BEFORE-APPROVE plugin
  * ═══════════════════════════════════════════════════════════
  * Hooks into `tool.execute.after` for the `read` tool.
- * Records every read event to read_audit.jsonl via lib/read-audit.ts.
+ * Records every read event to read_audit SQLite via shared API
+ * (lib/read-audit.ts). The shared API handles DB-first access
+ * with JSONL fallback.
  *
  * This plugin is the physical enforcement layer for READ-BEFORE-APPROVE:
  * without it, compliance-gate.ts cannot verify that an approver actually
  * read HANDOVER.md before calling approve_deliverables.
  *
  * @author @Super-Admin
- * @version 1.0.0
+ * @version 1.1.0 — P0-E (#107): Updated comment — read_audit.jsonl → read_audit SQLite via shared API (2026-06-21)
  * @since 2026-06-18
  *
  * Design review: docs/review/framework-refactor/read-before-approve-plan.md

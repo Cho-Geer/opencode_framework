@@ -53,11 +53,14 @@ export const STATE_PATHS = {
   projectConfig: () => resolveStatePath(".opencode/project.config.json"),
   // Flat architecture: 13 independent plugins. Reference gate-core.ts as
   // the canonical entry for checkPluginIntegrity() hash verification.
-  pluginSelf: () =>
-    resolveStatePath(
-      ".opencode/lib/gate-core.ts",
-    ),
+  pluginSelf: () => resolveStatePath(".opencode/lib/gate-core.ts"),
   auditLog: () => resolveStatePath(".task_temp/_global/audit_log.jsonl"),
+  /**
+   * Read audit JSONL path (Phase 2: DB-only writes, JSONL retained as read-only
+   * fallback for historical data per SA-STORAGE-IMPLEMENT-001).
+   * @see read-audit.ts
+   */
+  readAudit: () => resolveStatePath(".opencode/state/read_audit.jsonl"),
 };
 
 // ── File System Helpers ──
@@ -75,7 +78,10 @@ export function ensureDir(dirPath: string): void {
  * Wraps computeSHA256 from lib/gate-core.
  * Gate-core returns null on failure; wrapper returns "" for backward compat.
  */
-export function computeFileHash(filePath: string, computeSHA256Fn: (p: string) => string | null): string {
+export function computeFileHash(
+  filePath: string,
+  computeSHA256Fn: (p: string) => string | null,
+): string {
   return computeSHA256Fn(filePath) ?? "";
 }
 
@@ -87,18 +93,39 @@ export function isSourceFile(filePath: string): boolean {
 }
 
 // Fix D: Unified isBusinessSourceFile — uses regex+prefix approach from tdd-after.ts
-const FRAMEWORK_PATH_PREFIXES = [".opencode/", "docs/", ".task_temp/", "node_modules/"];
+const FRAMEWORK_PATH_PREFIXES = [
+  ".opencode/",
+  "docs/",
+  ".task_temp/",
+  "node_modules/",
+];
 const FRAMEWORK_ROOT_FILES = new Set([
-  "opencode.json", "AGENTS.md", "contract.yaml", "Task.DAG.json",
-  "TECH_DEBT_REGISTRY.md", "WAIVE.md", "PROJECT_REFERENCE.md", "Project.graph",
+  "opencode.json",
+  "AGENTS.md",
+  "contract.yaml",
+  "Task.DAG.json",
+  "TECH_DEBT_REGISTRY.md",
+  "WAIVE.md",
+  "PROJECT_REFERENCE.md",
+  "Project.graph",
 ]);
-const TDD_EXCLUDE_PATTERNS = [/\.spec\./, /\.test\./, /\/test\//, /\.config\./, /__tests__\//];
+const TDD_EXCLUDE_PATTERNS = [
+  /\.spec\./,
+  /\.test\./,
+  /\/test\//,
+  /\.config\./,
+  /__tests__\//,
+];
 
 export function isBusinessSourceFile(fp: string): boolean {
   if (!fp || !isSourceFile(fp)) return false;
-  for (const prefix of FRAMEWORK_PATH_PREFIXES) { if (fp.startsWith(prefix)) return false; }
+  for (const prefix of FRAMEWORK_PATH_PREFIXES) {
+    if (fp.startsWith(prefix)) return false;
+  }
   if (FRAMEWORK_ROOT_FILES.has(fp)) return false;
-  for (const pat of TDD_EXCLUDE_PATTERNS) { if (pat.test(fp)) return false; }
+  for (const pat of TDD_EXCLUDE_PATTERNS) {
+    if (pat.test(fp)) return false;
+  }
   return true;
 }
 
@@ -124,7 +151,10 @@ export function isStaleSession(session: {
   return hoursElapsed > 24;
 }
 
-export function filePathMatches(args: Record<string, unknown>, pattern: string): boolean {
+export function filePathMatches(
+  args: Record<string, unknown>,
+  pattern: string,
+): boolean {
   if (!args) return false;
   const fp = ((args.filePath || args.path || "") as string).replace(/\\/g, "/");
   return fp.includes(pattern);
@@ -142,16 +172,26 @@ export function capFailedEntries(entries: any[]): any[] {
     return ts && new Date(ts).getTime() > cutoff;
   });
   return capped.length > FAILED_MAX_ENTRIES
-    ? capped.slice(-FAILED_MAX_ENTRIES) : capped;
+    ? capped.slice(-FAILED_MAX_ENTRIES)
+    : capped;
 }
 
 // ── TDD Constants ──
 
-export const TDD_AGENTS = new Set(["@Coder-BE", "@Coder-FE", "Coder-BE", "Coder-FE"]);
+export const TDD_AGENTS = new Set([
+  "@Coder-BE",
+  "@Coder-FE",
+  "Coder-BE",
+  "Coder-FE",
+]);
 export const TDD_MODIFY_TOOLS = new Set(["write", "edit", "safe_edit"]);
 
-export function isTddAgent(agent: string): boolean { return TDD_AGENTS.has(agent); }
-export function isTddTool(tool: string): boolean { return TDD_MODIFY_TOOLS.has(tool); }
+export function isTddAgent(agent: string): boolean {
+  return TDD_AGENTS.has(agent);
+}
+export function isTddTool(tool: string): boolean {
+  return TDD_MODIFY_TOOLS.has(tool);
+}
 
 // ── Atomic JSON Write ──
 
@@ -162,7 +202,6 @@ export function atomicWriteJson(filePath: string, data: any): void {
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
   fs.renameSync(tmp, filePath);
 }
-
 
 // ── Atomic Sub-State Write (P2-A: DB Transaction + JSON Dual-Write) ──
 

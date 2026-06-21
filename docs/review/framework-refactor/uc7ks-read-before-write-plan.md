@@ -1,9 +1,9 @@
 # UC7-001 读后写约束加固方案 —— Read-Before-Write
 
-**版本**: v1.1.0  
-**日期**: 2026-06-18  
+**版本**: v1.2.0  
+**日期**: 2026-06-21  
 **作者**: @Orchestrator / Codex Audit  
-**状态**: implemented  
+**状态**: implemented + post-E2E remediation required  
 **关联**: UC7-001, UC7-001c, UC7-009, read-before-approve-plan.md, read-audit.ts, read-track-after.ts  
 **审核结论**: 方向正确，但 v1.0.0 对 OpenCode 工具注册、shell 写路径解析、legacy 迁移、合规门/自测/提示文档同步和日志来源定义不充分；本版补齐后才可作为实施方案。
 
@@ -756,3 +756,630 @@ Phase 4: 严格化与验证
 | 8 | `.opencode/plugins/uc7ks-after.ts` | ~110 | 修改 — 不再自动 sufficient |
 | 9 | `.opencode/state/schemas/knowledge-cache-state.schema.json` | 200 | 修改 — 双段结构 |
 | 10 | `.opencode/state/machine.json` | — | — (状态更新) |
+
+---
+
+## §9 Post-E2E Findings: 空 read 证据与并行 domain 解析
+
+**来源**: E2E-READ-WRITE-v2 S3, PARALLEL-TEST-A  
+**结论**: 两个问题均属实，且都不是 MCP/插件注册问题；应在现有 custom tool、dispatch context library、self-test/E2E 层修复。
+
+### §9.1 Finding 1: `knowledge_cache_attest` 接受空 `files_read`
+
+| 字段 | 内容 |
+| --- | --- |
+| 严重度 | ⚠️ validation_gap |
+| 来源 | E2E-READ-WRITE-v2 S3 |
+| 影响 | agent 可以在 discovery sufficient 后提交空 `files_read: []`，绕过“至少读过一个缓存文件”的实质要求 |
+
+#### 根因
+
+当前 `.opencode/tools/knowledge_cache_attest.ts` 已经按官方 OpenCode custom tool 规范实现为 `.opencode/tools/*.ts` + `export default tool()`，但输入验证仍缺一条最小基数约束：
+
+1. `args.files_read` 使用 `tool.schema.array(tool.schema.string())`，没有 `.min(1)` 或运行时等价检查。
+2. Step 2 的 `files_read ⊆ discovered_files` 检查在空数组上 vacuously true。
+3. Step 3 的 read-audit 交叉验证只遍历 `filesRead`，空数组不会产生 `notRead`。
+4. Step 5 写入 attestation 时允许 `files_read=[]`，DB `knowledge_attestation.evidence_file_count` 会被写成 `0`，但状态仍可能是 `attested`。
+
+这违反了本方案 §2.3 的语义：`files_read` 必须是 agent 实际通过 OpenCode `read` 工具打开过的缓存文件子集，而不是可为空的装饰字段。
+
+#### 修复方案
+
+修改 `.opencode/tools/knowledge_cache_attest.ts`，在 discovery sufficient 后、Step 2 子集验证前加入 fail-closed 运行时校验：
+
+```typescript
+const normalizedFilesRead = (args.files_read || [])
+  .map((f) => String(f || "").trim())
+  .filter(Boolean);
+
+if (normalizedFilesRead.length === 0) {
+  writeLog(SRC, "ERROR", {
+    sessionID: sessionId,
+    agent,
+    taskId,
+    domainId: domain,
+    event: "UC7KS-ATTEST-FAIL-EMPTY-FILES",
+    detail: "files_read must contain at least one actually read cache file",
+  });
+  try { incrementAuditCounter("total_attestation_failures"); } catch {}
+  return JSON.stringify({
+    attested: false,
+    step: 2,
+    error:
+      "files_read must contain at least one cache file that you actually opened with the read tool.",
+    discovered_files: discovery.discovered_files,
+    next_step:
+      "Use the read tool on one or more discovered_files, then call knowledge_cache_attest again.",
+  });
+}
+
+filesRead = Array.from(new Set(normalizedFilesRead));
+```
+
+Implementation notes:
+
+- 保留 tool schema 的兼容性；不要依赖新版 Zod `.min(1)` 是否被 OpenCode runtime 正确缓存。
+- 运行时校验必须走 `writeLog()`，事件名固定为 `UC7KS-ATTEST-FAIL-EMPTY-FILES`。
+- `knowledge_attestation.evidence_file_count` 必须大于 0 才允许 `status='attested'`。
+- `reason` 与 `content_summary` 的非空校验保留，但不能替代 `files_read.length > 0`。
+
+#### 验收
+
+| 场景 | 预期 |
+| --- | --- |
+| `knowledge_cache_attest(files_read=[])` | rejected，event=`UC7KS-ATTEST-FAIL-EMPTY-FILES` |
+| `knowledge_cache_attest(files_read=[""])` | rejected，同上 |
+| `knowledge_cache_attest(files_read=["valid.md"])` 且 read-audit 有记录 | attested |
+| `knowledge_attestation.evidence_file_count=0` 且 `status='attested'` | self-test fail |
+
+新增测试：
+
+- `.opencode/tools/__tests__/knowledge_cache_attest.test.ts`: 空数组/空字符串数组应失败。
+- `.opencode/scripts/framework-self-test.ts`: 静态检查 `UC7KS-ATTEST-FAIL-EMPTY-FILES` 和 `evidence_file_count > 0` 约束。
+
+### §9.2 Finding 2: 并行派遣时 `resolve_domain_id()` 返回错误 domain
+
+| 字段 | 内容 |
+| --- | --- |
+| 严重度 | ⚠️ domain_mismatch |
+| 来源 | PARALLEL-TEST-A |
+| 现象 | 并行派遣 Coder-FE/Coder-BE 时，`resolve_domain_id()` 可能返回与 `ctx/{dagTaskId}.json` 不一致的 domain，例如 `frontend_ui` vs `backend_api` |
+
+#### 根因
+
+当前实现混用了 three sources：
+
+1. `session_map` DB: `resolveDomainId(sessionId)` 的首选。
+2. `.task_temp/_dispatch/ctx/{dagTaskId}.json`: per-dispatch 文件，理论上 race-free。
+3. `.task_temp/_dispatch/.dispatch_ctx`: legacy singleton，天然会被并发覆盖。
+
+问题出在 fallback 选择规则和 session 归属：
+
+- `.opencode/tools/resolve_domain_id.ts` 只接收 `sessionId`，不接收 `dag_task_id`，因此无法读取精确的 `ctx/{dagTaskId}.json`。
+- `.opencode/lib/agent-resolver.ts::resolveDomainId(sessionId)` 在 DB 读不到时会扫描整个 `ctx/` 目录；当有多个 ctx 文件时，它选择 `createdAt` 最新的那个。这在并行派遣下会读取“另一个 dispatch”的 domain。
+- `.opencode/tools/dispatch_subagent.ts` 在派遣时把 `dagTaskId/domainId` 写入父 `context.sessionID` 的 `session_map`，而不是尚未创建的子 agent session。子 agent 调用 `resolve_domain_id(context.sessionID)` 时，DB 往往没有自己的 session row，进而落入危险的 `ctx/ newest` fallback。
+- `.opencode/plugins/session.ts` 的 `chat.message` hook 会调用 `resolveTaskId(sid)` / `resolveDomainId(sid)` 后写 `session_map`。如果这一步使用了 `ctx/ newest`，错误 domain 会被固化到 DB。
+- `resolve_domain_id.ts` 返回的 `resolved_from` 目前只按 `domainId ? "session_map" : "none"` 填写，无法区分 DB、exact ctx、newest ctx、legacy ctx，掩盖了误解析。
+
+#### 修复方案
+
+新增一个明确的 dispatch context 解析契约，禁止安全路径使用 ambient newest fallback。
+
+**A. `agent-resolver.ts`**
+
+新增 typed helper：
+
+```typescript
+export interface DispatchContextResolution {
+  domainId: string | null;
+  dagTaskId: string | null;
+  agentType: string | null;
+  resolvedFrom:
+    | "session_map"
+    | "dispatch_context"
+    | "ctx_exact"
+    | "ctx_single"
+    | "legacy_dispatch_ctx"
+    | "none"
+    | "ambiguous";
+  confidence: "exact" | "single-fallback" | "legacy" | "none" | "ambiguous";
+  candidates?: string[];
+  detail: string;
+}
+
+export function resolveDispatchContext(input: {
+  sessionId?: string;
+  dagTaskId?: string;
+}): DispatchContextResolution;
+```
+
+Resolution order:
+
+1. `session_map` by exact `sessionId`; if `dagTaskId` is provided, require DB row `dag_task_id` to match or report mismatch.
+2. `dispatch_context` by exact `(sessionId)` or exact `(dagTaskId)` if available.
+3. `ctx/{dagTaskId}.json` exact match when `dagTaskId` is provided.
+4. `ctx/` single-file fallback only when there is exactly one context file.
+5. legacy `.dispatch_ctx` only when no `ctx/*.json` exists or when it matches the provided `dagTaskId`.
+6. If multiple `ctx/*.json` exist and no exact `dagTaskId` is available, return `resolvedFrom="ambiguous"` and `domainId=null`; do not choose newest.
+
+Required log events:
+
+| Source | Event | Level |
+| --- | --- | --- |
+| `agent-resolver` | `DOMAIN-RESOLVED` | INFO |
+| `agent-resolver` | `DOMAIN-RESOLVE-MISMATCH` | ERROR |
+| `agent-resolver` | `DOMAIN-RESOLVE-AMBIGUOUS` | WARN |
+| `agent-resolver` | `DISPATCH-CTX-READ-ERROR` | ERROR |
+
+**B. `resolve_domain_id.ts`**
+
+Keep official custom tool shape; do not add MCP server. Update args:
+
+```typescript
+args: {
+  sessionId: tool.schema.string().optional(),
+  dag_task_id: tool.schema.string().optional(),
+}
+```
+
+Call `resolveDispatchContext({ sessionId, dagTaskId: args.dag_task_id })` and return:
+
+```json
+{
+  "domain_id": "backend_api",
+  "dag_task_id": "PARALLEL-BE",
+  "agent_type": "Coder-BE",
+  "resolved_from": "ctx_exact",
+  "confidence": "exact",
+  "ambiguous": false
+}
+```
+
+If ambiguous, return no domain and an actionable error:
+
+```json
+{
+  "domain_id": null,
+  "resolved_from": "ambiguous",
+  "confidence": "ambiguous",
+  "error": "Multiple dispatch contexts exist. Re-run resolve_domain_id with dag_task_id.",
+  "candidates": ["PARALLEL-BE", "PARALLEL-FE"]
+}
+```
+
+**C. `.opencode/subagent-preamble.md` and `/search-knowledge`**
+
+Update Step 0a so agents pass the exact dispatch-assigned task id:
+
+```text
+resolve_domain_id(sessionId=context.sessionID, dag_task_id="<dispatch-assigned task_id>")
+module_scope_declare(module=<returned domain_id>, task_id="<same task_id>")
+```
+
+**D. `session.ts`**
+
+The session hook must not write `session_map` with a domain resolved from `ambiguous`, `ctx_newest`, or legacy fallback. It may:
+
+- write only agent identity when no exact task/domain context exists;
+- preserve an existing exact `dag_task_id/domain_id`;
+- log `SESSION-MAP-DOMAIN-SKIPPED` when context is ambiguous.
+
+**E. `task-after.ts`**
+
+After Task returns and `subSessionId` is known, write canonical child mapping:
+
+```typescript
+dbWriteSessionMap(subSessionId, subAgentType, dagTaskId, domainId);
+dbInsertDispatchContext(..., subSessionId, dagTaskId, subAgentType, domainId);
+```
+
+This write should happen even when no matching `dispatch_queue` running entry is found; in that case insert `dispatch_context` with nullable `dispatch_id` or add a separate helper that records context without queue linkage. If schema keeps `dispatch_id INTEGER REFERENCES dispatch_queue(id)` nullable, use `null`.
+
+**F. `dispatch_subagent.ts`**
+
+Stop treating the parent `context.sessionID` as the canonical child dispatch context. Parent session may record last dispatch for diagnostics, but UC7KS domain enforcement must use child session + exact `dag_task_id` or `dispatch_context`.
+
+#### 验收
+
+| 场景 | 预期 |
+| --- | --- |
+| 并行 Coder-BE + Coder-FE，均调用 `resolve_domain_id(dag_task_id=...)` | BE=`backend_api`，FE=`frontend_ui` |
+| 多个 `ctx/*.json` 存在，调用 `resolve_domain_id()` 不带 `dag_task_id` | 返回 ambiguous，不返回错误 domain |
+| `session_map.domain_id` 与 `ctx/{dagTaskId}.json.domainId` 不一致 | 返回 mismatch，strict/locked 下阻断 Step 0a |
+| `task-after.ts` 完成后查询 child `session_map` | child session row 包含正确 agent/task/domain |
+| self-test | 新增 PARALLEL-DOMAIN-CONTEXT 检查通过 |
+
+新增测试：
+
+- `.opencode/lib/__tests__/agent-resolver.test.ts`: 多 ctx 无 dagTaskId 返回 ambiguous；精确 dagTaskId 返回 exact ctx。
+- `.opencode/tools/__tests__/resolve_domain_id.test.ts`: 工具 JSON 输出包含 `resolved_from/confidence`。
+- E2E `PARALLEL-TEST-A`: 并行派遣 BE/FE，验证 `resolve_domain_id` 与 ctx 文件一致。
+
+### §9.2.1 实施策略：C+A 混合（env 作 bootstrap + session hook 持久化）
+
+> **决策日期**：2026-06-21
+> **决策依据**：在 §9.2 的参数化方案（"B 路径"）基础上叠加 env 传输（"A 路径"最小范围复活）与子 session 启动时写库（"C 路径"），解决参数化方案在 plugin 层断裂的问题（`scope-before.ts` / `uc7ks-after.ts` / `session.ts` 的 `input` 中没有 `dag_task_id`，无法参数化传入）。
+
+#### 核心思路
+
+1. **env 仅作 bootstrap 通道**：`dispatch_subagent.ts` 给子 agent 进程注入 `process.env.OPENCODE_DAG_TASK_ID`（不复用历史 `FRAMEWORK_TASK_ID` 名，避免与 `FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18)` 决策冲突，也避免 gate-before P2-1 误读旧名触发 stale task ID 阻断）。
+2. **子 session 启动时一次性写库**：`plugins/session.ts` 的 `session.created` hook 读取该 env，调 `dbWriteSessionMap(childSessionId, agentType, dagTaskId, domainIdFromCtx)` 把子 agent 自己的 session 行建好，然后 `delete process.env.OPENCODE_DAG_TASK_ID` 防止嵌套 dispatch 污染。
+3. **`resolveDomainId` 签名不变**：子 agent 调它时 P1（session_map）命中自己的行，不再 fall into 危险的 P2 `ctx/ newest`。
+4. **P2 兜底按 §9.2 改为 `ambiguous`**：若多文件且无 dagTaskId 命中，返回 `{ resolvedFrom: "ambiguous", domainId: null }`，不再取 newest。
+5. **保留 §9.2 的 `dagTaskId` 可选参数**：tool 调用路径（`resolve_domain_id.ts` / `module_scope_declare` / `/search-knowledge`）继续使用显式参数化，作为精确匹配的辅助通道。
+
+#### 数据流（并行 Coder-BE + Coder-FE）
+
+```
+parent (Orchestrator)
+  │
+  ├── dispatch_subagent(Coder-BE, dag_task_id="PARALLEL-BE")
+  │     ├─ write ctx/PARALLEL-BE.json  {dagTaskId, domainId="backend_api", agentType}
+  │     ├─ dbWriteSessionMap(parentSid, "Coder-BE", "PARALLEL-BE", "backend_api")   ← 父行（保留诊断用）
+  │     └─ spawn child process env={..., OPENCODE_DAG_TASK_ID="PARALLEL-BE"}
+  │
+  ├── dispatch_subagent(Coder-FE, dag_task_id="PARALLEL-FE")
+  │     ├─ write ctx/PARALLEL-FE.json  {dagTaskId, domainId="frontend_ui", agentType}
+  │     ├─ dbWriteSessionMap(parentSid, "Coder-FE", "PARALLEL-FE", "frontend_ui")   ← 父行（被覆盖，仅诊断用）
+  │     └─ spawn child process env={..., OPENCODE_DAG_TASK_ID="PARALLEL-FE"}
+  │
+  ▼
+
+child Coder-BE (new session ses_be)
+  │
+  ├── session.created hook (plugins/session.ts)
+  │     ├─ read process.env.OPENCODE_DAG_TASK_ID = "PARALLEL-BE"
+  │     ├─ read ctx/PARALLEL-BE.json → domainId="backend_api", agentType="Coder-BE"
+  │     ├─ dbWriteSessionMap(ses_be, "Coder-BE", "PARALLEL-BE", "backend_api")     ← ✅ 子行建好
+  │     ├─ writeLog("session", "INFO", { event: "CHILD-SESSION-BOOTSTRAP", ... })
+  │     └─ delete process.env.OPENCODE_DAG_TASK_ID                                ← ✅ 一次性使用
+  │
+  └── 任意后续调用 resolveDomainId(ses_be)
+        └─ P1 session_map → {domain_id:"backend_api", dag_task_id:"PARALLEL-BE"}  ✅ 命中
+
+child Coder-FE (new session ses_fe)
+  └── 同上 → dbWriteSessionMap(ses_fe, "Coder-FE", "PARALLEL-FE", "frontend_ui")
+              resolveDomainId(ses_fe) → frontend_ui  ✅ 命中
+```
+
+#### 改动矩阵（6 个文件 + 2 个测试）
+
+| # | 文件 | 改动 | 优先级 |
+|---|------|------|--------|
+| 1 | `.opencode/tools/dispatch_subagent.ts` | 子进程 env 注入 `OPENCODE_DAG_TASK_ID=dagTaskId`（L535-545 env 块）；保持父 session_map 写入作为诊断数据 | P0 |
+| 2 | `.opencode/plugins/session.ts` | `session.created` hook 增加 bootstrap 逻辑：读 env → 读 ctx → `dbWriteSessionMap` → 清 env | P0 |
+| 3 | `.opencode/lib/agent-resolver.ts` | `resolveDomainId()` P2 多文件分支返回 `{resolvedFrom:"ambiguous", domainId:null}`；函数签名保持，返回值类型扩展为 `string \| null \| {domainId, dagTaskId, resolvedFrom}`（向后兼容：string 路径仍返回 string） | P0 |
+| 4 | `.opencode/tools/resolve_domain_id.ts` | args 增加 `dag_task_id` optional；按 §9.2 返回 `{domain_id, dag_task_id, agent_type, resolved_from, confidence}` JSON | P1 |
+| 5 | `.opencode/subagent-preamble.md` | Step 0a 显式传 `dag_task_id` 给 `resolve_domain_id`；增加 bootstrap 校验注释 | P1 |
+| 6 | `.opencode/commands/search-knowledge.md` | Step 3 调用 `module_scope_declare` 时显式传 `task_id`（与 preamble 保持一致） | P2 |
+| 7 | `.opencode/lib/__tests__/agent-resolver.test.ts` | 新增：多 ctx 无 dagTaskId → ambiguous；精确 dagTaskId → exact ctx；session_map 命中 → 优先于 ctx | P0 |
+| 8 | `.opencode/tools/__tests__/resolve_domain_id.test.ts` | 新增：工具 JSON 输出包含 `resolved_from/confidence`；ambiguous 时返回错误 | P1 |
+
+#### 1. `dispatch_subagent.ts` — env 注入
+
+```typescript
+// .opencode/tools/dispatch_subagent.ts (L535 env block)
+env: {
+  ...process.env,
+  DISPATCH_TASK_DESC: args.task_description,
+  // C+A hybrid: bootstrap child session with its own dag_task_id.
+  // Named OPENCODE_DAG_TASK_ID to avoid collision with the historical
+  // FRAMEWORK_TASK_ID (removed in FW-CLEANUP-FRAMEWORK-TASK-ID 2026-06-18)
+  // and to keep gate-before P2-1 from misreading it as a stale task ID.
+  OPENCODE_DAG_TASK_ID: dagTaskId || "",
+  OPENCODE_DISPATCH_AGENT_TYPE: args.agent_type || "",
+  ...(args.resume_session_id
+    ? { DISPATCH_RESUME_SESSION_ID: args.resume_session_id }
+    : {}),
+},
+```
+
+**约束**：
+
+- 不恢复 `FRAMEWORK_TASK_ID` 名（与清理决策冲突）。
+- 父 session 的 `dbWriteSessionMap(context.sessionID, …)` 调用**保留**（L735），作为"最后一次 dispatch 诊断"数据；但 UC7KS 强制路径不再依赖它。
+- 写入 `ctx/{dagTaskId}.json` 的逻辑保持不变（L695-723）。
+
+**日志**：
+
+```typescript
+writeLog("dispatch_subagent", "INFO", {
+  event: "DISPATCH-ENV-BOOTSTRAP",
+  sessionID: context.sessionID,
+  dagTaskId,
+  agentType: args.agent_type,
+  detail: `OPENCODE_DAG_TASK_ID injected into child env for bootstrap`,
+});
+```
+
+#### 2. `session.ts` — session.created hook 持久化
+
+```typescript
+// .opencode/plugins/session.ts — session.created hook
+import { dbWriteSessionMap, dbReadSessionMap } from "../lib/db-state-manager";
+import { writeLog } from "../lib/log-manager";
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+async function onSessionCreated(input: { sessionID: string }): Promise<void> {
+  const sid = input.sessionID;
+  const dagTaskId = process.env.OPENCODE_DAG_TASK_ID;
+  const agentType = process.env.OPENCODE_DISPATCH_AGENT_TYPE;
+
+  // Bootstrap path: only when env vars are present (child of a dispatch)
+  if (!dagTaskId || !agentType) {
+    writeLog("session", "DEBUG", {
+      event: "SESSION-CREATED-NO-BOOTSTRAP",
+      sessionID: sid,
+      detail: "no OPENCODE_DAG_TASK_ID in env — not a dispatched child",
+    });
+    return;
+  }
+
+  try {
+    // Read ctx file for canonical domainId (source of truth)
+    const ctxDir = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      "ctx",
+    );
+    const ctxPath = path.join(ctxDir, dagTaskId + ".json");
+    let domainId: string | null = null;
+    if (fs.existsSync(ctxPath)) {
+      try {
+        const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
+        if (ctx?.domainId) domainId = ctx.domainId;
+      } catch {
+        /* non-fatal */
+      }
+    }
+
+    // Write child's own session_map row (immune to parallel dispatch race)
+    dbWriteSessionMap(sid, agentType, dagTaskId, domainId || undefined);
+
+    writeLog("session", "INFO", {
+      event: "CHILD-SESSION-BOOTSTRAP",
+      sessionID: sid,
+      dagTaskId,
+      agentType,
+      domainId,
+      detail: `child session_map row created via env bootstrap`,
+    });
+
+    // One-shot: clear env to prevent nested dispatch pollution
+    delete process.env.OPENCODE_DAG_TASK_ID;
+    delete process.env.OPENCODE_DISPATCH_AGENT_TYPE;
+  } catch (e: any) {
+    writeLog("session", "ERROR", {
+      event: "CHILD-SESSION-BOOTSTRAP-FAILED",
+      sessionID: sid,
+      dagTaskId,
+      detail: e.message || String(e),
+    });
+  }
+}
+```
+
+**约束**：
+
+- 只在 `dagTaskId` 存在时触发 bootstrap；原生会话（人开的 TUI）不走这条路径。
+- `ctx/{dagTaskId}.json` 是 domainId 的唯一来源，不从 env 拿 domainId（避免 dispatch 时推断错误的 domainId 被固化）。
+- env 清理必须在 bootstrap 完成后执行；异常时保留 env 以便 task-before.ts 等其他 hook 仍可使用。
+
+**chat.message hook 约束（§9.2.D 落地）**：
+
+```typescript
+// plugins/session.ts chat.message hook — refuse to write ambiguous domain
+const resolution = resolveDispatchContext({ sessionId: sid });
+if (
+  resolution.resolvedFrom === "ambiguous" ||
+  resolution.resolvedFrom === "legacy_dispatch_ctx"
+) {
+  writeLog("session", "WARN", {
+    event: "SESSION-MAP-DOMAIN-SKIPPED",
+    sessionID: sid,
+    resolvedFrom: resolution.resolvedFrom,
+    detail: `refusing to write session_map with non-exact domain`,
+  });
+  // write agent only, omit dag_task_id and domain_id
+  dbWriteSessionMap(sid, agent, undefined, undefined);
+} else {
+  dbWriteSessionMap(
+    sid,
+    agent,
+    resolution.dagTaskId || undefined,
+    resolution.domainId || undefined,
+  );
+}
+```
+
+#### 3. `agent-resolver.ts` — P2 改为 ambiguous
+
+```typescript
+// .opencode/lib/agent-resolver.ts (resolveDomainId L387-406 替换)
+export interface DomainResolution {
+  domainId: string | null;
+  dagTaskId: string | null;
+  resolvedFrom:
+    | "session_map"
+    | "ctx_exact"
+    | "ctx_single"
+    | "legacy_dispatch_ctx"
+    | "ambiguous"
+    | "none";
+  confidence: "exact" | "single-fallback" | "legacy" | "ambiguous" | "none";
+  detail: string;
+}
+
+// P2 多文件分支（替换原 "取 newest" 逻辑）
+if (files.length > 1) {
+  writeLog(SRC, "WARN", {
+    event: "DOMAIN-RESOLVE-AMBIGUOUS",
+    sessionID: sessionId,
+    detail: `multiple ctx/ files exist (${files.length}) without dagTaskId — refusing newest fallback`,
+  });
+  return {
+    domainId: null,
+    dagTaskId: null,
+    resolvedFrom: "ambiguous",
+    confidence: "ambiguous",
+    detail: `multiple ctx files: ${files.join(", ")}`,
+  } as any; // 调用方需兼容 DomainResolution 类型
+}
+```
+
+**向后兼容**：
+
+- 调用方（`module_scope_declare.ts:211` / `scope-before.ts:122` / `uc7ks-after.ts:67`）目前按 `string | null` 消费返回值。
+- 修改：`resolveDomainId` 返回值保持 `string | null` 形态；新增 `resolveDomainIdWithMeta()` 返回 `DomainResolution`，便于 `resolve_domain_id.ts` 工具使用。旧函数在多文件场景返回 `null`（不再返回错误 domain）。
+
+```typescript
+// 推荐：双 API
+export function resolveDomainId(sessionId?: string): string | null {
+  const r = resolveDomainIdWithMeta(sessionId);
+  return r.domainId;
+}
+
+export function resolveDomainIdWithMeta(
+  sessionId?: string,
+  dagTaskId?: string,
+): DomainResolution { /* 实现 §9.2.A 的完整 resolution order */ }
+```
+
+#### 4. `resolve_domain_id.ts` — 工具 args 增加 `dag_task_id`
+
+```typescript
+// .opencode/tools/resolve_domain_id.ts
+args: {
+  sessionId: tool.schema.string().optional(),
+  dag_task_id: tool.schema.string().optional(),
+},
+async execute(args, context) {
+  const sid = args.sessionId || (context && (context as any).sessionID) || "";
+  const resolution = resolveDomainIdWithMeta(sid, args.dag_task_id);
+  return JSON.stringify({
+    domain_id: resolution.domainId,
+    dag_task_id: resolution.dagTaskId,
+    agent_type: (context && (context as any).agent) || null,
+    resolved_from: resolution.resolvedFrom,
+    confidence: resolution.confidence,
+    ambiguous: resolution.resolvedFrom === "ambiguous",
+    detail: resolution.detail,
+    ...(resolution.resolvedFrom === "ambiguous"
+      ? {
+          error:
+            "Multiple dispatch contexts exist. Re-run resolve_domain_id with dag_task_id.",
+          candidates: resolution.candidates || [],
+        }
+      : {}),
+  });
+}
+```
+
+**官方 OpenCode 合规**：
+
+- 使用 `export default tool({ args, execute })` 形状，不引入 MCP server（符合 §9.3 第 1 条）。
+- `dag_task_id` 是 optional 参数，不破坏已有调用方。
+- `opencode.json` 不需要新增 tool 名，权限不变。
+
+#### 5. `subagent-preamble.md` — Step 0a 显式传 dag_task_id
+
+```text
+Step 0a (dispatch context resolution):
+  resolve_domain_id(sessionId=context.sessionID, dag_task_id="<dispatch-assigned task_id>")
+  module_scope_declare(module=<returned domain_id>, task_id="<same task_id>")
+
+Bootstrap note:
+  If the child session was spawned via dispatch_subagent, plugins/session.ts
+  has already created the child's session_map row via OPENCODE_DAG_TASK_ID env
+  bootstrap. resolve_domain_id() should hit Priority 1 (session_map) directly.
+  The explicit dag_task_id parameter is a secondary precision channel.
+```
+
+#### 6. `search-knowledge.md` — Step 3 显式 task_id
+
+保持与更新后的 `/search-knowledge` 命令一致（已在 OPTIMIZE-CI-WORKFLOWS-v1 同步）：
+
+```text
+Step 3 第 1 步:
+  module_scope_declare(module: "<domain>", task_id: "<unique-id>")
+  // use the same task_id across all calls so that downstream compliance
+  // checks correlate; in dispatch context, this is the dispatch-assigned
+  // dag_task_id.
+```
+
+#### 日志事件规范（汇总）
+
+| Source | Event | Level | 触发条件 |
+| --- | --- | --- | --- |
+| `dispatch_subagent` | `DISPATCH-ENV-BOOTSTRAP` | INFO | 子进程 env 注入完成 |
+| `session` | `SESSION-CREATED-NO-BOOTSTRAP` | DEBUG | 原生会话（非 dispatch 子）跳过 bootstrap |
+| `session` | `CHILD-SESSION-BOOTSTRAP` | INFO | 子 session 启动时成功写库 |
+| `session` | `CHILD-SESSION-BOOTSTRAP-FAILED` | ERROR | 子 session bootstrap 异常 |
+| `session` | `SESSION-MAP-DOMAIN-SKIPPED` | WARN | chat.message hook 拒绝写 ambiguous domain |
+| `agent-resolver` | `DOMAIN-RESOLVED` | INFO | P1 命中 session_map |
+| `agent-resolver` | `DOMAIN-RESOLVE-MISMATCH` | ERROR | session_map dag_task_id 与 ctx 文件不一致 |
+| `agent-resolver` | `DOMAIN-RESOLVE-AMBIGUOUS` | WARN | 多 ctx 文件且无 dagTaskId 命中 |
+| `agent-resolver` | `DISPATCH-CTX-READ-ERROR` | ERROR | ctx 目录扫描失败 |
+
+所有事件通过 `writeLog(source, level, {...})` 写入 `.task_temp/_logs/{date}/plugin-{source}-{level}.log`（按 `log-manager.ts` 现有路由）。
+
+#### 测试策略
+
+**单元测试** `.opencode/lib/__tests__/agent-resolver.test.ts`：
+
+| 场景 | 预期 |
+| --- | --- |
+| session_map 有子 session 行 | `resolveDomainId(childSid) === domainId`（P1 命中） |
+| session_map 无行 + 多 ctx 文件 + 无 dagTaskId | `resolveDomainId() === null`（不再取 newest） |
+| session_map 无行 + 多 ctx 文件 + 有 dagTaskId | `resolveDomainIdWithMeta(_, dagTaskId).resolvedFrom === "ctx_exact"` |
+| session_map 无行 + 单 ctx 文件 | `resolvedFrom === "ctx_single"`（保留此兜底） |
+| 全部失败 | `resolvedFrom === "none"` |
+
+**E2E** `PARALLEL-TEST-A`（framework-self-test.ts 新增检查）：
+
+1. 同时 dispatch `Coder-BE (PARALLEL-BE, backend_api)` + `Coder-FE (PARALLEL-FE, frontend_ui)`。
+2. 等待两子 session 创建。
+3. 分别查询 `session_map` 子行：BE 行 `domain_id="backend_api"`，FE 行 `domain_id="frontend_ui"`。
+4. 分别在两子 agent 上下文内调用 `resolve_domain_id()`：BE 返回 `backend_api`，FE 返回 `frontend_ui`。
+5. 失败时记入 `framework-self-test.ts` 的 FAIL 计数并阻断 CI。
+
+#### 验收标准
+
+| 场景 | 预期 |
+| --- | --- |
+| 并行 Coder-BE + Coder-FE dispatch | 各自子 session_map 行 domain_id 正确；resolve_domain_id() 返回各自正确 domain |
+| 子 session 启动后 `process.env.OPENCODE_DAG_TASK_ID` 状态 | 已清理（`delete` 执行） |
+| 嵌套 dispatch（子 agent 内再 dispatch） | 不会因 env 残留污染孙 session 的 domain_id |
+| 原生 TUI 会话（非 dispatch） | session.created hook 走 NO-BOOTSTRAP 分支，session_map 行 dag_task_id 为 NULL |
+| 父 session session_map 被并发覆盖 | 不影响子 session 的 domain 解析（子用自己的 sessionId 查） |
+| self-test 新增 PARALLEL-DOMAIN-BOOTSTRAP 检查 | PASS |
+| framework-doctor 新增 child-session-bootstrap 健康检查 | PASS（抽查最近 N 个 dispatch 子 session 是否都有 session_map 行） |
+
+#### 与已有决策的兼容性
+
+| 已有决策 | 本方案兼容性 |
+| --- | --- |
+| `FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18)` 移除子 env 的 `FRAMEWORK_TASK_ID` | ✅ 兼容 — 使用新名 `OPENCODE_DAG_TASK_ID`，仅作一次性 bootstrap 通道，运行时不依赖 env |
+| `FW-DISPATCH-TASKID-IMMUTABLE` session_map DB 作为首选 | ✅ 强化 — 子 session 启动时主动写库，使 P1 命中率从"父 session 行"扩展到"子 session 行" |
+| `FW-UC7KS-DOMAIN-001` per-dispatch ctx 文件隔离 | ✅ 兼容 — ctx 文件仍是 domainId 唯一来源，env 只携带 dagTaskId 用作 ctx 索引键 |
+| `FW-PLAN-FIRST` dispatch_policy 约束 | ✅ 不影响 — bootstrap 发生在 dispatch 完成后、子 session 启动时 |
+| `IMPLEMENT-DISPATCH-CTX-FIX (2026-06-19)` GAP-1 | ✅ 闭环 — 子 session 不再依赖 ctx/newest fallback |
+
+#### 风险与降级
+
+| 风险 | 缓解 |
+| --- | --- |
+| env 注入失败（极少，spawn 内部错误） | dispatch_subagent catch 后记 `DISPATCH-ENV-BOOTSTRAP-FAILED` WARN；子 session 走 P2 ambiguous 兜底，agent 看到 ambiguous 后人工重试 |
+| session.created hook 异常 | catch 后记 `CHILD-SESSION-BOOTSTRAP-FAILED` ERROR；不阻断 session 创建；后续调用 resolveDomainId 仍可用 P2 single-file 兜底 |
+| 老版本 agent 未升级 preamble，不传 dag_task_id 参数 | P1 session_map 行已通过 bootstrap 建好，参数化通道缺失不影响主路径 |
+| `OPENCODE_DAG_TASK_ID` 名与未来官方 OpenCode 命名冲突 | 保留 `OPENCODE_` 前缀作为项目命名空间；若冲突可改名为 `FRAMEWORK_DISPATCH_DAG_TASK_ID` |
+
+### §9.3 官方 OpenCode 合规与日志要求
+
+1. `knowledge_cache_attest.ts` 和 `resolve_domain_id.ts` 继续作为 `.opencode/tools/*.ts` custom tools，使用 `export default tool()`；不新增 MCP server。
+2. 不通过**新增 plugin** 修复这两个问题；已有 `read-track-after.ts`、`session.ts`、`task-after.ts` 只做事件记录和 session 映射。§9.2.1 的 C+A 混合方案对 `session.ts` 新增 `session.created` 事件绑定（与已存在的 `chat.message` 并列），职责仍限于"子 session 启动时写一次 session_map"——属于既有 plugin 的扩展，不是新 plugin。
+3. 所有新增拒绝、mismatch、ambiguous 事件必须通过 `writeLog()` 进入集中日志。
+4. `opencode.json` 只在新增/改名 custom tool 时更新 agent permissions；本修复不需要新增工具名。
+5. `framework-self-test.ts` 必须覆盖空 `files_read` 拒绝和并行 domain exact resolution，防止回归。

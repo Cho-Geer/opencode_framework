@@ -667,6 +667,52 @@ if (taskId) {
   }
 }
 
+// FW-FIX-CHILD-SESSION-MAP (2026-06-21, @Super-Admin, Issue #117):
+// Write a child dispatch slot into session_map so the dispatched agent can
+// resolve its dagTaskId and domainId via Priority 1 (session_map DB lookup).
+//
+// Problem: At dispatch time, only the PARENT's session ID is known (via
+// process.env.OPENCODE_SESSION_ID). The child agent gets its session ID
+// from the OpenCode runtime when Task() creates the new session — AFTER
+// this script runs. So the child's real session_id cannot be written here.
+//
+// Solution: Use a synthetic session_id keyed by dag_task_id:
+//   "dispatch:child:{dag_task_id}"
+// This key is DERIVABLE by the child agent: it knows its dag_task_id from
+// the preamble injection (line ~619), and agent-resolver.ts can construct
+// this key as a Priority 1.5 fallback when the direct sessionId lookup fails.
+//
+// The child slot stores: agent type and domain_id (from agent_domain_map).
+// This enables: (a) resolveDomainId → Priority 1.5 → returns domain_id
+//               (b) resolveTaskId  → Priority 1.5 → returns dag_task_id
+//               (c) resolveAgentFromSessionMap → returns agent type
+if (taskId) {
+  try {
+    const { dbWriteSessionMap } = require("../../lib/db-state-manager");
+    // Infer domainId from agent_domain_map (same as above)
+    let inferredDomainId: string | null = null;
+    try {
+      const agentDomainMap = projectConfig.agent_domain_map || {};
+      inferredDomainId = agentDomainMap[agentType] || null;
+    } catch {}
+    const childSlotKey = `dispatch:child:${taskId}`;
+    dbWriteSessionMap(
+      childSlotKey,
+      agentType,
+      taskId,
+      inferredDomainId || null,
+    );
+    logInfo(
+      `Wrote child dispatch slot: ${childSlotKey} → agent=${agentType} domain=${inferredDomainId || "(none)"}`,
+    );
+  } catch (e: any) {
+    writeLog("dispatch-subagent", "ERROR", {
+      event: "CHILD-SESSION-MAP-WRITE-FAILED",
+      detail: `Failed to write child dispatch slot: ${e?.message ?? e}`,
+    });
+  }
+}
+
 // ──────────────────────────────────────────────
 // 5. Build the wrapped prompt
 // ──────────────────────────────────────────────

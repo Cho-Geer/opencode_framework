@@ -1,10 +1,10 @@
 {
   "formatVersion": "3.0",
   "active_sessions": {
-    "cg_ses_1781980877196": {
-      "session_id": "cg_ses_1781980877196",
-      "created_at": "2026-06-20T18:41:17.196Z",
-      "task_description": "Auto-armed on OpenCode startup",
+    "cg_ses_1782013044862": {
+      "session_id": "cg_ses_1782013044862",
+      "created_at": "2026-06-21T03:37:24.869Z",
+      "task_description": "E2E test: Verify read-before-approve enforcement in compliance_gate_approve_deliverables. Test 3 scenarios.",
       "enforcement_mode": null,
       "gate_status": "checked",
       "last_check_passed": false,
@@ -13,16 +13,16 @@
       "confirmed_at": null,
       "consumed_at": null,
       "expires_at": null,
-      "task_id": null,
+      "task_id": "VFY-READ-BEFORE-APPROVE",
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
       "approval_required": false
     },
-    "cg_ses_1781998052355": {
-      "session_id": "cg_ses_1781998052355",
-      "created_at": "2026-06-20T23:27:32.355Z",
-      "task_description": "Auto-armed on OpenCode startup",
+    "cg_ses_1782029003964": {
+      "session_id": "cg_ses_1782029003964",
+      "created_at": "2026-06-21T08:03:23.974Z",
+      "task_description": "S2 no-read approve test",
       "enforcement_mode": null,
       "gate_status": "checked",
       "last_check_passed": false,
@@ -31,46 +31,115 @@
       "confirmed_at": null,
       "consumed_at": null,
       "expires_at": null,
-      "task_id": null,
+      "task_id": "VFY-WRONG-HASH",
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
       "approval_required": false
     },
-    "cg_ses_1782001447979": {
-      "session_id": "cg_ses_1782001447979",
-      "created_at": "2026-06-21T00:24:07.990Z",
-      "task_description": "E2E verification: test compliance gate behavior under locked enforcement mode",
-      "enforcement_mode": "locked",
+    "cg_ses_1782029022884": {
+      "session_id": "cg_ses_1782029022884",
+      "created_at": "2026-06-21T08:03:42.891Z",
+      "task_description": "S2 E2E no-read approve test for session-bound hardening",
+      "enforcement_mode": null,
       "gate_status": "checked",
       "last_check_passed": false,
-      "last_check_failed_items": [
-        {
-          "id": "critical_file_modified__opencode_project_config_json",
-          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
-          "severity": "HIGH"
-        },
-        {
-          "id": "critical_file_modified_opencode_json",
-          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
-          "severity": "HIGH"
-        },
-        {
-          "id": "rule_registry_summary",
-          "desc": "[Gate Preflight v2] 2 critical infrastructure file(s) modified since HEAD",
-          "severity": "HIGH"
-        },
-        {
-          "id": "uc7ks_knowledge_cache",
-          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (62 entries)",
-          "severity": "INFO"
-        }
-      ],
+      "last_check_failed_items": [],
       "plan_summary": null,
       "confirmed_at": null,
       "consumed_at": null,
       "expires_at": null,
-      "task_id": "VFY-GATE-LOCK-1",
+      "task_id": "VFY-WRONG-HASH",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782030446447": {
+      "session_id": "cg_ses_1782030446447",
+      "created_at": "2026-06-21T08:27:26.456Z",
+      "task_description": "Quick domain verification: resolve dispatch-assigned domain for Coder-BE agent session E2E-DOMAIN-PAR-BE. Verify domain resolution pipeline works end-to-end.",
+      "enforcement_mode": null,
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "E2E-DOMAIN-PAR-BE",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782030458528": {
+      "session_id": "cg_ses_1782030458528",
+      "created_at": "2026-06-21T08:27:38.536Z",
+      "task_description": "Quick domain verification test for CI-CD-Agent — verify UC7KS pipeline, config attestation, and artifact generation",
+      "enforcement_mode": null,
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "E2E-DOMAIN-PAR-CICD",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782030463284": {
+      "session_id": "cg_ses_1782030463284",
+      "created_at": "2026-06-21T08:27:43.292Z",
+      "task_description": "Quick domain verification: resolve and verify the Coder-FE agent's assigned domain (devops_ci) from the dispatch session. No code changes - read-only verification task.",
+      "enforcement_mode": null,
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "E2E-DOMAIN-PAR-FE",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782030478487": {
+      "session_id": "cg_ses_1782030478487",
+      "created_at": "2026-06-21T08:27:58.495Z",
+      "task_description": "CI-CD-Agent domain verification test — verifying UC7KS pipeline, domain resolution, config attestation, and artifact generation. Note: pre-existing infra file modifications detected (project.config.json, dispatch_subagent.ts) — these are not caused by this task but are working tree changes from prior framework work.",
+      "enforcement_mode": null,
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "E2E-DOMAIN-PAR-CICD",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782030569298": {
+      "session_id": "cg_ses_1782030569298",
+      "created_at": "2026-06-21T08:29:29.307Z",
+      "task_description": "Quick domain verification test for CI-CD-Agent — verify UC7KS pipeline, config attestation, artifact generation. Pre-existing infra files (project.config.json, dispatch_subagent.ts) have working tree changes — acknowledged by user override.",
+      "enforcement_mode": null,
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "E2E-DOMAIN-PAR-CICD",
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
@@ -79,9 +148,9 @@
   },
   "recent_sessions": {},
   "meta": {
-    "total_sessions": 3,
-    "active_count": 3,
+    "total_sessions": 8,
+    "active_count": 8,
     "recent_count": 0,
-    "last_compacted": "2026-06-21T01:01:27.335Z"
+    "last_compacted": "2026-06-21T08:32:37.133Z"
   }
 }

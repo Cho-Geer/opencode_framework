@@ -1333,6 +1333,65 @@ export function initializeSchema(db: Database): void {
       detail: `v16: ${e.message}`,
     });
   }
+
+  // ════════════════════════════════════════════════════════════
+  // v17: READ-BEFORE-APPROVE-P1 — approval_read_context table
+  //      for session-bound approval enforcement.
+  //
+  //      Bridges the gap between OpenCode plugin-side
+  //      (gate-before.ts capturing tool.execute.before) and MCP
+  //      server-side (compliance-gate.ts approve_deliverables).
+  //
+  //      gate_session_id + args_hash UNIQUE ensures one context
+  //      per approve call — prevents concurrent serialization.
+  //      consumed_at marks context as consumed (idempotency for
+  //      approve → re-approve within the same session).
+  //
+  //      Writers:
+  //        - gate-before.ts via approval-read-context.ts → recordApprovalContext()
+  //      Readers:
+  //        - compliance-gate.ts via approval-read-context.ts → getApprovalContext()
+  //        - compliance-gate.ts via approval-read-context.ts → markApprovalContextConsumed()
+  //
+  //      @see docs/review/framework-refactor/read-before-approve-e2e-findings.md §8
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS approval_read_context (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        gate_session_id     TEXT    NOT NULL,
+        opencode_session_id TEXT    NOT NULL,
+        call_id             TEXT,
+        agent               TEXT,
+        tool_name           TEXT    NOT NULL,
+        args_hash           TEXT    NOT NULL,
+        created_at          INTEGER NOT NULL,
+        consumed_at         INTEGER,
+        UNIQUE(gate_session_id, args_hash)
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_approval_read_context_lookup
+      ON approval_read_context(gate_session_id, args_hash, consumed_at, created_at DESC)`);
+    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_approval_read_context_unique
+      ON approval_read_context(gate_session_id, args_hash)`);
+
+    db.run(
+      `
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (17, ?, 'READ-BEFORE-APPROVE-P1: add approval_read_context for session-bound approval context bridging')
+    `,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v17: approval_read_context table + indexes created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v17: ${e.message}`,
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════

@@ -16,7 +16,7 @@
  *   - knowledge_cache_attest.ts → getReadEventsForSession() for UC7KS attestation
  *
  * @author @Super-Admin
- * @version 2.1.0 — DB-only writes (Phase 2), JSONL read fallback preserved
+ * @version 2.2.0 — DB-only writes (Phase 2), JSONL read fallback preserved
  * @since 2026-06-18
  *
  * @see docs/review/framework-refactor/read-audit-db-migration-plan.md
@@ -28,6 +28,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "./log-manager";
 import { getDb } from "./db-manager";
+import { STATE_PATHS } from "./state-utils";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -54,19 +55,64 @@ export interface ReadVerifyResult {
 
 // ── Configuration ──────────────────────────────────────────────
 
-/** Maximum age of a read event to be considered valid for approval (5 min) */
-const READ_MAX_AGE_MS = 5 * 60 * 1000;
+/** Default maximum age of a read event to be considered valid for approval (5 min).
+ *  Can be overridden via project.config.json template_resolution.read_max_age_ms.
+ *  @since 2026-06-21 — P3 configurable READ_MAX_AGE_MS (read-before-approve-e2e-findings.md §6) */
+const READ_MAX_AGE_MS_DEFAULT = 5 * 60 * 1000;
 
 /** Maximum records to keep (DB + JSONL). Applied atomically in DB, RMW in JSONL. */
 const MAX_RECORDS = 10000;
 
 /**
- * File path for read audit JSONL (Phase 1 fallback).
- * Resolved relative to OPENCODE_ROOT.
+ * Get the configured read max age in milliseconds.
+ * Reads from project.config.json template_resolution.read_max_age_ms.
+ * If the config value is a positive number less than 1 hour, it is used.
+ * Otherwise, falls back to READ_MAX_AGE_MS_DEFAULT (5 minutes).
+ *
+ * Called at verification time (not module load time), so it picks up
+ * config changes on framework restart.
+ *
+ * @returns READ_MAX_AGE_MS in milliseconds
+ * @since 2026-06-21 — P3 (read-before-approve-e2e-findings.md §6)
+ */
+function getReadMaxAgeMs(): number {
+  try {
+    const configPath = path.resolve(
+      process.env.OPENCODE_ROOT || ".",
+      ".opencode/project.config.json",
+    );
+    const raw = fs.readFileSync(configPath, "utf8");
+    const config = JSON.parse(raw);
+    const configured = config?.template_resolution?.read_max_age_ms;
+    if (
+      typeof configured === "number" &&
+      configured > 0 &&
+      configured < 3600000
+    ) {
+      return configured;
+    }
+  } catch {
+    // Config read/parse failed — fall through to default
+  }
+  return READ_MAX_AGE_MS_DEFAULT;
+}
+
+// ── Post-E2E hardening event constants (§12 read-before-approve-plan.md) ──
+/** Logged when verifyNonEmptyReadSet encounters an empty target file list */
+const EVENT_READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS =
+  "READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS";
+/** Logged when verifyNonEmptyReadSet finds one or more unread deliverables */
+const EVENT_READ_BEFORE_APPROVE_FAILED_NOT_READ =
+  "READ_BEFORE_APPROVE_FAILED_NOT_READ";
+
+/**
+ * File path for read audit JSONL (Phase 2 read-only fallback for historical data).
+ * Delegates to STATE_PATHS for centralized path resolution.
+ * @see ../lib/state-utils.ts → STATE_PATHS.readAudit
+ * @see read-before-approve-plan.md §11.6 P1
  */
 function getReadAuditPath(): string {
-  const root = process.env.OPENCODE_ROOT || ".";
-  return path.resolve(root, ".opencode", "state", "read_audit.jsonl");
+  return STATE_PATHS.readAudit();
 }
 
 // ── Path & Agent Normalization ─────────────────────────────────
@@ -77,7 +123,9 @@ function getReadAuditPath(): string {
  */
 export function normalizeReadAuditPath(filePath: string): string {
   const root = process.env.OPENCODE_ROOT || ".";
-  const resolved = filePath.startsWith("/") ? filePath : path.resolve(root, filePath);
+  const resolved = filePath.startsWith("/")
+    ? filePath
+    : path.resolve(root, filePath);
   return path.normalize(resolved).replace(/\/+$/, "").toLowerCase();
 }
 
@@ -214,9 +262,18 @@ function readAllJsonlEntries(): ReadAuditEntry[] {
     const auditPath = getReadAuditPath();
     if (!fs.existsSync(auditPath)) return [];
     const content = fs.readFileSync(auditPath, "utf8");
-    return content.trim().split("\n").filter(Boolean).map((line) => {
-      try { return JSON.parse(line); } catch { return null; }
-    }).filter(Boolean) as ReadAuditEntry[];
+    return content
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean) as ReadAuditEntry[];
   } catch {
     return [];
   }
@@ -241,7 +298,8 @@ export function verifyRead(
 ): ReadVerifyResult {
   const normalizedAgent = normalizeAgent(agent);
   const normalizedPath = normalizeReadAuditPath(filePath);
-  const cutoff = Date.now() - READ_MAX_AGE_MS;
+  const readMaxAgeMs = getReadMaxAgeMs();
+  const cutoff = Date.now() - readMaxAgeMs;
   const cutoffIso = new Date(cutoff).toISOString();
 
   // ── DB-first ──
@@ -249,19 +307,23 @@ export function verifyRead(
     const db = getDb();
     let row: any = null;
     if (sessionId) {
-      row = db.query(
-        `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
+      row = db
+        .query(
+          `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
          FROM read_audit
          WHERE agent = ? AND file_path = ? AND opencode_session_id = ? AND timestamp >= ?
          ORDER BY timestamp DESC LIMIT 1`,
-      ).get(normalizedAgent, normalizedPath, sessionId, cutoffIso);
+        )
+        .get(normalizedAgent, normalizedPath, sessionId, cutoffIso);
     } else {
-      row = db.query(
-        `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
+      row = db
+        .query(
+          `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
          FROM read_audit
          WHERE agent = ? AND file_path = ? AND timestamp >= ?
          ORDER BY timestamp DESC LIMIT 1`,
-      ).get(normalizedAgent, normalizedPath, cutoffIso);
+        )
+        .get(normalizedAgent, normalizedPath, cutoffIso);
     }
 
     if (row) {
@@ -274,7 +336,12 @@ export function verifyRead(
     }
 
     // DB says no — check JSONL as fallback before final negative
-    const jsonlResult = verifyReadJsonl(normalizedAgent, normalizedPath, sessionId, cutoff);
+    const jsonlResult = verifyReadJsonl(
+      normalizedAgent,
+      normalizedPath,
+      sessionId,
+      cutoff,
+    );
     if (jsonlResult.verified) return jsonlResult;
 
     const absPath = path.resolve(process.env.OPENCODE_ROOT || ".", filePath);
@@ -282,7 +349,7 @@ export function verifyRead(
       verified: false,
       reason:
         `Agent "@${normalizedAgent}" has NOT read "${filePath}" via the \`read\` tool ` +
-        `within the last ${READ_MAX_AGE_MS / 60000} minutes. ` +
+        `within the last ${readMaxAgeMs / 60000} minutes. ` +
         `You MUST use the \`read\` tool to open and review HANDOVER.md before approving. ` +
         `Compute hash manually: sha256sum ${absPath}`,
     };
@@ -315,8 +382,19 @@ function verifyReadJsonl(
       if (entryAgent !== normalizedAgent) continue;
 
       if (pathsMatch(entry.filePath, normalizedPath)) {
-        if (sessionId && entry.sessionId && entry.sessionId !== sessionId) {
-          continue;
+        /**
+         * P2-A (2026-06-21): Session-bound matching for JSONL fallback.
+         * When sessionId is provided:
+         *   1. Skip entries without a sessionId field (historical pre-P1 entries
+         *      should NOT match session-bound queries).
+         *   2. Skip entries with a mismatched sessionId.
+         * When sessionId is NOT provided: no session check (legacy behavior).
+         * @see read-before-approve-e2e-findings.md §8.3
+         */
+        if (sessionId) {
+          if (!entry.sessionId || entry.sessionId !== sessionId) {
+            continue;
+          }
         }
         return {
           verified: true,
@@ -373,12 +451,14 @@ export function getReadEventsForSession(
   // ── DB-first ──
   try {
     const db = getDb();
-    const rows = db.query(
-      `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
+    const rows = db
+      .query(
+        `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
        FROM read_audit
        WHERE opencode_session_id = ? AND agent = ?
        ORDER BY timestamp DESC`,
-    ).all(sessionId, normalizedAgent) as any[];
+      )
+      .all(sessionId, normalizedAgent) as any[];
 
     if (rows.length > 0) {
       return rows.map(dbEntryToReadAuditEntry);
@@ -418,6 +498,115 @@ function getReadEventsForSessionJsonl(
   }
 }
 
+// ── verifyNonEmptyReadSet — Post-E2E hardening (§12.1) ──────────
+
+/**
+ * Verify that a set of target files were all read by the specified agent
+ * within the valid time window. Unlike verifyRead() which checks a single
+ * file, this function validates an entire deliverable set at once.
+ *
+ * Used by compliance-gate.ts for READ-BEFORE-APPROVE enforcement when
+ * multiple deliverables must be reviewed before approval.
+ *
+ * @param input.agent - Agent identity (e.g. "Orchestrator")
+ * @param input.sessionId - Optional OpenCode session ID (ses_*)
+ * @param input.filePaths - List of file paths that must have been read
+ * @param input.windowMs - Optional override for getReadMaxAgeMs() (default: 5 min)
+ * @returns Verification result with emptyTargets flag and notRead list
+ * @see read-before-approve-plan.md §12.1
+ */
+export function verifyNonEmptyReadSet(input: {
+  agent: string;
+  sessionId?: string;
+  filePaths: string[];
+  windowMs?: number;
+}): {
+  verified: boolean;
+  reason: string;
+  emptyTargets: boolean;
+  notRead: string[];
+} {
+  // Guard: empty target list
+  if (
+    !input.filePaths ||
+    input.filePaths.length === 0 ||
+    input.filePaths.every(function (p) {
+      return !p || p.trim() === "";
+    })
+  ) {
+    writeLog("lib-read-audit", "WARN", {
+      event: EVENT_READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS,
+      agent: input.agent,
+      detail: "Empty target file list - no deliverables to verify",
+    });
+    return {
+      verified: false,
+      reason: "Empty target file list - no deliverables to verify",
+      emptyTargets: true,
+      notRead: [],
+    };
+  }
+
+  // Verify each file path
+  var notRead: string[] = [];
+  for (var i = 0; i < input.filePaths.length; i++) {
+    var fp = input.filePaths[i];
+    if (!fp || fp.trim() === "") continue;
+    var result = verifyRead(input.agent, fp, input.sessionId);
+    if (!result.verified) {
+      notRead.push(fp);
+    }
+  }
+
+  if (notRead.length > 0) {
+    writeLog("lib-read-audit", "WARN", {
+      event: EVENT_READ_BEFORE_APPROVE_FAILED_NOT_READ,
+      agent: input.agent,
+      notReadCount: notRead.length,
+      totalChecked: input.filePaths.length,
+      detail:
+        "Agent has not read " +
+        notRead.length +
+        " of " +
+        input.filePaths.length +
+        " deliverables: " +
+        notRead.join(", "),
+    });
+    return {
+      verified: false,
+      reason:
+        'Agent "' +
+        input.agent +
+        '" has not read ' +
+        notRead.length +
+        " of " +
+        input.filePaths.length +
+        " deliverables: " +
+        notRead.slice(0, 5).join(", ") +
+        (notRead.length > 5 ? " (+" + (notRead.length - 5) + " more)" : ""),
+      emptyTargets: false,
+      notRead: notRead,
+    };
+  }
+
+  writeLog("lib-read-audit", "INFO", {
+    event: "VERIFY_NONEMPTY_READ_SET",
+    agent: input.agent,
+    count: input.filePaths.length,
+    detail: "All " + input.filePaths.length + " deliverables verified",
+  });
+  return {
+    verified: true,
+    reason: "All " + input.filePaths.length + " deliverables verified",
+    emptyTargets: false,
+    notRead: [],
+  };
+}
+
 // ── Re-export constants ────────────────────────────────────────
 
-export { READ_MAX_AGE_MS, MAX_RECORDS };
+export {
+  getReadMaxAgeMs,
+  READ_MAX_AGE_MS_DEFAULT as READ_MAX_AGE_MS,
+  MAX_RECORDS,
+};

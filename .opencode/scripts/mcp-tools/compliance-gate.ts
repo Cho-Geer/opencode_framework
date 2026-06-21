@@ -2292,6 +2292,26 @@ function runGateApproveDeliverables(
     resolveDispatchTargetAgentDirect() ||
     ""
   ).replace(/^@/, "");
+
+  // §12.3 (read-before-approve-plan.md): Log agent resolution source
+  writeLog("mcp-compliance-gate", "INFO", {
+    sessionID: sessionId,
+    event: "RESOLVED_FROM",
+    agent: resolvedAgent,
+    source: agentId
+      ? "agent_id_param"
+      : session && session.agent
+        ? "session.agent"
+        : "dispatch_target",
+    detail:
+      "Agent resolved for approve_deliverables from " +
+      (agentId
+        ? "agent_id parameter"
+        : session && session.agent
+          ? "session.agent field"
+          : "dispatch target file"),
+  });
+
   if (
     resolvedAgent &&
     !ALLOWED_APPROVE_AGENTS.includes(resolvedAgent) &&
@@ -2427,26 +2447,84 @@ function runGateApproveDeliverables(
       };
     }
 
-    // ── READ-BEFORE-APPROVE: Verify approver actually read HANDOVER.md ──
+    // ── READ-BEFORE-APPROVE (v2 — session-bound): Verify approver actually read HANDOVER.md ──
     //
-    // The handover_sha256 check above proves the approver has access to the
-    // file hash but NOT that they actually read the content. An approver can
-    // obtain the hash from the sub-agent's task_result output without ever
-    // opening HANDOVER.md. This check closes that gap by verifying the
-    // approver called the `read` tool on the HANDOVER.md file within the
-    // valid time window.
+    // v2 CHANGE (P1-A + P1-B): Uses the approval_read_context DB bridge
+    // to map gate_session_id → opencode_session_id for precise session-bound
+    // read verification. Falls back to session-unbound verifyRead() if no
+    // context is available (backward compat with manual approvals).
     //
     // Read events are tracked by read-track-after.ts plugin → read-audit.ts
-    // → read_audit.jsonl. The verifyRead() function scans the audit log for
-    // a matching entry (agent + filePath + timestamp within 5 min window).
+    // → read_audit SQLite DB (shared API with JSONL fallback).
     {
+      const enforcementMode = getEnforcementMode();
+      const resolvedHandoverPath = path2.resolve(
+        OPENCODE_ROOT,
+        `.task_temp/${taskId}/HANDOVER.md`,
+      );
+
       try {
-        const { verifyRead } = require("../../lib/read-audit");
-        const resolvedHandoverPath = path2.resolve(
-          OPENCODE_ROOT,
-          `.task_temp/${taskId}/HANDOVER.md`,
-        );
-        const readResult = verifyRead(resolvedAgent, resolvedHandoverPath);
+        // ── Compute args_hash for approval context lookup ──
+        const approvalArgs = {
+          session_id: sessionId,
+          approval_decision: approvalDecision,
+          handover_sha256: handoverSha256 || "",
+          agent_id: agentId || "",
+        };
+        const {
+          computeApprovalArgsHash,
+          getApprovalContext,
+          markApprovalContextConsumed,
+        } = require("../../lib/approval-read-context");
+        const argsHash = computeApprovalArgsHash(approvalArgs);
+
+        // ── Look up approval context (gate-before.ts bridge) ──
+        const approvalCtx = getApprovalContext(sessionId, argsHash);
+
+        let readResult: {
+          verified: boolean;
+          reason: string;
+          emptyTargets?: boolean;
+          notRead?: string[];
+        } | null = null;
+
+        if (approvalCtx) {
+          // P1-B: Session-bound verification via verifyNonEmptyReadSet
+          const { verifyNonEmptyReadSet } = require("../../lib/read-audit");
+          const setResult = verifyNonEmptyReadSet({
+            agent: resolvedAgent,
+            sessionId: approvalCtx.opencode_session_id,
+            filePaths: [resolvedHandoverPath],
+          });
+          readResult = {
+            verified: setResult.verified,
+            reason: setResult.reason,
+            emptyTargets: setResult.emptyTargets,
+            notRead: setResult.notRead,
+          };
+
+          writeLog("mcp-compliance-gate", "INFO", {
+            sessionID: sessionId,
+            agent: resolvedAgent,
+            event: "READ_BEFORE_APPROVE_SESSION_BOUND",
+            gate_session_id: sessionId,
+            opencode_session_id: approvalCtx.opencode_session_id,
+            detail: `Session-bound read verification | verified=${setResult.verified}`,
+          });
+        } else {
+          // Fallback: session-unbound verification (backward compat)
+          writeLog("mcp-compliance-gate", "INFO", {
+            sessionID: sessionId,
+            agent: resolvedAgent,
+            event: "READ_BEFORE_APPROVE_FALLBACK_UNBOUND",
+            gate_session_id: sessionId,
+            detail:
+              "No approval context found — falling back to session-unbound verifyRead()",
+          });
+
+          const { verifyRead } = require("../../lib/read-audit");
+          readResult = verifyRead(resolvedAgent, resolvedHandoverPath);
+        }
 
         if (!readResult.verified) {
           writeLog("mcp-compliance-gate", "ERROR", {
@@ -2470,6 +2548,11 @@ function runGateApproveDeliverables(
           };
         }
 
+        // Mark context consumed after successful verification
+        if (approvalCtx) {
+          markApprovalContextConsumed(sessionId, argsHash);
+        }
+
         writeLog("mcp-compliance-gate", "INFO", {
           sessionID: sessionId,
           agent: resolvedAgent,
@@ -2477,14 +2560,41 @@ function runGateApproveDeliverables(
           detail: readResult.reason,
         });
       } catch (readAuditErr: any) {
-        // read-audit.ts unavailable — fall back to sha256-only check
-        // Graceful degradation: log warning, allow approval to proceed
-        writeLog("mcp-compliance-gate", "WARN", {
-          sessionID: sessionId,
-          agent: resolvedAgent,
-          event: "READ_BEFORE_APPROVE_UNAVAILABLE",
-          detail: `lib/read-audit.ts load failed: ${readAuditErr.message}. Fallback to sha256-only verification.`,
-        });
+        // P1-C: read-audit.ts unavailable — fail-closed in strict/locked
+        const enfMode = getEnforcementMode();
+        writeLog(
+          "mcp-compliance-gate",
+          enfMode === "advisory" ? "WARN" : "ERROR",
+          {
+            sessionID: sessionId,
+            agent: resolvedAgent,
+            level: enfMode === "advisory" ? "WARN" : "ERROR",
+            event: "READ_BEFORE_APPROVE_UNAVAILABLE",
+            mode: enfMode,
+            detail: `lib/read-audit.ts load failed: ${readAuditErr.message}. Mode=${enfMode}.`,
+          },
+        );
+
+        if (enfMode === "strict" || enfMode === "locked") {
+          // P1-C: Fail-closed — READ-BEFORE-APPROVE is a physical constraint.
+          // When the read-audit subsystem is unavailable in strict/locked mode,
+          // approval MUST be rejected to prevent undetected bypass.
+          return {
+            status: "rejected",
+            reason:
+              `[READ-BEFORE-APPROVE] Read audit verification is unavailable in ${enfMode} mode.\n` +
+              `Error: ${readAuditErr.message}\n\n` +
+              `The read-audit subsystem (read_audit DB table + lib/read-audit.ts) is required\n` +
+              `for READ-BEFORE-APPROVE enforcement in ${enfMode} mode. This is a physical\n` +
+              `constraint — approval cannot proceed without verifying that you read the\n` +
+              `deliverables. Remediation:\n` +
+              `1. Verify the read-track-after.ts plugin is registered in opencode.json\n` +
+              `2. Check that framework-state.db contains the read_audit table (v10+)\n` +
+              `3. Run framework-self-test.ts Check 59 to verify read-audit integrity\n` +
+              `4. Once fixed, re-read HANDOVER.md with the \`read\` tool and re-approve`,
+          };
+        }
+        // advisory mode: warn + allow (backward compat)
       }
     }
 
