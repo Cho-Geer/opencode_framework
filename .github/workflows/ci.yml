@@ -193,14 +193,14 @@ jobs:
 
       - name: Pre-flight — drain stale gate sessions (strict_no_gate fix)
         run: |
-          bun -e "
-            const {Database} = require('bun:sqlite');
-            const db = new Database('.opencode/state/framework-state.db');
-            const count = db.run('DELETE FROM gate_sessions WHERE status = '"'checked'" AND task_id IS NULL').changes;
-            db.run('DELETE FROM gate_session_index WHERE session_id NOT IN (SELECT session_id FROM gate_sessions)');
-            console.log(`✅ Drained ${count} stale gate sessions`);
+          bun -e '
+            const {Database} = require("bun:sqlite");
+            const db = new Database(".opencode/state/framework-state.db");
+            const count = db.run("DELETE FROM gate_sessions WHERE status = 'checked' AND task_id IS NULL").changes;
+            db.run("DELETE FROM gate_session_index WHERE session_id NOT IN (SELECT session_id FROM gate_sessions)");
+            console.log("✅ Drained " + count + " stale gate sessions");
             db.close();
-          "
+          '
       - name: Run framework self-test
         run: bun .opencode/scripts/framework-self-test.ts
 
