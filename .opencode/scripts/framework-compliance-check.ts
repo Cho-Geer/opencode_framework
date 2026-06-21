@@ -11,10 +11,7 @@
 // V3 gate-state format compatibility (active_sessions as object) retained.
 
 const path = require("path");
-const {
-  readJsonFile,
-  resolveFrameworkPaths,
-} = require("../lib/gate-core.ts");
+const { readJsonFile, resolveFrameworkPaths } = require("../lib/gate-core.ts");
 const { readSubState } = require("../lib/substate-manager");
 // Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot
 const { dbLoadGateStore } = require("../lib/db-state-manager");
@@ -70,6 +67,14 @@ function main() {
   const violations = [];
   const checks = [];
 
+  /**
+   * IS_CI — detects CI environments (GitHub Actions, etc.)
+   * In CI, framework-state.db is freshly created with no prior gate sessions.
+   * Pending tasks without armed sessions are expected — not a violation.
+   * @see FW-REPAIR-CI-NO-GATE: PR #46 Framework CI Pipeline fix
+   */
+  const IS_CI = process.env.CI === "true";
+
   // ── Load state files ──
   const dag = readJsonFile(paths.dag);
   // Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot
@@ -115,9 +120,10 @@ function main() {
   checks.push({
     id: "pending_vs_armed",
     name: "Pending tasks vs armed sessions",
-    status: violations.some((v) => v.check === "pending_tasks_no_gate")
-      ? "fail"
-      : "pass",
+    status:
+      violations.some((v) => v.check === "pending_tasks_no_gate") && !IS_CI
+        ? "fail"
+        : "pass",
     detail: `pending=${pendingTasks.length}, armed=${activeSessions.length}`,
   });
 
@@ -255,11 +261,19 @@ function main() {
       activeSessions.length === 0 &&
       pendingTasks.length > 0
     ) {
-      violations.push({
-        check: "strict_no_gate",
-        severity: "HIGH",
-        detail: `Enforcement mode is 'strict' but ${pendingTasks.length} pending tasks have no armed gate session`,
-      });
+      if (IS_CI) {
+        violations.push({
+          check: "strict_no_gate",
+          severity: "INFO",
+          detail: `CI: ${pendingTasks.length} pending tasks without gate sessions (expected in CI)`,
+        });
+      } else {
+        violations.push({
+          check: "strict_no_gate",
+          severity: "HIGH",
+          detail: `Enforcement mode is 'strict' but ${pendingTasks.length} pending tasks have no armed gate session`,
+        });
+      }
     }
     checks.push({
       id: "enforcement_mode",
