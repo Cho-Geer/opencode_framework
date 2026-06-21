@@ -20,89 +20,121 @@
  * @since Wave 4.1 (R7)
  * @author @Super-Admin
  */
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, renameSync, rmSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { atomicWriteSubState } from '../lib/state-utils';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+  statSync,
+  renameSync,
+  rmSync,
+  mkdirSync,
+} from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { atomicWriteSubState } from "../lib/state-utils";
 // P3/S63-1 + S63-5: DB maintenance (stale cleanup + WAL checkpoint + weekly vacuum)
-import { dbCleanStaleEntries, getDb, dbVacuum } from '../lib/db-manager';
+import { dbCleanStaleEntries, getDb, dbVacuum } from "../lib/db-manager";
 // P3/S11-6: Stale baseline cleanup (from Phase 2 safe-edit-core additions)
-import { writeLog } from '../lib/log-manager';
+import { writeLog } from "../lib/log-manager";
+// KC-03: Nested session_access pruning via shared helper
+import {
+  pruneSessionAccess,
+  pruneSessionAccessFromDB,
+  type PruneOptions,
+} from "../lib/uc7ks-schema";
 
-const NC_SRC = 'scripts-nightly-compaction';
+const NC_SRC = "scripts-nightly-compaction";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = join(__dirname, '../..');
-const STATE_DIR = join(PROJECT_ROOT, '.opencode/state');
+const PROJECT_ROOT = join(__dirname, "../..");
+const STATE_DIR = join(PROJECT_ROOT, ".opencode/state");
 
 /**
  * Load StateCompactor and DAGVersionManager from TypeScript source.
  * FW-PLAN-JS-TO-TS: Bun executes .ts directly; no compilation or dist/ fallback needed.
  */
-const { StateCompactor } = await import('../lib/state-compactor.ts');
-const { DAGVersionManager } = await import('../lib/dag-version-manager.ts');
+const { StateCompactor } = await import("../lib/state-compactor.ts");
+const { DAGVersionManager } = await import("../lib/dag-version-manager.ts");
 
 const args = process.argv.slice(2);
-const DRY_RUN = args.includes('--dry-run');
-const WITH_DAG = args.includes('--dag');
-const todayArg = args.find((_, i) => args[i - 1] === '--today');
-const TODAY = todayArg || new Date().toISOString().split('T')[0];
+const DRY_RUN = args.includes("--dry-run");
+const WITH_DAG = args.includes("--dag");
+const todayArg = args.find((_, i) => args[i - 1] === "--today");
+const TODAY = todayArg || new Date().toISOString().split("T")[0];
 
-function log(msg) { console.log((DRY_RUN ? '[DRY-RUN] ' : '') + msg); }
+function log(msg) {
+  console.log((DRY_RUN ? "[DRY-RUN] " : "") + msg);
+}
 
 async function compactGateState() {
-  log('=== Gate-State Nightly Compaction ===');
+  log("=== Gate-State Nightly Compaction ===");
   const compactor = new StateCompactor();
 
   if (DRY_RUN) {
     // Dry-run: show what would be compacted
-    const historyDir = join(STATE_DIR, 'gate-state.history');
-    if (!existsSync(historyDir)) { log('No history directory. Nothing to compact.'); return; }
-    const files = readdirSync(historyDir).filter(f => f.endsWith('.jsonl'));
+    const historyDir = join(STATE_DIR, "gate-state.history");
+    if (!existsSync(historyDir)) {
+      log("No history directory. Nothing to compact.");
+      return;
+    }
+    const files = readdirSync(historyDir).filter((f) => f.endsWith(".jsonl"));
     const cutoff = new Date(TODAY);
     cutoff.setDate(cutoff.getDate() - 7);
-    const oldFiles = files.filter(f => {
+    const oldFiles = files.filter((f) => {
       const match = f.match(/^(\d{4}-\d{2}-\d{2})\.jsonl$/);
       if (!match) return false;
       return new Date(match[1]) < cutoff;
     });
     log(`${oldFiles.length} history files >7 days old would be compacted`);
-    if (oldFiles.length > 0) log(`Oldest: ${oldFiles[0]}, Newest: ${oldFiles[oldFiles.length-1]}`);
+    if (oldFiles.length > 0)
+      log(`Oldest: ${oldFiles[0]}, Newest: ${oldFiles[oldFiles.length - 1]}`);
   } else {
     await compactor.nightlyCompaction();
   }
-  log('Gate-state compaction complete.');
+  log("Gate-state compaction complete.");
 }
 
 async function archiveOldDAGTasks() {
-  log('=== DAG Archival ===');
+  log("=== DAG Archival ===");
   const mgr = new DAGVersionManager();
-  const dagPath = join(PROJECT_ROOT, 'Task.DAG.json');
+  const dagPath = join(PROJECT_ROOT, "Task.DAG.json");
 
-  if (!existsSync(dagPath)) { log('No Task.DAG.json found.'); return; }
+  if (!existsSync(dagPath)) {
+    log("No Task.DAG.json found.");
+    return;
+  }
 
-  const dag = JSON.parse(readFileSync(dagPath, 'utf8'));
+  const dag = JSON.parse(readFileSync(dagPath, "utf8"));
   const cutoff = new Date(TODAY);
   cutoff.setDate(cutoff.getDate() - 14);
 
-  const oldCompleted = (dag.tasks || []).filter(t =>
-    t.status === 'completed' && t.completed_at && new Date(t.completed_at) < cutoff
+  const oldCompleted = (dag.tasks || []).filter(
+    (t) =>
+      t.status === "completed" &&
+      t.completed_at &&
+      new Date(t.completed_at) < cutoff,
   );
 
   if (oldCompleted.length === 0) {
-    log('No tasks >14 days old. Nothing to archive.');
+    log("No tasks >14 days old. Nothing to archive.");
     return;
   }
 
   if (DRY_RUN) {
     log(`Would archive ${oldCompleted.length} completed tasks >14 days old`);
-    log(`Hot file: ${dag.tasks.length} → ${dag.tasks.length - oldCompleted.length} tasks`);
+    log(
+      `Hot file: ${dag.tasks.length} → ${dag.tasks.length - oldCompleted.length} tasks`,
+    );
   } else {
     const result = await mgr.createVersionSnapshot(
-      dag.version, dag.version,
-      `Nightly auto-archival: ${oldCompleted.length} tasks >14 days old`
+      dag.version,
+      dag.version,
+      `Nightly auto-archival: ${oldCompleted.length} tasks >14 days old`,
     );
-    log(`Archived ${result.tasksArchived} tasks. ${result.tasksRemaining} remain in hot file.`);
+    log(
+      `Archived ${result.tasksArchived} tasks. ${result.tasksRemaining} remain in hot file.`,
+    );
   }
 }
 
@@ -110,145 +142,252 @@ async function archiveOldDAGTasks() {
 // Uses cleanupStaleBackups() from safe-edit-core.ts to remove backups older than
 // TTL (default 7 days) and enforce per-directory count caps (default 20).
 async function cleanupStaleBackupsStep() {
-  const stepName = 'backup-cleanup';
+  const stepName = "backup-cleanup";
   try {
-    const { cleanupStaleBackups } = await import('../lib/safe-edit-core.ts');
+    const { cleanupStaleBackups } = await import("../lib/safe-edit-core.ts");
     const ttlDays = 7;
     const maxPerDir = 20;
     const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
 
     if (DRY_RUN) {
-      log(`[${stepName}] Would scan all .opencode_backups/ [TTL=${ttlDays}d, cap=${maxPerDir}] — DRY-RUN`);
+      log(
+        `[${stepName}] Would scan all .opencode_backups/ [TTL=${ttlDays}d, cap=${maxPerDir}] — DRY-RUN`,
+      );
       return;
     }
 
     const result = cleanupStaleBackups(PROJECT_ROOT, ttlMs, maxPerDir, true);
-    log(`[${stepName}] Scanned ${result.dirs} dirs, ${result.scanned} files, deleted ${result.deleted}`);
+    log(
+      `[${stepName}] Scanned ${result.dirs} dirs, ${result.scanned} files, deleted ${result.deleted}`,
+    );
   } catch (err) {
-    log(`[${stepName}] ERROR: ${err instanceof Error ? err.message : String(err)}`);
+    log(
+      `[${stepName}] ERROR: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
 
-// SA-IMPL-SELF-CLEANUP (2026-06-11): Nightly cleanup of stale session_access entries.
-// Removes agent entries in knowledge_cache_state.session_access that have been
-// inactive for more than STALE_DAYS (default 30). Also removes invalid keys
-// like "unknown", "", "undefined". Strategy B: periodic global cleanup.
+// SA-IMPL-SELF-CLEANUP + KC-03 (2026-06-20): Nightly cleanup of stale session_access.
+// KC-03 REPLACEMENT: Previously only removed whole agent entries (top-level keys).
+// Now uses shared pruneSessionAccess() from uc7ks-schema.ts which handles nested
+// tasks[task_id].domains[domain_id] pruning with per-domain staleness detection.
 async function cleanupStaleSessionAccessStep() {
-  const stepName = 'session-access-cleanup';
-  const STALE_DAYS = 30;
-  const INVALID_KEYS = ['unknown', '', 'undefined', 'null'];
+  const stepName = "session-access-cleanup";
+  const INVALID_KEYS = ["unknown", "", "undefined", "null"];
   try {
-    const { readFileSync, writeFileSync, existsSync } = await import('fs');
-    const { join } = await import('path');
-    const machinePath = join(PROJECT_ROOT, '.opencode', 'state', 'machine.json');
+    const { existsSync } = await import("fs");
+    const machinePath = join(
+      PROJECT_ROOT,
+      ".opencode",
+      "state",
+      "machine.json",
+    );
     if (!existsSync(machinePath)) {
       log(`[${stepName}] machine.json not found — skip`);
       return;
     }
-    let removed = 0;
+    if (DRY_RUN) {
+      log(
+        `[${stepName}] Would prune nested session_access via pruneSessionAccess() — DRY-RUN`,
+      );
+      return;
+    }
+
+    let invalidRemoved = 0;
+    let pruneResult = {
+      removedTaskEntries: 0,
+      removedDomainEntries: 0,
+      removedStaleAgents: 0,
+    };
+
     const ok = atomicWriteSubState("knowledge_cache_state", (kcs) => {
       const sa = kcs?.session_access;
       if (!sa || Object.keys(sa).length === 0) return;
-      const now = Date.now();
-      const staleMs = STALE_DAYS * 24 * 60 * 60 * 1000;
 
+      // Step 1: Remove invalid keys (preserved from original)
       for (const key of Object.keys(sa)) {
-        let shouldRemove = false;
         if (INVALID_KEYS.includes(key)) {
-          shouldRemove = true;
-        } else {
-          const lastRead = sa[key]?.last_read_at || sa[key]?.declared_at;
-          if (lastRead && (now - new Date(lastRead).getTime() > staleMs)) {
-            shouldRemove = true;
-          }
-        }
-        if (shouldRemove) {
           delete sa[key];
-          removed++;
+          invalidRemoved++;
         }
+      }
+
+      // Step 2: KC-03 — Read prune thresholds from project.config.json
+      const configPath = join(PROJECT_ROOT, ".opencode", "project.config.json");
+      let config: any = {};
+      try {
+        if (existsSync(configPath)) {
+          config = JSON.parse(readFileSync(configPath, "utf8"));
+        }
+      } catch {
+        /* keep defaults */
+      }
+
+      const pruneOpts: PruneOptions = {
+        session_access_ttl_days:
+          config?.template_resolution?.["knowledge.session_access_ttl_days"] ||
+          30,
+        session_access_max_tasks_per_agent:
+          config?.template_resolution?.[
+            "knowledge.session_access_max_tasks_per_agent"
+          ] || 50,
+        session_access_max_domains_per_task:
+          config?.template_resolution?.[
+            "knowledge.session_access_max_domains_per_task"
+          ] || 8,
+        session_access_preserve_attested_days:
+          config?.template_resolution?.[
+            "knowledge.session_access_preserve_attested_days"
+          ] || 90,
+        // KC-14: Archive pruned DB rows before deletion
+        archive_enabled:
+          config?.template_resolution?.[
+            "knowledge.session_access_archive_enabled"
+          ] !== false,
+      };
+
+      // Step 3: KC-03 — Nested pruning via shared helper (in-memory SessionAccess)
+      pruneResult = pruneSessionAccess(sa, pruneOpts);
+
+      // Step 3b: KC-14 — DB-level pruning with optional archiving
+      try {
+        const dbPruneResult = pruneSessionAccessFromDB(pruneOpts);
+        if (dbPruneResult.archivedRows && dbPruneResult.archivedRows > 0) {
+          writeLog(NC_SRC, "INFO", {
+            event: "KC-SESSION-ACCESS-ARCHIVED-NIGHTLY",
+            detail: `rows=${dbPruneResult.archivedRows} archived to knowledge_session_access_archive`,
+          });
+        }
+        if (dbPruneResult.removedTaskEntries > 0) {
+          writeLog(NC_SRC, "INFO", {
+            event: "KC-SESSION-ACCESS-DB-PRUNED-NIGHTLY",
+            detail: `rows=${dbPruneResult.removedTaskEntries} pruned from knowledge_session_access`,
+          });
+        }
+      } catch (dbPruneErr) {
+        writeLog(NC_SRC, "WARN", {
+          event: "KC-SESSION-ACCESS-DB-PRUNE-FAILED",
+          detail: `DB-level prune failed: ${dbPruneErr instanceof Error ? dbPruneErr.message : String(dbPruneErr)}`,
+        });
       }
     });
 
-    if (removed > 0 && ok) {
-      log(`[${stepName}] Cleaned ${removed} stale/invalid session_access entries.`);
-    } else if (!ok) {
-      log(`[${stepName}] CAS write failed after 3 retries`);
-    } else {
+    if (invalidRemoved > 0 && ok) {
+      log(
+        `[${stepName}] Removed ${invalidRemoved} invalid session_access entries.`,
+      );
+    }
+    const totalPruned =
+      pruneResult.removedTaskEntries +
+      pruneResult.removedDomainEntries +
+      pruneResult.removedStaleAgents;
+    if (totalPruned > 0 && ok) {
+      log(
+        `[${stepName}] KC-03 pruneSessionAccess: tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
+      );
+      writeLog(NC_SRC, "INFO", {
+        event: "KC-SESSION-ACCESS-PRUNED-NIGHTLY",
+        detail: `tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
+        source: "nightly-compaction",
+      });
+    } else if (ok) {
       log(`[${stepName}] All entries fresh — no cleanup needed.`);
+    } else {
+      log(`[${stepName}] CAS write failed after 3 retries`);
     }
   } catch (err) {
-    log(`[${stepName}] ERROR: ${err instanceof Error ? err.message : String(err)}`);
+    log(
+      `[${stepName}] ERROR: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
-
 
 // P3/S63-1 + S63-2 + S63-5: Nightly DB maintenance.
 // - dbCleanStaleEntries(): delete audit/WAL rows >7 days old (S63-1)
 // - PRAGMA wal_checkpoint(TRUNCATE): reclaim WAL space (S63-1)
 // - dbVacuum(): weekly reclaim free pages (Sundays only) (S63-5)
 async function dbMaintenanceStep() {
-  const stepName = 'db-maintenance';
+  const stepName = "db-maintenance";
   if (DRY_RUN) {
-    log(`[${stepName}] Would clean stale audit entries (>7d), WAL checkpoint (TRUNCATE), and vacuum (Sundays) — DRY-RUN`);
+    log(
+      `[${stepName}] Would clean stale audit entries (>7d), WAL checkpoint (TRUNCATE), and vacuum (Sundays) — DRY-RUN`,
+    );
     return;
   }
   try {
     // 1. Clean stale audit rows (db-manager handles all 4 tables internally)
     const deleted = dbCleanStaleEntries();
     log(`[${stepName}] Cleaned ${deleted} stale audit/WAL rows (>7 days)`);
-    writeLog(NC_SRC, 'INFO', { event: 'DB-CLEAN-STALE', detail: `deleted=${deleted}` });
+    writeLog(NC_SRC, "INFO", {
+      event: "DB-CLEAN-STALE",
+      detail: `deleted=${deleted}`,
+    });
 
     // 2. WAL checkpoint + truncate (reclaim WAL space)
     const db = getDb();
-    db.run('PRAGMA wal_checkpoint(TRUNCATE)');
+    db.run("PRAGMA wal_checkpoint(TRUNCATE)");
     log(`[${stepName}] WAL checkpoint (TRUNCATE) complete`);
-    writeLog(NC_SRC, 'INFO', { event: 'DB-WAL-CHECKPOINT', detail: 'TRUNCATE' });
+    writeLog(NC_SRC, "INFO", {
+      event: "DB-WAL-CHECKPOINT",
+      detail: "TRUNCATE",
+    });
 
     // 3. Weekly vacuum (Sundays only — VACUUM is expensive, ~1-2s)
     const dayOfWeek = new Date().getDay();
     if (dayOfWeek === 0) {
       const vacOk = dbVacuum();
-      log(`[${stepName}] Sunday VACUUM: ${vacOk ? 'complete' : 'failed (see log)'}`);
-      if (vacOk) writeLog(NC_SRC, 'INFO', { event: 'DB-VACUUM', detail: 'Sunday maintenance' });
+      log(
+        `[${stepName}] Sunday VACUUM: ${vacOk ? "complete" : "failed (see log)"}`,
+      );
+      if (vacOk)
+        writeLog(NC_SRC, "INFO", {
+          event: "DB-VACUUM",
+          detail: "Sunday maintenance",
+        });
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log(`[${stepName}] ERROR: ${msg}`);
-    writeLog(NC_SRC, 'ERROR', { event: 'DB-MAINTENANCE-FAILED', detail: msg });
+    writeLog(NC_SRC, "ERROR", { event: "DB-MAINTENANCE-FAILED", detail: msg });
   }
 }
 
 async function main() {
-  log(`Nightly Compaction — ${TODAY} ${DRY_RUN ? '(DRY-RUN)' : ''}`);
-  log('');
+  log(`Nightly Compaction — ${TODAY} ${DRY_RUN ? "(DRY-RUN)" : ""}`);
+  log("");
 
   await compactGateState();
-  log('');
+  log("");
 
   if (WITH_DAG) {
     await archiveOldDAGTasks();
-    log('');
+    log("");
   }
 
   // SA-IMPL-BACKUP-LIFECYCLE: Nightly cleanup of stale .opencode_backups/
   await cleanupStaleBackupsStep();
-  log('');
+  log("");
 
   // SA-IMPL-SELF-CLEANUP: Nightly cleanup of stale session_access entries
   await cleanupStaleSessionAccessStep();
-  log('');
+  log("");
 
   // P3/S63-1: Nightly DB maintenance (stale cleanup + WAL checkpoint + weekly vacuum)
   await dbMaintenanceStep();
-  log('');
+  log("");
 
-  log('Nightly compaction complete.');
+  log("Nightly compaction complete.");
   // Output metrics
-  const hotFile = join(STATE_DIR, 'gate-state.json');
+  const hotFile = join(STATE_DIR, "gate-state.json");
   if (existsSync(hotFile)) {
-    const hot = JSON.parse(readFileSync(hotFile, 'utf8'));
-    log(`Gate hot file: ${hot.meta?.active_count || 0} active, ${hot.meta?.recent_count || 0} recent`);
+    const hot = JSON.parse(readFileSync(hotFile, "utf8"));
+    log(
+      `Gate hot file: ${hot.meta?.active_count || 0} active, ${hot.meta?.recent_count || 0} recent`,
+    );
   }
 }
 
-main().catch(err => { console.error('Compaction failed:', err.message); process.exit(1); });
+main().catch((err) => {
+  console.error("Compaction failed:", err.message);
+  process.exit(1);
+});

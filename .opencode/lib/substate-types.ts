@@ -89,10 +89,52 @@ export interface KnowledgeCacheState {
   [key: string]: any;
 }
 
+/**
+ * KnowledgeAuditState — Bounded aggregate audit rollup (KC-02, 2026-06-21)
+ * Retained and activated as DB-managed audit state. Written by non-fatal
+ * knowledge-audit.ts helper functions from multiple UC7KS pipeline writers.
+ * All write failures are silently logged — never throw/block.
+ */
 export interface KnowledgeAuditState {
+  /** Whether knowledge pipeline auditing is enabled */
+  enabled?: boolean;
+  /** ISO 8601 timestamp of last cache check */
+  last_cache_check?: string;
+  /** ISO 8601 timestamp of last external knowledge acquisition */
+  last_knowledge_acquisition?: string;
+  /** Bounded aggregate audit counters */
+  aggregate?: KnowledgeAuditAggregate;
+  /** Ring buffer of recent events (max 100, oldest evicted) */
+  recent_events?: KnowledgeAuditEvent[];
+  /** Legacy fields kept for backward compatibility */
   last_audit?: string;
   total_accesses?: number;
   coverage_score?: number;
+  [key: string]: any;
+}
+
+/** Aggregate counters for knowledge pipeline activity rollup */
+export interface KnowledgeAuditAggregate {
+  total_cache_checks?: number;
+  total_cache_hits?: number;
+  total_cache_misses?: number;
+  total_attestations?: number;
+  total_attestation_failures?: number;
+  total_curator_dispatches?: number;
+  total_external_fetches?: number;
+  reverse_orphan_count?: number;
+  last_cleanup_removed_session_entries?: number;
+  [key: string]: any;
+}
+
+/** Single audit event entry for the recent_events ring buffer */
+export interface KnowledgeAuditEvent {
+  event: string;
+  agent?: string;
+  timestamp: string;
+  detail?: string;
+  task_id?: string;
+  domain?: string;
   [key: string]: any;
 }
 

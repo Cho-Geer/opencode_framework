@@ -1,5 +1,5 @@
 // uc7ks-utils.ts — UC7KS knowledge pipeline compliance utilities (lib)
-// BUN-CACHE-VERSION: 2026-06-18-UC7KS-PHASE0 (dual-state discovery/attestation)
+// BUN-CACHE-VERSION: 2026-06-21-A3-DB-FIRST (A3: DB-first enforcement with JSON fallback)
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
@@ -12,6 +12,7 @@ import {
 } from "./uc7ks-schema";
 import { readSubState } from "./substate-manager";
 import { writeLog } from "./log-manager";
+import { getDb } from "./db-manager";
 
 const SRC = "lib-uc7ks-utils";
 
@@ -29,7 +30,9 @@ export function readCacheIndex(): IndexManifest | null {
     if (!fs.existsSync(p)) return null;
     const c = JSON.parse(fs.readFileSync(p, "utf8"));
     return c.manifest_version && Array.isArray(c.entries) ? c : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function isLocalCacheAvailable(): boolean {
@@ -50,7 +53,173 @@ export function readCachedSessionAccess(agentKey: string): any {
   return null;
 }
 
-export function buildUC7KSError(agent: string, tool: string, mode: string, cacheAvail: boolean, reason: string): string {
+/**
+ * A3 (2026-06-21): DB-first enforcement — query typed knowledge tables
+ * (knowledge_session_access, knowledge_discovery, knowledge_attestation)
+ * instead of relying exclusively on the knowledge_cache_state JSON blob.
+ * Each function returns null on DB error (caller falls back to JSON blob).
+ *
+ * @see docs/review/framework-refactor/read-audit-db-migration-plan.md for DB-first pattern
+ */
+
+/** Query knowledge_session_access row for (agent, taskId, domainId) */
+function getKnowledgeAccessFromDb(
+  agent: string,
+  taskId: string,
+  domainId: string,
+): any | null {
+  try {
+    const db = getDb({ skipSchema: true });
+    return (
+      db
+        .query(
+          `SELECT * FROM knowledge_session_access WHERE agent = ? AND task_id = ? AND domain_id = ?`,
+        )
+        .get(agent, taskId, domainId) || null
+    );
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-DB-QUERY-ACCESS-FAILED",
+      detail: `agent=${agent} task=${taskId} domain=${domainId} err=${e.message}`,
+    });
+    return null; // ← caller falls back to JSON blob
+  }
+}
+
+/** Query knowledge_discovery row for (agent, taskId, domainId) */
+function getKnowledgeDiscoveryFromDb(
+  agent: string,
+  taskId: string,
+  domainId: string,
+): any | null {
+  try {
+    const db = getDb({ skipSchema: true });
+    return (
+      db
+        .query(
+          `SELECT * FROM knowledge_discovery WHERE agent = ? AND task_id = ? AND domain_id = ?`,
+        )
+        .get(agent, taskId, domainId) || null
+    );
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-DB-QUERY-DISCOVERY-FAILED",
+      detail: `agent=${agent} task=${taskId} domain=${domainId} err=${e.message}`,
+    });
+    return null;
+  }
+}
+
+/** Query knowledge_attestation row for (agent, taskId, domainId) */
+function getKnowledgeAttestationFromDb(
+  agent: string,
+  taskId: string,
+  domainId: string,
+): any | null {
+  try {
+    const db = getDb({ skipSchema: true });
+    return (
+      db
+        .query(
+          `SELECT * FROM knowledge_attestation WHERE agent = ? AND task_id = ? AND domain_id = ?`,
+        )
+        .get(agent, taskId, domainId) || null
+    );
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-DB-QUERY-ATTESTATION-FAILED",
+      detail: `agent=${agent} task=${taskId} domain=${domainId} err=${e.message}`,
+    });
+    return null;
+  }
+}
+
+/**
+ * A3: Try to build enforcement discovery + attestation records from DB.
+ * Returns { disc, att } on success, null on any DB error (→ JSON fallback).
+ * This is the DB-first entry point for checkUC7KSWrite Path A.
+ */
+function tryBuildEnforcementFromDb(
+  agentKey: string,
+  taskId: string,
+  domainId: string,
+): { disc: any; att: any } | null {
+  try {
+    const dbAccess = getKnowledgeAccessFromDb(agentKey, taskId, domainId);
+    const dbDiscovery = getKnowledgeDiscoveryFromDb(agentKey, taskId, domainId);
+    const dbAttestation = getKnowledgeAttestationFromDb(
+      agentKey,
+      taskId,
+      domainId,
+    );
+
+    // DB is authoritative if we reached this point without exception.
+    // Build CacheDiscovery-equivalent from knowledge_discovery row
+    var disc: any = null;
+    if (dbDiscovery) {
+      disc = {
+        status: dbDiscovery.result_status || "undeclared",
+        missing_topics: [],
+        discovered_files: [],
+        discovered_at: dbDiscovery.created_at
+          ? new Date(dbDiscovery.created_at).toISOString()
+          : new Date(0).toISOString(),
+      };
+    }
+
+    // Build CacheAttestation-equivalent from knowledge_attestation row
+    var att: any = null;
+    if (dbAttestation) {
+      var filesRead: string[] = [];
+      try {
+        if (dbAttestation.files_read) {
+          filesRead =
+            typeof dbAttestation.files_read === "string"
+              ? JSON.parse(dbAttestation.files_read)
+              : dbAttestation.files_read;
+        }
+      } catch {
+        filesRead = [];
+      }
+
+      att = {
+        status: dbAttestation.status || "pending",
+        reason: dbAttestation.insufficiency_reason || "",
+        files_read: Array.isArray(filesRead) ? filesRead : [],
+        content_summary: "",
+        attested_at: dbAttestation.created_at
+          ? new Date(dbAttestation.created_at).toISOString()
+          : new Date(0).toISOString(),
+      };
+    }
+
+    writeLog(SRC, "INFO", {
+      event: "UC7KS-DB-ENFORCEMENT",
+      agent: agentKey,
+      taskId,
+      domainId,
+      detail: `DB-first: access=${!!dbAccess} discovery=${!!dbDiscovery} attestation=${!!dbAttestation}`,
+    });
+    return { disc, att };
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "UC7KS-DB-FALLBACK",
+      agent: agentKey,
+      taskId,
+      domainId,
+      detail: `DB enforcement failed (${e.message}), falling back to JSON blob`,
+    });
+    return null; // ← JSON fallback
+  }
+}
+
+export function buildUC7KSError(
+  agent: string,
+  tool: string,
+  mode: string,
+  cacheAvail: boolean,
+  reason: string,
+): string {
   return [
     `╔══════════════════════════════════════════════════════════════╗`,
     `║  UC7KS PIPELINE ENFORCEMENT — ${mode.toUpperCase()} MODE                      ║`,
@@ -66,16 +235,27 @@ export function buildUC7KSError(agent: string, tool: string, mode: string, cache
 }
 
 const EXTERNAL_TOOLS = new Set([
-  "context7_resolve-library-id", "context7_query-docs", "context7",
-  "webfetch", "websearch",
-  "github_get_file_contents", "github_search_code", "github_search_repositories", "github_search_issues",
+  "context7_resolve-library-id",
+  "context7_query-docs",
+  "context7",
+  "webfetch",
+  "websearch",
+  "github_get_file_contents",
+  "github_search_code",
+  "github_search_repositories",
+  "github_search_issues",
   "playwright_browser_navigate",
 ]);
 
-export function checkUC7KS(tool: string, agent: string, mode: string): string | null {
+export function checkUC7KS(
+  tool: string,
+  agent: string,
+  mode: string,
+): string | null {
   if (!EXTERNAL_TOOLS.has(tool)) return null;
 
-  if (agent === "@Knowledge-Curator" || agent === "Knowledge-Curator") return null;
+  if (agent === "@Knowledge-Curator" || agent === "Knowledge-Curator")
+    return null;
 
   const cacheAvailable = isLocalCacheAvailable();
 
@@ -91,7 +271,13 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
   }
 
   if (!agentReadCache && cacheAvailable) {
-    return buildUC7KSError(agent, tool, mode, true, "UC7-001: Agent has not read local knowledge cache before external query.");
+    return buildUC7KSError(
+      agent,
+      tool,
+      mode,
+      true,
+      "UC7-001: Agent has not read local knowledge cache before external query.",
+    );
   }
 
   // ── F3: Per-domain sufficiency check with nested schema fallback ──
@@ -109,9 +295,14 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
       const agentEntry = sa[agent] || sa[agentKey];
       if (agentEntry?.tasks) {
         for (const tid of Object.keys(agentEntry.tasks)) {
-          for (const domain of Object.keys(agentEntry.tasks[tid].domains || {})) {
+          for (const domain of Object.keys(
+            agentEntry.tasks[tid].domains || {},
+          )) {
             const d = agentEntry.tasks[tid].domains[domain];
-            if (d.pipeline_status === "completed" && d.cache_sufficiency?.status === "sufficient") {
+            if (
+              d.pipeline_status === "completed" &&
+              d.cache_sufficiency?.status === "sufficient"
+            ) {
               hasSufficientCache = true;
               suff = d.cache_sufficiency;
               break;
@@ -135,7 +326,9 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
         let hasAnyCache = false;
         if (agentEntry?.tasks) {
           for (const tid of Object.keys(agentEntry.tasks)) {
-            for (const domain of Object.keys(agentEntry.tasks[tid].domains || {})) {
+            for (const domain of Object.keys(
+              agentEntry.tasks[tid].domains || {},
+            )) {
               const d = agentEntry.tasks[tid].domains[domain];
               if (d.cache_sufficiency?.status === "insufficient") {
                 hasAnyCache = true;
@@ -147,10 +340,19 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
         }
         if (!hasAnyCache) {
           const flat = agentEntry || {};
-          if (flat.cache_sufficiency?.status === "insufficient") hasAnyCache = true;
-          else if (!flat.cache_sufficiency?.status || flat.cache_sufficiency.status === "undeclared") {
-            return buildUC7KSError(agent, tool, mode, true,
-              `UC7-001b: Cache sufficiency not declared (status: ${flat.cache_sufficiency?.status || "undeclared"}). See subagent-preamble.md Step 0c.`);
+          if (flat.cache_sufficiency?.status === "insufficient")
+            hasAnyCache = true;
+          else if (
+            !flat.cache_sufficiency?.status ||
+            flat.cache_sufficiency.status === "undeclared"
+          ) {
+            return buildUC7KSError(
+              agent,
+              tool,
+              mode,
+              true,
+              `UC7-001b: Cache sufficiency not declared (status: ${flat.cache_sufficiency?.status || "undeclared"}). See subagent-preamble.md Step 0c.`,
+            );
           }
         }
       }
@@ -159,14 +361,24 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
       if (suff) {
         const missing: string[] = [];
         if (!suff.reason || suff.reason.length === 0) missing.push("reason");
-        if (!suff.files_read || !Array.isArray(suff.files_read) || suff.files_read.length === 0) {
+        if (
+          !suff.files_read ||
+          !Array.isArray(suff.files_read) ||
+          suff.files_read.length === 0
+        ) {
           if (suff.status === "sufficient") missing.push("files_read");
         }
-        if (!suff.content_summary || suff.content_summary.length === 0) missing.push("content_summary");
+        if (!suff.content_summary || suff.content_summary.length === 0)
+          missing.push("content_summary");
         if (missing.length > 0) {
-          return buildUC7KSError(agent, tool, mode, true,
+          return buildUC7KSError(
+            agent,
+            tool,
+            mode,
+            true,
             `UC7-001c: Cache sufficiency evidence incomplete. Missing: ${missing.join(", ")}. ` +
-            `Must provide reason, files_read, and content_summary. See preamble Step 0.`);
+              `Must provide reason, files_read, and content_summary. See preamble Step 0.`,
+          );
         }
       }
     } catch (e: any) {
@@ -179,12 +391,24 @@ export function checkUC7KS(tool: string, agent: string, mode: string): string | 
 
   if (mode === "advisory" || mode === "strict") {
     if (cacheAvailable) {
-      return buildUC7KSError(agent, tool, mode, true, `Local cache exists. Agent must search cached docs before external queries (${mode} mode).`);
+      return buildUC7KSError(
+        agent,
+        tool,
+        mode,
+        true,
+        `Local cache exists. Agent must search cached docs before external queries (${mode} mode).`,
+      );
     }
     return null;
   }
 
-  return buildUC7KSError(agent, tool, "locked", cacheAvailable, "LOCKED mode: ALL direct external queries blocked. Must use @Knowledge-Curator.");
+  return buildUC7KSError(
+    agent,
+    tool,
+    "locked",
+    cacheAvailable,
+    "LOCKED mode: ALL direct external queries blocked. Must use @Knowledge-Curator.",
+  );
 }
 
 /**
@@ -230,12 +454,58 @@ export function checkUC7KSWrite(
   //   Path A: taskId+domainId present AND per-domain data exists → dual-state verify
   //   Path B: taskId+domainId present BUT per-domain data missing → BLOCK
   //   Path C: no taskId/domainId → global check (backward compat)
+  //
+  // A3 (2026-06-21): DB-first enforcement. Path A now queries typed
+  // knowledge tables (knowledge_session_access, knowledge_discovery,
+  // knowledge_attestation) before falling back to JSON blob. This
+  // follows the same pattern as read-audit DB-first migration.
   if (taskId && domainId) {
-    if (sa?.tasks?.[taskId]?.domains?.[domainId]) {
-      // Path A: per-domain data exists → dual-state check (discovery + attestation)
-      var disc = readCacheDiscovery(sa, agentKey, taskId, domainId);
-      var att = readCacheAttestation(sa, agentKey, taskId, domainId);
+    // A3: Try DB-first enforcement first
+    var dbEnf = tryBuildEnforcementFromDb(agentKey, taskId, domainId);
+    var disc: any = null;
+    var att: any = null;
+    var usedDb = false;
 
+    if (dbEnf) {
+      // DB-first: use typed table data if available
+      disc = dbEnf.disc;
+      att = dbEnf.att;
+      usedDb = true;
+
+      // If DB has no discovery data at all, fall through to JSON blob
+      // (DB tables may exist but not yet populated for this agent/task/domain)
+      if (!disc && !att) {
+        usedDb = false; // no DB data → try JSON blob
+      }
+    }
+
+    if (!usedDb) {
+      // JSON blob fallback (original Path A logic)
+      if (sa?.tasks?.[taskId]?.domains?.[domainId]) {
+        disc = readCacheDiscovery(sa, agentKey, taskId, domainId);
+        att = readCacheAttestation(sa, agentKey, taskId, domainId);
+        writeLog(SRC, "INFO", {
+          event: "UC7KS-ENFORCEMENT-JSON-FALLBACK",
+          agent,
+          sessionID: sessionId,
+          taskId,
+          domainId,
+          detail: `DB-first had no data for this agent/task/domain, using JSON blob`,
+        });
+      }
+    } else {
+      writeLog(SRC, "INFO", {
+        event: "UC7KS-ENFORCEMENT-DB-FIRST",
+        agent,
+        sessionID: sessionId,
+        taskId,
+        domainId,
+        detail: `DB-first: disc=${disc?.status || "none"} att=${att?.status || "none"}`,
+      });
+    }
+
+    // Unified enforcement logic (works with disc+att from either DB or JSON blob)
+    if (disc || att) {
       // Sub-path A1: discovery insufficient → BLOCK
       if (!disc || disc.status !== "sufficient") {
         writeLog(SRC, "ERROR", {
@@ -250,7 +520,7 @@ export function checkUC7KSWrite(
           "UC7-001: 知识缓存不足",
           agent,
           `Missing topics: ${disc?.missing_topics?.join(", ") || "unknown"}.`,
-          "1. 调 knowledge_cache_search(domain, task_id) 换 domain\n2. 如仍不足 → 通知 @Orchestrator 派遣 @Knowledge-Curator"
+          "1. 调 knowledge_cache_search(domain, task_id) 换 domain\n2. 如仍不足 → 通知 @Orchestrator 派遣 @Knowledge-Curator",
         );
       }
 
@@ -258,7 +528,10 @@ export function checkUC7KSWrite(
       // §2.7 Legacy compat: advisory mode accepts legacy_discovered_only
       if (mode === "advisory") {
         // Advisory: pass if legacy cache_sufficiency was sufficient (grace period)
-        if (att && (att.status === "legacy_discovered_only" || att.status === "attested")) {
+        if (
+          att &&
+          (att.status === "legacy_discovered_only" || att.status === "attested")
+        ) {
           writeLog(SRC, "WARN", {
             event: "UC7KS-WRITE-PASS-LEGACY",
             agent,
@@ -295,13 +568,14 @@ export function checkUC7KSWrite(
             sessionID: sessionId,
             taskId,
             domainId,
-            detail: "discovery sufficient but no attestation — must call knowledge_cache_attest",
+            detail:
+              "discovery sufficient but no attestation — must call knowledge_cache_attest",
           });
           return buildBlockMessage(
             "UC7-001: 缓存已搜索但未证明已读",
             agent,
             `Discovery sufficient (${disc.discovered_files.length} files discovered) but no read attestation.`,
-            `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`
+            `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`,
           );
         }
         // Has attestation but status is pending/skipped
@@ -318,7 +592,7 @@ export function checkUC7KSWrite(
             "UC7-001: 阅读证明未完成",
             agent,
             `Attestation status is "${att.status}" (requires "attested").`,
-            `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`
+            `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`,
           );
         }
         // legacy_discovered_only in strict/locked → BLOCK (§2.7: no implicit pass)
@@ -335,7 +609,7 @@ export function checkUC7KSWrite(
             "UC7-001: 遗留缓存数据未经验证",
             agent,
             `Cache was previously marked sufficient but has NOT been verified against read_audit.jsonl (§2.7: legacy data requires re-attestation in ${mode} mode).`,
-            `1. 用 read 工具打开相关缓存文件\n2. 调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", ...)`
+            `1. 用 read 工具打开相关缓存文件\n2. 调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", ...)`,
           );
         }
 
@@ -356,7 +630,7 @@ export function checkUC7KSWrite(
           "UC7-001: 阅读证明状态未知",
           agent,
           `Attestation status "${att.status}" is not recognized as valid (requires "attested").`,
-          `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`
+          `调 knowledge_cache_attest(domain="${domainId}", task_id="${taskId}", reason="...", files_read=[...], content_summary="...")`,
         );
       }
 
@@ -386,7 +660,8 @@ export function checkUC7KSWrite(
           sessionID: sessionId,
           taskId,
           domainId,
-          detail: "path B: domain mismatch tolerated (>=1 attested domain exists)",
+          detail:
+            "path B: domain mismatch tolerated (>=1 attested domain exists)",
         });
       } else if (sa?.uc7_001_compliant) {
         // M5 HARDEN: uc7_001_compliant=true but NO attested domains.
@@ -403,8 +678,8 @@ export function checkUC7KSWrite(
           "UC7-001: 缓存已搜索但无任何域已证明已读",
           agent,
           `Agent has searched cache (uc7_001_compliant=true) but has 0 attested domains. ` +
-          `Requires >=1 domain attested before writing (M5).`,
-          `调 knowledge_cache_attest(domain="...", task_id="${taskId || "TASK"}", reason="...", files_read=[...], content_summary="...")`
+            `Requires >=1 domain attested before writing (M5).`,
+          `调 knowledge_cache_attest(domain="...", task_id="${taskId || "TASK"}", reason="...", files_read=[...], content_summary="...")`,
         );
       } else {
         writeLog(SRC, "ERROR", {
@@ -413,8 +688,9 @@ export function checkUC7KSWrite(
           sessionID: sessionId,
           taskId,
           domainId,
-          detail: "taskId+domainId provided but no per-task cache_sufficiency data. " +
-                  "Agent must call knowledge_cache_search(domain, task_id) before writing.",
+          detail:
+            "taskId+domainId provided but no per-task cache_sufficiency data. " +
+            "Agent must call knowledge_cache_search(domain, task_id) before writing.",
         });
         return [
           `[FW-ENFORCE][UC7-001] Knowledge cache not searched for task "${taskId}" domain "${domainId}".`,
@@ -426,181 +702,264 @@ export function checkUC7KSWrite(
       }
     }
 
-/**
- * Phase 0 (2026-06-18): Build formatted UC7-001 block error message.
- * Replaces the old buildUC7KSError for write-time blocks.
- */
-function buildBlockMessage(title: string, agent: string, detail: string, remediation: string): string {
-  return [
-    `╔══════════════════════════════════════════════════════════════╗`,
-    `║  ${title.padEnd(56)}║`,
-    `║  Agent: ${(agent || "unknown").padEnd(48)}║`,
-    `║  ${detail.substring(0, 54).padEnd(54)}║`,
-    `║  修复:${' '.repeat(56)}║`,
-  ].concat(
-    remediation.split("\n").map(function (l) { return `║  ${l.substring(0, 54).padEnd(54)}║`; })
-  ).concat([
-    `╚══════════════════════════════════════════════════════════════╝`,
-  ]).join("\n");
-}
-
-  // ── Path C: All-domain attestation check (M3, 2026-06-19) ──
-  // Replaces legacy global uc7_001_compliant check.
-  // Iterates ALL session domains for this agent/task — every domain
-  // MUST have attestation.status === "attested" for writes to pass.
-  // Strict/Locked: BLOCK on first non-attested domain.
-  // Advisory: WARN (log) but PASS (non-blocking).
-  // Design: docs/review/framework-refactor/uc7ks-write-block-gap-analysis-and-repair-plan.md §M3
-  var allDomainsAttested = checkAllDomainsAttested(sa, agentKey, taskId, mode, sessionId, agent);
-  if (allDomainsAttested === true) {
-    // All domains attested → PASS
-    writeLog(SRC, "INFO", {
-      event: "UC7KS-WRITE-PASS-ALL-ATTESTED",
-      agent,
-      sessionID: sessionId,
-      taskId,
-      detail: `all domains attested for agent ${agent}`,
-    });
-    return null;
-  }
-  if (typeof allDomainsAttested === "string") {
-    // Returned a block message (strict/locked mode, domain not attested)
-    return allDomainsAttested;
-  }
-  // allDomainsAttested === null → advisory mode: warn but pass
-  writeLog(SRC, "WARN", {
-    event: "UC7KS-WRITE-WARN-NOT-ALL-ATTESTED",
-    agent,
-    sessionID: sessionId,
-    taskId,
-    detail: `advisory mode: domains not fully attested — WARN only`,
-  });
-  return null;
-}
-
-/**
- * M5 helper: Checks whether the agent has at least one domain
- * with attestation.status === "attested" in ANY task.
- * Used by Path B to determine whether domain mismatch is tolerable.
- */
-function hasAtLeastOneAttestedDomain(sa: any, agentKey: string): boolean {
-  if (!sa?.tasks) return false;
-  for (const tid of Object.keys(sa.tasks)) {
-    for (const domId of Object.keys(sa.tasks[tid].domains || {})) {
-      const att = readCacheAttestation(sa, agentKey, tid, domId);
-      if (att && att.status === "attested") return true;
+    /**
+     * Phase 0 (2026-06-18): Build formatted UC7-001 block error message.
+     * Replaces the old buildUC7KSError for write-time blocks.
+     */
+    function buildBlockMessage(
+      title: string,
+      agent: string,
+      detail: string,
+      remediation: string,
+    ): string {
+      return [
+        `╔══════════════════════════════════════════════════════════════╗`,
+        `║  ${title.padEnd(56)}║`,
+        `║  Agent: ${(agent || "unknown").padEnd(48)}║`,
+        `║  ${detail.substring(0, 54).padEnd(54)}║`,
+        `║  修复:${" ".repeat(56)}║`,
+      ]
+        .concat(
+          remediation.split("\n").map(function (l) {
+            return `║  ${l.substring(0, 54).padEnd(54)}║`;
+          }),
+        )
+        .concat([
+          `╚══════════════════════════════════════════════════════════════╝`,
+        ])
+        .join("\n");
     }
-  }
-  return false;
-}
 
-/**
- * M3: Checks all domains for the given agent/task.
- * Returns:
- *   true  — all domains attested (PASS)
- *   "" (string) — block message (BLOCK in strict/locked)
- *   null — advisory mode: not all attested but non-blocking (WARN)
- */
-function checkAllDomainsAttested(
-  sa: any,
-  agentKey: string,
-  taskId: string | undefined,
-  mode: string,
-  sessionId: string | undefined,
-  agent: string,
-): true | string | null {
-  // Collect domains: if taskId provided, check only that task's domains.
-  // Otherwise, check ALL tasks' domains.
-  var domainEntries: Array<{ taskId: string; domainId: string }> = [];
-  if (taskId && sa?.tasks?.[taskId]?.domains) {
-    for (const domId of Object.keys(sa.tasks[taskId].domains)) {
-      domainEntries.push({ taskId, domainId: domId });
-    }
-  } else if (sa?.tasks) {
-    for (const tid of Object.keys(sa.tasks)) {
-      for (const domId of Object.keys(sa.tasks[tid].domains || {})) {
-        domainEntries.push({ taskId: tid, domainId: domId });
+    // ── Path C: All-domain attestation check (M3, 2026-06-19) ──
+    // Replaces legacy global uc7_001_compliant check.
+    // Iterates ALL session domains for this agent/task — every domain
+    // MUST have attestation.status === "attested" for writes to pass.
+    // Strict/Locked: BLOCK on first non-attested domain.
+    // Advisory: WARN (log) but PASS (non-blocking).
+    // Design: docs/review/framework-refactor/uc7ks-write-block-gap-analysis-and-repair-plan.md §M3
+
+    // A3 F1: Resolve missing taskId from session_map → gate_sessions
+    // When taskId is undefined, try to recover it from the database
+    // to enable per-domain attestation lookup.
+    var resolvedTaskId = taskId;
+    if (!resolvedTaskId && sessionId) {
+      try {
+        const db = getDb({ skipSchema: true });
+        // Priority 1: session_map.dag_task_id (dispatch-assigned)
+        const smRow = db
+          .query(`SELECT dag_task_id FROM session_map WHERE session_id = ?`)
+          .get(sessionId) as { dag_task_id: string | null } | null;
+        if (smRow?.dag_task_id) {
+          resolvedTaskId = smRow.dag_task_id;
+          writeLog(SRC, "INFO", {
+            event: "UC7KS-TASKID-RESOLVED-SESSION-MAP",
+            agent,
+            sessionID: sessionId,
+            taskId: resolvedTaskId,
+            detail: `Path C: resolved taskId from session_map`,
+          });
+        } else {
+          // Priority 2: gate_sessions.task_id (compliance gate)
+          const gsRow = db
+            .query(`SELECT task_id FROM gate_sessions WHERE session_id = ?`)
+            .get(sessionId) as { task_id: string | null } | null;
+          if (gsRow?.task_id) {
+            resolvedTaskId = gsRow.task_id;
+            writeLog(SRC, "INFO", {
+              event: "UC7KS-TASKID-RESOLVED-GATE-SESSIONS",
+              agent,
+              sessionID: sessionId,
+              taskId: resolvedTaskId,
+              detail: `Path C: resolved taskId from gate_sessions`,
+            });
+          }
+        }
+      } catch (e: any) {
+        writeLog(SRC, "WARN", {
+          event: "UC7KS-TASKID-RESOLVE-FAILED",
+          agent,
+          sessionID: sessionId,
+          detail: `Path C: failed to resolve taskId from DB: ${e.message}`,
+        });
       }
     }
-  }
 
-  // If no domains exist at all, check legacy global flag for backward compat
-  if (domainEntries.length === 0) {
-    if (sa?.uc7_001_compliant) {
-      return true; // Legacy global pass (no per-domain data, but cache was searched)
+    // If taskId remains unresolved in strict/locked mode → BLOCK
+    if (!resolvedTaskId && (mode === "strict" || mode === "locked")) {
+      writeLog(SRC, "ERROR", {
+        event: "UC7KS-WRITE-BLOCK-NO-TASKID",
+        agent,
+        sessionID: sessionId,
+        detail: `Path C: no taskId available — cannot perform per-domain attestation check`,
+      });
+      return buildBlockMessage(
+        "UC7-001: 无法解析任务ID",
+        agent,
+        `No taskId available for per-domain attestation check. ` +
+          `sessionId=${sessionId || "none"}`,
+        `1. Ensure dispatch went through dispatch_subagent\n` +
+          `2. Or provide task_id explicitly to compliance_gate_check\n` +
+          `3. Or use advisory mode for emergency bypass`,
+      );
     }
-    if (mode === "advisory") {
-      writeLog(SRC, "WARN", {
-        event: "UC7KS-WRITE-WARN-NO-DOMAINS",
+
+    var allDomainsAttested = checkAllDomainsAttested(
+      sa,
+      agentKey,
+      resolvedTaskId,
+      mode,
+      sessionId,
+      agent,
+    );
+    if (allDomainsAttested === true) {
+      // All domains attested → PASS
+      writeLog(SRC, "INFO", {
+        event: "UC7KS-WRITE-PASS-ALL-ATTESTED",
         agent,
         sessionID: sessionId,
         taskId,
-        detail: "advisory mode: no domains in state, uc7_001_compliant not set — WARN only",
+        detail: `all domains attested for agent ${agent}`,
       });
       return null;
     }
-    return buildBlockMessage(
-      "UC7-001: 知识缓存未搜索",
-      agent,
-      "No domain cache data found and uc7_001_compliant not set.",
-      "Call knowledge_cache_search(domain, task_id) first, then knowledge_cache_attest()."
-    );
-  }
-
-  // Iterate all domains: check attestation
-  var unattestedDomains: string[] = [];
-  for (var i = 0; i < domainEntries.length; i++) {
-    var de = domainEntries[i];
-    var att = readCacheAttestation(sa, agentKey, de.taskId, de.domainId);
-    if (!att || att.status !== "attested") {
-      unattestedDomains.push(de.domainId + " (task " + de.taskId + ")");
+    if (typeof allDomainsAttested === "string") {
+      // Returned a block message (strict/locked mode, domain not attested)
+      return allDomainsAttested;
     }
-  }
-
-  if (unattestedDomains.length === 0) {
-    return true; // All attested
-  }
-
-  // Domain(s) not attested
-  if (mode === "advisory") {
+    // allDomainsAttested === null → advisory mode: warn but pass
     writeLog(SRC, "WARN", {
-      event: "UC7KS-WRITE-WARN-UNATTESTED-DOMAINS",
+      event: "UC7KS-WRITE-WARN-NOT-ALL-ATTESTED",
       agent,
       sessionID: sessionId,
       taskId,
-      detail: `advisory mode: ${unattestedDomains.length} domains not attested: ${unattestedDomains.join(", ")}`,
+      detail: `advisory mode: domains not fully attested — WARN only`,
     });
     return null;
   }
 
-  // Strict/Locked: BLOCK
-  writeLog(SRC, "ERROR", {
-    event: "UC7KS-WRITE-BLOCK-UNATTESTED-DOMAINS",
-    agent,
-    sessionID: sessionId,
-    taskId,
-    detail: `${unattestedDomains.length} domain(s) not attested: ${unattestedDomains.join(", ")}`,
-  });
-  return buildBlockMessage(
-    "UC7-001: 存在未证明已读的知识域",
-    agent,
-    `${unattestedDomains.length} domain(s) lack read attestation (M3): ${unattestedDomains.slice(0, 3).join(", ")}`,
-    `对每个未 attest 的域调用:\nknowledge_cache_attest(domain="...", task_id="...", reason="...", files_read=[...], content_summary="...")`
-  );
-}
+  /**
+   * M5 helper: Checks whether the agent has at least one domain
+   * with attestation.status === "attested" in ANY task.
+   * Used by Path B to determine whether domain mismatch is tolerable.
+   */
+  function hasAtLeastOneAttestedDomain(sa: any, agentKey: string): boolean {
+    if (!sa?.tasks) return false;
+    for (const tid of Object.keys(sa.tasks)) {
+      for (const domId of Object.keys(sa.tasks[tid].domains || {})) {
+        const att = readCacheAttestation(sa, agentKey, tid, domId);
+        if (att && att.status === "attested") return true;
+      }
+    }
+    return false;
+  }
 
-// closes checkAllDomainsAttested
+  /**
+   * M3: Checks all domains for the given agent/task.
+   * Returns:
+   *   true  — all domains attested (PASS)
+   *   "" (string) — block message (BLOCK in strict/locked)
+   *   null — advisory mode: not all attested but non-blocking (WARN)
+   */
+  function checkAllDomainsAttested(
+    sa: any,
+    agentKey: string,
+    taskId: string | undefined,
+    mode: string,
+    sessionId: string | undefined,
+    agent: string,
+  ): true | string | null {
+    // Collect domains: if taskId provided, check only that task's domains.
+    // Otherwise, check ALL tasks' domains.
+    var domainEntries: Array<{ taskId: string; domainId: string }> = [];
+    if (taskId && sa?.tasks?.[taskId]?.domains) {
+      for (const domId of Object.keys(sa.tasks[taskId].domains)) {
+        domainEntries.push({ taskId, domainId: domId });
+      }
+    } else if (sa?.tasks) {
+      for (const tid of Object.keys(sa.tasks)) {
+        for (const domId of Object.keys(sa.tasks[tid].domains || {})) {
+          domainEntries.push({ taskId: tid, domainId: domId });
+        }
+      }
+    }
 
+    // If no domains exist at all, check legacy global flag for backward compat
+    if (domainEntries.length === 0) {
+      if (sa?.uc7_001_compliant) {
+        return true; // Legacy global pass (no per-domain data, but cache was searched)
+      }
+      if (mode === "advisory") {
+        writeLog(SRC, "WARN", {
+          event: "UC7KS-WRITE-WARN-NO-DOMAINS",
+          agent,
+          sessionID: sessionId,
+          taskId,
+          detail:
+            "advisory mode: no domains in state, uc7_001_compliant not set — WARN only",
+        });
+        return null;
+      }
+      return buildBlockMessage(
+        "UC7-001: 知识缓存未搜索",
+        agent,
+        "No domain cache data found and uc7_001_compliant not set.",
+        "Call knowledge_cache_search(domain, task_id) first, then knowledge_cache_attest().",
+      );
+    }
+
+    // Iterate all domains: check attestation
+    var unattestedDomains: string[] = [];
+    for (var i = 0; i < domainEntries.length; i++) {
+      var de = domainEntries[i];
+      var att = readCacheAttestation(sa, agentKey, de.taskId, de.domainId);
+      if (!att || att.status !== "attested") {
+        unattestedDomains.push(de.domainId + " (task " + de.taskId + ")");
+      }
+    }
+
+    if (unattestedDomains.length === 0) {
+      return true; // All attested
+    }
+
+    // Domain(s) not attested
+    if (mode === "advisory") {
+      writeLog(SRC, "WARN", {
+        event: "UC7KS-WRITE-WARN-UNATTESTED-DOMAINS",
+        agent,
+        sessionID: sessionId,
+        taskId,
+        detail: `advisory mode: ${unattestedDomains.length} domains not attested: ${unattestedDomains.join(", ")}`,
+      });
+      return null;
+    }
+
+    // Strict/Locked: BLOCK
+    writeLog(SRC, "ERROR", {
+      event: "UC7KS-WRITE-BLOCK-UNATTESTED-DOMAINS",
+      agent,
+      sessionID: sessionId,
+      taskId,
+      detail: `${unattestedDomains.length} domain(s) not attested: ${unattestedDomains.join(", ")}`,
+    });
+    return buildBlockMessage(
+      "UC7-001: 存在未证明已读的知识域",
+      agent,
+      `${unattestedDomains.length} domain(s) lack read attestation (M3): ${unattestedDomains.slice(0, 3).join(", ")}`,
+      `对每个未 attest 的域调用:\nknowledge_cache_attest(domain="...", task_id="...", reason="...", files_read=[...], content_summary="...")`,
+    );
+  }
+
+  // closes checkAllDomainsAttested
 }
 // closes checkUC7KSWrite (SA-FIX-UC7KS-UNCLOSED-BRACE)
 
 /**
  * M11 (2026-06-19): File-level domain attestation check.
- * 
+ *
  * Fix SA-FIX-UC7KS-UNCLOSED-BRACE: Added missing closing brace for checkUC7KSWrite function.
  * This function opens at line 205 and spans 3 nested functions:
  *   - buildBlockMessage (line 433-445)
- *   - hasAtLeastOneAttestedDomain (line 486-495)  
+ *   - hasAtLeastOneAttestedDomain (line 486-495)
  *   - checkAllDomainsAttested (line 504-590)
  * The closing brace at line 590 only closed checkAllDomainsAttested - the outer
  * checkUC7KSWrite function body had no matching closing brace, causing a syntax error
@@ -611,7 +970,11 @@ function checkAllDomainsAttested(
  * Advisory mode always returns null.
  */
 export function checkUC7KSFileLevelDomain(
-  filePath: string, agent: string, mode: string, sessionId?: string, taskId?: string,
+  filePath: string,
+  agent: string,
+  mode: string,
+  sessionId?: string,
+  taskId?: string,
 ): string | null {
   if (mode === "advisory") return null;
   const agentNorm = (agent || "").toLowerCase().replace(/^@/, "");
@@ -619,7 +982,11 @@ export function checkUC7KSFileLevelDomain(
   if (agentNorm === "super-admin" && !isLocalCacheAvailable()) return null;
   var matchedDomain: string | null = null;
   try {
-    const p2 = path.join(process.env.OPENCODE_ROOT || ".", ".opencode", "project.config.json");
+    const p2 = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".opencode",
+      "project.config.json",
+    );
     if (!fs.existsSync(p2)) return null;
     const cfg = JSON.parse(fs.readFileSync(p2, "utf8"));
     const doms = cfg?.knowledge_semantic_map?.domains || [];
@@ -627,40 +994,73 @@ export function checkUC7KSFileLevelDomain(
     for (var di = 0; di < doms.length; di++) {
       var sp = (doms[di].save_path || "").replace(/\/+$/, "") + "/";
       if (sp && filePath.indexOf(sp) >= 0) {
-        if (!best || sp.length > best.l) best = { d: doms[di].domain_id, p: sp, l: sp.length };
+        if (!best || sp.length > best.l)
+          best = { d: doms[di].domain_id, p: sp, l: sp.length };
       }
     }
     if (!best) return null;
     matchedDomain = best.d;
   } catch (e: any) {
-    writeLog(SRC, "ERROR", { event: "UC7KS-M11-CFG-ERR", agent, sessionID: sessionId, detail: e.message });
+    writeLog(SRC, "ERROR", {
+      event: "UC7KS-M11-CFG-ERR",
+      agent,
+      sessionID: sessionId,
+      detail: e.message,
+    });
     return null;
   }
   if (!matchedDomain) return null;
   var ak = agent.replace(/^@/, "");
   var sa2 = readCachedSessionAccess(ak);
   if (!sa2) {
-    writeLog(SRC, "ERROR", { event: "UC7KS-WRITE-BLOCK-M11-NO-STATE", agent, sessionID: sessionId, taskId,
-      domainId: matchedDomain, detail: "no cache state for agent" });
-    return buildBlockMessage("UC7-001: No cache state for file domain (M11)", agent,
+    writeLog(SRC, "ERROR", {
+      event: "UC7KS-WRITE-BLOCK-M11-NO-STATE",
+      agent,
+      sessionID: sessionId,
+      taskId,
+      domainId: matchedDomain,
+      detail: "no cache state for agent",
+    });
+    return buildBlockMessage(
+      "UC7-001: No cache state for file domain (M11)",
+      agent,
       `File maps to domain "${matchedDomain}" but agent has no cache state.`,
-      "1. module_scope_declare 2. knowledge_cache_search 3. knowledge_cache_attest");
+      "1. module_scope_declare 2. knowledge_cache_search 3. knowledge_cache_attest",
+    );
   }
   var attOk = false;
   if (sa2.tasks) {
     for (var tk of Object.keys(sa2.tasks)) {
       var a2 = readCacheAttestation(sa2, ak, tk, matchedDomain);
-      if (a2 && a2.status === "attested") { attOk = true; break; }
+      if (a2 && a2.status === "attested") {
+        attOk = true;
+        break;
+      }
     }
   }
   if (!attOk) {
-    writeLog(SRC, "ERROR", { event: "UC7KS-WRITE-BLOCK-M11-NOT-ATTESTED", agent, sessionID: sessionId, taskId,
-      domainId: matchedDomain, detail: `domain "${matchedDomain}" not attested` });
-    return buildBlockMessage("UC7-001: File domain not attested (M11)", agent,
+    writeLog(SRC, "ERROR", {
+      event: "UC7KS-WRITE-BLOCK-M11-NOT-ATTESTED",
+      agent,
+      sessionID: sessionId,
+      taskId,
+      domainId: matchedDomain,
+      detail: `domain "${matchedDomain}" not attested`,
+    });
+    return buildBlockMessage(
+      "UC7-001: File domain not attested (M11)",
+      agent,
       `File maps to domain "${matchedDomain}" which has NOT been attested.`,
-      `1. Read docs/official_docs/ files for "${matchedDomain}"\n2. knowledge_cache_attest(domain="${matchedDomain}", ...)`);
+      `1. Read docs/official_docs/ files for "${matchedDomain}"\n2. knowledge_cache_attest(domain="${matchedDomain}", ...)`,
+    );
   }
-  writeLog(SRC, "INFO", { event: "UC7KS-M11-PASS", agent, sessionID: sessionId, taskId, domainId: matchedDomain,
-    detail: `file OK → domain "${matchedDomain}" attested` });
+  writeLog(SRC, "INFO", {
+    event: "UC7KS-M11-PASS",
+    agent,
+    sessionID: sessionId,
+    taskId,
+    domainId: matchedDomain,
+    detail: `file OK → domain "${matchedDomain}" attested`,
+  });
   return null;
 }

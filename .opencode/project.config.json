@@ -187,6 +187,14 @@
     "backup.max_per_dir": 20,
     "knowledge.janitor_interval_hours": 24,
     "knowledge.compression_threshold_kb": 200,
+    "knowledge.materialization_lock_ttl_ms": 60000,
+    "knowledge.materialization_jobs_limit": 1000,
+    "knowledge.materialization_retry_max": 3,
+    "knowledge.session_access_ttl_days": 30,
+    "knowledge.session_access_max_tasks_per_agent": 50,
+    "knowledge.session_access_max_domains_per_task": 8,
+    "knowledge.session_access_preserve_attested_days": 90,
+    "knowledge.session_access_archive_enabled": true,
     "knowledge.fallback_url_nestjs": "https://docs.nestjs.com/{topic}",
     "knowledge.fallback_url_prisma": "https://www.prisma.io/docs/{topic}",
     "knowledge.fallback_url_angular": "https://angular.dev/{topic}",
@@ -229,11 +237,7 @@
         "queue",
         "rate limit"
       ],
-      "stacks": [
-        "backend",
-        "database",
-        "cache"
-      ],
+      "stacks": ["backend", "database", "cache"],
       "priority": 1
     },
     {
@@ -252,9 +256,7 @@
         "routing",
         "guard"
       ],
-      "stacks": [
-        "frontend"
-      ],
+      "stacks": ["frontend"],
       "priority": 1
     },
     {
@@ -269,11 +271,7 @@
         "module",
         "interface"
       ],
-      "stacks": [
-        "backend",
-        "frontend",
-        "database"
-      ],
+      "stacks": ["backend", "frontend", "database"],
       "priority": 1
     },
     {
@@ -287,10 +285,7 @@
         "eslint",
         "tdd"
       ],
-      "stacks": [
-        "backend",
-        "frontend"
-      ],
+      "stacks": ["backend", "frontend"],
       "priority": 2
     },
     {
@@ -306,10 +301,7 @@
         "release",
         "migrate"
       ],
-      "stacks": [
-        "backend",
-        "frontend"
-      ],
+      "stacks": ["backend", "frontend"],
       "priority": 2
     }
   ],
@@ -333,9 +325,7 @@
           "provider",
           "decorator"
         ],
-        "context7_libraries": [
-          "{backend.framework}"
-        ],
+        "context7_libraries": ["{backend.framework}"],
         "fallback_pattern": "https://docs.nestjs.com/{topic}",
         "save_path": "backend/nestjs/",
         "ttl_days": 30
@@ -354,9 +344,7 @@
           "model",
           "relation"
         ],
-        "context7_libraries": [
-          "{db.orm}"
-        ],
+        "context7_libraries": ["{db.orm}"],
         "fallback_pattern": "https://www.prisma.io/docs/{topic}",
         "save_path": "backend/prisma/",
         "ttl_days": 30
@@ -379,10 +367,7 @@
           "directive",
           "pipe"
         ],
-        "context7_libraries": [
-          "{frontend.framework}",
-          "{frontend.ui_library}"
-        ],
+        "context7_libraries": ["{frontend.framework}", "{frontend.ui_library}"],
         "fallback_pattern": "https://angular.dev/{topic}",
         "save_path": "frontend/angular/",
         "ttl_days": 30
@@ -397,9 +382,7 @@
           "cache-aside",
           "cache-pattern"
         ],
-        "context7_libraries": [
-          "{cache.engine}"
-        ],
+        "context7_libraries": ["{cache.engine}"],
         "fallback_pattern": "https://redis.io/docs/{topic}",
         "save_path": "database/redis/",
         "ttl_days": 30
@@ -414,9 +397,7 @@
           "scheduler",
           "message-queue"
         ],
-        "context7_libraries": [
-          "{queue.engine}"
-        ],
+        "context7_libraries": ["{queue.engine}"],
         "fallback_pattern": "https://docs.bullmq.io/{topic}",
         "save_path": "devops/bullmq/",
         "ttl_days": 30
@@ -436,10 +417,7 @@
           "spy",
           "assert"
         ],
-        "context7_libraries": [
-          "{testing.unit}",
-          "{testing.e2e}"
-        ],
+        "context7_libraries": ["{testing.unit}", "{testing.e2e}"],
         "fallback_pattern": "https://jestjs.io/docs/{topic}",
         "save_path": "devops/testing/",
         "ttl_days": 30
@@ -459,9 +437,7 @@
           "helmet",
           "roles"
         ],
-        "context7_libraries": [
-          "{auth.mechanism}"
-        ],
+        "context7_libraries": ["{auth.mechanism}"],
         "fallback_pattern": "https://jwt.io/introduction",
         "save_path": "backend/auth/",
         "ttl_days": 30
@@ -480,10 +456,7 @@
           "tsc",
           "tsconfig"
         ],
-        "context7_libraries": [
-          "/eslint/eslint",
-          "/typescript/typescript"
-        ],
+        "context7_libraries": ["/eslint/eslint", "/typescript/typescript"],
         "fallback_pattern": "https://eslint.org/docs/{topic}",
         "save_path": "framework/eslint/",
         "ttl_days": 30
@@ -502,10 +475,7 @@
           "container",
           "image"
         ],
-        "context7_libraries": [
-          "/docker/docker",
-          "/github/github"
-        ],
+        "context7_libraries": ["/docker/docker", "/github/github"],
         "fallback_pattern": "https://docs.docker.com/{topic}",
         "save_path": "devops/docker/",
         "ttl_days": 30
@@ -546,9 +516,7 @@
           "npm",
           "npx"
         ],
-        "context7_libraries": [
-          "/git/git"
-        ],
+        "context7_libraries": ["/git/git"],
         "fallback_pattern": "https://git-scm.com/docs/{topic}",
         "save_path": "framework/git/",
         "ttl_days": 30
@@ -591,19 +559,8 @@
   },
   "path_lint": {
     "$description": "Absolute path leakage detection configuration. Used by Check 19 in framework-self-test.js and path-canonical-lint.sh.",
-    "scan_roots": [
-      ".opencode/",
-      "."
-    ],
-    "file_extensions": [
-      ".md",
-      ".json",
-      ".yaml",
-      ".yml",
-      ".sh",
-      ".js",
-      ".ts"
-    ],
+    "scan_roots": [".opencode/", "."],
+    "file_extensions": [".md", ".json", ".yaml", ".yml", ".sh", ".js", ".ts"],
     "leak_patterns": [
       {
         "name": "Linux home",
@@ -623,21 +580,10 @@
       }
     ],
     "whitelist": {
-      "approved_absolute_paths": [
-        "/tmp/opencode",
-        "/usr/bin/"
-      ],
-      "template_patterns": [
-        "{\\w+}",
-        "\\$\\{"
-      ],
-      "url_patterns": [
-        "https?://",
-        "ftp://"
-      ],
-      "skip_directories": [
-        ".opencode/state/"
-      ]
+      "approved_absolute_paths": ["/tmp/opencode", "/usr/bin/"],
+      "template_patterns": ["{\\w+}", "\\$\\{"],
+      "url_patterns": ["https?://", "ftp://"],
+      "skip_directories": [".opencode/state/"]
     },
     "suggestion_templates": {
       "project_root_match": "{project_root}/<relative> OR ./<relative>",
@@ -709,9 +655,7 @@
       "safe_shell",
       "compliance_gate_retry_confirm"
     ],
-    "@Super-Admin": [
-      "*"
-    ],
+    "@Super-Admin": ["*"],
     "@Architect": [
       "task",
       "read",
@@ -911,10 +855,7 @@
       "env | grep *"
     ],
     "agent_allowed_scripts": {
-      "@Super-Admin": [
-        "state-reconciliation.ts",
-        "state-transaction.ts"
-      ]
+      "@Super-Admin": ["state-reconciliation.ts", "state-transaction.ts"]
     },
     "agent_dangerous_bypass": {
       "$description": "FW-REPAIR-BUN-CACHE-001: Agent-specific dangerous pattern bypasses. Allows @Super-Admin and @Orchestrator to clear Bun's module cache (~/.cache/bun) which is needed for plugin development and framework repair operations where stale Bun cache causes plugin loading failures.",
@@ -965,11 +906,7 @@
       "\\.mkdirSync\\(",
       "writeFileSync\\("
     ],
-    "allowed_script_paths": [
-      "__tests__",
-      ".opencode_backups",
-      ".task_temp"
-    ]
+    "allowed_script_paths": ["__tests__", ".opencode_backups", ".task_temp"]
   },
   "dispatch_policy": {
     "$description": "FW-PLAN-FIRST (2026-06-14): Policy governing PLAN-FIRST dispatch constraint and autonomous @Meta-Planner self-healing. Read by the dispatch-before plugin (Layer 1) and dispatch_subagent.ts (Layer 2). Orchestrator cannot override this block — framework-enforcer DISPATCH-POLICY-TAMPER check rejects edits from non-@Super-Admin sessions.",
@@ -1002,10 +939,7 @@
           "architecture",
           "requirement"
         ],
-        "agents": [
-          "@Meta-Planner",
-          "@Architect"
-        ]
+        "agents": ["@Meta-Planner", "@Architect"]
       },
       "编码_实现_修改": {
         "keywords": [
@@ -1018,10 +952,7 @@
           "code",
           "build"
         ],
-        "agents": [
-          "@Coder-BE",
-          "@Coder-FE"
-        ]
+        "agents": ["@Coder-BE", "@Coder-FE"]
       },
       "审查_合规_验证": {
         "keywords": [
@@ -1034,9 +965,7 @@
           "check",
           "质量"
         ],
-        "agents": [
-          "@Guardian"
-        ]
+        "agents": ["@Guardian"]
       },
       "诊断_调查_根因": {
         "keywords": [
@@ -1049,23 +978,11 @@
           "root-cause",
           "原因"
         ],
-        "agents": [
-          "@Architect",
-          "@Super-Admin"
-        ]
+        "agents": ["@Architect", "@Super-Admin"]
       },
       "修复_修改框架": {
-        "keywords": [
-          "修复",
-          "fix",
-          "repair",
-          "恢复",
-          "补丁",
-          "patch"
-        ],
-        "agents": [
-          "@Super-Admin"
-        ]
+        "keywords": ["修复", "fix", "repair", "恢复", "补丁", "patch"],
+        "agents": ["@Super-Admin"]
       },
       "裁决_豁免": {
         "keywords": [
@@ -1077,9 +994,7 @@
           "技术债",
           "tech-debt"
         ],
-        "agents": [
-          "@Arbiter"
-        ]
+        "agents": ["@Arbiter"]
       },
       "部署_提交_CI_CD": {
         "keywords": [
@@ -1092,32 +1007,15 @@
           "docker",
           "镜像"
         ],
-        "agents": [
-          "@CI-CD-Agent"
-        ]
+        "agents": ["@CI-CD-Agent"]
       },
       "获取知识_查文档": {
-        "keywords": [
-          "知识",
-          "context7",
-          "knowledge",
-          "fetch",
-          "acquire"
-        ],
-        "agents": [
-          "@Knowledge-Curator"
-        ]
+        "keywords": ["知识", "context7", "knowledge", "fetch", "acquire"],
+        "agents": ["@Knowledge-Curator"]
       },
       "调度_状态追踪": {
-        "keywords": [
-          "调度",
-          "dispatch",
-          "schedule",
-          "状态"
-        ],
-        "agents": [
-          "@Orchestrator"
-        ]
+        "keywords": ["调度", "dispatch", "schedule", "状态"],
+        "agents": ["@Orchestrator"]
       }
     },
     "scope_to_agent": {
@@ -1170,6 +1068,18 @@
           "agent": "@Architect",
           "priority": 1,
           "desc": "Context code standards"
+        },
+        {
+          "scope": ".github/workflows/doc-decompose.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin doc-decompose workflow fix"
+        },
+        {
+          "scope": ".github/workflows/framework-ci.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin framework-ci workflow fix"
         },
         {
           "scope": ".github/",

@@ -30,8 +30,8 @@
  * @since Phase 0 (Foundation)
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 import type {
   GateStateHot,
   GateStateIndex,
@@ -40,23 +40,28 @@ import type {
   GateSessionRecent,
   GateSessionIndex,
   GateSessionHistoryEntry,
-} from './state-manager';
+} from "./state-manager";
 import {
   STATE_PATHS,
   getDateKey,
   findOldSessions,
   buildArchiveRef,
   countJsonlLines,
-} from './state-manager';
-import { writeLog } from './log-manager';
-// P3/S63-3, S63-4: Compactor DB sync (shadow DB for reconciliation + future DB-first)
+} from "./state-manager";
+import { writeLog } from "./log-manager";
+// A8: DB-first compactor (replaces JSON as primary — DB is authoritative)
 import {
+  dbReadCompactorHotFull,
+  dbWriteCompactorHistory,
+  dbUpsertCompactorIndex,
+  dbReadCompactorIndex,
+  dbRegenerateGateFiles,
   dbSyncCompactorHot,
   dbMarkSessionArchived,
   dbMarkSessionDrained,
-} from './db-state-manager';
+} from "./db-state-manager";
 
-const SRC = 'lib-state-compactor';
+const SRC = "lib-state-compactor";
 
 // ============================================================================
 // Configuration
@@ -122,7 +127,10 @@ export class StateCompactor {
    * @param sessionId - The completed session ID
    * @param session - Full session data from the hot file before removal
    */
-  async onGateComplete(sessionId: string, session: GateSessionHot): Promise<void> {
+  async onGateComplete(
+    sessionId: string,
+    session: GateSessionHot,
+  ): Promise<void> {
     const dateKey = getDateKey();
 
     // 1. Ensure history directory exists
@@ -137,7 +145,7 @@ export class StateCompactor {
     this.updateIndex(sessionId, {
       session_id: sessionId,
       created_at: session.created_at,
-      gate_status: 'completed',
+      gate_status: "completed",
       consumed_at: new Date().toISOString(),
       archive_ref: historyRef,
     });
@@ -152,7 +160,9 @@ export class StateCompactor {
     try {
       dbSyncCompactorHot(this.readHotState());
       dbMarkSessionArchived(sessionId);
-    } catch { /* DB unavailable — JSON remains primary */ }
+    } catch {
+      /* DB unavailable — JSON remains primary */
+    }
   }
 
   /**
@@ -166,14 +176,16 @@ export class StateCompactor {
     const hotState = this.readHotState();
     const activeSession = hotState.active_sessions[sessionId];
 
-    if (activeSession && activeSession.gate_status !== 'active') {
+    if (activeSession && activeSession.gate_status !== "active") {
       await this.onGateComplete(sessionId, activeSession);
     }
 
     // P3/S63-3: Sync hot state to DB
     try {
       dbSyncCompactorHot(this.readHotState());
-    } catch { /* best-effort */ }
+    } catch {
+      /* best-effort */
+    }
   }
 
   /**
@@ -188,7 +200,10 @@ export class StateCompactor {
 
     const hotState = this.readHotState();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const oldSessionIds = findOldSessions(hotState.recent_sessions as any, cutoffDate);
+    const oldSessionIds = findOldSessions(
+      hotState.recent_sessions as any,
+      cutoffDate,
+    );
 
     if (oldSessionIds.length === 0) {
       return { archivedCount: 0 };
@@ -209,7 +224,7 @@ export class StateCompactor {
       archive.session_count++;
 
       // Update index status to "drained"
-      this.updateIndexStatus(sessionId, 'drained');
+      this.updateIndexStatus(sessionId, "drained");
 
       // Remove from recent_sessions
       delete hotState.recent_sessions[sessionId];
@@ -228,7 +243,9 @@ export class StateCompactor {
       for (const sid of oldSessionIds) {
         dbMarkSessionArchived(sid);
       }
-    } catch { /* best-effort */ }
+    } catch {
+      /* best-effort */
+    }
 
     return { archivedCount: oldSessionIds.length };
   }
@@ -245,11 +262,13 @@ export class StateCompactor {
     const now = Date.now();
     let drainedCount = 0;
 
-    for (const [sessionId, session] of Object.entries(hotState.active_sessions)) {
+    for (const [sessionId, session] of Object.entries(
+      hotState.active_sessions,
+    )) {
       const createdAt = new Date(session.created_at).getTime();
       const ageHours = (now - createdAt) / (1000 * 60 * 60);
 
-      if (ageHours > thresholdHours && session.gate_status !== 'active') {
+      if (ageHours > thresholdHours && session.gate_status !== "active") {
         // Archive the session
         await this.archiveSession(sessionId, session);
         delete hotState.active_sessions[sessionId];
@@ -264,7 +283,9 @@ export class StateCompactor {
       // P3/S63-3: Sync drained sessions to DB
       try {
         dbSyncCompactorHot(this.readHotState());
-      } catch { /* best-effort */ }
+      } catch {
+        /* best-effort */
+      }
     }
 
     return drainedCount;
@@ -275,45 +296,75 @@ export class StateCompactor {
   // ==========================================================================
 
   /**
-   * Write a full session record to the daily JSONL history file.
+   * Write a full session record to history (DB-first, A8).
+   *
+   * Strategy:
+   *   1. INSERT into gate_audit_history with compactor_event='warm'
+   *   2. Materialize JSONL file as durable export cache (non-fatal)
+   *   3. On DB failure, fall back to JSONL append
    *
    * @param dateKey - Date key in YYYY-MM-DD format
    * @param session - Full session data
    * @returns Archive reference string
    */
   private writeToHistory(dateKey: string, session: GateSessionHot): string {
+    const now = Date.now();
     const historyFile = join(this.historyDir, `${dateKey}.jsonl`);
-    const dir = dirname(historyFile);
+    const archiveRef = buildArchiveRef(dateKey, countJsonlLines(historyFile));
 
+    // 1. DB-first: INSERT into gate_audit_history
+    const dbOk = dbWriteCompactorHistory({
+      session_id: session.session_id,
+      task_description: session.task_description || "",
+      plan_summary: session.plan_summary || "",
+      execution_summary: "",
+      agent: (session as any).agent,
+      task_id: (session as any).task_id,
+      confirmed_at: session.confirmed_at
+        ? new Date(session.confirmed_at).getTime()
+        : undefined,
+      consumed_at: now,
+      gate_status: "completed",
+      compactor_event: "warm",
+      archive_path: archiveRef,
+    });
+
+    if (!dbOk) {
+      writeLog(SRC, "WARN", {
+        event: "GATE-FILE-FALLBACK",
+        detail: `DB write failed — falling back to JSONL append for sid=${session.session_id}`,
+      });
+    }
+
+    // 2. Materialize JSONL as durable export cache (always, regardless of DB status)
+    const dir = dirname(historyFile);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
-
-    const lineCount = countJsonlLines(historyFile);
 
     const entry: GateSessionHistoryEntry = {
       session_id: session.session_id,
       task_description: session.task_description,
       plan_summary: session.plan_summary,
-      execution_summary: '',
+      execution_summary: "",
       audit: {
         completed_at: new Date().toISOString(),
       },
     };
 
-    // Append to JSONL file
-    const line = JSON.stringify(entry) + '\n';
-    // For now, use synchronous append (sync for atomicity within Node.js event loop)
-    // In production, integrate with safe-edit-core.ts atomic write
     try {
-      writeFileSync(historyFile, line, { flag: 'a' }); // 'a' = append mode
+      const line = JSON.stringify(entry) + "\n";
+      writeFileSync(historyFile, line, { flag: "a" });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, 'ERROR', { event: 'HISTORY-APPEND-FAILED', detail: `historyFile=${historyFile} err=${message}` });
-      throw error;
+      writeLog(SRC, "ERROR", {
+        event: "HISTORY-APPEND-FAILED",
+        detail: `historyFile=${historyFile} err=${message}`,
+      });
+      // Non-fatal — DB is authoritative; JSONL is export cache
     }
 
-    return buildArchiveRef(dateKey, lineCount);
+    return archiveRef;
   }
 
   // ==========================================================================
@@ -321,50 +372,97 @@ export class StateCompactor {
   // ==========================================================================
 
   /**
-   * Read the index file, or return an empty one if it doesn't exist.
+   * Read the index file (export cache), or return an empty one.
+   * A8: gate_compactor_index DB table is authoritative; this file
+   * is an export cache regenerable via regenerateGateFiles().
    */
   private readIndex(): GateStateIndex {
     if (!existsSync(this.indexFile)) {
       return {
-        formatVersion: '3.0',
+        formatVersion: "3.0",
         sessions: {},
       };
     }
     try {
-      return JSON.parse(readFileSync(this.indexFile, 'utf8')) as GateStateIndex;
+      return JSON.parse(readFileSync(this.indexFile, "utf8")) as GateStateIndex;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, 'ERROR', { event: 'INDEX-PARSE-FAILED', detail: `indexFile=${this.indexFile} err=${message}` });
-      return { formatVersion: '3.0', sessions: {} };
+      writeLog(SRC, "ERROR", {
+        event: "INDEX-PARSE-FAILED",
+        detail: `indexFile=${this.indexFile} err=${message}`,
+      });
+      return { formatVersion: "3.0", sessions: {} };
     }
   }
 
   /**
-   * Write the index file atomically.
+   * Write the index file atomically (export cache).
    */
   private writeIndex(index: GateStateIndex): void {
     try {
       writeFileSync(this.indexFile, JSON.stringify(index, null, 2));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, 'ERROR', { event: 'INDEX-WRITE-FAILED', detail: `indexFile=${this.indexFile} err=${message}` });
+      writeLog(SRC, "ERROR", {
+        event: "INDEX-WRITE-FAILED",
+        detail: `indexFile=${this.indexFile} err=${message}`,
+      });
       throw error;
     }
   }
 
   /**
-   * Add or update an entry in the index.
+   * Add or update an entry in the index (DB-first, A8).
+   *
+   * Strategy:
+   *   1. UPSERT into gate_compactor_index (DB authoritative)
+   *   2. Materialize gate-state.index.json as export cache (non-fatal)
+   *   3. On DB failure, fall back to JSON file write
    */
   private updateIndex(sessionId: string, session: GateSessionIndex): void {
+    // 1. DB-first: UPSERT into gate_compactor_index
+    const dbOk = dbUpsertCompactorIndex({
+      session_id: sessionId,
+      status: session.gate_status,
+      created_at: session.created_at
+        ? new Date(session.created_at).getTime()
+        : Date.now(),
+      consumed_at: session.consumed_at
+        ? new Date(session.consumed_at).getTime()
+        : undefined,
+      archive_ref: session.archive_ref,
+    });
+
+    if (!dbOk) {
+      writeLog(SRC, "WARN", {
+        event: "GATE-FILE-FALLBACK",
+        detail: `DB upsert failed — falling back to JSON index for sid=${sessionId}`,
+      });
+    }
+
+    // 2. Materialize gate-state.index.json as export cache
     const index = this.readIndex();
     index.sessions[sessionId] = session;
     this.writeIndex(index);
   }
 
   /**
-   * Update only the status field of an index entry.
+   * Update only the status field of an index entry (DB-first, A8).
    */
-  private updateIndexStatus(sessionId: string, newStatus: 'completed' | 'drained'): void {
+  private updateIndexStatus(
+    sessionId: string,
+    newStatus: "completed" | "drained",
+  ): void {
+    // 1. DB-first: UPSERT with new status
+    const now = Date.now();
+    dbUpsertCompactorIndex({
+      session_id: sessionId,
+      status: newStatus,
+      created_at: now,
+      drained_at: newStatus === "drained" ? now : undefined,
+    });
+
+    // 2. Materialize gate-state.index.json as export cache
     const index = this.readIndex();
     if (index.sessions[sessionId]) {
       index.sessions[sessionId].gate_status = newStatus;
@@ -377,12 +475,34 @@ export class StateCompactor {
   // ==========================================================================
 
   /**
-   * Read the hot gate-state.json file.
+   * Read the hot gate-state. DB-first with JSON fallback (A8 DB-first).
+   *
+   * Strategy:
+   *   1. Query DB (gate_sessions + gate_drained_sessions + gate_compactor_index)
+   *   2. If DB succeeds, return DB view (authoritative)
+   *   3. If DB fails, fall back to gate-state.json file
+   *   4. Log GATE-FILE-FALLBACK when JSON fallback is used
    */
   private readHotState(): GateStateHot {
+    // Try DB first (A8: DB is authoritative)
+    try {
+      const dbState = dbReadCompactorHotFull();
+      if (
+        dbState &&
+        (Object.keys(dbState.active_sessions).length > 0 ||
+          Object.keys(dbState.recent_sessions).length > 0 ||
+          dbState.meta)
+      ) {
+        return dbState as GateStateHot;
+      }
+    } catch {
+      // DB unavailable — fall through to JSON file
+    }
+
+    // Fallback: read gate-state.json
     if (!existsSync(this.hotFile)) {
       return {
-        formatVersion: '3.0',
+        formatVersion: "3.0",
         active_sessions: {},
         recent_sessions: {},
         meta: {
@@ -394,18 +514,26 @@ export class StateCompactor {
       };
     }
 
+    writeLog(SRC, "WARN", {
+      event: "GATE-FILE-FALLBACK",
+      detail: `DB unavailable — falling back to gate-state.json for read`,
+    });
+
     try {
-      const data = JSON.parse(readFileSync(this.hotFile, 'utf8'));
+      const data = JSON.parse(readFileSync(this.hotFile, "utf8"));
 
       // Handle v2 format gracefully
-      if (data.formatVersion === '2.0') {
+      if (data.formatVersion === "2.0") {
         return this.migrateV2ToV3(data);
       }
 
       return data as GateStateHot;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, 'ERROR', { event: 'HOT-PARSE-FAILED', detail: `hotFile=${this.hotFile} err=${message}` });
+      writeLog(SRC, "ERROR", {
+        event: "HOT-PARSE-FAILED",
+        detail: `hotFile=${this.hotFile} err=${message}`,
+      });
       throw error;
     }
   }
@@ -418,7 +546,10 @@ export class StateCompactor {
       writeFileSync(this.hotFile, JSON.stringify(state, null, 2));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, 'ERROR', { event: 'HOT-WRITE-FAILED', detail: `hotFile=${this.hotFile} err=${message}` });
+      writeLog(SRC, "ERROR", {
+        event: "HOT-WRITE-FAILED",
+        detail: `hotFile=${this.hotFile} err=${message}`,
+      });
       throw error;
     }
   }
@@ -435,7 +566,7 @@ export class StateCompactor {
     const recentSession: GateSessionRecent = {
       session_id: activeSession.session_id,
       created_at: activeSession.created_at,
-      gate_status: 'completed',
+      gate_status: "completed",
       consumed_at: new Date().toISOString(),
       archive_ref: archiveRef,
     };
@@ -468,7 +599,7 @@ export class StateCompactor {
    */
   private migrateV2ToV3(v2Data: Record<string, unknown>): GateStateHot {
     const hot: GateStateHot = {
-      formatVersion: '3.0',
+      formatVersion: "3.0",
       active_sessions: {},
       recent_sessions: {},
       meta: {
@@ -479,17 +610,26 @@ export class StateCompactor {
       },
     };
 
-    const sessions = (v2Data.sessions || {}) as Record<string, Record<string, unknown>>;
+    const sessions = (v2Data.sessions || {}) as Record<
+      string,
+      Record<string, unknown>
+    >;
 
     for (const [sessionId, session] of Object.entries(sessions)) {
-      if (['active', 'armed', 'checked', 'pending'].includes(String(session.gate_status))) {
+      if (
+        ["active", "armed", "checked", "pending"].includes(
+          String(session.gate_status),
+        )
+      ) {
         hot.active_sessions[sessionId] = {
           session_id: sessionId,
-          created_at: String(session.created_at || ''),
-          gate_status: session.gate_status as GateSessionHot['gate_status'],
-          confirmed_at: session.confirmed_at ? String(session.confirmed_at) : undefined,
-          task_description: String(session.task_description || ''),
-          plan_summary: String(session.plan_summary || ''),
+          created_at: String(session.created_at || ""),
+          gate_status: session.gate_status as GateSessionHot["gate_status"],
+          confirmed_at: session.confirmed_at
+            ? String(session.confirmed_at)
+            : undefined,
+          task_description: String(session.task_description || ""),
+          plan_summary: String(session.plan_summary || ""),
         };
       }
     }
@@ -510,19 +650,24 @@ export class StateCompactor {
   private readOrCreateArchive(): GateStateArchive {
     if (!existsSync(this.archiveFile)) {
       return {
-        formatVersion: '3.0',
+        formatVersion: "3.0",
         archived_at: new Date().toISOString(),
         session_count: 0,
         sessions: {},
       };
     }
     try {
-      return JSON.parse(readFileSync(this.archiveFile, 'utf8')) as GateStateArchive;
+      return JSON.parse(
+        readFileSync(this.archiveFile, "utf8"),
+      ) as GateStateArchive;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, 'ERROR', { event: 'ARCHIVE-PARSE-FAILED', detail: `archiveFile=${this.archiveFile} err=${message}` });
+      writeLog(SRC, "ERROR", {
+        event: "ARCHIVE-PARSE-FAILED",
+        detail: `archiveFile=${this.archiveFile} err=${message}`,
+      });
       return {
-        formatVersion: '3.0',
+        formatVersion: "3.0",
         archived_at: new Date().toISOString(),
         session_count: 0,
         sessions: {},
@@ -538,7 +683,10 @@ export class StateCompactor {
       writeFileSync(this.archiveFile, JSON.stringify(archive, null, 2));
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, 'ERROR', { event: 'ARCHIVE-WRITE-FAILED', detail: `archiveFile=${this.archiveFile} err=${message}` });
+      writeLog(SRC, "ERROR", {
+        event: "ARCHIVE-WRITE-FAILED",
+        detail: `archiveFile=${this.archiveFile} err=${message}`,
+      });
       throw error;
     }
   }
@@ -557,7 +705,7 @@ export class StateCompactor {
     this.updateIndex(sessionId, {
       session_id: sessionId,
       created_at: session.created_at,
-      gate_status: 'drained',
+      gate_status: "drained",
       consumed_at: new Date().toISOString(),
       archive_ref: historyRef,
     });
@@ -572,10 +720,35 @@ export class StateCompactor {
     archive.archived_at = new Date().toISOString();
     this.writeArchive(archive);
   }
+
+  // ==========================================================================
+  // A8: Regenerate Export Files from DB
+  // ==========================================================================
+
+  /**
+   * Regenerate all gate state export files from the authoritative DB.
+   *
+   * Rebuilds gate-state.json, gate-state.index.json, and
+   * gate-state.history/*.jsonl from the DB tables.
+   * Uses atomic tmp+rename for each file.
+   *
+   * This is the inverse operation: DB (authoritative) → files (export cache).
+   * Files can be deleted and regenerated — DB is the source of truth.
+   *
+   * @returns Summary of regenerated files
+   */
+  regenerateGateFiles(): {
+    hot: boolean;
+    index: boolean;
+    historiesWritten: number;
+    errors: string[];
+  } {
+    return dbRegenerateGateFiles();
+  }
 }
 
 // ============================================================================
 // Module Exports
 // ============================================================================
 
-export { COMPACTION_CONFIG };
+export { COMPACTION_CONFIG, dbRegenerateGateFiles };

@@ -437,18 +437,30 @@ export function resolveDomainId(sessionId?: string): string | null {
 }
 
 /**
- * Resolve the most recently dispatched agent from session_map DB.
+ * Resolve the likely dispatch agent for the current context from session_map DB.
  * Uses ORDER BY updated_at DESC LIMIT 1 — safe in SQLite WAL mode.
  *
  * This is a best-effort function: if the DB is unavailable, it returns
  * an empty string without throwing. The caller (compliance-gate.ts) treats
  * empty as "unknown agent → no bypass".
  *
+ * Query strategy (no agent-type filter — caller decides):
+ *   Priority 1: Exact dag_task_id match → returns actual agent for that task
+ *   Priority 2: Latest session (ORDER BY updated_at DESC) → returns actual
+ *               agent regardless of type
+ *
+ * The CALLER is responsible for agent-type validation. For bypass decisions,
+ * compliance-gate.ts checks: bypassNorm === "super-admin" || bypassNorm === "orchestrator".
+ * This two-layer design (resolver returns raw agent, caller decides) prevents
+ * non-SA/Orch agents from being incorrectly identified as SA/Orch when:
+ *   (a) the taskId does not match any SA/Orch session, AND
+ *   (b) the fallback returns a stale SA/Orch session from a prior dispatch
+ *
  * Design rationale:
  *   - Per-session rows → no shared-state race condition
  *   - ORDER BY updated_at DESC LIMIT 1 → no transaction needed
  *   - SQLite WAL mode → concurrent readers safe
- *   - Agent type filter → only SA/Orch sessions considered for bypass
+ *   - No agent-type filter in queries → returns actual agent for caller evaluation
  *   - taskId parameter → precise dag_task_id lookup before ORDER BY fallback
  *
  * @param taskId - Optional DAG task ID for precise dag_task_id lookup
@@ -459,24 +471,28 @@ export function resolveLatestDispatchAgent(taskId?: string): string {
     const { getDb } = require("./db-manager");
     const db = getDb();
     // Priority 1: taskId → dag_task_id exact match (when available)
+    // No agent-type filter — returns the actual agent for this dag_task_id.
+    // The caller (compliance-gate.ts) checks the returned agent type to decide
+    // whether to apply the bypass. This prevents non-SA/Orch agents from
+    // falling through to Priority 2 and incorrectly receiving bypass.
     if (taskId) {
       const row = db
         .query(
           `SELECT agent FROM session_map
            WHERE dag_task_id = ?
-             AND agent IN ('@Super-Admin','Super-Admin','@Orchestrator','Orchestrator')
            ORDER BY updated_at DESC LIMIT 1`,
         )
-        .get() as { agent: string } | null;
+        .get(taskId) as { agent: string } | null;
       if (row?.agent) {
         return row.agent.startsWith("@") ? row.agent : `@${row.agent}`;
       }
     }
-    // Priority 2: latest SA/Orch session (fallback)
+    // Priority 2: latest session (fallback — no agent-type filter)
+    // Returns the most recently updated agent regardless of type.
+    // The caller is responsible for agent-type validation.
     const row = db
       .query(
         `SELECT agent FROM session_map
-         WHERE agent IN ('@Super-Admin','Super-Admin','@Orchestrator','Orchestrator')
          ORDER BY updated_at DESC LIMIT 1`,
       )
       .get() as { agent: string } | null;

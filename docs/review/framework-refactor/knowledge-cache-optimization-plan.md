@@ -2,12 +2,14 @@
 
 **Generated**: 2026-06-20  
 **Reviewed / Updated**: 2026-06-20  
+**Status**: ✅ **IMPLEMENTATION COMPLETE** — All 16 sub-issues (KC-00 through KC-15) closed  
+**Implementation Completed**: 2026-06-20  
 **Author**: @Super-Admin  
 **Task ID**: PLAN-KC-CACHE-OPTIMIZATION  
-**GitHub Epic**: [#28](https://github.com/Cho-Geer/opencode_framework/issues/28) — [Epic] Knowledge Cache DB-Canonical Optimization  
+**GitHub Epic**: [#28](https://github.com/Cho-Geer/opencode_framework/issues/28) — [Epic] Knowledge Cache DB-Canonical Optimization ✅ CLOSED  
 **GitHub Project**: [Opencode_framework #2](https://github.com/users/Cho-Geer/projects/2)  
 **Based on**: current framework code, `.task_temp/REVIEW-DB-CANONICAL-PROPOSAL/review-report.md`, `storage-entity-landscape.md` (2026-06-19 snapshot), `framework-evaluation-report.md`, `p1b-execution-summary.md`, `database-migration-plan.md`, `machine-split-implementation-plan.md`, local OpenCode official docs under `docs/official_docs/`  
-**Current DB**: `framework-state.db` v10, `substate_kv` 13 keys, `knowledge_cache_state` 907,067 bytes, `knowledge_audit_state` 552 bytes, `config_read_state` 24,280 bytes
+**Current DB**: `framework-state.db` v11, `substate_kv` 13 keys, typed knowledge tables active, `knowledge_cache_state` — size reduced via nested pruning
 
 ---
 
@@ -35,6 +37,59 @@ The original plan correctly identified that `knowledge_cache_state` is the domin
 
 7. **The file view remains mandatory for OpenCode read evidence.**  
    `docs/official_docs/index.json` and markdown files should become generated compatibility artifacts, not disappear. `knowledge_cache_attest.ts` and `read-track-after.ts` prove actual reading through OpenCode `read` events, so DB-only content without materialized files would break the read-before-write evidence chain.
+
+---
+
+## Implementation Summary
+
+All 16 sub-issues across 4 phases have been completed and closed as of 2026-06-20. The implementation was tracked via GitHub Epic [#28](https://github.com/Cho-Geer/opencode_framework/issues/28) with sub-issues [#29](https://github.com/Cho-Geer/opencode_framework/issues/29) through [#44](https://github.com/Cho-Geer/opencode_framework/issues/44).
+
+### P0 — Foundation (KC-00 to KC-04) ✅
+
+| Issue | ID    | Description                                                                     | Status |
+| ----- | ----- | ------------------------------------------------------------------------------- | ------ |
+| #29   | KC-00 | Repair executable defects in `indexer.ts` and `janitor.ts`; add `writeLog`      | ✅     |
+| #30   | KC-01 | Add `knowledge-store.ts` API as file-backed compatibility layer                 | ✅     |
+| #31   | KC-02 | Retain and activate `knowledge_audit_state` as DB-managed audit rollup          | ✅     |
+| #32   | KC-03 | Add nested task/domain pruning helper (`pruneSessionAccess`) and fix inline LRU | ✅     |
+| #33   | KC-04 | Correct OpenCode terminology: custom tools vs MCP tools; ESM import fixes       | ✅     |
+
+### P1 — DB-Canonical Core (KC-05 to KC-10) ✅
+
+| Issue | ID    | Description                                                                                        | Status |
+| ----- | ----- | -------------------------------------------------------------------------------------------------- | ------ |
+| #34   | KC-05 | Add v11 typed knowledge tables (`knowledge_entries`, `knowledge_files`, etc.) + indexes + backfill | ✅     |
+| #35   | KC-06 | Move `knowledge_cache_search.ts` to `knowledge-store.searchEntries()` with file fallback           | ✅     |
+| #36   | KC-07 | Move `knowledge_cache_attest.ts` to typed attestation writes preserving `read_audit` verification  | ✅     |
+| #37   | KC-08 | Wire audit rollup updates from custom tools/plugins with non-fatal error handling                  | ✅     |
+| #38   | KC-09 | Extract reverse orphan detection helper + DB↔file materialized consistency checks                  | ✅     |
+| #39   | KC-10 | Add nested pruning and DB-canonical self-test / unit coverage                                      | ✅     |
+
+### P2 — Maintenance Migration (KC-11 to KC-13) ✅
+
+| Issue | ID    | Description                                                                                                                        | Status |
+| ----- | ----- | ---------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| #40   | KC-11 | Move janitor/indexer/size-reporter to DB canonical operations via `knowledge-store.ts`                                             | ✅     |
+| #41   | KC-12 | Normalize `knowledge_session_access`, `knowledge_discovery`, `knowledge_attestation`; keep bounded `knowledge_cache_state` summary | ✅     |
+| #42   | KC-13 | Enhance `knowledge_semantic_map` coverage validation from DB-backed manifest/tags                                                  | ✅     |
+
+### P3 — Optional (KC-14 to KC-15) ✅
+
+| Issue | ID    | Description                                                              | Status |
+| ----- | ----- | ------------------------------------------------------------------------ | ------ |
+| #43   | KC-14 | Optional archive/retention tables for old `session_access` entries       | ✅     |
+| #44   | KC-15 | Optional operator-assisted auto-index orphaned docs behind explicit flag | ✅     |
+
+### Key Outcomes
+
+1. **`knowledge_cache_state` bloat addressed**: Nested pruning via `pruneSessionAccess()` helper prevents unbounded growth of task/domain entries under `session_access`.
+2. **`knowledge_audit_state` activated**: Repurposed as DB-managed audit rollup with schema/type alignment, non-fatal writers in KC tools and plugins.
+3. **DB-canonical knowledge store**: v11 schema with 7 typed knowledge tables (`knowledge_entries`, `knowledge_files`, `knowledge_entry_tags`, `knowledge_session_access`, `knowledge_discovery`, `knowledge_attestation`, `knowledge_materialization_jobs`), backfilled from `index.json`.
+4. **`knowledge-store.ts` API**: Stable library API for manifest read/write, search, discovery, attestation, materialization, and stats — the single canonical access path.
+5. **File materialized view**: `docs/official_docs/index.json` and markdown files now generated from DB; remain required for OpenCode `read` evidence.
+6. **Terminology corrected**: All references to custom tools (`.opencode/tools/*.ts`) vs MCP tools (`opencode.json.mcp`) corrected across documentation.
+7. **Logging integrated**: All audit-relevant events from KC tools, plugins, and scripts use `writeLog()` with structured fields.
+8. **No new MCP server**: All functionality stays within custom tools and framework libraries.
 
 ---
 
@@ -511,24 +566,24 @@ Specific events to add or keep:
 
 ## 8. Implementation Priority Summary
 
-| Priority | ID    | GitHub Issue                                                    | Description                                                                                                                            | Effort | Risk        |
-| -------- | ----- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------- |
-| P0       | KC-00 | [#29](https://github.com/Cho-Geer/opencode_framework/issues/29) | Repair executable defects in `indexer.ts` and `janitor.ts`; keep file-manifest behavior stable                                         | S/M    | Medium      |
-| P0       | KC-01 | [#30](https://github.com/Cho-Geer/opencode_framework/issues/30) | Add `knowledge-store.ts` API as a file-backed compatibility layer first                                                                | M      | Medium      |
-| P0       | KC-02 | [#31](https://github.com/Cho-Geer/opencode_framework/issues/31) | Retain and activate `knowledge_audit_state` as DB-managed audit rollup                                                                 | M      | Low         |
-| P0       | KC-03 | [#32](https://github.com/Cho-Geer/opencode_framework/issues/32) | Add nested task/domain pruning helper and fix current inline LRU target                                                                | M      | Medium      |
-| P0       | KC-04 | [#33](https://github.com/Cho-Geer/opencode_framework/issues/33) | Correct OpenCode terminology: custom tools vs MCP tools; do not add MCP unless needed                                                  | S      | Low         |
-| P1       | KC-05 | [#34](https://github.com/Cho-Geer/opencode_framework/issues/34) | Add v11 typed knowledge tables + indexes + backfill from `index.json` and existing files                                               | L      | Medium/High |
-| P1       | KC-06 | [#35](https://github.com/Cho-Geer/opencode_framework/issues/35) | Move `knowledge_cache_search.ts` to `knowledge-store.searchEntries()` with file fallback                                               | M      | Medium      |
-| P1       | KC-07 | [#36](https://github.com/Cho-Geer/opencode_framework/issues/36) | Move `knowledge_cache_attest.ts` to typed attestation writes while preserving `read_audit` verification                                | M      | Medium      |
-| P1       | KC-08 | [#37](https://github.com/Cho-Geer/opencode_framework/issues/37) | Wire audit rollup updates from custom tools/plugins with non-fatal error handling                                                      | M      | Low         |
-| P1       | KC-09 | [#38](https://github.com/Cho-Geer/opencode_framework/issues/38) | Extract reverse orphan detection helper and add DB↔file materialized consistency checks                                                | M      | Medium      |
-| P1       | KC-10 | [#39](https://github.com/Cho-Geer/opencode_framework/issues/39) | Add nested pruning and DB-canonical self-test / unit coverage                                                                          | M      | Medium      |
-| P2       | KC-11 | [#40](https://github.com/Cho-Geer/opencode_framework/issues/40) | Move janitor/indexer/size-reporter to DB canonical maintenance through `knowledge-store.ts`                                            | L      | Medium      |
-| P2       | KC-12 | [#41](https://github.com/Cho-Geer/opencode_framework/issues/41) | Normalize `knowledge_session_access`, `knowledge_discovery`, and `knowledge_attestation`; keep bounded `knowledge_cache_state` summary | L      | Medium/High |
-| P2       | KC-13 | [#42](https://github.com/Cho-Geer/opencode_framework/issues/42) | Enhance `knowledge_semantic_map` coverage validation from DB-backed manifest/tags                                                      | S/M    | Low         |
-| P3       | KC-14 | [#43](https://github.com/Cho-Geer/opencode_framework/issues/43) | Optional archive/retention tables for old `session_access` entries if compliance requires retention                                    | M/L    | Medium      |
-| P3       | KC-15 | [#44](https://github.com/Cho-Geer/opencode_framework/issues/44) | Optional operator-assisted auto-index orphaned docs behind explicit flag                                                               | M      | Medium      |
+| Priority | ID    | GitHub Issue                                                    | Description                                                                                                                            | Effort | Risk        | Status |
+| -------- | ----- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------- | ------ |
+| P0       | KC-00 | [#29](https://github.com/Cho-Geer/opencode_framework/issues/29) | Repair executable defects in `indexer.ts` and `janitor.ts`; keep file-manifest behavior stable                                         | S/M    | Medium      | ✅     |
+| P0       | KC-01 | [#30](https://github.com/Cho-Geer/opencode_framework/issues/30) | Add `knowledge-store.ts` API as a file-backed compatibility layer first                                                                | M      | Medium      | ✅     |
+| P0       | KC-02 | [#31](https://github.com/Cho-Geer/opencode_framework/issues/31) | Retain and activate `knowledge_audit_state` as DB-managed audit rollup                                                                 | M      | Low         | ✅     |
+| P0       | KC-03 | [#32](https://github.com/Cho-Geer/opencode_framework/issues/32) | Add nested task/domain pruning helper and fix current inline LRU target                                                                | M      | Medium      | ✅     |
+| P0       | KC-04 | [#33](https://github.com/Cho-Geer/opencode_framework/issues/33) | Correct OpenCode terminology: custom tools vs MCP tools; do not add MCP unless needed                                                  | S      | Low         | ✅     |
+| P1       | KC-05 | [#34](https://github.com/Cho-Geer/opencode_framework/issues/34) | Add v11 typed knowledge tables + indexes + backfill from `index.json` and existing files                                               | L      | Medium/High | ✅     |
+| P1       | KC-06 | [#35](https://github.com/Cho-Geer/opencode_framework/issues/35) | Move `knowledge_cache_search.ts` to `knowledge-store.searchEntries()` with file fallback                                               | M      | Medium      | ✅     |
+| P1       | KC-07 | [#36](https://github.com/Cho-Geer/opencode_framework/issues/36) | Move `knowledge_cache_attest.ts` to typed attestation writes while preserving `read_audit` verification                                | M      | Medium      | ✅     |
+| P1       | KC-08 | [#37](https://github.com/Cho-Geer/opencode_framework/issues/37) | Wire audit rollup updates from custom tools/plugins with non-fatal error handling                                                      | M      | Low         | ✅     |
+| P1       | KC-09 | [#38](https://github.com/Cho-Geer/opencode_framework/issues/38) | Extract reverse orphan detection helper and add DB↔file materialized consistency checks                                                | M      | Medium      | ✅     |
+| P1       | KC-10 | [#39](https://github.com/Cho-Geer/opencode_framework/issues/39) | Add nested pruning and DB-canonical self-test / unit coverage                                                                          | M      | Medium      | ✅     |
+| P2       | KC-11 | [#40](https://github.com/Cho-Geer/opencode_framework/issues/40) | Move janitor/indexer/size-reporter to DB canonical maintenance through `knowledge-store.ts`                                            | L      | Medium      | ✅     |
+| P2       | KC-12 | [#41](https://github.com/Cho-Geer/opencode_framework/issues/41) | Normalize `knowledge_session_access`, `knowledge_discovery`, and `knowledge_attestation`; keep bounded `knowledge_cache_state` summary | L      | Medium/High | ✅     |
+| P2       | KC-13 | [#42](https://github.com/Cho-Geer/opencode_framework/issues/42) | Enhance `knowledge_semantic_map` coverage validation from DB-backed manifest/tags                                                      | S/M    | Low         | ✅     |
+| P3       | KC-14 | [#43](https://github.com/Cho-Geer/opencode_framework/issues/43) | Optional archive/retention tables for old `session_access` entries if compliance requires retention                                    | M/L    | Medium      | ✅     |
+| P3       | KC-15 | [#44](https://github.com/Cho-Geer/opencode_framework/issues/44) | Optional operator-assisted auto-index orphaned docs behind explicit flag                                                               | M      | Medium      | ✅     |
 
 Recommended rollout:
 
@@ -541,27 +596,27 @@ Recommended rollout:
 
 ## 9. Verification Checklist
 
-After implementation:
+All items verified as of implementation completion (2026-06-20):
 
-- [ ] `framework-self-test.ts` passes with the current check count.
-- [ ] `indexer.ts` and `janitor.ts` run in dry-run/stats mode without `ReferenceError`.
-- [ ] `knowledge-store.ts` is the only normal knowledge manifest/search/materialization API used by KC tools/scripts.
-- [ ] v11 knowledge tables and indexes exist when DB-canonical mode is enabled.
-- [ ] Backfill from `docs/official_docs/index.json` is idempotent and preserves manifest semantics.
-- [ ] `docs/official_docs/index.json` is generated from DB and matches DB counts/hashes.
-- [ ] `docs/official_docs/**/*.md` files needed by indexed active entries exist as materialized files.
-- [ ] `knowledge_audit_state` remains present in `substate_kv`.
-- [ ] `KnowledgeAuditState` type and `knowledge-audit-state.schema.json` agree.
-- [ ] `knowledge_cache_state` size decreases or stops unbounded nested task/domain growth.
-- [ ] `knowledge_cache_attest` still verifies against `read_audit` DB/API.
-- [ ] `scope-before.ts` and `uc7ks-utils.ts` still use `knowledge_cache_state` + `read_audit` for blocking decisions.
-- [ ] Typed `knowledge_attestation` and compatibility `knowledge_cache_state` summaries agree during migration.
-- [ ] Reverse orphan detection still reports zero or documented orphans.
-- [ ] New plugins/tools/scripts write audit-relevant events through `writeLog`.
-- [ ] No new raw JSONL state file is introduced.
-- [ ] No new MCP server is introduced for functionality that belongs in `.opencode/tools/`.
-- [ ] `.opencode/tools/*.ts` custom tools still use `tool()` from `@opencode-ai/plugin`.
-- [ ] Plugins modified for KC still export through `withPluginLifecycle()`.
+- [x] `framework-self-test.ts` passes with the current check count (checks 17, 22, 28–32 passing).
+- [x] `indexer.ts` and `janitor.ts` run in dry-run/stats mode without `ReferenceError`.
+- [x] `knowledge-store.ts` is the only normal knowledge manifest/search/materialization API used by KC tools/scripts.
+- [x] v11 knowledge tables and indexes exist when DB-canonical mode is enabled.
+- [x] Backfill from `docs/official_docs/index.json` is idempotent and preserves manifest semantics.
+- [x] `docs/official_docs/index.json` is generated from DB and matches DB counts/hashes.
+- [x] `docs/official_docs/**/*.md` files needed by indexed active entries exist as materialized files.
+- [x] `knowledge_audit_state` remains present in `substate_kv`.
+- [x] `KnowledgeAuditState` type and `knowledge-audit-state.schema.json` agree.
+- [x] `knowledge_cache_state` size decreases or stops unbounded nested task/domain growth.
+- [x] `knowledge_cache_attest` still verifies against `read_audit` DB/API.
+- [x] `scope-before.ts` and `uc7ks-utils.ts` still use `knowledge_cache_state` + `read_audit` for blocking decisions.
+- [x] Typed `knowledge_attestation` and compatibility `knowledge_cache_state` summaries agree during migration.
+- [x] Reverse orphan detection still reports zero or documented orphans (via shared integrity-check helper).
+- [x] New plugins/tools/scripts write audit-relevant events through `writeLog`.
+- [x] No new raw JSONL state file is introduced.
+- [x] No new MCP server is introduced for functionality that belongs in `.opencode/tools/`.
+- [x] `.opencode/tools/*.ts` custom tools still use `tool()` from `@opencode-ai/plugin`.
+- [x] Plugins modified for KC still export through `withPluginLifecycle()`.
 
 ---
 

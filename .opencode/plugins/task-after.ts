@@ -219,17 +219,109 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       if (!dagTaskId) dagTaskId = resolveTaskId(input.sessionID);
 
       if (dagTaskId) {
-        const agentType = input.args?.subagent_type || agent || "unknown";
+        const subAgentType = input.args?.subagent_type || agent || "unknown";
         const runId = process.env.OPENCODE_RUN_ID || null;
-        dbAppendSessionLog(subSessionId, dagTaskId, agentType, runId);
+        dbAppendSessionLog(subSessionId, dagTaskId, subAgentType, runId);
         writeLog("task-after", "runtime", {
           sessionID: input.sessionID,
           callID: input.callID,
           agent,
           agentType: agent,
           event: "SESSION-LOG-APPENDED",
-          detail: `sub-agent sessionId=${subSessionId} dagTaskId=${dagTaskId} agentType=${agentType}`,
+          detail: `sub-agent sessionId=${subSessionId} dagTaskId=${dagTaskId} agentType=${subAgentType}`,
         });
+
+        // ═══════════════════════════════════════════════════════════════
+        // A7: DB-canonical dispatch consume (Phase 1).
+        // After successful Task() dispatch, update the dispatch_queue
+        // entry to 'consumed' by matching on dag_task_id and agent_type.
+        // Also insert dispatch_context and dispatch_attempts records.
+        //
+        // Looks up the most recent 'running' entry with matching
+        // dag_task_id + agent_type that matches this session's lease.
+        // Non-fatal: failures logged but never block dispatch.
+        // ═══════════════════════════════════════════════════════════════
+        try {
+          const {
+            dbConsumeDispatch,
+            dbInsertDispatchContext,
+            dbInsertDispatchAttempt,
+            dbGetDispatchQueue,
+          } = require("../lib/dispatch-db");
+
+          // Find the running entry for this dag_task_id + agent_type
+          const runningEntries = dbGetDispatchQueue("running", subAgentType, 5);
+          const match = runningEntries.find(
+            (e: any) =>
+              e.dag_task_id === dagTaskId &&
+              (e.lease_owner === subSessionId ||
+                e.lease_owner === input.sessionID),
+          );
+
+          if (match) {
+            // Consume the dispatch
+            dbConsumeDispatch(match.id, subSessionId);
+
+            // Insert context record
+            let domainId: string | undefined;
+            try {
+              const ctxPath = path.join(
+                root,
+                ".task_temp",
+                "_dispatch",
+                "ctx",
+                dagTaskId + ".json",
+              );
+              if (fs.existsSync(ctxPath)) {
+                const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
+                domainId = ctx.domainId;
+              }
+            } catch {
+              /* best-effort */
+            }
+
+            dbInsertDispatchContext(
+              match.id,
+              subSessionId,
+              dagTaskId,
+              subAgentType,
+              domainId,
+            );
+
+            // Insert attempt record
+            dbInsertDispatchAttempt(match.id, 1, "success", subSessionId);
+
+            writeLog("task-after", "runtime", {
+              sessionID: input.sessionID,
+              callID: input.callID,
+              agent,
+              agentType: agent,
+              event: "DISPATCH-QUEUE-CONSUME",
+              detail: `Consumed dispatch queueId=${match.id} dagTaskId=${dagTaskId} agentType=${subAgentType}`,
+            });
+          } else {
+            // Entry not found in DB — may have been file-based dispatch.
+            // Insert context + attempt without a queue_id reference.
+            writeLog("task-after", "runtime", {
+              sessionID: input.sessionID,
+              callID: input.callID,
+              agent,
+              agentType: agent,
+              event: "DISPATCH-QUEUE-CONSUME-NO-MATCH",
+              detail: `No running DB entry for dagTaskId=${dagTaskId} agentType=${subAgentType} — file-based dispatch assumed`,
+            });
+          }
+        } catch (e: any) {
+          writeLog("task-after", "runtime", {
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            level: "WARN",
+            event: "DISPATCH-DB-CONSUME-FAILED",
+            detail: `DB dispatch consume failed: ${e.message}. File-based fallback intact.`,
+          });
+        }
       }
     } catch {
       // Session log persistence is best-effort; never block dispatch

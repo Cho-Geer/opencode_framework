@@ -72,9 +72,8 @@ jobs:
 
       - name: Process each changed document
         if: steps.changed-docs.outputs.count > 0
-        shell: bash
+        shell: bash {0}
         run: |
-          set -e
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             echo ""

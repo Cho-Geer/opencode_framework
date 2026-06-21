@@ -589,4 +589,60 @@ Line 973:   const hasHighSeverityItems = failed.some((f) => f.severity === "HIGH
 
 ---
 
+---
+
+## §9 Known Issues
+
+### §9.1 Bug: False Bypass for Non-SA/Orch Agents (Fixed in v2.1.0)
+
+**Status**: ✅ Fixed (SA-FIX-BYPASS-AGENT-RESOLVE, 2026-06-21)  
+**Severity**: 🔴 HIGH — bypass incorrectly applied to Coder-BE
+
+**Root Cause**: `resolveLatestDispatchAgent()` queries (both Priority 1 and
+Priority 2) filtered results with `WHERE agent IN ('@Super-Admin','Super-Admin','@Orchestrator','Orchestrator')`.
+When a non-SA/Orch agent (e.g., Coder-BE) called `compliance_gate_check`:
+
+1. Priority 1 (`dag_task_id` exact match) failed because Coder-BE's entry was
+   excluded by the `WHERE agent IN (...)` filter
+2. Priority 2 (fallback) returned the latest SA/Orch session's agent
+3. `compliance-gate.ts` L1117-1119 saw `bypassNorm === "super-admin"` and
+   applied the bypass → Coder-BE incorrectly bypassed critical file checks
+
+**Real-world scenario**: E2E test caught this. Coder-BE dispatched →
+`compliance_gate_check` called → `resolveLatestDispatchAgent(taskId)` →
+Priority 1 skipped Coder-BE → fallback returned "@Super-Admin" from a recent
+SA dispatch → bypass incorrectly triggered.
+
+**Fix (v2.1.0)**: Removed `WHERE agent IN (...)` from both Priority 1 and
+Priority 2 queries in `resolveLatestDispatchAgent()`. The function now
+returns the actual agent for the given context. The caller
+(`compliance-gate.ts`) already has correct agent-type validation at
+L1117-1119: `bypassNorm === "super-admin" || bypassNorm === "orchestrator"`.
+
+**Query changes**:
+
+```diff
+// Priority 1 — dag_task_id exact match
+  `SELECT agent FROM session_map
+   WHERE dag_task_id = ?
+-    AND agent IN ('@Super-Admin','Super-Admin','@Orchestrator','Orchestrator')
+   ORDER BY updated_at DESC LIMIT 1`
+
+// Priority 2 — fallback
+  `SELECT agent FROM session_map
+-  WHERE agent IN ('@Super-Admin','Super-Admin','@Orchestrator','Orchestrator')
+   ORDER BY updated_at DESC LIMIT 1`
+```
+
+**Why the caller-side check is sufficient**: `compliance-gate.ts` L1117-1119
+already validates `bypassNorm === "super-admin" || bypassNorm === "orchestrator"`.
+If `resolveLatestDispatchAgent()` returns "@Coder-BE", `bypassNorm` becomes
+`"coder-be"` and the bypass is NOT applied. The two-layer design (resolver
+returns raw agent, caller validates) is the correct separation of concerns.
+
+**Related**: §2.2 Modification 2 (compliance-gate.ts L1117-1119) — no changes
+needed to the bypass logic block; it was already correct.
+
+---
+
 _End of implementation plan._
