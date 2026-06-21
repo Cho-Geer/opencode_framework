@@ -1083,6 +1083,18 @@
           "desc": "Emergency repair — Super-Admin framework-ci workflow fix"
         },
         {
+          "scope": ".github/workflows/cascade-close.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin cascade-close workflow fix (FW-REPAIR-14)"
+        },
+        {
+          "scope": ".github/workflows/state-sync.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin state-sync workflow fix (FW-REPAIR-14)"
+        },
+        {
           "scope": ".github/",
           "agent": "@CI-CD-Agent",
           "priority": 1,

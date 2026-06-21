@@ -1,536 +1,460 @@
-# Remaining Framework Self-Test Failures — Root Cause Analysis & Fix Solutions
+# Remaining Framework Self-Test Failures - Root Cause Analysis & Fix Solutions
 
-> **Version**: 1.1.0
-> **Created**: 2026-06-22
-> **Audited**: 2026-06-21 @Super-Admin (re-verified against live `bun .opencode/scripts/framework-self-test.ts` run: **61 checks, 6 failures**)
-> **Author**: @Super-Admin (SAVE-REMAINING-FAILURES)
-> **Status**: Active — pending resolution. v1.0.0 claimed 4 failures and that Check 28 was fixed; live re-run disproves both claims (see §1.1).
-> **Task ID**: SAVE-REMAINING-FAILURES
-> **Context**: Post-refactor framework self-test (`bun .opencode/scripts/framework-self-test.ts`) baseline assessment
-
----
-
-## §1 Overview
-
-This document catalogues the **6** `framework-self-test.ts` failures observed on 2026-06-21. Each failure is analyzed with root cause, impact assessment, and recommended fix procedure.
-
-These failures were identified by running `bun .opencode/scripts/framework-self-test.ts` and `bun .opencode/scripts/framework-doctor.ts --strict` against the current working tree.
-
-### §1.1 Drift from v1.0.0
-
-v1.0.0 of this document (created earlier on 2026-06-22) listed 4 failures and claimed "Check 28 (UC7KS Schema Integrity) fix" had been applied. **Live re-run disproves this**:
-
-| Claim in v1.0.0 | Actual live state (2026-06-21 run) |
-|-----------------|-------------------------------------|
-| "Check 28 fix applied" | Check 28 still FAILS — `Super-Admin: missing uc7_001_compliant` (infrastructure migration to `dbReadSubState()` happened, but data-level field is still missing) |
-| "4 remaining failures" | 6 failures: 22, 26, 27, 28, 35, 36 |
-| Check 35 not mentioned | Check 35 FAILS — 1 stale pre-HARDEN entry for `Super-Admin` |
-| Backup path `.opencode/backups/` | Actual path is `.opencode/scripts/.opencode_backups/` |
-
-The infrastructure migration (Check 28 code now calls `dbReadSubState("knowledge_cache_state")` at `framework-self-test.ts:2135-2136`) is correct, but the *data* it reads is still non-compliant. Conflating the two masked the data-level failure.
-
-### Summary Matrix
-
-| #   | Check ID | Failure | Severity | Fix Effort |
-| --- | -------- | ------- | -------- | ---------- |
-| 1   | Check 22 | Orphan docs not in `index.json` (11 files) | ⚠️ WARNING | Medium |
-| 2   | Check 26/27 | Doctor Check 6: Critical infrastructure files modified | ⚠️ WARNING | Small |
-| 3   | Check 28 | Super-Admin: missing `uc7_001_compliant` in `session_access` | 🔴 HIGH | Small |
-| 4   | Check 35 | 1 stale pre-HARDEN `session_access` entry (Super-Admin) | ⚠️ WARNING | Small |
-| 5   | Check 36 | Uncommitted backup patches detected (3 backups) | ⚠️ WARNING | Small |
-
-> **Note**: Failures 2 and the "related: Doctor — critical files divergence" note from v1.0.0 are collapsed into a single row here — they share the same root cause (uncommitted `framework-self-test.ts` change). Failure 4 (Check 35) is **new** — v1.0.0 did not mention it.
+> Version: 1.2.0
+> Created: 2026-06-22
+> Last Audited: 2026-06-22 (Asia/Tokyo), against current framework code
+> Author: Codex Framework Audit
+> Status: Active - 4 self-test failures remain
+> Task ID: REMAINING-SELF-TEST-FAILURES
 
 ---
 
-## §2 Failure 1 — Check 22: Orphan Docs Not in index.json
+## 1. Executive Summary
 
-### §2.1 Symptom
+The previous baseline in this document was stale. A fresh audit against the current
+framework code shows:
 
-```
-[FAIL] Check 22 — Orphan docs not in index.json:
-  opencode/framework/permissions.md, opencode/framework/tools.md, opencode/framework/cli.md (+10 more)
-```
+```text
+bun .opencode/scripts/framework-self-test.ts
+# Result: 57 / 61 checks passed, 4 checks failed
 
-The 11 orphan files are:
-
-| File on Disk                          | In index.json? | Expected Library ID  |
-| ------------------------------------- | -------------- | -------------------- |
-| `opencode/framework/permissions.md`   | ❌ No          | `opencode-framework` |
-| `opencode/framework/tools.md`         | ❌ No          | `opencode-framework` |
-| `opencode/framework/cli.md`           | ❌ No          | `opencode-framework` |
-| `opencode/framework/plugins.md`       | ❌ No          | `opencode-framework` |
-| `opencode/framework/agents.md`        | ❌ No          | `opencode-framework` |
-| `opencode/framework/mcp-servers.md`   | ❌ No          | `opencode-framework` |
-| `opencode/framework/policies.md`      | ❌ No          | `opencode-framework` |
-| `opencode/framework/index.md`         | ❌ No          | `opencode-framework` |
-| `opencode/framework/skills.md`        | ❌ No          | `opencode-framework` |
-| `opencode/framework/config.md`        | ❌ No          | `opencode-framework` |
-| `opencode/framework/custom-tools.md`  | ❌ No          | `opencode-framework` |
-
-> v1.0.0 reported "13+ orphan files" — live count is 11. The discrepancy comes from the original doc double-counting `index.md` and `source-analysis/` (which is a subdirectory, not an orphan file).
-
-### §2.2 Root Cause
-
-**Category**: UC7KS Knowledge Pipeline — Cache Integrity
-
-The UC7KS knowledge cache has files physically present on disk under `docs/official_docs/opencode/framework/` that were never registered in `docs/official_docs/index.json`. This is a **reverse-orphan condition**: the files exist but the manifest doesn't know about them.
-
-The root cause has two contributing factors:
-
-1. **Incremental Write, No Atomic Index Update**: When @Knowledge-Curator wrote these framework doc files, the `index.json` update (UC7-007 Atomic Index Update) may not have been triggered or may have failed silently. The files were written to disk but the manifest entry was never appended.
-
-2. **Check 22 Validation Logic**: The check compares file listings from `docs/official_docs/` against entries in `index.json`. Files present on disk but absent from the manifest are flagged as orphans. The check does NOT distinguish between:
-   - Files that SHOULD be in the index (legitimate docs)
-   - Files that are genuinely orphaned (temporary, stale)
-
-> Note: These files are correctly served by `knowledge_cache_search` because the search tool discovers files from disk listing, not exclusively from `index.json`. This means the files are functionally usable — the failure is in manifest integrity only.
-
-### §2.3 Impact
-
-- **Functional**: LOW — `knowledge_cache_search` discovers these files via filesystem scan, so agents can still read them
-- **Audit**: MEDIUM — The manifest is incomplete, violating UC7-003 (Post-Write Save-or-Fail) and UC7-007 (Atomic Index Update)
-- **Self-Test**: HIGH — Check 22 permanently fails until resolved
-
-### §2.4 Resolution Options
-
-#### Option A: Register Orphans in index.json (Recommended)
-
-Add manifest entries for all orphaned files to `docs/official_docs/index.json`. This restores manifest integrity without data loss.
-
-**Procedure**:
-
-1. For each orphan file, compute SHA-256 hash:
-   ```bash
-   for f in docs/official_docs/opencode/framework/*.md; do
-     sha256sum "$f"
-   done
-   ```
-2. Add entries to `index.json.entries[]` with correct metadata:
-   ```json
-   {
-     "library_id": "opencode-framework",
-     "query_topic": "<topic from file header or inference>",
-     "domain": "opencode",
-     "tags": ["opencode", "framework", "<specific-tags>"],
-     "files": [{
-       "path": "opencode/framework/<filename>.md",
-       "source": "webfetch",
-       "sha256": "sha256:<hash>",
-       "size_bytes": <size>,
-       "created_at": "<ISO 8601>",
-       "ttl_days": 7,
-       "access_count": 0,
-       "last_accessed": null,
-       "status": "active"
-     }]
-   }
-   ```
-3. Perform atomic index update (write to `index.json.tmp` → validate → rename to `index.json`)
-4. Re-run `bun .opencode/scripts/framework-self-test.ts` to verify Check 22 passes
-
-**Effort**: Medium (~13 entries to add, manual SHA-256 + metadata needed)  
-**Risk**: Low — additive change only
-
-#### Option B: Remove Orphan Files
-
-Delete the orphan files from disk. Simpler but loses cached documentation.
-
-**Procedure**:
-
-```bash
-rm docs/official_docs/opencode/framework/permissions.md
-rm docs/official_docs/opencode/framework/tools.md
-# ... etc.
+bun .opencode/scripts/framework-doctor.ts --strict --json
+# Result: 13 / 13 checks passed, strict mode healthy
 ```
 
-**Effort**: Small  
-**Risk**: Medium — agents lose access to these cached docs; @Knowledge-Curator would need to re-fetch them
+The remaining failures are:
 
-#### Option C: Janitor Cleanup + Re-fetch
+| Check | Current Failure | Severity | Scope | Recommended Action |
+|---|---|---:|---|---|
+| 22 | 13 official-doc files exist on disk but are not registered in `index.json` | Medium | Knowledge index | Register with DB-aware knowledge tooling, preferably `integrity-check.ts --auto-index` |
+| 28 | `Super-Admin` and `CI-CD-Agent` are missing `uc7_001_compliant` in `knowledge_cache_state.session_access` | High | UC7KS read-before-write evidence | Re-run valid knowledge read + attestation for both agents |
+| 35 | `Super-Admin` and `CI-CD-Agent` still carry deprecated pre-HARDEN cache evidence | High | UC7KS hardened evidence | Same attestation repair as Check 28 |
+| 48 | `.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json` is stale for more than 24h | Low | Dispatch ctx cleanup | Remove the stale ctx file after archived-gate verification; add janitor follow-up |
 
-Run `janitor({ remove_orphans: true })` to clean orphan entries, then re-dispatch @Knowledge-Curator to re-fetch and properly index all missing docs.
+Previously listed Check 26, Check 27, and Check 36 failures are no longer
+current. `framework-doctor --strict` now reports a healthy critical-infra state,
+and backup patch drift is clean.
 
-**Effort**: Medium  
-**Risk**: Low — clean re-fetch with proper index registration
+### 1.1 Audit Evidence
 
-### §2.5 Recommended Fix
+| Evidence Source | Current Finding |
+|---|---|
+| `framework-self-test.ts` | 4 failures: Check 22, Check 28, Check 35, Check 48 |
+| `framework-doctor.ts --strict --json` | `total=13`, `passed=13`, `failed=0`; critical infrastructure healthy |
+| `knowledge/integrity-check.ts --json` | `totalOrphans=13`, `onlyInManifest=[]` |
+| `knowledge_cache_state.session_access` | `Super-Admin` and `CI-CD-Agent` have deprecated sufficiency records and no `uc7_001_compliant` |
+| `.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json` | ctx file is older than 24h; corresponding gate session is archived |
 
-**Option A** (Register Orphans) is recommended. The files are legitimate cached documentation that should be indexed. The procedure is additive and non-destructive.
+### 1.2 Drift From v1.1.0
+
+| v1.1.0 Claim | Current Status | Required Update |
+|---|---|---|
+| 6 self-test failures remain | 4 failures remain | Updated baseline |
+| Check 26/27: strict doctor divergence and duplicate infra logic | Resolved in current code; doctor strict passes | Move to resolved section |
+| Check 36: backup patch files cause drift | Resolved; self-test Check 36 passes | Move to resolved section |
+| Check 22: 11 orphan docs | Current count is 13 | Replace orphan list |
+| Check 28/35: only `Super-Admin` affected | `Super-Admin` and `CI-CD-Agent` are affected | Expand repair scope |
+| Check 48 not mentioned | New active failure | Add root cause and fix plan |
 
 ---
 
-## §3 Failure 2 — Check 26/27: Doctor Check 6 — Critical Infrastructure Files
+## 2. Failure 1 - Check 22: Knowledge Index Orphans
 
-### §3.1 Symptom
+### 2.1 Symptom
 
-```
-[FAIL] Check 26 — doctor Check 6: Critical infrastructure files modified since HEAD
-  1 file(s) modified: .opencode/scripts/framework-self-test.ts
+Current self-test output:
 
-[WARN] Check 27 — doctor Check 6: 1 file(s) with critical divergence
-  .opencode/scripts/framework-self-test.ts: has diverged between HEAD and working tree
-```
-
-### §3.2 Root Cause
-
-**Category**: State Management — Git Working Tree Divergence
-
-The previous @Super-Admin session (Check 28 fix) modified `framework-self-test.ts` to switch from reading `machine.json` directly to using the SQLite `readSubState()` API. This change is **uncommitted** — it exists only in the working tree, not in any commit.
-
-The `framework-doctor.ts` Check 6 (`--strict` mode) detects files in the working tree that differ from `HEAD` and have been designated as "critical infrastructure files." The check flags them because:
-
-1. **Check 6 Purpose**: Detect uncommitted modifications to files in the critical infrastructure allowlist (typically `.opencode/scripts/framework-self-test.ts`, `.opencode/scripts/framework-doctor.ts`, `.opencode/plugins/framework-enforcer.ts`, etc.)
-
-2. **Divergence Detection**: The check compares `git diff HEAD -- <file>` to determine if the working tree copy differs from the last commit
-
-3. **No Grace Period**: The check (as configured) does not have a post-edit grace period — any uncommitted change triggers the warning immediately
-
-### §3.3 Impact
-
-- **Functional**: NONE — the change itself (Check 28 fix) is correct and needed
-- **Developer Experience**: MEDIUM — the warning is distracting but non-blocking
-- **CI/CD**: LOW — CI would detect this if `framework-doctor.ts --strict` is run in CI
-
-### §3.4 Resolution Options
-
-#### Option A: Commit the Changes (Recommended)
-
-Commit the Check 28 fix with an appropriate commit message:
-
-```bash
-git add .opencode/scripts/framework-self-test.ts
-git commit -m "fix(framework): switch self-test Check 28 to use SQLite readSubState API [INFRA]
-
-Root cause: Check 28 was reading machine.json JSON file directly instead of
-using the SQLite readSubState() API. This caused schema validation failures.
-
-Fix: Migrated Check 28 to use readSubState() for UC7KS schema integrity
-validation, matching the P1-B split architecture pattern."
+```text
+[FAIL] 22. Official docs knowledge integrity: Orphan docs not in index.json:
+opencode/framework/permissions.md, opencode/framework/tools.md,
+opencode/framework/cli.md (+10 more)
 ```
 
-**Effort**: Small — one commit  
-**Risk**: None — the change is already tested and correct
+The current integrity check reports 13 orphan files:
 
-#### Option B: Add to Critical-Files Allowlist Grace Period
-
-Add `framework-self-test.ts` to a post-edit grace period allowlist in `framework-doctor.ts` so that recent edits are not flagged for a configurable time window (e.g., 30 minutes after last safe_edit).
-
-**Effort**: Small — config change  
-**Risk**: Low — but reduces the value of Check 6 by adding a bypass window
-
-#### Option C: Git Stash + Restore After Review
-
-Stash the changes temporarily, run self-test, then restore:
-
-```bash
-git stash push .opencode/scripts/framework-self-test.ts
-bun .opencode/scripts/framework-self-test.ts  # Check 26 should now pass
-git stash pop
+```text
+opencode/framework/permissions.md
+opencode/framework/tools.md
+opencode/framework/cli.md
+opencode/framework/config.md
+opencode/framework/skills.md
+opencode/framework/mcp-servers.md
+opencode/framework/policies.md
+opencode/framework/index.md
+opencode/framework/plugins.md
+opencode/framework/agents.md
+opencode/mcp/mcp-servers-docs.md
+opencode/plugins/source-analysis/plugin-loading-mechanics.md
+opencode/releases/v1.16.0-release-notes.md
 ```
 
-**Effort**: Small — temporary workaround  
-**Risk**: None — but doesn't solve the underlying issue
+`integrity-check.ts --json` currently reports:
 
-### §3.5 Recommended Fix
-
-**Option A** (Commit the Changes) is recommended. The Check 28 fix is a legitimate, tested improvement. Committing it resolves the divergence and makes the fix permanent.
-
----
-
-## §4 Failure 3 — Check 28: Super-Admin missing `uc7_001_compliant`
-
-### §4.1 Symptom
-
-```
-[FAIL] Check 28 — Super-Admin: missing uc7_001_compliant
-```
-
-### §4.2 Root Cause
-
-**Category**: UC7KS Knowledge Pipeline — `session_access` Schema Compliance
-
-`framework-self-test.ts:2127-2215` validates the `knowledge_cache_state.session_access` sub-schema. For every agent entry it requires four fields:
-
-| Field | Required by | Meaning |
-|-------|-------------|---------|
-| `uc7_001_compliant` | UC7-001c HARDEN | Agent follows the 3-stage read-before-write protocol (discovery → read → attest) |
-| `last_read_at` | HARDEN audit | ISO timestamp of last knowledge cache read |
-| `declared_scope` | FW-HARDEN-UC7KS-002 | Agent-declared knowledge scope string |
-| `cache_sufficiency` | FW-HARDEN-UC7KS-003 | Latest sufficiency assessment payload |
-
-The validation loop (lines 2187–2209) iterates `Object.entries(kcs.session_access)`, filters out phantom agents (those not in `opencode.json`), and pushes `"missing <field>"` issues for any undefined field.
-
-**Why Super-Admin specifically fails**: Super-Admin was the agent that *authored* the HARDEN pipeline and *ran* the migration. Its own `session_access` row was created before the `uc7_001_compliant` field became mandatory, and no migration back-filled it. Other agents (the ones that went through `knowledge_cache_search` post-HARDEN) have the field populated by the tool itself.
-
-#### v1.0.0 Drift Note
-
-v1.0.0 conflated two distinct fixes:
-- **Infrastructure fix** (applied): Check 28 code now reads `knowledge_cache_state` via `dbReadSubState()` (P1-B split architecture) — `framework-self-test.ts:2135-2136`. This is what v1.0.0 called "the Check 28 fix."
-- **Data fix** (NOT applied): Super-Admin's `session_access` row is still missing `uc7_001_compliant`. Check 28 keeps failing on this.
-
-### §4.3 Impact
-
-- **Functional**: MEDIUM — Super-Admin cannot attest compliance, so any framework task that requires a clean self-test run is blocked.
-- **Audit**: HIGH — Super-Admin is the framework governor; a missing HARDEN flag undermines the audit trail for all framework changes it authored.
-- **Self-Test**: HIGH — Check 28 permanently fails until resolved.
-
-### §4.4 Resolution Options
-
-#### Option A: Back-fill Super-Admin's `uc7_001_compliant` via `dbWriteSubState()` (Recommended)
-
-Run a one-shot migration that reads current `knowledge_cache_state`, sets `session_access["@Super-Admin"].uc7_001_compliant = true` (Super-Admin authored the HARDEN pipeline and is trivially compliant), and writes back via `dbWriteSubState()`.
-
-```typescript
-// One-shot migration — run via bun or as a framework-doctor subcommand
-import { dbReadSubState, dbWriteSubState } from ".opencode/lib/db-state-manager";
-
-const kcs = dbReadSubState("knowledge_cache_state");
-if (!kcs?.session_access?.["@Super-Admin"]) {
-  console.error("@Super-Admin session_access row missing — bootstrap first");
-  process.exit(1);
+```json
+{
+  "totalEntries": 49,
+  "totalFilesInManifest": 46,
+  "totalFilesOnDisk": 59,
+  "totalOrphans": 13,
+  "onlyInManifest": []
 }
-kcs.session_access["@Super-Admin"].uc7_001_compliant = true;
-kcs.session_access["@Super-Admin"].last_read_at ??= new Date().toISOString();
-kcs.session_access["@Super-Admin"].declared_scope ??= "framework-governance";
-dbWriteSubState("knowledge_cache_state", kcs);
 ```
 
-**Effort**: Small — one-shot script
-**Risk**: Low — Super-Admin is trivially compliant (it authored the HARDEN pipeline)
+### 2.2 Root Cause
 
-#### Option B: Bootstrap via Live `knowledge_cache_search` + `knowledge_cache_attest`
+The official docs tree has been expanded, but the canonical knowledge index has
+not been updated for every new file. This is not a file-existence problem:
+all affected files exist on disk. The issue is registration drift between
+`docs/official_docs/**` and `docs/official_docs/index.json`.
 
-Dispatch Super-Admin to run the full discovery → read → attest flow against the `opencode-framework` domain. The tools write all four required fields as a side effect.
+The current codebase already contains a DB-aware repair path:
 
-**Effort**: Medium — requires live dispatch
-**Risk**: Low — uses production pipeline, not a migration script
-
-#### Option C: Delete Super-Admin's `session_access` Row
-
-Delete the row and let it be recreated by the next dispatch.
-
-**Effort**: Small
-**Risk**: HIGH — loses historical `last_read_at` and `cache_sufficiency` audit trail. **Do not use.**
-
-### §4.5 Recommended Fix
-
-**Option A** (one-shot migration script) for immediate resolution. It is the smallest, most auditable change. The migration script should be committed under `.opencode/scripts/migrations/` with a `[INFRA]` marker.
-
----
-
-## §5 Failure 4 — Check 35: Stale Pre-HARDEN `session_access` Entry
-
-### §5.1 Symptom
-
-```
-[FAIL] Check 35 — 1 stale pre-HARDEN entries: flat=[Super-Admin], nested=[].
-  Re-run knowledge_cache_search for these agents.
+```text
+.opencode/scripts/knowledge/integrity-check.ts --auto-index
 ```
 
-### §5.2 Root Cause
+This path calls the knowledge store helper instead of requiring ad hoc JSON
+editing. That is preferable because the framework is moving toward DB-canonical
+knowledge management and because the helper records metadata consistently.
 
-**Category**: UC7KS Knowledge Pipeline — Pre-HARDEN Data Format
+### 2.3 Fix Plan
 
-`framework-self-test.ts:3508-3588` (Check 35) detects `session_access` entries that were written by the **pre-HARDEN** version of `knowledge_cache_search` (before UC7-001c). Pre-HARDEN entries have a flat `cache_sufficiency` shape where `reason`, `files_read`, and `content_summary` are empty — these were created when the tool returned a single-line sufficiency verdict instead of the structured 3-stage HARDEN payload.
-
-The check iterates `session_access`, classifying entries as:
-- `staleFlat`: top-level agent keys with empty HARDEN fields (line 3564)
-- `staleNested`: nested `(taskId, domain)` tuples with empty HARDEN fields (line 3572)
-
-Super-Admin's entry is `staleFlat` — its top-level `cache_sufficiency` block lacks the HARDEN-required fields because it was created by a pre-HARDEN `knowledge_cache_search` invocation and never refreshed.
-
-### §5.3 Impact
-
-- **Functional**: LOW — Super-Admin can still dispatch, but its cache sufficiency data is untrustworthy.
-- **Audit**: MEDIUM — pre-HARDEN entries are audit gaps; they bypass the read-before-write attestation chain.
-- **Self-Test**: HIGH — Check 35 permanently fails until resolved.
-
-### §5.4 Resolution Options
-
-#### Option A: Re-run `knowledge_cache_search` as Super-Admin (Recommended)
-
-Have Super-Admin invoke `knowledge_cache_search` for its declared scope (`framework-governance`). The post-HARDEN tool writes the full HARDEN payload, overwriting the stale flat entry.
-
-**Effort**: Small — one tool call
-**Risk**: Low — uses production tool, not a migration
-
-#### Option B: Back-fill via One-shot Script (pair with §4 Option A)
-
-Extend the §4 Option A migration script to also write a minimal HARDEN `cache_sufficiency` block:
-
-```typescript
-kcs.session_access["@Super-Admin"].cache_sufficiency = {
-  cache_sufficient: true,
-  reason: "Super-Admin authored HARDEN pipeline — framework-governance scope is trivially sufficient",
-  files_read: ["opencode/framework/index.md"],
-  content_summary: "Framework governance docs reviewed during HARDEN authoring",
-  uc7_001_compliant: true,
-  assessed_at: new Date().toISOString(),
-};
-```
-
-**Effort**: Small (incremental on §4 Option A)
-**Risk**: Low
-
-### §5.5 Recommended Fix
-
-**Option B** (combined §4+§5 migration script) — resolves both Check 28 and Check 35 in a single audited migration.
-
----
-
-## §6 Failure 5 — Check 36: Uncommitted Backup Patches Detected
-
-### §6.1 Symptom
-
-```
-[FAIL] Check 36 — 3 uncommitted patch(es) detected:
-  framework-self-test.ts: backup 2026-06-21T14:46:15.845Z (162086b) ≠ live (162867b)
-  framework-self-test.ts: backup 2026-06-21T14:46:07.664Z (161662b) ≠ live (162867b)
-  framework-self-test.ts: backup 2026-06-21T14:46:01.540Z (161670b) ≠ live (162867b)
-  Run git diff on these files or restore from backup.
-```
-
-### §6.2 Root Cause
-
-**Category**: Tooling — `safe_edit` Backup Artifacts
-
-The `safe_edit` tool creates automatic backup files on each edit operation as part of its TOCTOU protection and rollback capability. The 3 edits made to `framework-self-test.ts` during the Check 28 fix (by @Super-Admin) each produced a backup artifact.
-
-These backups serve as rollback points but are detected by Check 36 as "uncommitted patches" because they represent intermediate states that differ from both the live file and the last committed version.
-
-#### Backup Directory Path (corrected from v1.0.0)
-
-v1.0.0 referenced `.opencode/backups/` — **actual path is `.opencode/scripts/.opencode_backups/`**. Live file listing:
-
-```
-.opencode/scripts/.opencode_backups/framework-self-test.ts.1782045881310.*.safe_backup
-.opencode/scripts/.opencode_backups/framework-self-test.ts.1782053175845.*.safe_backup  (162086b)
-.opencode/scripts/.opencode_backups/framework-self-test.ts.1782053167664.*.safe_backup  (161662b)
-.opencode/scripts/.opencode_backups/framework-self-test.ts.1782053161540.*.safe_backup  (161670b)
-.opencode/scripts/.opencode_backups/framework-self-test.ts.1782045889944.*.safe_backup
-.opencode/scripts/.opencode_backups/framework-self-test.ts.1782045368699.*.safe_backup
-```
-
-Six backup artifacts exist on disk; Check 36 flagged 3 of them (the ones whose content differs from the live file). The other 3 have byte-identical content to the live file and are not reported.
-
-#### File Size Analysis
-
-| Version  | Size (bytes) | Delta from Live | Likely Content                     |
-| -------- | ------------ | --------------- | ---------------------------------- |
-| Live     | 162,867      | —               | Check 28 infrastructure fix applied |
-| Backup 3 | 161,670      | -1,197          | Previous iteration of Check 28 fix |
-| Backup 2 | 161,662      | -1,205          | Earlier iteration                  |
-| Backup 1 | 162,086      | -781            | Original or first fix attempt      |
-
-The size deltas are small (0.5–0.7%), consistent with incremental safe_edit patches during the Check 28 fix process.
-
-### §6.3 Impact
-
-- **Functional**: NONE — backups are inert, the live file is correct
-- **Repository Hygiene**: MEDIUM — stale backup files accumulate and can confuse developers
-- **Self-Test**: HIGH — Check 36 permanently fails until resolved
-- **Disk Space**: LOW — combined backup size is negligible (~485 KB)
-
-### §6.4 Resolution Options
-
-#### Option A: Clean Up Backups (Recommended)
-
-Delete the backup files since the live version is correct and committed:
+Recommended fix:
 
 ```bash
-# Actual backup directory — v1.0.0 referenced .opencode/backups/ (wrong)
-rm .opencode/scripts/.opencode_backups/framework-self-test.ts.*.safe_backup
+bun .opencode/scripts/knowledge/integrity-check.ts --auto-index --json
+bun .opencode/scripts/knowledge/integrity-check.ts --json
+bun .opencode/scripts/framework-self-test.ts
 ```
 
-**Effort**: Small — one command
-**Risk**: Low — backups are not needed if the live file is correct and committed
+Expected result:
 
-#### Option B: Add Backups to .gitignore
+- `totalOrphans` becomes `0`
+- Check 22 passes
+- `index.json` and the DB-backed knowledge store stay consistent through the
+  project helper path
 
-Add `.opencode/scripts/.opencode_backups/` to `.gitignore` and/or the Check 36 exclusion list so backup files are not flagged:
+Acceptable fallback:
 
-```gitignore
-# In .gitignore
-.opencode/scripts/.opencode_backups/
-.opencode/tools/.opencode_backups/
-.opencode/lib/.opencode_backups/
+1. Manually register the 13 files in `docs/official_docs/index.json`.
+2. Include correct path, title, library, domain, SHA, size, and updated timestamp.
+3. Re-run the three validation commands above.
+
+Do not delete these docs as a cleanup shortcut. They are current OpenCode
+knowledge assets and should be indexed unless a separate content audit proves
+they are obsolete.
+
+---
+
+## 3. Failure 2 - Check 28: Missing UC7KS Compliance Flags
+
+### 3.1 Symptom
+
+Current self-test output:
+
+```text
+[FAIL] 28. UC7KS v1.0 Evidence Contract:
+Super-Admin: missing uc7_001_compliant; CI-CD-Agent: missing uc7_001_compliant
 ```
 
-**Effort**: Small — three-line change
-**Risk**: Medium — masks the problem without fixing it; backups can still accumulate
+Current `knowledge_cache_state.session_access` entries exist for both agents,
+but neither entry has `uc7_001_compliant`.
 
-#### Option C: Auto-Prune via Janitor
+Affected agents:
 
-Extend the janitor tool to auto-prune safe_edit backup files older than N days. This would provide ongoing cleanup without manual intervention.
+| Agent | Domain | Current Evidence Problem |
+|---|---|---|
+| `Super-Admin` | `opencode_framework` | Has deprecated sufficient-looking evidence, but no UC7KS HARDEN flag |
+| `CI-CD-Agent` | `devops_ci` | Has deprecated sufficient-looking evidence, but no UC7KS HARDEN flag |
 
-**Effort**: Medium — requires janitor code change
-**Risk**: Low — automated cleanup with retention policy
+### 3.2 Root Cause
 
-### §6.5 Recommended Fix
+These records appear to have been created or refreshed by a pre-HARDEN knowledge
+path. They contain fields such as `cache_sufficiency.status = "sufficient"`,
+but they do not satisfy the hardened UC7KS evidence contract because:
 
-**Option A** (Clean Up Backups) for immediate resolution, combined with **Option B** (Add to .gitignore) for long-term prevention. Steps:
+- `uc7_001_compliant` is absent.
+- `cache_sufficiency.reason` still contains deprecated auto-generated wording.
+- `cache_sufficiency.files_read` is empty.
+- `content_summary` is deprecated auto-generated text rather than a real
+  read-evidence summary.
 
-1. Verify live `framework-self-test.ts` is correct (passes Check 28)
-2. Remove backup files from `.opencode/scripts/.opencode_backups/`
-3. Add per-subdirectory `.opencode_backups/` patterns to `.gitignore` to prevent future Check 36 failures
-4. Optionally update `framework-self-test.ts` Check 36 to exclude `.opencode_backups/` by default
+This is not just a boolean migration. The framework's read-before-write model
+requires evidence that the agent actually read relevant knowledge before making
+write decisions.
 
----
+### 3.3 Fix Plan
 
-## §5 Interdependency Analysis
+Repair both agents through the normal production path:
 
-The failures have a causal chain:
+1. Re-run `knowledge_cache_search` for each affected agent and domain.
+2. Read the returned official-doc files that are relevant to the agent scope.
+3. Call the UC7KS attestation path with a non-empty `files_read` list.
+4. Ensure the resulting state includes:
+   - `uc7_001_compliant: true`
+   - non-empty `cache_sufficiency.files_read`
+   - non-deprecated `cache_sufficiency.reason`
+   - non-deprecated `content_summary`
+   - a fresh `last_read_at`
 
+Recommended minimum attestation targets:
+
+| Agent | Domain | Representative Knowledge Scope |
+|---|---|---|
+| `Super-Admin` | `opencode_framework` | framework docs, plugin docs, tool docs, permission docs |
+| `CI-CD-Agent` | `devops_ci` | CLI/config docs plus CI/deployment-relevant official docs |
+
+If a direct repair script is used instead of the production tool path, it must
+write through the framework DB/substate helpers, not raw JSON mutation, and it
+must write complete evidence rather than only setting `uc7_001_compliant`.
+
+### 3.4 Validation
+
+```bash
+bun .opencode/scripts/framework-self-test.ts
 ```
-Check 28 Fix Applied (previous @Super-Admin session)
-    │
-    ├──▶ framework-self-test.ts modified (uncommitted)
-    │       ├──▶ Check 26/27: Doctor detects divergence from HEAD
-    │       └──▶ Check 36:   safe_edit backups left behind
-    │
-    └──▶ (No dependency on Check 22 — that's an independent UC7KS cache issue)
+
+Expected result:
+
+- Check 28 passes
+- Check 35 should also pass if the deprecated evidence is replaced in the same
+  repair operation
+
+---
+
+## 4. Failure 3 - Check 35: Stale Pre-HARDEN Knowledge Evidence
+
+### 4.1 Symptom
+
+Current self-test output:
+
+```text
+[FAIL] 35. Agent knowledge cache refresh after question policy:
+2 stale pre-HARDEN entries: flat=[Super-Admin,CI-CD-Agent], nested=[].
+Re-run knowledge_cache_search for these agents.
 ```
 
-**Resolution Order Recommendation**:
+### 4.2 Root Cause
 
-1. **First**: Resolve Check 22 (orphan docs) — independent, can be done in parallel
-2. **Second**: Commit the Check 28 fix → resolves Checks 26/27
-3. **Third**: Clean up backups → resolves Check 36
+This is the same state-quality defect exposed by Check 28. Both affected
+`session_access` records still carry deprecated evidence generated before the
+HARDEN/read-before-write evidence contract was enforced.
 
----
+The important point is that Check 35 is not solved by adding a timestamp or
+changing the boolean alone. It is solved by replacing the stale evidence with a
+real read attestation.
 
-## §6 Resolution Checklist
+### 4.3 Fix Plan
 
-| #   | Action                                                                          | Check(s) Resolved | Assignee     | Status     |
-| --- | ------------------------------------------------------------------------------- | ----------------- | ------------ | ---------- |
-| 1   | Register 13 orphan files in `index.json` with SHA-256 + metadata                | Check 22          | @Super-Admin | ⬜ Pending |
-| 2   | Commit `framework-self-test.ts` Check 28 fix with `[INFRA]` marker              | Check 26, 27      | @Super-Admin | ⬜ Pending |
-| 3   | Remove backup files from `.opencode/backups/`                                   | Check 36          | @Super-Admin | ⬜ Pending |
-| 4   | Add `.opencode/backups/` to `.gitignore`                                        | Check 36 (future) | @Super-Admin | ⬜ Pending |
-| 5   | Re-run `bun .opencode/scripts/framework-self-test.ts` to verify all checks pass | All               | @Super-Admin | ⬜ Pending |
+Use the Check 28 repair flow for both agents:
 
----
+```text
+Super-Admin -> knowledge_cache_search -> read official docs -> knowledge_cache_attest
+CI-CD-Agent -> knowledge_cache_search -> read official docs -> knowledge_cache_attest
+```
 
-## §7 Related Documents
+Required postconditions:
 
-| Document                                                 | Relationship                                       |
-| -------------------------------------------------------- | -------------------------------------------------- |
-| `.opencode/scripts/framework-self-test.ts`               | Self-test implementation (all checks defined here) |
-| `.opencode/scripts/framework-doctor.ts`                  | Doctor checks (Check 6: critical infrastructure)   |
-| `docs/official_docs/index.json`                          | Knowledge cache manifest (Check 22 target)         |
-| `docs/official_docs/opencode/framework/`                 | Orphan files directory (Check 22 source)           |
-| `.opencode/backups/`                                     | safe_edit backup directory (Check 36 source)       |
-| `.opencode/rules/rule_detail/UC7KS-PIPELINE-STANDARD.md` | UC7-003, UC7-007 rules for index integrity         |
+- no deprecated `[DEPRECATED] Auto-generated from index.json` reason remains
+- no empty `files_read` remains for the attested task scope
+- `uc7_001_compliant` is present and true
+- `last_read_at` reflects the repair time
 
----
+### 4.4 Validation
 
-## §8 Version History
+```bash
+bun .opencode/scripts/framework-self-test.ts
+```
 
-| Date       | Version | Changes                                                 | Author       |
-| ---------- | ------- | ------------------------------------------------------- | ------------ |
-| 2026-06-22 | 1.0.0   | Initial documentation of 4 remaining self-test failures | @Super-Admin |
+Expected result:
+
+- Check 35 passes
+- Check 28 passes together with it
 
 ---
 
-_This document should be updated when failures are resolved or new failures are discovered._
+## 5. Failure 4 - Check 48: Stale Dispatch Context File
+
+### 5.1 Symptom
+
+Current self-test output:
+
+```text
+[FAIL] 48. Dispatch ctx files consistency:
+1 issue(s): ASSIGN-ISSUES-TO-CHO-GEER.json: STALE (>24h old, may indicate missing cleanup)
+```
+
+The stale file is:
+
+```text
+.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json
+```
+
+Its current content:
+
+```json
+{
+  "dagTaskId": "ASSIGN-ISSUES-TO-CHO-GEER",
+  "agentType": "Super-Admin",
+  "domainId": "opencode_framework",
+  "createdAt": 1781968473063
+}
+```
+
+### 5.2 Root Cause
+
+The task appears to have completed, but the per-dispatch ctx marker was left in
+`.task_temp/_dispatch/ctx/`.
+
+Corroborating evidence:
+
+- `.task_temp/ASSIGN-ISSUES-TO-CHO-GEER/HANDOVER.md` exists.
+- `.task_temp/ASSIGN-ISSUES-TO-CHO-GEER/TASK_LOG.md` exists.
+- `gate_sessions` contains task `ASSIGN-ISSUES-TO-CHO-GEER` with
+  `status = archived`.
+- `session_map` maps the task to `Super-Admin` and `opencode_framework`.
+
+This is a cleanup defect, not an active dispatch inconsistency.
+
+### 5.3 Fix Plan
+
+Immediate cleanup:
+
+1. Confirm the archived gate session still exists in DB.
+2. Confirm task artifacts exist under `.task_temp/ASSIGN-ISSUES-TO-CHO-GEER/`.
+3. Delete only:
+
+```text
+.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json
+```
+
+4. Re-run:
+
+```bash
+bun .opencode/scripts/framework-self-test.ts
+```
+
+Longer-term hardening:
+
+- Add a dispatch ctx janitor to the framework completion path.
+- The janitor should remove ctx files only when DB evidence proves the task is
+  completed or archived.
+- Keep completed task artifacts in `.task_temp/<taskId>/`; only the transient
+  dispatch ctx marker should be removed.
+
+Recommended integration points:
+
+| Layer | Suggested Responsibility |
+|---|---|
+| `task-after` or completion hook | cleanup ctx after successful completion |
+| dispatch self-test | keep warning on ctx files older than 24h |
+| log central management | log cleanup as structured framework maintenance event |
+| DB management | use `gate_sessions` / `session_map` as cleanup authority |
+
+---
+
+## 6. Resolved Since v1.1.0
+
+The following items were active in the older document but are no longer current
+failures after the framework update.
+
+### 6.1 Check 26 and Check 27 - Doctor / Self-Test Infra Divergence
+
+Current result:
+
+```text
+bun .opencode/scripts/framework-doctor.ts --strict --json
+# total=13, passed=13, failed=0
+```
+
+Current self-test also reports:
+
+```text
+[PASS] 26. Doctor strict mode: --strict exits 0 (all checks pass on current project)
+[PASS] 27. Doctor/self-test critical infrastructure parity: Both tools agree: healthy...
+```
+
+No active fix is required for these checks.
+
+### 6.2 Check 36 - Backup Patch Drift
+
+Current self-test reports Check 36 as passing:
+
+```text
+[PASS] 36. Backup patch write-target policy: no working-tree drift detected
+```
+
+No active fix is required for this check.
+
+---
+
+## 7. Dependency Analysis
+
+| Fix | Unblocks | Notes |
+|---|---|---|
+| Register 13 orphan docs | Check 22 | Independent of all other failures |
+| Re-attest `Super-Admin` and `CI-CD-Agent` | Check 28 and Check 35 | These two checks should be fixed together |
+| Remove stale ctx file after DB verification | Check 48 | Independent cleanup |
+
+Recommended execution order:
+
+1. Fix Check 22 with `integrity-check.ts --auto-index`.
+2. Re-attest `Super-Admin` and `CI-CD-Agent` knowledge evidence.
+3. Remove the stale dispatch ctx marker.
+4. Run full self-test once at the end.
+
+---
+
+## 8. Resolution Checklist
+
+### Check 22
+
+- [ ] Run `bun .opencode/scripts/knowledge/integrity-check.ts --auto-index --json`
+- [ ] Confirm `totalOrphans = 0`
+- [ ] Confirm no stale `onlyInManifest` entries were introduced
+
+### Check 28 / Check 35
+
+- [ ] Re-run knowledge search and read flow for `Super-Admin`
+- [ ] Re-run knowledge search and read flow for `CI-CD-Agent`
+- [ ] Attest both agents with non-empty `files_read`
+- [ ] Verify both records have `uc7_001_compliant: true`
+- [ ] Verify no deprecated reason/content summary remains
+
+### Check 48
+
+- [ ] Verify `ASSIGN-ISSUES-TO-CHO-GEER` gate session remains archived
+- [ ] Verify task artifacts exist
+- [ ] Remove `.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json`
+- [ ] Add janitor follow-up if this recurs
+
+### Final Validation
+
+- [ ] Run `bun .opencode/scripts/framework-self-test.ts`
+- [ ] Run `bun .opencode/scripts/framework-doctor.ts --strict --json`
+- [ ] Confirm all 61 self-test checks pass
+- [ ] Confirm doctor strict remains 13/13 passing
+
+---
+
+## 9. Related Files
+
+| File | Role |
+|---|---|
+| `.opencode/scripts/framework-self-test.ts` | Self-test authority for Checks 22, 28, 35, 48 |
+| `.opencode/scripts/framework-doctor.ts` | Strict doctor validation authority |
+| `.opencode/scripts/knowledge/integrity-check.ts` | Knowledge index integrity and auto-index repair helper |
+| `.opencode/lib/knowledge-store.ts` | Knowledge index write helper |
+| `.opencode/lib/substate-manager.ts` | DB/substate access path for knowledge state |
+| `.task_temp/_dispatch/ctx/` | Transient dispatch ctx marker directory |
+| `docs/official_docs/index.json` | Official docs knowledge manifest |
+
+---
+
+## 10. Version History
+
+| Version | Date | Changes |
+|---|---|---|
+| 1.0.0 | 2026-06-22 | Initial root-cause analysis for 6 remaining self-test failures |
+| 1.1.0 | 2026-06-22 | Added Check 28/35 UC7KS stale evidence analysis |
+| 1.2.0 | 2026-06-22 | Re-audited against current framework code; baseline updated to 4 active failures; moved Checks 26/27/36 to resolved; added Check 48 stale ctx analysis; expanded UC7KS scope to `Super-Admin` and `CI-CD-Agent` |
