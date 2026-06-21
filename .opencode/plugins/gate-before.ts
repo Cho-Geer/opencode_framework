@@ -42,21 +42,29 @@ try {
   // Silent failure — never block OpenCode startup
 }
 
-export default withPluginLifecycle("gate-before", { "tool.execute.before": toolExecuteBefore });
+export default withPluginLifecycle("gate-before", {
+  "tool.execute.before": toolExecuteBefore,
+});
 
 async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);
   const mode = getEnforcementMode();
 
   writeLog("gate-before", "runtime", {
-    sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+    sessionID: input.sessionID,
+    callID: input.callID,
+    agent,
+    agentType: agent,
     event: "TOOL-BEFORE",
     detail: `enter | tool=${input.tool} | mode=${mode}`,
   });
 
   if (mode === "advisory") {
     writeLog("gate-before", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agentType: agent,
       event: "TOOL-BEFORE",
       detail: "exit (skip) advisory mode",
     });
@@ -73,7 +81,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     if (!session) {
       const msg = `[FW-ENFORCE][GATE] No armed compliance gate session. Call compliance_gate_check + compliance_gate_confirm first.`;
       writeLog("gate-before", "runtime", {
-        sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agentType: agent,
         level: "ERROR",
         event: "TOOL-BEFORE",
         detail: `BLOCKED | no armed gate`,
@@ -82,7 +93,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       return;
     }
     writeLog("gate-before", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agentType: agent,
       event: "TOOL-BEFORE",
       detail: `gate armed | id=${session.sessionId}`,
     });
@@ -93,7 +107,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // When Orchestrator uses modify tools and there are gate sessions
   // in 'delivered' state, warn about pending approvals.
   // ═══════════════════════════════════════════════════════════════
-  if (isModifyTool(input.tool) && (agent === "Orchestrator" || agent === "@Orchestrator")) {
+  if (
+    isModifyTool(input.tool) &&
+    (agent === "Orchestrator" || agent === "@Orchestrator")
+  ) {
     try {
       const { dbLoadGateStore } = require("../lib/db-state-manager");
       const store = dbLoadGateStore();
@@ -103,7 +120,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
           .map(([sid, ses]: [string, any]) => `${sid}(${ses.agent || "?"})`);
         if (pendingApproval.length > 0) {
           writeLog("gate-before", "WARN", {
-            sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
             event: "DELIVERED-PENDING",
             detail: `${pendingApproval.length} session(s) awaiting Orchestrator approval: ${pendingApproval.join(", ")}. Call compliance_gate_approve_deliverables to approve/reject.`,
           });
@@ -143,7 +163,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
          */
         const dPolicy = readDispatchPolicy();
         writeLog("gate-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
           level: dPolicy.require_dag_entry ? "ERROR" : "WARN",
           event: "TOOL-BEFORE",
           detail: `${dPolicy.require_dag_entry ? "BLOCKED" : "ADVISORY"} | DAG-TASK-NOT-FOUND | task=${taskId} | require_dag_entry=${dPolicy.require_dag_entry}`,
@@ -164,7 +187,10 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       } else if (tc.status !== "pending" && tc.status !== "in_progress") {
         const dPolicy2 = readDispatchPolicy();
         writeLog("gate-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
           level: dPolicy2.require_dag_entry ? "ERROR" : "WARN",
           event: "TOOL-BEFORE",
           detail: `${dPolicy2.require_dag_entry ? "BLOCKED" : "ADVISORY"} | DAG-TASK-STATUS | task=${taskId} status=${tc.status} source=${tc.source} | require_dag_entry=${dPolicy2.require_dag_entry}`,
@@ -172,12 +198,15 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
         if (dPolicy2.require_dag_entry) {
           throw new Error(
             `[FW-ENFORCE][DAG] Task "${taskId}" status is "${tc.status}". ` +
-            `Expected "pending" or "in_progress".`,
+              `Expected "pending" or "in_progress".`,
           );
         }
       } else {
         writeLog("gate-before", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
           event: "TOOL-BEFORE",
           detail: `DAG task verified | task=${taskId} status=${tc.status} source=${tc.source}`,
         });
@@ -193,7 +222,8 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     if (filePath === "Task.DAG.json" || filePath.endsWith("/Task.DAG.json")) {
       const routeConfig = readRouteConfig();
       if (routeConfig?.enforcement?.dag_write === "block") {
-        const contentAfter = output?.args?.content || output?.args?.new_content || "";
+        const contentAfter =
+          output?.args?.content || output?.args?.new_content || "";
         const contentBefore = output?.args?.old_content || "";
         const dagContent = contentAfter || contentBefore;
 
@@ -205,22 +235,33 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
             const exemptAgents = routeConfig.dispatch_exempt_agents || [];
 
             for (const task of dag.tasks || []) {
-              if (task.status === "completed" || task.status === "skipped") continue;
+              if (task.status === "completed" || task.status === "skipped")
+                continue;
               if (!task.agent || !task.target_files?.length) continue;
 
               // Skip validation for DAG-exempt agents' own tasks
-              const taskAgentNorm = (task.agent || "").replace(/^@/, "").toLowerCase();
-              const isExempt = exemptAgents.some((e) =>
-                e.replace(/^@/, "").toLowerCase() === taskAgentNorm
+              const taskAgentNorm = (task.agent || "")
+                .replace(/^@/, "")
+                .toLowerCase();
+              const isExempt = exemptAgents.some(
+                (e) => e.replace(/^@/, "").toLowerCase() === taskAgentNorm,
               );
               if (isExempt) continue;
 
-              const result = validateDagTaskAgentAssignment(task, scopeRules, opencodeConfig);
+              const result = validateDagTaskAgentAssignment(
+                task,
+                scopeRules,
+                opencodeConfig,
+              );
               if (!result.valid) {
                 const v = result.violations[0];
                 writeLog("gate-before", "runtime", {
-                  sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-                  level: "ERROR", event: "GATE-BEFORE",
+                  sessionID: input.sessionID,
+                  callID: input.callID,
+                  agent,
+                  agentType: agent,
+                  level: "ERROR",
+                  event: "GATE-BEFORE",
                   detail:
                     `ROUTE-MISMATCH | DAG task "${task.id}" | ` +
                     `assigned=${v.assigned} | file=${v.file} | expected=${v.expected}`,
@@ -228,8 +269,8 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
                 if (mode === "strict" || mode === "locked") {
                   throw new Error(
                     `[FW-ENFORCE][ROUTE-MISMATCH] Task "${task.id}" assigns ` +
-                    `@${v.assigned} but target_file "${v.file}" → should be @${v.expected}. ` +
-                    `Fix the DAG entry before committing.`,
+                      `@${v.assigned} but target_file "${v.file}" → should be @${v.expected}. ` +
+                      `Fix the DAG entry before committing.`,
                   );
                 }
               }
@@ -237,8 +278,12 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
           } catch (e) {
             if (e.message?.includes("[FW-ENFORCE]")) throw e;
             writeLog("gate-before", "runtime", {
-              sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-              level: "WARN", event: "GATE-BEFORE",
+              sessionID: input.sessionID,
+              callID: input.callID,
+              agent,
+              agentType: agent,
+              level: "WARN",
+              event: "GATE-BEFORE",
               detail: `DAG parse failed: ${e.message}`,
             });
           }
@@ -247,8 +292,83 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // READ-BEFORE-APPROVE-P1: Capture approve_deliverables context
+  //
+  // Problem: compliance_gate_approve_deliverables is an MCP tool.
+  //   The MCP server-side function only receives the compliance gate
+  //   session_id (cg_ses_*), NOT the OpenCode sessionID (ses_*).
+  //   read_audit records are keyed by opencode_session_id, making
+  //   session-bound read verification impossible from the MCP side.
+  //
+  // Solution: This before-hook captures the approve MCP call at
+  //   plugin time (where input.sessionID is available), computes
+  //   a stable args_hash, and writes the mapping to the
+  //   approval_read_context DB table via approval-read-context.ts.
+  //   The MCP side then looks up the context by (gate_session_id,
+  //   args_hash) to retrieve the opencode_session_id.
+  //
+  // Security: Does NOT trust caller-provided agent_id in args.
+  //   Uses input.sessionID (set by OpenCode framework, not user).
+  //
+  // @see approval-read-context.ts
+  // @see docs/review/framework-refactor/read-before-approve-e2e-findings.md §8
+  // ═══════════════════════════════════════════════════════════════
+  if (input.tool === "compliance-gate_compliance_gate_approve_deliverables") {
+    try {
+      const args = output?.args || {};
+      // Compute stable args_hash from the approve parameters
+      // Uses the same stable JSON serialization as approval-read-context.ts
+      const {
+        computeApprovalArgsHash,
+      } = require("../lib/approval-read-context");
+      const argsHash = computeApprovalArgsHash({
+        session_id: args.session_id || "",
+        approval_decision: args.approval_decision || "",
+        handover_sha256: args.handover_sha256 || "",
+        agent_id: args.agent_id || "",
+      });
+
+      const { recordApprovalContext } = require("../lib/approval-read-context");
+      const recorded = recordApprovalContext(
+        args.session_id || "unknown",
+        input.sessionID, // OpenCode session ID — authoritative
+        input.callID || null,
+        agent, // Resolved agent identity
+        argsHash,
+      );
+
+      writeLog("gate-before", "runtime", {
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agentType: agent,
+        event: recorded
+          ? "APPROVAL_READ_CONTEXT_RECORDED"
+          : "APPROVAL_READ_CONTEXT_DUPLICATE",
+        detail: `approve_deliverables context captured | gate_session=${args.session_id} | args_hash=${argsHash.substring(0, 16)}... | recorded=${recorded}`,
+      });
+    } catch (ctxErr: any) {
+      // Best-effort: failure here means approve will fall back to
+      // session-unbound verification (agent + path + time window).
+      // strict/locked mode fail-closed is enforced on the MCP side.
+      writeLog("gate-before", "runtime", {
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agentType: agent,
+        level: "ERROR",
+        event: "APPROVAL_READ_CONTEXT_RECORD_FAILED",
+        detail: `Failed to capture approve context: ${ctxErr.message}`,
+      });
+    }
+  }
+
   writeLog("gate-before", "runtime", {
-    sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+    sessionID: input.sessionID,
+    callID: input.callID,
+    agent,
+    agentType: agent,
     event: "TOOL-BEFORE",
     detail: "exit (pass)",
   });

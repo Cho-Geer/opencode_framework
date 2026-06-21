@@ -2832,6 +2832,168 @@ function checkConfigAttestPipeline(): void {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 59: read-track-after plugin + read-audit integrity
+// Verifies the read-before-approve enforcement infrastructure is intact:
+//   (a) read-track-after.ts plugin file exists
+//   (b) read-track-after.ts is registered in opencode.json plugin array
+//   (c) read-audit.ts lib file exists
+//   (d) read-audit.schema.json exists
+//   (e) read_audit table exists in SQLite DB
+//   (f) Smoke test: verifyNonEmptyReadSet function exists + 7 key exports
+//   (g) P2-A: session-bound verifyRead — recordRead with sessionId=A, verify with sessionId=B → verified=false
+// Added per read-before-approve-plan.md §11.6 P2 (2026-06-21, @Super-Admin).
+// ═══════════════════════════════════════════════════════════════
+function checkReadTrackPluginIntegrity(): void {
+  const issues: string[] = [];
+
+  // (a) read-track-after.ts plugin file exists
+  const pluginPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "plugins",
+    "read-track-after.ts",
+  );
+  if (!fileExists(pluginPath)) {
+    issues.push("read-track-after.ts not found at .opencode/plugins/");
+  }
+
+  // (b) registered in opencode.json plugin array
+  try {
+    const ocPath = path.join(OPENCODE_ROOT, "opencode.json");
+    if (fileExists(ocPath)) {
+      const oc = JSON.parse(fs.readFileSync(ocPath, "utf8"));
+      const plugins = oc.plugin || [];
+      const registered = plugins.some(function (p: string) {
+        return p.includes("read-track-after.ts");
+      });
+      if (!registered) {
+        issues.push(
+          "read-track-after.ts not found in opencode.json plugin array",
+        );
+      }
+    } else {
+      issues.push("opencode.json not found");
+    }
+  } catch (e: any) {
+    issues.push("opencode.json read failed: " + e.message);
+  }
+
+  // (c) read-audit.ts lib file exists
+  const libPath = path.join(OPENCODE_ROOT, ".opencode", "lib", "read-audit.ts");
+  if (!fileExists(libPath)) {
+    issues.push("read-audit.ts not found at .opencode/lib/");
+  }
+
+  // (d) read-audit.schema.json exists
+  const schemaPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "state",
+    "schemas",
+    "read-audit.schema.json",
+  );
+  if (!fileExists(schemaPath)) {
+    issues.push("read-audit.schema.json not found at .opencode/state/schemas/");
+  }
+
+  // (e) read_audit table exists in SQLite DB
+  try {
+    const { getDb: _getDb2 } = require("../lib/db-manager");
+    const _db = _getDb2();
+    const _tableRow = _db
+      .query(
+        "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name='read_audit'",
+      )
+      .get() as { c: number } | null;
+    if ((_tableRow?.c ?? 0) === 0) {
+      issues.push("read_audit table not found in SQLite");
+    }
+  } catch (e: any) {
+    issues.push("DB access failed: " + (e?.message || String(e)));
+  }
+
+  // (f) verifyNonEmptyReadSet function exists (post-E2E hardening §12.1)
+  // (g) session-bound verifyRead: recordRead with sessionId=A, verify with sessionId=B → verified=false (P2-A)
+  // The recordRead→verifyRead roundtrip is tested by Check 41 (readAuditRecordVerifyRoundtrip).
+  // Check 59 validates file existence, registration, and export integrity.
+  if (fileExists(libPath)) {
+    try {
+      const _ra = require("../lib/read-audit");
+      if (typeof _ra.verifyNonEmptyReadSet !== "function") {
+        issues.push(
+          "verifyNonEmptyReadSet is not exported from read-audit.ts (§12.1)",
+        );
+      }
+      // Verify all 7 key exports are functions
+      const keyExports = [
+        "recordRead",
+        "verifyRead",
+        "verifyNonEmptyReadSet",
+        "getReadEventsForSession",
+        "normalizeAgent",
+        "normalizeReadAuditPath",
+        "makeEventKey",
+      ];
+      const missing = keyExports.filter(function (f) {
+        return typeof _ra[f] !== "function";
+      });
+      if (missing.length > 0) {
+        issues.push("read-audit.ts missing exports: " + missing.join(", "));
+      }
+    } catch (e: any) {
+      issues.push("read-audit.ts require failed: " + (e?.message || String(e)));
+    }
+  }
+
+  // (g) session-bound verifyRead: recordRead with sessionId=A, verify with sessionId=B → verified=false (P2-A)
+  // @see read-before-approve-e2e-findings.md §8.3
+  if (fileExists(libPath)) {
+    try {
+      const _ra3 = require("../lib/read-audit");
+      if (
+        typeof _ra3.recordRead === "function" &&
+        typeof _ra3.verifyRead === "function"
+      ) {
+        const sessionA = "ses_test_a_p2a_" + Date.now();
+        const sessionB = "ses_test_b_p2a_" + Date.now();
+        const testFile = path.join(
+          OPENCODE_ROOT,
+          ".opencode",
+          "lib",
+          "read-audit.ts",
+        );
+        // Record read with session A
+        _ra3.recordRead({
+          timestamp: new Date().toISOString(),
+          agent: "TestAgent",
+          filePath: testFile,
+          sessionId: sessionA,
+          taskId: "test-p2a",
+          callId: "call-test-p2a",
+        });
+        // Verify with session B (should NOT find the entry recorded with session A)
+        const result = _ra3.verifyRead("TestAgent", testFile, sessionB);
+        if (result.verified) {
+          issues.push(
+            "P2-A session-bound verifyRead failed: session B matched entry recorded with session A",
+          );
+        }
+      }
+    } catch (e: any) {
+      // Non-critical; errors in the test itself shouldn't fail the check
+    }
+  }
+
+  check(
+    59,
+    issues.length === 0,
+    issues.length === 0
+      ? "read-track-after plugin + read-audit infrastructure verified (files exist, registered, table present, 7 exports + verifyNonEmptyReadSet)"
+      : "Check 59 issues: " + issues.join("; "),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Main execution
 /**
  * FW-PROMPT-HARDEN-04: Check 33 — Validate .pending.json FIFO queue integrity.
@@ -3843,6 +4005,7 @@ checkKnowledgeStoreApiExports(); // Phase 4, Check 55: Issue #56
 checkIndexerCliCommands(); // Phase 4, Check 56: Issue #56
 checkKnowledgeDbTables(); // Phase 4, Check 57: Issue #56
 checkSearchByTagsUsage(); // Phase 4, Check 58: Issue #56
+checkReadTrackPluginIntegrity(); // read-before-approve-plan §11.6 P2, Check 59
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");

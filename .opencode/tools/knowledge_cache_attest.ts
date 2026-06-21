@@ -1,35 +1,3 @@
-/**
- * knowledge_cache_attest.ts — UC7-001 Read-Before-Write Attestation Tool
- * ═══════════════════════════════════════════════════════════════════
- * Phase 1 NEW (2026-06-18): Agent-submitted read evidence verification.
- *
- * This tool is called by agents AFTER they have:
- *   1. Called knowledge_cache_search (discovery)
- *   2. Used the `read` tool to open and review cache files
- *
- * It performs 6-step cross-verification before writing attestation:
- *   Step 1: discovery.status === "sufficient"
- *   Step 2: files_read ⊆ discovered_files
- *   Step 2.5: Cross-validate files_read against knowledge-store manifest (KC-07, non-fatal)
- *   Step 3: Cross-verify against read_audit.jsonl (context.sessionID)
- *   Step 4: reason + content_summary non-empty (agent-written)
- *   Step 5: Write attestation on success + non-fatal knowledge_attestation DB write (KC-07)
- *
- * Design: docs/review/framework-refactor/uc7ks-read-before-write-plan.md §2.3
- *
- * @author @Super-Admin
- * @version 1.3.1 — FW-FIX-EMPTY-FILES-READ (2026-06-21): Added Step 1.5 validation to reject
- *   empty files_read arrays ([]). Previously an empty array passed all validation steps
- *   (Step 2 subset check trivially true, Step 3 read_audit cross-check trivially true),
- *   allowing attestation without actually reading any cache files. Step 1.5 returns
- *   `attested: false, step: "1.5"` with detailed remediation instructions.
- * @version 1.3.0 — KC-07 (2026-06-21): Replaced direct file reads with knowledgeStore.searchByDomain()
- *   + readManifest() APIs. Added Step 2.5 (non-fatal manifest cross-validation). Added
- *   non-fatal knowledge_attestation DB table write after successful attestation.
- *   Preserved all read_audit verification logic and audit rollup calls.
- * @since 2026-06-18
- */
-
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -58,7 +26,7 @@ const SRC = "knowledge-cache-attest";
 // Path normalization and audit log access now uses shared API:
 //   normalizeReadAuditPath() + getReadEventsForSession() from ../lib/read-audit
 // These replaced the previous inline readAuditLog() and normalizePathForAudit()
-// as part of the read_audit.jsonl → SQLite migration (Phase 1).
+// as part of the read_audit JSONL → SQLite migration (Phase 1 — completed).
 // @see docs/review/framework-refactor/read-audit-db-migration-plan.md §5.3
 
 // ── Main Tool ──────────────────────────────────────────────────

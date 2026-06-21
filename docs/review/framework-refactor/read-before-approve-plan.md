@@ -1,9 +1,9 @@
 # READ-BEFORE-APPROVE 物理约束实施方案
 
-**版本**: v1.0.0  
-**日期**: 2026-06-18  
+**版本**: v1.1.0  
+**日期**: 2026-06-21  
 **作者**: @Super-Admin  
-**状态**: implemented  
+**状态**: implemented + post-E2E hardening guidance added  
 **关联**: DELIVERABLES-REVIEW-LOCK, DISPATCH-INTEGRITY, SUPER-ADMIN-HARDEN-01
 
 ---
@@ -1065,3 +1065,79 @@ Phase 2: 灰度
 | `2d879513` | 2026-06-18 | READ-BEFORE-APPROVE 实施（5 文件） |
 | `84958c4a` | 2026-06-18 | sha256sum 权限 + DAG v5.11.0 |
 
+---
+
+## §12 Post-E2E Cross-Plan Hardening Notes
+
+**来源**: E2E-READ-WRITE-v2 S3, PARALLEL-TEST-A  
+**关联**: `uc7ks-read-before-write-plan.md` §9, `read-audit.ts`, `read-track-after.ts`, `knowledge_cache_attest.ts`, `resolve_domain_id.ts`
+
+READ-BEFORE-APPROVE 与 UC7KS READ-BEFORE-WRITE 共享同一个核心安全原则：**只有明确、非空、可追溯的 OpenCode `read` 事件才能作为阅读证明**。E2E 暴露的两个问题虽然发生在 UC7KS，但对本方案的通用约束也有影响。
+
+### §12.1 空目标列表不得视为有效阅读证明
+
+`knowledge_cache_attest(files_read=[])` 被接受的根因是“集合包含关系”和 read-audit 遍历在空数组上 vacuously true。READ-BEFORE-APPROVE 目前验证单个 HANDOVER.md，不存在数组为空的问题，但任何复用 `read-audit.ts` 的批量验证 helper 都必须遵守以下约束：
+
+1. 待验证 target list 必须 `length > 0`。
+2. target path 归一化后不得为空字符串。
+3. 如果调用方期望证明“审批人读过 N 个交付物”，则 `N=0` 必须 fail-closed，而不是 PASS。
+4. 日志事件必须区分：
+   - `READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS`
+   - `READ_BEFORE_APPROVE_FAILED_NOT_READ`
+
+推荐新增共享 helper：
+
+```typescript
+export function verifyNonEmptyReadSet(input: {
+  agent: string;
+  sessionId?: string;
+  filePaths: string[];
+  windowMs?: number;
+}): {
+  verified: boolean;
+  reason: string;
+  emptyTargets: boolean;
+  notRead: string[];
+};
+```
+
+该 helper 可被 `compliance-gate.ts` 和 `knowledge_cache_attest.ts` 共同复用，避免 UC7KS 与审批链各自实现不同的空列表语义。
+
+### §12.2 不得用 ambient/newest context 做安全判定
+
+READ-BEFORE-APPROVE 曾在 §11.3 B2 记录过 session 类型混淆：审批 gate session (`cg_ses_*`) 与 OpenCode session (`ses_*`) 不是同一种 session。PARALLEL-TEST-A 暴露了同类问题的 dispatch 版本：当 `resolve_domain_id()` 在并行派遣中无法从 exact session 读到 domain 时，fallback 扫描 `ctx/*.json` 并选 `createdAt` 最新文件，会把其他 dispatch 的 domain 当作当前 agent 的 domain。
+
+本方案补充通用约束：
+
+1. 安全判定必须使用 exact identity：
+   - read proof: exact OpenCode `context.sessionID` + agent + file path。
+   - dispatch domain: exact `dag_task_id` 或 child `sessionID` + `dispatch_context`。
+2. `latest`, `newest`, `last dispatched`, singleton `.dispatch_ctx` 只能用于诊断或 advisory fallback，不能用于 strict/locked allow decision。
+3. 如果存在多个候选 context 且无法精确匹配，返回 `ambiguous` 并 fail-closed。
+4. 日志必须记录 source：
+   - `resolved_from=session_map`
+   - `resolved_from=dispatch_context`
+   - `resolved_from=ctx_exact`
+   - `resolved_from=ambiguous`
+
+### §12.3 对本方案的同步要求
+
+| 文件 | 同步要求 |
+| --- | --- |
+| `.opencode/lib/read-audit.ts` | 若新增批量 verify helper，必须拒绝空 target list，并用 `writeLog()` 记录 |
+| `.opencode/scripts/mcp-tools/compliance-gate.ts` | READ-BEFORE-APPROVE 仍验证 HANDOVER.md 单文件；未来支持多 deliverables 时必须调用非空集合 helper |
+| `.opencode/plugins/read-track-after.ts` | 继续只记录 OpenCode `read` 工具事件；不得把 shell `cat`/`sha256sum` 当作 read proof |
+| `.opencode/tools/knowledge_cache_attest.ts` | 必须拒绝空 `files_read`，并交叉验证 read-audit |
+| `.opencode/tools/resolve_domain_id.ts` | 必须支持 `dag_task_id` 精确解析，不能在并行 ctx 下返回 newest fallback |
+| `.opencode/scripts/framework-self-test.ts` | 增加空 read set 与 ambiguous dispatch context 的回归检查 |
+
+### §12.4 官方 OpenCode 合规与日志
+
+1. 不新增 MCP server。read tracking 是本地 plugin/custom tool 协作，不是外部 MCP protocol。
+2. `read-track-after.ts` 继续作为 `.opencode/plugins/*.ts` plugin，使用 `tool.execute.after` 记录 read 事件。
+3. `knowledge_cache_attest.ts` / `resolve_domain_id.ts` 继续作为 `.opencode/tools/*.ts` custom tools，使用 `tool()` 和 `execute(args, context)`。
+4. 所有新增诊断必须进入集中日志：
+   - source `mcp-compliance-gate`: `READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS`
+   - source `knowledge-cache-attest`: `UC7KS-ATTEST-FAIL-EMPTY-FILES`
+   - source `agent-resolver`: `DOMAIN-RESOLVE-AMBIGUOUS`, `DOMAIN-RESOLVE-MISMATCH`
+5. strict/locked 下任何 ambiguous context 都应 fail-closed；advisory 下可以返回 WARN，但不得写入可被后续门禁采信的 attestation/approval 状态。

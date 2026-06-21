@@ -743,6 +743,24 @@ export default tool({
           }
         }
 
+        // ── FW-FIX-CHILD-SESSION-MAP (2026-06-21, @Super-Admin, Issue #117) ──
+        // Write a child dispatch slot at session_id="dispatch:child:{dagTaskId}" so the
+        // child agent can resolve its domain_id via Priority 1.5 before its own
+        // session_map row exists (chatMessageHook has not fired yet).
+        if (dagTaskId) {
+          try {
+            const childSessionId = "dispatch:child:" + dagTaskId;
+            dbWriteSessionMap(
+              childSessionId,
+              args.agent_type,
+              dagTaskId,
+              inferredDomainId || undefined
+            );
+          } catch {
+            // Best-effort; never block dispatch
+          }
+        }
+
         return [
           `/// DISPATCH RESULT`,
           `/// agent_type: ${args.agent_type}`,

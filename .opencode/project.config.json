@@ -186,6 +186,7 @@
     "backup.ttl_days": 7,
     "backup.max_per_dir": 20,
     "knowledge.janitor_interval_hours": 24,
+    "read_max_age_ms": 300000,
     "knowledge.compression_threshold_kb": 200,
     "knowledge.materialization_lock_ttl_ms": 60000,
     "knowledge.materialization_jobs_limit": 1000,

@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-20T16:37:01.901Z",
-  "total_entries": 62,
+  "last_updated": "2026-06-21T01:52:00.000Z",
+  "total_entries": 63,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -1965,6 +1965,34 @@
           "sha256": "sha256:748b92f05971fcf6ffedd1d2593a72712804ef2e1c1c161b27ab7eadfcb0cee5",
           "size_bytes": 21534,
           "created_at": "2026-06-20T06:20:00.000Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "github-cli",
+      "query_topic": "GitHub CLI (gh) sub-issue/parent relationship commands: create --parent, edit --add-sub-issue/--remove-sub-issue/--remove-parent, view --json parent/subIssues",
+      "domain": "devops_ci",
+      "tags": [
+        "github",
+        "cli",
+        "gh",
+        "sub-issue",
+        "parent",
+        "issue",
+        "relationship",
+        "subIssues"
+      ],
+      "files": [
+        {
+          "path": "devops/github/gh-sub-issue-commands.md",
+          "source": "webfetch",
+          "sha256": "sha256:80fa9d85a1430fc37c8dde758bad87ff130960e1483bbbc51d22f906d0e01156",
+          "size_bytes": 6707,
+          "created_at": "2026-06-21T01:51:00.000Z",
           "ttl_days": 30,
           "access_count": 0,
           "last_accessed": null,
