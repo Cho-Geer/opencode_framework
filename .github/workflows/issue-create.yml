@@ -1,0 +1,154 @@
+name: Issue Create - Auto Assign, Parent & Smart Labels
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  issues: write
+  contents: read
+
+env:
+  # Repository owner for auto-assignment
+  REPO_OWNER: ${{ github.repository_owner }}
+
+jobs:
+  auto-assign-and-label:
+    name: Auto Assign & Smart Labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 1: Auto-assign issue ──
+      - name: Auto-assign issue to repository owner
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.payload.issue.number;
+            const owner = context.repo.owner;
+            const assignee = '${{ env.REPO_OWNER }}';
+
+            await github.rest.issues.addAssignees({
+              owner: owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              assignees: [assignee]
+            });
+
+            console.log(`✅ Assigned issue #${issueNumber} to ${assignee}`);
+
+      # ── Step 2: Apply smart labels based on issue content ──
+      - name: Apply smart labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = (context.payload.issue.title || '').toLowerCase();
+            const body = (context.payload.issue.body || '').toLowerCase();
+            const combined = title + ' ' + body;
+            const labels = [];
+
+            // Bug report patterns
+            if (/\bbug\b|\bfix\b|\berror\b|\bbroken\b|\bcrash\b|\bregression\b|\bfail(s|ed|ing)\b/.test(combined)) {
+              labels.push('bug');
+            }
+
+            // Feature / enhancement patterns
+            if (/\bfeat(ure)?\b|\benhancement\b|\brequest\b|\bnew\b.*\bfeature\b|\bimprove\b/.test(combined)) {
+              labels.push('enhancement');
+            }
+
+            // Documentation patterns
+            if (/\bdoc(s)?\b|\bdocumentation\b|\breadme\b|\bchangelog\b|\bapi docs?\b/.test(combined)) {
+              labels.push('documentation');
+            }
+
+            // Testing patterns
+            if (/\btest(s|ing)?\b|\bspec\b|\bcoverage\b|\bunit test\b|\be2e\b|\bintegration test\b/.test(combined)) {
+              labels.push('testing');
+            }
+
+            // Tech debt / refactor patterns
+            if (/\brefactor\b|\btech.?debt\b|\bcleanup\b|\brefactor(or)?\b|\bchore\b/.test(combined)) {
+              labels.push('tech-debt');
+            }
+
+            // Priority: Critical patterns
+            if (/\b(p0|p-0)\b|\bblocker\b|\bemergency\b|\bcritical\b|\bsecurity\b|\bvulnerability\b/.test(combined)) {
+              labels.push('priority-critical');
+            }
+
+            // Priority: High patterns
+            if (/\b(p1|p-1)\b|\bhigh\b.*\bpriority\b|\burgent\b/.test(combined)) {
+              labels.push('priority-high');
+            }
+
+            // Apply labels if any were matched
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                labels: labels
+              });
+              console.log(`✅ Applied labels: ${labels.join(', ')}`);
+            } else {
+              console.log('ℹ️  No smart labels matched for this issue');
+            }
+
+      # ── Step 3: Token validation for gh CLI operations ──
+      - name: Validate GitHub token
+        id: validate-token
+        run: |
+          if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then
+            echo "❌ GITHUB_TOKEN is not available"
+            exit 1
+          fi
+          echo "✅ GITHUB_TOKEN is available"
+
+  # ── Job 2: Link to parent issue via sub-issue relationship ──
+  link-parent:
+    name: Link Parent Issue
+    runs-on: ubuntu-latest
+    needs: auto-assign-and-label
+    if: |
+      contains(github.event.issue.labels.*.name, 'sub-task') ||
+      contains(github.event.issue.labels.*.name, 'subtask') ||
+      contains(github.event.issue.labels.*.name, 'child')
+
+    steps:
+      - name: Check labels for parent reference
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.payload.issue.number;
+            const issueBody = context.payload.issue.body || '';
+            const issueTitle = context.payload.issue.title || '';
+
+            // Look for parent reference patterns in the issue body
+            // Patterns: "Parent: #N", "parent: #N", "Closes #N", "Ref #N", "Related to #N"
+            const parentMatch = issueBody.match(
+              /(?:parent|epic)[:\\s]*(?:#|https:\\/\\/github\\.com\\/[^\\/]+\\/[^\\/]+\\/issues\\/)(\\d+)/i
+            );
+
+            if (parentMatch && parentMatch[1]) {
+              const parentNumber = parseInt(parentMatch[1], 10);
+
+              console.log(`🔗 Found parent reference: #${parentNumber}`);
+              console.log(`📎 Adding issue #${issueNumber} as sub-issue of #${parentNumber}`);
+
+              // Use gh CLI to set the parent relationship
+              const { execSync } = require('child_process');
+              const result = execSync(
+                `gh issue edit ${issueNumber} --parent ${parentNumber}`,
+                {
+                  env: {
+                    ...process.env,
+                    GH_TOKEN: process.env.GITHUB_TOKEN
+                  }
+                }
+              );
+              console.log(`✅ Linked issue #${issueNumber} → parent #${parentNumber}`);
+            } else {
+              console.log('ℹ️  No parent reference found. Add "Parent: #ISSUE_NUMBER" to link.');
+            }

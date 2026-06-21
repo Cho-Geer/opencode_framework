@@ -1,0 +1,79 @@
+name: PR Merge - Cascade Close Sub-Issues
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull_requests: read
+  contents: read
+
+jobs:
+  cascade-close:
+    name: Cascade Close Sub-Issues
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract closed Issues from PR body
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            const mergedBy = context.payload.pull_request.merged_by?.login || "gh-actions";
+
+            // Extract Closes/Fixes/Resolves #N patterns
+            const keywordPattern = /(?:close|fix|resolve)(?:s|d)?\s+#(\d+)/gi;
+            const matches = [...body.matchAll(keywordPattern)];
+            const issues = [...new Set(matches.map(m => parseInt(m[1], 10)))];
+
+            // Also extract standalone #N from Linked Issues section
+            const linkedSection = body.match(/**Linked Issues:\*\*[\s\S]*?(?=\n\n|$)/);
+            if (linkedSection) {
+              const linkedRefs = [...linkedSection[0].matchAll(/#(\d+)/g)];
+              for (const ref of linkedRefs) {
+                const num = parseInt(ref[1], 10);
+                if (!issues.includes(num)) issues.push(num);
+              }
+            }
+
+            core.summary.addHeading("Extracted Issues", 3);
+            if (issues.length > 0) {
+              core.summary.addList(issues.map(i => \`#\${i}\`));
+              core.summary.write();
+            }
+            return { issues, count: issues.length };
+        continue-on-error: true
+
+      - name: Query and close sub-issues
+        if: steps.extract.outputs.result != \"\" && fromJSON(steps.extract.outputs.result).count > 0
+        env:
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUES=\$(echo \${{ toJSON(steps.extract.outputs.result) }} | jq -r \".issues[]\")
+          CASCADE_COUNT=0
+
+          for ISSUE in \$ISSUES; do
+            echo \"=== Processing parent Issue #\${ISSUE} ===\"
+
+            # Query sub-issues of this Issue
+            SUB_JSON=\$(gh issue view \${ISSUE} --json subIssues --jq \".subIssues.nodes[]? | select(.closed == false) | .number\" 2>/dev/null || echo \"\")
+
+            if [ -z \"\$SUB_JSON\" ]; then
+              echo \"  No open sub-issues found for #\${ISSUE}\"
+              continue
+            fi
+
+            echo \"  Found open sub-issues: \${SUB_JSON}\"
+
+            for SUB in \$SUB_JSON; do
+              echo \"  → Closing sub-issue #\${SUB}...\"
+              gh issue close \${SUB} --comment \"Parent issue #\${ISSUE} has been merged and closed. Cascading close: this sub-task is complete.\" 2>&1 && \
+                echo \"    ✅ Closed #\${SUB}\" || \
+                echo \"    ⚠️ Failed to close #\${SUB}\"
+              CASCADE_COUNT=\$((CASCADE_COUNT + 1))
+            done
+          done
+
+          echo \"Done: closed \${CASCADE_COUNT} sub-issue(s)\"
