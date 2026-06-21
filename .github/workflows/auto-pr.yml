@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
   actions: read
 
 concurrency:
@@ -17,12 +18,63 @@ concurrency:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Get current branch name
         id: branch
         run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
 
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Extract Issue numbers from commit messages
+        id: issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get commits in this push (before..HEAD)
+          if [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            COMMITS=$(git log ${{ github.event.before }}..HEAD --oneline --format="%s" 2>/dev/null)
+          else
+            # Fallback: compare with develop
+            COMMITS=$(git log origin/develop..HEAD --oneline --format="%s" 2>/dev/null || echo "")
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found in range"
+            echo "issues=" >> $GITHUB_OUTPUT
+            echo "primary=" >> $GITHUB_OUTPUT
+            echo "count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "=== Commit messages in this push ==="
+          echo "$COMMITS"
+
+          # Extract standalone #N references
+          RAW_HASH_REFS=$(echo "$COMMITS" | grep -oP '(?<!\w)#\d+' | grep -oP '\d+' || true)
+
+          # Extract Closes/Fixes/Resolves #N patterns (case-insensitive)
+          KEYWORD_REFS=$(echo "$COMMITS" | grep -ioP '(?:Closes|Fixes|Resolves|Close|Fix|Resolve)\s+#\d+' | grep -oP '\d+' || true)
+
+          # Merge and deduplicate
+          ALL_ISSUES=$(echo -e "${RAW_HASH_REFS}\n${KEYWORD_REFS}" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ',' | sed 's/,$//')
+
+          # Primary issue = first Closes/Fixes/Resolves match, or first #N match
+          PRIMARY_ISSUE=$(echo "$KEYWORD_REFS" | head -1)
+          if [ -z "$PRIMARY_ISSUE" ]; then
+            PRIMARY_ISSUE=$(echo "$RAW_HASH_REFS" | head -1)
+          fi
+
+          echo "issues=${ALL_ISSUES}" >> $GITHUB_OUTPUT
+          echo "primary=${PRIMARY_ISSUE}" >> $GITHUB_OUTPUT
+          echo "count=$(echo ${ALL_ISSUES} | tr ',' '\n' | grep -c . || true)" >> $GITHUB_OUTPUT
+
+          echo ""
+          echo "=== Extracted Issue references ==="
+          echo "All issues: ${ALL_ISSUES}"
+          echo "Primary: ${PRIMARY_ISSUE}"
 
       - name: Check if PR already exists
         id: check-pr
@@ -36,17 +88,111 @@ jobs:
             --jq 'length')
           echo "existing=$existing" >> $GITHUB_OUTPUT
 
-      - name: Create Pull Request
+      - name: Create Pull Request with Issue auto-linking
         if: steps.check-pr.outputs.existing == '0'
+        id: create-pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Build PR body with auto-linking
+          BODY="Automated PR created by CI from \`${{ steps.branch.outputs.branch }}\` branch push."
+
+          ISSUES="${{ steps.issues.outputs.issues }}"
+          if [ -n "$ISSUES" ] && [ "${{ steps.issues.outputs.count }}" -gt 0 ]; then
+            BODY="${BODY}
+
+          ---
+          **Linked Issues:**"
+            IFS=',' read -ra ISSUE_ARRAY <<< "${ISSUES}"
+            for issue in "${ISSUE_ARRAY[@]}"; do
+              BODY="${BODY}
+          Closes #${issue}"
+            done
+          fi
+
+          # Write body to temp file to avoid shell escaping issues
+          echo "${BODY}" > .pr_body.md
+          echo "=== PR Body ==="
+          cat .pr_body.md
+
           gh pr create \
             --base develop \
             --head ${{ steps.branch.outputs.branch }} \
             --title "Auto PR: ${{ steps.branch.outputs.branch }} → develop" \
-            --body "Automated PR created by CI from ${{ steps.branch.outputs.branch }} branch push."
+            --body-file .pr_body.md
 
-      - name: Skip (PR already exists)
-        if: steps.check-pr.outputs.existing != '0'
-        run: echo "PR already exists, skipping creation."
+      - name: Set parent-child Issue relationship
+        if: steps.check-pr.outputs.existing == '0' && steps.issues.outputs.primary != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the newly created PR number
+          PR_NUMBER=$(gh pr list \
+            --base develop \
+            --head ${{ steps.branch.outputs.branch }} \
+            --json number \
+            --jq '.[0].number')
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Could not determine PR number, skipping parent-child setup"
+            exit 0
+          fi
+
+          echo "=== Setting parent-child Issue relationship ==="
+          echo "PR #${PR_NUMBER} ← Issue #${{ steps.issues.outputs.primary }}"
+
+          # Set primary issue as parent using gh issue edit
+          # Note: --add-sub-issue works with both issue and PR numbers
+          # since GitHub treats PRs as issues internally
+          gh issue edit ${{ steps.issues.outputs.primary }} \
+            --add-sub-issue ${PR_NUMBER} 2>&1 || \
+            echo "⚠️ Could not establish parent-child relationship (non-critical)"
+
+          echo "✅ Parent-child relationship setup complete"
+
+      - name: Update existing PR body with Issue links
+        if: steps.check-pr.outputs.existing != '0' && steps.issues.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # PR already exists — update body to add Closes #N references
+          PR_NUMBER=$(gh pr list \
+            --base develop \
+            --head ${{ steps.branch.outputs.branch }} \
+            --json number \
+            --jq '.[0].number')
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Could not determine PR number"
+            exit 0
+          fi
+
+          echo "=== Updating existing PR #${PR_NUMBER} with Issue links ==="
+
+          # Get current body
+          CURRENT_BODY=$(gh pr view ${PR_NUMBER} --json body --jq '.body')
+
+          # Check if already has linked issues section
+          if echo "${CURRENT_BODY}" | grep -q "**Linked Issues:**"; then
+            echo "PR already has Linked Issues section, skipping update"
+            exit 0
+          fi
+
+          # Build appended body
+          APPEND="
+
+          ---
+          **Linked Issues:**"
+          IFS=',' read -ra ISSUE_ARRAY <<< "${{ steps.issues.outputs.issues }}"
+          for issue in "${ISSUE_ARRAY[@]}"; do
+            APPEND="${APPEND}
+          Closes #${issue}"
+          done
+
+          NEW_BODY="${CURRENT_BODY}${APPEND}"
+          echo "${NEW_BODY}" | gh pr edit ${PR_NUMBER} --body-file - 2>&1
+          echo "✅ Existing PR updated with Issue references"
+
+      - name: Skip (no changes)
+        if: steps.check-pr.outputs.existing != '0' && steps.issues.outputs.issues == ''
+        run: echo "PR already exists and no new Issue references to add, skipping."
