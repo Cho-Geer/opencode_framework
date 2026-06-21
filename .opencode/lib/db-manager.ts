@@ -1559,6 +1559,170 @@ export function backfillKnowledgeFromManifest(root?: string): {
 }
 
 // ════════════════════════════════════════════════════════════
+// v11 BACKFILL — Populate typed knowledge tables from
+//   docs/official_docs/index.json. Idempotent (INSERT OR IGNORE).
+//
+//   Reads the knowledge manifest and inserts each entry into
+//   knowledge_entries, knowledge_files, and knowledge_entry_tags.
+//   Designed to be called once after schema migration, safe to
+//   call multiple times.
+// ════════════════════════════════════════════════════════════
+
+/**
+ * Backfill typed knowledge tables from index.json manifest.
+ * Idempotent — safe to call multiple times (INSERT OR IGNORE).
+ *
+ * @returns Summary of inserted rows: { entriesInserted, filesInserted, tagsInserted }
+ */
+export function backfillKnowledgeFromManifest(root?: string): {
+  entriesInserted: number;
+  filesInserted: number;
+  tagsInserted: number;
+} {
+  // Initialize schema first (includes v11 tables), then backfill
+  const db = getDb({ root });
+  const entriesInserted = { count: 0 };
+  const filesInserted = { count: 0 };
+  const tagsInserted = { count: 0 };
+
+  // Read index.json manifest
+  const indexPath = path.join(
+    root || process.env.OPENCODE_ROOT || process.cwd(),
+    "docs",
+    "official_docs",
+    "index.json",
+  );
+
+  if (!fs.existsSync(indexPath)) {
+    writeLog(SRC, "WARN", {
+      event: "KC-BACKFILL-NO-MANIFEST",
+      detail: `Manifest not found at ${indexPath}`,
+    });
+    return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
+  }
+
+  let manifest: any;
+  try {
+    manifest = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-BACKFILL-PARSE-FAILED",
+      detail: `Manifest parse error: ${e.message}`,
+    });
+    return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
+  }
+
+  const entries = manifest.entries || [];
+  const now = Date.now();
+
+  const insertEntry = db.prepare(`
+    INSERT OR IGNORE INTO knowledge_entries
+      (library_id, query_topic, domain, tags, source, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertFile = db.prepare(`
+    INSERT OR IGNORE INTO knowledge_files
+      (entry_id, file_path, sha256, size_bytes, source, ttl_days, status,
+       access_count, last_accessed, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const insertTag = db.prepare(`
+    INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)
+  `);
+
+  const insertRoute = db.transaction((manifestEntries: any[]) => {
+    for (const entry of manifestEntries) {
+      const tags = entry.tags || [];
+      const entryFiles = entry.files || [];
+      const source =
+        entryFiles.length > 0 ? entryFiles[0].source : entry.source || null;
+      const createdMs = entry.last_updated
+        ? new Date(entry.last_updated).getTime()
+        : entryFiles.length > 0 && entryFiles[0].created_at
+          ? new Date(entryFiles[0].created_at).getTime()
+          : now;
+
+      const result = insertEntry.run(
+        entry.library_id || "unknown",
+        entry.query_topic || "untitled",
+        entry.domain || "fallback",
+        JSON.stringify(tags),
+        source || null,
+        entry.status || "active",
+        createdMs,
+        now,
+      );
+
+      if (result.changes > 0) {
+        entriesInserted.count++;
+      }
+
+      // Get entry_id (newly inserted or existing)
+      const entryRow = db
+        .query(
+          "SELECT id FROM knowledge_entries WHERE library_id = ? AND query_topic = ?",
+        )
+        .get(entry.library_id, entry.query_topic) as { id: number } | null;
+
+      if (!entryRow) continue;
+      const entryId = entryRow.id;
+
+      // Insert files
+      for (const file of entryFiles) {
+        const fileCreated = file.created_at
+          ? new Date(file.created_at).getTime()
+          : now;
+        const fileResult = insertFile.run(
+          entryId,
+          file.path || "",
+          file.sha256 || null,
+          file.size_bytes || 0,
+          file.source || null,
+          file.ttl_days ?? 30,
+          file.status || "active",
+          file.access_count || 0,
+          file.last_accessed ? new Date(file.last_accessed).getTime() : null,
+          fileCreated,
+          now,
+        );
+        if (fileResult.changes > 0) {
+          filesInserted.count++;
+        }
+      }
+
+      // Insert tags
+      for (const tag of tags) {
+        const tagResult = insertTag.run(entryId, tag);
+        if (tagResult.changes > 0) {
+          tagsInserted.count++;
+        }
+      }
+    }
+  });
+
+  try {
+    insertRoute(entries);
+    writeLog(SRC, "INFO", {
+      event: "KC-BACKFILL-COMPLETE",
+      detail: `entries=${entriesInserted.count} files=${filesInserted.count} tags=${tagsInserted.count}`,
+    });
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "KC-BACKFILL-FAILED",
+      detail: e.message,
+    });
+  }
+
+  return {
+    entriesInserted: entriesInserted.count,
+    filesInserted: filesInserted.count,
+    tagsInserted: tagsInserted.count,
+  };
+}
+
+// ════════════════════════════════════════════════════════════
 // HEALTH / MAINTENANCE
 // ════════════════════════════════════════════════════════════
 
