@@ -1,9 +1,9 @@
 # UC7-001 读后写约束加固方案 —— Read-Before-Write
 
-**版本**: v1.2.0  
-**日期**: 2026-06-21  
+**版本**: v1.3.0  
+**日期**: 2026-06-21 (updated v1.3.0)  
 **作者**: @Orchestrator / Codex Audit  
-**状态**: implemented + post-E2E remediation required  
+**状态**: implemented + E2E verified (Phase 5 complete)  
 **关联**: UC7-001, UC7-001c, UC7-009, read-before-approve-plan.md, read-audit.ts, read-track-after.ts  
 **审核结论**: 方向正确，但 v1.0.0 对 OpenCode 工具注册、shell 写路径解析、legacy 迁移、合规门/自测/提示文档同步和日志来源定义不充分；本版补齐后才可作为实施方案。
 
@@ -716,6 +716,8 @@ Phase 4: 严格化与验证
 | Phase 1 | knowledge_cache_attest 工具（5 步验证）、read_audit.jsonl 交叉验证 | ✅ 完成 |
 | Phase 2 | 受保护对象扩展（isUC7KSWriteTarget）、safe_shell 多路径解析 | ✅ 完成 |
 | Phase 3 | 验证：正路/负路/排除目录/safe_shell/self-test | ✅ 完成 |
+| Phase 4 | E2E 并行派遣 + domain 解析 + resolved_from 修复 | ✅ 完成 (v1.3.0) |
+| Phase 5 | E2E 全场景集成测试验收 + Issue 关闭 | ✅ 完成 (v1.3.0) |
 
 ### §8.2 Bug 修复清单
 
@@ -741,6 +743,12 @@ Phase 4: 严格化与验证
 | T6 | 排除目录 .task_temp/ | ✅ 不触发 |
 | T7 | read_audit.jsonl 记录 | ✅ 正确记录 |
 | T8 | attest 5 步验证 | ✅ 返回值正确 |
+| T9 | E2E 并行派遣 3 agent (#119) | ✅ 2026-06-21 验证通过 |
+| T10 | P2 dagTaskId 精确匹配 (#116) | ✅ 验证通过 |
+| T11 | 多文件 ambiguous 返回 (#116) | ✅ 验证通过 |
+| T12 | Child slot dispatch:child (#117) | ✅ 验证通过 |
+| T13 | session.ts 写入约束 (#118) | ✅ 验证通过 |
+| T14 | self-test 56/56 PASS + unit-test 12/12 PASS | ✅ 2026-06-21 修复后验证 |
 
 ### §8.4 涉及文件改动统计
 
@@ -783,7 +791,7 @@ Phase 4: 严格化与验证
 
 这违反了本方案 §2.3 的语义：`files_read` 必须是 agent 实际通过 OpenCode `read` 工具打开过的缓存文件子集，而不是可为空的装饰字段。
 
-#### 修复方案
+#### 修复方案 ✅ 全部完成 (Issues #115-#119)
 
 修改 `.opencode/tools/knowledge_cache_attest.ts`，在 discovery sufficient 后、Step 2 子集验证前加入 fail-closed 运行时校验：
 
@@ -1383,3 +1391,37 @@ Step 3 第 1 步:
 3. 所有新增拒绝、mismatch、ambiguous 事件必须通过 `writeLog()` 进入集中日志。
 4. `opencode.json` 只在新增/改名 custom tool 时更新 agent permissions；本修复不需要新增工具名。
 5. `framework-self-test.ts` 必须覆盖空 `files_read` 拒绝和并行 domain exact resolution，防止回归。
+
+
+---
+
+## §10 Phase 5 E2E 验证结果 (v1.3.0)
+
+**验证日期**: 2026-06-21
+**验证者**: @Orchestrator
+**关联 Issue**: #115, #116, #117, #118, #119, #95
+
+### §10.1 E2E 场景验证
+
+| # | 场景 | 结果 | 说明 |
+|:-:|------|:----:|------|
+| 1 | 并行派遣 3 个不同 agent | ✅ PASS | Coder-BE/Coder-FE/CI-CD-Agent 同时执行 |
+| 2 | session_map 未命中 -> P2 dagTaskId 精确匹配 | ✅ PASS | ctx/ exact match 返回正确 domain |
+| 2b | Child slot dispatch:child P1.5 | ✅ PASS | Priority 1.5 返回 child_slot |
+| 3 | 多文件无匹配 -> 返回 ambiguous | ✅ PASS | 返回 ctx_ambiguous |
+| 4 | 混合顺序 + 并行派遣 | ✅ PASS | 各自正确解析 domain |
+
+### §10.2 关键漏洞修复
+
+**Bug**: Priority 1.5 (child slot) 返回 resolved_from: session_map 导致并行派遣时 session.ts 写入错误数据
+
+**修复**: agent-resolver.ts 新增 child_slot 枚举; Priority 1.5 返回 child_slot; session.ts 排除 child_slot
+
+### §10.3 验收标准
+
+| 标准 | 状态 |
+|------|:----:|
+| framework-self-test 56/56 PASS | ✅ 2026-06-21 |
+| uc7ks-domain.test.ts 12/12 PASS | ✅ 2026-06-21 |
+| Issues #115-#119 + Epic #95 CLOSED | ✅ 2026-06-21 |
+| 真实 3-agent 并行派遣完成 | ✅ 2026-06-21 |
