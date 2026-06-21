@@ -2120,19 +2120,46 @@ function checkCrossValidation() {
 
 // ───────────────────────────────────────────────────────────────
 // Check 28: UC7KS Schema Integrity
-// Validates knowledge_cache_state structure from substate_kv DB.
-// Updated for P2-A v7: JSON snapshot deleted, DB is sole source.
+// Validates knowledge_cache_state structure from substate_kv DB
+// via dbReadSubState() (P1-B split architecture).
+// Fallback to machine.json when DB unavailable.
 // ───────────────────────────────────────────────────────────────
 function checkUC7KSSchemaIntegrity() {
   try {
-    const { getDb } = require("../lib/db-manager");
-    const db = getDb();
-    const row = db
-      .query("SELECT json FROM substate_kv WHERE key = ?")
-      .get("knowledge_cache_state") as { json: string } | undefined;
-    if (!row)
-      return check(28, false, "knowledge_cache_state not found in substate_kv");
-    const kcs = JSON.parse(row.json);
+    /**
+     * P1-B split architecture: sub-states are stored in SQLite substate_kv
+     * table. dbReadSubState() provides the authoritative read path with
+     * error handling. When DB is unavailable (e.g., first-run, migration
+     * failure), fall back to reading machine.json from disk.
+     */
+    const { dbReadSubState } = require("../lib/db-state-manager");
+    let kcs = dbReadSubState("knowledge_cache_state");
+
+    // Fallback: if DB unavailable, try machine.json
+    if (!kcs) {
+      try {
+        const machinePath = path.join(
+          OPENCODE_ROOT,
+          ".opencode",
+          "state",
+          "machine.json",
+        );
+        if (fs.existsSync(machinePath)) {
+          const machine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
+          kcs = machine.knowledge_cache_state;
+        }
+      } catch (_fallbackErr) {
+        // machine.json fallback also failed — will report below
+      }
+    }
+
+    if (!kcs) {
+      return check(
+        28,
+        false,
+        "knowledge_cache_state not found in substate_kv (DB) or machine.json (fallback)",
+      );
+    }
     if (!kcs || typeof kcs !== "object") {
       return check(28, false, "knowledge_cache_state missing or not an object");
     }
@@ -3310,7 +3337,7 @@ function checkPreambleStep0dProtocol(): void {
  * - .pending.json is valid JSON
  * - Queue entries have required fields (dispatchId, promptHash, filePath, createdAt, agentType)
  * - No orphan entries (pending entry with missing dispatch file)
- * - No stale entries (older than 30 min — should have been auto-drained by enforce.ts)
+ * - No stale entries (older than 120 min / 2h — matches dispatch drain window)
  * - Queue depth does not exceed MAX_QUEUE_SIZE (10)
  * - All promptHash values are valid 64-hex-char SHA-256
  *
@@ -3324,7 +3351,14 @@ function checkPendingJson(): void {
     "_dispatch",
     ".pending.json",
   );
-  const STALE_MINUTES = 30;
+  /**
+   * FW-FIX-CHECK33 (2026-06-21, @Super-Admin): Increased stale threshold from 30min
+   * to 120min (2h). The auto-drain threshold (enforce.ts) is 24h, so a 30min threshold
+   * produced false-positive STALE alarms for entries still within the normal drain
+   * window. 2h provides a reasonable balance: stale enough to warrant attention,
+   * but not so short that it flags entries the auto-drain will handle.
+   */
+  const STALE_MINUTES = 120;
 
   if (!fs.existsSync(pendingPath)) {
     check(33, true, "No .pending.json — queue is empty (OK)");

@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0",
   "last_updated": "2026-06-20T16:37:01.901Z",
-  "total_entries": 63,
+  "total_entries": 49,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -39,271 +39,6 @@
     },
     {
       "library_id": "opencode-framework",
-      "query_topic": "opencode json config schema reference all fields",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "config",
-        "opencode.json",
-        "schema",
-        "server",
-        "tui",
-        "models",
-        "providers",
-        "permissions",
-        "mcp",
-        "plugins",
-        "commands",
-        "keybinds",
-        "formatters",
-        "lsp",
-        "policies",
-        "experimental"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/config.md",
-          "source": "webfetch",
-          "sha256": "sha256:28d9412d0cb7edf77a6140567b2d2b129ad6e830f975522d654b47ddaf1311b5",
-          "size_bytes": 22548,
-          "created_at": "2026-06-06T02:30:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode agent skills creation SKILL.md standard permissions",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "skills",
-        "SKILL.md",
-        "frontmatter",
-        "name",
-        "description",
-        "discovery",
-        "permissions",
-        "agent-override",
-        "skill-tool"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/skills.md",
-          "source": "webfetch",
-          "sha256": "sha256:890b9667ac95790928d3c62b0ef7403eb70454282bf4979e2bcd9abe14cc5662",
-          "size_bytes": 4592,
-          "created_at": "2026-06-06T02:30:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode cli commands reference environment variables",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "cli",
-        "commands",
-        "run",
-        "serve",
-        "web",
-        "tui",
-        "agent",
-        "auth",
-        "mcp",
-        "session",
-        "stats",
-        "export",
-        "import",
-        "flags",
-        "env-vars",
-        "experimental"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/cli.md",
-          "source": "webfetch",
-          "sha256": "sha256:ddef0e72ac88765061941449f2b5a1f49665c7ef66cbc830bcfee542d2a4a8db",
-          "size_bytes": 12311,
-          "created_at": "2026-06-06T02:30:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode intro overview getting started install configure",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "intro",
-        "overview",
-        "getting-started",
-        "install",
-        "configure",
-        "initialize",
-        "usage",
-        "share",
-        "customize",
-        "plan-mode",
-        "build-mode"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/index.md",
-          "source": "webfetch",
-          "sha256": "sha256:0517325cca38886251c7a75e655e0ebd4ca365e9d0d8bc4eaaec2b50e9db2969",
-          "size_bytes": 3625,
-          "created_at": "2026-06-06T02:30:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode plugins system hook events create",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "plugins",
-        "hooks",
-        "events",
-        "tool.execute.before",
-        "tool.execute.after",
-        "plugin-development"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/plugins.md",
-          "source": "webfetch",
-          "sha256": "sha256:5df79e28bbf7d66936c2dfa76d763300e5cc3733b0ff812c956de17fdfd37982",
-          "size_bytes": 5699,
-          "created_at": "2026-06-05T23:45:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode built-in tools list permissions configuration",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "tools",
-        "built-in",
-        "bash",
-        "edit",
-        "write",
-        "read",
-        "grep",
-        "glob",
-        "webfetch",
-        "websearch",
-        "skill",
-        "todowrite",
-        "question",
-        "lsp",
-        "apply_patch",
-        "permissions"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/tools.md",
-          "source": "webfetch",
-          "sha256": "sha256:3e490c973d3d91f4ef28fee257b7a75981ba88c6552a75f5ef1ac4bc5b9eaee3",
-          "size_bytes": 2903,
-          "created_at": "2026-06-05T23:45:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode custom tools definition schema multiple exports",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "custom-tools",
-        "tool()",
-        "zod",
-        "schema",
-        "args",
-        "execute",
-        "context",
-        "multiple-exports",
-        "naming"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/custom-tools.md",
-          "source": "webfetch",
-          "sha256": "sha256:5fd3f780db5d91926d147b48f053bf63664b433a0e501263f5ea51d6acf86402",
-          "size_bytes": 2728,
-          "created_at": "2026-06-05T23:45:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode agents configuration permissions options markdown",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "agents",
-        "primary",
-        "subagent",
-        "hidden",
-        "build",
-        "plan",
-        "general",
-        "explore",
-        "scout",
-        "permissions",
-        "configure",
-        "mode",
-        "task-permissions",
-        "markdown-config"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/agents.md",
-          "source": "webfetch",
-          "sha256": "sha256:ec1454e169d3662ef1954f5fd0691d013d880122bef868015752d99d86529231",
-          "size_bytes": 4436,
-          "created_at": "2026-06-05T23:45:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
       "query_topic": "opencode agent mode values source code analysis all subagent primary",
       "domain": "opencode",
       "tags": [
@@ -328,176 +63,6 @@
           "created_at": "2026-06-11T07:30:00.000Z",
           "ttl_days": 90,
           "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode permissions system complete key list agent override",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "permissions",
-        "allow",
-        "ask",
-        "deny",
-        "wildcard",
-        "glob",
-        "external-directory",
-        "doom-loop",
-        "agent-override",
-        "granular-rules"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/permissions.md",
-          "source": "webfetch",
-          "sha256": "sha256:30d9920104faa22da2de700b86590e0f34c6d72a6a4cb033f57efc63f6e40c79",
-          "size_bytes": 4396,
-          "created_at": "2026-06-05T23:45:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode mcp servers configuration local remote oauth per-agent",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "mcp",
-        "servers",
-        "local",
-        "remote",
-        "oauth",
-        "per-agent",
-        "enable",
-        "disable",
-        "tool-naming",
-        "glob"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/mcp-servers.md",
-          "source": "webfetch",
-          "sha256": "sha256:50a72518fd8c3377a3a147d76de924bd7d9330c517a6e9640eb1c384c8ef76e2",
-          "size_bytes": 3719,
-          "created_at": "2026-06-05T23:45:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode policies experimental provider control",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "policies",
-        "experimental",
-        "provider",
-        "allow",
-        "deny",
-        "resource",
-        "action",
-        "provider.use",
-        "global-override"
-      ],
-      "files": [
-        {
-          "path": "opencode/framework/policies.md",
-          "source": "webfetch",
-          "sha256": "sha256:f0d097d5f50dd8c17f3f551873977ff1a52744399267bb33823cca517d20a392",
-          "size_bytes": 2841,
-          "created_at": "2026-06-05T23:45:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "web-fallback",
-      "query_topic": "opencode release notes latest version changes",
-      "domain": "opencode",
-      "tags": ["opencode", "release", "changelog", "v1.16.0", "version"],
-      "files": [
-        {
-          "path": "opencode/releases/v1.16.0-release-notes.md",
-          "source": "webfetch",
-          "sha256": "sha256:3529e140569ffcded7bac1c50ad957aed14874dd57ad49278a12edb13f07b509",
-          "size_bytes": 2300,
-          "created_at": "2026-06-05T09:12:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "web-fallback",
-      "query_topic": "opencode mcp servers custom tool construction",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "mcp",
-        "custom-tool",
-        "server",
-        "local",
-        "remote",
-        "oauth"
-      ],
-      "files": [
-        {
-          "path": "opencode/mcp/mcp-servers-docs.md",
-          "source": "webfetch",
-          "sha256": "sha256:d21ae6d0df6a26dcfb93bfdab72eab8bcd1c93bb2c45f125ab2cf90c6a5806aa",
-          "size_bytes": 1240,
-          "created_at": "2026-06-05T09:12:00.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode plugin loading mechanics source code analysis directory scanning hook chaining MCP scope",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "plugins",
-        "loader",
-        "hooks",
-        "tool.execute.before",
-        "tool.execute.after",
-        "shared.ts",
-        "source-analysis",
-        "plugin-loading",
-        "mcp",
-        "chaining",
-        "directory-scan"
-      ],
-      "files": [
-        {
-          "path": "opencode/plugins/source-analysis/plugin-loading-mechanics.md",
-          "source": "github-api",
-          "sha256": "sha256:dd98f5a0fef708d8570dbe7ca108d0db7fd47697f4d42f5993b4a9367aa9ac26",
-          "size_bytes": 9590,
-          "created_at": "2026-06-07T07:30:00.000Z",
-          "ttl_days": 14,
-          "access_count": 1,
           "last_accessed": null,
           "status": "active"
         }
@@ -1283,7 +848,14 @@
       "library_id": "bun",
       "query_topic": "Bun overview and installation: all-in-one JavaScript runtime, bundler, test runner, package manager, JavaScriptCore engine",
       "domain": "infrastructure",
-      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
+      "tags": [
+        "bun",
+        "typescript",
+        "module",
+        "runtime",
+        "commonjs",
+        "esm"
+      ],
       "files": [
         {
           "path": "bun/bun-overview.md",
@@ -1302,7 +874,14 @@
       "library_id": "bun",
       "query_topic": "Bun TypeScript native support: require(.ts) works natively without transpilation, type-stripping, tsconfig paths",
       "domain": "infrastructure",
-      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
+      "tags": [
+        "bun",
+        "typescript",
+        "module",
+        "runtime",
+        "commonjs",
+        "esm"
+      ],
       "files": [
         {
           "path": "bun/bun-typescript-support.md",
@@ -1321,7 +900,14 @@
       "library_id": "bun",
       "query_topic": "Bun module resolution: CJS/ESM freely mixable, require and import both supported, Node.js-compatible resolution algorithm",
       "domain": "infrastructure",
-      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
+      "tags": [
+        "bun",
+        "typescript",
+        "module",
+        "runtime",
+        "commonjs",
+        "esm"
+      ],
       "files": [
         {
           "path": "bun/bun-module-resolution.md",
@@ -1973,5 +1559,6 @@
         }
       ]
     }
-  ]
+  ],
+  "last_compaction": "2026-06-21T14:46:29.059Z"
 }
