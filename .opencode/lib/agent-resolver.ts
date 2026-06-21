@@ -477,8 +477,11 @@ export function resolveTaskIdWithSource(
  *    the shared .dispatch_ctx singleton was overwritten by concurrent
  *    dispatches. Fixed with ctx/ directory scan at Priority 2.
  *
- *  FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
- *    Wraps resolveDomainIdWithSource() for backward compatibility.
+ *  P2 FIX (fix_resolveDomainId_P2_v1, 2026-06-21, @Super-Admin):
+ *    Priority 2 returned "newest by createdAt" when multiple ctx/ files
+ *    existed — a heuristic that could return the wrong domain during
+ *    concurrent dispatches. Fixed with dagTaskId exact match from
+ *    session_map DB. If no match, returns null instead of guessing.
  */
 export function resolveDomainId(sessionId?: string): string | null {
   return resolveDomainIdWithSource(sessionId).value;
@@ -592,9 +595,9 @@ export function resolveDomainIdWithSource(
                 writeLog(SRC, "INFO", {
                   event: "DISPATCH-CTX-READ-DOMAIN",
                   domainId: ctx.domainId,
-                  detail: `resolveDomainIdWithSource: ctx/ exact match → ${ctx.domainId} (dagTaskId=${dagTaskId})`,
+                  detail: `resolveDomainId: ctx/ exact match → ${ctx.domainId} (dagTaskId=${dagTaskId})`,
                 });
-                return { value: ctx.domainId, resolved_from: "ctx_exact" };
+                return ctx.domainId;
               }
             } catch {}
           }
@@ -603,9 +606,9 @@ export function resolveDomainIdWithSource(
         writeLog(SRC, "WARN", {
           event: "DISPATCH-CTX-AMBIGUOUS",
           fileCount: files.length,
-          detail: `resolveDomainIdWithSource: ctx/ AMBIGUOUS (${files.length} files, no dagTaskId match)`,
+          detail: `resolveDomainId: ctx/ AMBIGUOUS (${files.length} files, no dagTaskId match)`,
         });
-        return { value: null, resolved_from: "ctx_ambiguous" };
+        return null;
       }
     }
   } catch (e: any) {
