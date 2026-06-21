@@ -337,3 +337,23 @@ Prioritized by impact and blast radius. All implementation must follow the `AGEN
 - `.opencode/lib/log-manager.ts` — `writeLog()` sink for §4.3 audit events
 - `.opencode/state/framework-authorities.json` — agent scope authority for new tool registration
 - `AGENTS.md` — P0 compliance gate and agent routing rules
+
+
+## 8. Post-Implementation Finding: Project Status Sync Gap
+
+**发现日期**: 2026-06-21
+**严重度**: ⚠️ medium
+**描述**: PR merge 后 Issue 自动关闭（Closes #N），但 GitHub Project #2 的 Status 栏位不同步，仍然显示 "In Progress"。
+
+### 根因
+
+- auto-project.yml 仅监听 issues: [opened] 和 pull_request: [opened, ready_for_review]
+- 没有监听 issues: [closed] 事件来更新 Project Status 为 "Done"
+
+### 修复方案
+
+在 .github/workflows/state-sync.yml 或新建 workflow，监听 issues: [closed] 事件，通过 GraphQL mutation updateProjectV2ItemFieldValue 将 Status 更新为 "Done"（optionId: 98236657）。
+
+### 当前状态
+
+Issue #126 已手动修复（Status: In Progress → Done）。
