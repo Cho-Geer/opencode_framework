@@ -22,6 +22,12 @@ import * as path from "node:path";
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { atomicWriteJson } from "../lib/state-utils";
+/**
+ * A7: DB-canonical dispatch — import janitor for stale lease cleanup.
+ * dbCleanStaleLeases reclaims dispatch_queue entries whose lease_expiry
+ * has passed, marking them as 'stale' for re-dispatch.
+ */
+import { dbCleanStaleLeases } from "../lib/dispatch-db";
 
 const QUEUE_NAME = ".auto-dispatch.json";
 const LEGACY_NAME = ".auto-dispatch";
@@ -35,6 +41,26 @@ async function toolExecuteAfter(input: any, _output: any): Promise<void> {
   const root = process.env.OPENCODE_ROOT || process.cwd();
   const queuePath = path.join(root, ".task_temp", "_dispatch", QUEUE_NAME);
   const legacyPath = path.join(root, ".task_temp", "_dispatch", LEGACY_NAME);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // A7: DB-canonical dispatch — reclaim stale DB leases.
+  // Runs before file cleanup so that stale DB entries are available
+  // for re-dispatch on the next task-before dequeue attempt.
+  // Non-fatal: failures are silently skipped.
+  // ═══════════════════════════════════════════════════════════════════
+  try {
+    const reclaimed = dbCleanStaleLeases();
+    if (reclaimed > 0) {
+      writeLog("dispatch-auto", "runtime", {
+        sessionID: input.sessionID,
+        callID: input.callID,
+        event: "DISPATCH-QUEUE-LEASE-RECLAIMED",
+        detail: `Reclaimed ${reclaimed} stale DB dispatch leases`,
+      });
+    }
+  } catch {
+    /* DB cleanup is best-effort */
+  }
 
   // ── Queue-based marker (.auto-dispatch.json) ──
   if (fs.existsSync(queuePath)) {

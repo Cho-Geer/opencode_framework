@@ -124,15 +124,25 @@ export const sessionLastDispatched = new Map<
 >();
 
 /**
- * Write per-dispatch context to a dagTaskId-keyed file.
- * Replaces overwriting the shared .dispatch_ctx file.
- * Each dispatch gets its own file — no cross-dispatch overwrites.
+ * Write per-dispatch context to a dagTaskId-keyed file (§3.3 dual-write).
  *
- * Files: .task_temp/_dispatch/ctx/{dagTaskId}.json
+ * Phase 1 (current): Writes BOTH:
+ *   a) .task_temp/_dispatch/ctx/{dagTaskId}.json — per-dispatch, race-free (NEW)
+ *   b) .task_temp/_dispatch/.dispatch_ctx — shared singleton (LEGACY compat)
+ *
+ * Phase 2 (future): After all consumers migrate to per-dispatch ctx/ files,
+ *   remove the legacy .dispatch_ctx write.
+ *
+ * Each dispatch gets its own ctx/ file — no cross-dispatch overwrites.
  *
  * IMPLEMENT-DISPATCH-CTX-FIX (2026-06-19, @Super-Admin):
  *   Eliminates the session_map race condition caused by the shared
  *   .dispatch_ctx singleton being overwritten by concurrent dispatches.
+ *
+ * §3.3 DUAL-WRITE (2026-06-20, @Super-Admin):
+ *   Added legacy .dispatch_ctx write alongside per-dispatch ctx/ file.
+ *   Consumers (gate-core.ts, dispatch-subagent.ts, task-after.ts) still
+ *   rely on .dispatch_ctx as fallback for single-dispatch scenarios.
  */
 export function writeDispatchCtx(
   dagTaskId: string,
@@ -163,6 +173,33 @@ export function writeDispatchCtx(
       agentType,
       domainId: domainId || null,
       detail: `Per-dispatch context written: ctx/${dagTaskId}.json`,
+    });
+
+    // §3.3: Dual-write legacy .dispatch_ctx for backward compatibility.
+    // The per-dispatch ctx/{dagTaskId}.json is the new race-free format,
+    // but existing consumers (gate-core.ts, dispatch-subagent.ts fallback,
+    // task-after.ts) still read the shared .dispatch_ctx singleton.
+    // Phase 1: write BOTH. Phase 2: migrate readers, then remove this block.
+    const legacyCtxPath = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".task_temp",
+      "_dispatch",
+      ".dispatch_ctx",
+    );
+    fs.writeFileSync(
+      legacyCtxPath,
+      JSON.stringify({
+        dagTaskId,
+        agentType,
+        domainId: domainId || null,
+        createdAt: Date.now(),
+      }),
+    );
+    writeLog(SRC, "INFO", {
+      event: "DISPATCH-CTX-LEGACY-WRITE",
+      dagTaskId,
+      agentType,
+      detail: "Legacy .dispatch_ctx dual-write for backward compat (§3.3)",
     });
   } catch (e: any) {
     // Best-effort; never block dispatch
@@ -400,18 +437,30 @@ export function resolveDomainId(sessionId?: string): string | null {
 }
 
 /**
- * Resolve the most recently dispatched agent from session_map DB.
+ * Resolve the likely dispatch agent for the current context from session_map DB.
  * Uses ORDER BY updated_at DESC LIMIT 1 — safe in SQLite WAL mode.
  *
  * This is a best-effort function: if the DB is unavailable, it returns
  * an empty string without throwing. The caller (compliance-gate.ts) treats
  * empty as "unknown agent → no bypass".
  *
+ * Query strategy (no agent-type filter — caller decides):
+ *   Priority 1: Exact dag_task_id match → returns actual agent for that task
+ *   Priority 2: Latest session (ORDER BY updated_at DESC) → returns actual
+ *               agent regardless of type
+ *
+ * The CALLER is responsible for agent-type validation. For bypass decisions,
+ * compliance-gate.ts checks: bypassNorm === "super-admin" || bypassNorm === "orchestrator".
+ * This two-layer design (resolver returns raw agent, caller decides) prevents
+ * non-SA/Orch agents from being incorrectly identified as SA/Orch when:
+ *   (a) the taskId does not match any SA/Orch session, AND
+ *   (b) the fallback returns a stale SA/Orch session from a prior dispatch
+ *
  * Design rationale:
  *   - Per-session rows → no shared-state race condition
  *   - ORDER BY updated_at DESC LIMIT 1 → no transaction needed
  *   - SQLite WAL mode → concurrent readers safe
- *   - Agent type filter → only SA/Orch sessions considered for bypass
+ *   - No agent-type filter in queries → returns actual agent for caller evaluation
  *   - taskId parameter → precise dag_task_id lookup before ORDER BY fallback
  *
  * @param taskId - Optional DAG task ID for precise dag_task_id lookup
@@ -422,24 +471,28 @@ export function resolveLatestDispatchAgent(taskId?: string): string {
     const { getDb } = require("./db-manager");
     const db = getDb();
     // Priority 1: taskId → dag_task_id exact match (when available)
+    // No agent-type filter — returns the actual agent for this dag_task_id.
+    // The caller (compliance-gate.ts) checks the returned agent type to decide
+    // whether to apply the bypass. This prevents non-SA/Orch agents from
+    // falling through to Priority 2 and incorrectly receiving bypass.
     if (taskId) {
       const row = db
         .query(
           `SELECT agent FROM session_map
            WHERE dag_task_id = ?
-             AND agent IN ('@Super-Admin','Super-Admin','@Orchestrator','Orchestrator')
            ORDER BY updated_at DESC LIMIT 1`,
         )
-        .get() as { agent: string } | null;
+        .get(taskId) as { agent: string } | null;
       if (row?.agent) {
         return row.agent.startsWith("@") ? row.agent : `@${row.agent}`;
       }
     }
-    // Priority 2: latest SA/Orch session (fallback)
+    // Priority 2: latest session (fallback — no agent-type filter)
+    // Returns the most recently updated agent regardless of type.
+    // The caller is responsible for agent-type validation.
     const row = db
       .query(
         `SELECT agent FROM session_map
-         WHERE agent IN ('@Super-Admin','Super-Admin','@Orchestrator','Orchestrator')
          ORDER BY updated_at DESC LIMIT 1`,
       )
       .get() as { agent: string } | null;

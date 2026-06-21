@@ -24,6 +24,7 @@ import { resolveAgent, resolveDomainId } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
 import { isDagExempt, readDispatchPolicy } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
+import { incrementAuditCounter } from "../lib/knowledge-audit";
 import {
   readRouteConfig,
   readOpencodeConfig,
@@ -113,6 +114,10 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
         event: "DISPATCH-BEFORE",
         detail: `M14 pass | caller=${caller} (privileged) dispatching to Knowledge-Curator`,
       });
+      // KC-02 (2026-06-21): Non-fatal — count curator dispatches
+      try {
+        incrementAuditCounter("total_curator_dispatches");
+      } catch {}
     }
     if (!isOrchestratorOrSA && isKCTarget) {
       m14ApprovedKC = true;
@@ -124,6 +129,10 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
         event: "DISPATCH-BEFORE",
         detail: `M14 pass | caller=${caller} (sub-agent) dispatching to Knowledge-Curator (allowed per M14)`,
       });
+      // KC-02 (2026-06-21): Non-fatal — count curator dispatches
+      try {
+        incrementAuditCounter("total_curator_dispatches");
+      } catch {}
     }
   }
 

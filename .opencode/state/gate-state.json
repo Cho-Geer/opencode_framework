@@ -1,19 +1,87 @@
 {
   "formatVersion": "3.0",
   "active_sessions": {
-    "cg_ses_1781602309415": {
-      "session_id": "cg_ses_1781602309415",
-      "created_at": "2026-06-16T09:31:49.426Z",
+    "cg_ses_1781980877196": {
+      "session_id": "cg_ses_1781980877196",
+      "created_at": "2026-06-20T18:41:17.196Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": null,
       "gate_status": "checked",
-      "task_description": "P2-A 数据库迁移方案实际运行验证 (VERIFY-DB-LIVE-002): 对双写层活跃状态下的框架进行5项实际验证 — (1) framework-self-test 运行, (2) SQLite PRAGMA integrity_check, (3) 双写一致性验证 (substate_kv vs JSON), (4) gate 操作端到端测试, (5) 性能基准对比",
-      "plan_summary": ""
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1781998052355": {
+      "session_id": "cg_ses_1781998052355",
+      "created_at": "2026-06-20T23:27:32.355Z",
+      "task_description": "Auto-armed on OpenCode startup",
+      "enforcement_mode": null,
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": null,
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
+    },
+    "cg_ses_1782001447979": {
+      "session_id": "cg_ses_1782001447979",
+      "created_at": "2026-06-21T00:24:07.990Z",
+      "task_description": "E2E verification: test compliance gate behavior under locked enforcement mode",
+      "enforcement_mode": "locked",
+      "gate_status": "checked",
+      "last_check_passed": false,
+      "last_check_failed_items": [
+        {
+          "id": "critical_file_modified__opencode_project_config_json",
+          "desc": "[Gate Preflight v2] .opencode/project.config.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "critical_file_modified_opencode_json",
+          "desc": "[Gate Preflight v2] opencode.json: modified since HEAD — ensure [INFRA] marker in commit",
+          "severity": "HIGH"
+        },
+        {
+          "id": "rule_registry_summary",
+          "desc": "[Gate Preflight v2] 2 critical infrastructure file(s) modified since HEAD",
+          "severity": "HIGH"
+        },
+        {
+          "id": "uc7ks_knowledge_cache",
+          "desc": "[Gate Preflight v2] UC7KS Knowledge Cache: v1.5.0 (62 entries)",
+          "severity": "INFO"
+        }
+      ],
+      "plan_summary": null,
+      "confirmed_at": null,
+      "consumed_at": null,
+      "expires_at": null,
+      "task_id": "VFY-GATE-LOCK-1",
+      "audit": null,
+      "missing_artifacts": [],
+      "deliverables_approved_at": null,
+      "approval_required": false
     }
   },
   "recent_sessions": {},
   "meta": {
-    "total_sessions": 1,
-    "active_count": 1,
+    "total_sessions": 3,
+    "active_count": 3,
     "recent_count": 0,
-    "last_compacted": "2026-06-19T05:13:13.632Z"
+    "last_compacted": "2026-06-21T01:01:27.335Z"
   }
 }

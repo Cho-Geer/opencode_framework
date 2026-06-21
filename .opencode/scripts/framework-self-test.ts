@@ -4,7 +4,7 @@
 /**
  * framework-self-test.ts — OpenCode Framework Binding Force Self-Test
  * ===================================================================
- * Validates 33 critical framework integrity checks.
+ * Validates 37+ critical framework integrity checks (Phase 1-4).
  * Usage: bun .opencode/scripts/framework-self-test.ts
  *
  * Exit code: 0 if ALL 33 checks pass, 1 if any fail.
@@ -1270,48 +1270,84 @@ function checkDocsManifestIntegrity() {
     }
   }
 
-  // 22c: Check for orphan files (docs not in manifest)
-  const orphanFiles = [];
-  if (fs.existsSync(docsDir)) {
-    const walkDir = (dir) => {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const full = path.join(dir, entry.name);
-        const rel = path.relative(docsDir, full);
-        if (entry.isDirectory()) {
-          if (
-            !rel.startsWith(".metadata") &&
-            !rel.startsWith("scout-extracts") &&
-            !rel.includes(".opencode_backups")
-          ) {
-            walkDir(full);
-          }
-        } else if (
-          entry.isFile() &&
-          !rel.includes("index.json") &&
-          !rel.startsWith(".metadata") &&
-          !KNOWN_NON_DOC_FILES.has(entry.name)
-        ) {
-          const inManifest = manifest.entries.some(
-            (e) =>
-              e.files && e.files.some((f) => f.path && rel.includes(f.path)),
-          );
-          if (!inManifest) orphanFiles.push(rel);
-        }
-      }
-    };
-    try {
-      walkDir(docsDir);
-    } catch (_) {
-      /* ignore */
+  // 22c: Check for orphan files (docs not in manifest) — delegated to integrity-check helper (KC-09)
+  let orphanCheckResult;
+  try {
+    const integrityPath = path.join(
+      OPENCODE_ROOT,
+      ".opencode",
+      "scripts",
+      "knowledge",
+      "integrity-check.ts",
+    );
+    if (fs.existsSync(integrityPath)) {
+      const { checkForOrphans } = require(integrityPath);
+      orphanCheckResult = checkForOrphans(docsDir);
+    } else {
+      throw new Error("integrity-check.ts not found");
     }
+  } catch (e) {
+    // Fallback: inline orphan walk preserved
+    orphanCheckResult = {
+      orphanedFiles: [],
+      totalOrphans: 0,
+      totalFilesChecked: 0,
+    };
+    const orphanFiles = [];
+    if (fs.existsSync(docsDir)) {
+      const walkDir = (dir) => {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const full = path.join(dir, entry.name);
+          const rel = path.relative(docsDir, full);
+          if (entry.isDirectory()) {
+            if (
+              !rel.startsWith(".metadata") &&
+              !rel.startsWith("scout-extracts") &&
+              !rel.includes(".opencode_backups")
+            ) {
+              walkDir(full);
+            }
+          } else if (
+            entry.isFile() &&
+            !rel.includes("index.json") &&
+            !rel.startsWith(".metadata") &&
+            !KNOWN_NON_DOC_FILES.has(entry.name)
+          ) {
+            const inManifest = manifest.entries.some(
+              (e) =>
+                e.files && e.files.some((f) => f.path && rel.includes(f.path)),
+            );
+            if (!inManifest) orphanFiles.push(rel);
+          }
+        }
+      };
+      try {
+        walkDir(docsDir);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    orphanCheckResult = {
+      orphanedFiles: orphanFiles.map((p) => ({
+        path: p,
+        reason: "Not found in index.json",
+      })),
+      totalOrphans: orphanFiles.length,
+      totalFilesChecked: 0,
+    };
   }
 
-  if (orphanFiles.length > 0) {
+  if (orphanCheckResult.totalOrphans > 0) {
     return check(
       22,
       false,
-      `Orphan docs not in index.json: ${orphanFiles.slice(0, 3).join(", ")}${orphanFiles.length > 3 ? " (+" + (orphanFiles.length - 3) + " more)" : ""}`,
+      `Orphan docs not in index.json: ${orphanCheckResult.orphanedFiles
+        .slice(0, 3)
+        .map((f) => f.path)
+        .join(
+          ", ",
+        )}${orphanCheckResult.totalOrphans > 3 ? " (+" + (orphanCheckResult.totalOrphans - 3) + " more)" : ""}`,
     );
   }
 
@@ -2215,6 +2251,113 @@ function checkKnowledgeSemanticMapCoverage() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Check 54 (KC-13, 2026-06-21): Tags vs Semantic Map Coverage
+// Queries knowledge_entry_tags DB for distinct tags and compares
+// against knowledge_semantic_map domains' keywords + domain_id aliases.
+// Reports uncovered tags as advisory (NON-BLOCKING — always PASS).
+// This is the reverse-direction check: tag → domain coverage,
+// complementing Check 30 (domain → required fields) and
+// knowledge_gap_report (domain → cache coverage).
+// ═══════════════════════════════════════════════════════════════
+function checkTagSemanticMapCoverage() {
+  var config = readJSONFile(
+    path.join(OPENCODE_ROOT, ".opencode", "project.config.json"),
+  );
+  if (!config)
+    return check(54, true, "No project.config.json — skipped (non-blocking)");
+
+  var map = config.knowledge_semantic_map;
+  if (!map || !Array.isArray(map.domains)) {
+    return check(
+      54,
+      true,
+      "No knowledge_semantic_map.domains — skipped (non-blocking)",
+    );
+  }
+
+  // Collect all known keywords from semantic map, plus domain IDs as aliases
+  var knownKeywords = {};
+  var domainIds = {};
+  for (var di = 0; di < map.domains.length; di++) {
+    var domain = map.domains[di];
+    domainIds[domain.domain_id] = true;
+    // Domain ID itself is a known alias
+    knownKeywords[domain.domain_id.toLowerCase()] = domain.domain_id;
+    var kws = domain.keywords || [];
+    for (var ki = 0; ki < kws.length; ki++) {
+      knownKeywords[kws[ki].toLowerCase()] = domain.domain_id;
+    }
+  }
+
+  // Query DB for all distinct tags
+  var tags = [];
+  try {
+    var dbMod = require("../lib/db-manager");
+    var db = dbMod.getDb();
+    var rows = db
+      .query("SELECT DISTINCT tag FROM knowledge_entry_tags ORDER BY tag")
+      .all();
+    for (var ri = 0; ri < rows.length; ri++) {
+      tags.push(rows[ri].tag);
+    }
+  } catch (e) {
+    return check(
+      54,
+      true,
+      "DB not available — skipped (non-blocking): " +
+        (e && e.message ? e.message : String(e)),
+    );
+  }
+
+  if (tags.length === 0) {
+    return check(
+      54,
+      true,
+      "No tags in knowledge_entry_tags — nothing to validate",
+    );
+  }
+
+  // Find uncovered tags (not matching any domain keyword or alias)
+  var uncovered = [];
+  for (var ti = 0; ti < tags.length; ti++) {
+    var tag = tags[ti];
+    if (!knownKeywords.hasOwnProperty(tag.toLowerCase())) {
+      uncovered.push(tag);
+    }
+  }
+
+  var coveredCount = tags.length - uncovered.length;
+  var coveragePct =
+    tags.length > 0 ? Math.round((coveredCount / tags.length) * 100) : 100;
+
+  var detail =
+    tags.length +
+    " distinct tags in knowledge_entry_tags, " +
+    coveredCount +
+    " covered by semantic_map keywords (" +
+    coveragePct +
+    "%)";
+
+  if (uncovered.length > 0) {
+    detail +=
+      ". " +
+      uncovered.length +
+      " uncovered tags: " +
+      uncovered.slice(0, 15).join(", ");
+    if (uncovered.length > 15) {
+      detail += " (+" + (uncovered.length - 15) + " more)";
+    }
+    detail +=
+      ". Run knowledge_gap_report for full coverage report. Consider adding these tags to knowledge_semantic_map domains.";
+  } else {
+    detail += ". All tags covered by semantic_map.";
+  }
+
+  // NON-BLOCKING advisory check — always returns PASS
+  return check(54, true, detail);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // M13 (2026-06-19): Knowledge Semantic Map Save Path Uniqueness
 // Verifies that no two domains in knowledge_semantic_map share the
 // same save_path or a prefix of another's save_path.
@@ -2860,8 +3003,10 @@ function checkSessionAccessAgentKeys(): void {
 }
 
 // F5 (2026-06-11): Check 35 — stale pre-HARDEN cache_sufficiency entries
-// Detects session_access entries where cache_sufficiency says "sufficient"
-// but evidence fields (reason, files_read, content_summary) are empty.
+// A4 (2026-06-20): Updated to accept entries with valid attestation sub-fields.
+// Entries where cache_sufficiency says "sufficient" but evidence fields
+// (reason, files_read, content_summary) are empty are stale — UNLESS
+// a valid attestation sub-field exists (status="attested").
 // These were created by pre-HARDEN knowledge_cache_search before UC7-001c.
 function checkStaleInternalEvidence(): void {
   try {
@@ -2875,6 +3020,34 @@ function checkStaleInternalEvidence(): void {
       return;
     }
 
+    /**
+     * A4 helper: check if a cache_sufficiency entry has valid evidence,
+     * either in top-level fields OR in the attestation sub-field.
+     */
+    const hasValidEvidence = (cs: any): boolean => {
+      // Valid if top-level evidence exists
+      if (
+        cs.reason &&
+        !cs.reason.startsWith("[DEPRECATED]") &&
+        Array.isArray(cs.files_read) &&
+        cs.files_read.length > 0 &&
+        cs.content_summary
+      ) {
+        return true;
+      }
+      // OR if attestation sub-field is valid (A4)
+      if (
+        cs.attestation?.status === "attested" &&
+        cs.attestation.reason &&
+        !cs.attestation.reason.startsWith("[DEPRECATED]") &&
+        Array.isArray(cs.attestation.files_read) &&
+        cs.attestation.files_read.length > 0
+      ) {
+        return true;
+      }
+      return false;
+    };
+
     const staleFlat: string[] = [];
     const staleNested: string[] = [];
 
@@ -2883,10 +3056,7 @@ function checkStaleInternalEvidence(): void {
       // Check legacy flat
       if (
         entry.cache_sufficiency?.status === "sufficient" &&
-        (!entry.cache_sufficiency.reason ||
-          !Array.isArray(entry.cache_sufficiency.files_read) ||
-          entry.cache_sufficiency.files_read.length === 0 ||
-          !entry.cache_sufficiency.content_summary)
+        !hasValidEvidence(entry.cache_sufficiency)
       ) {
         staleFlat.push(agent);
       }
@@ -2895,13 +3065,7 @@ function checkStaleInternalEvidence(): void {
         for (const tid of Object.keys(entry.tasks)) {
           for (const domain of Object.keys(entry.tasks[tid].domains || {})) {
             const cs = entry.tasks[tid].domains[domain].cache_sufficiency;
-            if (
-              cs?.status === "sufficient" &&
-              (!cs.reason ||
-                !Array.isArray(cs.files_read) ||
-                cs.files_read.length === 0 ||
-                !cs.content_summary)
-            ) {
+            if (cs?.status === "sufficient" && !hasValidEvidence(cs)) {
               staleNested.push(`${agent} / ${tid} / ${domain}`);
             }
           }
@@ -3005,6 +3169,259 @@ function checkWorkingTreeDrift(): void {
   } catch (e: any) {
     check(36, false, e.message);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Phase 4: Knowledge Store Infrastructure Checks (Issue #56)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check 55: knowledge-store API Export Validation
+ * Verifies all 13 required API exports from knowledge-store.ts (v3.0.0 KC-15).
+ * These exports form the public API used by indexer.ts, knowledge_cache_attest,
+ * knowledge_cache_search, janitor.ts, and integrity-check.ts.
+ * @since Phase 4 (2026-06-21, @Super-Admin, Issue #56)
+ */
+function checkKnowledgeStoreApiExports() {
+  const ksPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "lib",
+    "knowledge-store.ts",
+  );
+  if (!fileExists(ksPath)) {
+    return check(55, false, "knowledge-store.ts not found at .opencode/lib/");
+  }
+  const ksContent = readFile(ksPath);
+  if (!ksContent) {
+    return check(55, false, "knowledge-store.ts is empty or unreadable");
+  }
+  const REQUIRED_EXPORTS = [
+    "readManifest",
+    "writeManifest",
+    "getStats",
+    "searchManifest",
+    "addEntry",
+    "searchByDomain",
+    "searchByTags",
+    "getEntryByLibraryId",
+    "searchByKeyword",
+    "materializeToFile",
+    "getPendingMaterializationJobs",
+    "retryFailedJobs",
+    "getIndexJsonPath",
+  ];
+  const missing = [];
+  for (const exp of REQUIRED_EXPORTS) {
+    // Must have "export function exp" or "export async function exp"
+    const re = new RegExp("export\\s+(async\\s+)?function\\s+" + exp + "\\b");
+    if (!re.test(ksContent)) {
+      missing.push(exp);
+    }
+  }
+  return check(
+    55,
+    missing.length === 0,
+    missing.length === 0
+      ? "All " +
+          REQUIRED_EXPORTS.length +
+          " knowledge-store API exports verified"
+      : "Missing exports: " + missing.join(", "),
+  );
+}
+
+/**
+ * Check 56: indexer CLI Command Validation
+ * Verifies all 5 documented CLI commands exist in indexer.ts (v3.0.0 Phase 2).
+ * Commands: stats, search, materialize, jobs, retry-jobs.
+ * @since Phase 4 (2026-06-21, @Super-Admin, Issue #56)
+ */
+function checkIndexerCliCommands() {
+  const idxPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "knowledge",
+    "indexer.ts",
+  );
+  if (!fileExists(idxPath)) {
+    return check(
+      56,
+      false,
+      "indexer.ts not found at .opencode/scripts/knowledge/",
+    );
+  }
+  const idxContent = readFile(idxPath);
+  if (!idxContent) {
+    return check(56, false, "indexer.ts is empty or unreadable");
+  }
+  const REQUIRED_COMMANDS = [
+    { command: "stats", desc: "Print manifest statistics as JSON" },
+    { command: "search", desc: "Search entries by keyword" },
+    { command: "materialize", desc: "Force DB-to-file materialization" },
+    { command: "jobs", desc: "List pending/failed materialization jobs" },
+    { command: "retry-jobs", desc: "Retry all failed materialization jobs" },
+  ];
+  const missing = [];
+  for (const cmd of REQUIRED_COMMANDS) {
+    // Verify command keyword appears in usage documentation
+    if (
+      !idxContent.includes(" " + cmd.command) &&
+      !idxContent.includes(" " + cmd.command + " ")
+    ) {
+      missing.push(cmd.command);
+    }
+  }
+  return check(
+    56,
+    missing.length === 0,
+    missing.length === 0
+      ? "All " + REQUIRED_COMMANDS.length + " indexer CLI commands verified"
+      : "Missing commands: " + missing.join(", "),
+  );
+}
+
+/**
+ * Check 57: Knowledge DB Tables Validation
+ * Verifies the 3 knowledge DB tables (knowledge_entries, knowledge_files,
+ * knowledge_entry_tags) exist in the SQLite DB with their required indexes.
+ * These tables form the v11/v12 DB-canonical knowledge store (KC-15).
+ * @since Phase 4 (2026-06-21, @Super-Admin, Issue #56)
+ */
+function checkKnowledgeDbTables() {
+  try {
+    const { getDb: _getDb } = require("../lib/db-manager");
+    const _db = _getDb();
+    const issues = [];
+
+    // Verify 3 tables exist
+    const tables = [
+      "knowledge_entries",
+      "knowledge_files",
+      "knowledge_entry_tags",
+    ];
+    for (const table of tables) {
+      const row = _db
+        .query(
+          "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name=?",
+        )
+        .get(table) as { c: number } | null;
+      if ((row?.c ?? 0) === 0) {
+        issues.push("table " + table + " not found");
+      }
+    }
+
+    // Verify required indexes
+    const requiredIndexes = [
+      "idx_knowledge_entries_domain_status",
+      "idx_knowledge_entries_library_topic",
+      "idx_knowledge_entries_unique",
+      "idx_knowledge_files_entry_id",
+      "idx_knowledge_files_sha256",
+      "idx_knowledge_files_path",
+      "idx_knowledge_files_unique",
+      "idx_knowledge_entry_tags_tag",
+    ];
+    for (const idx of requiredIndexes) {
+      const row = _db
+        .query(
+          "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='index' AND name=?",
+        )
+        .get(idx) as { c: number } | null;
+      if ((row?.c ?? 0) === 0) {
+        issues.push("index " + idx + " not found");
+      }
+    }
+
+    // Count rows in each table
+    let entryCount = 0;
+    let fileCount = 0;
+    let tagCount = 0;
+    try {
+      const er = _db
+        .query("SELECT COUNT(*) AS c FROM knowledge_entries")
+        .get() as { c: number } | null;
+      entryCount = er?.c ?? 0;
+      const fr = _db
+        .query("SELECT COUNT(*) AS c FROM knowledge_files")
+        .get() as { c: number } | null;
+      fileCount = fr?.c ?? 0;
+      const tr = _db
+        .query("SELECT COUNT(*) AS c FROM knowledge_entry_tags")
+        .get() as { c: number } | null;
+      tagCount = tr?.c ?? 0;
+    } catch (_) {
+      /* query errors - table may be empty but valid */
+    }
+
+    return check(
+      57,
+      issues.length === 0,
+      issues.length === 0
+        ? "Knowledge DB tables OK: knowledge_entries(" +
+            entryCount +
+            ") + knowledge_files(" +
+            fileCount +
+            ") + knowledge_entry_tags(" +
+            tagCount +
+            ") + 8 indexes"
+        : "Knowledge DB issues: " + issues.join("; "),
+    );
+  } catch (e: any) {
+    return check(57, false, "DB access failed: " + (e?.message || String(e)));
+  }
+}
+
+/**
+ * Check 58: searchByTags Usage Validation
+ * Verifies searchByTags is properly imported from knowledge-store and used
+ * in knowledge_cache_search.ts. searchByTags is the Phase 1 integration of
+ * DB-backed tag search, replacing the old index-based domain keyword lookup
+ * (see knowledge-store-api-integration-plan.md Phase 1).
+ * @since Phase 4 (2026-06-21, @Super-Admin, Issue #56)
+ */
+function checkSearchByTagsUsage() {
+  const kcsPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "tools",
+    "knowledge_cache_search.ts",
+  );
+  if (!fileExists(kcsPath)) {
+    return check(58, false, "knowledge_cache_search.ts not found");
+  }
+  const kcsContent = readFile(kcsPath);
+  if (!kcsContent) {
+    return check(58, false, "knowledge_cache_search.ts is empty or unreadable");
+  }
+
+  const issues = [];
+
+  // Verify searchByTags is imported from knowledge-store
+  if (!kcsContent.includes("searchByTags")) {
+    issues.push("searchByTags not referenced in knowledge_cache_search.ts");
+  }
+  if (
+    !kcsContent.includes("../lib/knowledge-store") &&
+    !kcsContent.includes("./knowledge-store") &&
+    !kcsContent.includes("knowledge-store")
+  ) {
+    issues.push("knowledge-store not imported");
+  }
+
+  // Verify searchByTags is actually called (not just imported but unused)
+  const searchByTagsCallPattern = /searchByTags\s*\(/;
+  if (!searchByTagsCallPattern.test(kcsContent)) {
+    issues.push("searchByTags imported but never called");
+  }
+
+  return check(
+    58,
+    issues.length === 0,
+    issues.length === 0
+      ? "searchByTags imported and used in knowledge_cache_search.ts"
+      : "searchByTags issues: " + issues.join("; "),
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3321,6 +3738,7 @@ checkUC7KSSchemaIntegrity();
 checkCustomToolRegistration();
 checkKnowledgeSemanticMapCoverage();
 checkSemanticMapSavePathUniqueness(); // M13 (2026-06-19): verify save_path uniqueness
+checkTagSemanticMapCoverage(); // KC-13 (2026-06-21): tag-to-domain coverage (advisory)
 checkAgentUC7KSSection();
 checkContext7ToolBlock();
 checkAgentAttestToolRegistered(); // M8 (2026-06-19): writable agents must have knowledge_cache_attest
@@ -3421,6 +3839,10 @@ checkV6DbTables();
 checkSchemaFiles();
 checkDispatchCtxFiles();
 checkStep0dTriggerWords();
+checkKnowledgeStoreApiExports(); // Phase 4, Check 55: Issue #56
+checkIndexerCliCommands(); // Phase 4, Check 56: Issue #56
+checkKnowledgeDbTables(); // Phase 4, Check 57: Issue #56
+checkSearchByTagsUsage(); // Phase 4, Check 58: Issue #56
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");

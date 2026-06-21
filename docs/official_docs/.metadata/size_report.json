@@ -1,14 +1,42 @@
 {
-  "generated_at": "2026-06-05T12:55:16.266Z",
-  "total_size_bytes": 3540,
-  "total_size_mb": "0.0",
+  "generated_at": "2026-06-20T17:10:24.255Z",
+  "total_size_bytes": 514559,
+  "total_size_mb": "0.5",
   "max_total_mb": 50,
-  "total_files": 2,
-  "total_entries": 2,
+  "total_files": 62,
+  "total_entries": 62,
   "per_domain": {
     "opencode": {
-      "size_bytes": 3540,
+      "size_bytes": 246796,
+      "file_count": 32
+    },
+    "testing": {
+      "size_bytes": 17203,
+      "file_count": 5
+    },
+    "backend_api": {
+      "size_bytes": 9807,
       "file_count": 2
+    },
+    "frontend_ui": {
+      "size_bytes": 14467,
+      "file_count": 3
+    },
+    "devops_ci": {
+      "size_bytes": 145885,
+      "file_count": 11
+    },
+    "infrastructure": {
+      "size_bytes": 15135,
+      "file_count": 3
+    },
+    "opencode_framework": {
+      "size_bytes": 61900,
+      "file_count": 5
+    },
+    "framework_tools": {
+      "size_bytes": 3366,
+      "file_count": 1
     }
   },
   "thresholds": {

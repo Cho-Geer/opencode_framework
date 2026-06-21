@@ -1109,6 +1109,33 @@ if (writeOk) {
 }
 logInfo(`Output: ${outputFile}`);
 
+// ═══════════════════════════════════════════════════════════════════════
+// A7: DB-canonical dispatch enqueue (Phase 1 dual-write).
+// Inserts into dispatch_queue + dispatch_prompt_refs alongside the
+// existing file-based .pending.json write. DB is primary for reads;
+// files serve as fallback during the rollout period.
+//
+// Non-fatal: DB enqueue failures are logged but never block dispatch.
+// The file-based .pending.json write above is the canonical fallback.
+// ═══════════════════════════════════════════════════════════════════════
+try {
+  const { dbEnqueueDispatch } = require("../../lib/dispatch-db");
+  const promptFileSize = Buffer.byteLength(tokenizedPrompt, "utf8");
+  dbEnqueueDispatch(
+    agentType,
+    taskId || "(no-task-id)",
+    outputFile,
+    promptHash,
+    promptFileSize,
+  );
+} catch (e: any) {
+  writeLog("dispatch-subagent", "runtime", {
+    level: "ERROR",
+    event: "DISPATCH-DB-ENQUEUE-FAILED",
+    detail: `Cannot enqueue dispatch to DB: ${e.message}. File-based fallback intact.`,
+  });
+}
+
 // ──────────────────────────────────────────────
 // 7. Output file path to stdout (for the primary agent)
 // ──────────────────────────────────────────────

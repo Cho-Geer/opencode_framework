@@ -124,7 +124,10 @@ export function getMachinePath(): string {
 // SCHEMA HELPERS
 
 /** Ensure agent entry exists in session_access */
-export function ensureAgentEntry(sa: SessionAccess, agent: string): AgentEntry {
+export function ensureAgentEntry(
+  sa: SessionAccess,
+  agent: string,
+): AgentEntry {
   const agentKey = normalizeAgentKey(agent);
   // Merge any existing flat entry under either the raw key or its normalized form
   const existing = sa[agentKey] || sa[agent] || {};
@@ -169,7 +172,10 @@ export function getDomainEntry(
 }
 
 /** Update agent-level rollups */
-export function updateAgentRollups(sa: SessionAccess, agent: string): void {
+export function updateAgentRollups(
+  sa: SessionAccess,
+  agent: string,
+): void {
   const a = ensureAgentEntry(sa, agent);
   a.last_read_at = new Date().toISOString();
   a.total_cache_reads = (a.total_cache_reads || 0) + 1;
@@ -373,16 +379,16 @@ export function normalizeAgentKey(raw: string): string {
   const stripped = (raw || "").replace(/^@/, "");
   const map: Record<string, string> = {
     "meta-planner": "Meta-Planner",
-    orchestrator: "Orchestrator",
-    architect: "Architect",
+    "orchestrator": "Orchestrator",
+    "architect": "Architect",
     "coder-be": "Coder-BE",
     "coder-fe": "Coder-FE",
-    guardian: "Guardian",
-    arbiter: "Arbiter",
+    "guardian": "Guardian",
+    "arbiter": "Arbiter",
     "ci-cd-agent": "CI-CD-Agent",
     "knowledge-curator": "Knowledge-Curator",
     "super-admin": "Super-Admin",
-    plan: "Meta-Planner", // legacy misnomer: "plan" scope was recorded as agent
+    "plan": "Meta-Planner", // legacy misnomer: "plan" scope was recorded as agent
   };
   return map[stripped.toLowerCase()] || stripped;
 }
@@ -393,379 +399,14 @@ export function evictOldAgents(sa: SessionAccess): void {
   if (keys.length <= MAX_AGENTS) return;
 
   const sorted = keys.sort((a, b) => {
-    const ta = new Date(
-      sa[a]?.last_read_at || sa[a]?.declared_at || 0,
-    ).getTime();
-    const tb = new Date(
-      sa[b]?.last_read_at || sa[b]?.declared_at || 0,
-    ).getTime();
+    const ta = new Date(sa[a]?.last_read_at || sa[a]?.declared_at || 0).getTime();
+    const tb = new Date(sa[b]?.last_read_at || sa[b]?.declared_at || 0).getTime();
     return ta - tb;
   });
   const toRemove = sorted.slice(0, keys.length - MAX_AGENTS);
   for (const k of toRemove) {
     delete sa[k];
   }
-}
-
-// ════════════════════════════════════════════════════════════
-// KC-03: NESTED SESSION_ACCESS PRUNING HELPER (2026-06-20)
-// ==========================================================
-// Primary growth driver for knowledge_cache_state (>900 KB):
-// session_access[agent].tasks[task_id].domains[domain_id]
-// (10 agents, ~445 tasks, ~494 domains).
-// Prior cleanup (evictOldAgents) only capped agent keys at 50,
-// never pruned nested tasks/domains.
-
-/** Options for {@link pruneSessionAccess} */
-export interface PruneOptions {
-  session_access_ttl_days: number;
-  session_access_max_tasks_per_agent: number;
-  session_access_max_domains_per_task: number;
-  session_access_preserve_attested_days: number;
-  /** KC-14: When true, pruned DB rows are archived to knowledge_session_access_archive before deletion */
-  archive_enabled?: boolean;
-}
-
-/** Result of a {@link pruneSessionAccess} call */
-export interface PruneResult {
-  removedTaskEntries: number;
-  removedDomainEntries: number;
-  removedStaleAgents: number;
-  /** KC-14: Number of rows archived to knowledge_session_access_archive */
-  archivedRows?: number;
-}
-
-/**
- * Prune nested session_access entries to prevent unbounded growth.
- *
- * Rules (priority order):
- * 1. NEVER remove domain entry for (currentTaskId, currentDomainId)
- * 2. Remove discovery-only entries older than ttl_days first
- * 3. Attested entries preserved up to preserve_attested_days
- * 4. Cap maxTasksPerAgent per agent (most recent)
- * 5. Cap maxDomainsPerTask per task (most recent)
- * 6. Remove stale agents with empty tasks
- *
- * @param sa - session_access object (mutated in place)
- * @param opts - Pruning thresholds
- * @param currentTaskId - NEVER prune this task
- * @param currentDomainId - NEVER prune this domain
- * @returns Counts of removed entries
- */
-export function pruneSessionAccess(
-  sa: SessionAccess,
-  opts: PruneOptions,
-  currentTaskId?: string,
-  currentDomainId?: string,
-): PruneResult {
-  const result: PruneResult = {
-    removedTaskEntries: 0,
-    removedDomainEntries: 0,
-    removedStaleAgents: 0,
-  };
-  const now = Date.now();
-  const ttlMs = opts.session_access_ttl_days * 86400000;
-  const attestedMs = opts.session_access_preserve_attested_days * 86400000;
-
-  const getAgentRecency = (a: AgentEntry): number => {
-    let max = new Date(a.last_read_at || a.declared_at || 0).getTime();
-    if (a.tasks)
-      for (const t of Object.values(a.tasks)) {
-        if (t.domains)
-          for (const d of Object.values(t.domains)) {
-            const ts = new Date(
-              d.cache_sufficiency?.attestation?.attested_at ||
-                d.cache_sufficiency?.discovery?.discovered_at ||
-                d.declared_at ||
-                0,
-            ).getTime();
-            if (ts > max) max = ts;
-          }
-      }
-    return max;
-  };
-  const getTaskRecency = (t: TaskEntry): number => {
-    let max = 0;
-    if (t.domains)
-      for (const d of Object.values(t.domains)) {
-        const ts = new Date(
-          d.cache_sufficiency?.attestation?.attested_at ||
-            d.cache_sufficiency?.discovery?.discovered_at ||
-            d.declared_at ||
-            0,
-        ).getTime();
-        if (ts > max) max = ts;
-      }
-    return max;
-  };
-  const isAttested = (d: DomainEntry): boolean =>
-    d.cache_sufficiency?.attestation?.status === "attested" ||
-    (d.cache_sufficiency?.status === "sufficient" &&
-      !!d.cache_sufficiency?.reason &&
-      !d.cache_sufficiency.reason.startsWith("[DEPRECATED]"));
-  const getDomainRecency = (d: DomainEntry): number =>
-    new Date(
-      d.cache_sufficiency?.attestation?.attested_at ||
-        d.cache_sufficiency?.discovery?.discovered_at ||
-        d.declared_at ||
-        0,
-    ).getTime();
-
-  for (const agentKey of Object.keys(sa)) {
-    const a = sa[agentKey];
-    if (!a?.tasks || Object.keys(a.tasks).length === 0) {
-      if (
-        now - getAgentRecency(a || { last_read_at: "", total_cache_reads: 0 }) >
-        ttlMs
-      ) {
-        delete sa[agentKey];
-        result.removedStaleAgents++;
-      }
-      continue;
-    }
-    const tasks = a.tasks!;
-    // Prune stale domains in each task
-    for (const tid of Object.keys(tasks)) {
-      if (currentTaskId && tid === currentTaskId) {
-        const domains = tasks[tid].domains;
-        if (domains)
-          for (const did of Object.keys(domains)) {
-            if (currentDomainId && did === currentDomainId) continue;
-            const d = domains[did];
-            if (
-              now - getDomainRecency(d) >
-              (isAttested(d) ? attestedMs : ttlMs)
-            ) {
-              delete domains[did];
-              result.removedDomainEntries++;
-            }
-          }
-        continue;
-      }
-      const domains = tasks[tid].domains;
-      if (!domains) continue;
-      for (const did of Object.keys(domains)) {
-        const d = domains[did];
-        if (now - getDomainRecency(d) > (isAttested(d) ? attestedMs : ttlMs)) {
-          delete domains[did];
-          result.removedDomainEntries++;
-        }
-      }
-      if (Object.keys(domains).length === 0) {
-        delete tasks[tid];
-        result.removedTaskEntries++;
-      }
-    }
-    // Cap tasks per agent
-    const rt = Object.keys(tasks);
-    if (rt.length > opts.session_access_max_tasks_per_agent) {
-      const sorted = rt
-        .map((tid) => ({ tid, ts: getTaskRecency(tasks[tid]) }))
-        .sort((x, y) => y.ts - x.ts);
-      const keepList: string[] =
-        currentTaskId && tasks[currentTaskId] ? [currentTaskId] : [];
-      for (const s of sorted) if (s.tid !== currentTaskId) keepList.push(s.tid);
-      const keep = new Set(
-        keepList.slice(0, opts.session_access_max_tasks_per_agent),
-      );
-      for (const tid of rt) {
-        if (!keep.has(tid)) {
-          delete tasks[tid];
-          result.removedTaskEntries++;
-        }
-      }
-    }
-    // Cap domains per task
-    for (const tid of Object.keys(tasks)) {
-      const domains = tasks[tid].domains;
-      if (!domains) continue;
-      const di = Object.keys(domains);
-      if (di.length > opts.session_access_max_domains_per_task) {
-        const sorted = di
-          .map((did) => ({ did, ts: getDomainRecency(domains[did]) }))
-          .sort((x, y) => y.ts - x.ts);
-        const keepList: string[] =
-          currentDomainId &&
-          currentTaskId &&
-          tid === currentTaskId &&
-          domains[currentDomainId]
-            ? [currentDomainId]
-            : [];
-        for (const s of sorted)
-          if (s.did !== currentDomainId) keepList.push(s.did);
-        const keep = new Set(
-          keepList.slice(0, opts.session_access_max_domains_per_task),
-        );
-        for (const did of di) {
-          if (!keep.has(did)) {
-            delete domains[did];
-            result.removedDomainEntries++;
-          }
-        }
-      }
-      if (Object.keys(domains).length === 0) {
-        delete tasks[tid];
-        result.removedTaskEntries++;
-      }
-    }
-    // Remove empty stale agent
-    if (!a.tasks || Object.keys(a.tasks).length === 0) {
-      if (now - getAgentRecency(a) > ttlMs) {
-        delete sa[agentKey];
-        result.removedStaleAgents++;
-      }
-    }
-  }
-  return result;
-}
-
-// ════════════════════════════════════════════════════════════
-// KC-14 (2026-06-21): DB-Level Session Access Archive
-// ====================================================
-// pruneSessionAccessFromDB mirrors the pruning logic of
-// pruneSessionAccess() but operates on the SQLite
-// knowledge_session_access table instead of in-memory
-// SessionAccess. When archive_enabled is true, pruned rows
-// are INSERTed into knowledge_session_access_archive before
-// deletion, preserving historical session data for audit.
-// ════════════════════════════════════════════════════════════
-
-/**
- * Prune stale rows from knowledge_session_access with optional archiving.
- *
- * Operates on the SQLite database (not in-memory SessionAccess).
- * When opts.archive_enabled is true, pruned rows are copied to
- * knowledge_session_access_archive before deletion.
- *
- * @param opts - Pruning thresholds (same as pruneSessionAccess)
- * @param currentTaskId - NEVER prune this task
- * @param currentDomainId - NEVER prune this domain
- * @returns Counts of removed and archived rows
- */
-export function pruneSessionAccessFromDB(
-  opts: PruneOptions,
-  currentTaskId?: string,
-  currentDomainId?: string,
-): PruneResult {
-  const result: PruneResult = {
-    removedTaskEntries: 0,
-    removedDomainEntries: 0,
-    removedStaleAgents: 0,
-    archivedRows: 0,
-  };
-  const now = Date.now();
-  const ttlMs = opts.session_access_ttl_days * 86400000;
-  const attestedMs = opts.session_access_preserve_attested_days * 86400000;
-  const archiveEnabled = opts.archive_enabled === true;
-
-  let db: any;
-  try {
-    // Lazy-load to avoid circular imports at module init time
-    const { getDb } = require("./db-manager");
-    db = getDb();
-  } catch {
-    // DB unavailable — skip DB-level pruning entirely
-    return result;
-  }
-
-  try {
-    // ── Step 1: Identify stale rows ──────────────────────
-    // Staleness = last_read_at or discovered_at or declared_at older than TTL
-    // Attested rows (status='attested') get the longer preserve_attested_days TTL
-    const staleCutoff = now - ttlMs;
-    const attestedCutoff = now - attestedMs;
-
-    // Query for stale rows (simplified: use created_at as proxy for recency)
-    // More granular staleness checks are done at the in-memory level;
-    // DB-level uses last_read_at / discovered_at / declared_at when available.
-    const staleRows = db
-      .query(
-        `SELECT id, agent, task_id, domain_id, opencode_session_id,
-                status, attested_at, discovered_at, declared_at, last_read_at,
-                created_at, updated_at
-         FROM knowledge_session_access
-         WHERE (
-           -- Non-attested: older than ttl_days
-           (status != 'attested' AND (
-             COALESCE(last_read_at, discovered_at, declared_at, created_at) < ?
-           ))
-           OR
-           -- Attested: older than preserve_attested_days
-           (status = 'attested' AND (
-             COALESCE(attested_at, last_read_at, discovered_at, declared_at, created_at) < ?
-           ))
-         )
-         ${currentTaskId ? "AND task_id != ?" : ""}
-         ORDER BY agent, task_id, domain_id`,
-      )
-      .all(
-        ...(currentTaskId
-          ? [staleCutoff, attestedCutoff, currentTaskId]
-          : [staleCutoff, attestedCutoff]),
-      ) as any[];
-
-    if (!staleRows || staleRows.length === 0) return result;
-
-    // ── Step 2: Archive before deletion (if enabled) ──────
-    if (archiveEnabled) {
-      const archiveStmt = db.prepare(`
-        INSERT INTO knowledge_session_access_archive (
-          agent, task_id, domain_id, opencode_session_id,
-          status, attested_at, discovered_at, declared_at, last_read_at,
-          created_at, updated_at, archived_at, archived_reason
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      const archiveNow = Date.now();
-      const archiveReason = `pruned: TTL=${opts.session_access_ttl_days}d attested_preserve=${opts.session_access_preserve_attested_days}d`;
-
-      const archiveMany = db.transaction((rows: any[]) => {
-        for (const row of rows) {
-          archiveStmt.run(
-            row.agent,
-            row.task_id,
-            row.domain_id,
-            row.opencode_session_id || null,
-            row.status || "discovered",
-            row.attested_at || null,
-            row.discovered_at || null,
-            row.declared_at || null,
-            row.last_read_at || null,
-            row.created_at,
-            row.updated_at,
-            archiveNow,
-            archiveReason,
-          );
-        }
-      });
-
-      archiveMany(staleRows);
-      result.archivedRows = staleRows.length;
-    }
-
-    // ── Step 3: Delete stale rows ─────────────────────────
-    const deleteStmt = db.prepare(
-      `DELETE FROM knowledge_session_access WHERE id = ?`,
-    );
-    const deleteMany = db.transaction((rows: any[]) => {
-      for (const row of rows) {
-        deleteStmt.run(row.id);
-      }
-    });
-    deleteMany(staleRows);
-
-    // ── Step 4: Count results ─────────────────────────────
-    result.removedTaskEntries = staleRows.length; // Each row = one (agent,task,domain) entry
-  } catch (e: any) {
-    // Non-fatal: DB pruning failures are logged but do not block
-    const { writeLog } = require("./log-manager");
-    writeLog("uc7ks-schema", "WARN", {
-      event: "KC-SESSION-ACCESS-DB-PRUNE-FAILED",
-      detail: `pruneSessionAccessFromDB: ${e.message}`,
-    });
-  }
-
-  return result;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -835,8 +476,7 @@ export function readCacheAttestation(
     // Legacy sufficient without attestation → treated as unverified
     return {
       status: "legacy_discovered_only",
-      reason:
-        "Auto-migrated from legacy cache_sufficiency (not verified against read_audit.jsonl)",
+      reason: "Auto-migrated from legacy cache_sufficiency (not verified against read_audit.jsonl)",
       files_read: legacy.files_read || [],
       content_summary: legacy.content_summary || "",
       attested_at: legacy.declared_at || "",
@@ -864,8 +504,7 @@ export function isDomainKnowledgeAttested(
   if (!att) return false;
   if (att.status === "attested") return true;
   // Advisory mode: accept legacy data as attested for transition period
-  if (mode === "advisory" && att.status === "legacy_discovered_only")
-    return true;
+  if (mode === "advisory" && att.status === "legacy_discovered_only") return true;
   return false;
 }
 
@@ -924,8 +563,6 @@ export function readAttestationRequired(): "advisory" | "strict" {
       const val = cfg.uc7ks_attestation_required;
       if (val === "strict") return "strict";
     }
-  } catch {
-    /* fall through */
-  }
+  } catch { /* fall through */ }
   return "advisory";
 }

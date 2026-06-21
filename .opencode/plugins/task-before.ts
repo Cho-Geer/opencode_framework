@@ -306,4 +306,79 @@ async function taskExecuteBefore(input: any, output: any): Promise<void> {
       "pass | DISPATCH-INTEGRITY hash verified" +
       ` | subagent_type=${output?.args?.subagent_type || "?"}`,
   });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // A7: DB-canonical dispatch dequeue with lease (Phase 1).
+  // After DISPATCH-INTEGRITY hash is verified, attempt to dequeue
+  // the dispatch from the DB queue with a lease. This marks the
+  // dispatch as 'running' to prevent double-consumption.
+  //
+  // DB-first: if DB has pending entries, dequeue with lease.
+  // Fallback: if DB is empty or fails, try file-based .pending.json.
+  // The lease has a 60s TTL; stale leases are reclaimed by the
+  // janitor (dispatch-auto.ts or dbCleanStaleLeases).
+  //
+  // Non-fatal: failures are logged but never block dispatch.
+  // ═══════════════════════════════════════════════════════════════════════
+  try {
+    const {
+      dbDequeueWithLease,
+      dbGetPendingCount,
+    } = require("../lib/dispatch-db");
+
+    if (subagentType) {
+      const pendingCount = dbGetPendingCount(subagentType);
+
+      if (pendingCount > 0) {
+        // DB has pending entries — dequeue with lease
+        const entry = dbDequeueWithLease(
+          subagentType,
+          input.sessionID || "unknown",
+        );
+
+        if (entry) {
+          writeLog("task-before", "runtime", {
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            event: "DISPATCH-QUEUE-LEASE",
+            detail: `Leased dispatch queueId=${entry.id} agentType=${subagentType} dagTaskId=${entry.dag_task_id} leaseExpiry=${entry.lease_expiry}`,
+          });
+        } else {
+          // DB had pending entries but dequeue failed — try file fallback
+          writeLog("task-before", "runtime", {
+            sessionID: input.sessionID,
+            callID: input.callID,
+            agent,
+            agentType: agent,
+            level: "WARN",
+            event: "DISPATCH-QUEUE-LEASE-FAILED",
+            detail: `DB lease failed for agentType=${subagentType} — falling back to file`,
+          });
+        }
+      } else {
+        // No DB entries — try file-based .pending.json fallback
+        writeLog("task-before", "runtime", {
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agentType: agent,
+          event: "DISPATCH-FILE-FALLBACK",
+          detail: `DB queue empty for agentType=${subagentType} — using file-based dispatch`,
+        });
+      }
+    }
+  } catch (e: any) {
+    // DB unavailable — fallback to file
+    writeLog("task-before", "runtime", {
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agentType: agent,
+      level: "WARN",
+      event: "DISPATCH-DB-FALLBACK",
+      detail: `DB dispatch unavailable: ${e.message}. File-based dispatch intact.`,
+    });
+  }
 }

@@ -8,16 +8,25 @@ import {
   readCacheSufficiency,
   isPipelineDeclared,
   evictOldAgents,
+  pruneSessionAccess,
   MAX_AGENTS,
   type CacheSufficiency,
   type CacheDiscovery,
+  type PruneOptions,
   normalizeAgentKey,
   writeCacheDiscovery,
 } from "../lib/uc7ks-schema";
+import {
+  readManifest,
+  searchByTags,
+  type KnowledgeManifest,
+} from "../lib/knowledge-store";
 import { writeLog } from "../lib/log-manager";
 const { readSubState } = require("../lib/substate-manager");
 import { atomicWriteSubState } from "../lib/state-utils";
 import { withInterruptGuard } from "../lib";
+import { incrementAuditCounter, touchCacheCheck } from "../lib/knowledge-audit";
+import { getDb } from "../lib/db-manager";
 
 export default tool({
   description:
@@ -101,6 +110,14 @@ export default tool({
         "project.config.json",
       );
 
+      /**
+       * KC-06 (2026-06-21 @Super-Admin): Migrated from direct
+       * fs.readFileSync + JSON.parse to knowledgeStore.readManifest().
+       * This preserves UC7-007 atomic update semantics via indexer.ts
+       * and provides typed KnowledgeEntry[] for tag-based search.
+       * Backward compat: file existence check retained for error message
+       * quality; total_entries < 1 treated as "not initialized".
+       */
       if (!fs.existsSync(indexPath)) {
         return JSON.stringify({
           cache_available: false,
@@ -109,14 +126,14 @@ export default tool({
         });
       }
 
-      var index;
+      var manifest: KnowledgeManifest;
       try {
-        index = JSON.parse(fs.readFileSync(indexPath, "utf8"));
-        if (!index.manifest_version || !Array.isArray(index.entries)) {
+        manifest = readManifest();
+        if (!manifest || !Array.isArray(manifest.entries)) {
           return JSON.stringify({
             cache_available: false,
             hits: 0,
-            error: "Malformed index.json",
+            error: "Malformed index.json (via knowledge-store)",
             next_step: "Rebuild via @Knowledge-Curator.",
           });
         }
@@ -124,12 +141,13 @@ export default tool({
         return JSON.stringify({
           cache_available: false,
           hits: 0,
-          error: "Read error",
+          error: "Read error (via knowledge-store)",
           next_step: "Cannot read index.json.",
         });
       }
 
-      var entries = index.entries || [];
+      var entries = manifest.entries;
+      var totalEntries = manifest.total_entries;
       var domainKeywords: string[] = [];
       try {
         if (fs.existsSync(configPath)) {
@@ -149,35 +167,57 @@ export default tool({
         /* non-fatal */
       }
 
+      /**
+       * KC-06 + KC-16 (2026-06-21 @Super-Admin): Migrated from
+       * knowledgeStore.searchManifest({ tags }) to the
+       * knowledgeStore.searchByTags() convenience wrapper.
+       * searchByTags is a thin wrapper that delegates to
+       * searchManifest({ tags }), providing a cleaner semantic API.
+       * Phase 1 of knowledge-store-api-integration-plan.
+       */
+      writeLog("knowledge_cache_search", "INFO", {
+        event: "KC-SEARCH-VIA-STORE",
+        detail: `store-based search domain=${args.domain || "all"} tags=[${domainKeywords.join(",")}]`,
+        task_id: args.task_id,
+        domain: args.domain,
+      });
+
       var hitEntries: Array<{
         library_id: string;
         topic: string;
         tags: string[];
         cached_files: string[];
       }> = [];
-      for (var i = 0; i < entries.length; i++) {
-        var entry = entries[i];
-        var tags = entry.tags || [];
-        var matched = !args.domain;
-        if (args.domain) {
-          for (var j = 0; j < tags.length; j++) {
-            if (domainKeywords.indexOf(tags[j]) !== -1) {
-              matched = true;
-              break;
-            }
-          }
-        }
-        if (matched) {
+      if (!args.domain) {
+        // No domain filter — return all entries
+        for (var i = 0; i < entries.length; i++) {
+          var e = entries[i];
           hitEntries.push({
-            library_id: entry.library_id,
-            topic: entry.query_topic,
-            tags: tags,
-            cached_files: (entry.files || []).map(function (f: any) {
+            library_id: e.library_id,
+            topic: e.query_topic,
+            tags: e.tags || [],
+            cached_files: (e.files || []).map(function (f: any) {
+              return f.path;
+            }),
+          });
+        }
+      } else if (domainKeywords.length > 0) {
+        // Domain filter with keywords — use store-based tag search
+        var results = searchByTags(domainKeywords);
+        for (var i = 0; i < results.length; i++) {
+          var e = results[i];
+          hitEntries.push({
+            library_id: e.library_id,
+            topic: e.query_topic,
+            tags: e.tags || [],
+            cached_files: (e.files || []).map(function (f: any) {
               return f.path;
             }),
           });
         }
       }
+      // else: domainKeywords empty AND args.domain set → no hits
+      // (preserves pre-KC-06 behavior — domain unknown = empty result)
 
       // ── Build cache_sufficiency (F1: included in response) ──
       // Phase 0 (2026-06-18): discovery is machine-generated by this tool.
@@ -284,36 +324,51 @@ export default tool({
             // Cap management (F8: 50 agents)
             evictOldAgents(kcs.session_access);
 
-            // P3/S85-1: Per-agent session_access LRU pruning (max 50 domain entries per agent).
-            // Prevents unbounded growth between nightly cleanupStaleSessionAccessStep() runs.
-            // Each agent's entries are sorted by accessed_at (declared_at fallback) descending,
-            // keeping the 50 most recent.
-            const MAX_DOMAINS_PER_AGENT = 50;
-            if (kcs.session_access) {
-              for (const ak of Object.keys(kcs.session_access)) {
-                const agentEntries = kcs.session_access[ak];
-                if (!agentEntries || typeof agentEntries !== "object") continue;
-                const keys = Object.keys(agentEntries);
-                if (keys.length > MAX_DOMAINS_PER_AGENT) {
-                  const sorted = keys
-                    .map((k) => ({
-                      key: k,
-                      ts:
-                        new Date(
-                          agentEntries[k]?.last_read_at ||
-                            agentEntries[k]?.declared_at ||
-                            0,
-                        ).getTime() || 0,
-                    }))
-                    .sort((a, b) => b.ts - a.ts);
-                  const keep = new Set(
-                    sorted.slice(0, MAX_DOMAINS_PER_AGENT).map((x) => x.key),
-                  );
-                  for (const k of keys) {
-                    if (!keep.has(k)) delete agentEntries[k];
-                  }
-                }
-              }
+            // P3/S85-1 + KC-03: Per-agent nested session_access pruning.
+            // Replaces broken inline LRU (which only pruned top-level agentEntries keys,
+            // missing the nested tasks[task_id].domains[domain_id] structure).
+            // Uses shared pruneSessionAccess() from uc7ks-schema.ts.
+            // Reads config thresholds from project.config.json template_resolution.
+            // KC-03 (2026-06-20): @Super-Admin — replaced inline LRU with shared helper.
+            const pruneOpts: PruneOptions = {
+              session_access_ttl_days:
+                config?.template_resolution?.[
+                  "knowledge.session_access_ttl_days"
+                ] || 30,
+              session_access_max_tasks_per_agent:
+                config?.template_resolution?.[
+                  "knowledge.session_access_max_tasks_per_agent"
+                ] || 50,
+              session_access_max_domains_per_task:
+                config?.template_resolution?.[
+                  "knowledge.session_access_max_domains_per_task"
+                ] || 8,
+              session_access_preserve_attested_days:
+                config?.template_resolution?.[
+                  "knowledge.session_access_preserve_attested_days"
+                ] || 90,
+              // KC-14: Archive pruned DB rows before deletion.
+              // Inline prune (during search) only prunes in-memory;
+              // DB-level archiving is handled by nightly-compaction.
+              archive_enabled: false,
+            };
+            const pruneResult = pruneSessionAccess(
+              kcs.session_access,
+              pruneOpts,
+              taskId,
+              domainName,
+            );
+            if (
+              pruneResult.removedTaskEntries > 0 ||
+              pruneResult.removedDomainEntries > 0 ||
+              pruneResult.removedStaleAgents > 0
+            ) {
+              writeLog("knowledge-cache-prune", "INFO", {
+                event: "KC-SESSION-ACCESS-PRUNED",
+                detail: `tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
+                task_id: taskId,
+                domain: domainName,
+              });
             }
 
             // Compliance rollup
@@ -326,7 +381,7 @@ export default tool({
         var stateWriteOk = atomicWriteSubState(
           "knowledge_state",
           function (ks: any) {
-            var newCount = entries.length;
+            var newCount = totalEntries;
             var oldCount = ks.total_docs_count || 0;
             if (oldCount < newCount) {
               ks.total_docs_count = newCount;
@@ -339,13 +394,107 @@ export default tool({
         /* non-fatal */
       }
 
+      // ════════════════════════════════════════════════════════════
+      // KC-12 (2026-06-21): Normalize into v11 typed tables.
+      // After writing session_access to knowledge_cache_state,
+      // also INSERT into knowledge_session_access and
+      // knowledge_discovery v11 typed tables.
+      // Non-fatal: DB failures do NOT block the search response.
+      // Uses INSERT OR IGNORE for idempotency across re-runs.
+      // ════════════════════════════════════════════════════════════
+      try {
+        var db = getDb();
+        var sessionId =
+          (typeof context !== "undefined" &&
+            (context as any) &&
+            (context as any).sessionID) ||
+          null;
+        var now = Date.now();
+        // A2 (v13 UPSERT): Replace INSERT OR IGNORE with UPSERT using
+        // the unique indexes added in db-manager.ts v13 migration.
+        // Monotonic status guard: status only upgraded declared→discovered.
+        // ON CONFLICT with DO UPDATE replaces silent ignore with idempotent
+        // row creation + monotonic field updates.
+        // Note: domainName is already defined above (line ~275)
+        db.run(
+          `INSERT INTO knowledge_session_access
+           (agent, task_id, domain_id, opencode_session_id, status,
+            discovered_at, declared_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 'discovered', ?, ?, ?, ?)
+           ON CONFLICT(agent, task_id, domain_id) DO UPDATE SET
+             opencode_session_id = excluded.opencode_session_id,
+             status = CASE WHEN knowledge_session_access.status = 'declared'
+                       THEN 'discovered'
+                       ELSE knowledge_session_access.status END,
+             discovered_at = CASE WHEN knowledge_session_access.discovered_at IS NULL
+                            THEN excluded.discovered_at
+                            ELSE knowledge_session_access.discovered_at END,
+             updated_at = excluded.updated_at`,
+          [agentRef, taskId, domainName, sessionId, now, now, now, now],
+        );
+        db.run(
+          `INSERT INTO knowledge_discovery
+           (session_id, agent, task_id, domain_id, result_status,
+            matched_entries, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(agent, task_id, domain_id) DO UPDATE SET
+             session_id = excluded.session_id,
+             result_status = excluded.result_status,
+             matched_entries = excluded.matched_entries,
+             created_at = excluded.created_at`,
+          [
+            sessionId,
+            agentRef,
+            taskId,
+            domainName,
+            cacheSufficient ? "sufficient" : "insufficient",
+            hitEntries.length,
+            now,
+          ],
+        );
+        writeLog("knowledge_cache_search", "INFO", {
+          event: "KC12-DB-NORMALIZE",
+          detail: "v11 knowledge_session_access + knowledge_discovery INSERTs",
+          task_id: taskId,
+          domain: domainName,
+          agent: agentRef,
+          session_id: sessionId,
+          hits: hitEntries.length,
+        });
+      } catch (dbErr: any) {
+        /* Non-fatal: v11 DB write failure does NOT block cache search */
+        writeLog("knowledge_cache_search", "WARN", {
+          event: "KC12-DB-NORMALIZE-FAILED",
+          detail: dbErr.message || String(dbErr),
+          task_id: args.task_id,
+          domain: args.domain,
+        });
+      }
+
+      // ── KC-02 (2026-06-21): Non-fatal audit rollup ──
+      try {
+        incrementAuditCounter("total_cache_checks");
+      } catch {}
+      try {
+        touchCacheCheck();
+      } catch {}
+      if (hitEntries.length > 0) {
+        try {
+          incrementAuditCounter("total_cache_hits");
+        } catch {}
+      } else {
+        try {
+          incrementAuditCounter("total_cache_misses");
+        } catch {}
+      }
+
       // ── F1: Response includes cache_sufficiency evidence ──
       // Phase 0 (2026-06-18): Response includes discovery (machine-generated)
       // AND legacy cache_sufficiency (display compat). Attestation is separate:
       // agent must call knowledge_cache_attest after reading cache files.
       return JSON.stringify({
         cache_available: true,
-        total_entries: entries.length,
+        total_entries: totalEntries,
         search_domain: args.domain || "all",
         hits: hitEntries.length,
         hit_entries: hitEntries,

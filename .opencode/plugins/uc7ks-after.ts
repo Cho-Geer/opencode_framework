@@ -1,14 +1,21 @@
 // uc7ks-after.ts — "tool.execute.after" plugin: knowledge pipeline compliance
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
-import { resolveAgent, resolveTaskId, resolveDomainId } from "../lib/agent-resolver";
+import {
+  resolveAgent,
+  resolveTaskId,
+  resolveDomainId,
+} from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
 import { normalizeAgentKey, getDomainEntry } from "../lib/uc7ks-schema";
 import { atomicWriteSubState } from "../lib/state-utils";
+import { incrementAuditCounter } from "../lib/knowledge-audit";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
-export default withPluginLifecycle("uc7ks-after", { "tool.execute.after": toolExecuteAfter });
+export default withPluginLifecycle("uc7ks-after", {
+  "tool.execute.after": toolExecuteAfter,
+});
 
 /**
  * FW-UC7KS-DOMAIN-001: Infer domain_id from a file path under docs/official_docs/.
@@ -23,7 +30,10 @@ function inferDomainFromPath(filePath: string): string | null {
       const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
       const domains = cfg.knowledge_semantic_map?.domains || [];
       for (const d of domains) {
-        if (d.save_path && filePath.includes(`docs/official_docs/${d.save_path}`)) {
+        if (
+          d.save_path &&
+          filePath.includes(`docs/official_docs/${d.save_path}`)
+        ) {
           return d.domain_id;
         }
       }
@@ -45,14 +55,20 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   const filePath = getModifyPath(input.args || {});
 
   // Track knowledge cache reads — update knowledge-cache-state.json (P1-B split)
-  if (input.tool === "read" && filePath && filePath.includes("docs/official_docs/")) {
+  if (
+    input.tool === "read" &&
+    filePath &&
+    filePath.includes("docs/official_docs/")
+  ) {
     const rawAgent = resolveAgent(input.sessionID);
     const agent = normalizeAgentKey(rawAgent);
     const taskId = resolveTaskId(input.sessionID);
-    const domainId = resolveDomainId(input.sessionID) || inferDomainFromPath(filePath);
+    const domainId =
+      resolveDomainId(input.sessionID) || inferDomainFromPath(filePath);
 
     writeLog("uc7ks-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID,
+      sessionID: input.sessionID,
+      callID: input.callID,
       event: "TOOL-AFTER",
       detail: `cache-read | agent=${agent} | file=${filePath} | taskId=${taskId || "none"} | domainId=${domainId || "none"}`,
     });
@@ -68,6 +84,11 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         state.session_access[agent].last_file_read = filePath;
         state.session_access[agent].total_cache_reads =
           (state.session_access[agent].total_cache_reads || 0) + 1;
+
+        // KC-02 (2026-06-21): Non-fatal audit rollup — count cache hits
+        try {
+          incrementAuditCounter("total_cache_hits");
+        } catch {}
 
         // Phase 0 (2026-06-18): uc7ks-after NO LONGER auto-writes
         // cache_sufficiency.status="sufficient" or uc7_001_compliant.
@@ -87,9 +108,15 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         // FW-UC7KS-DOMAIN-001: Record read metadata for per-domain tracking
         // Does NOT write cache_sufficiency.status=sufficient.
         if (taskId && domainId) {
-          const domainEntry = getDomainEntry(state.session_access, agent, taskId, domainId);
+          const domainEntry = getDomainEntry(
+            state.session_access,
+            agent,
+            taskId,
+            domainId,
+          );
           domainEntry.pipeline_status = "completed";
-          domainEntry.declared_at = domainEntry.declared_at || new Date().toISOString();
+          domainEntry.declared_at =
+            domainEntry.declared_at || new Date().toISOString();
           // Record the read file in a metadata-only field (not cache_sufficiency)
           // Preserve existing cache_sufficiency/discovery/attestation unchanged.
           if (!domainEntry.cache_sufficiency) {
@@ -103,7 +130,8 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
             };
           }
           writeLog("uc7ks-after", "runtime", {
-            sessionID: input.sessionID, callID: input.callID,
+            sessionID: input.sessionID,
+            callID: input.callID,
             event: "UC7KS-READ-METADATA-RECORDED",
             detail: `taskId=${taskId} domainId=${domainId} file=${filePath} | NOTE: NOT auto-setting sufficient — attestation required`,
           });
@@ -111,8 +139,10 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       });
     } catch (err: any) {
       writeLog("uc7ks-after", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        level: "ERROR", event: "TOOL-AFTER",
+        sessionID: input.sessionID,
+        callID: input.callID,
+        level: "ERROR",
+        event: "TOOL-AFTER",
         detail: "cache-state update failed: " + err.message,
       });
     }
