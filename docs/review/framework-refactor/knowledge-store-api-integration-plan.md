@@ -1,7 +1,9 @@
 # knowledge-store API 导出收敛与物化运维入口实施方案
 
 **制定时间**: 2026-06-21  
-**状态**: 待实施  
+**实施完成时间**: 2026-06-21  
+**状态**: ✅ **IMPLEMENTED** — All 4 phases completed as part of KC-00 through KC-15 (see [knowledge-cache-optimization-plan.md](./knowledge-cache-optimization-plan.md))  
+**GitHub Epic**: [#28](https://github.com/Cho-Geer/opencode_framework/issues/28) — [Epic] Knowledge Cache DB-Canonical Optimization ✅ CLOSED  
 **范围**: `.opencode/lib/knowledge-store.ts` 的未接入导出函数、知识物化运维入口、相关自测与日志收敛  
 **非范围**: 不新增 MCP server；不新增插件 hook；不修改业务代码；不迁移 `booking_system_refactor/`
 
@@ -23,12 +25,12 @@
 
 ## 2. 当前证据
 
-| 函数 | 当前状态 | 风险 |
-| --- | --- | --- |
-| `searchByTags(tags)` | 仅是 `searchManifest({ tags })` 的薄封装；`knowledge_cache_search.ts` 当前直接调用 `searchManifest({ tags })` | API 表面重复，容易被误判为死代码 |
-| `materializeToFile()` | 外部未接入；内部物化能力已被 `writeManifest()` / `addEntry()` 调用 | 维护者没有显式 DB -> file 修复入口 |
-| `getPendingMaterializationJobs()` | 外部未接入；被 `retryFailedJobs()` 内部调用 | 物化失败 job 无可见诊断入口 |
-| `retryFailedJobs()` | 外部未接入 | `knowledge_materialization_jobs` 的 retry 能力不可操作 |
+| 函数                              | 当前状态                                                                                                      | 风险                                                   |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `searchByTags(tags)`              | 仅是 `searchManifest({ tags })` 的薄封装；`knowledge_cache_search.ts` 当前直接调用 `searchManifest({ tags })` | API 表面重复，容易被误判为死代码                       |
+| `materializeToFile()`             | 外部未接入；内部物化能力已被 `writeManifest()` / `addEntry()` 调用                                            | 维护者没有显式 DB -> file 修复入口                     |
+| `getPendingMaterializationJobs()` | 外部未接入；被 `retryFailedJobs()` 内部调用                                                                   | 物化失败 job 无可见诊断入口                            |
+| `retryFailedJobs()`               | 外部未接入                                                                                                    | `knowledge_materialization_jobs` 的 retry 能力不可操作 |
 
 当前相关路径：
 
@@ -102,11 +104,11 @@ bun .opencode/scripts/knowledge/indexer.ts retry-jobs [--json]
 
 5. 命令行为：
 
-| 命令 | 调用 | 输出 | 退出码 |
-| --- | --- | --- | --- |
-| `materialize` | `knowledgeStore.materializeToFile()` | `{ ok: boolean }` 或人类文本 | 成功 0，失败 1 |
-| `jobs` | `knowledgeStore.getPendingMaterializationJobs()` | job 数组 / summary | 查询成功 0，异常 1 |
-| `retry-jobs` | `knowledgeStore.retryFailedJobs()` | `{ attempted, succeeded, failed }` | `failed === 0` 为 0，否则 1 |
+| 命令          | 调用                                             | 输出                               | 退出码                      |
+| ------------- | ------------------------------------------------ | ---------------------------------- | --------------------------- |
+| `materialize` | `knowledgeStore.materializeToFile()`             | `{ ok: boolean }` 或人类文本       | 成功 0，失败 1              |
+| `jobs`        | `knowledgeStore.getPendingMaterializationJobs()` | job 数组 / summary                 | 查询成功 0，异常 1          |
+| `retry-jobs`  | `knowledgeStore.retryFailedJobs()`               | `{ attempted, succeeded, failed }` | `failed === 0` 为 0，否则 1 |
 
 6. 更新 `--help` 文案，明确 v11/v12 DB tables 是 canonical source，`index.json` 是 materialized view。
 
@@ -142,20 +144,20 @@ index.json.<pid>.<timestamp>.tmp
    - `writeManifest()` 内部物化
    - `addEntry()` 内部物化
    - `retryFailedJobs()` 内部物化
-   全部走同一保护路径。
+     全部走同一保护路径。
 4. `insertMaterializationJob()` 仍保持 non-fatal，job tracking 失败不得阻断主物化路径。
 5. `retryFailedJobs()` 在重试前先获取物化锁；拿不到锁时返回 `{ attempted: 0, succeeded: 0, failed: 0 }` 并记录 skipped/locked 日志，不重复处理同一批 job。
 
 新增/调整日志事件：
 
-| Source | Event | Level | 说明 |
-| --- | --- | --- | --- |
-| `lib-knowledge-store` | `KC-MATERIALIZE-REQUESTED` | INFO | 显式或内部物化请求开始 |
-| `lib-knowledge-store` | `KC-MATERIALIZE-LOCK-ACQUIRED` | DEBUG | 成功获取物化锁 |
-| `lib-knowledge-store` | `KC-MATERIALIZE-LOCK-BUSY` | WARN | 并发物化被跳过 |
-| `lib-knowledge-store` | `KC-MATERIALIZED` | INFO | 已有事件，保留并补充 job id/sha256 |
-| `lib-knowledge-store` | `KC-MATERIALIZE-FAILED` | ERROR | 已有事件，保留 |
-| `lib-knowledge-store` | `KC-JOBS-RETRIED` | INFO | 已有事件，保留并确保 attempted/succeeded/failed 完整 |
+| Source                | Event                          | Level | 说明                                                 |
+| --------------------- | ------------------------------ | ----- | ---------------------------------------------------- |
+| `lib-knowledge-store` | `KC-MATERIALIZE-REQUESTED`     | INFO  | 显式或内部物化请求开始                               |
+| `lib-knowledge-store` | `KC-MATERIALIZE-LOCK-ACQUIRED` | DEBUG | 成功获取物化锁                                       |
+| `lib-knowledge-store` | `KC-MATERIALIZE-LOCK-BUSY`     | WARN  | 并发物化被跳过                                       |
+| `lib-knowledge-store` | `KC-MATERIALIZED`              | INFO  | 已有事件，保留并补充 job id/sha256                   |
+| `lib-knowledge-store` | `KC-MATERIALIZE-FAILED`        | ERROR | 已有事件，保留                                       |
+| `lib-knowledge-store` | `KC-JOBS-RETRIED`              | INFO  | 已有事件，保留并确保 attempted/succeeded/failed 完整 |
 
 验收：
 
@@ -204,19 +206,19 @@ bun .opencode/scripts/knowledge/indexer.ts jobs --json
 
 ## 5. 子系统适配矩阵
 
-| 子系统 | 适配要求 |
-| --- | --- |
-| Layout Architecture System | 文件仍位于既有边界：库在 `.opencode/lib/`，CLI 在 `.opencode/scripts/knowledge/`，custom tool 不新增，docs 在 `docs/review/framework-refactor/` |
-| Permission Matrix System | Phase 2 复用 @Knowledge-Curator 现有 `safe_shell` 允许项；不新增全局 tool 权限；若未来新增 custom tool，只允许 @Knowledge-Curator 与 @Super-Admin |
-| concurrent session/dispatch write system | 物化路径增加 lock + 唯一 tmp 文件；retry 与正常 `addEntry()`/`writeManifest()` 不并发覆盖 |
-| Hardened enforcement System | 不绕过 `safe_shell`、`safe_edit`、UC7KS read-before-write；`indexer.ts` 使用 `// safe_bash: allow-write` 明确声明脚本写入意图 |
-| Harness System | `framework-self-test.ts` 增加 API 接入、CLI 命令、DB 表索引、调用路径检查 |
-| Central State Management | 不新增 JSON substate；`knowledge_audit_state` / `knowledge_cache_state` 继续由现有 helpers 管理 |
-| Multi-Agent System | @Knowledge-Curator 负责知识维护；普通 Agent 不直接调用物化修复；@Orchestrator 需要时调度 @Knowledge-Curator 或 @Super-Admin |
-| Log Central Management System | `lib-knowledge-store`、`script-knowledge-indexer`、`script-framework-self-test` 全部通过 `writeLog()` 写审计事件 |
-| DB management system | `knowledge_materialization_jobs` 作为 job 状态源；DB 失败按调用场景 fail-safe/fail-closed，job tracking failure non-fatal |
+| 子系统                                                    | 适配要求                                                                                                                                           |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Layout Architecture System                                | 文件仍位于既有边界：库在 `.opencode/lib/`，CLI 在 `.opencode/scripts/knowledge/`，custom tool 不新增，docs 在 `docs/review/framework-refactor/`    |
+| Permission Matrix System                                  | Phase 2 复用 @Knowledge-Curator 现有 `safe_shell` 允许项；不新增全局 tool 权限；若未来新增 custom tool，只允许 @Knowledge-Curator 与 @Super-Admin  |
+| concurrent session/dispatch write system                  | 物化路径增加 lock + 唯一 tmp 文件；retry 与正常 `addEntry()`/`writeManifest()` 不并发覆盖                                                          |
+| Hardened enforcement System                               | 不绕过 `safe_shell`、`safe_edit`、UC7KS read-before-write；`indexer.ts` 使用 `// safe_bash: allow-write` 明确声明脚本写入意图                      |
+| Harness System                                            | `framework-self-test.ts` 增加 API 接入、CLI 命令、DB 表索引、调用路径检查                                                                          |
+| Central State Management                                  | 不新增 JSON substate；`knowledge_audit_state` / `knowledge_cache_state` 继续由现有 helpers 管理                                                    |
+| Multi-Agent System                                        | @Knowledge-Curator 负责知识维护；普通 Agent 不直接调用物化修复；@Orchestrator 需要时调度 @Knowledge-Curator 或 @Super-Admin                        |
+| Log Central Management System                             | `lib-knowledge-store`、`script-knowledge-indexer`、`script-framework-self-test` 全部通过 `writeLog()` 写审计事件                                   |
+| DB management system                                      | `knowledge_materialization_jobs` 作为 job 状态源；DB 失败按调用场景 fail-safe/fail-closed，job tracking failure non-fatal                          |
 | Templatization & Parameterization System For Universality | 新增可选模板键：`knowledge.materialization_lock_ttl_ms`、`knowledge.materialization_jobs_limit`、`knowledge.materialization_retry_max`，都有默认值 |
-| TypeScript + Bun Based System | 不引入新依赖；custom tool 文件保持 ESM `import`；脚本保持当前 Bun/CJS interop 模式 |
+| TypeScript + Bun Based System                             | 不引入新依赖；custom tool 文件保持 ESM `import`；脚本保持当前 Bun/CJS interop 模式                                                                 |
 
 ---
 
@@ -267,7 +269,8 @@ export default tool({
       if (!["materialize", "jobs", "retry-jobs"].includes(args.action)) {
         return JSON.stringify({
           ok: false,
-          error: "Invalid action. Expected one of: materialize, jobs, retry-jobs",
+          error:
+            "Invalid action. Expected one of: materialize, jobs, retry-jobs",
         });
       }
       writeLog("knowledge-materialization-ops", "INFO", {
@@ -292,12 +295,12 @@ export default tool({
 
 ## 7. 日志集成方案
 
-| 层 | Source | 必须事件 |
-| --- | --- | --- |
-| Library | `lib-knowledge-store` | `KC-MATERIALIZE-REQUESTED`, `KC-MATERIALIZE-LOCK-ACQUIRED`, `KC-MATERIALIZE-LOCK-BUSY`, `KC-MATERIALIZED`, `KC-MATERIALIZE-FAILED`, `KC-JOBS-QUERIED`, `KC-JOBS-RETRIED` |
-| CLI | `script-knowledge-indexer` | `KC-INDEXER-MATERIALIZE`, `KC-INDEXER-JOBS`, `KC-INDEXER-RETRY-JOBS`, `KC-INDEXER-FAILED` |
-| Tool | `knowledge_cache_search` | 现有 `KC-SEARCH-VIA-STORE` 保留；必要时补 `KC-SEARCH-TAGS-VIA-HELPER` |
-| Harness | `script-framework-self-test` | `KC-MATERIALIZATION-OPS-CHECK` |
+| 层      | Source                       | 必须事件                                                                                                                                                                 |
+| ------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Library | `lib-knowledge-store`        | `KC-MATERIALIZE-REQUESTED`, `KC-MATERIALIZE-LOCK-ACQUIRED`, `KC-MATERIALIZE-LOCK-BUSY`, `KC-MATERIALIZED`, `KC-MATERIALIZE-FAILED`, `KC-JOBS-QUERIED`, `KC-JOBS-RETRIED` |
+| CLI     | `script-knowledge-indexer`   | `KC-INDEXER-MATERIALIZE`, `KC-INDEXER-JOBS`, `KC-INDEXER-RETRY-JOBS`, `KC-INDEXER-FAILED`                                                                                |
+| Tool    | `knowledge_cache_search`     | 现有 `KC-SEARCH-VIA-STORE` 保留；必要时补 `KC-SEARCH-TAGS-VIA-HELPER`                                                                                                    |
+| Harness | `script-framework-self-test` | `KC-MATERIALIZATION-OPS-CHECK`                                                                                                                                           |
 
 日志规则：
 
@@ -312,13 +315,13 @@ export default tool({
 
 `knowledge_materialization_jobs` 状态建议统一为：
 
-| status | 含义 |
-| --- | --- |
-| `pending` | 待处理或等待重试 |
-| `written` | DB -> file 物化成功 |
-| `failed` | 物化失败，可重试 |
-| `superseded` | 原失败/待处理 job 已被后续成功物化覆盖 |
-| `completed` | janitor purge/archive/evict 类维护动作完成，保留兼容现状 |
+| status       | 含义                                                     |
+| ------------ | -------------------------------------------------------- |
+| `pending`    | 待处理或等待重试                                         |
+| `written`    | DB -> file 物化成功                                      |
+| `failed`     | 物化失败，可重试                                         |
+| `superseded` | 原失败/待处理 job 已被后续成功物化覆盖                   |
+| `completed`  | janitor purge/archive/evict 类维护动作完成，保留兼容现状 |
 
 约束：
 
@@ -356,13 +359,13 @@ export default tool({
 
 ## 10. 回滚策略
 
-| 改动 | 回滚方式 |
-| --- | --- |
-| `knowledge_cache_search.ts` 使用 `searchByTags()` | 改回 `searchManifest({ tags })`，不影响 DB |
-| `indexer.ts` 新增 CLI 命令 | 删除新增 command 分支和 help 文案 |
-| 物化锁/唯一 tmp | 回退到现有 `index.json.tmp`，但不推荐长期保留 |
-| self-test 新检查 | 删除新增 check 调用，保留业务代码 |
-| 可选 custom tool | 删除 `.opencode/tools/knowledge_materialization_ops.ts`，撤销 permission |
+| 改动                                              | 回滚方式                                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------------ |
+| `knowledge_cache_search.ts` 使用 `searchByTags()` | 改回 `searchManifest({ tags })`，不影响 DB                               |
+| `indexer.ts` 新增 CLI 命令                        | 删除新增 command 分支和 help 文案                                        |
+| 物化锁/唯一 tmp                                   | 回退到现有 `index.json.tmp`，但不推荐长期保留                            |
+| self-test 新检查                                  | 删除新增 check 调用，保留业务代码                                        |
+| 可选 custom tool                                  | 删除 `.opencode/tools/knowledge_materialization_ops.ts`，撤销 permission |
 
 回滚不需要删除 `knowledge_materialization_jobs` 表或历史 job 记录；它们是审计数据。
 
