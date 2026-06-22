@@ -239,13 +239,21 @@ jobs:
 
       - name: Restore script executability (git checkout strips exec bit)
         run: |
-          echo "Restoring execute permissions on framework shell scripts..."
-          chmod +x .opencode/scripts/reconciliation-check.sh 2>/dev/null || echo "(reconciliation-check.sh not found — skipping chmod)"
-          chmod +x .opencode/scripts/pre-execution-hook.sh 2>/dev/null || echo "(pre-execution-hook.sh not found — skipping chmod)"
-          chmod +x .opencode/scripts/framework-self-test.ts 2>/dev/null || echo "(framework-self-test.ts — skipping chmod)"
-          chmod +x .opencode/hooks/pre-commit 2>/dev/null || echo "(pre-commit — skipping chmod)"
-          chmod +x .opencode/hooks/commit-msg 2>/dev/null || echo "(commit-msg — skipping chmod)"
+          echo "Restoring execute permissions on framework scripts..."
+          chmod +x .opencode/scripts/reconciliation-check.sh 2>/dev/null || echo "(reconciliation-check.sh — skipping)"
+          chmod +x .opencode/scripts/pre-execution-hook.sh 2>/dev/null || echo "(pre-execution-hook.sh — skipping)"
+          chmod +x .opencode/scripts/pre-execution-gate.ts 2>/dev/null || echo "(pre-execution-gate.ts — skipping)"
+          chmod +x .opencode/scripts/framework-self-test.ts 2>/dev/null || echo "(framework-self-test.ts — skipping)"
+          chmod +x .opencode/scripts/framework-doctor.ts 2>/dev/null || echo "(framework-doctor.ts — skipping)"
+          chmod +x .opencode/scripts/ci-semantic-validator.ts 2>/dev/null || echo "(ci-semantic-validator.ts — skipping)"
+          chmod +x .opencode/hooks/pre-commit 2>/dev/null || echo "(pre-commit — skipping)"
+          chmod +x .opencode/hooks/commit-msg 2>/dev/null || echo "(commit-msg — skipping)"
           echo "Script executability restored."
+
+      - name: Configure git hooks path for framework checks
+        run: |
+          git config core.hooksPath .opencode/hooks
+          echo "core.hooksPath set to: $(git config core.hooksPath)"
 
       - name: Initialize framework state DB (substate_kv table)
         run: |
