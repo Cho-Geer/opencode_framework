@@ -350,6 +350,87 @@ function check3_hookInvariants(): void {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CHECK 5: No mixed business+infra commits in range
+//
+// INFRA-NO-MIXED-COMMITS (2026-06-22): Verify that no individual
+// commit in the range contains BOTH business code files (under
+// booking_system_refactor/) AND infrastructure files (everything else).
+// Mixed commits are blocked because they make audit trails ambiguous.
+// ═══════════════════════════════════════════════════════════════
+function check5_noMixedBusinessAndInfra(): void {
+  console.log("\n── Check 5: No mixed business+infra commits ──");
+  console.log(
+    `   Policy: commits must not mix files under ${BUSINESS_CODE_PREFIXES.join(", ")} with other files`,
+  );
+
+  try {
+    const commits = execSync(`git log --oneline --name-only ${commitRange}`, {
+      encoding: "utf8",
+      cwd: ROOT,
+    }).trim();
+
+    if (!commits) {
+      pass("No commits in range");
+      return;
+    }
+
+    const fullLog = execSync(
+      `git log --format='---COMMIT---%n%H%n%s' ${commitRange}`,
+      { encoding: "utf8", cwd: ROOT },
+    ).trim();
+
+    const commitBlocks = fullLog.split("---COMMIT---").filter(Boolean);
+
+    for (const block of commitBlocks) {
+      const lines = block.trim().split("\n");
+      if (lines.length < 2) continue;
+      const hash = lines[0].trim();
+      const subject = lines[1]?.trim() || "";
+
+      // Get files changed in this commit
+      const changedFiles = execSync(
+        `git diff-tree --no-commit-id --name-only -r ${hash}`,
+        { encoding: "utf8", cwd: ROOT },
+      )
+        .trim()
+        .split("\n")
+        .filter(Boolean);
+
+      if (changedFiles.length === 0) continue;
+
+      // Check for mixed business+infra files
+      const hasBusiness = changedFiles.some((f: string) =>
+        BUSINESS_CODE_PREFIXES.some((prefix) => f.startsWith(prefix)),
+      );
+      const hasInfra = changedFiles.some(
+        (f: string) =>
+          !BUSINESS_CODE_PREFIXES.some((prefix) => f.startsWith(prefix)),
+      );
+
+      if (hasBusiness && hasInfra) {
+        const businessFiles = changedFiles.filter((f: string) =>
+          BUSINESS_CODE_PREFIXES.some((prefix) => f.startsWith(prefix)),
+        );
+        const infraFiles = changedFiles.filter(
+          (f: string) =>
+            !BUSINESS_CODE_PREFIXES.some((prefix) => f.startsWith(prefix)),
+        );
+
+        fail(
+          `Commit ${hash.substring(0, 7)} mixes business (${businessFiles.length} files) and infra (${infraFiles.length} files) code — "${subject.substring(0, 80)}"`,
+        );
+      } else {
+        pass(
+          `Commit ${hash.substring(0, 7)} is ${hasBusiness ? "business-only" : "infra-only"} (${changedFiles.length} file(s))`,
+        );
+      }
+    }
+  } catch (e: any) {
+    console.warn(`⚠️  Check 5 error: ${e.message || e}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // CHECK 4: Framework self-test passes
 // ═══════════════════════════════════════════════════════════════
 function check4_frameworkSelfTest(): void {
@@ -397,6 +478,7 @@ check1_criticalInfraMarker();
 check2_enforcementModeDowngrade();
 check3_hookInvariants();
 check4_frameworkSelfTest();
+check5_noMixedBusinessAndInfra();
 
 console.log("");
 if (failures === 0) {

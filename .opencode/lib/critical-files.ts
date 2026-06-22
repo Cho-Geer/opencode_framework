@@ -383,3 +383,86 @@ export function getModifiedInfraFiles(): string[] {
     return [];
   }
 }
+
+// ── INFRA-NO-MIXED-COMMITS: Mixed Business + Infra Commit Detection ──
+// Added 2026-06-22 by @Super-Admin (INFRA-NO-MIXED-COMMITS).
+// Prevents commits that contain BOTH business code files
+// (under booking_system_refactor/) AND infrastructure files
+// (everything else). They must be committed separately to maintain
+// clean audit trails and prevent accidental business-code changes
+// from sneaking into infrastructure commits.
+
+/**
+ * INFRA_REQUIRED_PREFIXES — Directory prefixes that are explicitly
+ * infrastructure (non-business-code). When using the "everything not
+ * business code is infrastructure" model, this is empty because all
+ * non-business-code files are infra by definition.
+ *
+ * BUSINESS_CODE_PREFIX is the primary discriminator; INFRA_REQUIRED_PREFIXES
+ * is provided for symmetry and future use cases where specific infra
+ * directories need to be enumerated.
+ *
+ * @since 2026-06-22 — INFRA-NO-MIXED-COMMITS
+ */
+export const INFRA_REQUIRED_PREFIXES: string[] = [];
+
+/**
+ * Check if a set of changed files contains both business code files
+ * (under BUSINESS_CODE_PREFIX, i.e., booking_system_refactor/) AND
+ * infrastructure files (everything else).
+ *
+ * Mixed commits are blocked because:
+ *  - Business code commits require TDD markers ([Red]/[Green]/[Refactor])
+ *  - Infrastructure commits require [INFRA] marker
+ *  - These two commit-message conventions are mutually exclusive in practice
+ *  - Mixed commits make audit trails ambiguous and hide business code changes
+ *    inside infrastructure-looking commits
+ *
+ * @param changedFiles — Array of file paths relative to repo root
+ * @returns true if the commit contains BOTH business code AND infrastructure files
+ *
+ * @since 2026-06-22 — INFRA-NO-MIXED-COMMITS
+ */
+export function hasMixedBusinessAndInfra(changedFiles: string[]): boolean {
+  if (changedFiles.length === 0) return false;
+
+  let hasBusiness = false;
+  let hasInfra = false;
+
+  for (const file of changedFiles) {
+    if (file.startsWith(BUSINESS_CODE_PREFIX)) {
+      hasBusiness = true;
+    } else {
+      hasInfra = true;
+    }
+
+    // Early exit: both found
+    if (hasBusiness && hasInfra) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Return ALL files staged for commit (business + infrastructure).
+ * Uses `git diff --cached --name-only` (commit-time check).
+ *
+ * This is the unfiltered version of getStagedInfraFiles() — returns
+ * every staged file regardless of business/infra classification.
+ * Needed by hasMixedBusinessAndInfra() checks in commit hooks.
+ *
+ * @since 2026-06-22 — INFRA-NO-MIXED-COMMITS
+ */
+export function getStagedChangedFiles(): string[] {
+  try {
+    const staged = execSync("git diff --cached --name-only", {
+      encoding: "utf8",
+    })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    return staged;
+  } catch {
+    return [];
+  }
+}

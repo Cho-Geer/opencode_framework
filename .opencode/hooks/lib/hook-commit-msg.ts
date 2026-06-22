@@ -180,6 +180,62 @@ if (tddMatch) {
   });
 }
 
+// ═══ INFRA-NO-MIXED-COMMITS: Block mixed business+infra commits ═══
+// Added 2026-06-22 by @Super-Admin.
+// A single commit MUST NOT contain both business code files
+// (under booking_system_refactor/) AND infrastructure files (everything else).
+// They must be committed separately for clean audit trails.
+import {
+  hasMixedBusinessAndInfra,
+  getStagedChangedFiles,
+} from "./hook-critical-files";
+
+const allStagedFiles = getStagedChangedFiles();
+const isMixed = hasMixedBusinessAndInfra(allStagedFiles);
+
+if (isMixed) {
+  const businessFiles = allStagedFiles.filter((f: string) =>
+    f.startsWith("booking_system_refactor/"),
+  );
+  const infraFiles = allStagedFiles.filter(
+    (f: string) => !f.startsWith("booking_system_refactor/"),
+  );
+
+  console.log("═══════════════════════════════════════════════════════");
+  console.log("  ❌ [FW-ENFORCE][INFRA-NO-MIXED-COMMITS]");
+  console.log("  Cannot mix INFRA and business code files in the same commit.");
+  console.log("  Please commit separately.");
+  console.log("═══════════════════════════════════════════════════════");
+  console.log("");
+  console.log(`  Business code files (${businessFiles.length}):`);
+  businessFiles.forEach((f: string) => console.log(`    ${f}`));
+  console.log("");
+  console.log(`  Infrastructure files (${infraFiles.length}):`);
+  infraFiles.forEach((f: string) => console.log(`    ${f}`));
+  console.log("");
+  console.log("  Suggested approach:");
+  console.log(
+    "    1. git add <infra files only> && git commit -m '[INFRA] ...'",
+  );
+  console.log(
+    "    2. git add <business files only> && git commit -m '[Red] T-xxx ...'",
+  );
+  console.log("═══════════════════════════════════════════════════════");
+
+  writeLog("hook-commit-msg", "hooks", {
+    level: "ERROR",
+    event: "INFRA-NO-MIXED-COMMITS",
+    detail: JSON.stringify({
+      totalFiles: allStagedFiles.length,
+      businessCount: businessFiles.length,
+      infraCount: infraFiles.length,
+      businessFiles,
+      infraFiles,
+    }),
+  });
+  process.exit(1);
+}
+
 // ── [INFRA] Marker Check (infrastructure files) ──
 // INFRA-POLICY-WIDER-SCOPE (2026-06-22): Check ALL infrastructure files
 // (anything NOT under booking_system_refactor/), not just CRITICAL_FILES.

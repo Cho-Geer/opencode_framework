@@ -18,6 +18,9 @@ export {
   CRITICAL_FILES,
   getStagedCriticalFiles,
   BUSINESS_CODE_PREFIX,
+  INFRA_REQUIRED_PREFIXES,
   isInfrastructureFile,
   getStagedInfraFiles,
+  hasMixedBusinessAndInfra,
+  getStagedChangedFiles,
 } from "../../lib/critical-files";
