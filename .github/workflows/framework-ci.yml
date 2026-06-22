@@ -253,9 +253,17 @@ jobs:
           bun .opencode/scripts/db-migrate.ts 2>/dev/null || echo "(db-migrate.ts not needed or already applied — continuing)"
 
       - name: Run CI semantic validator
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           echo "Running ci-semantic-validator.ts..."
-          bun .opencode/scripts/ci-semantic-validator.ts --range HEAD~5..HEAD
+          if [ -n "$PR_BASE_SHA" ] && [ "$PR_BASE_SHA" != "null" ]; then
+            echo "PR context: checking commits from base ${PR_BASE_SHA} to HEAD"
+            bun .opencode/scripts/ci-semantic-validator.ts --base "${PR_BASE_SHA}"
+          else
+            echo "Push context: checking commits from HEAD~5 to HEAD"
+            bun .opencode/scripts/ci-semantic-validator.ts --range HEAD~5..HEAD
+          fi
 
       - name: Export check result
         if: always()

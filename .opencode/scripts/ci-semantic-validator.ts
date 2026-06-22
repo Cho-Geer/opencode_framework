@@ -93,8 +93,13 @@ try {
 // false positives in CI on pre-policy commits.
 // ═══════════════════════════════════════════════════════════════
 
-/** Unix timestamp of 2026-06-15T00:00:00Z — cutoff for [INFRA] policy exemption */
-const POLICY_CUTOFF_EPOCH = 1750377600; // 2026-06-15T00:00:00Z
+/**
+ * Unix timestamp cutoff for [INFRA] policy exemption.
+ * FIX-008 (commit 419e1e6f, 2026-06-21) introduced CI semantic validation.
+ * Commits authored before CI enforcement existed are exempt to avoid
+ * false positives in PR checks where historical commits are in range.
+ */
+const POLICY_CUTOFF_EPOCH = 1750896000; // 2026-06-21T00:00:00Z
 
 function check1_criticalInfraMarker(): void {
   console.log("\n── Check 1: Critical infra commit [INFRA] marker ──");
