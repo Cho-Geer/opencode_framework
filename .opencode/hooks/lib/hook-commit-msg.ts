@@ -30,6 +30,7 @@ import {
   getStagedCriticalFiles,
   getStagedInfraFiles,
   BUSINESS_CODE_PREFIX,
+  isInfraOnlyCommit,
 } from "./hook-critical-files";
 /**
  * FIX-011 (Phase 2): Commit-msg hook now emits structured high-severity
@@ -96,89 +97,135 @@ if (/^Merge /i.test(msg)) {
 }
 
 // ── TDD Marker + Phase Ordering ──
-const tddMatch = msg.match(/^\[(Red|Green|Refactor)\]\s+(\S+)/i);
-
-// INFRA-POLICY-WIDER-SCOPE (2026-06-22): Also check for infrastructure files
-// (anything NOT under booking_system_refactor/), not just CRITICAL_FILES.
-const criticalModified = getStagedCriticalFiles();
+/**
+ * INFRA-ONLY-TDD-SKIP (2026-06-22): If ALL staged files are infrastructure
+ * (outside BUSINESS_CODE_PREFIX), skip TDD phase ordering entirely.
+ * Only require [INFRA] marker. This allows framework maintenance commits
+ * to bypass RED/GREEN/REFACTOR without weakening business code enforcement.
+ */
+const infraOnlyCommit = isInfraOnlyCommit(getStagedChangedFiles());
 const infraModified = getStagedInfraFiles();
-const isInfraOnly =
-  !tddMatch && msg.includes("[INFRA]") && infraModified.length > 0;
 
-if (tddMatch) {
-  const phase = tddMatch[1].toLowerCase();
-  const taskId = tddMatch[2];
-  const prevCommits = (() => {
-    try {
-      return execSync(`git log --oneline --all --grep="${taskId}"`, {
-        encoding: "utf8",
-        timeout: 5000,
-      });
-    } catch {
-      return "";
-    }
-  })();
-
-  if (phase === "green") {
-    const hasRed = prevCommits
-      .split("\n")
-      .some((l) => new RegExp(`\\[Red\\].*${taskId}`, "i").test(l));
-    if (!hasRed) {
-      console.log(`❌ [TDD] [Green] for ${taskId} without preceding [Red]`);
+if (infraOnlyCommit) {
+  // ── INFRA-only commit: skip TDD markers, require [INFRA] ──
+  if (!msg.includes("[INFRA]")) {
+    console.log("═══════════════════════════════════════════════════════");
+    console.log(
+      "  [FW-ENFORCE][INFRA] INFRA-only commit — [INFRA] marker required",
+    );
+    console.log("═══════════════════════════════════════════════════════");
+    console.log(
+      "  All staged files are infrastructure (outside booking_system_refactor/).",
+    );
+    console.log(
+      "  Commit message must include [INFRA] marker. TDD markers not required.",
+    );
+    console.log(
+      '  Example: git commit -m "[INFRA] fix hook enforcement logic"',
+    );
+    console.log("═══════════════════════════════════════════════════════");
+    if (mode === "strict" || mode === "locked") {
+      console.log("  ❌ [INFRA] Blocked in strict/locked mode — fix and retry");
       writeLog("hook-commit-msg", "hooks", {
         level: "ERROR",
-        event: "TDD-PHASE-VIOLATION",
-        detail: JSON.stringify({
-          phase: "green",
-          taskId,
-          reason: "no preceding [Red]",
-        }),
+        event: "INFRA-ONLY-MARKER-MISSING",
+        detail: JSON.stringify({ mode, msg: msg.substring(0, 200) }),
       });
       process.exit(1);
     }
+    console.log(
+      `  ⚠️  [INFRA] Advisory: [INFRA] marker recommended but not enforced in ${mode} mode`,
+    );
+    writeLog("hook-commit-msg", "hooks", {
+      level: "WARN",
+      event: "INFRA-ONLY-MARKER-MISSING-ADVISORY",
+      detail: JSON.stringify({ mode }),
+    });
+  } else {
+    console.log(
+      `✅ [INFRA] INFRA-only commit — TDD markers skipped, [INFRA] confirmed`,
+    );
+    writeLog("hook-commit-msg", "hooks", {
+      level: "INFO",
+      event: "INFRA-ONLY-COMMIT-ACCEPTED",
+      detail: "INFRA-only commit with [INFRA] marker — TDD skipped",
+    });
   }
-  if (phase === "refactor") {
-    const hasGreen = prevCommits
-      .split("\n")
-      .some((l) => new RegExp(`\\[Green\\].*${taskId}`, "i").test(l));
-    if (!hasGreen) {
-      console.log(
-        `❌ [TDD] [Refactor] for ${taskId} without preceding [Green]`,
-      );
-      writeLog("hook-commit-msg", "hooks", {
-        level: "ERROR",
-        event: "TDD-PHASE-VIOLATION",
-        detail: JSON.stringify({
-          phase: "refactor",
-          taskId,
-          reason: "no preceding [Green]",
-        }),
-      });
-      process.exit(1);
-    }
-  }
-  console.log(`✅ [TDD] Valid ${phase} commit for ${taskId}`);
-} else if (isInfraOnly) {
-  console.log(
-    `✅ [INFRA] infrastructure-only commit (${criticalModified.length} critical file(s)) — TDD marker not required`,
-  );
-} else if (mode === "strict" || mode === "locked") {
-  console.log(
-    "❌ [TDD] Commit message must contain [Red], [Green], or [Refactor]",
-  );
-  writeLog("hook-commit-msg", "hooks", {
-    level: "ERROR",
-    event: "TDD-MARKER-MISSING",
-    detail: JSON.stringify({ mode, msg: msg.substring(0, 200) }),
-  });
-  process.exit(1);
 } else {
-  console.log("⚠️  [TDD] Advisory: No TDD marker found");
-  writeLog("hook-commit-msg", "hooks", {
-    level: "WARN",
-    event: "TDD-MARKER-MISSING-ADVISORY",
-    detail: "TDD marker missing — advisory mode",
-  });
+  // ── Normal (non-INFRA-only) commit: enforce TDD markers ──
+  const tddMatch = msg.match(/^\[(Red|Green|Refactor)\]\s+(\S+)/i);
+
+  if (tddMatch) {
+    const phase = tddMatch[1].toLowerCase();
+    const taskId = tddMatch[2];
+    const prevCommits = (() => {
+      try {
+        return execSync(`git log --oneline --all --grep="${taskId}"`, {
+          encoding: "utf8",
+          timeout: 5000,
+        });
+      } catch {
+        return "";
+      }
+    })();
+
+    if (phase === "green") {
+      const hasRed = prevCommits
+        .split("\n")
+        .some((l) => new RegExp(`\\[Red\\].*${taskId}`, "i").test(l));
+      if (!hasRed) {
+        console.log(`❌ [TDD] [Green] for ${taskId} without preceding [Red]`);
+        writeLog("hook-commit-msg", "hooks", {
+          level: "ERROR",
+          event: "TDD-PHASE-VIOLATION",
+          detail: JSON.stringify({
+            phase: "green",
+            taskId,
+            reason: "no preceding [Red]",
+          }),
+        });
+        process.exit(1);
+      }
+    }
+    if (phase === "refactor") {
+      const hasGreen = prevCommits
+        .split("\n")
+        .some((l) => new RegExp(`\\[Green\\].*${taskId}`, "i").test(l));
+      if (!hasGreen) {
+        console.log(
+          `❌ [TDD] [Refactor] for ${taskId} without preceding [Green]`,
+        );
+        writeLog("hook-commit-msg", "hooks", {
+          level: "ERROR",
+          event: "TDD-PHASE-VIOLATION",
+          detail: JSON.stringify({
+            phase: "refactor",
+            taskId,
+            reason: "no preceding [Green]",
+          }),
+        });
+        process.exit(1);
+      }
+    }
+    console.log(`✅ [TDD] Valid ${phase} commit for ${taskId}`);
+  } else if (mode === "strict" || mode === "locked") {
+    console.log(
+      "❌ [TDD] Commit message must contain [Red], [Green], or [Refactor]",
+    );
+    writeLog("hook-commit-msg", "hooks", {
+      level: "ERROR",
+      event: "TDD-MARKER-MISSING",
+      detail: JSON.stringify({ mode, msg: msg.substring(0, 200) }),
+    });
+    process.exit(1);
+  } else {
+    console.log("⚠️  [TDD] Advisory: No TDD marker found");
+    writeLog("hook-commit-msg", "hooks", {
+      level: "WARN",
+      event: "TDD-MARKER-MISSING-ADVISORY",
+      detail: "TDD marker missing — advisory mode",
+    });
+  }
 }
 
 // ═══ INFRA-NO-MIXED-COMMITS: Block mixed business+infra commits ═══
@@ -237,6 +284,105 @@ if (isMixed) {
   process.exit(1);
 }
 
+// ═══ INFRA-CHECK-UNCOMMITTED: Block business commits with uncommitted INFRA files ═══
+// Added 2026-06-22 by @Super-Admin (task: INFRA-CHECK-UNCOMMITTED).
+// When committing business code (files under BUSINESS_CODE_PREFIX, i.e.,
+// booking_system_refactor/), there must be NO uncommitted/unstaged INFRA
+// files (files outside BUSINESS_CODE_PREFIX). All pending INFRA changes
+// must be committed first. This prevents scenarios where business code
+// changes are committed alongside uncommitted framework modifications,
+// creating confusing audit trails.
+//
+// The check uses two git commands:
+//   git diff --name-only        → unstaged modified files
+//   git ls-files --others --exclude-standard → untracked files
+// Both are filtered by isInfrastructureFile() to identify INFRA files
+// that exist on disk but are NOT part of the current commit.
+//
+// This check is skipped for INFRA-only commits (they have no business code).
+
+const hasBusinessCodeInCommit = allStagedFiles.some((f: string) =>
+  f.startsWith(BUSINESS_CODE_PREFIX),
+);
+
+if (hasBusinessCodeInCommit) {
+  // Discover uncommitted INFRA files
+  const uncommittedInfraFiles: string[] = [];
+
+  // Unstaged modified files
+  try {
+    const diffOut = execSync("git diff --name-only", {
+      encoding: "utf8",
+      timeout: 5000,
+    })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    for (const f of diffOut) {
+      if (isInfrastructureFile(f)) {
+        uncommittedInfraFiles.push(f);
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️  [INFRA-CHECK] git diff failed:", String(err));
+  }
+
+  // Untracked files
+  try {
+    const untrackedOut = execSync("git ls-files --others --exclude-standard", {
+      encoding: "utf8",
+      timeout: 5000,
+    })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    for (const f of untrackedOut) {
+      if (isInfrastructureFile(f)) {
+        uncommittedInfraFiles.push(f);
+      }
+    }
+  } catch (err) {
+    console.warn("⚠️  [INFRA-CHECK] git ls-files failed:", String(err));
+  }
+
+  if (uncommittedInfraFiles.length > 0) {
+    console.log("═══════════════════════════════════════════════════════");
+    console.log("  ❌ [FW-ENFORCE][INFRA-CHECK-UNCOMMITTED]");
+    console.log("  Cannot commit business code while uncommitted INFRA");
+    console.log("  files exist. Please commit INFRA files first.");
+    console.log("═══════════════════════════════════════════════════════");
+    console.log("");
+    console.log(`  Uncommitted INFRA files (${uncommittedInfraFiles.length}):`);
+    uncommittedInfraFiles.forEach((f: string) => console.log(`    ${f}`));
+    console.log("");
+    console.log("  Suggested approach:");
+    console.log("    1. git add <infra files> && git commit -m '[INFRA] ...'");
+    console.log("    2. Then commit your business code changes.");
+    console.log("═══════════════════════════════════════════════════════");
+    writeLog("hook-commit-msg", "hooks", {
+      level: "ERROR",
+      event: "INFRA-CHECK-UNCOMMITTED-BLOCKED",
+      detail: JSON.stringify({
+        uncommittedInfraCount: uncommittedInfraFiles.length,
+        uncommittedInfraFiles,
+        businessFilesAtCommit: allStagedFiles.filter((f: string) =>
+          f.startsWith(BUSINESS_CODE_PREFIX),
+        ),
+      }),
+    });
+    process.exit(1);
+  } else {
+    console.log(
+      "✅ [INFRA-CHECK] No uncommitted INFRA files — business commit allowed",
+    );
+    writeLog("hook-commit-msg", "hooks", {
+      level: "INFO",
+      event: "INFRA-CHECK-PASSED",
+      detail: "Business code commit: no uncommitted INFRA files detected",
+    });
+  }
+}
+
 // ── [INFRA] Marker Check (infrastructure files) ──
 // INFRA-POLICY-WIDER-SCOPE (2026-06-22): Check ALL infrastructure files
 // (anything NOT under booking_system_refactor/), not just CRITICAL_FILES.
@@ -276,15 +422,16 @@ if (infraModified.length > 0) {
         detail: JSON.stringify({ files: infraModified, mode }),
       });
     }
-  } else if (!isInfraOnly) {
+  } else if (!infraOnlyCommit) {
     console.log(
       `✅ [INFRA] ${infraModified.length} infrastructure file(s) — marker confirmed`,
     );
   }
 }
 
-// ── commitlint (fallback for non-TDD commits) ──
-if (!tddMatch) {
+// ── commitlint (fallback for non-TDD, non-INFRA-only commits) ──
+const tddMatchGlobal = msg.match(/^\[(Red|Green|Refactor)\]\s+(\S+)/i);
+if (!tddMatchGlobal && !infraOnlyCommit) {
   const commitlint = join(root, "node_modules/.bin/commitlint");
   if (existsSync(commitlint)) {
     console.log("🔍 [commitlint] Validating...");
