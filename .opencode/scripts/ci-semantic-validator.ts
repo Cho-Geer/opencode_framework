@@ -27,6 +27,10 @@
  * @updated 2026-06-22 — FIX-CI-RANGE-MERGEBASE: --base now uses git merge-base
  *   to compute the actual divergence point, avoiding false positives from
  *   historically unmerged commits on the branch.
+ * @updated 2026-06-22 — FIX-CI-DYNAMIC-CUTOFF-V2: --base now computes the
+ *   base commit's author timestamp and uses it as an additional cutoff in
+ *   Check 1 (Math.max with POLICY_CUTOFF_EPOCH). Commits with committer
+ *   timestamp <= base branch HEAD are skipped as already-merged.
  */
 
 import { execSync } from "node:child_process";
@@ -56,6 +60,16 @@ const ROOT = resolveOpenCodeRoot();
 
 // ── CLI Args ──────────────────────────────────────────────────
 let commitRange = "HEAD";
+/**
+ * FIX-CI-DYNAMIC-CUTOFF-V2 (2026-06-22):
+ * When --base is provided, this holds the base commit's epoch timestamp.
+ * Used as an additional cutoff in Check 1: any commit with committer
+ * timestamp <= baseCommitEpoch is assumed already in the base branch
+ * and is skipped. The effective cutoff is Math.max(POLICY_CUTOFF_EPOCH,
+ * baseCommitEpoch), ensuring the static cutoff still applies for push events
+ * (where baseCommitEpoch remains 0).
+ */
+let baseCommitEpoch = 0;
 const rangeIdx = process.argv.indexOf("--range");
 if (rangeIdx !== -1 && rangeIdx + 1 < process.argv.length) {
   commitRange = process.argv[rangeIdx + 1];
@@ -80,6 +94,27 @@ if (baseIdx !== -1 && baseIdx + 1 < process.argv.length) {
   console.log(
     `🔀 Merge-base: ${mergeBase.substring(0, 7)} (from --base ${baseSha})`,
   );
+  /**
+   * FIX-CI-DYNAMIC-CUTOFF-V2 (2026-06-22):
+   * Compute the base commit's committer epoch from the --base SHA.
+   * Any commit in the range with committer timestamp <= baseCommitEpoch
+   * is assumed to already exist in the base branch and is skipped.
+   * Falls back to 0 (no-op) on failure.
+   */
+  try {
+    const baseTs = execSync(`git log -1 --format='%ct' ${baseSha}`, {
+      encoding: "utf8",
+      cwd: ROOT,
+    }).trim();
+    baseCommitEpoch = parseInt(baseTs, 10) || 0;
+    console.log(
+      `🕐 Base commit epoch: ${baseCommitEpoch} (${new Date(baseCommitEpoch * 1000).toISOString().split("T")[0]})`,
+    );
+  } catch {
+    console.warn(
+      "⚠️  Could not determine base commit timestamp; using POLICY_CUTOFF_EPOCH only",
+    );
+  }
 }
 
 let failures = 0;
@@ -121,8 +156,11 @@ try {
 /**
  * Unix timestamp cutoff for [INFRA] policy exemption.
  * FIX-008 (commit 419e1e6f, 2026-06-21) introduced CI semantic validation.
- * Commits authored before CI enforcement existed are exempt to avoid
- * false positives in PR checks where historical commits are in range.
+ * FIX-CI-DYNAMIC-CUTOFF-V2 (2026-06-22): When --base is provided, the
+ * effective cutoff is Math.max(POLICY_CUTOFF_EPOCH, baseCommitEpoch),
+ * where baseCommitEpoch is the --base branch HEAD timestamp. This skips
+ * commits that predate CI enforcement AND commits already in the base
+ * branch. For push events (no --base), only POLICY_CUTOFF_EPOCH applies.
  */
 const POLICY_CUTOFF_EPOCH = 1750896000; // 2026-06-21T00:00:00Z
 
@@ -186,10 +224,18 @@ function check1_criticalInfraMarker(): void {
       const subject = lines[2]?.trim() || "";
       const body = lines.slice(3).join("\n");
 
-      // Skip commits authored before the [INFRA] policy existed (false positives)
-      if (committerEpoch < POLICY_CUTOFF_EPOCH) {
+      // FIX-CI-DYNAMIC-CUTOFF-V2 (2026-06-22):
+      // Use dynamic cutoff: when --base is provided, baseCommitEpoch > 0
+      // and we skip commits with committer timestamp <= the base branch HEAD.
+      // Static POLICY_CUTOFF_EPOCH is the floor (for push events).
+      const activeCutoff = Math.max(POLICY_CUTOFF_EPOCH, baseCommitEpoch);
+      if (committerEpoch < activeCutoff) {
+        const cutoffLabel =
+          baseCommitEpoch > POLICY_CUTOFF_EPOCH
+            ? `--base branch HEAD`
+            : `[INFRA] CI policy`;
         pass(
-          `Commit ${hash.substring(0, 7)} predates [INFRA] CI policy (${new Date(committerEpoch * 1000).toISOString().split("T")[0]}) — skipped`,
+          `Commit ${hash.substring(0, 7)} predates ${cutoffLabel} (${new Date(committerEpoch * 1000).toISOString().split("T")[0]} <= ${new Date(activeCutoff * 1000).toISOString().split("T")[0]}) — skipped`,
         );
         continue;
       }
