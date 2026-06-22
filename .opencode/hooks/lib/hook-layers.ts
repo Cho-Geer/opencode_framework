@@ -39,6 +39,7 @@ import type { EnforcementMode } from "../../lib/gate-core";
  */
 import { writeLog } from "../../lib/log-manager";
 import { getStagedCriticalFiles } from "./hook-critical-files";
+import { isInfraOnlyCommit } from "./hook-critical-files";
 import { tolerantParse } from "../../lib/tolerant-json";
 
 // ── Redirect all output to log file (sync writes for reliable flush before exit) ──
@@ -335,48 +336,60 @@ if (existsSync(lintStagedBin)) {
 
 // ── Layer 2.5: TDD Order Pre-Check ──
 console.log("\n[Layer 2.5/4] TDD order pre-check...");
-const FRAMEWORK_EXCLUDES =
-  /^\.opencode\/|^docs\/|^\.task_temp\/|^node_modules\/|^opencode\.json$|^AGENTS\.md$|^contract\.yaml$|^Task\.DAG\.json$|^TECH_DEBT_REGISTRY\.md$|^WAIVE\.md$|^PROJECT_REFERENCE\.md$|^Project\.graph$/;
+
 const staged = execSync("git diff --cached --name-only", { encoding: "utf8" })
   .trim()
   .split("\n")
   .filter(Boolean);
-const implFiles = staged.filter(
-  (f) =>
-    /\.(ts|js)$/.test(f) &&
-    !/\.spec\.|\.test\.|\/test\/|\.config\./.test(f) &&
-    !FRAMEWORK_EXCLUDES.test(f),
-);
-const testFiles = staged.filter((f) => /\.spec\.|\.test\.|\/test\//.test(f));
 
-if (implFiles.length > 0 && testFiles.length === 0) {
-  try {
-    const lastMsg = execSync("git log -1 --format=%s", {
-      encoding: "utf8",
-    }).trim();
-    if (!/\[(Red|Green|Refactor)\]/i.test(lastMsg)) {
-      if (mode === "advisory") {
-        console.log(
-          "⚠️  [ADVISORY] Impl files without test files & no TDD tag",
-        );
-      } else {
-        console.log(
-          "❌ [TDD] Impl files without test files AND no TDD tag — BLOCKED",
-        );
-        writeLog("hook-layers", "hooks", {
-          level: "ERROR",
-          event: "TDD-ORDER-VIOLATION",
-          detail: JSON.stringify({ implFiles, mode }),
-        });
-        process.exit(1);
-      }
-    }
-  } catch {
-    /* no previous commit */
-  }
+/**
+ * INFRA-ONLY-TDD-SKIP (2026-06-22): If ALL staged files are infrastructure
+ * (outside BUSINESS_CODE_PREFIX), skip the TDD order validation.
+ * Infrastructure maintenance commits (e.g., hook fixes, framework updates)
+ * do not require test file pairing or TDD phase markers.
+ */
+if (isInfraOnlyCommit(staged)) {
+  console.log("  ✅ [INFRA] INFRA-only commit — TDD order check skipped");
 } else {
-  console.log("  ✅ TDD order check passed");
-}
+  const FRAMEWORK_EXCLUDES =
+    /^\.opencode\/|^docs\/|^\.task_temp\/|^node_modules\/|^opencode\.json$|^AGENTS\.md$|^contract\.yaml$|^Task\.DAG\.json$|^TECH_DEBT_REGISTRY\.md$|^WAIVE\.md$|^PROJECT_REFERENCE\.md$|^Project\.graph$/;
+  const implFiles = staged.filter(
+    (f) =>
+      /\.(ts|js)$/.test(f) &&
+      !/\.spec\.|\.test\.|\/test\/|\.config\./.test(f) &&
+      !FRAMEWORK_EXCLUDES.test(f),
+  );
+  const testFiles = staged.filter((f) => /\.spec\.|\.test\.|\/test\//.test(f));
+
+  if (implFiles.length > 0 && testFiles.length === 0) {
+    try {
+      const lastMsg = execSync("git log -1 --format=%s", {
+        encoding: "utf8",
+      }).trim();
+      if (!/\[(Red|Green|Refactor)\]/i.test(lastMsg)) {
+        if (mode === "advisory") {
+          console.log(
+            "⚠️  [ADVISORY] Impl files without test files & no TDD tag",
+          );
+        } else {
+          console.log(
+            "❌ [TDD] Impl files without test files AND no TDD tag — BLOCKED",
+          );
+          writeLog("hook-layers", "hooks", {
+            level: "ERROR",
+            event: "TDD-ORDER-VIOLATION",
+            detail: JSON.stringify({ implFiles, mode }),
+          });
+          process.exit(1);
+        }
+      }
+    } catch {
+      /* no previous commit */
+    }
+  } else {
+    console.log("  ✅ TDD order check passed");
+  }
+} // end else (non-INFRA-only commit)
 
 // ── Layer 2.6: UC7KS Docs Consistency ──
 console.log("\n[Layer 2.6/4] UC7KS docs consistency...");
