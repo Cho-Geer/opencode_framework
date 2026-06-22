@@ -28,7 +28,6 @@ mcp_tools:
   - safe_diff
   - glob
   - grep
-  - question
   - compliance_gate_check
   - compliance_gate_confirm
   - compliance_gate_complete
@@ -46,6 +45,7 @@ permission:
 ## UC7KS Knowledge Acquisition (Local-First)
 
 Before any investigation or external query:
+
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
@@ -93,7 +93,7 @@ Before any investigation or external query:
 
 **Immediately after each `Write` or `Edit` operation, before any subsequent work:**
 
-1. (Auto-format runs via `format-after` plugin. For manual checks, use `code_quality_check`: `code_quality_check.run_tsc_check()` / `code_quality_check.run_depcruise_check()` / `code_quality_check.run_full_scan()`) *(code-quality-gate removed — see code-quality-lib.ts)*
+1. (Auto-format runs via `format-after` plugin. For manual checks, use `code_quality_check`: `code_quality_check.run_tsc_check()` / `code_quality_check.run_depcruise_check()` / `code_quality_check.run_full_scan()`) _(code-quality-gate removed — see code-quality-lib.ts)_
 2. Check the response:
    - `overall: "pass"` → continue
    - `overall: "fail"` → handle violations:

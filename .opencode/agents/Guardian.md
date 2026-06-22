@@ -25,7 +25,6 @@ mcp_tools:
   - safe_diff
   - glob
   - grep
-  - question
   - compliance_gate_check
   - compliance_gate_confirm
   - compliance_gate_complete
@@ -41,6 +40,7 @@ permission:
 ## UC7KS Knowledge Acquisition (Local-First)
 
 Before any investigation or external query:
+
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
@@ -117,6 +117,7 @@ Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rul
 When reviewing frontend code, apply the following conditional checklist based on project.config.json tech stack:
 
 ### Universal Checks (always apply)
+
 - TDD evidence verification (RED→GREEN→REFACTOR cycle)
 - Test coverage threshold validation (≥70%)
 - No any types
@@ -125,18 +126,19 @@ When reviewing frontend code, apply the following conditional checklist based on
 
 ### Framework-Specific Checks (resolved from project.config.json)
 
-| Framework | Checks to Apply |
-|-----------|-----------------|
-| Angular | • Atomic design hierarchy (Atoms→Molecules→Organisms→Layouts→Pages)<br>• Tailwind First, SCSS supplementary<br>• Sass @use mandatory (no @import)<br>• Store isolation via @Input()<br>• @defer for non-critical content<br>• Component standalone by default |
-| React | • Component composition pattern<br>• CSS-in-JS or Tailwind strategy<br>• State management pattern (Redux/Context/Zustand)<br>• Hook rules compliance<br>• Code-splitting via lazy/Suspense |
-| Vue | • SFC structure (template/script/style)<br>• Composition API vs Options API consistency<br>• Pinia/Vuex state management<br>• Scoped styles |
-| *(unconfigured)* | ⚠️ WARNING: No framework configured. Apply universal checks only. Flag for @Architect review. |
+| Framework        | Checks to Apply                                                                                                                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Angular          | • Atomic design hierarchy (Atoms→Molecules→Organisms→Layouts→Pages)<br>• Tailwind First, SCSS supplementary<br>• Sass @use mandatory (no @import)<br>• Store isolation via @Input()<br>• @defer for non-critical content<br>• Component standalone by default |
+| React            | • Component composition pattern<br>• CSS-in-JS or Tailwind strategy<br>• State management pattern (Redux/Context/Zustand)<br>• Hook rules compliance<br>• Code-splitting via lazy/Suspense                                                                    |
+| Vue              | • SFC structure (template/script/style)<br>• Composition API vs Options API consistency<br>• Pinia/Vuex state management<br>• Scoped styles                                                                                                                   |
+| _(unconfigured)_ | ⚠️ WARNING: No framework configured. Apply universal checks only. Flag for @Architect review.                                                                                                                                                                 |
 
 ## Backend Review Trigger Scenarios
 
 When reviewing backend code, apply the following conditional checklist:
 
 ### Universal Checks (always apply)
+
 - Backend code review (naming conventions, modularisation, file separation)
 - TDD evidence verification
 - Coverage threshold validation
@@ -144,9 +146,9 @@ When reviewing backend code, apply the following conditional checklist:
 
 ### Framework-Specific Checks (resolved from project.config.json)
 
-| Framework | Checks to Apply |
-|-----------|-----------------|
-| NestJS | • prisma.$transaction() compliance<br>• class-validator + Swagger decorator completeness<br>• JWT + Passport @Public()/@Roles() compliance<br>• @RateLimit decorator configuration<br>• GlobalExceptionFilter usage<br>• @ApiOperation/@ApiResponse completeness |
-| Express | • express-validator middleware<br>• JWT middleware configuration<br>• express-rate-limit configuration<br>• Custom error handler middleware<br>• swagger-jsdoc completeness |
-| Fastify | • fastify-type-provider-typebox validation<br>• Fastify JWT plugin configuration<br>• fastify-rate-limit configuration<br>• Fastify lifecycle hook error handling<br>• @fastify/swagger completeness |
-| *(unconfigured)* | ⚠️ WARNING: No framework configured. Apply universal checks only. Flag for @Architect review. |
+| Framework        | Checks to Apply                                                                                                                                                                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NestJS           | • prisma.$transaction() compliance<br>• class-validator + Swagger decorator completeness<br>• JWT + Passport @Public()/@Roles() compliance<br>• @RateLimit decorator configuration<br>• GlobalExceptionFilter usage<br>• @ApiOperation/@ApiResponse completeness |
+| Express          | • express-validator middleware<br>• JWT middleware configuration<br>• express-rate-limit configuration<br>• Custom error handler middleware<br>• swagger-jsdoc completeness                                                                                      |
+| Fastify          | • fastify-type-provider-typebox validation<br>• Fastify JWT plugin configuration<br>• fastify-rate-limit configuration<br>• Fastify lifecycle hook error handling<br>• @fastify/swagger completeness                                                             |
+| _(unconfigured)_ | ⚠️ WARNING: No framework configured. Apply universal checks only. Flag for @Architect review.                                                                                                                                                                    |

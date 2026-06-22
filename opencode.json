@@ -24,7 +24,7 @@
           "Knowledge-Curator": "allow"
         },
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "glob": "allow",
         "grep": "allow",
         "edit": "deny",
@@ -177,7 +177,7 @@
           "Knowledge-Curator": "allow"
         },
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "glob": "allow",
         "grep": "allow",
         "bash": "deny",
@@ -294,7 +294,7 @@
           "Knowledge-Curator": "allow"
         },
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "edit": "deny",
         "glob": "allow",
         "grep": "allow",
@@ -383,7 +383,7 @@
           "Knowledge-Curator": "allow"
         },
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "edit": "deny",
         "glob": "allow",
         "grep": "allow",
@@ -456,7 +456,7 @@
           "Knowledge-Curator": "allow"
         },
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "glob": "allow",
         "grep": "allow",
         "bash": "deny",
@@ -529,7 +529,7 @@
           "Knowledge-Curator": "allow"
         },
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "glob": "allow",
         "grep": "allow",
         "edit": "deny",
@@ -597,7 +597,7 @@
           "Knowledge-Curator": "allow"
         },
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "glob": "allow",
         "grep": "allow",
         "edit": "deny",
@@ -779,7 +779,7 @@
       "permission": {
         "task": "deny",
         "read": "allow",
-        "question": "allow",
+        "question": "deny",
         "glob": "allow",
         "grep": "allow",
         "edit": "deny",
@@ -857,6 +857,7 @@
   "plugin": [
     "./.opencode/plugins/read-track-after.ts",
     "./.opencode/plugins/scope-before.ts",
+    "./.opencode/plugins/question-policy-before.ts",
     "./.opencode/plugins/format-after.ts"
   ],
   "mcp": {

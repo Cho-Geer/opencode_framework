@@ -304,6 +304,7 @@ jobs:
             echo "⚠️ STATUS_FIELD_ID or DONE_OPTION_ID not configured."
             echo "   Run the field resolution script to set these variables."
             echo "   See: docs/review/gh-workflow/architecture-design.md Appendix B"
+            exit 0
           fi
 
       # ── Step 6: Sync Reopened State (R → P, set Status to "Todo") ──
@@ -333,6 +334,9 @@ jobs:
             echo "✅ Project Item status set to Todo"
           else
             echo "⚠️ STATUS_FIELD_ID or TODO_OPTION_ID not configured."
+            echo "   Run the field resolution script to set these variables."
+            echo "   See: docs/review/gh-workflow/architecture-design.md Appendix B"
+            exit 0
           fi
 
       # ── Step 7: Sync Assignees (R → P via GraphQL) ──

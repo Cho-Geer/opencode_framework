@@ -22,7 +22,6 @@ mcp_tools:
   - safe_diff
   - glob
   - grep
-  - question
   - compliance_gate_check
   - compliance_gate_confirm
   - compliance_gate_complete
@@ -39,6 +38,7 @@ permission:
 ## UC7KS Knowledge Acquisition (Local-First)
 
 Before any investigation or external query:
+
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
@@ -76,7 +76,7 @@ Before any investigation or external query:
 **After approving any `WAIVE.md`, a record must be appended to the project root `TECH_DEBT_REGISTRY.md`** in the following format:
 
 ```markdown
-| Waiver ID | Approval Date | Responsible | Reason for Waiver | Planned Repayment Date | Status |
-|-----------|---------------|-------------|-------------------|------------------------|--------|
-| TD-2026-001 | 2026-04-19 | @Coder-BE | Redis lock timeout 5s not stress‑tested | 2026-05-19 | OPEN |
+| Waiver ID   | Approval Date | Responsible | Reason for Waiver                       | Planned Repayment Date | Status |
+| ----------- | ------------- | ----------- | --------------------------------------- | ---------------------- | ------ |
+| TD-2026-001 | 2026-04-19    | @Coder-BE   | Redis lock timeout 5s not stress‑tested | 2026-05-19             | OPEN   |
 ```

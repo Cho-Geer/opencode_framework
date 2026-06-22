@@ -109,6 +109,20 @@
       "gate_status": "completed",
       "consumed_at": "2026-06-21T09:36:56.976Z",
       "archive_ref": "gate-state.history/2026-06-21.jsonl#9"
+    },
+    "cg_ses_1782047719493": {
+      "session_id": "cg_ses_1782047719493",
+      "created_at": "2026-06-21T13:15:19.501Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-21T13:16:51.095Z",
+      "archive_ref": "gate-state.history/2026-06-21.jsonl#10"
+    },
+    "cg_ses_1782054436926": {
+      "session_id": "cg_ses_1782054436926",
+      "created_at": "2026-06-21T15:07:16.933Z",
+      "gate_status": "completed",
+      "consumed_at": "2026-06-21T15:08:58.688Z",
+      "archive_ref": "gate-state.history/2026-06-21.jsonl#11"
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-21T01:52:00.000Z",
+  "last_updated": "2026-06-22T00:16:41.832Z",
   "total_entries": 63,
   "entries": [
     {
@@ -58,7 +58,9 @@
         "formatters",
         "lsp",
         "policies",
-        "experimental"
+        "experimental",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -68,8 +70,8 @@
           "size_bytes": 22548,
           "created_at": "2026-06-06T02:30:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.331Z",
           "status": "active"
         }
       ]
@@ -88,7 +90,9 @@
         "discovery",
         "permissions",
         "agent-override",
-        "skill-tool"
+        "skill-tool",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -98,8 +102,8 @@
           "size_bytes": 4592,
           "created_at": "2026-06-06T02:30:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.333Z",
           "status": "active"
         }
       ]
@@ -125,7 +129,9 @@
         "import",
         "flags",
         "env-vars",
-        "experimental"
+        "experimental",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -135,8 +141,8 @@
           "size_bytes": 12311,
           "created_at": "2026-06-06T02:30:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.329Z",
           "status": "active"
         }
       ]
@@ -157,7 +163,9 @@
         "share",
         "customize",
         "plan-mode",
-        "build-mode"
+        "build-mode",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -167,8 +175,8 @@
           "size_bytes": 3625,
           "created_at": "2026-06-06T02:30:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.340Z",
           "status": "active"
         }
       ]
@@ -184,7 +192,9 @@
         "events",
         "tool.execute.before",
         "tool.execute.after",
-        "plugin-development"
+        "plugin-development",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -194,8 +204,8 @@
           "size_bytes": 5699,
           "created_at": "2026-06-05T23:45:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.342Z",
           "status": "active"
         }
       ]
@@ -221,7 +231,9 @@
         "question",
         "lsp",
         "apply_patch",
-        "permissions"
+        "permissions",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -231,8 +243,8 @@
           "size_bytes": 2903,
           "created_at": "2026-06-05T23:45:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.327Z",
           "status": "active"
         }
       ]
@@ -286,7 +298,9 @@
         "configure",
         "mode",
         "task-permissions",
-        "markdown-config"
+        "markdown-config",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -296,8 +310,8 @@
           "size_bytes": 4436,
           "created_at": "2026-06-05T23:45:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.344Z",
           "status": "active"
         }
       ]
@@ -348,7 +362,9 @@
         "external-directory",
         "doom-loop",
         "agent-override",
-        "granular-rules"
+        "granular-rules",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -358,8 +374,8 @@
           "size_bytes": 4396,
           "created_at": "2026-06-05T23:45:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.321Z",
           "status": "active"
         }
       ]
@@ -379,7 +395,9 @@
         "enable",
         "disable",
         "tool-naming",
-        "glob"
+        "glob",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -389,8 +407,8 @@
           "size_bytes": 3719,
           "created_at": "2026-06-05T23:45:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.336Z",
           "status": "active"
         }
       ]
@@ -409,7 +427,9 @@
         "resource",
         "action",
         "provider.use",
-        "global-override"
+        "global-override",
+        "framework",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -419,8 +439,8 @@
           "size_bytes": 2841,
           "created_at": "2026-06-05T23:45:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.338Z",
           "status": "active"
         }
       ]
@@ -434,7 +454,10 @@
         "release",
         "changelog",
         "v1.16.0",
-        "version"
+        "version",
+        "releases",
+        "notes",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -444,8 +467,8 @@
           "size_bytes": 2300,
           "created_at": "2026-06-05T09:12:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.351Z",
           "status": "active"
         }
       ]
@@ -461,7 +484,10 @@
         "server",
         "local",
         "remote",
-        "oauth"
+        "oauth",
+        "servers",
+        "docs",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -471,8 +497,8 @@
           "size_bytes": 1240,
           "created_at": "2026-06-05T09:12:00.000Z",
           "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "access_count": 1,
+          "last_accessed": "2026-06-22T00:16:19.347Z",
           "status": "active"
         }
       ]
@@ -493,7 +519,11 @@
         "plugin-loading",
         "mcp",
         "chaining",
-        "directory-scan"
+        "directory-scan",
+        "plugin",
+        "loading",
+        "mechanics",
+        "opencode-framework"
       ],
       "files": [
         {
@@ -503,8 +533,8 @@
           "size_bytes": 9590,
           "created_at": "2026-06-07T07:30:00.000Z",
           "ttl_days": 14,
-          "access_count": 1,
-          "last_accessed": null,
+          "access_count": 2,
+          "last_accessed": "2026-06-22T00:16:19.349Z",
           "status": "active"
         }
       ]
@@ -1973,27 +2003,26 @@
       ]
     },
     {
-      "library_id": "github-cli",
-      "query_topic": "GitHub CLI (gh) sub-issue/parent relationship commands: create --parent, edit --add-sub-issue/--remove-sub-issue/--remove-parent, view --json parent/subIssues",
+      "library_id": "devops_ci",
+      "query_topic": "devops_ci gh sub issue commands documentation",
       "domain": "devops_ci",
       "tags": [
+        "devops",
         "github",
-        "cli",
         "gh",
-        "sub-issue",
-        "parent",
+        "sub",
         "issue",
-        "relationship",
-        "subIssues"
+        "commands",
+        "devops_ci"
       ],
       "files": [
         {
           "path": "devops/github/gh-sub-issue-commands.md",
-          "source": "webfetch",
+          "source": "curated",
           "sha256": "sha256:80fa9d85a1430fc37c8dde758bad87ff130960e1483bbbc51d22f906d0e01156",
           "size_bytes": 6707,
-          "created_at": "2026-06-21T01:51:00.000Z",
-          "ttl_days": 30,
+          "created_at": "2026-06-22T00:16:41.831Z",
+          "ttl_days": 90,
           "access_count": 0,
           "last_accessed": null,
           "status": "active"

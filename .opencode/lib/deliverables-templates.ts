@@ -34,38 +34,129 @@ export const APPROVAL_EXEMPT_AGENTS = [
  */
 export const DELIVERABLES_TEMPLATES: Record<string, DeliverableTemplate[]> = {
   "Coder-BE": [
-    { name: "HANDOVER.md", description: "Handover summary of backend API changes", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with implementation details", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
-    { name: "test_report.json", description: "Test execution evidence with execution_evidence field", artifact_path: ".task_temp/{taskId}/test_report.json", required: true },
+    {
+      name: "HANDOVER.md",
+      description: "Handover summary of backend API changes",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with implementation details",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
+    {
+      name: "test_report.json",
+      description: "Test execution evidence with execution_evidence field",
+      artifact_path: ".task_temp/{taskId}/test_report.json",
+      required: true,
+    },
   ],
   "Coder-FE": [
-    { name: "HANDOVER.md", description: "Handover summary of frontend component changes", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with implementation details", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
-    { name: "test_report.json", description: "Test execution evidence with execution_evidence field", artifact_path: ".task_temp/{taskId}/test_report.json", required: true },
+    {
+      name: "HANDOVER.md",
+      description: "Handover summary of frontend component changes",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with implementation details",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
+    {
+      name: "test_report.json",
+      description: "Test execution evidence with execution_evidence field",
+      artifact_path: ".task_temp/{taskId}/test_report.json",
+      required: true,
+    },
   ],
-  "Architect": [
-    { name: "HANDOVER.md", description: "Handover summary of architecture decisions and contract changes", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with design rationale", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
+  Architect: [
+    {
+      name: "HANDOVER.md",
+      description:
+        "Handover summary of architecture decisions and contract changes",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with design rationale",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
   ],
-  "Guardian": [
-    { name: "HANDOVER.md", description: "Handover summary of code review findings", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with review evidence", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
+  Guardian: [
+    {
+      name: "HANDOVER.md",
+      description: "Handover summary of code review findings",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with review evidence",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
   ],
-  "Arbiter": [
-    { name: "HANDOVER.md", description: "Handover summary of arbitration ruling", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with deliberation notes", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
+  Arbiter: [
+    {
+      name: "HANDOVER.md",
+      description: "Handover summary of arbitration ruling",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with deliberation notes",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
   ],
   "CI-CD-Agent": [
-    { name: "HANDOVER.md", description: "Handover summary of deployment actions", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with CI/CD pipeline status", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
+    {
+      name: "HANDOVER.md",
+      description: "Handover summary of deployment actions",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with CI/CD pipeline status",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
   ],
   "Knowledge-Curator": [
-    { name: "HANDOVER.md", description: "Handover summary of knowledge cache updates", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with knowledge curation details", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
+    {
+      name: "HANDOVER.md",
+      description: "Handover summary of knowledge cache updates",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with knowledge curation details",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
   ],
   "Meta-Planner": [
-    { name: "HANDOVER.md", description: "Handover summary of planning outputs", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log with planning rationale", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
+    {
+      name: "HANDOVER.md",
+      description: "Handover summary of planning outputs",
+      artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+      required: true,
+    },
+    {
+      name: "TASK_LOG.md",
+      description: "Working memory log with planning rationale",
+      artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+      required: true,
+    },
   ],
 };
 
@@ -73,12 +164,27 @@ export const DELIVERABLES_TEMPLATES: Record<string, DeliverableTemplate[]> = {
  * Get deliverables template for a given agent type.
  * Falls back to a generic template with HANDOVER.md + TASK_LOG.md.
  */
-export function getDeliverablesTemplate(agentType: string): DeliverableTemplate[] {
+export function getDeliverablesTemplate(
+  agentType: string,
+): DeliverableTemplate[] {
   const normalized = agentType.replace(/^@/, "");
-  return DELIVERABLES_TEMPLATES[normalized] || [
-    { name: "HANDOVER.md", description: "Handover summary of task completion", artifact_path: ".task_temp/{taskId}/HANDOVER.md", required: true },
-    { name: "TASK_LOG.md", description: "Working memory log", artifact_path: ".task_temp/{taskId}/TASK_LOG.md", required: true },
-  ];
+  return (
+    DELIVERABLES_TEMPLATES[normalized] || [
+      {
+        name: "HANDOVER.md",
+        description:
+          "Handover summary with optional ## Questions for User, ## Assumptions, ## Blocked Actions Requiring User Approval sections",
+        artifact_path: ".task_temp/{taskId}/HANDOVER.md",
+        required: true,
+      },
+      {
+        name: "TASK_LOG.md",
+        description: "Working memory log",
+        artifact_path: ".task_temp/{taskId}/TASK_LOG.md",
+        required: true,
+      },
+    ]
+  );
 }
 
 /**
@@ -110,6 +216,16 @@ export function deliverablesTemplateMarkdown(agentType: string): string {
     "",
     "After writing ALL deliverables, call `compliance_gate_submit_deliverables(session_id, evidence)`.",
     "Then wait for Orchestrator approval before the gate can be closed.",
+    "",
+    "#### HANDOVER.md Optional Sections (for unreviewable decisions/safety blocks)",
+    "",
+    "If you encountered decisions requiring user input:",
+    "",
+    "1. **## Questions for User**: Record questions that would be useful but",
+    "   are not blocking (assume safest reversible option).",
+    "2. **## Assumptions**: Document assumptions made when user input was unavailable.",
+    "3. **## Blocked Actions Requiring User Approval**: For destructive/irreversible",
+    "   actions that cannot proceed without user confirmation. STOP and escalate.",
   ];
   return lines.join("\n");
 }

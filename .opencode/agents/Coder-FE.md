@@ -26,7 +26,6 @@ mcp_tools:
   - safe_diff
   - glob
   - grep
-  - question
   - compliance_gate_check
   - compliance_gate_confirm
   - compliance_gate_complete
@@ -44,6 +43,7 @@ permission:
 ## UC7KS Knowledge Acquisition (Local-First)
 
 Before any investigation or external query:
+
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
@@ -91,7 +91,7 @@ Before any investigation or external query:
 
 **Immediately after each `Write` or `Edit` operation, before any subsequent work:**
 
-1. (Auto-format runs via `format-after` plugin. For manual checks, use `code_quality_check`: `code_quality_check.run_tsc_check()` / `code_quality_check.run_depcruise_check()` / `code_quality_check.run_full_scan()`) *(code-quality-gate removed — see code-quality-lib.ts)*
+1. (Auto-format runs via `format-after` plugin. For manual checks, use `code_quality_check`: `code_quality_check.run_tsc_check()` / `code_quality_check.run_depcruise_check()` / `code_quality_check.run_full_scan()`) _(code-quality-gate removed — see code-quality-lib.ts)_
 2. Check the response:
    - `overall: "pass"` → continue
    - `overall: "fail"` → handle violations:
@@ -111,6 +111,7 @@ Before any investigation or external query:
 ## Pre‑Commit Mandatory Actions
 
 Before executing `git commit`, the following checks must be completed:
+
 1. **Contract file change check**: If the current change involves files defined under `contracts` in `machine.json` (e.g., `{frontend.dto_path}` or `{frontend.env_path}`):
    - Run `{project.contract_hash_command}` to automatically compute and update the hash value.
    - Include the updated `.opencode/state/machine.json` in the same commit.
@@ -124,6 +125,7 @@ Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rul
 ## Testing Requirements
 
 When writing frontend code, the testing specification in `.opencode/context/code_standards/testing-coding-standard.md` must also be followed:
+
 - TDD Iron Rule: RED → GREEN → REFACTOR
 - Unit tests: Component/state management/pipe tests use the project's frontend testing library
 - Integration tests: State management state flow, route guards, HTTP interaction verification
@@ -133,6 +135,7 @@ When writing frontend code, the testing specification in `.opencode/context/code
 ## Frontend Development Trigger Scenarios
 
 When the following scenarios are involved, the following must be read and followed: `.opencode/context/code_standards/frontend-coding-standard.md`:
+
 - Any frontend component development (following the project's component hierarchy)
 - Service writing (API services, route guards, HTTP interceptors, data resolvers)
 - State management definition
@@ -143,14 +146,17 @@ When the following scenarios are involved, the following must be read and follow
 ## Working Memory Scratchpad (TASK_LOG.md) Mandatory Requirement
 
 **Before writing any frontend code, the task‑specific `TASK_LOG.md` file (unified path: `.task_temp/{taskId}/TASK_LOG.md`) must be updated**, containing:
+
 1. List of component/page files to be modified
 2. New/modified component names, Input/Output types, Service methods
 3. New Store State, Selectors, Actions
 4. Key design decisions and assumptions
 
 Example format:
+
 ```markdown
 # Task T-XXX Working Memory
+
 - **Files to modify**: `register.component.ts`, `register.component.html`, `auth.service.ts`
 - **New components**: `PasswordStrengthIndicatorComponent`, Input: `password: string`
 - **Store changes**: `AuthStore` added `registrationStep` state and `updateStep` action

@@ -138,7 +138,10 @@ jobs:
   # JOB 3: critical-files-check
   # Validates that no critical infrastructure files have been
   # modified without being committed (git diff HEAD check).
-  # Replaces the old SHA-256 digest verification against rule_registry.json.
+  # FIX-007 (2026-06-21 @Super-Admin): Replaced static shell array
+  # with Bun script that imports the canonical CRITICAL_FILES list
+  # from .opencode/lib/critical-files.ts — the single source of truth
+  # also used by hook-commit-msg.ts and the pre-commit hook.
   # ────────────────────────────────────────────────────────────
   critical-files-check:
     name: Critical Files Check
@@ -150,47 +153,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check critical infrastructure files
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check critical infrastructure files (canonical list)
         run: |
-          CRITICAL_FILES=(
-            ".opencode/rules/common-project.md"
-            ".opencode/rules/mcp-compliance-guide.md"
-            ".opencode/rules/skill-compliance-guide.md"
-            ".opencode/agents/Meta-Planner.md"
-            ".opencode/agents/Orchestrator.md"
-            ".opencode/agents/Coder-BE.md"
-            ".opencode/agents/Coder-FE.md"
-            ".opencode/agents/Guardian.md"
-            ".opencode/agents/Arbiter.md"
-            ".opencode/agents/CI-CD-Agent.md"
-            ".opencode/agents/Super-Admin.md"
-            ".opencode/agents/Knowledge-Curator.md"
-            ".opencode/agents/Architect.md"
-            ".opencode/project.config.json"
-            ".opencode/lib/gate-core.ts"
-            ".opencode/lib/dag-policy.ts"
-            ".opencode/lib/permission-isolation-core.ts"
-            ".opencode/tools/dispatch_subagent.ts"
-            ".opencode/hooks/pre-commit"
-            ".opencode/hooks/commit-msg"
-            "opencode.json"
-            "AGENTS.md"
-          )
-
-          # Check for uncommitted modifications to critical files
-          MODIFIED=$(git diff HEAD --name-only -- "${CRITICAL_FILES[@]}" 2>/dev/null || true)
-
-          if [ -n "$MODIFIED" ]; then
-            echo "FAIL: Critical infrastructure files modified since HEAD:"
-            echo "$MODIFIED" | while IFS= read -r f; do echo "  - $f"; done
-            echo ""
-            echo "Action required:"
-            echo "  1. Commit the changes with [INFRA] marker in commit message"
-            echo "  2. If changes are unintended, revert with: git checkout -- <file>"
-            exit 1
-          fi
-
-          echo "PASS: No critical infrastructure files modified since HEAD"
+          echo "Running ci-critical-files-check.ts (imports .opencode/lib/critical-files.ts)..."
+          bun .opencode/scripts/ci-critical-files-check.ts
 
       - name: Export check result
         if: always()
@@ -233,3 +204,77 @@ jobs:
         run: |
           echo "{\"check\":\"wal-check\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/wal-check-result.json
           cat /tmp/wal-check-result.json
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 5: semantic-validator (FIX-008 + FIX-CI-ENVIRONMENT)
+  # Runs CI-level semantic validation that mirrors the local
+  # pre-commit/commit-msg hook policy. This is the remote-side
+  # answer to raw `git commit --no-verify` that no local hook
+  # can intercept. Checks: [INFRA] markers, mode downgrades,
+  # hook invariants, framework self-test.
+  #
+  # FIX-CI-ENVIRONMENT (2026-06-22): Added bun install (dependency
+  # resolution for substate_kv DB access), chmod +x for shell scripts
+  # (reconciliation-check.sh, pre-execution-hook.sh lose exec bit
+  # after git checkout), and DB init step to ensure the substate_kv
+  # table exists before framework-self-test runs.
+  # ────────────────────────────────────────────────────────────
+  semantic-validator:
+    name: Semantic Validator
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Restore script executability (git checkout strips exec bit)
+        run: |
+          echo "Restoring execute permissions on framework scripts..."
+          chmod +x .opencode/scripts/reconciliation-check.sh 2>/dev/null || echo "(reconciliation-check.sh — skipping)"
+          chmod +x .opencode/scripts/pre-execution-hook.sh 2>/dev/null || echo "(pre-execution-hook.sh — skipping)"
+          chmod +x .opencode/scripts/pre-execution-gate.ts 2>/dev/null || echo "(pre-execution-gate.ts — skipping)"
+          chmod +x .opencode/scripts/framework-self-test.ts 2>/dev/null || echo "(framework-self-test.ts — skipping)"
+          chmod +x .opencode/scripts/framework-doctor.ts 2>/dev/null || echo "(framework-doctor.ts — skipping)"
+          chmod +x .opencode/scripts/ci-semantic-validator.ts 2>/dev/null || echo "(ci-semantic-validator.ts — skipping)"
+          chmod +x .opencode/hooks/pre-commit 2>/dev/null || echo "(pre-commit — skipping)"
+          chmod +x .opencode/hooks/commit-msg 2>/dev/null || echo "(commit-msg — skipping)"
+          echo "Script executability restored."
+
+      - name: Configure git hooks path for framework checks
+        run: |
+          git config core.hooksPath .opencode/hooks
+          echo "core.hooksPath set to: $(git config core.hooksPath)"
+
+      - name: Initialize framework state DB (substate_kv table)
+        run: |
+          echo "Ensuring substate_kv table exists for framework-self-test Check 3..."
+          bun .opencode/scripts/db-migrate.ts 2>/dev/null || echo "(db-migrate.ts not needed or already applied — continuing)"
+
+      - name: Run CI semantic validator
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          echo "Running ci-semantic-validator.ts..."
+          if [ -n "$PR_BASE_SHA" ] && [ "$PR_BASE_SHA" != "null" ]; then
+            echo "PR context: checking commits from base ${PR_BASE_SHA} to HEAD"
+            bun .opencode/scripts/ci-semantic-validator.ts --base "${PR_BASE_SHA}"
+          else
+            echo "Push context: checking commits from HEAD~5 to HEAD"
+            bun .opencode/scripts/ci-semantic-validator.ts --range HEAD~5..HEAD
+          fi
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"semantic-validator\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/semantic-validator-result.json
+          cat /tmp/semantic-validator-result.json
