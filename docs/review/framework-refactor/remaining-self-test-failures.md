@@ -4,7 +4,7 @@
 > Created: 2026-06-22
 > Last Audited: 2026-06-22 (Asia/Tokyo), against current framework code
 > Author: Codex Framework Audit
-> Status: Active - 4 self-test failures remain
+> Status: Resolved - all 4 failures fixed. framework-self-test: 61/61 PASS
 > Task ID: REMAINING-SELF-TEST-FAILURES
 
 ---
@@ -24,12 +24,12 @@ bun .opencode/scripts/framework-doctor.ts --strict --json
 
 The remaining failures are:
 
-| Check | Current Failure | Severity | Scope | Recommended Action |
-|---|---|---:|---|---|
-| 22 | 13 official-doc files exist on disk but are not registered in `index.json` | Medium | Knowledge index | Register with DB-aware knowledge tooling, preferably `integrity-check.ts --auto-index` |
-| 28 | `Super-Admin` and `CI-CD-Agent` are missing `uc7_001_compliant` in `knowledge_cache_state.session_access` | High | UC7KS read-before-write evidence | Re-run valid knowledge read + attestation for both agents |
-| 35 | `Super-Admin` and `CI-CD-Agent` still carry deprecated pre-HARDEN cache evidence | High | UC7KS hardened evidence | Same attestation repair as Check 28 |
-| 48 | `.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json` is stale for more than 24h | Low | Dispatch ctx cleanup | Remove the stale ctx file after archived-gate verification; add janitor follow-up |
+| Check | Status      | Severity | Scope                            | Resolution                                                          |
+| ----- | ----------- | -------: | -------------------------------- | ------------------------------------------------------------------- |
+| 22    | ✅ RESOLVED |   Medium | Knowledge index                  | Registered 13 orphan docs via `integrity-check.ts --auto-index`     |
+| 28    | ✅ RESOLVED |     High | UC7KS read-before-write evidence | Re-attested Super-Admin and CI-CD-Agent with UC7KS HARDEN evidence  |
+| 35    | ✅ RESOLVED |     High | UC7KS hardened evidence          | Replaced deprecated pre-HARDEN evidence with real read attestations |
+| 48    | ✅ RESOLVED |      Low | Dispatch ctx cleanup             | Removed stale ctx file after archived-gate verification             |
 
 Previously listed Check 26, Check 27, and Check 36 failures are no longer
 current. `framework-doctor --strict` now reports a healthy critical-infra state,
@@ -37,24 +37,24 @@ and backup patch drift is clean.
 
 ### 1.1 Audit Evidence
 
-| Evidence Source | Current Finding |
-|---|---|
-| `framework-self-test.ts` | 4 failures: Check 22, Check 28, Check 35, Check 48 |
-| `framework-doctor.ts --strict --json` | `total=13`, `passed=13`, `failed=0`; critical infrastructure healthy |
-| `knowledge/integrity-check.ts --json` | `totalOrphans=13`, `onlyInManifest=[]` |
-| `knowledge_cache_state.session_access` | `Super-Admin` and `CI-CD-Agent` have deprecated sufficiency records and no `uc7_001_compliant` |
-| `.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json` | ctx file is older than 24h; corresponding gate session is archived |
+| Evidence Source                                           | Current Finding                                                                                |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `framework-self-test.ts`                                  | 4 failures: Check 22, Check 28, Check 35, Check 48                                             |
+| `framework-doctor.ts --strict --json`                     | `total=13`, `passed=13`, `failed=0`; critical infrastructure healthy                           |
+| `knowledge/integrity-check.ts --json`                     | `totalOrphans=13`, `onlyInManifest=[]`                                                         |
+| `knowledge_cache_state.session_access`                    | `Super-Admin` and `CI-CD-Agent` have deprecated sufficiency records and no `uc7_001_compliant` |
+| `.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json` | ctx file is older than 24h; corresponding gate session is archived                             |
 
 ### 1.2 Drift From v1.1.0
 
-| v1.1.0 Claim | Current Status | Required Update |
-|---|---|---|
-| 6 self-test failures remain | 4 failures remain | Updated baseline |
-| Check 26/27: strict doctor divergence and duplicate infra logic | Resolved in current code; doctor strict passes | Move to resolved section |
-| Check 36: backup patch files cause drift | Resolved; self-test Check 36 passes | Move to resolved section |
-| Check 22: 11 orphan docs | Current count is 13 | Replace orphan list |
-| Check 28/35: only `Super-Admin` affected | `Super-Admin` and `CI-CD-Agent` are affected | Expand repair scope |
-| Check 48 not mentioned | New active failure | Add root cause and fix plan |
+| v1.1.0 Claim                                                    | Current Status                                 | Required Update             |
+| --------------------------------------------------------------- | ---------------------------------------------- | --------------------------- |
+| 6 self-test failures remain                                     | 4 failures remain                              | Updated baseline            |
+| Check 26/27: strict doctor divergence and duplicate infra logic | Resolved in current code; doctor strict passes | Move to resolved section    |
+| Check 36: backup patch files cause drift                        | Resolved; self-test Check 36 passes            | Move to resolved section    |
+| Check 22: 11 orphan docs                                        | Current count is 13                            | Replace orphan list         |
+| Check 28/35: only `Super-Admin` affected                        | `Super-Admin` and `CI-CD-Agent` are affected   | Expand repair scope         |
+| Check 48 not mentioned                                          | New active failure                             | Add root cause and fix plan |
 
 ---
 
@@ -162,10 +162,10 @@ but neither entry has `uc7_001_compliant`.
 
 Affected agents:
 
-| Agent | Domain | Current Evidence Problem |
-|---|---|---|
+| Agent         | Domain               | Current Evidence Problem                                             |
+| ------------- | -------------------- | -------------------------------------------------------------------- |
 | `Super-Admin` | `opencode_framework` | Has deprecated sufficient-looking evidence, but no UC7KS HARDEN flag |
-| `CI-CD-Agent` | `devops_ci` | Has deprecated sufficient-looking evidence, but no UC7KS HARDEN flag |
+| `CI-CD-Agent` | `devops_ci`          | Has deprecated sufficient-looking evidence, but no UC7KS HARDEN flag |
 
 ### 3.2 Root Cause
 
@@ -199,10 +199,10 @@ Repair both agents through the normal production path:
 
 Recommended minimum attestation targets:
 
-| Agent | Domain | Representative Knowledge Scope |
-|---|---|---|
-| `Super-Admin` | `opencode_framework` | framework docs, plugin docs, tool docs, permission docs |
-| `CI-CD-Agent` | `devops_ci` | CLI/config docs plus CI/deployment-relevant official docs |
+| Agent         | Domain               | Representative Knowledge Scope                            |
+| ------------- | -------------------- | --------------------------------------------------------- |
+| `Super-Admin` | `opencode_framework` | framework docs, plugin docs, tool docs, permission docs   |
+| `CI-CD-Agent` | `devops_ci`          | CLI/config docs plus CI/deployment-relevant official docs |
 
 If a direct repair script is used instead of the production tool path, it must
 write through the framework DB/substate helpers, not raw JSON mutation, and it
@@ -344,12 +344,12 @@ Longer-term hardening:
 
 Recommended integration points:
 
-| Layer | Suggested Responsibility |
-|---|---|
-| `task-after` or completion hook | cleanup ctx after successful completion |
-| dispatch self-test | keep warning on ctx files older than 24h |
-| log central management | log cleanup as structured framework maintenance event |
-| DB management | use `gate_sessions` / `session_map` as cleanup authority |
+| Layer                           | Suggested Responsibility                                 |
+| ------------------------------- | -------------------------------------------------------- |
+| `task-after` or completion hook | cleanup ctx after successful completion                  |
+| dispatch self-test              | keep warning on ctx files older than 24h                 |
+| log central management          | log cleanup as structured framework maintenance event    |
+| DB management                   | use `gate_sessions` / `session_map` as cleanup authority |
 
 ---
 
@@ -390,11 +390,11 @@ No active fix is required for this check.
 
 ## 7. Dependency Analysis
 
-| Fix | Unblocks | Notes |
-|---|---|---|
-| Register 13 orphan docs | Check 22 | Independent of all other failures |
-| Re-attest `Super-Admin` and `CI-CD-Agent` | Check 28 and Check 35 | These two checks should be fixed together |
-| Remove stale ctx file after DB verification | Check 48 | Independent cleanup |
+| Fix                                         | Unblocks              | Notes                                     |
+| ------------------------------------------- | --------------------- | ----------------------------------------- |
+| Register 13 orphan docs                     | Check 22              | Independent of all other failures         |
+| Re-attest `Super-Admin` and `CI-CD-Agent`   | Check 28 and Check 35 | These two checks should be fixed together |
+| Remove stale ctx file after DB verification | Check 48              | Independent cleanup                       |
 
 Recommended execution order:
 
@@ -439,22 +439,76 @@ Recommended execution order:
 
 ## 9. Related Files
 
-| File | Role |
-|---|---|
-| `.opencode/scripts/framework-self-test.ts` | Self-test authority for Checks 22, 28, 35, 48 |
-| `.opencode/scripts/framework-doctor.ts` | Strict doctor validation authority |
+| File                                             | Role                                                   |
+| ------------------------------------------------ | ------------------------------------------------------ |
+| `.opencode/scripts/framework-self-test.ts`       | Self-test authority for Checks 22, 28, 35, 48          |
+| `.opencode/scripts/framework-doctor.ts`          | Strict doctor validation authority                     |
 | `.opencode/scripts/knowledge/integrity-check.ts` | Knowledge index integrity and auto-index repair helper |
-| `.opencode/lib/knowledge-store.ts` | Knowledge index write helper |
-| `.opencode/lib/substate-manager.ts` | DB/substate access path for knowledge state |
-| `.task_temp/_dispatch/ctx/` | Transient dispatch ctx marker directory |
-| `docs/official_docs/index.json` | Official docs knowledge manifest |
+| `.opencode/lib/knowledge-store.ts`               | Knowledge index write helper                           |
+| `.opencode/lib/substate-manager.ts`              | DB/substate access path for knowledge state            |
+| `.task_temp/_dispatch/ctx/`                      | Transient dispatch ctx marker directory                |
+| `docs/official_docs/index.json`                  | Official docs knowledge manifest                       |
 
 ---
 
 ## 10. Version History
 
-| Version | Date | Changes |
-|---|---|---|
-| 1.0.0 | 2026-06-22 | Initial root-cause analysis for 6 remaining self-test failures |
-| 1.1.0 | 2026-06-22 | Added Check 28/35 UC7KS stale evidence analysis |
-| 1.2.0 | 2026-06-22 | Re-audited against current framework code; baseline updated to 4 active failures; moved Checks 26/27/36 to resolved; added Check 48 stale ctx analysis; expanded UC7KS scope to `Super-Admin` and `CI-CD-Agent` |
+| Version | Date       | Changes                                                                                                                                                                                                         |
+| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | 2026-06-22 | Initial root-cause analysis for 6 remaining self-test failures                                                                                                                                                  |
+| 1.1.0   | 2026-06-22 | Added Check 28/35 UC7KS stale evidence analysis                                                                                                                                                                 |
+| 1.2.0   | 2026-06-22 | Re-audited against current framework code; baseline updated to 4 active failures; moved Checks 26/27/36 to resolved; added Check 48 stale ctx analysis; expanded UC7KS scope to `Super-Admin` and `CI-CD-Agent` |
+| 1.3.0   | 2026-06-22 | All 4 remaining failures resolved; status changed to Resolved; framework-self-test: 61/61 PASS                                                                                                                  |
+
+---
+
+## 11. Resolution — All Failures Resolved
+
+**Closure date**: 2026-06-22
+
+All 4 remaining self-test failures documented in version 1.2.0 have been resolved.
+
+### 11.1 Check 22 — Knowledge Index Orphans
+
+**Fix**: Ran `bun .opencode/scripts/knowledge/integrity-check.ts --auto-index --json` which registered all 13 orphan docs into `docs/official_docs/index.json`. Post-fix validation confirmed `totalOrphans = 0`.
+
+```text
+bun .opencode/scripts/framework-self-test.ts
+# [PASS] 22. Official docs knowledge integrity: no orphan docs found
+```
+
+### 11.2 Check 28 and Check 35 — UC7KS Compliance Evidence
+
+**Fix**: Re-attested both `Super-Admin` (domain `opencode_framework`) and `CI-CD-Agent` (domain `devops_ci`) through the normal UC7KS production pipeline (`knowledge_cache_search` → `read` → `knowledge_cache_attest`). Both agents now have:
+
+- `uc7_001_compliant: true`
+- Non-empty `cache_sufficiency.files_read`
+- Non-deprecated `cache_sufficiency.reason`
+- Valid `content_summary` (no auto-generated placeholder text)
+
+```text
+bun .opencode/scripts/framework-self-test.ts
+# [PASS] 28. UC7KS v1.0 Evidence Contract: all agents compliant
+# [PASS] 35. Agent knowledge cache refresh: no stale pre-HARDEN entries
+```
+
+### 11.3 Check 48 — Stale Dispatch Context File
+
+**Fix**: Verified `ASSIGN-ISSUES-TO-CHO-GEER` gate session was archived in DB and task artifacts exist under `.task_temp/ASSIGN-ISSUES-TO-CHO-GEER/`. Removed the stale ctx file at `.task_temp/_dispatch/ctx/ASSIGN-ISSUES-TO-CHO-GEER.json`.
+
+```text
+bun .opencode/scripts/framework-self-test.ts
+# [PASS] 48. Dispatch ctx files consistency: no stale ctx files
+```
+
+### 11.4 Final Validation
+
+```text
+bun .opencode/scripts/framework-self-test.ts
+# Result: 61 / 61 checks passed, 0 checks failed ✅
+
+bun .opencode/scripts/framework-doctor.ts --strict --json
+# Result: 13 / 13 checks passed, strict mode healthy ✅
+```
+
+**Status**: `Resolved` — All 4 remaining failures are fixed and verified.
