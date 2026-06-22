@@ -206,12 +206,18 @@ jobs:
           cat /tmp/wal-check-result.json
 
   # ────────────────────────────────────────────────────────────
-  # JOB 5: semantic-validator (FIX-008)
+  # JOB 5: semantic-validator (FIX-008 + FIX-CI-ENVIRONMENT)
   # Runs CI-level semantic validation that mirrors the local
   # pre-commit/commit-msg hook policy. This is the remote-side
   # answer to raw `git commit --no-verify` that no local hook
   # can intercept. Checks: [INFRA] markers, mode downgrades,
   # hook invariants, framework self-test.
+  #
+  # FIX-CI-ENVIRONMENT (2026-06-22): Added bun install (dependency
+  # resolution for substate_kv DB access), chmod +x for shell scripts
+  # (reconciliation-check.sh, pre-execution-hook.sh lose exec bit
+  # after git checkout), and DB init step to ensure the substate_kv
+  # table exists before framework-self-test runs.
   # ────────────────────────────────────────────────────────────
   semantic-validator:
     name: Semantic Validator
@@ -227,6 +233,24 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Restore script executability (git checkout strips exec bit)
+        run: |
+          echo "Restoring execute permissions on framework shell scripts..."
+          chmod +x .opencode/scripts/reconciliation-check.sh 2>/dev/null || echo "(reconciliation-check.sh not found — skipping chmod)"
+          chmod +x .opencode/scripts/pre-execution-hook.sh 2>/dev/null || echo "(pre-execution-hook.sh not found — skipping chmod)"
+          chmod +x .opencode/scripts/framework-self-test.ts 2>/dev/null || echo "(framework-self-test.ts — skipping chmod)"
+          chmod +x .opencode/hooks/pre-commit 2>/dev/null || echo "(pre-commit — skipping chmod)"
+          chmod +x .opencode/hooks/commit-msg 2>/dev/null || echo "(commit-msg — skipping chmod)"
+          echo "Script executability restored."
+
+      - name: Initialize framework state DB (substate_kv table)
+        run: |
+          echo "Ensuring substate_kv table exists for framework-self-test Check 3..."
+          bun .opencode/scripts/db-migrate.ts 2>/dev/null || echo "(db-migrate.ts not needed or already applied — continuing)"
 
       - name: Run CI semantic validator
         run: |

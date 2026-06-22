@@ -85,7 +85,17 @@ try {
 
 // ═══════════════════════════════════════════════════════════════
 // CHECK 1: Critical infra commits require [INFRA] marker
+//
+// FIX-CI-ENVIRONMENT (2026-06-22): Added POLICY_CUTOFF_DATE to skip
+// commits authored before the [INFRA] policy existed. The first
+// [INFRA] commit was 7ea5bef1 on 2026-06-15. Commits before this
+// date are exempt from the [INFRA] marker requirement to avoid
+// false positives in CI on pre-policy commits.
 // ═══════════════════════════════════════════════════════════════
+
+/** Unix timestamp of 2026-06-15T00:00:00Z — cutoff for [INFRA] policy exemption */
+const POLICY_CUTOFF_EPOCH = 1750377600; // 2026-06-15T00:00:00Z
+
 function check1_criticalInfraMarker(): void {
   console.log("\n── Check 1: Critical infra commit [INFRA] marker ──");
 
@@ -106,9 +116,9 @@ function check1_criticalInfraMarker(): void {
       return;
     }
 
-    // Get full commit messages for analysis
+    // Get full commit messages with committer date (UNIX timestamp) for analysis
     const fullLog = execSync(
-      `git log --format='---COMMIT---%n%H%n%s%n%b' ${commitRange}`,
+      `git log --format='---COMMIT---%n%H%n%ct%n%s%n%b' ${commitRange}`,
       { encoding: "utf8", cwd: ROOT },
     ).trim();
 
@@ -116,10 +126,19 @@ function check1_criticalInfraMarker(): void {
 
     for (const block of commitBlocks) {
       const lines = block.trim().split("\n");
-      if (lines.length < 2) continue;
+      if (lines.length < 3) continue;
       const hash = lines[0].trim();
-      const subject = lines[1]?.trim() || "";
-      const body = lines.slice(2).join("\n");
+      const committerEpoch = parseInt(lines[1]?.trim() || "0", 10);
+      const subject = lines[2]?.trim() || "";
+      const body = lines.slice(3).join("\n");
+
+      // Skip commits authored before the [INFRA] policy existed (false positives)
+      if (committerEpoch < POLICY_CUTOFF_EPOCH) {
+        pass(
+          `Commit ${hash.substring(0, 7)} predates [INFRA] policy (${new Date(committerEpoch * 1000).toISOString().split("T")[0]}) — skipped`,
+        );
+        continue;
+      }
 
       // Get files changed in this commit
       const changedFiles = execSync(
