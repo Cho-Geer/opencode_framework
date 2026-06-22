@@ -21,6 +21,7 @@ export {
   readBusinessCodeRoot,
   INFRA_REQUIRED_PREFIXES,
   isInfrastructureFile,
+  isInfraOnlyCommit,
   getStagedInfraFiles,
   hasMixedBusinessAndInfra,
   getStagedChangedFiles,
