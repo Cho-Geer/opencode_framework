@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-22T00:16:41.832Z",
-  "total_entries": 63,
+  "last_updated": "2026-06-22T06:52:00.000Z",
+  "total_entries": 66,
   "entries": [
     {
       "library_id": "opencode-framework",
@@ -1319,14 +1319,7 @@
       "library_id": "bun",
       "query_topic": "Bun overview and installation: all-in-one JavaScript runtime, bundler, test runner, package manager, JavaScriptCore engine",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-overview.md",
@@ -1345,14 +1338,7 @@
       "library_id": "bun",
       "query_topic": "Bun TypeScript native support: require(.ts) works natively without transpilation, type-stripping, tsconfig paths",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-typescript-support.md",
@@ -1371,14 +1357,7 @@
       "library_id": "bun",
       "query_topic": "Bun module resolution: CJS/ESM freely mixable, require and import both supported, Node.js-compatible resolution algorithm",
       "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
+      "tags": ["bun", "typescript", "module", "runtime", "commonjs", "esm"],
       "files": [
         {
           "path": "bun/bun-module-resolution.md",
@@ -2023,6 +2002,94 @@
           "size_bytes": 6707,
           "created_at": "2026-06-22T00:16:41.831Z",
           "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "e2e-test",
+      "query_topic": "UC7-003 E2E write verification test: post-write verification log event testing",
+      "domain": "backend_api",
+      "tags": [
+        "uc7-003",
+        "e2e",
+        "write",
+        "verification",
+        "test",
+        "backend",
+        "post-write"
+      ],
+      "files": [
+        {
+          "path": "backend/e2e-test/uc7-003-write-verification.md",
+          "source": "e2e-test",
+          "sha256": "sha256:bc279366b6e427184c0f912872da48de4f7519a997962cab1e9aec2d1e668c9e",
+          "size_bytes": 962,
+          "created_at": "2026-06-22T04:31:54.999Z",
+          "ttl_days": 90,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "prisma",
+      "query_topic": "Prisma transactions and relations: interactive transactions, nested writes, relation queries, cascade operations, best practices",
+      "domain": "persistence",
+      "tags": [
+        "prisma",
+        "transaction",
+        "relation",
+        "orm",
+        "database",
+        "interactive-transaction",
+        "nested-write",
+        "include",
+        "relation-filter",
+        "schema"
+      ],
+      "files": [
+        {
+          "path": "backend/prisma/prisma-transactions-relations.md",
+          "source": "context7",
+          "sha256": "sha256:025cf9791b420bdef0faf5566518d507fd19f2ccec9c0dc543b746ee4937167e",
+          "size_bytes": 13566,
+          "created_at": "2026-06-22T06:52:00.000Z",
+          "ttl_days": 30,
+          "access_count": 0,
+          "last_accessed": null,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "redis-ioredis",
+      "query_topic": "Redis cache patterns with ioredis: cache-aside, write-through, pipelining, TTL strategies, Cluster, Sentinel, distributed locks, Lua scripting",
+      "domain": "caching",
+      "tags": [
+        "redis",
+        "ioredis",
+        "cache",
+        "caching-patterns",
+        "cache-aside",
+        "pipelining",
+        "ttl",
+        "distributed-lock",
+        "cluster",
+        "sentinel",
+        "lua-scripting"
+      ],
+      "files": [
+        {
+          "path": "database/redis/redis-ioredis-cache-patterns.md",
+          "source": "context7",
+          "sha256": "sha256:0530014e4c0e0686b3e21038cff6b7daa997d2c48502a0eb6aef806421cd13ea",
+          "size_bytes": 12587,
+          "created_at": "2026-06-22T06:52:00.000Z",
+          "ttl_days": 30,
           "access_count": 0,
           "last_accessed": null,
           "status": "active"

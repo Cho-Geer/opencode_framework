@@ -343,8 +343,16 @@ function verifyRuleRegistry() {
     const {
       getModifiedCriticalFiles,
       CRITICAL_FILES,
+      isInfrastructureFile,
     } = require("../../lib/critical-files");
     const modified = getModifiedCriticalFiles();
+
+    // P0-FIX (2026-06-22, @Super-Admin): Gate preflight — infra-only exemption.
+    // If ALL modified critical files are infrastructure files (outside
+    // BUSINESS_CODE_PREFIX), the gate check should PASS with WARNING instead
+    // of blocking. This aligns with the pre-commit hook's isInfraOnlyCommit
+    // constraint.
+    const allInfra = modified.length > 0 && modified.every(f => isInfrastructureFile(f));
 
     if (modified.length === 0) {
       return {
@@ -355,10 +363,26 @@ function verifyRuleRegistry() {
       };
     }
 
+    if (allInfra) {
+      for (const filePath of modified) {
+        results.push({
+          id: "critical_file_modified_" + filePath.replace(/[^a-zA-Z0-9]/g, "_"),
+          desc: `[Gate Preflight v2] ${filePath}: infra file modified — [INFRA] commit pending (allowed)`,
+          severity: "WARNING",
+        });
+      }
+      return {
+        passed: true,
+        results,
+        registry_available: true,
+        summary: `[Gate Preflight v2] ${modified.length} infra file(s) modified — gate allowed (all infra, [INFRA] commit pending)`,
+      };
+    }
+
     for (const filePath of modified) {
       results.push({
         id: "critical_file_modified_" + filePath.replace(/[^a-zA-Z0-9]/g, "_"),
-        desc: `[Gate Preflight v2] ${filePath}: modified since HEAD — ensure [INFRA] marker in commit`,
+        desc: `[Gate Preflight v2] ${filePath}: business-critical file modified — blocked until commit`,
         severity: "HIGH",
       });
     }
@@ -2142,7 +2166,9 @@ function enforceMultiSourceAudit(
 
   // ── 2. Read HANDOVER.md ──
   const fs = require("fs");
-  const handoverPath = `.task_temp/${taskId}/HANDOVER.md`;
+  const handoverPath =
+      session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")?.artifact_path ||
+      `.task_temp/${taskId}/HANDOVER.md`;
   let handover = "";
   try {
     handover = fs.readFileSync(handoverPath, "utf-8");
@@ -2352,7 +2378,9 @@ function runGateApproveDeliverables(
 
     // ── DELIVERABLES-REVIEW-LOCK: Verify Orchestrator reviewed deliverables ──
     const taskId = session.task_id;
-    const handoverPath = `.task_temp/${taskId}/HANDOVER.md`;
+    const handoverPath =
+      session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")?.artifact_path ||
+      `.task_temp/${taskId}/HANDOVER.md`;
     let handoverContent = "";
     try {
       const fs = require("fs");
@@ -2458,10 +2486,10 @@ function runGateApproveDeliverables(
     // → read_audit SQLite DB (shared API with JSONL fallback).
     {
       const enforcementMode = getEnforcementMode();
-      const resolvedHandoverPath = path2.resolve(
-        OPENCODE_ROOT,
-        `.task_temp/${taskId}/HANDOVER.md`,
-      );
+      const declaredHandoverPath =
+        session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")?.artifact_path ||
+        `.task_temp/${taskId}/HANDOVER.md`;
+      const resolvedHandoverPath = path2.resolve(OPENCODE_ROOT, declaredHandoverPath);
 
       try {
         // ── Compute args_hash for approval context lookup ──

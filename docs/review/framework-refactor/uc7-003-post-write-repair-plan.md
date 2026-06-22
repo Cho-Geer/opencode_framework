@@ -1,10 +1,10 @@
 # UC7-003 Post-Write Save-or-Fail Restoration Plan
 
-**Version**: v1.0.0
-**Date**: 2026-06-18
+**Version**: v1.1.0
+**Date**: 2026-06-18 / reassessed 2026-06-22
 **Author**: @Super-Admin
 **Task**: SA-WRITE-UC7003-PLAN
-**Status**: draft
+**Status**: implemented (framework compatibility confirmed 2026-06-22)
 **Target**: `.opencode/plugins/uc7ks-after.ts`
 
 > **Note**: Per framework-enforcer ROUTE-MISMATCH rules, `docs/` is routed to @Architect.
@@ -43,7 +43,7 @@ Add ~82 lines of UC7-003 post-write verification logic to the existing `uc7ks-af
 |---------|----------|
 | **Target file** | `.opencode/plugins/uc7ks-after.ts` -- add UC7-003 block to existing `toolExecuteAfter` |
 | **No new file** | UC7-003 is a post-write concern, naturally belonging in a `tool.execute.after` hook; `uc7ks-after.ts` is the canonical after-hook for the UC7KS pipeline |
-| **Code location** | Add the UC7-003 handler block **after** the existing UC7-001 cache-read block (after L119), before the function's closing `}` at L120. The early-return `if (!WRITE_TOOLS.has(input.tool)) return;` ensures UC7-003 only fires for write tools while UC7-001 only fires for reads. |
+| **Code location** | Add the UC7-003 handler block **after** the existing UC7-001 cache-read block (after L149), before the function's closing `}` at L150. The early-return `if (!WRITE_TOOLS.has(input.tool)) return;` ensures UC7-003 only fires for write tools while UC7-001 only fires for reads. |
 
 ### S2.2 Permission Matrix
 
@@ -131,7 +131,7 @@ Add ~82 lines of UC7-003 post-write verification logic to the existing `uc7ks-af
 
 ## S3 Complete TypeScript Code Block
 
-The following code block is the **entire new UC7-003 handler** to be inserted into `uc7ks-after.ts` after the existing UC7-001 cache-read block (after L119), before the function's closing `}` at L120.
+The following code block is the **entire new UC7-003 handler** to be inserted into `uc7ks-after.ts` after the existing UC7-001 cache-read block (after L149), before the function's closing `}` at L150.
 
 ```typescript
   // =======================================================================
@@ -285,11 +285,11 @@ const WRITE_TOOLS = new Set(["write", "edit", "safe_edit"]);
 
 | Component | Lines |
 |-----------|-------|
-| Existing `uc7ks-after.ts` | 121 |
+| Existing `uc7ks-after.ts` (2026-06-22 snapshot) | 150 |
 | New imports (1 line) | +1 |
 | WRITE_TOOLS constant (3 lines) | +3 |
 | UC7-003 handler block | +82 |
-| **Expected total** | **~207 lines** |
+| **Expected total** | **~236 lines** |
 
 ---
 
@@ -299,7 +299,7 @@ const WRITE_TOOLS = new Set(["write", "edit", "safe_edit"]);
 |------|--------|------|-------|-------------|
 | **1** | Add `getEnforcementMode` import | `uc7ks-after.ts` L2-9 | +1 | `import { getEnforcementMode } from "../lib/gate-core";` compiles clean with `tsc --noEmit` |
 | **2** | Add `WRITE_TOOLS` constant | `uc7ks-after.ts` after L9 | +3 | Constant is a `Set` of three tool names; no runtime dependencies |
-| **3** | Insert UC7-003 handler block | `uc7ks-after.ts` after L119 | +82 | Insert after the closing `}` of the existing UC7-001 `if` block (L119), before the function's closing `}` (L120). Uses `getModifyPath(input.args)` for path extraction (consistent with UC7-001 at L45). Agent comparison uses `"Knowledge-Curator"` (canonical name from `normalizeAgentKey`). |
+| **3** | Insert UC7-003 handler block | `uc7ks-after.ts` after L119 | +82 | Insert after the closing `}` of the existing UC7-001 `if` block (L149), before the function's closing `}` (L150). Uses `getModifyPath(input.args)` for path extraction (consistent with UC7-001 at L45). Agent comparison uses `"Knowledge-Curator"` (canonical name from `normalizeAgentKey`). |
 | **4** | Run `framework-self-test.ts` | CLI | -- | `bun .opencode/scripts/framework-self-test.ts` -- all checks pass; no `UNRESOLVED{...}` in modified file |
 | **5** | Integration smoke test | CLI | -- | Simulate a write to `docs/official_docs/test.txt` via a KC-dispatched agent; verify UC7-003-VERIFIED log entry appears and `knowledge_cache_state.post_write_verifications` is populated |
 
@@ -379,5 +379,75 @@ If UC7-003 integration causes issues:
 | `docs/review/framework-refactor/uc7ks-before-after-split-report.md` | Split architecture rationale |
 
 ---
+
+
+
+---
+
+## S9 Framework Compatibility Reassessment (2026-06-22)
+
+### S9.1 Current State of Target File
+
+As of 2026-06-22, the target file `.opencode/plugins/uc7ks-after.ts` (150 lines) has evolved since the plan was drafted at 121 lines, but **the UC7-003 gap remains**:
+
+| Component | Plan Draft (v1.0.0) | Current (v1.1.0 reassessed) |
+|-----------|:-------------------:|:---------------------------:|
+| File lines | 121 | 150 |
+| UC7-001 read tracking | Present | Present (expanded: Phase 0 comment, KC-02, FW-UC7KS-DOMAIN-001) |
+| UC7-003 post-write verify | Missing | **Still missing** |
+| `getEnforcementMode` import | Not imported | Not imported (available in `gate-core.ts` L332) |
+| `WRITE_TOOLS` constant | Not present | Not present |
+
+### S9.2 Infrastructure Availability
+
+All required infrastructure is **still available and unchanged**:
+
+| Dependency | Location | Status |
+|-----------|----------|:------:|
+| `getEnforcementMode()` | `gate-core.ts` L332 | Exists, used by `uc7ks-before.ts` L6 |
+| `getModifyPath()` | `tool-scope.ts` | Already imported in `uc7ks-after.ts` L9 |
+| `atomicWriteSubState()` | `state-utils.ts` | Already imported in `uc7ks-after.ts` L11 |
+| `writeLog()` | `log-manager.ts` | Already imported in `uc7ks-after.ts` L2 |
+| `resolveAgent()` / `normalizeAgentKey()` | `agent-resolver.ts` / `uc7ks-schema.ts` | Already imported |
+| `fs.existsSync()` / `fs.statSync()` | `node:fs` | Already imported in `uc7ks-after.ts` L14 |
+
+### S9.3 Overlap Analysis with cache-after.ts (KC-08)
+
+The `cache-after.ts` plugin (KC-08, 2026-06-21) added write detection for `docs/official_docs/` but **only for audit rollup counters** (`total_external_fetches`, `total_cache_checks`). It does NOT perform `fs.existsSync()` verification or mode-aware save-or-fail enforcement. UC7-003 is **complementary**, not overlapping.
+
+### S9.4 Updated Insertion Point
+
+The UC7-003 handler block must be inserted after L149, before L150:
+
+```
+// Current toolExecuteAfter structure (uc7ks-after.ts, lines 53-150):
+async function toolExecuteAfter(input, output) {
+  const filePath = getModifyPath(input.args || {});           // L55
+
+  // UC7-001: read tracking block                              // L57
+  if (input.tool === "read" && ...) {                         // L58
+    // ... ~86 lines of UC7-001 logic ...                     // L63-148
+  }                                                           // L149
+  // >>> UC7-003 handler block inserts here <<<               // INSERT
+}                                                             // L150
+```
+
+### S9.5 Updated Expected Line Count
+
+| Component | Lines |
+|-----------|:-----:|
+| Current `uc7ks-after.ts` | 150 |
+| New import (`getEnforcementMode` from `gate-core.ts`) | +1 |
+| `WRITE_TOOLS` constant | +3 |
+| UC7-003 handler block | +82 |
+| **Expected total** | **~236 lines** |
+
+### S9.6 Conclusion
+
+**The plan is still fully applicable.** The only material changes are:
+1. Insertion point shifted from L119/L120 to L149/L150 (file grew 29 lines with UC7-001 expansion)
+2. Expected final line count adjusted from ~207 to ~236
+3. All code in S3 (complete TypeScript block) is correct as-is -- no API changes in dependencies
+
 
 *This plan will be executed by @Super-Admin following human confirmation.*

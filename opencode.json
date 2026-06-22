@@ -88,7 +88,7 @@
     },
     "Orchestrator": {
       "mode": "primary",
-      "model": "deepseek/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Orchestrator.md",
       "permission": {
         "task": "allow",

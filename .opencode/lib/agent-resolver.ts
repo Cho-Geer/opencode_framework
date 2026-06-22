@@ -50,24 +50,25 @@ function _findChildDagTaskId(): string | null {
         );
         if (ctx?.dagTaskId) return ctx.dagTaskId;
       }
-      // Multiple ctx files: return the newest by createdAt as a best guess
-      // (the child dispatch slot lookup will verify it exists)
+      // P0-FIX (2026-06-22, @Super-Admin): Multiple ctx files — cross-check
+      // each against dispatch:child:{dagTaskId} child slot in session_map.
+      // The previous heuristic (newest by createdAt) could return the wrong
+      // dagTaskId during concurrent dispatches, causing resolveDomainId to
+      // return null for non-KC agents (Issue: Coder-BE HANDOVER.md blocked).
       if (files.length > 1) {
-        let newest: { dagTaskId: string; createdAt: number } | null = null;
         for (const file of files) {
           try {
             const ctx = JSON.parse(
               fs.readFileSync(path.join(ctxDir, file), "utf8"),
             );
-            if (
-              ctx?.dagTaskId &&
-              (!newest || ctx.createdAt > newest.createdAt)
-            ) {
-              newest = { dagTaskId: ctx.dagTaskId, createdAt: ctx.createdAt };
+            if (ctx?.dagTaskId) {
+              const childSlot = dbReadSessionMap("dispatch:child:" + ctx.dagTaskId);
+              if (childSlot?.domain_id) {
+                return ctx.dagTaskId;
+              }
             }
           } catch {}
         }
-        if (newest?.dagTaskId) return newest.dagTaskId;
       }
     }
   } catch {}
