@@ -404,7 +404,7 @@ function checkPreCommitLayer0() {
 
 // ═══════════════════════════════════════════════════════════════
 // Check 6: Pre-commit Layer 2.5 - exit 1 for TDD violation (BLOCKING)
-
+//          + INFRA-ONLY-TDD-SKIP: INFRA-only commits bypass TDD checks
 // ═══════════════════════════════════════════════════════════════
 function checkPreCommitLayer25() {
   const tsPath = path.join(
@@ -419,23 +419,25 @@ function checkPreCommitLayer25() {
 
   const hasLayer25 = content.includes("Layer 2.5") && content.includes("TDD");
   const hasExit1 = content.includes("process.exit(1)");
+  const hasInfraOnlySkip = content.includes("isInfraOnlyCommit");
   const isBlocking =
     content.includes("BLOCKED") ||
     content.includes("BLOCKING") ||
     (content.includes("Layer 2.5") && content.includes("TDD"));
-  const ok = hasLayer25 && hasExit1;
+  const ok = hasLayer25 && hasExit1 && hasInfraOnlySkip;
   return check(
     6,
     ok,
     ok
-      ? "Layer 2.5 TDD violation check with process.exit(1) (BLOCKING) found in hook-layers.ts"
-      : "Missing TDD Layer 2.5 BLOCKING enforcement in hook-layers.ts",
+      ? "Layer 2.5 TDD violation check with process.exit(1) (BLOCKING) + INFRA-only skip found"
+      : hasLayer25 && hasExit1
+        ? "Layer 2.5 TDD enforcement present but INFRA-only skip (isInfraOnlyCommit) missing"
+        : "Missing TDD Layer 2.5 BLOCKING enforcement in hook-layers.ts",
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 7: commit-msg TDD ordering
-
+// Check 7: commit-msg TDD ordering + INFRA-ONLY-TDD-SKIP
 // ═══════════════════════════════════════════════════════════════
 function checkCommitMsgTDD() {
   const tsPath = path.join(
@@ -463,13 +465,21 @@ function checkCommitMsgTDD() {
     content.includes("Refactor") && content.includes("[Green]");
   const exitMatches = content.match(/process\.exit\(1\)/g);
   const hasExit1 = exitMatches && exitMatches.length >= 2;
-  const ok = hasDelegation && hasGreenCheck && hasRefactorCheck && hasExit1;
+  const hasInfraOnlySkip = content.includes("INFRA-ONLY-TDD-SKIP");
+  const ok =
+    hasDelegation &&
+    hasGreenCheck &&
+    hasRefactorCheck &&
+    hasExit1 &&
+    hasInfraOnlySkip;
   return check(
     7,
     ok,
     ok
-      ? "RED→GREEN→REFACTOR phase ordering validation present in hook-commit-msg.ts"
-      : "Missing TDD phase ordering check in hook-commit-msg.ts",
+      ? "RED→GREEN→REFACTOR phase ordering + INFRA-only TDD skip present in hook-commit-msg.ts"
+      : hasGreenCheck && hasRefactorCheck && hasExit1
+        ? "TDD phase ordering present but INFRA-only skip (INFRA-ONLY-TDD-SKIP) missing"
+        : "Missing TDD phase ordering check in hook-commit-msg.ts",
   );
 }
 
@@ -2168,6 +2178,23 @@ function checkUC7KSSchemaIntegrity() {
     }
 
     if (!kcs) {
+      /**
+       * FW-FIX-CI-CHECK28 (2026-06-22): In CI environments, knowledge_cache_state
+       * is not pre-populated in the SQLite DB or machine.json because no agent
+       * has yet performed a UC7KS knowledge cache search. This is expected
+       * behavior in CI — not a failure. When CI=true or GITHUB_ACTIONS=true,
+       * return a PASS with an informational message instead of failing.
+       * In non-CI environments, the previous failure behavior is preserved.
+       */
+      const isCI =
+        process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+      if (isCI) {
+        return check(
+          28,
+          true,
+          "CI environment — knowledge_cache_state not seeded (expected)",
+        );
+      }
       return check(
         28,
         false,

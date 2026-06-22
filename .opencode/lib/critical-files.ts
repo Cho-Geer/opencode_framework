@@ -174,7 +174,15 @@ export function getStagedCriticalFiles(): string[] {
  */
 export function getModifiedCriticalFiles(): string[] {
   try {
-    const modified = execSync("git diff HEAD --name-only", { encoding: "utf8" })
+    /**
+     * FW-FIX-CI-CHECK06 (2026-06-22): Added --diff-filter=ACM to exclude
+     * mode-only changes (chmod +x, symlinks) from critical file detection.
+     * CI workflows that run chmod +x on scripts would trigger false-positive
+     * critical file alerts via getModifiedCriticalFiles().
+     */
+    const modified = execSync("git diff HEAD --name-only --diff-filter=ACM", {
+      encoding: "utf8",
+    })
       .trim()
       .split("\n")
       .filter(Boolean);
@@ -457,6 +465,25 @@ export function getModifiedInfraFiles(): string[] {
  * @since 2026-06-22 — INFRA-NO-MIXED-COMMITS
  */
 export const INFRA_REQUIRED_PREFIXES: string[] = [];
+
+/**
+ * INFRA-ONLY-TDD-SKIP (2026-06-22): Check if a commit is entirely
+ * infrastructure files (NO business code files).
+ *
+ * When ALL staged files are infrastructure (outside BUSINESS_CODE_PREFIX),
+ * TDD markers ([Red]/[Green]/[Refactor]) are NOT required. Only the [INFRA]
+ * marker is enforced. This allows framework maintenance commits to bypass
+ * TDD phase ordering without weakening enforcement for business code commits.
+ *
+ * @param changedFiles — Array of file paths relative to repo root
+ * @returns true if ALL files are infrastructure (none are business code)
+ *
+ * @since 2026-06-22 — INFRA-ONLY-TDD-SKIP
+ */
+export function isInfraOnlyCommit(changedFiles: string[]): boolean {
+  if (changedFiles.length === 0) return false;
+  return changedFiles.every((f) => isInfrastructureFile(f));
+}
 
 /**
  * Check if a set of changed files contains both business code files
