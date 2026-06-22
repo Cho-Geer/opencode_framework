@@ -754,22 +754,49 @@ export default tool({
               childSessionId,
               args.agent_type,
               dagTaskId,
-              inferredDomainId || undefined
+              inferredDomainId || undefined,
             );
           } catch {
             // Best-effort; never block dispatch
           }
         }
 
-        return [
-          `/// DISPATCH RESULT`,
-          `/// agent_type: ${args.agent_type}`,
-          `/// dag_task_id: ${dagTaskId || "(none)"}`,
-          `///`,
-          `/// ✅ Auto-dispatched — task-before.ts loads prompt from file.`,
-          `///    LLM does NOT need to pass the prompt to Task().`,
-          `///    Just call: Task({ subagent_type: "${args.agent_type}", description: "..." })`,
-        ].join("\n");
+        // P0-FIX (2026-06-22, @Super-Admin): Auto-dispatch with inline wrapped prompt.
+        // Previously task-before.ts loaded prompt from file — unreliable for KC.
+        // Now: run dispatch-subagent.ts CLI and return its wrapped prompt directly,
+        // matching the standard dispatch_subagent() → Task({prompt}) flow.
+        try {
+          const dp = require("path").join(
+            process.cwd(),
+            ".opencode",
+            "scripts",
+            "command-tools",
+            "dispatch-subagent.ts",
+          );
+          const wrapped = require("child_process").execFileSync(
+            "bun",
+            [
+              "--no-cache",
+              dp,
+              args.agent_type,
+              dagTaskId || "(none)",
+              args.task_description || "",
+            ],
+            {
+              encoding: "utf8",
+              timeout: 30000,
+              stdio: ["pipe", "pipe", "pipe"],
+            },
+          );
+          return wrapped;
+        } catch (e: any) {
+          return [
+            `/// DISPATCH RESULT (fallback — CLI failed: ${e?.message || e})`,
+            `/// agent_type: ${args.agent_type}`,
+            `/// dag_task_id: ${dagTaskId || "(none)"}`,
+            `///    Retry with dispatch_subagent() manually.`,
+          ].join("\n");
+        }
       } finally {
         // ── FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): No-op finally block.
         // FRAMEWORK_TASK_ID is no longer written to the parent process (L264-266 removed).

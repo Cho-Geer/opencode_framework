@@ -64,7 +64,11 @@ function updateTDDState(
 ): void {
   try {
     atomicWriteSubState("tdd_enforcement_state", (state) => {
-      if (!state?.enabled) return;
+            // P0-FIX (2026-06-22, @Super-Admin): Lazily enable on first access.
+      // tdd_enforcement_state.enabled was never initialized, blocking ALL
+      // business source writes. Now auto-enabled on first write, consistent
+      // with uc7ks-after.ts lazy session_access init pattern.
+      if (!state?.enabled) state.enabled = true;
       state.current_session = state.current_session || {
         test_written: false,
         impl_files_attempted: [],

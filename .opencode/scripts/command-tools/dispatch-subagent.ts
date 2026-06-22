@@ -46,7 +46,7 @@ const {
   deliverablesTemplateMarkdown,
   isExemptAgent,
 } = require("../../lib/deliverables-templates");
-const { dbQuerySessionByDagTaskId } = require("../../lib/db-state-manager");
+const { dbQuerySessionByDagTaskId, dbQueryLatestSessionByDagTaskId } = require("../../lib/db-state-manager");
 const { writeLog } = require("../../lib/log-manager");
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
