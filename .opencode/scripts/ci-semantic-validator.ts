@@ -24,6 +24,9 @@
  *
  * @author @Super-Admin
  * @since 2026-06-21 — FIX-008
+ * @updated 2026-06-22 — FIX-CI-RANGE-MERGEBASE: --base now uses git merge-base
+ *   to compute the actual divergence point, avoiding false positives from
+ *   historically unmerged commits on the branch.
  */
 
 import { execSync } from "node:child_process";
@@ -59,7 +62,24 @@ if (rangeIdx !== -1 && rangeIdx + 1 < process.argv.length) {
 }
 const baseIdx = process.argv.indexOf("--base");
 if (baseIdx !== -1 && baseIdx + 1 < process.argv.length) {
-  commitRange = `${process.argv[baseIdx + 1]}..HEAD`;
+  const baseSha = process.argv[baseIdx + 1];
+  /**
+   * FIX-CI-RANGE-MERGEBASE (2026-06-22):
+   * Use git merge-base to find the common ancestor of base and HEAD.
+   * Previously, --base develop produced range develop..HEAD which
+   * included ALL unmerged commits on the current branch — causing
+   * false positives from historical commits that predate CI policy.
+   * Now only commits AFTER the branch divergence point are checked,
+   * eliminating false positives from pre-existing commits.
+   */
+  const mergeBase = execSync(`git merge-base ${baseSha} HEAD`, {
+    encoding: "utf8",
+    cwd: ROOT,
+  }).trim();
+  commitRange = `${mergeBase}..HEAD`;
+  console.log(
+    `🔀 Merge-base: ${mergeBase.substring(0, 7)} (from --base ${baseSha})`,
+  );
 }
 
 let failures = 0;
@@ -492,6 +512,17 @@ function check4_frameworkSelfTest(): void {
 console.log(`🔍 CI Semantic Validator — commit range: ${commitRange}`);
 console.log(`📁 Root: ${ROOT}`);
 console.log(`🔒 Tracking ${CRITICAL_FILES.length} critical files`);
+
+// ── Commit range diagnostics ──────────────────────────────────
+try {
+  const totalCommits = execSync(`git rev-list --count ${commitRange}`, {
+    encoding: "utf8",
+    cwd: ROOT,
+  }).trim();
+  console.log(`📊 Commits in range: ${totalCommits}`);
+} catch {
+  console.warn("⚠️  Could not count commits in range");
+}
 
 check1_criticalInfraMarker();
 check2_enforcementModeDowngrade();
