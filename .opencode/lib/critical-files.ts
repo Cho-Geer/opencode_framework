@@ -328,12 +328,64 @@ export function invalidateCriticalFilesCache(): void {
  * Everything else is infrastructure and requires [INFRA].
  *
  * Business code directories:
- *   - booking_system_refactor/booking-backend/src/**
- *   - booking_system_refactor/booking-frontend/**
+ *   - {business_code_root}/booking-backend/src/**
+ *   - {business_code_root}/booking-frontend/**
+ *
+ * Dynamically read from project.config.json paths.business_code_root.
+ * Falls back to computing the common parent directory of backend_src
+ * and frontend_src if business_code_root is not explicitly set.
  *
  * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ * @updated 2026-06-22 — INFRA-READ-FROM-CONFIG: dynamic config read
  */
-export const BUSINESS_CODE_PREFIX = "booking_system_refactor/";
+let _cachedBusinessCodePrefix: string | null = null;
+
+/**
+ * Read the business code root path from project.config.json.
+ * Uses lazy singleton pattern: read config once, cache the result.
+ *
+ * Priority:
+ *   1. paths.business_code_root in project.config.json (explicit config)
+ *   2. Common parent directory of paths.backend_src and paths.frontend_src (computed)
+ *   3. Fallback: "booking_system_refactor/" (legacy default for backward compat)
+ *
+ * @returns The business code root directory path (with trailing slash)
+ *
+ * @since 2026-06-22 — INFRA-READ-FROM-CONFIG
+ */
+export function readBusinessCodeRoot(): string {
+  if (_cachedBusinessCodePrefix !== null) return _cachedBusinessCodePrefix;
+  try {
+    const raw = readFileSync(PROJECT_CONFIG_PATH, "utf-8");
+    const config = JSON.parse(raw);
+    // Priority 1: Explicit business_code_root in project.config.json paths
+    if (
+      config.paths?.business_code_root &&
+      typeof config.paths.business_code_root === "string"
+    ) {
+      const root = config.paths.business_code_root;
+      _cachedBusinessCodePrefix = root.endsWith("/") ? root : root + "/";
+      return _cachedBusinessCodePrefix;
+    }
+    // Priority 2: Compute common parent of backend_src and frontend_src
+    const be = String(config.paths?.backend_src ?? "");
+    const fe = String(config.paths?.frontend_src ?? "");
+    if (be && fe) {
+      let i = 0;
+      while (i < be.length && i < fe.length && be[i] === fe[i]) i++;
+      while (i > 0 && be[i - 1] !== "/") i--;
+      _cachedBusinessCodePrefix = be.substring(0, i);
+      return _cachedBusinessCodePrefix;
+    }
+  } catch {
+    // JSON parse error — fall through to legacy default
+  }
+  // Priority 3: Legacy fallback
+  _cachedBusinessCodePrefix = "booking_system_refactor/";
+  return _cachedBusinessCodePrefix;
+}
+
+export const BUSINESS_CODE_PREFIX = readBusinessCodeRoot();
 
 /**
  * Check if a file path is an infrastructure file (not business code).

@@ -110,8 +110,27 @@ const POLICY_CUTOFF_EPOCH = 1750896000; // 2026-06-21T00:00:00Z
  * INFRA-POLICY-WIDER-SCOPE (2026-06-22):
  * Business code directories — files under these prefixes are exempt
  * from the [INFRA] marker requirement. Everything else is infrastructure.
+ *
+ * @updated 2026-06-22 — INFRA-READ-FROM-CONFIG: reads dynamically from
+ *   project.config.json paths.business_code_root instead of hardcoding.
  */
-const BUSINESS_CODE_PREFIXES = ["booking_system_refactor/"];
+const BUSINESS_CODE_PREFIXES = (() => {
+  const configPath = resolve(ROOT, ".opencode", "project.config.json");
+  try {
+    if (existsSync(configPath)) {
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      if (
+        config.paths?.business_code_root &&
+        typeof config.paths.business_code_root === "string"
+      ) {
+        const root = config.paths.business_code_root;
+        return [root.endsWith("/") ? root : root + "/"];
+      }
+    }
+  } catch {}
+  // Fallback: legacy default
+  return ["booking_system_refactor/"];
+})();
 
 function check1_criticalInfraMarker(): void {
   console.log("\n── Check 1: Infrastructure commit [INFRA] marker ──");

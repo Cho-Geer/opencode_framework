@@ -9,6 +9,7 @@
   "paths": {
     "backend_src": "booking_system_refactor/booking-backend/src/",
     "frontend_src": "booking_system_refactor/booking-frontend/",
+    "business_code_root": "booking_system_refactor/",
     "contracts": "contract.yaml",
     "requirements": ".opencode/context/requirements/",
     "code_standards": ".opencode/context/code_standards/",

@@ -29,6 +29,7 @@ import {
 import {
   getStagedCriticalFiles,
   getStagedInfraFiles,
+  BUSINESS_CODE_PREFIX,
 } from "./hook-critical-files";
 /**
  * FIX-011 (Phase 2): Commit-msg hook now emits structured high-severity
@@ -195,10 +196,10 @@ const isMixed = hasMixedBusinessAndInfra(allStagedFiles);
 
 if (isMixed) {
   const businessFiles = allStagedFiles.filter((f: string) =>
-    f.startsWith("booking_system_refactor/"),
+    f.startsWith(BUSINESS_CODE_PREFIX),
   );
   const infraFiles = allStagedFiles.filter(
-    (f: string) => !f.startsWith("booking_system_refactor/"),
+    (f: string) => !f.startsWith(BUSINESS_CODE_PREFIX),
   );
 
   console.log("═══════════════════════════════════════════════════════");

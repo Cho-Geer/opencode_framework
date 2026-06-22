@@ -18,6 +18,7 @@ export {
   CRITICAL_FILES,
   getStagedCriticalFiles,
   BUSINESS_CODE_PREFIX,
+  readBusinessCodeRoot,
   INFRA_REQUIRED_PREFIXES,
   isInfrastructureFile,
   getStagedInfraFiles,
