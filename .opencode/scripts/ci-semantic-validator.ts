@@ -84,7 +84,12 @@ try {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CHECK 1: Critical infra commits require [INFRA] marker
+// CHECK 1: Infrastructure commits require [INFRA] marker
+//
+// INFRA-POLICY-WIDER-SCOPE (2026-06-22): Replaced the explicit
+// CRITICAL_FILES array check with a broader rule:
+//   ANY file NOT under booking_system_refactor/ is infrastructure
+//   and requires [INFRA] in the commit message.
 //
 // FIX-CI-ENVIRONMENT (2026-06-22): Added POLICY_CUTOFF_DATE to skip
 // commits authored before the [INFRA] policy existed. The first
@@ -101,16 +106,21 @@ try {
  */
 const POLICY_CUTOFF_EPOCH = 1750896000; // 2026-06-21T00:00:00Z
 
-function check1_criticalInfraMarker(): void {
-  console.log("\n── Check 1: Critical infra commit [INFRA] marker ──");
+/**
+ * INFRA-POLICY-WIDER-SCOPE (2026-06-22):
+ * Business code directories — files under these prefixes are exempt
+ * from the [INFRA] marker requirement. Everything else is infrastructure.
+ */
+const BUSINESS_CODE_PREFIXES = ["booking_system_refactor/"];
 
-  if (CRITICAL_FILES.length === 0) {
-    pass("Skipped — no critical files loaded");
-    return;
-  }
+function check1_criticalInfraMarker(): void {
+  console.log("\n── Check 1: Infrastructure commit [INFRA] marker ──");
+  console.log(
+    `   Policy: any file NOT under ${BUSINESS_CODE_PREFIXES.join(", ")} requires [INFRA]`,
+  );
 
   try {
-    // Get commits in range that touch critical files
+    // Get commits in range
     const commits = execSync(`git log --oneline --name-only ${commitRange}`, {
       encoding: "utf8",
       cwd: ROOT,
@@ -140,7 +150,7 @@ function check1_criticalInfraMarker(): void {
       // Skip commits authored before the [INFRA] policy existed (false positives)
       if (committerEpoch < POLICY_CUTOFF_EPOCH) {
         pass(
-          `Commit ${hash.substring(0, 7)} predates [INFRA] policy (${new Date(committerEpoch * 1000).toISOString().split("T")[0]}) — skipped`,
+          `Commit ${hash.substring(0, 7)} predates [INFRA] CI policy (${new Date(committerEpoch * 1000).toISOString().split("T")[0]}) — skipped`,
         );
         continue;
       }
@@ -154,20 +164,28 @@ function check1_criticalInfraMarker(): void {
         .split("\n")
         .filter(Boolean);
 
-      const touchedCritical = changedFiles.filter((f: string) =>
-        CRITICAL_FILES.includes(f),
+      // INFRA-POLICY-WIDER-SCOPE: Check if ANY file is NOT under a business code prefix
+      const hasInfraFiles = changedFiles.some(
+        (f: string) =>
+          !BUSINESS_CODE_PREFIXES.some((prefix) => f.startsWith(prefix)),
       );
 
-      if (touchedCritical.length > 0) {
+      if (hasInfraFiles) {
+        // Identify which specific files are infrastructure
+        const infraFiles = changedFiles.filter(
+          (f: string) =>
+            !BUSINESS_CODE_PREFIXES.some((prefix) => f.startsWith(prefix)),
+        );
+
         const hasInfraMarker =
           /\[INFRA\]/i.test(subject) || /\[INFRA\]/i.test(body);
         if (!hasInfraMarker) {
           fail(
-            `Commit ${hash.substring(0, 7)} touches critical files without [INFRA] marker: ${touchedCritical.join(", ")}`,
+            `Commit ${hash.substring(0, 7)} touches infrastructure files without [INFRA] marker: ${infraFiles.slice(0, 5).join(", ")}${infraFiles.length > 5 ? ` (+${infraFiles.length - 5} more)` : ""}`,
           );
         } else {
           pass(
-            `Commit ${hash.substring(0, 7)} has [INFRA] marker for critical files: ${touchedCritical.join(", ")}`,
+            `Commit ${hash.substring(0, 7)} has [INFRA] marker (${infraFiles.length} infra file(s))`,
           );
         }
       }

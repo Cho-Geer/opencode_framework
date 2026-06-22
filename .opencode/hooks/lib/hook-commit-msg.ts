@@ -26,7 +26,10 @@ import {
   getEnforcementModeWithSource,
   getProjectRoot,
 } from "../../lib/gate-core";
-import { getStagedCriticalFiles } from "./hook-critical-files";
+import {
+  getStagedCriticalFiles,
+  getStagedInfraFiles,
+} from "./hook-critical-files";
 /**
  * FIX-011 (Phase 2): Commit-msg hook now emits structured high-severity
  * events through Log Central (log-manager.ts) in addition to the existing
@@ -93,9 +96,13 @@ if (/^Merge /i.test(msg)) {
 
 // ── TDD Marker + Phase Ordering ──
 const tddMatch = msg.match(/^\[(Red|Green|Refactor)\]\s+(\S+)/i);
+
+// INFRA-POLICY-WIDER-SCOPE (2026-06-22): Also check for infrastructure files
+// (anything NOT under booking_system_refactor/), not just CRITICAL_FILES.
 const criticalModified = getStagedCriticalFiles();
+const infraModified = getStagedInfraFiles();
 const isInfraOnly =
-  !tddMatch && msg.includes("[INFRA]") && criticalModified.length > 0;
+  !tddMatch && msg.includes("[INFRA]") && infraModified.length > 0;
 
 if (tddMatch) {
   const phase = tddMatch[1].toLowerCase();
@@ -173,14 +180,19 @@ if (tddMatch) {
   });
 }
 
-// ── [INFRA] Marker Check (critical files) ──
-if (criticalModified.length > 0) {
+// ── [INFRA] Marker Check (infrastructure files) ──
+// INFRA-POLICY-WIDER-SCOPE (2026-06-22): Check ALL infrastructure files
+// (anything NOT under booking_system_refactor/), not just CRITICAL_FILES.
+// This closes the blind spot where modifications to files like
+// package.json, tsconfig.json, or .github/workflows/* could bypass
+// the [INFRA] commit-marker requirement.
+if (infraModified.length > 0) {
   if (!msg.includes("[INFRA]")) {
     console.log("═══════════════════════════════════════════════════════");
     console.log(
-      "[FW-ENFORCE][INFRA] Critical infrastructure files in this commit:",
+      "[FW-ENFORCE][INFRA] Infrastructure files in this commit (outside booking_system_refactor/):",
     );
-    criticalModified.forEach((f) => console.log(`  - ${f}`));
+    infraModified.forEach((f) => console.log(`  - ${f}`));
     console.log("\nCommit message must include [INFRA] marker.");
     console.log(
       'Example: git commit -m "[Green][INFRA] update agent permissions"',
@@ -193,23 +205,23 @@ if (criticalModified.length > 0) {
       writeLog("hook-commit-msg", "hooks", {
         level: "ERROR",
         event: "INFRA-MARKER-REQUIRED-LOCKED",
-        detail: JSON.stringify({ files: criticalModified, mode }),
+        detail: JSON.stringify({ files: infraModified, mode }),
       });
       process.exit(1);
     } else {
       console.log(
-        `⚠️  [INFRA] Advisory: ${criticalModified.length} critical file(s) modified — ` +
+        `⚠️  [INFRA] Advisory: ${infraModified.length} infrastructure file(s) modified — ` +
           `[INFRA] marker recommended but not enforced in ${mode} mode`,
       );
       writeLog("hook-commit-msg", "hooks", {
         level: "WARN",
         event: "INFRA-MARKER-RECOMMENDED",
-        detail: JSON.stringify({ files: criticalModified, mode }),
+        detail: JSON.stringify({ files: infraModified, mode }),
       });
     }
   } else if (!isInfraOnly) {
     console.log(
-      `✅ [INFRA] ${criticalModified.length} critical file(s) — marker confirmed`,
+      `✅ [INFRA] ${infraModified.length} infrastructure file(s) — marker confirmed`,
     );
   }
 }

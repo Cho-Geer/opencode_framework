@@ -309,3 +309,77 @@ export function invalidateCriticalFilesCache(): void {
   _cachedDomains = null;
   _cachedEntries = null;
 }
+
+// ── INFRA-POLICY-WIDER-SCOPE: Business code vs Infrastructure ──
+// Added 2026-06-22 by @Super-Admin (INFRA-POLICY-WIDER-SCOPE).
+// Previously, [INFRA] was required only when specific files in the
+// CRITICAL_FILES array were touched. This created blind spots —
+// modifications to files like package.json, tsconfig.json, or
+// .github/workflows/* that weren't in CRITICAL_FILES could bypass
+// the [INFRA] commit-marker requirement.
+//
+// The new policy: ANY file NOT under booking_system_refactor/ is
+// infrastructure and requires [INFRA]. Business code (under
+// booking_system_refactor/) is exempt.
+
+/**
+ * BUSINESS_CODE_PREFIX — Files under this directory are business code
+ * and do NOT require the [INFRA] marker in commit messages.
+ * Everything else is infrastructure and requires [INFRA].
+ *
+ * Business code directories:
+ *   - booking_system_refactor/booking-backend/src/**
+ *   - booking_system_refactor/booking-frontend/**
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ */
+export const BUSINESS_CODE_PREFIX = "booking_system_refactor/";
+
+/**
+ * Check if a file path is an infrastructure file (not business code).
+ * Infrastructure files require [INFRA] marker in commit messages.
+ *
+ * @param filePath — Git-tracked file path relative to repo root
+ * @returns true if the file is NOT under booking_system_refactor/
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ */
+export function isInfrastructureFile(filePath: string): boolean {
+  return !filePath.startsWith(BUSINESS_CODE_PREFIX);
+}
+
+/**
+ * Return infrastructure files that are staged for commit.
+ * Infrastructure = files NOT under booking_system_refactor/.
+ *
+ * Uses `git diff --cached --name-only` (commit-time check).
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ */
+export function getStagedInfraFiles(): string[] {
+  const staged = execSync("git diff --cached --name-only", { encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  return staged.filter(isInfrastructureFile);
+}
+
+/**
+ * Return infrastructure files modified since HEAD.
+ * Infrastructure = files NOT under booking_system_refactor/.
+ *
+ * Uses `git diff HEAD --name-only` (dispatch-time check).
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ */
+export function getModifiedInfraFiles(): string[] {
+  try {
+    const modified = execSync("git diff HEAD --name-only", { encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    return modified.filter(isInfrastructureFile);
+  } catch {
+    return [];
+  }
+}
