@@ -903,7 +903,6 @@
     "./.opencode/plugins/cache-after.ts",
     "./.opencode/plugins/dispatch-after.ts",
     "./.opencode/plugins/dispatch-auto.ts",
-    "./.opencode/plugins/hook-config-guard.ts",
     "./.opencode/plugins/json-validate.ts"
   ],
   "mcp": {
