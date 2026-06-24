@@ -11,6 +11,11 @@ import { writeLog } from "../lib/log-manager";
 import { isDagExempt, readDispatchPolicy, autoPlan } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
 import {
+  isPrivileged,
+  isKnowledgeCurator as isKC,
+  normalize,
+} from "../lib/agent-identity";
+import {
   dbWriteSessionMap,
   dbReadSessionMap,
   dbQuerySessionByDagTaskId,
@@ -401,20 +406,17 @@ export default tool({
       try {
         // ── Security: Orchestrator + Super-Admin/UC7KS gate ──
         const caller = context.agent || "";
-        const isOrchestrator =
-          caller === "Orchestrator" || caller === "@Orchestrator";
-        const isSuperAdmin =
-          caller === "Super-Admin" || caller === "@Super-Admin";
-        const isKC =
-          args.agent_type === "Knowledge-Curator" ||
-          args.agent_type === "@Knowledge-Curator";
+        const callerNorm = normalize(caller);
+        const isOrchestrator = callerNorm === "orchestrator";
+        const isSuperAdmin = callerNorm === "super-admin";
+        const isKCTarget = isKC(args.agent_type);
 
         if (!isOrchestrator) {
           // ── Any agent may dispatch Knowledge-Curator for UC7KS pipeline ──
-          if (isKC) {
+          if (isKCTarget) {
             // Allow: any agent can dispatch KC for knowledge acquisition
             // No pattern check needed for non-Super-Admin agents
-          } else if (isSuperAdmin && isKC) {
+          } else if (isSuperAdmin && isKCTarget) {
             // Super-Admin UC7KS bypass (pattern check)
             const taskDesc = (args.task_description || "").toLowerCase();
             const patterns = loadUC7KSDispatchPatterns(
@@ -456,9 +458,9 @@ export default tool({
         // @Orchestrator may dispatch @Super-Admin for emergency framework repair.
         // Task must match repair patterns. Enforcement mode gating:
         //   advisory: unrestricted, strict: repair patterns required, locked: human-only
-        const isSATarget =
-          args.agent_type === "Super-Admin" ||
-          args.agent_type === "@Super-Admin";
+        const isSATarget = isKC(args.agent_type) // normalized check
+          ? false // KC is not SA target
+          : normalize(args.agent_type) === "super-admin";
         if (isSATarget) {
           const repairPatterns = loadSARepairPatterns(
             context.worktree || process.cwd(),
@@ -580,7 +582,9 @@ export default tool({
                   ? { DISPATCH_NAMESPACE: sessionNamespace }
                   : {}),
                 // DISPATCH_DAG_TASK_ID: DAG task ID for audit/validation in child script
-                ...(effectiveDagTaskId ? { DISPATCH_DAG_TASK_ID: effectiveDagTaskId } : {}),
+                ...(effectiveDagTaskId
+                  ? { DISPATCH_DAG_TASK_ID: effectiveDagTaskId }
+                  : {}),
                 ...(args.resume_session_id
                   ? { DISPATCH_RESUME_SESSION_ID: args.resume_session_id }
                   : {}),
@@ -718,6 +722,7 @@ export default tool({
         // Eliminates the session_map race condition caused by concurrent dispatches
         // overwriting the shared .dispatch_ctx singleton. Each dispatch gets its own
         // ctx/{dagTaskId}.json file — isolated, race-free.
+        const inferredDomainId = inferDomainId(args.agent_type);
         if (effectiveDagTaskId) {
           try {
             const root = process.env.OPENCODE_ROOT || process.cwd();
@@ -739,6 +744,7 @@ export default tool({
             writeFileSync(
               ctxPerDispatchPath,
               JSON.stringify({
+                pipeline_id: effectiveDagTaskId,
                 dagTaskId,
                 agentType: args.agent_type,
                 domainId: inferredDomainId,

@@ -24,49 +24,13 @@ import { writeLog } from "./log-manager";
 import { atomicWriteSubState } from "./state-utils";
 import { readSubState } from "./substate-manager";
 
+// Re-export canonical DAG-exempt list and check from agent-identity.ts
+export { DAG_EXEMPT_AGENTS, isDagExempt } from "./agent-identity";
 // ───────────────────────────────────────────────────────────────────────────
 // §1  CANONICAL DAG-EXEMPT AGENT LIST
 // ───────────────────────────────────────────────────────────────────────────
-//
-// These agents are allowed to dispatch (and to be dispatched) without a
-// corresponding Task.DAG.json entry. Any agent NOT in this list is a
-// "non-DAG-exempt" subagent and is subject to the PLAN-FIRST constraint.
-//
-// Current members:
-//   - meta-planner   — creates the DAG; cannot logically require a DAG entry
-//                      before it has created one.
-//   - orchestrator   — manages the DAG; dispatches themselves are rare but
-//                      legitimate for DAG introspection tasks.
-//   - super-admin    — framework maintenance (docs/, rules, plugins) is
-//                      outside DAG coverage by design.
-//   - knowledge-curator — dispatched for UC7KS knowledge acquisition, which
-//                      is not a DAG-tracked activity. Exempted from both the
-//                      pre-execution gate and the P2-1 audit.
-//
-// To add a new exempt agent: edit this array and update the documentation in
-// plan-first-redesign.md §3. All gates read from this list — there is no
-// other place to change.
-//
-// Decision record:
-//   - Knowledge-Curator exempted per user decision 2026-06-14: "Knowledge-
-//     Curator should live in DAG-exempt array, and dispatch it should bypass
-//     DAG audit."
-export const DAG_EXEMPT_AGENTS: readonly string[] = Object.freeze([
-  "meta-planner",
-  "orchestrator",
-  "super-admin",
-  "knowledge-curator",
-]);
-
-/**
- * Normalize an agent string (strip leading '@', lowercase) and check whether
- * it belongs to the DAG-exempt set.
- */
-export function isDagExempt(agent: string | undefined | null): boolean {
-  if (!agent) return false;
-  const normalized = String(agent).toLowerCase().replace(/^@/, "");
-  return (DAG_EXEMPT_AGENTS as readonly string[]).includes(normalized);
-}
+// Defined in lib/agent-identity.ts — re-exported above.
+// Members: meta-planner, orchestrator, super-admin, knowledge-curator
 
 // ───────────────────────────────────────────────────────────────────────────
 // §2  DISPATCH POLICY (from project.config.json)

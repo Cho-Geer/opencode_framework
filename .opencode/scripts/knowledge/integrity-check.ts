@@ -21,9 +21,9 @@
  *                 adds entries via knowledge-store.ts. Operator-assisted.
  */
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 const { createRequire } = require("node:module");
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs", "official_docs");

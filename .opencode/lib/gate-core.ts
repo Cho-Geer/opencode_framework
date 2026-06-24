@@ -877,29 +877,10 @@ export function armGateSession(
           }
         }
       } catch {
-        /* ctx/ scan failed — fall through to .dispatch_ctx */
+        /* ctx/ scan failed — .dispatch_ctx fallback REMOVED (V1.3 Phase 3, dispatch write removed) */
       }
 
-      // Legacy: .dispatch_ctx (if ctx/ scan missed)
-      if (!hasDispatchContext) {
-        const dispatchCtxPath = path.join(
-          projectRoot,
-          ".task_temp",
-          "_dispatch",
-          ".dispatch_ctx",
-        );
-        try {
-          if (fs.existsSync(dispatchCtxPath)) {
-            const ctx = JSON.parse(fs.readFileSync(dispatchCtxPath, "utf8"));
-            if (ctx && ctx.dagTaskId) {
-              dispatchAssignedTaskIds = [ctx.dagTaskId];
-              hasDispatchContext = true;
-            }
-          }
-        } catch {
-          /* unreadable — fall through */
-        }
-      }
+      // OPT-02 (2026-06-25): DB-canonical — legacy .dispatch_ctx fallback removed. Dispatch write was removed in V1.3 Phase 2. ctx/{dagTaskId}.json is the sole file-based source; session_map DB completes the picture. Without the .dispatch_ctx write side, reads would never find data.
     }
   } catch {
     /* DB failure — fall through */

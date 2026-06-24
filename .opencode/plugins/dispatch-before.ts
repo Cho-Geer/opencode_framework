@@ -23,6 +23,10 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent, resolveDomainId } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
 import { isDagExempt, readDispatchPolicy } from "../lib/dag-policy";
+import {
+  isPrivileged,
+  isKnowledgeCurator as isKC,
+} from "../lib/agent-identity";
 import { findTaskInDag } from "../lib/gate-checks";
 import { incrementAuditCounter } from "../lib/knowledge-audit";
 import {
@@ -79,13 +83,8 @@ async function dispatchExecuteBefore(input: any, output: any): Promise<void> {
   // agent (e.g. @Architect) and throws ROUTE-MISMATCH.
   let m14ApprovedKC = false;
   {
-    const isOrchestratorOrSA =
-      caller === "Orchestrator" ||
-      caller === "@Orchestrator" ||
-      caller === "Super-Admin" ||
-      caller === "@Super-Admin";
-    const isKCTarget =
-      target === "Knowledge-Curator" || target === "@Knowledge-Curator";
+    const isOrchestratorOrSA = isPrivileged(caller);
+    const isKCTarget = isKC(target);
     if (!isOrchestratorOrSA && target && !isKCTarget) {
       writeLog("dispatch-before", "runtime", {
         sessionID: input.sessionID,

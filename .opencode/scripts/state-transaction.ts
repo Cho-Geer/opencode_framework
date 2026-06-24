@@ -60,17 +60,23 @@
 
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 
 // P1-B split architecture: transaction_state lives in its own file,
 // meta lives in machine.json (only meta + contracts, ~307 bytes).
-const { readSubState, writeSubState, readMachineMeta, writeMachineMeta } = require(path.join(__dirname, "..", "lib", "substate-manager"));
+const {
+  readSubState,
+  writeSubState,
+  readMachineMeta,
+  writeMachineMeta,
+} = require(path.join(__dirname, "..", "lib", "substate-manager"));
 
 // ─── Constants ────────────────────────────────────────────
-const OPENCODE_ROOT =
-  process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..");
+const OPENCODE_ROOT = process.env.OPENCODE_ROOT
+  ? path.resolve(process.env.OPENCODE_ROOT)
+  : path.resolve(__dirname, "..", "..");
 const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
 const TRANSACTION_LOG = path.join(STATE_DIR, ".transaction-log");
 const MACHINE_JSON = path.join(STATE_DIR, "machine.json");
@@ -119,7 +125,7 @@ function incrementRevision(machineObj) {
 /**
  * Append a log entry to the Write-Ahead Log (NDJSON format).
  * Each line is a JSON object terminated by \n.
- * 
+ *
  * FW-REPAIR-12: Auto-rotates .transaction-log when it exceeds 100KB
  * (same policy as safe-bash.log). Rotation is non-blocking — if it fails,
  * the log continues in the current file.
@@ -128,7 +134,7 @@ function appendTransactionLog(entry) {
   ensureStateDir();
   const line = JSON.stringify(entry) + "\n";
   fs.appendFileSync(TRANSACTION_LOG, line, "utf-8");
-  
+
   // Auto-rotate if log exceeds 100KB (non-blocking)
   try {
     const stat = fs.statSync(TRANSACTION_LOG);
@@ -146,13 +152,13 @@ function appendTransactionLog(entry) {
 function rotateTransactionLog() {
   const MAX_ROTATED = 3;
   const dir = path.dirname(TRANSACTION_LOG);
-  
+
   // Remove oldest rotated file
   const oldestFile = `${TRANSACTION_LOG}.${MAX_ROTATED}`;
   if (fs.existsSync(oldestFile)) {
     fs.unlinkSync(oldestFile);
   }
-  
+
   // Shift rotated files: .2→.3, .1→.2
   for (let i = MAX_ROTATED - 1; i >= 1; i--) {
     const src = `${TRANSACTION_LOG}.${i}`;
@@ -161,10 +167,10 @@ function rotateTransactionLog() {
       fs.renameSync(src, dst);
     }
   }
-  
+
   // Move current to .1
   fs.renameSync(TRANSACTION_LOG, `${TRANSACTION_LOG}.1`);
-  
+
   // Start fresh log
   fs.writeFileSync(TRANSACTION_LOG, "", "utf-8");
 }
@@ -408,8 +414,8 @@ class StateTransaction {
       if (attempt === MAX_RETRIES) {
         throw new Error(
           `TransactionConflictError: operation_id=${this.operationId}, ` +
-          `expected_revision=${expectedRevision}, actual_revision=${currentRevision}, ` +
-          `new_revision=${this.newRevision}. Concurrent modification detected after ${MAX_RETRIES + 1} attempts.`,
+            `expected_revision=${expectedRevision}, actual_revision=${currentRevision}, ` +
+            `new_revision=${this.newRevision}. Concurrent modification detected after ${MAX_RETRIES + 1} attempts.`,
         );
       }
 
@@ -417,7 +423,7 @@ class StateTransaction {
       const backoffMs = BACKOFF_MS[attempt] || 500;
       process.stderr.write(
         `[state-transaction] ⚠ CAS retry ${attempt + 1}/${MAX_RETRIES} for ${this.operationId}: ` +
-        `expected rev ${expectedRevision}, current rev ${currentRevision}. Retrying in ${backoffMs}ms\n`,
+          `expected rev ${expectedRevision}, current rev ${currentRevision}. Retrying in ${backoffMs}ms\n`,
       );
 
       // Sleep for backoff
@@ -434,7 +440,11 @@ class StateTransaction {
           const machineObj = JSON.parse(freshContent);
           this.newRevision = incrementRevision(machineObj);
           // Update tmp file with new revision
-          fs.writeFileSync(this.tmpPath, JSON.stringify(machineObj, null, 2) + "\n", "utf-8");
+          fs.writeFileSync(
+            this.tmpPath,
+            JSON.stringify(machineObj, null, 2) + "\n",
+            "utf-8",
+          );
         } catch {
           this.newRevision = getCurrentRevision() + 1;
         }
@@ -863,7 +873,10 @@ function repairMonotonicRevision() {
   const commitEntries = entries
     .map((e, idx) => ({ ...e, _index: idx }))
     .filter((e) => e.phase === "COMMIT" && e.new_revision != null)
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    .sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
 
   if (commitEntries.length === 0) {
     return { success: true, entries_repaired: 0, max_revision: 0, issues: [] };
@@ -875,7 +888,9 @@ function repairMonotonicRevision() {
   for (const entry of commitEntries) {
     if (entry.new_revision <= prevRev) {
       hasNonMonotonic = true;
-      issues.push(`Non-monotonic: op=${entry.operation_id} rev=${entry.new_revision} after rev=${prevRev}`);
+      issues.push(
+        `Non-monotonic: op=${entry.operation_id} rev=${entry.new_revision} after rev=${prevRev}`,
+      );
     }
     prevRev = entry.new_revision;
   }
@@ -883,7 +898,12 @@ function repairMonotonicRevision() {
   if (!hasNonMonotonic) {
     // Already monotonic — just report
     const maxRev = Math.max(...commitEntries.map((e) => e.new_revision));
-    return { success: true, entries_repaired: 0, max_revision: maxRev, issues: [] };
+    return {
+      success: true,
+      entries_repaired: 0,
+      max_revision: maxRev,
+      issues: [],
+    };
   }
 
   // Repair: reassign sequential revisions ordered by timestamp
@@ -901,8 +921,15 @@ function repairMonotonicRevision() {
 
   // Rewrite transaction log with corrected revisions
   const newLines = entries.map((entry, idx) => {
-    if (entry.phase === "COMMIT" && entry.new_revision != null && newRevMap.has(entry.operation_id)) {
-      const correctedEntry = { ...entry, new_revision: newRevMap.get(entry.operation_id) };
+    if (
+      entry.phase === "COMMIT" &&
+      entry.new_revision != null &&
+      newRevMap.has(entry.operation_id)
+    ) {
+      const correctedEntry = {
+        ...entry,
+        new_revision: newRevMap.get(entry.operation_id),
+      };
       return JSON.stringify(correctedEntry);
     }
     // Also fix if entry was the old raw entry
@@ -998,13 +1025,21 @@ function runCLI() {
     }
 
     default: {
-      process.stderr.write("Usage: bun state-transaction.ts <command> [args...]\n");
+      process.stderr.write(
+        "Usage: bun state-transaction.ts <command> [args...]\n",
+      );
       process.stderr.write("Commands:\n");
-      process.stderr.write("  verify          Verify transaction log integrity\n");
+      process.stderr.write(
+        "  verify          Verify transaction log integrity\n",
+      );
       process.stderr.write("  recover         Run crash recovery scan\n");
-      process.stderr.write("  log-tail [N]    Show last N transaction log entries (default 20)\n");
+      process.stderr.write(
+        "  log-tail [N]    Show last N transaction log entries (default 20)\n",
+      );
       process.stderr.write("  init            Initialize transaction system\n");
-      process.stderr.write("  atomic-write <file> <agent> <taskId>  Atomic write (content from stdin)\n");
+      process.stderr.write(
+        "  atomic-write <file> <agent> <taskId>  Atomic write (content from stdin)\n",
+      );
       process.exit(1);
     }
   }

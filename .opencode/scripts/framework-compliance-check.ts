@@ -10,7 +10,7 @@
 // SA-STORAGE-IMPLEMENT-001: transactionLog path removed — .transaction-log is legacy bridge.
 // V3 gate-state format compatibility (active_sessions as object) retained.
 
-const path = require("path");
+const path = require("node:path");
 const { readJsonFile, resolveFrameworkPaths } = require("../lib/gate-core.ts");
 const { readSubState } = require("../lib/substate-manager");
 // Post-Step-8 DB-only migration: read gate state from DB instead of frozen JSON snapshot

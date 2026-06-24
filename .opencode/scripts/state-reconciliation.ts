@@ -29,8 +29,8 @@
  *                      completed DAG tasks lacking consumed gate sessions
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const { atomicWriteSubState, atomicWriteJson } = require("../lib/state-utils");
 const { readSubState } = require("../lib/substate-manager");
 // P3/S74-1: DB-first gate-state integrity check
@@ -1173,7 +1173,7 @@ function validateWriteAuditIntegrity(machine, rootDir) {
   let filesChecked = 0,
     filesPassed = 0,
     filesFailed = 0;
-  const crypto = require("crypto");
+  const crypto = require("node:crypto");
   function sha256(content) {
     return (
       "sha256-" + crypto.createHash("sha256").update(content).digest("hex")

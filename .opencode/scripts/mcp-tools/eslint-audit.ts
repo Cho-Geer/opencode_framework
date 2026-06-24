@@ -23,9 +23,9 @@ const {
   ListToolsRequestSchema,
 } = require("@modelcontextprotocol/sdk/types.js");
 
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+const { execSync } = require("node:child_process");
 
 const OPENCODE_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -380,9 +380,17 @@ process.on("SIGINT", async () => {
   try {
     process.stderr.write("[eslint-audit] SIGINT — shutting down\n");
     if (_activeTransport) {
-      try { await _activeTransport.close(); } catch { /* best-effort */ }
+      try {
+        await _activeTransport.close();
+      } catch {
+        /* best-effort */
+      }
     }
-    try { await server.close(); } catch { /* best-effort */ }
+    try {
+      await server.close();
+    } catch {
+      /* best-effort */
+    }
   } catch {
     /* ignore */
   }

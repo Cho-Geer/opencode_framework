@@ -12,9 +12,9 @@
  * Usage: bun .opencode/scripts/knowledge/size-reporter.ts
  */
 
-const path = require("path");
+const path = require("node:path");
 const { createRequire } = require("node:module");
-const fs = require("fs");
+const fs = require("node:fs");
 
 /**
  * KC-11: Load knowledge-store (ESM) via createRequire for CJS interop.

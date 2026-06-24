@@ -91,7 +91,7 @@
     },
     "Orchestrator": {
       "mode": "primary",
-      "model": "deepseek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Orchestrator.md",
       "permission": {
         "task": "allow",
@@ -883,6 +883,7 @@
   },
   "plugin": [
     "./.opencode/plugins/session.ts",
+    "./.opencode/plugins/checklist-before.ts",
     "./.opencode/plugins/scope-before.ts",
     "./.opencode/plugins/gate-before.ts",
     "./.opencode/plugins/dispatch-before.ts",

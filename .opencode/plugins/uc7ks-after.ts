@@ -7,7 +7,7 @@ import {
   resolveDomainId,
 } from "../lib/agent-resolver";
 import { getModifyPath } from "../lib/tool-scope";
-import { normalizeAgentKey, getDomainEntry } from "../lib/uc7ks-schema";
+import { normalizeAgentKey } from "../lib/uc7ks-schema";
 import { atomicWriteSubState } from "../lib/state-utils";
 import { incrementAuditCounter } from "../lib/knowledge-audit";
 import * as path from "node:path";
@@ -109,37 +109,13 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         // per-domain entry's read_audit_files list for later cross-
         // verification by the attest tool.
 
-        // FW-UC7KS-DOMAIN-001: Record read metadata for per-domain tracking
-        // Does NOT write cache_sufficiency.status=sufficient.
-        if (taskId && domainId) {
-          const domainEntry = getDomainEntry(
-            state.session_access,
-            agent,
-            taskId,
-            domainId,
-          );
-          domainEntry.pipeline_status = "completed";
-          domainEntry.declared_at =
-            domainEntry.declared_at || new Date().toISOString();
-          // Record the read file in a metadata-only field (not cache_sufficiency)
-          // Preserve existing cache_sufficiency/discovery/attestation unchanged.
-          if (!domainEntry.cache_sufficiency) {
-            domainEntry.cache_sufficiency = {
-              status: "undeclared",
-              missing_topics: [],
-              declared_at: new Date().toISOString(),
-              reason: "",
-              files_read: [],
-              content_summary: "",
-            };
-          }
-          writeLog("uc7ks-after", "runtime", {
-            sessionID: input.sessionID,
-            callID: input.callID,
-            event: "UC7KS-READ-METADATA-RECORDED",
-            detail: `taskId=${taskId} domainId=${domainId} file=${filePath} | NOTE: NOT auto-setting sufficient — attestation required`,
-          });
-        }
+        // OPT-02 (2026-06-25): DB-canonical — legacy JSON blob write removed.
+        // Read metadata tracking (last_read_at, read_audit_files) was recorded
+        // via getDomainEntry() to the now-frozen knowledge_cache_state JSON blob.
+        // The authoritative read evidence is provided by knowledge_cache_attest
+        // (via uc7ks_pipeline_state) and read_audit DB. This plugin's
+        // per-domain metadata recording is no longer needed.
+      });
       });
     } catch (err: any) {
       writeLog("uc7ks-after", "runtime", {

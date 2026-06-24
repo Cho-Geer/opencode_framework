@@ -15,11 +15,12 @@
  *   5. Logs after-state diff
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
-const OPENCODE_ROOT =
-  process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..");
+const OPENCODE_ROOT = process.env.OPENCODE_ROOT
+  ? path.resolve(process.env.OPENCODE_ROOT)
+  : path.resolve(__dirname, "..", "..");
 const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
 const MACHINE_FILE = path.join(STATE_DIR, "machine.json");
 

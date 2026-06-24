@@ -34,6 +34,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "./log-manager";
 import { getAgentShellAllowlist } from "./permission-reader";
+import { normalize } from "./agent-identity";
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -94,7 +95,6 @@ function _loadSafeShellConfig(): any {
   }
   return _safeShellConfigCache;
 }
-
 
 /**
  * FW-PERM-AUDIT-FIX: Reset the safe shell config cache.
@@ -583,7 +583,8 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
       exitCode: null,
       stdout: "",
       stderr: "",
-      blockedReason: "SHELL_TOOL_DENIED: safe_shell denied by opencode.json permission",
+      blockedReason:
+        "SHELL_TOOL_DENIED: safe_shell denied by opencode.json permission",
       timestamp: new Date().toISOString(),
     };
     logAction(result);
@@ -598,13 +599,16 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
       exitCode: null,
       stdout: "",
       stderr: "",
-      blockedReason: "SHELL_CMD_DENIED_BY_PERMISSION: command denied by opencode.json safe_shell",
+      blockedReason:
+        "SHELL_CMD_DENIED_BY_PERMISSION: command denied by opencode.json safe_shell",
       timestamp: new Date().toISOString(),
     };
     logAction(result);
     return result;
   }
-  if (shellResult.needsConfirmation.some((pattern) => matchGlob(command, pattern))) {
+  if (
+    shellResult.needsConfirmation.some((pattern) => matchGlob(command, pattern))
+  ) {
     // "ask" semantics: in non-interactive framework context (no UI prompt),
     // safely degrade to deny (HIGH-1 fix from plan §4.0.2).
     writeLog("safe-bash", "runtime", {
@@ -621,7 +625,8 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
       exitCode: null,
       stdout: "",
       stderr: "",
-      blockedReason: "ASK_CMD_BLOCKED_IN_AUTO_CTX: command requires confirmation",
+      blockedReason:
+        "ASK_CMD_BLOCKED_IN_AUTO_CTX: command requires confirmation",
       timestamp: new Date().toISOString(),
     };
     logAction(result);
@@ -646,7 +651,10 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
   }
 
   // 2. Check allowlist (P2-D v2.1: handle "ALL_ALLOWED" sentinel from opencode.json)
-  if (allowlist !== "ALL_ALLOWED" && !isAllowed(command, allowlist as string[])) {
+  if (
+    allowlist !== "ALL_ALLOWED" &&
+    !isAllowed(command, allowlist as string[])
+  ) {
     const result: SafeBashResult = {
       command,
       agent,
@@ -727,8 +735,7 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
     const writePatterns = _getConfigList("write_patterns", []).map(
       (p: string) => new RegExp(p, "i"),
     );
-    const patterns =
-      writePatterns.length > 0 ? writePatterns : WRITE_PATTERNS;
+    const patterns = writePatterns.length > 0 ? writePatterns : WRITE_PATTERNS;
     // Extended patterns for eval context — includes delete operations
     const evalPatterns = [
       ...patterns,
@@ -757,8 +764,7 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
      *   - node -e "writeFileSyncs*('.task_temp/T-001/status.json', ...)"
      *   - node -e "fs.unlinkSync('.task_temp/T-001/old.txt')"
      */
-    const normalizedAgent = agent.startsWith("@") ? agent : "@" + agent;
-    const isOrchestrator = normalizedAgent === "@Orchestrator";
+    const isOrchestrator = normalize(agent) === "orchestrator";
 
     for (const pattern of evalPatterns) {
       if (pattern.test(evalArg)) {
@@ -788,9 +794,7 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
         }
 
         // ── Non-Orchestrator: block all write/delete ──
-        const isDelete = /unlinkSync|rmSync|rmdirSync/.test(
-          pattern.source,
-        );
+        const isDelete = /unlinkSync|rmSync|rmdirSync/.test(pattern.source);
         const reason = isDelete
           ? `EVAL_FILE_DELETE: Command "${command}" contains file-delete operations (unlinkSync/rmSync/rmdirSync) in -e argument. Blocked by eval content scan.`
           : `EVAL_FILE_WRITE: Command "${command}" contains file-write operations (writeFileSync/writeFile/etc) in -e argument. Blocked by eval content scan.`;

@@ -29,6 +29,7 @@ import {
   resolveTaskIdWithSource,
   resolveDomainIdWithSource,
 } from "../lib/agent-resolver";
+import { isSuperAdmin } from "../lib/agent-identity";
 import * as path from "node:path";
 import * as fs from "node:fs";
 
@@ -42,6 +43,9 @@ const INTERRUPT_SENTINEL_PATH = path.join(
 
 // In-memory session map — reset on session.compacted to avoid stale scope.
 let _sessionMap: Record<string, { agent: string; ts: string }> = {};
+
+// Agent model cache — lazy-loaded from opencode.json agent->model config.
+let _agentModelCache: Record<string, string> = {};
 
 export default withPluginLifecycle("session", {
   "chat.message": chatMessageHook,
@@ -75,6 +79,13 @@ async function chatMessageHook(input: any, _output: any) {
     });
     return;
   }
+
+  writeLog("session", "INFO", {
+    sessionID: sid,
+    agent,
+    event: "ROUND-START",
+    detail: "new conversation round detected",
+  });
 
   // ═══════════════════════════════════════════════════════════════
   // FW-SESSION-STARTUP-CLEANUP (2026-06-24): Interrupt residue cleanup.
@@ -237,8 +248,7 @@ async function chatMessageHook(input: any, _output: any) {
   try {
     const { getEnforcementMode: _gem } = require("../lib/gate-core");
     const _mode = _gem();
-    const _agentNorm = (agent || "").toLowerCase().replace(/^@/, "");
-    const _isSA = _agentNorm === "super-admin";
+    const _isSA = isSuperAdmin(agent);
 
     if ((_mode === "strict" || _mode === "locked") && !_isSA && sid) {
       // Check 1: Gate session armed
@@ -457,6 +467,28 @@ function clearInterruptSentinel(): void {
   } catch {
     /* ignore */
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SESSION-MODEL-IDENTITY: Resolve agent model from opencode.json
+// ═══════════════════════════════════════════════════════════════
+
+function resolveAgentModel(agent: string): string {
+  if (_agentModelCache[agent]) return _agentModelCache[agent];
+  try {
+    const cfgPath = path.join(PROJECT_ROOT, ".opencode", "opencode.json");
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+      const model = cfg?.agent?.[agent]?.model;
+      if (model) {
+        _agentModelCache[agent] = model;
+        return model;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return "default-model";
 }
 
 // ═══════════════════════════════════════════════════════════════

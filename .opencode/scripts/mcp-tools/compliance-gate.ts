@@ -10,8 +10,13 @@ let _gateCore = null;
 try {
   const rootDir =
     process.env.OPENCODE_ROOT ||
-    require("path").resolve(__dirname, "..", "..", "..");
-  const tsPath = require("path").join(rootDir, ".opencode", "lib", "gate-core");
+    require("node:path").resolve(__dirname, "..", "..", "..");
+  const tsPath = require("node:path").join(
+    rootDir,
+    ".opencode",
+    "lib",
+    "gate-core",
+  );
   _gateCore = require(tsPath);
 } catch (_e) {
   process.stderr.write(
@@ -43,8 +48,8 @@ const {
 } = require("../../lib/db-state-manager");
 const { resolveAgent } = require("../../lib/agent-resolver");
 
-const fs2 = require("fs");
-const path2 = require("path");
+const fs2 = require("node:fs");
+const path2 = require("node:path");
 /**
  * FW-REPAIR-P1B-IMPORT: atomicWriteSubState is defined in state-utils.ts.
  * readSubState is defined in substate-manager.ts (P1-B split architecture).
@@ -119,7 +124,7 @@ const GATE_STATE_FILE =
 
 const SKILL_INV_STD =
   process.env.SKILL_INV_STD_PATH ||
-  require("path").join(
+  require("node:path").join(
     OPENCODE_ROOT,
     ".opencode",
     "rules",
@@ -129,7 +134,7 @@ const SKILL_INV_STD =
 
 const MCP_INVENTORY =
   process.env.MCP_INVENTORY_PATH ||
-  require("path").join(
+  require("node:path").join(
     OPENCODE_ROOT,
     ".opencode",
     "rules",
@@ -139,7 +144,7 @@ const MCP_INVENTORY =
 
 const COMMON_RULES =
   process.env.COMMON_RULES_PATH ||
-  require("path").join(
+  require("node:path").join(
     OPENCODE_ROOT,
     ".opencode",
     "rules",
@@ -148,7 +153,7 @@ const COMMON_RULES =
 
 const SKILL_FILE =
   process.env.SKILL_FILE_PATH ||
-  require("path").join(
+  require("node:path").join(
     OPENCODE_ROOT,
     ".opencode",
     "skills",
@@ -156,9 +161,9 @@ const SKILL_FILE =
     "SKILL.md",
   );
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 
 // ── P3/S52-1: DB-first state writes (replaces state-transaction beginTransaction) ──
 const {
@@ -288,11 +293,12 @@ function writeJsonWithContext(p, data, agent, taskId) {
     // JSON write only (gate-state DB sync handled by state-compactor.onGateComplete)
     /**
      * FW-LOG-UNIFY-P2-A1 (2026-06-12): Migrated from debugStderr to writeLog.
+     * FW-P0-FIX-F2 (2026-06-25, @Super-Admin): Removed txn.operationId + txn.newRevision
+     * references — txn was undeclared after P3/S52-1 removed ensureTxnInit (DB-first migration).
+     * Now writes directly with agent/taskId/file context only.
      */
     writeLog("mcp-compliance-gate", "INFO", {
-      event: "txn_committed_with_context",
-      operationId: txn.operationId,
-      newRevision: txn.newRevision,
+      event: "gate_json_write_with_context",
       agent,
       taskId,
       file: path.relative(OPENCODE_ROOT, p),
@@ -869,29 +875,12 @@ function runGateCheck(taskDescription, taskId) {
           }
         }
       } catch {
-        // ctx/ scan failed — fall through to .dispatch_ctx
+        // ctx/ scan failed — .dispatch_ctx fallback REMOVED (V1.3 Phase 3, dispatch write removed)
       }
 
-      // Legacy: .dispatch_ctx (if ctx/ scan missed)
-      if (!foundCtx) {
-        const dispatchCtxPath = path2.join(
-          OPENCODE_ROOT,
-          ".task_temp",
-          "_dispatch",
-          ".dispatch_ctx",
-        );
-        try {
-          if (fs2.existsSync(dispatchCtxPath)) {
-            const ctx = JSON.parse(fs2.readFileSync(dispatchCtxPath, "utf8"));
-            if (ctx && ctx.dagTaskId) {
-              dispatchAssignedTaskIds = [ctx.dagTaskId];
-              hasDispatchContext = true;
-            }
-          }
-        } catch {
-          // .dispatch_ctx unreadable — fall through
-        }
-      }
+      // OPT-02 (2026-06-25): DB-canonical — legacy .dispatch_ctx fallback removed.
+      // Dispatch write was removed in V1.3 Phase 2. ctx/{dagTaskId}.json is the sole
+      // file-based source; session_map DB completes the picture.
     }
   } catch {
     // DB query failure — fall through to no dispatch context
@@ -941,9 +930,7 @@ function runGateCheck(taskDescription, taskId) {
       // unlike _dispatch_target.json which is a single shared file.
       let _resolvedAgent = "—";
       let _resolvedSessionId = "—";
-      if (_resolvedAgent === "—") {
-        _resolvedAgent = resolveDispatchTargetAgentDirect() || "—";
-      }
+      // OPT-02: _dispatch_target.json read removed — nobody writes this file.
 
       writeLog("mcp-compliance-gate", "ERROR", {
         sessionID: _resolvedSessionId,
@@ -1005,7 +992,7 @@ function runGateCheck(taskDescription, taskId) {
 
   // ── Bootstrap: check hooksPath is configured (one-time hint on fresh clone) ──
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
     const hooksPath = execSync("git config --local core.hooksPath", {
       stdio: "pipe",
       encoding: "utf-8",
@@ -1242,46 +1229,9 @@ function runGateCheck(taskDescription, taskId) {
         ? "WARNING"
         : "INFO",
   });
-
-  /**
-   * Read agent identity from _dispatch_target.json (v4.0.0 replacement for FRAMEWORK_AGENT).
-   * @returns {string} agent name or empty string
-   */
-  function resolveDispatchTargetAgent() {
-    try {
-      const p = path2.join(
-        process.env.OPENCODE_ROOT || ".",
-        ".task_temp",
-        "_dispatch_target.json",
-      );
-      if (fs2.existsSync(p)) {
-        const d = JSON.parse(fs2.readFileSync(p, "utf8"));
-        const currentRunId = process.env.OPENCODE_RUN_ID || "";
-        if (currentRunId) {
-          // P0-7: Use run_id comparison when OPENCODE_RUN_ID is available
-          if (!d.run_id || d.run_id !== currentRunId) {
-            try {
-              fs2.unlinkSync(p);
-            } catch {}
-            return "";
-          }
-        } else {
-          // P0-7 FALLBACK: Timestamp-based staleness when OPENCODE_RUN_ID
-          // is unset. _dispatch_target.json older than 30 min → stale.
-          const STALE_MS = 30 * 60 * 1000;
-          const mtime = fs2.statSync(p).mtimeMs;
-          if (Date.now() - mtime > STALE_MS) {
-            try {
-              fs2.unlinkSync(p);
-            } catch {}
-            return "";
-          }
-        }
-        return d.agent || "";
-      }
-    } catch {}
-    return "";
-  }
+  // OPT-02 (2026-06-25): resolveDispatchTargetAgent() removed.
+  // Nobody writes _dispatch_target.json since FRAMEWORK_AGENT/env var cleanup.
+  // Agent identity now resolved from caller-provided agent, session.agent, or gate session metadata.
 
   // ── UC7KS: Pipeline Task-ID Chain Hard Constraint ──
   // F3 (2026-06-11): Nested per-task-per-domain schema with flat fallback.
@@ -1509,22 +1459,9 @@ function runGateConfirm(
   }
 
   // ── Resolve agent identity (needed for deliverables validation) ──
+  // OPT-02 (2026-06-25): _dispatch_target.json read removed. Nobody writes this file.
+  // Agent identity resolved from caller-provided agent or session.agent.
   let resolvedAgent = agent;
-  if (!resolvedAgent) {
-    try {
-      const dtp = path2.join(
-        OPENCODE_ROOT,
-        ".task_temp",
-        "_dispatch_target.json",
-      );
-      if (fs2.existsSync(dtp)) {
-        const dt = JSON.parse(fs2.readFileSync(dtp, "utf8"));
-        resolvedAgent = dt.agent || "";
-      }
-    } catch (_) {
-      /* non-critical */
-    }
-  }
   resolvedAgent = resolvedAgent || session.agent || "unknown";
 
   // ── Deliverables hard constraint validation ──
@@ -2259,7 +2196,7 @@ function enforceMultiSourceAudit(
   if (!isInvestigation) return null;
 
   // ── 2. Read HANDOVER.md ──
-  const fs = require("fs");
+  const fs = require("node:fs");
   const handoverPath =
     session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")
       ?.artifact_path || `.task_temp/${taskId}/HANDOVER.md`;
@@ -2410,12 +2347,10 @@ function runGateApproveDeliverables(
     "orchestrator",
     "super-admin",
   ];
-  const resolvedAgent = (
-    agentId ||
-    (session && session.agent) ||
-    resolveDispatchTargetAgentDirect() ||
-    ""
-  ).replace(/^@/, "");
+  const resolvedAgent = (agentId || (session && session.agent) || "").replace(
+    /^@/,
+    "",
+  );
 
   // §12.3 (read-before-approve-plan.md): Log agent resolution source
   writeLog("mcp-compliance-gate", "INFO", {
@@ -2481,7 +2416,7 @@ function runGateApproveDeliverables(
         ?.artifact_path || `.task_temp/${taskId}/HANDOVER.md`;
     let handoverContent = "";
     try {
-      const fs = require("fs");
+      const fs = require("node:fs");
       if (fs.existsSync(handoverPath)) {
         handoverContent = fs.readFileSync(handoverPath, "utf8");
       }
@@ -2510,7 +2445,7 @@ function runGateApproveDeliverables(
           `Compute: sha256sum ${handoverPath}`,
       };
     }
-    const crypto = require("crypto");
+    const crypto = require("node:crypto");
     const actualHash = crypto
       .createHash("sha256")
       .update(handoverContent)
@@ -3141,42 +3076,9 @@ function validateTaskArtifacts(taskId, gateSessionId) {
  * @param {string} agentId - Agent identity from MCP tool context (context.agent)
  */
 
-/**
- * Standalone agent identity resolver — mirrors the closure-scoped
- * resolveDispatchTargetAgent() but accessible from runGateRetryConfirm().
- * Reads _dispatch_target.json with run_id staleness check.
- * FW-FIX-AGENT-IDENTITY (2026-06-13): Removed deprecated FRAMEWORK_AGENT
- * env var — it was never set by the runtime (dead code since v4.0.0).
- * @returns {string}
- */
-function resolveDispatchTargetAgentDirect() {
-  // Read _dispatch_target.json (set by dispatch-before.ts P0-6)
-  try {
-    const p = path2.join(OPENCODE_ROOT, ".task_temp", "_dispatch_target.json");
-    if (fs2.existsSync(p)) {
-      const d = JSON.parse(fs2.readFileSync(p, "utf8"));
-      // P0-7 staleness: run_id check (mirrors agent-resolver.ts)
-      const currentRunId = process.env.OPENCODE_RUN_ID || "";
-      if (currentRunId && d.run_id && d.run_id !== currentRunId) {
-        try {
-          fs2.unlinkSync(p);
-        } catch {}
-        return "";
-      }
-      if (!currentRunId && d.timestamp) {
-        const age = Date.now() - new Date(d.timestamp).getTime();
-        if (age > 30 * 60 * 1000) {
-          try {
-            fs2.unlinkSync(p);
-          } catch {}
-          return "";
-        }
-      }
-      return d.agent || "";
-    }
-  } catch {}
-  return "";
-}
+// OPT-02 (2026-06-25): resolveDispatchTargetAgentDirect() removed.
+// Nobody writes _dispatch_target.json since FRAMEWORK_AGENT env var cleanup.
+// Agent identity resolved from caller agentId or session.agent fallback.
 function runGateRetryConfirm(gateSessionId, planSummary, taskId, agentId) {
   if (!gateSessionId)
     return { status: "rejected", reason: "session_id required" };
@@ -3211,12 +3113,10 @@ function runGateRetryConfirm(gateSessionId, planSummary, taskId, agentId) {
     "Super-Admin",
     "Orchestrator",
   ];
-  const resolvedAgent = (
-    agentId ||
-    (session && session.agent) ||
-    resolveDispatchTargetAgentDirect() ||
-    ""
-  ).replace(/^@/, "");
+  const resolvedAgent = (agentId || (session && session.agent) || "").replace(
+    /^@/,
+    "",
+  );
 
   // Recoverable: self-repair path (any agent allowed, RC3 fix)
   if (session.gate_status === "recoverable") {

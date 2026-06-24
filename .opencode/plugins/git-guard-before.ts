@@ -35,6 +35,7 @@ import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
+import { isSuperAdmin } from "../lib/agent-identity";
 
 export default withPluginLifecycle("git-guard-before", {
   "tool.execute.before": toolExecuteBefore,
@@ -80,15 +81,6 @@ const GIT_BYPASS_PATTERNS: ReadonlyArray<{
     description: "git config core.skipHooks <bool>",
   },
 ];
-
-/**
- * Check if the current agent is @Super-Admin.
- * Used for the break-glass bypass authorization (FIX-002).
- */
-function isSuperAdmin(agent: string): boolean {
-  const norm = (agent || "").toLowerCase().replace(/^@/, "");
-  return norm === "super-admin";
-}
 
 async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);

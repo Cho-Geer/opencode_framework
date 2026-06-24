@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 // readJsonFile removed: inline fs read for OpenCode plugin runtime compatibility
 import { STATE_PATHS, isSourceFile } from "./state-utils";
 import * as path from "node:path";
+import { normalize, toDisplayName } from "./agent-identity";
 
 export function isModifyTool(tool: string): boolean {
   return (
@@ -489,9 +490,14 @@ export function readDispatchAllowedTools(agent: string): string[] | "*" {
         : FALLBACK;
     const tools = cfg?.agent_dispatch_allowed_tools;
     if (!tools || typeof tools !== "object") return effectiveFallback;
-    const atForm = agent.startsWith("@") ? agent : "@" + agent;
-    const plainForm = agent.replace(/^@/, "");
-    const entry = tools[atForm] || tools[plainForm];
+    const displayName = toDisplayName(agent);
+    const atForm = "@" + displayName;
+    const plainForm = displayName;
+    const entry =
+      tools[atForm] ||
+      tools[plainForm] ||
+      tools[normalize(agent)] ||
+      tools[agent.replace(/^@/, "")];
     if (!entry) return FALLBACK;
     if (
       entry === "*" ||

@@ -8,9 +8,9 @@
  * Usage: bun .opencode/scripts/knowledge/compressor.ts [filePath] [--all]
  */
 
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
+const fs = require("node:fs");
+const path = require("node:path");
+const { execSync } = require("node:child_process");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
 
@@ -21,14 +21,20 @@ let _writeLog = null;
 function getWriteLog() {
   if (!_writeLog) {
     try {
-      const lm = require(path.join(__dirname, "..", "..", "lib", "log-manager"));
+      const lm = require(
+        path.join(__dirname, "..", "..", "lib", "log-manager"),
+      );
       _writeLog = lm.writeLog;
-    } catch { _writeLog = () => {}; }
+    } catch {
+      _writeLog = () => {};
+    }
   }
   return _writeLog;
 }
 function srcLog(level, event, fields) {
-  try { getWriteLog()("script-knowledge-compressor", level, { event, ...fields }); } catch {}
+  try {
+    getWriteLog()("script-knowledge-compressor", level, { event, ...fields });
+  } catch {}
 }
 
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs", "official_docs");
@@ -37,38 +43,59 @@ const COMPRESSION_THRESHOLD_KB = 200; // From template_resolution.knowledge.comp
 function compressFile(relPath) {
   const absPath = path.join(DOCS_DIR, relPath);
   if (!fs.existsSync(absPath)) return { error: `File not found: ${relPath}` };
-  
+
   const stat = fs.statSync(absPath);
   const sizeKB = stat.size / 1024;
-  if (sizeKB < COMPRESSION_THRESHOLD_KB) return { skipped: true, reason: `Below threshold (${sizeKB.toFixed(0)}KB < ${COMPRESSION_THRESHOLD_KB}KB)` };
+  if (sizeKB < COMPRESSION_THRESHOLD_KB)
+    return {
+      skipped: true,
+      reason: `Below threshold (${sizeKB.toFixed(0)}KB < ${COMPRESSION_THRESHOLD_KB}KB)`,
+    };
   if (!relPath.endsWith(".html")) return { skipped: true, reason: "Not HTML" };
 
   const mdPath = absPath.replace(/\.html$/, ".md");
-  
+
   try {
     // Try pandoc first
-    execSync(`pandoc "${absPath}" -f html -t markdown -o "${mdPath}" --strip-comments`, { timeout: 30000, stdio: "pipe" });
+    execSync(
+      `pandoc "${absPath}" -f html -t markdown -o "${mdPath}" --strip-comments`,
+      { timeout: 30000, stdio: "pipe" },
+    );
     console.log(`[Compressor] pandoc: ${relPath} → ${path.basename(mdPath)}`);
-    srcLog("INFO", "file_compressed", { path: relPath, method: "pandoc", output: path.basename(mdPath) });
+    srcLog("INFO", "file_compressed", {
+      path: relPath,
+      method: "pandoc",
+      output: path.basename(mdPath),
+    });
   } catch {
     // Fallback: basic HTML strip
     let html = fs.readFileSync(absPath, "utf-8");
-    html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-               .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-               .replace(/<[^>]+>/g, " ")
-               .replace(/&amp;/g, "&")
-               .replace(/&lt;/g, "<")
-               .replace(/&gt;/g, ">")
-               .replace(/&quot;/g, '"')
-               .replace(/\s{2,}/g, "\n\n")
-               .trim();
+    html = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/\s{2,}/g, "\n\n")
+      .trim();
     fs.writeFileSync(mdPath, html, "utf-8");
     console.log(`[Compressor] fallback: ${relPath} → ${path.basename(mdPath)}`);
-    srcLog("INFO", "file_compressed", { path: relPath, method: "fallback", output: path.basename(mdPath) });
+    srcLog("INFO", "file_compressed", {
+      path: relPath,
+      method: "fallback",
+      output: path.basename(mdPath),
+    });
   }
 
   // Archive original
-  const archiveDir = path.join(DOCS_DIR, ".metadata", "archives", new Date().toISOString().slice(0, 7));
+  const archiveDir = path.join(
+    DOCS_DIR,
+    ".metadata",
+    "archives",
+    new Date().toISOString().slice(0, 7),
+  );
   fs.mkdirSync(archiveDir, { recursive: true });
   fs.renameSync(absPath, path.join(archiveDir, path.basename(absPath)));
 
@@ -85,7 +112,11 @@ function compressFile(relPath) {
   }
   writeManifest(manifest);
 
-  return { compressed: true, original_kb: sizeKB.toFixed(0), new_path: relPath.replace(/\.html$/, ".md") };
+  return {
+    compressed: true,
+    original_kb: sizeKB.toFixed(0),
+    new_path: relPath.replace(/\.html$/, ".md"),
+  };
 }
 
 function compressAll() {
@@ -93,14 +124,16 @@ function compressAll() {
   const results = [];
   for (const entry of manifest.entries) {
     for (const file of entry.files || []) {
-      if (file.path && file.path.endsWith(".html") && file.status === "active") {
+      if (
+        file.path &&
+        file.path.endsWith(".html") &&
+        file.status === "active"
+      ) {
         results.push(compressFile(file.path));
       }
     }
   }
   return results;
 }
-
-
 
 module.exports = { compressFile, compressAll };

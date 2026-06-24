@@ -10,8 +10,8 @@ const {
   ListToolsRequestSchema,
 } = require("@modelcontextprotocol/sdk/types.js");
 
-const path = require("path");
-const { execSync } = require("child_process");
+const path = require("node:path");
+const { execSync } = require("node:child_process");
 
 const OPENCODE_ROOT =
   process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", "..", "..");
@@ -24,7 +24,7 @@ function readProjectConfig() {
   );
   let cfg;
   try {
-    cfg = JSON.parse(require("fs").readFileSync(configPath, "utf8"));
+    cfg = JSON.parse(require("node:fs").readFileSync(configPath, "utf8"));
   } catch (readErr) {
     throw new Error(
       `[keystone-validate] Cannot read or parse project.config.json at ${configPath}: ${readErr.message}`,
@@ -44,16 +44,22 @@ function findStateDir() {
   const pr = cfg.project_root;
   const innerRepo = path.resolve(OPENCODE_ROOT, pr);
   const stateDir = path.join(innerRepo, ".opencode", "state");
-  if (require("fs").existsSync(stateDir)) return stateDir;
+  if (require("node:fs").existsSync(stateDir)) return stateDir;
   return path.join(OPENCODE_ROOT, ".opencode", "state");
 }
 
 function runValidate(mode) {
   const stateDir = findStateDir();
   const innerRepo = path.resolve(stateDir, "..", "..");
-  const script = path.join(innerRepo, ".opencode", "scripts", "mcp-tools", "keystone-validate.ts");
+  const script = path.join(
+    innerRepo,
+    ".opencode",
+    "scripts",
+    "mcp-tools",
+    "keystone-validate.ts",
+  );
 
-  if (!require("fs").existsSync(script)) {
+  if (!require("node:fs").existsSync(script)) {
     return {
       overall: "ERROR",
       detail: `keystone-validate.js not found at ${script}`,
@@ -124,15 +130,17 @@ async function main() {
 // CLI mode: --hash <file>  (compute keystone hash)
 // ──────────────────────────────────────────────
 function computeKeystoneHash(filePath) {
-  const crypto = require("crypto");
+  const crypto = require("node:crypto");
   const resolvedPath = path.resolve(OPENCODE_ROOT, filePath);
-  if (!require("fs").existsSync(resolvedPath)) {
+  if (!require("node:fs").existsSync(resolvedPath)) {
     process.stderr.write(
       `[keystone-validate] File not found: ${resolvedPath}\n`,
     );
     process.exit(1);
   }
-  const lines = require("fs").readFileSync(resolvedPath, "utf8").split("\n");
+  const lines = require("node:fs")
+    .readFileSync(resolvedPath, "utf8")
+    .split("\n");
   // Strip x-keystone-state-hash header line (must be line 0) if present
   const contentLines =
     lines.length > 0 && /^#\s*x-keystone-state-hash:/.test(lines[0])
@@ -155,7 +163,9 @@ function cliMain() {
    * process.stderr.write — console.error writes to stdout in some Bun contexts,
    * potentially polluting MCP protocol. process.stderr.write is the safe channel.
    */
-  main().catch((err) => process.stderr.write(`[keystone-validate] Fatal error: ${err.message}\n`));
+  main().catch((err) =>
+    process.stderr.write(`[keystone-validate] Fatal error: ${err.message}\n`),
+  );
 }
 
 // Start (when run directly, not when require()d by tests)

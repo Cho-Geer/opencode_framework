@@ -31,6 +31,7 @@ Central state management (`machine.json`, `gate-state.json`) remains healthy and
 ### 3.1 Dispatch marking succeeds (on parent run)
 
 `plugin-dispatch-subagent-runtime.log`:
+
 ```
 23:38:32 | Checklist items marked for agent=Coder-BE task=E2E-FRAMEWORK-STATIC-VFY
 23:47:36 | Checklist items marked for agent=Coder-BE task=E2E-FRAMEWORK-RUNTIME-VFY
@@ -41,6 +42,7 @@ Import fix present at `dispatch-subagent.ts` line 54. Marking no longer throws.
 ### 3.2 Child sessions remain blocked
 
 `plugin-tool-advance-checklist-phase-runtime.log`:
+
 ```
 ses_10e4ca5d... | Coder-BE | ADVANCE-CHECKLIST-PHASE-BLOCKED | phase=dispatch_payload blockers=dispatch_token_created,payload_complete,session_context_bound
 ```
@@ -75,13 +77,13 @@ Checks 64a-64e verify static wiring only. They do NOT exercise cross-session dis
 
 ## 5. Mapping to Findings
 
-| Finding | Root Cause |
-|---------|-----------|
+| Finding    | Root Cause                                                                      |
+| ---------- | ------------------------------------------------------------------------------- |
 | F-A / P0-1 | Session-identity split: dispatch facts on parent run, child run never sees them |
-| F1 / F3-F6 | Transient: orphan armed gate sessions from E2E tasks not in DAG |
-| F2 | Pre-existing: stale pre-HARDEN knowledge cache entries |
-| Phase J | Verified fixed |
-| Phase K | Verified fixed; bridges task_id but NOT session_id |
+| F1 / F3-F6 | Transient: orphan armed gate sessions from E2E tasks not in DAG                 |
+| F2         | Pre-existing: stale pre-HARDEN knowledge cache entries                          |
+| Phase J    | Verified fixed                                                                  |
+| Phase K    | Verified fixed; bridges task_id but NOT session_id                              |
 
 ## 6. The Remaining Gap
 
@@ -94,6 +96,7 @@ Phase K fixed **task_id** bridging but NOT **session_id** bridging. `createCheck
 **Constraint**: Files must reside in `.opencode/lib/`, `.opencode/plugins/`, `.opencode/tools/`, or `.opencode/scripts/`. No new top-level directories.
 
 **Fix impact**: Modify existing files only:
+
 - `.opencode/scripts/command-tools/dispatch-subagent.ts` (dispatch fact marking)
 - `.opencode/lib/checklist-hooks.ts` (accept optional child session parameter)
 - `.opencode/plugins/checklist-before.ts` (fall back to parent run when child run lacks dispatch facts)
@@ -166,16 +169,26 @@ Option A is preferred because it keeps the enforcement reader simple (no cross-s
 
 **Fix impact**: All code changes are in `.ts` files executed by Bun. The `require("../../lib/checklist-hooks")` pattern (CJS) in `dispatch-subagent.ts` and the `import` pattern (ESM) in `checklist-before.ts` both work natively under Bun. No module system changes needed.
 
-## 8. Implementation Summary
+## 8. Implementation Summary (v2.1.0 — 2026-06-25: checklist-before.ts created)
 
-| Step | File | Change | Subsystem |
-|------|------|--------|-----------|
-| 1 | `dispatch-subagent.ts:690-709` | Add `childSessionId` field to `ctx/{dagTaskId}.json` | Session Concurrency, DB-canonical |
-| 2 | `dispatch-subagent.ts:984-1014` | After marking parent run, also mark child run with same 3 dispatch facts | Multi-Agent, DB-canonical |
-| 3 | `dispatch-subagent.ts:1012-1013` | Make marking failure fatal in strict/locked (re-throw instead of logWarn) | Hardened Enforcement |
-| 4 | `checklist-hooks.ts:35-60` | Add optional `childSessionId` parameter; if provided, mark both runs | Multi-Agent, DB-canonical |
-| 5 | `checklist-before.ts:283-307` | No change needed — auto-advance already works once child run has dispatch facts | Framework Harness |
-| 6 | All modified files | Add `writeLog()` calls for audit traceability | Log Central Management |
+### Completed (2026-06-25)
+
+| Step | File                             | Change                                                             |      Status       |
+| ---- | -------------------------------- | ------------------------------------------------------------------ | :---------------: |
+| 1    | `dispatch-subagent.ts`           | childSessionId in ctx/{dagTaskId}.json                             |        ✅         |
+| 2    | `plugins/checklist-before.ts`    | **NEW**: Option B parent-run fallback + auto-advance + phase block |        ✅         |
+| 3    | `opencode.json`                  | checklist-before.ts registered in plugin array                     |        ✅         |
+| 4    | `dispatch-subagent.ts:1032-1049` | Fatal marking in strict/locked                                     | ✅ (pre-existing) |
+
+### Original Plan (2026-06-23)
+
+| Step | File                   | Change                             | Subsystem                 |
+| ---- | ---------------------- | ---------------------------------- | ------------------------- |
+| 1    | `dispatch-subagent.ts` | childSessionId in ctx              | Session Concurrency       |
+| 2    | `dispatch-subagent.ts` | Mark child run with dispatch facts | Multi-Agent, DB-canonical |
+| 3    | `dispatch-subagent.ts` | Fatal marking in strict/locked     | Hardened Enforcement      |
+| 4    | `checklist-hooks.ts`   | Optional childSessionId parameter  | Multi-Agent               |
+| 5    | `checklist-before.ts`  | Parent-run fallback (Option B)     | Framework Harness         |
 
 ## 9. Verification Plan
 
@@ -200,10 +213,10 @@ Option A is preferred because it keeps the enforcement reader simple (no cross-s
 
 ## 11. Change Log
 
-| Date | Version | Change |
-|------|---------|--------|
-| 2026-06-23 | 1.0.0 | Initial root-cause diagnosis |
-| 2026-06-23 | 2.0.0 | Updated fix directions conforming to all 11 framework subsystems; incorporated .dispatch_ctx investigation |
+| Date       | Version | Change                                                                                                     |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| 2026-06-23 | 1.0.0   | Initial root-cause diagnosis                                                                               |
+| 2026-06-23 | 2.0.0   | Updated fix directions conforming to all 11 framework subsystems; incorporated .dispatch_ctx investigation |
 
 ## 7. Fix Direction (Conforming to All 11 Framework Subsystems)
 
@@ -212,6 +225,7 @@ Option A is preferred because it keeps the enforcement reader simple (no cross-s
 **Constraint**: Files must reside in `.opencode/lib/`, `.opencode/plugins/`, `.opencode/tools/`, or `.opencode/scripts/`. No new top-level directories.
 
 **Fix impact**: Modify existing files only:
+
 - `.opencode/scripts/command-tools/dispatch-subagent.ts` — dispatch fact marking
 - `.opencode/lib/checklist-hooks.ts` — accept optional child session parameter
 - `.opencode/plugins/checklist-before.ts` — fall back to parent run when child run lacks dispatch facts
@@ -253,10 +267,12 @@ Option A is preferred because it keeps the enforcement reader simple (no cross-s
 **Constraint**: Parent/child session relationship. Plugin hooks lack agent identity — workaround via `process.env.FRAMEWORK_AGENT`. Child sessions have their own `sessionID`.
 
 **Fix impact**: The fix must bridge the parent-child session gap. Two approaches:
+
 - **Option A (recommended)**: `dispatch-subagent.ts` marks dispatch facts on BOTH the parent run AND the child run. The child run is created by `checklist-before.ts` when the child session first calls a modify tool. To mark on the child run, `dispatch-subagent.ts` must know the child session ID — but at dispatch time, the child session does not yet exist (Task() hasn't been called yet).
 - **Option B (pragmatic)**: `checklist-before.ts` adds a fallback: when a child session's run has no dispatch facts passed, look up the parent session via `session_map` DB (`dispatch:child:{taskId}` -> parent session), resolve the parent's run, and check if dispatch facts are passed there. If yes, copy them to the child run (or treat them as satisfied).
 
 **Recommended**: Option B, because the child session ID is not known at dispatch time. The fallback in `checklist-before.ts` is:
+
 1. Resolve `taskId` via `resolveChecklistTaskId(input)` (Phase K bridge).
 2. Resolve child run via `resolveChecklistRun(input.sessionID, agent, taskId)`.
 3. If child run has dispatch items pending, look up parent session via `dbReadSessionMap("dispatch:child:" + taskId)`.
@@ -268,6 +284,7 @@ Option A is preferred because it keeps the enforcement reader simple (no cross-s
 **Constraint**: Plugins use `writeLog()`. MCP tools use `process.stderr.write()`. No `console.log` in plugins.
 
 **Fix impact**: All new state changes in the fix must call `writeLog("checklist-before", "runtime", { ... })` with appropriate event names:
+
 - `CHECKLIST-PARENT-RUN-FALLBACK` — when falling back to parent run
 - `CHECKLIST-DISPATCH-FACTS-COPIED` — when dispatch facts are copied from parent to child run
 - `CHECKLIST-DISPATCH-MARKING-FATAL` — when marking failure is treated as fatal in strict/locked
@@ -313,6 +330,7 @@ In `dispatch-subagent.ts:984-1014`, remove the `try/catch` swallow. In strict/lo
 ### Self-Test Enhancement
 
 Add a check to `framework-self-test.ts` that:
+
 1. Creates a parent session + run
 2. Marks dispatch facts on parent run
 3. Creates a child session + run (different `opencode_session_id`)
@@ -349,7 +367,7 @@ The `.dispatch_ctx` file is on a Phase 1 dual-write path. The fix in Section 7 d
 
 ## 11. Change Log
 
-| Date | Version | Change |
-|------|---------|--------|
-| 2026-06-23 | 1.0.0 | Initial root-cause diagnosis |
-| 2026-06-23 | 1.1.0 | Updated fix directions to conform to all 11 framework subsystems; incorporated .dispatch_ctx investigation findings; added Option B parent-run fallback; added fatal marking requirement; added self-test enhancement; added Phase 2 migration note |
+| Date       | Version | Change                                                                                                                                                                                                                                              |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-06-23 | 1.0.0   | Initial root-cause diagnosis                                                                                                                                                                                                                        |
+| 2026-06-23 | 1.1.0   | Updated fix directions to conform to all 11 framework subsystems; incorporated .dispatch_ctx investigation findings; added Option B parent-run fallback; added fatal marking requirement; added self-test enhancement; added Phase 2 migration note |

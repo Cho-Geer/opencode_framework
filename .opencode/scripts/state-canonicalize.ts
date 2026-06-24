@@ -39,8 +39,8 @@
  *   objects) do not contain file paths requiring canonicalization.
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const { atomicWriteSubState } = require("../lib/state-utils");
 const { readSubState } = require("../lib/substate-manager");
 
@@ -61,7 +61,12 @@ const OPENCODE_ROOT = path.resolve(
   process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", ".."),
 );
 
-const MACHINE_JSON = path.join(OPENCODE_ROOT, ".opencode", "state", "machine.json");
+const MACHINE_JSON = path.join(
+  OPENCODE_ROOT,
+  ".opencode",
+  "state",
+  "machine.json",
+);
 
 // ─── Core Path Utilities ──────────────────────────────────
 
@@ -641,7 +646,8 @@ function canonicalizeStateFile(options = {}) {
 
   // Foreign path removal estimate
   results.foreignPathsRemoved =
-    beforeSanitizeCount - (beforeCanonicalizeCount + results.absolutePathsConverted);
+    beforeSanitizeCount -
+    (beforeCanonicalizeCount + results.absolutePathsConverted);
   if (results.foreignPathsRemoved < 0) results.foreignPathsRemoved = 0;
 
   // Determine if changes were made
@@ -657,7 +663,7 @@ function canonicalizeStateFile(options = {}) {
       "compliance_records",
       "tdd_enforcement_state",
     ];
-    
+
     let allOk = true;
     for (const subStateKey of subStates) {
       const ok = atomicWriteSubState(subStateKey, (subState) => {
@@ -673,7 +679,7 @@ function canonicalizeStateFile(options = {}) {
         console.error(`[canonicalize] CAS write failed for ${subStateKey}`);
       }
     }
-    
+
     results.changesApplied = allOk;
     if (!allOk) {
       results.error = "CAS write failed for one or more sub-states";
@@ -699,10 +705,16 @@ function runCLI() {
         break;
       case "--help":
       case "-h":
-        console.log("Usage: bun state-canonicalize.ts [--dry-run] [--state-path <path>]");
+        console.log(
+          "Usage: bun state-canonicalize.ts [--dry-run] [--state-path <path>]",
+        );
         console.log("");
-        console.log("  --dry-run       Report foreign/absolute paths without modifying files");
-        console.log("  --state-path    Path to machine.json (default: .opencode/state/machine.json)");
+        console.log(
+          "  --dry-run       Report foreign/absolute paths without modifying files",
+        );
+        console.log(
+          "  --state-path    Path to machine.json (default: .opencode/state/machine.json)",
+        );
         console.log("  --help, -h      Show this help");
         process.exit(0);
       default:

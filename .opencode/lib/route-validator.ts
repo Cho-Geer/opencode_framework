@@ -27,6 +27,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathMatchesGlob } from "./gate-core";
+import { toDisplayName } from "./agent-identity";
 import { writeLog } from "./log-manager";
 
 interface VerbRule {
@@ -301,7 +302,7 @@ export function l3_permissionFilter(
   const allowed: string[] = [];
 
   for (const agent of candidates) {
-    const agentKey = agent.replace(/^@/, "");
+    const agentKey = toDisplayName(agent);
     const agentPerms = opencodeConfig?.agent?.[agentKey]?.permission?.safe_edit;
 
     if (!agentPerms) {
@@ -475,7 +476,7 @@ export function l4_heuristicSelect(
       targetFiles.length > 0 ? scopeHits / targetFiles.length : 0;
 
     let permHits = 0;
-    const agentKey = agent.replace(/^@/, "");
+    const agentKey = toDisplayName(agent);
     const agentPerms = opencodeConfig?.agent?.[agentKey]?.permission?.safe_edit;
 
     if (typeof agentPerms === "string") {

@@ -1,1599 +1,919 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-23T02:34:35.223352+00:00",
-  "total_entries": 51,
+  "last_updated": "2026-06-24T17:39:28.964482+00:00",
+  "total_entries": 48,
   "entries": [
     {
-      "library_id": "opencode-framework",
-      "query_topic": "TypeScript MCP tools with Bun: module system, SDK interop, recommended structure, CJS/ESM patterns",
-      "domain": "opencode",
+      "library_id": "backend",
+      "query_topic": "e2e-test",
+      "domain": "backend",
       "tags": [
-        "opencode",
-        "mcp",
-        "typescript",
-        "bun",
-        "cjs",
-        "esm",
-        "require",
-        "import",
-        "module.exports",
-        "sdk",
-        "StdioServerTransport",
-        "compliance-gate",
-        "server",
-        "tool"
+        "backend"
       ],
       "files": [
         {
-          "path": "opencode/mcp-typescript-bun/findings-summary.md",
-          "source": "webfetch+github-api",
-          "sha256": "sha256:3fdd0c88a943768a65369ceb730240a7a461a162466bebf74e714b7751ad9df7",
-          "size_bytes": 18385,
-          "created_at": "2026-06-11T14:12:00.000Z",
+          "path": "backend/e2e-test/uc7-003-write-verification.md",
+          "source": "local",
+          "sha256": "bc279366b6e427184c0f912872da48de4f7519a997962cab1e9aec2d1e668c9e",
+          "size_bytes": 1927,
+          "created_at": "2026-06-22T07:09:48.093151+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode agent mode values source code analysis all subagent primary",
-      "domain": "opencode",
+      "library_id": "backend",
+      "query_topic": "nestjs",
+      "domain": "backend",
       "tags": [
-        "opencode",
-        "agent",
-        "mode",
-        "primary",
-        "subagent",
-        "all",
-        "task",
-        "permissions",
-        "source-analysis",
-        "registry.ts",
-        "agent.ts"
-      ],
-      "files": [
-        {
-          "path": "opencode/source-analysis/agent-mode-values.md",
-          "source": "github-api",
-          "sha256": "sha256:cd84295971749a0b72125d6111c53591c9924ed09e9e17ae767da64e2a96a3c9",
-          "size_bytes": 10920,
-          "created_at": "2026-06-11T07:30:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode plugin debugging precautions Bun cache plugin loading hooks MCP args",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "plugins",
-        "debugging",
-        "bun",
-        "cache",
-        "hook-chaining",
-        "index-files",
-        "mcp-tools",
-        "syntax-traps",
-        "import-resolution",
-        "diagnostic-strategy"
-      ],
-      "files": [
-        {
-          "path": "framework/mistake_precautions/plugin-debugging-precautions.md",
-          "source": "curated",
-          "sha256": "sha256:618e2309438a3a2e0d6001481e43ecc191f63d3df45b27378f7514f69b9e9aee",
-          "size_bytes": 19245,
-          "created_at": "2026-06-07T08:35:30.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode agent identity FRAMEWORK_AGENT env var plugin hooks tool.execute.before context.agent",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "agent-identity",
-        "FRAMEWORK_AGENT",
-        "tool.execute.before",
-        "tool.execute.after",
-        "context.agent",
-        "dispatch-subagent",
-        "plugin-hooks",
-        "env-vars",
-        "AGENT",
-        "source-analysis"
-      ],
-      "files": [
-        {
-          "path": "opencode/source-analysis/agent-identity-plugin-hooks.md",
-          "source": "github-api",
-          "sha256": "sha256:cd84295971749a0b72125d6111c53591c9924ed09e9e17ae767da64e2a96a3c9",
-          "size_bytes": 6197,
-          "created_at": "2026-06-07T09:10:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode double hook trigger prevention merge plugins hook chaining mitigation",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "plugins",
-        "double-hook",
-        "hook-chaining",
-        "tool.execute.before",
-        "tool.execute.after",
-        "triggerFor",
-        "plugin-merge",
-        "precautions",
-        "plugin-id",
-        "deduplication",
-        "mistake-prevention"
-      ],
-      "files": [
-        {
-          "path": "framework/mistake_precautions/double-hook-trigger-prevention.md",
-          "source": "curated",
-          "sha256": "sha256:317cf24bfa01515906c3356a0b7aa7f4a5bad9101b2e817f27b161db898b972d",
-          "size_bytes": 13542,
-          "created_at": "2026-06-09T14:32:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode plugin loading mechanism Bun cache behavior plugin auto-discovery export format constraints",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "plugins",
-        "plugin-loading",
-        "bun-cache",
-        "auto-discovery",
-        "export-default",
-        "export-const",
-        "mistake-prevention",
-        "framework-enforcer",
-        "cache-invalidation"
-      ],
-      "files": [
-        {
-          "path": "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
-          "source": "curated",
-          "sha256": "sha256:8e99d59389e2a3b538185d37732d1791273be3959bed59e0267fc2b969dc0297",
-          "size_bytes": 5227,
-          "created_at": "2026-06-10T10:30:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode plugin programming conventions multiple plugins constraints export format hooks",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "plugins",
-        "programming-convention",
-        "export-default",
-        "multi-plugin",
-        "hook-chaining",
-        "load-order",
-        "constraints",
-        "import-limitations",
-        "best-practices"
-      ],
-      "files": [
-        {
-          "path": "framework/plugin-programming-conventions.md",
-          "source": "curated",
-          "sha256": "sha256:bc37b26b731aae11c55912dff4927a207a269b21b61f74b4cbe38cc4ed986fbc",
-          "size_bytes": 5487,
-          "created_at": "2026-06-10T11:10:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "opencode release notes v1.17.2 latest version changes after-hook plugin",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "release",
-        "changelog",
-        "v1.17.2",
-        "v1.17.1",
-        "v1.17.0",
-        "v1.16.2",
-        "version",
-        "tool.execute.after",
-        "plugin-hook"
-      ],
-      "files": [
-        {
-          "path": "opencode/releases/v1.17.2-release-notes.md",
-          "source": "github-api",
-          "sha256": "sha256:c7005a4211c604a4b0a3cbbdec1b830015eb7a212875854fabb07a45428c9766",
-          "size_bytes": 2799,
-          "created_at": "2026-06-11T00:00:00.000Z",
-          "ttl_days": 14,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "jest",
-      "query_topic": "Jest 29+ unit testing framework: describe/it/expect, mock functions, spyOn, coverage reporting, configuration",
-      "domain": "testing",
-      "tags": [
-        "jest",
-        "testing",
-        "unit-test",
-        "mock",
-        "spy",
-        "coverage",
-        "tdd",
-        "assertions"
-      ],
-      "files": [
-        {
-          "path": "devops/testing/jest-unit-testing.md",
-          "source": "context7",
-          "sha256": "sha256:94648dd257386e4271ce3894345354aa0a9b32c8e0309b3b61d9c6f21114cf1e",
-          "size_bytes": 4101,
-          "created_at": "2026-06-11T04:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "playwright",
-      "query_topic": "Playwright E2E testing: browser automation, page object model, test fixtures, cross-browser testing",
-      "domain": "testing",
-      "tags": [
-        "playwright",
-        "e2e",
-        "browser",
-        "automation",
-        "page-object",
-        "fixtures",
-        "testing"
-      ],
-      "files": [
-        {
-          "path": "devops/testing/playwright-e2e-testing.md",
-          "source": "context7",
-          "sha256": "sha256:077a560211876102f427f4c4eadaddfd23e2b9f6f4eb20d74ee219f747df4cd3",
-          "size_bytes": 3425,
-          "created_at": "2026-06-11T04:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "supertest",
-      "query_topic": "Supertest HTTP integration testing: request methods, response assertions, session handling",
-      "domain": "testing",
-      "tags": [
-        "supertest",
-        "http",
-        "integration",
-        "api",
-        "testing",
-        "assertions",
-        "express",
-        "nestjs"
-      ],
-      "files": [
-        {
-          "path": "devops/testing/supertest-integration-testing.md",
-          "source": "context7",
-          "sha256": "sha256:e2b664281c7f5587ad5867f621ed8a3885df8b86a3e3d2b51505bed1d20708d6",
-          "size_bytes": 3142,
-          "created_at": "2026-06-11T04:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "nestjs",
-      "query_topic": "NestJS testing with @nestjs/testing: Test.createTestingModule, controller/service e2e, overrideProvider",
-      "domain": "testing",
-      "tags": [
-        "nestjs",
-        "testing",
-        "unit-test",
-        "e2e",
-        "test-module",
-        "mock",
-        "dependency-injection"
-      ],
-      "files": [
-        {
-          "path": "devops/testing/nestjs-testing.md",
-          "source": "context7",
-          "sha256": "sha256:f374f98d46e110e578afb890c3999ae45363b52d76f51ee9329cc381cf37242f",
-          "size_bytes": 3168,
-          "created_at": "2026-06-11T04:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "tdd-practices",
-      "query_topic": "TDD best practices: RED-GREEN-REFACTOR cycle, test-first development, coverage thresholds",
-      "domain": "testing",
-      "tags": [
-        "tdd",
-        "test-driven-development",
-        "red-green-refactor",
-        "best-practices",
-        "coverage"
-      ],
-      "files": [
-        {
-          "path": "devops/testing/tdd-best-practices.md",
-          "source": "webfetch",
-          "sha256": "sha256:f8fc12cb09a346aa54604be1f88c27fe927157676bb5c7c94468fda88f0298d8",
-          "size_bytes": 3367,
-          "created_at": "2026-06-11T04:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "nestjs",
-      "query_topic": "NestJS controller, service, and module testing: overrideProvider, overrideGuard, useMocker patterns",
-      "domain": "backend_api",
-      "tags": [
-        "nestjs",
-        "controller",
-        "service",
-        "module",
-        "testing",
-        "mock",
-        "override",
-        "guard",
-        "interceptor"
+        "backend"
       ],
       "files": [
         {
           "path": "backend/nestjs/nestjs-controller-service-testing.md",
-          "source": "context7",
-          "sha256": "sha256:cd8c75ceddb459b2d771038cbda4ea34b2072778ca2ea69e95880164e7548dbb",
+          "source": "local",
+          "sha256": "cd8c75ceddb459b2d771038cbda4ea34b2072778ca2ea69e95880164e7548dbb",
           "size_bytes": 5404,
-          "created_at": "2026-06-11T04:20:00.000Z",
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "prisma",
-      "query_topic": "Prisma testing strategies: mocking client, SQLite test DB, transaction isolation, Testcontainers",
-      "domain": "backend_api",
+      "library_id": "backend",
+      "query_topic": "nestjs",
+      "domain": "backend",
       "tags": [
-        "prisma",
-        "testing",
-        "database",
-        "mock",
-        "transaction",
-        "integration",
-        "seed",
-        "migration"
+        "backend"
       ],
       "files": [
         {
           "path": "backend/nestjs/prisma-testing.md",
-          "source": "context7",
-          "sha256": "sha256:fc0da35bf972ee559d1eae40b1d524d78856fcce5ea6d2dcd48128e63fd44b0b",
+          "source": "local",
+          "sha256": "fc0da35bf972ee559d1eae40b1d524d78856fcce5ea6d2dcd48128e63fd44b0b",
           "size_bytes": 4403,
-          "created_at": "2026-06-11T04:20:00.000Z",
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "angular",
-      "query_topic": "Angular component testing: TestBed, ComponentFixture, DOM assertions, By.css, async patterns",
-      "domain": "frontend_ui",
+      "library_id": "backend",
+      "query_topic": "prisma",
+      "domain": "backend",
       "tags": [
-        "angular",
-        "testing",
-        "component",
-        "testbed",
-        "fixture",
-        "dom",
-        "debugElement",
-        "by.css"
+        "backend"
       ],
       "files": [
         {
-          "path": "frontend/angular/angular-component-testing.md",
-          "source": "context7",
-          "sha256": "sha256:d4cc4adc06463f5ed88e57ad5df8fd40e1419e954c06975a4235aca3e7cd65c2",
-          "size_bytes": 4932,
-          "created_at": "2026-06-11T04:20:00.000Z",
+          "path": "backend/prisma/prisma-transactions-relations.md",
+          "source": "local",
+          "sha256": "025cf9791b420bdef0faf5566518d507fd19f2ccec9c0dc543b746ee4937167e",
+          "size_bytes": 13566,
+          "created_at": "2026-06-22T07:09:48.093151+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "angular",
-      "query_topic": "Angular HTTP service testing: HttpClientTestingModule, HttpTestingController, mocking API requests",
-      "domain": "frontend_ui",
-      "tags": [
-        "angular",
-        "http",
-        "service",
-        "testing",
-        "httpclient",
-        "mock",
-        "interceptor",
-        "api"
-      ],
-      "files": [
-        {
-          "path": "frontend/angular/angular-http-testing.md",
-          "source": "context7",
-          "sha256": "sha256:ea05e80ff2b96c426abe339258b4b290830245c01bd65158236a041d4dbf0cd3",
-          "size_bytes": 4061,
-          "created_at": "2026-06-11T04:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "angular",
-      "query_topic": "Angular SignalStore testing: signal-based state testing, computed signals, rxMethod, HTTP integration",
-      "domain": "frontend_ui",
-      "tags": [
-        "angular",
-        "signal",
-        "store",
-        "ngrx",
-        "signalstore",
-        "testing",
-        "state-management",
-        "computed"
-      ],
-      "files": [
-        {
-          "path": "frontend/angular/angular-signal-store-testing.md",
-          "source": "context7",
-          "sha256": "sha256:9a666de6428a28f64de84c6cd50ea38373efa889a2e4908f7a49af1f3d178d4d",
-          "size_bytes": 5474,
-          "created_at": "2026-06-11T04:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "github-actions",
-      "query_topic": "GitHub Actions workflow syntax and best practices for CI/CD test pipelines",
-      "domain": "devops_ci",
-      "tags": [
-        "github-actions",
-        "ci",
-        "cd",
-        "workflow",
-        "syntax",
-        "test",
-        "jest",
-        "playwright",
-        "nestjs",
-        "matrix",
-        "service-containers",
-        "reusable-workflows"
-      ],
-      "files": [
-        {
-          "path": "devops/docker/github-actions-workflow-syntax.md",
-          "source": "context7+webfetch",
-          "sha256": "sha256:2e4d1099c2a31940a30e68542830f25a2d85ccbaa5e4e1e57312a1bcf68acbab",
-          "size_bytes": 4977,
-          "created_at": "2026-06-11T04:29:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "docker-compose",
-      "query_topic": "Docker Compose setup for test environments and CI/CD integration",
-      "domain": "devops_ci",
-      "tags": [
-        "docker",
-        "compose",
-        "ci",
-        "cd",
-        "test-environment",
-        "multi-stage",
-        "healthcheck",
-        "e2e",
-        "profiles"
-      ],
-      "files": [
-        {
-          "path": "devops/docker/docker-compose-test-environments.md",
-          "source": "context7+webfetch",
-          "sha256": "sha256:ba00a50705f5f2777e31091de2e3378474afe70b48a6590aaaaf3ff9f9e6a005",
-          "size_bytes": 6231,
-          "created_at": "2026-06-11T04:29:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "ci-test-pipeline",
-      "query_topic": "CI test pipeline integration: running Jest, Playwright, and NestJS tests in GitHub Actions",
-      "domain": "devops_ci",
-      "tags": [
-        "jest",
-        "playwright",
-        "nestjs",
-        "ci",
-        "cd",
-        "test-pipeline",
-        "github-actions",
-        "e2e",
-        "unit-tests",
-        "integration-tests",
-        "docker-compose"
-      ],
-      "files": [
-        {
-          "path": "devops/docker/github-actions/ci-test-pipeline-integration.md",
-          "source": "context7+webfetch",
-          "sha256": "sha256:16b5af9ede69162c4d32650946d9258b9d315ff79edb31d3ff412a38b140c51d",
-          "size_bytes": 10741,
-          "created_at": "2026-06-11T04:29:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "test-reporting",
-      "query_topic": "Test reporting and coverage in GitHub Actions: artifacts, JUnit XML, PR comments, summaries",
-      "domain": "devops_ci",
-      "tags": [
-        "test-reporting",
-        "coverage",
-        "github-actions",
-        "artifacts",
-        "junit",
-        "playwright-report",
-        "jest-coverage",
-        "pr-comments"
-      ],
-      "files": [
-        {
-          "path": "devops/docker/github-actions/test-reporting-coverage.md",
-          "source": "context7+webfetch",
-          "sha256": "sha256:fcf755aa1f1ffe0b8079886cb3395d0df4a6b45a3dc29c50952ad6594ab34072",
-          "size_bytes": 9021,
-          "created_at": "2026-06-11T04:29:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode Log Central Management — MCP logging, plugin logging, file-based debug logging patterns and CJS/ESM constraints",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "logging",
-        "mcp",
-        "plugin",
-        "debug",
-        "stderr",
-        "client.app.log",
-        "console.log",
-        "cjs",
-        "esm",
-        "file-logging",
-        "hook-trace"
-      ],
-      "files": [
-        {
-          "path": "opencode/findings/01-log-central-management.md",
-          "source": "webfetch+cache-compile",
-          "sha256": "2926025f57b71093c362845114e7163cfb2a239df5093d1718511d327aaf94ed",
-          "size_bytes": 6130,
-          "created_at": "2026-06-11T18:30:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode Harness System — Plugin hooks, loading mechanics, Bun cache behavior, export format constraints, hook chaining",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "plugins",
-        "harness",
-        "hooks",
-        "tool.execute.before",
-        "tool.execute.after",
-        "bun-cache",
-        "plugin-loading",
-        "INDEX_FILES",
-        "export-default",
-        "hook-chaining",
-        "single-plugin"
-      ],
-      "files": [
-        {
-          "path": "opencode/findings/02-harness-system.md",
-          "source": "webfetch+cache-compile",
-          "sha256": "95c5d4c99eaf7f476b932fd236a816113ba8bcd4e10a51dfa0d72c5c78d4eb2c",
-          "size_bytes": 9664,
-          "created_at": "2026-06-11T18:30:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode Permission Matrix — Complete schema, 15 permission keys, granular rules, agent-override mechanism, task permissions",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "permissions",
-        "allow",
-        "ask",
-        "deny",
-        "agent-override",
-        "task-permissions",
-        "granular-rules",
-        "external-directory",
-        "wildcard",
-        "glob-pattern",
-        "mcp-tool-permissions"
-      ],
-      "files": [
-        {
-          "path": "opencode/findings/03-permission-matrix.md",
-          "source": "webfetch+cache-compile",
-          "sha256": "90e71af85f2034f53ebd1fe5f32bc6a64f3221fba73e1ae7925f5b71aacc107b",
-          "size_bytes": 6952,
-          "created_at": "2026-06-11T18:30:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode Layout Architecture — .opencode directory structure, config loading precedence, agent/tool/plugin/skill loading order",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "layout",
-        "directory",
-        "config",
-        "precedence",
-        "loading-order",
-        "opencode.json",
-        "agents",
-        "plugins",
-        "tools",
-        "skills",
-        "commands",
-        "env-vars",
-        "dispatch"
-      ],
-      "files": [
-        {
-          "path": "opencode/findings/04-layout-architecture.md",
-          "source": "webfetch+cache-compile",
-          "sha256": "d148654478c7dd0cf106ba9991b8ef5fcbc7adb27f458c8b91bae2f1a689b84a",
-          "size_bytes": 7231,
-          "created_at": "2026-06-11T18:30:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode Central State Management — machine.json schema, gate-state.json, enforcement modes, keystone hash validation, write audit, TDD enforcement",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "state-management",
-        "machine.json",
-        "gate-state.json",
-        "keystone",
-        "enforcement",
-        "advisory",
-        "strict",
-        "locked",
-        "write-audit",
-        "tdd",
-        "git-hook",
-        "gate-session"
-      ],
-      "files": [
-        {
-          "path": "opencode/findings/05-central-state-management.md",
-          "source": "cache-compile",
-          "sha256": "20f94b7a893427aa08891d3e203ec4d06bbb31050820984632f2aaa01cb6cf2b",
-          "size_bytes": 7541,
-          "created_at": "2026-06-11T18:30:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode Multi-Agent System — Agent modes (primary/subagent/all), dispatch protocol, FRAMEWORK_AGENT env var, built-in agents, task permissions",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "multi-agent",
-        "modes",
-        "primary",
-        "subagent",
-        "all",
-        "dispatch",
-        "FRAMEWORK_AGENT",
-        "task-permissions",
-        "built-in",
-        "session",
-        "agent-identity",
-        "env-vars"
-      ],
-      "files": [
-        {
-          "path": "opencode/findings/06-multi-agent-system.md",
-          "source": "webfetch+cache-compile",
-          "sha256": "ca976d4cd6fc57ea0fac7176c5312e32a9220db203de981a1848a5d693f6b6a1",
-          "size_bytes": 8841,
-          "created_at": "2026-06-11T18:30:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
       "library_id": "bun",
-      "query_topic": "Bun overview and installation: all-in-one JavaScript runtime, bundler, test runner, package manager, JavaScriptCore engine",
-      "domain": "infrastructure",
+      "query_topic": "",
+      "domain": "bun",
       "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
-      "files": [
-        {
-          "path": "bun/bun-overview.md",
-          "source": "curated",
-          "sha256": "sha256:c302fb1e816158c27fa782089c7cc695ffa525a78cfde7eaa0a2ea6874eaaf5c",
-          "size_bytes": 3567,
-          "created_at": "2026-06-14T05:15:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "bun",
-      "query_topic": "Bun TypeScript native support: require(.ts) works natively without transpilation, type-stripping, tsconfig paths",
-      "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
-      ],
-      "files": [
-        {
-          "path": "bun/bun-typescript-support.md",
-          "source": "curated",
-          "sha256": "sha256:f5564febb904cebd67887ecece89e6ceb3767ecb2cdaa52090df132dab8a6b4d",
-          "size_bytes": 4618,
-          "created_at": "2026-06-14T05:15:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "bun",
-      "query_topic": "Bun module resolution: CJS/ESM freely mixable, require and import both supported, Node.js-compatible resolution algorithm",
-      "domain": "infrastructure",
-      "tags": [
-        "bun",
-        "typescript",
-        "module",
-        "runtime",
-        "commonjs",
-        "esm"
+        "bun"
       ],
       "files": [
         {
           "path": "bun/bun-module-resolution.md",
-          "source": "curated",
-          "sha256": "sha256:7bf54ca6931117d476d533f6c86165fdaef8d10f63f07555428d8749be39ada5",
+          "source": "local",
+          "sha256": "7bf54ca6931117d476d533f6c86165fdaef8d10f63f07555428d8749be39ada5",
           "size_bytes": 6950,
-          "created_at": "2026-06-14T05:15:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
+          "created_at": "2026-06-14T05:14:25.338577+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "bun",
+      "query_topic": "",
+      "domain": "bun",
+      "tags": [
+        "bun"
+      ],
+      "files": [
+        {
+          "path": "bun/bun-overview.md",
+          "source": "local",
+          "sha256": "c302fb1e816158c27fa782089c7cc695ffa525a78cfde7eaa0a2ea6874eaaf5c",
+          "size_bytes": 3567,
+          "created_at": "2026-06-14T05:13:49.179929+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "bun",
+      "query_topic": "",
+      "domain": "bun",
+      "tags": [
+        "bun"
+      ],
+      "files": [
+        {
+          "path": "bun/bun-typescript-support.md",
+          "source": "local",
+          "sha256": "f5564febb904cebd67887ecece89e6ceb3767ecb2cdaa52090df132dab8a6b4d",
+          "size_bytes": 4618,
+          "created_at": "2026-06-14T05:14:03.546584+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "database",
+      "query_topic": "redis",
+      "domain": "database",
+      "tags": [
+        "database"
+      ],
+      "files": [
+        {
+          "path": "database/redis/redis-ioredis-cache-patterns.md",
+          "source": "local",
+          "sha256": "0530014e4c0e0686b3e21038cff6b7daa997d2c48502a0eb6aef806421cd13ea",
+          "size_bytes": 12587,
+          "created_at": "2026-06-22T07:09:48.093151+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "docker",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/docker/docker-compose-test-environments.md",
+          "source": "local",
+          "sha256": "ba00a50705f5f2777e31091de2e3378474afe70b48a6590aaaaf3ff9f9e6a005",
+          "size_bytes": 6231,
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "docker",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/docker/github-actions-workflow-syntax.md",
+          "source": "local",
+          "sha256": "2e4d1099c2a31940a30e68542830f25a2d85ccbaa5e4e1e57312a1bcf68acbab",
+          "size_bytes": 4977,
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "docker/github-actions",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/docker/github-actions/ci-test-pipeline-integration.md",
+          "source": "local",
+          "sha256": "16b5af9ede69162c4d32650946d9258b9d315ff79edb31d3ff412a38b140c51d",
+          "size_bytes": 10741,
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "docker/github-actions",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/docker/github-actions/test-reporting-coverage.md",
+          "source": "local",
+          "sha256": "fcf755aa1f1ffe0b8079886cb3395d0df4a6b45a3dc29c50952ad6594ab34072",
+          "size_bytes": 9021,
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "github",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/github/gh-sub-issue-commands.md",
+          "source": "local",
+          "sha256": "80fa9d85a1430fc37c8dde758bad87ff130960e1483bbbc51d22f906d0e01156",
+          "size_bytes": 6707,
+          "created_at": "2026-06-21T08:40:14.450266+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "github",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/github/github-fine-grained-pat-permissions-deep.md",
+          "source": "local",
+          "sha256": "748b92f05971fcf6ffedd1d2593a72712804ef2e1c1c161b27ab7eadfcb0cee5",
+          "size_bytes": 21534,
+          "created_at": "2026-06-20T06:12:04.577723+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "github",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/github/github-fine-grained-pat-permissions.md",
+          "source": "local",
+          "sha256": "c1847838ba17738fcd139d8070221792b5f2e074e8a9f2097c9929c6a32cfcfd",
+          "size_bytes": 21078,
+          "created_at": "2026-06-19T07:16:06.570840+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "github",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/github/github-projects-overview.md",
+          "source": "local",
+          "sha256": "29abea68b7bd1b7c07a43eb8040464bafcc2337d3d6d1c7543596f4c31906264",
+          "size_bytes": 13672,
+          "created_at": "2026-06-19T06:11:13.277238+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "testing",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/testing/jest-unit-testing.md",
+          "source": "local",
+          "sha256": "94648dd257386e4271ce3894345354aa0a9b32c8e0309b3b61d9c6f21114cf1e",
+          "size_bytes": 4101,
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "testing",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/testing/nestjs-testing.md",
+          "source": "local",
+          "sha256": "f374f98d46e110e578afb890c3999ae45363b52d76f51ee9329cc381cf37242f",
+          "size_bytes": 3168,
+          "created_at": "2026-06-11T05:03:39.919600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "testing",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/testing/playwright-e2e-testing.md",
+          "source": "local",
+          "sha256": "077a560211876102f427f4c4eadaddfd23e2b9f6f4eb20d74ee219f747df4cd3",
+          "size_bytes": 3425,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "testing",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/testing/supertest-integration-testing.md",
+          "source": "local",
+          "sha256": "e2b664281c7f5587ad5867f621ed8a3885df8b86a3e3d2b51505bed1d20708d6",
+          "size_bytes": 3142,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "devops",
+      "query_topic": "testing",
+      "domain": "devops",
+      "tags": [
+        "devops"
+      ],
+      "files": [
+        {
+          "path": "devops/testing/tdd-best-practices.md",
+          "source": "local",
+          "sha256": "f8fc12cb09a346aa54604be1f88c27fe927157676bb5c7c94468fda88f0298d8",
+          "size_bytes": 3367,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "framework",
+      "query_topic": "mistake_precautions",
+      "domain": "framework",
+      "tags": [
+        "framework"
+      ],
+      "files": [
+        {
+          "path": "framework/mistake_precautions/double-hook-trigger-prevention.md",
+          "source": "local",
+          "sha256": "317cf24bfa01515906c3356a0b7aa7f4a5bad9101b2e817f27b161db898b972d",
+          "size_bytes": 13542,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "framework",
+      "query_topic": "mistake_precautions",
+      "domain": "framework",
+      "tags": [
+        "framework"
+      ],
+      "files": [
+        {
+          "path": "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
+          "source": "local",
+          "sha256": "8e99d59389e2a3b538185d37732d1791273be3959bed59e0267fc2b969dc0297",
+          "size_bytes": 5227,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "framework",
+      "query_topic": "mistake_precautions",
+      "domain": "framework",
+      "tags": [
+        "framework"
+      ],
+      "files": [
+        {
+          "path": "framework/mistake_precautions/plugin-debugging-precautions.md",
+          "source": "local",
+          "sha256": "a473870c78b2c3ec10d0e5074fffac66dad6d9fe9e9ce6b776911e53453eb367",
+          "size_bytes": 20238,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "framework",
+      "query_topic": "",
+      "domain": "framework",
+      "tags": [
+        "framework"
+      ],
+      "files": [
+        {
+          "path": "framework/plugin-programming-conventions.md",
+          "source": "local",
+          "sha256": "3d063391d36f7aaaa6ac46760e7ff1893ba4c82f730f6706441947c29687bb8a",
+          "size_bytes": 6738,
+          "created_at": "2026-06-24T11:59:40.868361+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "framework",
+      "query_topic": "state-mgmt",
+      "domain": "framework",
+      "tags": [
+        "framework"
+      ],
+      "files": [
+        {
+          "path": "framework/state-mgmt/read-audit-db-migration-summary.md",
+          "source": "local",
+          "sha256": "26dcd7c11d2db0a540ccc7ccb94ce26b34ae63dfe55dfd9bde502e28729abd1a",
+          "size_bytes": 3366,
+          "created_at": "2026-06-18T15:29:53.100334+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "frontend",
+      "query_topic": "angular",
+      "domain": "frontend",
+      "tags": [
+        "frontend"
+      ],
+      "files": [
+        {
+          "path": "frontend/angular/angular-component-testing.md",
+          "source": "local",
+          "sha256": "d4cc4adc06463f5ed88e57ad5df8fd40e1419e954c06975a4235aca3e7cd65c2",
+          "size_bytes": 4932,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "frontend",
+      "query_topic": "angular",
+      "domain": "frontend",
+      "tags": [
+        "frontend"
+      ],
+      "files": [
+        {
+          "path": "frontend/angular/angular-http-testing.md",
+          "source": "local",
+          "sha256": "ea05e80ff2b96c426abe339258b4b290830245c01bd65158236a041d4dbf0cd3",
+          "size_bytes": 4061,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "frontend",
+      "query_topic": "angular",
+      "domain": "frontend",
+      "tags": [
+        "frontend"
+      ],
+      "files": [
+        {
+          "path": "frontend/angular/angular-signal-store-testing.md",
+          "source": "local",
+          "sha256": "9a666de6428a28f64de84c6cd50ea38373efa889a2e4908f7a49af1f3d178d4d",
+          "size_bytes": 5474,
+          "created_at": "2026-06-11T05:03:39.923600+00:00",
+          "ttl_days": 30,
           "status": "active"
         }
       ]
     },
     {
       "library_id": "multi-agent-patterns",
-      "query_topic": "Cross-framework synthesis of multi-agent LLM architecture patterns: Anthropic workflows, AutoGen, CrewAI, LangGraph, Google A2A, OpenAI Swarm",
-      "domain": "opencode_framework",
+      "query_topic": "",
+      "domain": "multi-agent-patterns",
       "tags": [
-        "multi-agent",
-        "architecture",
-        "patterns",
-        "anthropic",
-        "autogen",
-        "crewai",
-        "langgraph",
-        "a2a",
-        "swarm",
-        "orchestration",
-        "role-decomposition",
-        "dispatch-overhead",
-        "attention-focus",
-        "context-management",
-        "single-vs-multi",
-        "handoff",
-        "group-chat",
-        "routing",
-        "parallelization",
-        "evaluator-optimizer"
-      ],
-      "files": [
-        {
-          "path": "multi-agent-patterns/cross-framework-synthesis.md",
-          "source": "context7+webfetch",
-          "sha256": "sha256:46396eae02598ac20288666928c9cf4e684028e7833f56e61c5e1d07aac1183e",
-          "size_bytes": 16489,
-          "created_at": "2026-06-16T14:15:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "anthropic-agents",
-      "query_topic": "Anthropic Building Effective Agents: prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer, autonomous agents",
-      "domain": "opencode_framework",
-      "tags": [
-        "anthropic",
-        "agents",
-        "workflows",
-        "prompt-chaining",
-        "routing",
-        "parallelization",
-        "orchestrator-workers",
-        "evaluator-optimizer",
-        "autonomous-agent",
-        "augmented-llm",
-        "aci",
-        "tool-design"
+        "multi-agent-patterns"
       ],
       "files": [
         {
           "path": "multi-agent-patterns/anthropic-building-effective-agents.md",
-          "source": "webfetch",
-          "sha256": "sha256:e36558675e65881e04b34205fbce54ca84f044980361fdd23d102c38a4a65e22",
+          "source": "local",
+          "sha256": "e36558675e65881e04b34205fbce54ca84f044980361fdd23d102c38a4a65e22",
           "size_bytes": 4495,
-          "created_at": "2026-06-16T14:15:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
+          "created_at": "2026-06-16T14:13:56.331364+00:00",
+          "ttl_days": 30,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "multi-agent-frameworks",
-      "query_topic": "Multi-agent framework architectures: Microsoft AutoGen GroupChat, CrewAI hierarchical crews, LangGraph state graphs and Send/Command, OpenAI Swarm handoffs",
-      "domain": "opencode_framework",
+      "library_id": "multi-agent-patterns",
+      "query_topic": "",
+      "domain": "multi-agent-patterns",
       "tags": [
-        "autogen",
-        "crewai",
-        "langgraph",
-        "swarm",
-        "openai",
-        "microsoft",
-        "group-chat",
-        "hierarchical",
-        "state-graph",
-        "handoff",
-        "sequential",
-        "parallel",
-        "send",
-        "command",
-        "selector-group-chat",
-        "process-hierarchical",
-        "triage-agent"
+        "multi-agent-patterns"
+      ],
+      "files": [
+        {
+          "path": "multi-agent-patterns/cross-framework-synthesis.md",
+          "source": "local",
+          "sha256": "46396eae02598ac20288666928c9cf4e684028e7833f56e61c5e1d07aac1183e",
+          "size_bytes": 16489,
+          "created_at": "2026-06-16T14:13:09.697700+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "multi-agent-patterns",
+      "query_topic": "",
+      "domain": "multi-agent-patterns",
+      "tags": [
+        "multi-agent-patterns"
       ],
       "files": [
         {
           "path": "multi-agent-patterns/framework-architectures.md",
-          "source": "context7",
-          "sha256": "sha256:212da85e66d18e718f171ad5f1c99ebc23fd2d697ea4429c641444a57c4cdd7e",
+          "source": "local",
+          "sha256": "212da85e66d18e718f171ad5f1c99ebc23fd2d697ea4429c641444a57c4cdd7e",
           "size_bytes": 8550,
-          "created_at": "2026-06-16T14:15:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
+          "created_at": "2026-06-16T14:14:34.578938+00:00",
+          "ttl_days": 30,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "google-a2a",
-      "query_topic": "Google Agent2Agent A2A protocol: agent discovery, agent cards, task lifecycle, interop, opaque agents, MCP complement, enterprise features",
-      "domain": "opencode_framework",
+      "library_id": "multi-agent-patterns",
+      "query_topic": "",
+      "domain": "multi-agent-patterns",
       "tags": [
-        "a2a",
-        "google",
-        "agent-to-agent",
-        "protocol",
-        "agent-card",
-        "discovery",
-        "task-lifecycle",
-        "interop",
-        "opacity",
-        "mcp-complement",
-        "enterprise",
-        "json-rpc",
-        "grpc",
-        "sse",
-        "push-notifications",
-        "linux-foundation"
+        "multi-agent-patterns"
       ],
       "files": [
         {
           "path": "multi-agent-patterns/google-a2a-protocol.md",
-          "source": "webfetch",
-          "sha256": "sha256:d7d32d8e0fd84a80f7ed11c1fb0a5d74c1df284a9b1d244e2d962dd9e6c0ccb7",
+          "source": "local",
+          "sha256": "d7d32d8e0fd84a80f7ed11c1fb0a5d74c1df284a9b1d244e2d962dd9e6c0ccb7",
           "size_bytes": 6837,
-          "created_at": "2026-06-16T14:15:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode session storage and retrieval: SessionStore file-based JSON, Task() tool task_id parameter, Tool.Context sessionID, sessions.create/prompt/interrupt, session execution flow",
-      "domain": "opencode",
-      "tags": [
-        "opencode",
-        "sessions",
-        "session-storage",
-        "sessionId",
-        "task_id",
-        "SessionStore",
-        "file-based",
-        "JSON",
-        "Tool.Context",
-        "session-resume",
-        "session-create",
-        "session-prompt"
-      ],
-      "files": [
-        {
-          "path": "opencode/sessions/opencode-session-api.md",
-          "source": "context7+webfetch",
-          "sha256": "sha256:ac481363c1f86cf06acd48be8a319e386277bacbcbef5e8b04812fd3ec13ab61",
-          "size_bytes": 11509,
-          "created_at": "2026-06-17T08:00:00.000Z",
+          "created_at": "2026-06-16T14:15:07.030463+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "framework-state-mgmt",
-      "query_topic": "read-audit JSONL to SQLite migration: schema, migration script, event_key dedup, Phase 1 dual-write architecture, DB-first with JSONL fallback",
-      "domain": "framework_tools",
-      "tags": [
-        "framework",
-        "state-management",
-        "read-audit",
-        "sqlite",
-        "migration",
-        "jsonl",
-        "event-key",
-        "dedup",
-        "schema-v10",
-        "verifyRead",
-        "recordRead",
-        "getReadEventsForSession",
-        "dual-write"
-      ],
-      "files": [
-        {
-          "path": "framework/state-mgmt/read-audit-db-migration-summary.md",
-          "source": "curated",
-          "sha256": "sha256:26dcd7c11d2db0a540ccc7ccb94ce26b34ae63dfe55dfd9bde502e28729abd1a",
-          "size_bytes": 3366,
-          "created_at": "2026-06-18T15:30:00.000Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode plugin enforcement: scope-before write blocking, R4 CONFIG-READ-ATTEST, plugin enforcement architecture, multi-path scope resolution",
+      "library_id": "opencode",
+      "query_topic": "findings",
       "domain": "opencode",
       "tags": [
-        "opencode",
-        "plugins",
-        "scope-before",
-        "scope-after",
-        "write-blocking",
-        "CONFIG-READ-ATTEST",
-        "enforcement",
-        "R4",
-        "uc7-001",
-        "uc7-005",
-        "uc7-008",
-        "uc7-009",
-        "route-mismatch",
-        "tool-scope",
-        "uc7ks-utils",
-        "gate-before",
-        "hook-lifecycle",
-        "write-scope",
-        "permissions",
-        "agent-scope",
-        "write-audit"
+        "opencode"
       ],
       "files": [
         {
-          "path": "opencode/plugins/scope-before-write-blocking.md",
-          "source": "webfetch+source-analysis",
-          "sha256": "16cbd8087dcc5f3434cf404f9804eb8848dbca9b6a3fdb07a7678d7552ae2b05",
-          "size_bytes": 18865,
-          "created_at": "2026-06-19T00:34:30.000Z",
+          "path": "opencode/findings/01-log-central-management.md",
+          "source": "local",
+          "sha256": "2926025f57b71093c362845114e7163cfb2a239df5093d1718511d327aaf94ed",
+          "size_bytes": 6130,
+          "created_at": "2026-06-11T18:25:40.147338+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode plugin system official documentation: events, hooks, examples, load order, structure",
+      "library_id": "opencode",
+      "query_topic": "findings",
       "domain": "opencode",
       "tags": [
-        "opencode",
-        "plugins",
-        "documentation",
-        "official",
-        "hooks",
-        "events",
-        "tool.execute.before",
-        "tool.execute.after",
-        "load-order",
-        "examples"
+        "opencode"
       ],
       "files": [
         {
-          "path": "opencode/plugins/official-plugins-docs.md",
-          "source": "webfetch",
-          "sha256": "2863cbfe43ecb19629b750d0732ce1a09e1c7eaed13e92ccf69f1c705c4be669",
-          "size_bytes": 3468,
-          "created_at": "2026-06-19T00:34:30.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "path": "opencode/findings/02-harness-system.md",
+          "source": "local",
+          "sha256": "95c5d4c99eaf7f476b932fd236a816113ba8bcd4e10a51dfa0d72c5c78d4eb2c",
+          "size_bytes": 9664,
+          "created_at": "2026-06-11T18:26:02.948577+00:00",
+          "ttl_days": 30,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode permissions official documentation: allow, ask, deny, granular rules, agent overrides, available permissions",
+      "library_id": "opencode",
+      "query_topic": "findings",
       "domain": "opencode",
       "tags": [
-        "opencode",
-        "permissions",
-        "allow",
-        "ask",
-        "deny",
-        "agents",
-        "granular-rules",
-        "wildcard",
-        "external-directory",
-        "doom-loop"
+        "opencode"
+      ],
+      "files": [
+        {
+          "path": "opencode/findings/03-permission-matrix.md",
+          "source": "local",
+          "sha256": "90e71af85f2034f53ebd1fe5f32bc6a64f3221fba73e1ae7925f5b71aacc107b",
+          "size_bytes": 6952,
+          "created_at": "2026-06-11T18:26:22.478319+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "findings",
+      "domain": "opencode",
+      "tags": [
+        "opencode"
+      ],
+      "files": [
+        {
+          "path": "opencode/findings/04-layout-architecture.md",
+          "source": "local",
+          "sha256": "d148654478c7dd0cf106ba9991b8ef5fcbc7adb27f458c8b91bae2f1a689b84a",
+          "size_bytes": 7231,
+          "created_at": "2026-06-11T18:26:40.391646+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "findings",
+      "domain": "opencode",
+      "tags": [
+        "opencode"
+      ],
+      "files": [
+        {
+          "path": "opencode/findings/05-central-state-management.md",
+          "source": "local",
+          "sha256": "20f94b7a893427aa08891d3e203ec4d06bbb31050820984632f2aaa01cb6cf2b",
+          "size_bytes": 7541,
+          "created_at": "2026-06-11T18:27:02.054448+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "findings",
+      "domain": "opencode",
+      "tags": [
+        "opencode"
+      ],
+      "files": [
+        {
+          "path": "opencode/findings/06-multi-agent-system.md",
+          "source": "local",
+          "sha256": "ca976d4cd6fc57ea0fac7176c5312e32a9220db203de981a1848a5d693f6b6a1",
+          "size_bytes": 8841,
+          "created_at": "2026-06-11T18:27:25.055846+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "mcp-typescript-bun",
+      "domain": "opencode",
+      "tags": [
+        "opencode"
+      ],
+      "files": [
+        {
+          "path": "opencode/mcp-typescript-bun/findings-summary.md",
+          "source": "local",
+          "sha256": "3fdd0c88a943768a65369ceb730240a7a461a162466bebf74e714b7751ad9df7",
+          "size_bytes": 18385,
+          "created_at": "2026-06-11T13:12:24.135301+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "plugins",
+      "domain": "opencode",
+      "tags": [
+        "opencode"
       ],
       "files": [
         {
           "path": "opencode/plugins/official-permissions-docs.md",
-          "source": "webfetch",
+          "source": "local",
           "sha256": "5d73127c918669283ca88e5256811cd52645feeaf21e2f59af2a630f21624a14",
           "size_bytes": 1865,
-          "created_at": "2026-06-19T00:34:30.000Z",
-          "ttl_days": 7,
-          "access_count": 0,
-          "last_accessed": null,
+          "created_at": "2026-06-19T00:35:18.885999+00:00",
+          "ttl_days": 30,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "opencode-framework",
-      "query_topic": "OpenCode plugin development reference: tool.execute.after hook patterns, plugin registration in opencode.json, MCP server tool naming conventions, custom tool naming, scope-before enforcement pipeline",
-      "domain": "opencode_framework",
+      "library_id": "opencode",
+      "query_topic": "plugins",
+      "domain": "opencode",
       "tags": [
-        "opencode",
-        "plugins",
-        "hooks",
-        "tool.execute.before",
-        "tool.execute.after",
-        "plugin-registration",
-        "opencode.json",
-        "mcp",
-        "tool-naming",
-        "custom-tools",
-        "export-default",
-        "hook-chaining",
-        "scope-before",
-        "enforcement"
+        "opencode"
+      ],
+      "files": [
+        {
+          "path": "opencode/plugins/official-plugins-docs.md",
+          "source": "local",
+          "sha256": "2863cbfe43ecb19629b750d0732ce1a09e1c7eaed13e92ccf69f1c705c4be669",
+          "size_bytes": 3468,
+          "created_at": "2026-06-19T00:35:13.248918+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "plugins",
+      "domain": "opencode",
+      "tags": [
+        "opencode"
       ],
       "files": [
         {
           "path": "opencode/plugins/plugin-hook-reference.md",
-          "source": "webfetch+source-analysis",
-          "sha256": "sha256:4cda5629336baeecb91e97a17cb282729aae3630355c5150085c664895b96fd8",
+          "source": "local",
+          "sha256": "4cda5629336baeecb91e97a17cb282729aae3630355c5150085c664895b96fd8",
           "size_bytes": 25529,
-          "created_at": "2026-06-19T01:09:00.000Z",
+          "created_at": "2026-06-19T01:10:48.574815+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "opencode-plugins",
-      "query_topic": "OpenCode plugin hook system for CI/DevOps: withPluginLifecycle, tool.execute.before/after, hook chaining, MCP tool naming, plugin registration",
-      "domain": "devops_ci",
+      "library_id": "opencode",
+      "query_topic": "plugins",
+      "domain": "opencode",
       "tags": [
-        "opencode",
-        "plugins",
-        "hooks",
-        "tool.execute.before",
-        "tool.execute.after",
-        "withPluginLifecycle",
-        "plugin-registration",
-        "opencode.json",
-        "mcp",
-        "tool-naming",
-        "custom-tools",
-        "export-default",
-        "hook-chaining",
-        "scope-before",
-        "enforcement",
-        "devops",
-        "ci",
-        "pipeline",
-        "config-read-attest",
-        "uc7ks"
-      ],
-      "files": [
-        {
-          "path": "opencode/plugins/plugin-hook-reference.md",
-          "source": "webfetch+source-analysis",
-          "sha256": "sha256:4cda5629336baeecb91e97a17cb282729aae3630355c5150085c664895b96fd8",
-          "size_bytes": 25529,
-          "created_at": "2026-06-19T01:09:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "opencode-scope-before",
-      "query_topic": "OpenCode scope-before enforcement for CI/DevOps: write blocking, R4 CONFIG-READ-ATTEST, multi-path scope resolution, UC7KS pipeline enforcement",
-      "domain": "devops_ci",
-      "tags": [
-        "opencode",
-        "plugins",
-        "scope-before",
-        "scope-after",
-        "write-blocking",
-        "CONFIG-READ-ATTEST",
-        "enforcement",
-        "R4",
-        "uc7-001",
-        "uc7-005",
-        "uc7-008",
-        "uc7-009",
-        "route-mismatch",
-        "tool-scope",
-        "uc7ks-utils",
-        "gate-before",
-        "hook-lifecycle",
-        "write-scope",
-        "permissions",
-        "agent-scope",
-        "write-audit",
-        "devops",
-        "ci",
-        "pipeline",
-        "config-read-attest"
+        "opencode"
       ],
       "files": [
         {
           "path": "opencode/plugins/scope-before-write-blocking.md",
-          "source": "webfetch+source-analysis",
+          "source": "local",
           "sha256": "16cbd8087dcc5f3434cf404f9804eb8848dbca9b6a3fdb07a7678d7552ae2b05",
           "size_bytes": 18865,
-          "created_at": "2026-06-19T00:34:30.000Z",
+          "created_at": "2026-06-19T00:35:04.750387+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "opencode-sessions",
-      "query_topic": "OpenCode session management API for CI/DevOps: SessionStore file-based JSON, Task() tool task_id parameter, Tool.Context sessionID, sessions.create/prompt/interrupt",
-      "domain": "devops_ci",
+      "library_id": "opencode",
+      "query_topic": "releases",
+      "domain": "opencode",
       "tags": [
-        "opencode",
-        "sessions",
-        "session-storage",
-        "sessionId",
-        "task_id",
-        "SessionStore",
-        "file-based",
-        "JSON",
-        "Tool.Context",
-        "session-resume",
-        "session-create",
-        "session-prompt",
-        "devops",
-        "ci",
-        "pipeline",
-        "config-read-attest",
-        "uc7ks"
+        "opencode"
+      ],
+      "files": [
+        {
+          "path": "opencode/releases/v1.17.2-release-notes.md",
+          "source": "local",
+          "sha256": "c7005a4211c604a4b0a3cbbdec1b830015eb7a212875854fabb07a45428c9766",
+          "size_bytes": 2799,
+          "created_at": "2026-06-11T05:03:39.935601+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "sessions",
+      "domain": "opencode",
+      "tags": [
+        "opencode"
       ],
       "files": [
         {
           "path": "opencode/sessions/opencode-session-api.md",
-          "source": "context7+webfetch",
-          "sha256": "sha256:ac481363c1f86cf06acd48be8a319e386277bacbcbef5e8b04812fd3ec13ab61",
+          "source": "local",
+          "sha256": "ac481363c1f86cf06acd48be8a319e386277bacbcbef5e8b04812fd3ec13ab61",
           "size_bytes": 11509,
-          "created_at": "2026-06-17T08:00:00.000Z",
+          "created_at": "2026-06-16T21:59:16.656701+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "github-projects",
-      "query_topic": "GitHub Projects overview: Items, Issue/PR relationships, branch linking, project management concepts",
-      "domain": "devops_ci",
+      "library_id": "opencode",
+      "query_topic": "source-analysis",
+      "domain": "opencode",
       "tags": [
-        "github",
-        "projects",
-        "items",
-        "issues",
-        "pull-requests",
-        "draft-issues",
-        "automation",
-        "project-management",
-        "branches",
-        "github-actions"
+        "opencode"
       ],
       "files": [
         {
-          "path": "devops/github/github-projects-overview.md",
-          "source": "webfetch",
-          "sha256": "sha256:29abea68b7bd1b7c07a43eb8040464bafcc2337d3d6d1c7543596f4c31906264",
-          "size_bytes": 13672,
-          "created_at": "2026-06-19T06:10:00.000Z",
+          "path": "opencode/source-analysis/agent-identity-plugin-hooks.md",
+          "source": "local",
+          "sha256": "a6cb6611abbc46814f7d6059dc0068e3b1b0b757c0a2019d773ce65987f7cb3c",
+          "size_bytes": 4770,
+          "created_at": "2026-06-11T05:03:39.935601+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     },
     {
-      "library_id": "github-fine-grained-pat",
-      "query_topic": "GitHub Fine-grained PAT permissions: repository, organization, and account-level permissions complete list",
-      "domain": "devops_ci",
+      "library_id": "opencode",
+      "query_topic": "source-analysis",
+      "domain": "opencode",
       "tags": [
-        "github",
-        "pat",
-        "fine-grained-pat",
-        "permissions",
-        "authentication",
-        "access-token",
-        "api",
-        "security",
-        "repository-permissions",
-        "organization-permissions",
-        "account-permissions",
-        "actions",
-        "contents",
-        "issues",
-        "pull-requests",
-        "secrets",
-        "variables",
-        "webhooks",
-        "dependabot",
-        "codespaces",
-        "members"
+        "opencode"
       ],
       "files": [
         {
-          "path": "devops/github/github-fine-grained-pat-permissions.md",
-          "source": "webfetch",
-          "sha256": "sha256:c1847838ba17738fcd139d8070221792b5f2e074e8a9f2097c9929c6a32cfcfd",
-          "size_bytes": 21078,
-          "created_at": "2026-06-19T07:15:30.000Z",
+          "path": "opencode/source-analysis/agent-mode-values.md",
+          "source": "local",
+          "sha256": "237e61cc049dfb6f1d719d46b6f5faa3446689ad17665aa390b87359dbb35e39",
+          "size_bytes": 6440,
+          "created_at": "2026-06-11T06:01:54.150292+00:00",
           "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "github-fine-grained-pat-deep",
-      "query_topic": "GitHub Fine-grained PAT deep knowledge: X-Accepted-GitHub-Permissions header, error troubleshooting, org approval flow, permission precedence, GraphQL permissions, REST API endpoint-to-permission mapping, actions/add-to-project",
-      "domain": "devops_ci",
-      "tags": [
-        "github",
-        "pat",
-        "fine-grained-pat",
-        "permissions",
-        "X-Accepted-GitHub-Permissions",
-        "error-troubleshooting",
-        "org-approval",
-        "graphql",
-        "add-to-project",
-        "resource-not-accessible",
-        "404",
-        "403",
-        "endpoint-mapping",
-        "token-security",
-        "rest-api"
-      ],
-      "files": [
-        {
-          "path": "devops/github/github-fine-grained-pat-permissions-deep.md",
-          "source": "webfetch",
-          "sha256": "sha256:748b92f05971fcf6ffedd1d2593a72712804ef2e1c1c161b27ab7eadfcb0cee5",
-          "size_bytes": 21534,
-          "created_at": "2026-06-20T06:20:00.000Z",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "devops_ci",
-      "query_topic": "devops_ci gh sub issue commands documentation",
-      "domain": "devops_ci",
-      "tags": [
-        "devops",
-        "github",
-        "gh",
-        "sub",
-        "issue",
-        "commands",
-        "devops_ci"
-      ],
-      "files": [
-        {
-          "path": "devops/github/gh-sub-issue-commands.md",
-          "source": "curated",
-          "sha256": "sha256:80fa9d85a1430fc37c8dde758bad87ff130960e1483bbbc51d22f906d0e01156",
-          "size_bytes": 6707,
-          "created_at": "2026-06-22T00:16:41.831Z",
-          "ttl_days": 90,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "e2e-test",
-      "query_topic": "UC7-003 write verification E2E test",
-      "domain": "testing",
-      "tags": [
-        "uc7-003",
-        "e2e",
-        "write-verification",
-        "testing"
-      ],
-      "files": [
-        {
-          "path": "backend/e2e-test/uc7-003-write-verification.md",
-          "source": "context7",
-          "sha256": "sha256:bc279366b6e427184c0f912872da48de4f7519a997962cab1e9aec2d1e668c9e",
-          "size_bytes": 1927,
-          "created_at": "2026-06-23T02:34:35.223352+00:00",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "prisma",
-      "query_topic": "Prisma transactions and relations patterns",
-      "domain": "persistence",
-      "tags": [
-        "prisma",
-        "transactions",
-        "relations",
-        "persistence"
-      ],
-      "files": [
-        {
-          "path": "backend/prisma/prisma-transactions-relations.md",
-          "source": "context7",
-          "sha256": "sha256:025cf9791b420bdef0faf5566518d507fd19f2ccec9c0dc543b746ee4937167e",
-          "size_bytes": 13566,
-          "created_at": "2026-06-23T02:34:35.223352+00:00",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
-          "status": "active"
-        }
-      ]
-    },
-    {
-      "library_id": "redis",
-      "query_topic": "Redis ioredis cache patterns",
-      "domain": "caching",
-      "tags": [
-        "redis",
-        "ioredis",
-        "cache",
-        "caching"
-      ],
-      "files": [
-        {
-          "path": "database/redis/redis-ioredis-cache-patterns.md",
-          "source": "context7",
-          "sha256": "sha256:0530014e4c0e0686b3e21038cff6b7daa997d2c48502a0eb6aef806421cd13ea",
-          "size_bytes": 12587,
-          "created_at": "2026-06-23T02:34:35.223352+00:00",
-          "ttl_days": 30,
-          "access_count": 0,
-          "last_accessed": null,
           "status": "active"
         }
       ]
     }
-  ],
-  "last_janitor_run": "2026-06-23T23:33:37.566Z"
+  ]
 }

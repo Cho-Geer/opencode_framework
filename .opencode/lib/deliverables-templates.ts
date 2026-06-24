@@ -9,6 +9,8 @@
  * @since 2026-06-17
  */
 
+import { toDisplayName, normalize } from "./agent-identity";
+
 export interface DeliverableTemplate {
   name: string;
   description: string;
@@ -167,7 +169,7 @@ export const DELIVERABLES_TEMPLATES: Record<string, DeliverableTemplate[]> = {
 export function getDeliverablesTemplate(
   agentType: string,
 ): DeliverableTemplate[] {
-  const normalized = agentType.replace(/^@/, "");
+  const normalized = toDisplayName(agentType);
   return (
     DELIVERABLES_TEMPLATES[normalized] || [
       {
@@ -191,9 +193,8 @@ export function getDeliverablesTemplate(
  * Check if an agent is exempt from deliverables hard constraint.
  */
 export function isExemptAgent(agentName: string): boolean {
-  return APPROVAL_EXEMPT_AGENTS.some(
-    (exempt) => agentName === exempt || `@${agentName}` === exempt,
-  );
+  const norm = normalize(agentName);
+  return norm === "orchestrator" || norm === "super-admin";
 }
 
 /**

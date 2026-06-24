@@ -25,7 +25,7 @@ import {
   isFrameworkInfraFile,
   isBusinessCodeFile,
   findRouteAgentForFile,
-} from "../lib/route-validator";
+import { isKnowledgeCurator } from "../lib/agent-identity";
 
 export default withPluginLifecycle("scope-before", {
   "tool.execute.before": toolExecuteBefore,
@@ -210,7 +210,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       // ═══════════════════════════════════════════════════════════════
       // P1-2 UC7-008: Knowledge-Curator Scope Isolation
       // ═══════════════════════════════════════════════════════════════
-      if (agentNorm === "knowledge-curator") {
+      if (isKnowledgeCurator(agent)) {
         const kcAllowed =
           scopePath.includes("docs/official_docs/") ||
           scopePath.includes(".metadata/") ||

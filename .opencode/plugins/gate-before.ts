@@ -10,6 +10,7 @@ import {
 } from "../lib/gate-core";
 import { findTaskInDag } from "../lib/gate-checks";
 import { isDagExempt, readDispatchPolicy } from "../lib/dag-policy";
+import { isPrivileged } from "../lib/agent-identity";
 import { isModifyTool } from "../lib/tool-scope";
 import {
   readRouteConfig,
@@ -98,7 +99,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       agent,
       agentType: agent,
       event: "TOOL-BEFORE",
-      detail: `gate armed | id=${session.sessionId}`,
+      detail: `gate armed | id=${session.gateSessionId}`,
     });
   }
 
@@ -107,10 +108,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // When Orchestrator uses modify tools and there are gate sessions
   // in 'delivered' state, warn about pending approvals.
   // ═══════════════════════════════════════════════════════════════
-  if (
-    isModifyTool(input.tool) &&
-    (agent === "Orchestrator" || agent === "@Orchestrator")
-  ) {
+  if (isModifyTool(input.tool) && isPrivileged(agent)) {
     try {
       const { dbLoadGateStore } = require("../lib/db-state-manager");
       const store = dbLoadGateStore();

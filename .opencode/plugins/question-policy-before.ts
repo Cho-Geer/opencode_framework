@@ -42,20 +42,7 @@ import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
-
-/**
- * ALLOWED_QUESTION_AGENTS — agents permitted to use the `question` built-in tool.
- * These are the primary dispatcher (Orchestrator) and the emergency admin
- * (Super-Admin, when in a human-facing primary session).
- */
-const ALLOWED_QUESTION_AGENTS = new Set([
-  "Orchestrator",
-  "@Orchestrator",
-  "orchestrator",
-  "Super-Admin",
-  "@Super-Admin",
-  "super-admin",
-]);
+import { isPrivileged, normalize } from "../lib/agent-identity";
 
 /**
  * question-policy-before — Standard plugin export using withPluginLifecycle.
@@ -90,12 +77,11 @@ async function questionPolicyBefore(input: any, output: any): Promise<void> {
   // 2. process.env.FRAMEWORK_AGENT — set for primary Orchestrator/Super-Admin
   const agent =
     resolveAgent(input.sessionID) || process.env.FRAMEWORK_AGENT || "unknown";
-  const normalizedAgent = (agent || "").replace(/^@/, "");
   const mode = getEnforcementMode();
 
   // When agent is unknown (can't determine), allow by default
   // (Safer to allow Orchestrator than to block it)
-  if (agent === "unknown" || ALLOWED_QUESTION_AGENTS.has(normalizedAgent)) {
+  if (agent === "unknown" || isPrivileged(agent)) {
     writeLog("question-policy-before", "runtime", {
       sessionID: input.sessionID,
       callID: input.callID,

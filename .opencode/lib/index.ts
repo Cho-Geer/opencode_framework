@@ -57,6 +57,19 @@ export type { InterruptTrapPayload } from "./interrupt-guard";
 
 export * from "./hook-lifecycle";
 
+// Agent identity normalization (canonical single source of truth)
+export {
+  AGENTS,
+  DAG_EXEMPT_AGENTS,
+  normalize,
+  toDisplayName,
+  isPrivileged,
+  isDagExempt,
+  isSuperAdmin,
+  isKnowledgeCurator,
+} from "./agent-identity";
+export type { AgentId } from "./agent-identity";
+
 // Agent resolution utilities (re-export)
 export {
   resolveAgent,

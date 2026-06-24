@@ -67,7 +67,7 @@
   },
   "template_resolution": {
     "develop_enforcement_mode": "advisory",
-    "runtime_enforcement_mode": "strict",
+    "runtime_enforcement_mode": "advisory",
     "compatibility_profile": "native",
     "super_admin_uc7ks_dispatch_patterns": [
       "knowledge",

@@ -29,6 +29,7 @@ import * as path from "node:path";
 import { writeLog } from "./log-manager";
 import { getDb } from "./db-manager";
 import { STATE_PATHS } from "./state-utils";
+import { normalize } from "./agent-identity";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -131,9 +132,10 @@ export function normalizeReadAuditPath(filePath: string): string {
 
 /**
  * Normalize agent identity: strip @ prefix, lowercase.
+ * @deprecated Use normalize() from lib/agent-identity.ts directly.
  */
 export function normalizeAgent(agent: string): string {
-  return (agent || "").replace(/^@/, "").toLowerCase();
+  return normalize(agent);
 }
 
 /**

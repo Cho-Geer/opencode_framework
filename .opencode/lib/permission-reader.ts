@@ -23,8 +23,13 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getEnforcementMode, pathMatchesGlob, resolveFrameworkPaths } from "./gate-core";
+import {
+  getEnforcementMode,
+  pathMatchesGlob,
+  resolveFrameworkPaths,
+} from "./gate-core";
 import { writeLog } from "./log-manager";
+import { toDisplayName } from "./agent-identity";
 
 // ── Types ──
 
@@ -127,7 +132,8 @@ export function getAgentPermission(agentName: string): AgentPermission | null {
     }
     return null; // advisory: no permission block = no restrictions (fail-open)
   }
-  const agentKey = agentName.replace(/^@/, "");
+  // FW-AGENT-IDENTITY: toDisplayName normalizes case + @ prefix for opencode.json lookup
+  const agentKey = toDisplayName(agentName);
   const perms = cfg?.agent?.[agentKey]?.permission;
   if (!perms) {
     writeLog("permission-reader", "runtime", {
@@ -142,7 +148,9 @@ export function getAgentPermission(agentName: string): AgentPermission | null {
 
 // ── Flat map → Bifurcated conversion (legacy compatibility) ──
 
-export function permissionMapToBifurcated(map: PermissionMap): BifurcatedScopes {
+export function permissionMapToBifurcated(
+  map: PermissionMap,
+): BifurcatedScopes {
   const allowed: string[] = [];
   const denied: string[] = [];
   for (const [pattern, action] of Object.entries(map)) {
@@ -220,7 +228,9 @@ export function isPathAllowedForAgent(
 
 // ── Shell allowlist extraction (v2.1: structured result) ──
 
-export function getAgentShellAllowlist(agentName: string): ShellAllowlistResult {
+export function getAgentShellAllowlist(
+  agentName: string,
+): ShellAllowlistResult {
   const perms = getAgentPermission(agentName);
 
   // Default: no shell permissions defined

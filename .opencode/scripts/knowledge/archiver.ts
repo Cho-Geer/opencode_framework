@@ -8,8 +8,8 @@
  * Usage: bun .opencode/scripts/knowledge/archiver.ts [--prune] [--dry-run]
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 /**
  * FW-LOG-UNIFY-P4 (2026-06-12, @Super-Admin): Migrate progress logs to
  * centralized log-manager for persistence. CJS require of ESM log-manager
@@ -18,7 +18,13 @@ const path = require("path");
 const { writeLog } = require("../../lib/log-manager");
 
 const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
-const ARCHIVE_DIR = path.join(PROJECT_ROOT, "docs", "official_docs", ".metadata", "archives");
+const ARCHIVE_DIR = path.join(
+  PROJECT_ROOT,
+  "docs",
+  "official_docs",
+  ".metadata",
+  "archives",
+);
 const ARCHIVE_RETENTION_DAYS = 7;
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -43,7 +49,11 @@ function run() {
 
     if (stat.mtimeMs < cutoff) {
       console.log(`[Archiver] Pruning: ${entry.name}`);
-      writeLog("script-knowledge-archiver", "INFO", { event: "pruning", name: entry.name, dryRun: DRY_RUN });
+      writeLog("script-knowledge-archiver", "INFO", {
+        event: "pruning",
+        name: entry.name,
+        dryRun: DRY_RUN,
+      });
       if (!DRY_RUN) {
         fs.rmSync(dirPath, { recursive: true, force: true });
       }
@@ -53,8 +63,14 @@ function run() {
     }
   }
 
-  console.log(`[Archiver] Complete: ${pruned} pruned, ${remainingDirs} remaining`);
-  writeLog("script-knowledge-archiver", "INFO", { event: "complete", pruned, remaining: remainingDirs });
+  console.log(
+    `[Archiver] Complete: ${pruned} pruned, ${remainingDirs} remaining`,
+  );
+  writeLog("script-knowledge-archiver", "INFO", {
+    event: "complete",
+    pruned,
+    remaining: remainingDirs,
+  });
   return { pruned, remaining: remainingDirs };
 }
 

@@ -4,7 +4,6 @@ import * as path from "node:path";
 import { tolerantParse } from "../lib/tolerant-json";
 import {
   readCacheSufficiency,
-  isPipelineDeclared,
   MAX_AGENTS,
   type CacheSufficiency,
   type CacheDiscovery,
@@ -16,13 +15,13 @@ import {
   type KnowledgeManifest,
 } from "../lib/knowledge-store";
 import { writeLog } from "../lib/log-manager";
-const { readSubState } = require("../lib/substate-manager");
 import { withInterruptGuard } from "../lib";
 import { incrementAuditCounter, touchCacheCheck } from "../lib/knowledge-audit";
 import { checklistWirePassed } from "../lib/checklist-hooks";
 import {
   resolvePipelineId,
   atomicUpsertDiscovery,
+  readPipelineState,
 } from "../lib/uc7ks-pipeline-db";
 
 export default tool({
@@ -50,31 +49,31 @@ export default tool({
       // Now checks whether THIS domain has been declared for THIS task,
       // not a global agent-level "declared" flag. Multiple domains can
       // coexist for the same task without clobbering each other.
-      // P1-B: read knowledge_cache_state via readSubState (split from machine.json)
+      // DB-Canonical (v19 Phase 3): Pipeline chain validation via uc7ks_pipeline_state.
+      // Replaces legacy JSON blob readSubState("knowledge_cache_state") pre-validation.
+      // Uses DB query which is concurrent-safe (SQLite row-level locking via UNIQUE constraint).
       var pipelineValid = true;
       try {
-        writeLog("knowledge_cache_search", "DEBUG", {
-          event: "P1B-READ-KCS",
-          detail: "reading knowledge_cache_state via readSubState",
+        const sessionId = (context as any)?.sessionID;
+        const pipelineId = resolvePipelineId(args, sessionId);
+        const pipelineRow = readPipelineState({
+          pipelineId,
+          agent,
+          domainId: args.domain,
         });
-        var preKCS = readSubState("knowledge_cache_state");
-        var preSA = (preKCS.session_access || {}) as Record<string, any>;
-        var preAgent = normalizeAgentKey(agent);
-        // Check nested domain declaration
-        if (
-          !isPipelineDeclared(preSA, agent, args.task_id || "", args.domain)
-        ) {
-          // Also check legacy flat for backward compat
-          var flat = preSA[preAgent] || preSA[agent] || {};
-          if (
-            flat.pipeline_task_id !== args.task_id ||
-            flat.pipeline_status !== "declared"
-          ) {
-            pipelineValid = false;
-          }
+        if (!pipelineRow || pipelineRow.discovery_status === "undeclared") {
+          pipelineValid = false;
+          writeLog("knowledge_cache_search", "INFO", {
+            event: "UC7KS-PIPELINE-NOT-DECLARED",
+            detail: `Domain ${args.domain} not declared for pipeline_id=${pipelineId} agent=${agent}. Call module_scope_declare first.`,
+          });
         }
-      } catch (e) {
-        /* non-fatal */
+      } catch (e: any) {
+        writeLog("knowledge_cache_search", "WARN", {
+          event: "UC7KS-PIPELINE-VALIDATION-DB-FAIL",
+          detail: `DB validation failed (${e.message}) — allowing search to proceed`,
+        });
+        /* non-fatal — DB is best-effort pre-validation; actual enforcement is in attest/checkUC7KSWrite */
       }
 
       if (!pipelineValid && args.task_id) {

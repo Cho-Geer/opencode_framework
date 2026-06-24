@@ -1,24 +1,24 @@
 # UC7KS Pipeline DB-Canonical Concurrent Design
 
-**版本**: v1.1.0  
-**日期**: 2026-06-23  
+**版本**: v1.3.0  
+**日期**: 2026-06-25  
 **作者**: @Super-Admin  
 **触发**: F-M（discovered_files 空值）、F-N（task_id 缺失）、F-O（架构分裂）的调查结论  
-**状态**: 设计提案，❌ 未实施（v1.1.0 验证确认代码中无 `uc7ks_pipeline_state`/`pipeline_id`/`resolvePipelineId`）  
-**更新**: v1.1.0 — 标注实施状态；确认问题仍存在；命名统一后参数引用更新
+**状态**: ✅ 已实施（v1.3.0 最终审核：GAP-1~6 全部修复，JSON blob 路径全部清理）  
+**更新**: v1.3.0 — GAP-5/6 修复完成；uc7ks-after JSON blob 写移除；checkUC7KSFileLevelDomain(M11) 死代码删除；hasAtLeastOneAttestedDomain 死代码删除
 
 ---
 
 ## 1. 问题陈述
 
-### 1.1 当前架构的三重缺陷（v1.1.0 验证：❌ 全部仍存在）
+### 1.1 当前架构的三重缺陷（v1.2.0 验证：✅ 全部已修复）
 
-| 缺陷                            | 表现                                                                                     | 影响                      | 验证                                                                                            |
-| ------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| **task_id 可选但 UC7KS 依赖它** | search 写 `tasks["unknown"]`，attest 读 `tasks[""]`，键不匹配                            | discovered_files 始终为空 | ❌ `knowledge_cache_search.ts:306` `\|\| "unknown"` vs `knowledge_cache_attest.ts:66` `\|\| ""` |
-| **读写路径分裂**                | search 同时写 JSON blob + DB 行表；attest 只读 JSON blob                                 | DB 行表形同虚设           | ❌ `knowledge_cache_attest.ts:100` 仍 `readSubState("knowledge_cache_state")`                   |
-| **JSON blob 无并发保护**        | `atomicWriteSubState` 是 read-modify-write 到单个 blob 行，多 session 并发时后写覆盖先写 | 并发 agent 互相覆盖       | ❌ `atomicWriteSubState` 仍在使用，无行级锁                                                     |
-| **legacy 回退读错字段**         | `readCacheDiscovery` 回退时读 `files_read` 而非 `discovery.discovered_files`             | 即便回退也失败            | ❌ `readCacheDiscovery` 仍在 `knowledge_cache_attest.ts:116` 调用                               |
+| 缺陷                            | 修复状态 | 修复方式                                                                                            |
+| ------------------------------- | :------: | --------------------------------------------------------------------------------------------------- |
+| **task_id 可选但 UC7KS 依赖它** |    ✅    | `resolvePipelineId` 三重回退 (task_id→sessionID→UUID)，`dispatch_subagent.ts:298-301` 自动生成 UUID |
+| **读写路径分裂**                |    ✅    | search/attest 统一读写 `uc7ks_pipeline_state` DB 表，移除 JSON blob 路径                            |
+| **JSON blob 无并发保护**        |    ✅    | SQLite `UNIQUE(pipeline_id, agent, domain_id)` 约束 + UPSERT 原子写入                               |
+| **legacy 回退读错字段**         |    ✅    | `readCacheDiscovery` 被 `readDiscoveryForAttest` 替代，直接列查询无字段错位                         |
 
 ### 1.2 当前数据流
 
@@ -535,9 +535,9 @@ function atomicUpsertAttestation(params: {
 | 移除 JSON blob fallback 路径             | DB 是唯一数据源                  |
 | 简化 `checkUC7KSWrite()` 中的 Path A/B/C | 只需查询 `uc7ks_pipeline_state`  |
 
-### 3.6 迁移计划（v1.1.0 状态：全部未开始）
+### 3.6 迁移计划（v1.2.0 状态：全部完成）
 
-#### Phase 1：DB 表创建 + 双写（❌ 未开始）
+#### Phase 1：DB 表创建 + 双写（✅ 已完成 — v19 迁移，2026-06-23）
 
 ```
 1. 创建 uc7ks_pipeline_state 表
@@ -547,23 +547,27 @@ function atomicUpsertAttestation(params: {
 4. 运行 1 周观察
 ```
 
-#### Phase 2：DB-only（❌ 未开始）
+#### Phase 2：DB-only（✅ 已完成 — v1.2.0，2026-06-25）
 
 ```
-1. 移除 JSON blob 写入路径
-2. 移除 knowledge_session_access + knowledge_discovery
+1. ✅ 移除 JSON blob 写入路径（knowledge_cache_search + knowledge_cache_attest）
+2. ✅ 移除 knowledge_session_access + knowledge_discovery
    + knowledge_attestation 行表的写入
-3. 运行 backfill 脚本：将历史 JSON blob 数据迁移到 uc7ks_pipeline_state
-4. 冻结 knowledge_cache_state JSON blob（保留为只读历史快照）
+3. ⚪ backfill 脚本：历史 JSON blob 数据已随 v20 表删除而失效（无需迁移）
+4. ⚪ knowledge_cache_state JSON blob 冻结为只读历史快照
 ```
 
-#### Phase 3：清理（❌ 未开始）
+#### Phase 3：清理（✅ 已完成 — v20+v21 迁移，2026-06-23/25）
 
 ```
-1. 移除 uc7ks-schema.ts 中的 getDomainEntry、readCacheDiscovery 等辅助函数
-2. 移除 knowledge_session_access、knowledge_discovery、
-   knowledge_attestation 表（DROP TABLE）
-3. 清理 substate_kv 中的 knowledge_cache_state 行
+1. ✅ 移除 uc7ks-schema.ts 中的 getDomainEntry、readCacheDiscovery 等辅助函数
+   （保留类型定义向后兼容）
+2. ✅ 移除 knowledge_session_access、knowledge_discovery、
+   knowledge_attestation 表（v20 DROP TABLE）
+3. ✅ 清理 substate_kv 中的 knowledge_cache_state 行（冻结为只读）
+4. ✅ GAP-1：search 预读 JSON blob → DB 查询（v1.2.0）
+5. ✅ GAP-2：ctx 文件补写 pipeline_id 字段（v1.2.0）
+6. ✅ GAP-3：uc7ks-utils JSON blob 回退移除（v1.2.0）
 ```
 
 ### 3.7 向后兼容
@@ -675,7 +679,8 @@ if (row?.attestation_status === "attested" && row.cache_sufficient) {
 
 ## 变更日志
 
-| 日期       | 版本  | 变更                                                                                                                                |
-| ---------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-06-23 | 1.0.0 | 初始设计——DB-canonical 并发安全 UC7KS 管线                                                                                          |
-| 2026-06-23 | 1.1.0 | 验证确认未实施；§1.1 标注问题仍存在（含代码行号）；§3.5.3 标注 session_namespace 已实现；§3.6 标注迁移未开始；§4.1 标注 V7.2 脆弱点 |
+| 日期       | 版本  | 变更                                                                                                                                     |
+| ---------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-06-23 | 1.0.0 | 初始设计——DB-canonical 并发安全 UC7KS 管线                                                                                               |
+| 2026-06-23 | 1.1.0 | 验证确认未实施；§1.1 标注问题仍存在（含代码行号）；§3.5.3 标注 session_namespace 已实现；§3.6 标注迁移未开始；§4.1 标注 V7.2 脆弱点      |
+| 2026-06-25 | 1.2.0 | 审核确认核心架构完整实装；修复 GAP-1 (search JSON blob 预读→DB)、GAP-2 (ctx pipeline_id)、GAP-3 (JSON blob 回退移除)；更新状态为"已实施" |

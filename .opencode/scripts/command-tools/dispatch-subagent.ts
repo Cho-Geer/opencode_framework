@@ -10,7 +10,7 @@
  *
  * When 1 positional param follows agent_type → treated as task_description.
  * When 2 positional params follow agent_type → first = task_id, second = task_description.
- * --task-id CLI flag and .dispatch_ctx file always take precedence.
+ * --task-id CLI flag takes precedence.
  *
  * M14 (2026-06-19): Extended dispatch permissions — sub-agents (all non-Orchestrator,
  * non-Super-Admin agents) may now dispatch directly to @Knowledge-Curator for
@@ -41,9 +41,9 @@
  *   3. Use the content as the prompt for Task(subagent_type)
  */
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 const {
   deliverablesTemplateMarkdown,
   isExemptAgent,
@@ -95,14 +95,13 @@ function logWarn(msg) {
 //   bun dispatch-subagent.ts <agent_type> "<session_namespace>" "<task_description>" [--task-id <id>]
 //
 // Resolution priority (highest wins):
-//   1. --task-id CLI flag (explicit — legacy)
+//   1. --task-id CLI flag (explicit)
 //   2. DISPATCH_NAMESPACE env var (from parent dispatch_subagent tool, authoritative)
 //   3. DISPATCH_DAG_TASK_ID env var (from parent dispatch_subagent tool)
-//   4. Positional args: argv[3]=session_namespace, argv[4]=task_description
-//   5. .dispatch_ctx file (written by dispatch_subagent.ts, dagTaskId field)
-//   6. Single positional arg: argv[3]=task_description (backward compatible)
-// FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env var removed from all paths.
-// The child script now reads task_id from .dispatch_ctx file or CLI args only.
+//   4. Positional args: argv[3]=session_namespace
+//   5. Single positional arg: argv[3]=task_description (backward compatible)
+// OPT-02 (2026-06-25): Legacy .dispatch_ctx file priority removed — write side
+// was decommissioned in V1.3 Phase 2. ctx/{dagTaskId}.json in parent is the canonical source.
 
 // session_namespace: OpenCode upstream task_id for output path (.task_temp/{ns}/)
 let sessionNamespace = process.env.DISPATCH_NAMESPACE || null;
@@ -133,25 +132,17 @@ if (!taskId) {
   }
 }
 
-// Fall back to .dispatch_ctx file (written by parent dispatch_subagent.ts)
-if (!taskId) {
-  try {
-    const ctxPath = path.join(
-      OPENCODE_ROOT,
-      ".task_temp",
-      "_dispatch",
-      ".dispatch_ctx",
-    );
-    if (fs.existsSync(ctxPath)) {
-      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      taskId = ctx.dagTaskId || null;
-      if (!sessionNamespace) sessionNamespace = taskId;
-      if (!dagTaskId) dagTaskId = taskId;
-    }
-  } catch {
-    /* file missing or malformed — continue without task_id */
-  }
-}
+// OPT-02 (2026-06-25): DB-canonical — legacy .dispatch_ctx file read removed.
+// dispatch_subagent.ts V1.3 Phase 2 removed the write side. ctx/{dagTaskId}.json
+// is the sole per-dispatch source; DISPATCH_NAMESPACE/DISPATCH_DAG_TASK_ID env
+// vars and --task-id CLI flag cover the parent→child bridge.
+//
+// Fallback priority (updated):
+//   1. --task-id CLI flag (explicit)
+//   2. DISPATCH_NAMESPACE env var (from parent dispatch_subagent tool, authoritative)
+//   3. DISPATCH_DAG_TASK_ID env var (from parent dispatch_subagent tool)
+//   4. Positional args: argv[3]=session_namespace
+//   5. Single positional arg: argv[3]=task_description (backward compatible)
 
 // If we still don't have dagTaskId, use sessionNamespace or taskId
 if (!dagTaskId) dagTaskId = sessionNamespace || taskId;
@@ -215,7 +206,7 @@ try {
   const {
     recordDispatchPayloadIntegrity,
   } = require("../../lib/execution-checklist");
-  const crypto = require("crypto");
+  const crypto = require("node:crypto");
   recordDispatchPayloadIntegrity({
     agent_type: agentType,
     dag_task_id: dagTaskId,
@@ -253,7 +244,7 @@ if (sessionNamespace) {
       `Running pre-execution-gate.ts for dispatch session '${sessionNamespace}' (--dispatch-session)...`,
     );
     try {
-      const { execSync } = require("child_process");
+      const { execSync } = require("node:child_process");
       const gateResult = execSync(
         `"${process.execPath}" "${gateScript}" "${sessionNamespace}" --dispatch-session`,
         {
@@ -704,7 +695,10 @@ if (fs.existsSync(PREAMBLE_FILE)) {
 }
 
 // P2-FIX R4: Inject dag_task_id into preamble so sub-agent knows its DAG task ID
-// dagTaskId is resolved from env DISPATCH_DAG_TASK_ID, CLI args, or .dispatch_ctx.
+/**
+ * dagTaskId is resolved from env DISPATCH_DAG_TASK_ID, CLI args, or ctx/{dagTaskId}.json
+ * (DB-canonical, V1.3 Phase 2 — .dispatch_ctx write removed).
+ */
 // This prevents the sub-agent from fabricating a task_id from thin air.
 if (dagTaskId) {
   preamble += `\n> **Your dispatch-assigned dag_task_id**: \`${dagTaskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.\n`;
@@ -1046,11 +1040,13 @@ try {
   if (enforcementMode === "strict" || enforcementMode === "locked") {
     // FATAL: marking failure in strict/locked mode must not be swallowed.
     // Silent failures cause child sessions to deadlock in dispatch_payload.
-    logError(
-      "Checklist marking FATAL (strict/locked): " +
+    writeLog("dispatch-subagent", "ERROR", {
+      event: "CHECKLIST-MARKING-FATAL",
+      detail:
+        "Checklist marking FATAL (strict/locked): " +
         e.message +
         " — dispatch will fail. Child session would be permanently blocked.",
-    );
+    });
     throw new Error(
       "[FW-ENFORCE][P0-CHECKLIST] Dispatch fact marking failed in " +
         enforcementMode +
@@ -1144,7 +1140,7 @@ queue = queue.filter((e) => {
 });
 if (dedupedEntries.length > 0) {
   // P0-BUG-FIX-TDZ (2026-06-18): Use resolvedTaskId to avoid TDZ with outer let taskId.
-  // FW-CLEANUP-FRAMEWORK-TASK-ID: env fallback removed; taskId comes from CLI/.dispatch_ctx.
+  // FW-CLEANUP-FRAMEWORK-TASK-ID: env fallback removed; taskId comes from CLI + session_map DB + ctx/{dagTaskId}.json (DB-canonical V1.3 Phase 2).
   const resolvedTaskId = taskId || "(unknown)";
   // HARDENED CONSTRAINT: same dag_task_id → different task = BLOCKED.
   // This is NOT just a warning — the dispatch is PHYSICALLY REJECTED.
@@ -1325,5 +1321,5 @@ try {
 // 7. Output file path to stdout (for the primary agent)
 // ──────────────────────────────────────────────
 // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env restore removed.
-// task_id now flows through .dispatch_ctx file + session_map DB exclusively.
+// task_id now flows through session_map DB + ctx/{dagTaskId}.json exclusively (DB-canonical V1.3 Phase 2 — .dispatch_ctx write removed).
 console.log(outputFile);

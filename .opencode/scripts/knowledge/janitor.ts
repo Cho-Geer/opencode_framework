@@ -26,8 +26,8 @@
  * Usage: bun .opencode/scripts/knowledge/janitor.ts [--dry-run] [--force]
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const { createRequire } = require("node:module");
 const {
   atomicWriteSubState,

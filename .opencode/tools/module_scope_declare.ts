@@ -93,6 +93,16 @@ export default tool({
           undefined;
         const pipelineId = resolvePipelineId(args, sessionId);
 
+        /**
+         * FW-P0-FIX-F11 (2026-06-25, @Super-Admin):
+         * Changed discovery status from "undeclared" to "declared" to fix
+         * pipeline chain broken bug. knowledge_cache_search.ts L64 checks
+         * discovery_status === "undeclared" and rejects the pipeline as
+         * uninitialized. Since nothing else updates this status from
+         * "undeclared" to any other value, the pipeline chain was
+         * permanently broken. "declared" correctly signals that
+         * module_scope_declare has been called and the domain is ready.
+         */
         atomicUpsertDiscovery({
           pipelineId,
           agent,
@@ -100,7 +110,7 @@ export default tool({
           sessionId,
           dagTaskId: args.task_id || undefined,
           discovery: {
-            status: "undeclared",
+            status: "declared",
             discovered_files: [],
             missing_topics: [],
             discovered_at: new Date().toISOString(),

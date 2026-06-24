@@ -28,6 +28,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { toDisplayName as _toDisplayName } from "./agent-identity";
 
 // CONFIGURATION KEYS (F7: parameterized per Templatization System)
 
@@ -369,22 +370,11 @@ export const MAX_AGENTS = 50;
  *   "orchestrator" → "Orchestrator"
  *   "Super-Admin"  → "Super-Admin"
  */
+/**
+ * @deprecated Use toDisplayName() from lib/agent-identity.ts directly.
+ */
 export function normalizeAgentKey(raw: string): string {
-  const stripped = (raw || "").replace(/^@/, "");
-  const map: Record<string, string> = {
-    "meta-planner": "Meta-Planner",
-    orchestrator: "Orchestrator",
-    architect: "Architect",
-    "coder-be": "Coder-BE",
-    "coder-fe": "Coder-FE",
-    guardian: "Guardian",
-    arbiter: "Arbiter",
-    "ci-cd-agent": "CI-CD-Agent",
-    "knowledge-curator": "Knowledge-Curator",
-    "super-admin": "Super-Admin",
-    plan: "Meta-Planner", // legacy misnomer: "plan" scope was recorded as agent
-  };
-  return map[stripped.toLowerCase()] || stripped;
+  return _toDisplayName(raw);
 }
 
 /** Evict oldest agent entries when cap exceeded */

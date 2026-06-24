@@ -20,7 +20,7 @@
  */
 
 const { createRequire } = require("node:module");
-const path = require("path");
+const path = require("node:path");
 
 /**
  * KC-11: Load knowledge-store (ESM) via createRequire for CJS interop.

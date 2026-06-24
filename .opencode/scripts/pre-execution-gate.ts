@@ -87,9 +87,9 @@ function getIsDagExempt() {
  *             verifies DISPATCH_TOKEN presence and UC7KS cache-first compliance
  */
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 const { readSubState } = require("../lib/substate-manager");
 
 // ─── Path Resolution (Node path APIs ONLY — no shell path manipulation) ───
@@ -182,28 +182,27 @@ function readJSON(filePath) {
 }
 
 /**
+ * P1-1 FW-P0-FIX-F4 (2026-06-25, @Super-Admin):
+ * Replaced local duplicate with lazy-loaded import from gate-core.ts
+ * (canonical single source of truth). Matches existing lazy-load pattern
+ * used by getWriteLog(), getIsDagExempt().
+ *
  * Determine enforcement mode from project.config.json or ENFORCEMENT_MODE env var.
  * Returns "advisory", "strict", or "locked".
  */
-function getEnforcementMode() {
-  const envMode = process.env.ENFORCEMENT_MODE || "";
-  if (["advisory", "strict", "locked"].includes(envMode)) {
-    return envMode;
-  }
-  const cfg = readJSON(PROJECT_CONFIG_PATH);
-  /**
-   * Dual-key design (FW-HARNESS-P6): check develop_enforcement_mode first (local dev),
-   * then runtime_enforcement_mode (CI/production), then enforcement_mode (legacy).
-   * This aligns with enforcement-modes-standard.md §4.1 which defines separate
-   * develop and runtime keys replacing the old singular enforcement_mode.
-   */
-  if (cfg.ok && cfg.data.template_resolution) {
-    const tr = cfg.data.template_resolution;
-    const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode;
-    if (mode && ["advisory", "strict", "locked"].includes(mode)) {
-      return mode;
+let _getEnforcementMode = null as ((root?: string) => string) | null;
+function getEnforcementMode(): string {
+  if (!_getEnforcementMode) {
+    try {
+      _getEnforcementMode = require("../lib/gate-core").getEnforcementMode;
+    } catch {
+      /* gate-core unavailable — use env var fallback */
     }
   }
+  if (_getEnforcementMode) return _getEnforcementMode();
+  // Fallback: env var or default to strict
+  const envMode = process.env.ENFORCEMENT_MODE || "";
+  if (["advisory", "strict", "locked"].includes(envMode)) return envMode;
   return "strict";
 }
 
@@ -333,32 +332,9 @@ function printUsage() {
 
 // ─── Check Implementations ────────────────────────────────────────────────
 
-/**
- * Read agent identity from _dispatch_target.json (v4.0.0 replacement for FRAMEWORK_AGENT).
- * Applies the same run_id staleness check as enforce.ts resolveAgent().
- * @returns {string} agent name (e.g. "@Coder-BE") or empty string
- */
-function readDispatchTargetAgent() {
-  try {
-    const p = require("path").join(
-      process.env.OPENCODE_ROOT || ".",
-      ".task_temp",
-      "_dispatch_target.json",
-    );
-    if (require("fs").existsSync(p)) {
-      const d = JSON.parse(require("fs").readFileSync(p, "utf8"));
-      const currentRunId = process.env.OPENCODE_RUN_ID || "";
-      if (currentRunId && (!d.run_id || d.run_id !== currentRunId)) {
-        try {
-          require("fs").unlinkSync(p);
-        } catch {}
-        return "";
-      }
-      return d.agent || "";
-    }
-  } catch {}
-  return "";
-}
+// OPT-02 (2026-06-25): _dispatch_target.json read removed.
+// Nobody writes this file since FRAMEWORK_AGENT/FRAMEWORK_TASK_ID env var cleanup.
+// Agent identity is now resolved via process.env.AGENT (set by OpenCode runtime).
 
 /**
  * Check 1 — DAG Coverage: task_id exists in Task.DAG.json with status=pending.
@@ -376,7 +352,7 @@ function checkDagCoverage(taskId) {
   // ── DAG-exempt bypass: canonical list in lib/dag-policy.ts ──
   // FW-PLAN-FIRST (2026-06-14): Consolidated exempt set:
   //   meta-planner, orchestrator, super-admin, knowledge-curator.
-  const agent = readDispatchTargetAgent() || process.env.AGENT || "";
+  const agent = process.env.AGENT || "";
   if (getIsDagExempt()(agent)) {
     console.error(
       `    ⏭️  DAG Coverage SKIPPED — ${agent || "(unknown)"} is DAG-exempt (task may not exist yet)`,
@@ -755,7 +731,7 @@ function checkKnowledgeGate(taskId) {
     const bypassAttempts = kcs.compliance?.total_bypass_attempts || 0;
 
     if (bypassAttempts > 0) {
-      const agent = readDispatchTargetAgent() || "unknown";
+      const agent = "unknown";
       const agentBypasses = kcs.compliance?.bypass_attempts_by_agent?.[agent];
       const agentCount = agentBypasses?.count || 0;
 
@@ -825,12 +801,18 @@ function main() {
   // an unresolvable chicken-and-egg deadlock.
   //
   // @since 2026-06-07 — FW-REPAIR-DAG-DEADLOCK: Added DAG-creator bypass
+  /**
+   * FW-P0-FIX-F6 (2026-06-25, @Super-Admin):
+   * Fixed agent="" → process.env.AGENT. The agent was hardcoded to empty
+   * string, causing the DAG-creator bypass (Meta-Planner/Orchestrator)
+   * to never match. Now reads from the actual runtime environment.
+   */
   if (!taskId) {
-    const agent = readDispatchTargetAgent() || "";
-    const normalizedAgent = agent.replace(/^@/, "");
+    const agent = process.env.AGENT || "";
+    const normalizedAgent = agent.replace(/^@/, "").toLowerCase();
     if (
-      normalizedAgent === "Meta-Planner" ||
-      normalizedAgent === "Orchestrator"
+      normalizedAgent === "meta-planner" ||
+      normalizedAgent === "orchestrator"
     ) {
       gateLog("dag_creator_bypass", "INFO", { agent });
       console.log(
@@ -849,8 +831,9 @@ function main() {
   // UC7-009: Health-state gate — if knowledge cache is unhealthy, Super-Admin gets
   // an emergency bypass. This prevents circular deadlock: Super-Admin dispatched to
   // repair broken cache → blocked by cache health check → cannot repair → deadlock.
-  const agent = readDispatchTargetAgent() || "";
-  if (agent === "Super-Admin" || agent === "@Super-Admin") {
+  const agent = process.env.AGENT || "";
+  const agentNorm = (agent || "").replace(/^@/, "").toLowerCase();
+  if (agentNorm === "super-admin") {
     console.error(
       "[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance.",
     );

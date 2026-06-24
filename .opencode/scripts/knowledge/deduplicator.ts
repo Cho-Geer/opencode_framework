@@ -9,8 +9,6 @@
  * Returns: { is_duplicate: boolean, existing_path: string|null }
  */
 
-
-
 function checkDuplicate(sha256) {
   const manifest = readManifest();
   for (const entry of manifest.entries) {
@@ -32,13 +30,11 @@ function checkDuplicate(sha256) {
  * Compute SHA-256 of a file.
  */
 function computeHash(filePath) {
-  const crypto = require("crypto");
-  const fs = require("fs");
+  const crypto = require("node:crypto");
+  const fs = require("node:fs");
   const hash = crypto.createHash("sha256");
   hash.update(fs.readFileSync(filePath));
   return `sha256:${hash.digest("hex")}`;
 }
-
-
 
 module.exports = { checkDuplicate, computeHash };

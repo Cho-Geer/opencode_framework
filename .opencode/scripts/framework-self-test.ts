@@ -10,8 +10,8 @@
  * Exit code: 0 if ALL 33 checks pass, 1 if any fail.
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 /**
  * FW-LOG-UNIFY Phase 3: Lazy-load writeLog to record self-test outcomes.
@@ -61,19 +61,19 @@ let allPassed = true;
  */
 function resolveTsRunner() {
   try {
-    const { execSync: _sync } = require("child_process");
+    const { execSync: _sync } = require("node:child_process");
     // Check for bun first (preferred by pre-execution-hook.sh)
     _sync("which bun", { stdio: "pipe" });
     return "bun";
   } catch (_bun) {
     try {
-      const { execSync: _sync } = require("child_process");
+      const { execSync: _sync } = require("node:child_process");
       // Check for tsx
       _sync("which tsx", { stdio: "pipe" });
       return "tsx";
     } catch (_tsx) {
       try {
-        const { execSync: _sync } = require("child_process");
+        const { execSync: _sync } = require("node:child_process");
         // Check for npx tsx
         _sync("npx tsx --version", { stdio: "pipe" });
         return "npx tsx";
@@ -1115,7 +1115,7 @@ function checkReconciliationInfra() {
 
     // Dry-run execution (verify script doesn't crash on syntax errors)
     try {
-      const { execSync } = require("child_process");
+      const { execSync } = require("node:child_process");
       const relativePath = path.relative(OPENCODE_ROOT, reconcileShellPath);
 
       try {
@@ -1419,7 +1419,7 @@ function checkGitHooksPath() {
   // 21a: Verify git config core.hooksPath resolves to .opencode/hooks
   let configuredHooksPath = "";
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
     configuredHooksPath = execSync("git config --local core.hooksPath", {
       stdio: "pipe",
       encoding: "utf-8",
@@ -1733,7 +1733,7 @@ function checkPreExecGate() {
   // FW-REPAIR-SA-20260611: node -c cannot validate .ts files; bun -c executes
   // the script (not syntax-check). Use bun build --outfile=/dev/null instead.
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
     execSync(`bun build "${gatePath}" --target=bun --outfile=/dev/null`, {
       stdio: "pipe",
       timeout: 10000,
@@ -1854,7 +1854,7 @@ function checkFrameworkDoctorExists() {
 
   // 24b: Is valid JavaScript (syntax check)
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
     execSync(`"${process.execPath}" -c "${doctorPath}"`, {
       stdio: "pipe",
       timeout: 5000,
@@ -1906,7 +1906,7 @@ function checkDoctorJsonOutput() {
   }
 
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
     let output;
     try {
       // FW-REPAIR-SHELL-TSX: Use tsx/bun runner instead of plain node
@@ -2004,7 +2004,7 @@ function checkDoctorStrict() {
   }
 
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
     let output;
     let exitCode = 0;
     try {
@@ -2067,7 +2067,7 @@ function checkCrossValidation() {
   }
 
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
 
     // Run state-reconciliation --strict --json
     let reconcilerOutput,
@@ -2921,7 +2921,7 @@ function checkConfigAttestPipeline(): void {
 
   // 47h: Compilation check via bun build
   try {
-    const { execSync } = require("child_process");
+    const { execSync } = require("node:child_process");
     execSync(`bun build "${attestToolPath}" --target=bun --outfile=/dev/null`, {
       stdio: "pipe",
       timeout: 10000,
@@ -3703,7 +3703,7 @@ function checkWorkingTreeDrift(): void {
     // Get last commit timestamp
     let lastCommitTime = 0;
     try {
-      const { execSync } = require("child_process");
+      const { execSync } = require("node:child_process");
       lastCommitTime =
         parseInt(
           execSync("git log -1 --format=%ct", {
@@ -4186,9 +4186,7 @@ function checkPluginPartsMutationScan() {
 
     if (violations.length > 0) {
       for (const v of violations) {
-        issues.push(
-          `${v.file}:${v.line} contains forbidden "${v.pattern}"`,
-        );
+        issues.push(`${v.file}:${v.line} contains forbidden "${v.pattern}"`);
       }
     }
   } catch (e: any) {
@@ -4926,7 +4924,7 @@ if (allPassed) {
 //   (e) project.config.json.dispatch_policy block is present and valid.
 function checkPlanFirstConsistency() {
   const root = process.env.OPENCODE_ROOT || process.cwd();
-  const pathJoin = require("path").join;
+  const pathJoin = require("node:path").join;
   const issues = [];
 
   // (a) dag-policy.ts
@@ -5135,7 +5133,7 @@ function checkStep0dTriggerWords(): void {
 
 function checkSchemaFiles() {
   const root = process.env.OPENCODE_ROOT || process.cwd();
-  const pathJoin = require("path").join;
+  const pathJoin = require("node:path").join;
   const schemasDir = pathJoin(root, ".opencode", "state", "schemas");
   const expected = [
     "eslint-state",
@@ -5334,7 +5332,7 @@ function checkDispatchCtxFiles() {
  */
 function checkPluginRegistrationIntegrity() {
   const issues: string[] = [];
-  const EXPECTED_COUNT = 22;
+  const EXPECTED_COUNT = 23;
 
   try {
     const pluginDir = path.join(PROJECT_ROOT, ".opencode", "plugins");
@@ -5469,7 +5467,9 @@ function checkInterruptSentinelCleanup() {
           "session.ts missing MODEL-IDENTITY (resolveAgentModel function)",
         );
       if (!hasModelCache)
-        issues.push("session.ts missing _agentModelCache (opencode.json model cache)");
+        issues.push(
+          "session.ts missing _agentModelCache (opencode.json model cache)",
+        );
       if (!hasRoundStartLog)
         issues.push("session.ts missing ROUND-START log entry");
     } else {
@@ -5490,7 +5490,6 @@ function checkInterruptSentinelCleanup() {
           "execution-checklist.ts: markChecklistRunInterrupted not exported",
         );
       }
-
     } else {
       issues.push("execution-checklist.ts not found");
     }
@@ -5505,32 +5504,30 @@ function checkInterruptSentinelCleanup() {
     if (fs.existsSync(dbStatePath)) {
       const dbContent = fs.readFileSync(dbStatePath, "utf8");
       if (!dbContent.includes("export function dbUpdateSessionModel")) {
-        issues.push(
-          "db-state-manager.ts: dbUpdateSessionModel not exported",
-        );
+        issues.push("db-state-manager.ts: dbUpdateSessionModel not exported");
       }
     } else {
       issues.push("db-state-manager.ts not found");
     }
 
     // 4. Verify session_map has model_id column and agent→model config in opencode.json
-      try {
-        const { getDb } = require("../lib/db-manager");
-        const db = getDb();
-        if (db) {
-          const cols = db
-            .query("PRAGMA table_info(session_map)")
-            .all() as { name: string }[];
-          const hasModelColumn = cols.some((c) => c.name === "model_id");
-          if (!hasModelColumn) {
-            issues.push(
-              "session_map table missing model_id column — v24 migration may not have run",
-            );
-          }
+    try {
+      const { getDb } = require("../lib/db-manager");
+      const db = getDb();
+      if (db) {
+        const cols = db.query("PRAGMA table_info(session_map)").all() as {
+          name: string;
+        }[];
+        const hasModelColumn = cols.some((c) => c.name === "model_id");
+        if (!hasModelColumn) {
+          issues.push(
+            "session_map table missing model_id column — v24 migration may not have run",
+          );
         }
-      } catch {
-        /* DB unavailable — skip */
       }
+    } catch {
+      /* DB unavailable — skip */
+    }
 
     // 5. Verify opencode.json has valid agent→model mappings
     try {
@@ -5639,28 +5636,73 @@ function checkBackupManagerIntegrity() {
     const { getDb } = require("../lib/db-manager");
     const db = getDb();
     if (db) {
-      const tables = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='backup_log'").all();
+      const tables = db
+        .query(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='backup_log'",
+        )
+        .all();
       if (tables.length === 0) {
-        issues.push("backup_log table not found — v25 migration may not have run");
+        issues.push(
+          "backup_log table not found — v25 migration may not have run",
+        );
       } else {
-        const cols = db.query("PRAGMA table_info(backup_log)").all() as {name: string}[];
-        const expected = ["uuid","timestamp","event","agent","session_id","dag_task_id","dag_session_id","task_id","reason","original_file_path","backup_file_path","git_commit","file_size","file_hash","cleanup_time","cleanup_reason","status"];
-        const missing = expected.filter(e => !cols.some(c => c.name === e));
-        if (missing.length > 0) issues.push("backup_log missing columns: " + missing.join(", "));
+        const cols = db.query("PRAGMA table_info(backup_log)").all() as {
+          name: string;
+        }[];
+        const expected = [
+          "uuid",
+          "timestamp",
+          "event",
+          "agent",
+          "session_id",
+          "dag_task_id",
+          "dag_session_id",
+          "task_id",
+          "reason",
+          "original_file_path",
+          "backup_file_path",
+          "git_commit",
+          "file_size",
+          "file_hash",
+          "cleanup_time",
+          "cleanup_reason",
+          "status",
+        ];
+        const missing = expected.filter((e) => !cols.some((c) => c.name === e));
+        if (missing.length > 0)
+          issues.push("backup_log missing columns: " + missing.join(", "));
       }
     }
-    const fs = require("fs");
-    const path = require("path");
-    const bmPath = path.join(process.env.OPENCODE_ROOT || ".", ".opencode", "lib", "backup-manager.ts");
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const bmPath = path.join(
+      process.env.OPENCODE_ROOT || ".",
+      ".opencode",
+      "lib",
+      "backup-manager.ts",
+    );
     if (fs.existsSync(bmPath)) {
       const content = fs.readFileSync(bmPath, "utf8");
-      for (const exp of ["createBackup","restoreBackup","cleanupStaleBackups","getBackup","findLatestBackup"]) {
-        if (!content.includes("export function " + exp)) issues.push("backup-manager.ts: " + exp + " not exported");
+      for (const exp of [
+        "createBackup",
+        "restoreBackup",
+        "cleanupStaleBackups",
+        "getBackup",
+        "findLatestBackup",
+      ]) {
+        if (!content.includes("export function " + exp))
+          issues.push("backup-manager.ts: " + exp + " not exported");
       }
     }
   } catch (e: any) {
     check(51, false, "Backup Manager: cannot verify — " + e.message);
     return;
   }
-  check(51, issues.length === 0, issues.length === 0 ? "Backup Manager: all checks passed" : issues.join("; "));
+  check(
+    51,
+    issues.length === 0,
+    issues.length === 0
+      ? "Backup Manager: all checks passed"
+      : issues.join("; "),
+  );
 }
