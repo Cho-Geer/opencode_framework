@@ -17,9 +17,16 @@
  * @version 1.0.0
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+
+import {
+  createBackup as createGitBackup,
+  findLatestBackup as findLatestGitBackup,
+  cleanupStaleBackups as cleanupGitBackups,
+  type BackupRecord,
+} from "./backup-manager";
 
 // P3/G11: cross-process TOCTOU baseline (DB-backed).
 // These imports are optional — if DB fails, fallback to in-process registry only.
@@ -28,7 +35,7 @@ import {
   dbWriteFileBaseline,
   dbDeleteFileBaseline,
   type FileBaselineSnapshot,
-} from './db-state-manager';
+} from "./db-state-manager";
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -80,7 +87,7 @@ export interface RestoreResult {
 // FILE STATE REGISTRY — tracks last-known state across calls
 // ════════════════════════════════════════════════════════════
 
-const _fileRegistry = new Map<string, Omit<StatSnapshot, 'path'>>();
+const _fileRegistry = new Map<string, Omit<StatSnapshot, "path">>();
 
 /**
  * Clear the in-memory file registry.
@@ -101,14 +108,16 @@ export function clearRegistry(): void {
  * Same path → same hash → cross-process baseline lookup works.
  */
 function _pathHash(filePath: string): string {
-  return Buffer.from(filePath).toString('hex');
+  return Buffer.from(filePath).toString("hex");
 }
 
 /**
  * Convert a StatSnapshot to a DB-compatible FileBaselineSnapshot.
  * Strips the 'path' field (not stored in DB); adds updated_at + process_id.
  */
-function _statToBaseline(stat: Omit<StatSnapshot, 'path'>): FileBaselineSnapshot {
+function _statToBaseline(
+  stat: Omit<StatSnapshot, "path">,
+): FileBaselineSnapshot {
   return {
     inode: stat.ino,
     size: stat.size,
@@ -124,7 +133,9 @@ function _statToBaseline(stat: Omit<StatSnapshot, 'path'>): FileBaselineSnapshot
  * Convert a DB FileBaselineSnapshot back to the in-process registry shape.
  * Drops updated_at / process_id (not used by TOCTOU comparison).
  */
-function _baselineToRegistry(snap: FileBaselineSnapshot): Omit<StatSnapshot, 'path'> {
+function _baselineToRegistry(
+  snap: FileBaselineSnapshot,
+): Omit<StatSnapshot, "path"> {
   return {
     ino: snap.inode,
     size: snap.size,
@@ -144,7 +155,7 @@ function _baselineToRegistry(snap: FileBaselineSnapshot): Omit<StatSnapshot, 'pa
  * On DB hit, the in-process cache is populated for subsequent calls.
  * Failures during DB read are non-fatal (fallback to cache-only behavior).
  */
-function _resolveBaseline(filePath: string): Omit<StatSnapshot, 'path'> | null {
+function _resolveBaseline(filePath: string): Omit<StatSnapshot, "path"> | null {
   const cached = _fileRegistry.get(filePath);
   if (cached) return cached;
 
@@ -167,7 +178,10 @@ function _resolveBaseline(filePath: string): Omit<StatSnapshot, 'path'> | null {
  * Non-fatal if DB write fails — cache-only baseline still provides
  * same-process TOCTOU protection.
  */
-function _populateBaseline(filePath: string, stat: Omit<StatSnapshot, 'path'>): void {
+function _populateBaseline(
+  filePath: string,
+  stat: Omit<StatSnapshot, "path">,
+): void {
   _fileRegistry.set(filePath, stat);
   try {
     dbWriteFileBaseline(_pathHash(filePath), _statToBaseline(stat));
@@ -193,7 +207,7 @@ function _consumeBaseline(filePath: string): void {
 // FILE LOCK — mkdir-based mutex for concurrent-write safety
 // ════════════════════════════════════════════════════════════
 
-const LOCK_BASE_DIR = path.join(os.tmpdir(), 'opencode', 'safe-edit-locks');
+const LOCK_BASE_DIR = path.join(os.tmpdir(), "opencode", "safe-edit-locks");
 
 function _ensureLockBaseDir(): void {
   try {
@@ -223,7 +237,7 @@ export function acquireLock(
 ): () => void {
   const lockDir = path.join(
     LOCK_BASE_DIR,
-    Buffer.from(filePath).toString('hex'),
+    Buffer.from(filePath).toString("hex"),
   );
 
   _ensureLockBaseDir();
@@ -240,7 +254,7 @@ export function acquireLock(
       };
     } catch (err: unknown) {
       const nodeErr = err as NodeJS.ErrnoException;
-      if (nodeErr.code !== 'EEXIST') throw err;
+      if (nodeErr.code !== "EEXIST") throw err;
       const waitMs = Math.min(baseDelay * Math.pow(1.5, i), 200);
       _spinWait(waitMs);
     }
@@ -299,12 +313,12 @@ export function backupPath(
   agentType: string,
   taskId: string,
 ): string {
-  const dir = path.join(path.dirname(filePath), '.opencode_backups');
+  const dir = path.join(path.dirname(filePath), ".opencode_backups");
   const base = path.basename(filePath);
   const ts = Date.now();
   const pid = process.pid;
-  const agent = agentType.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const task = taskId.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const agent = agentType.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const task = taskId.replace(/[^a-zA-Z0-9_-]/g, "_");
   return path.join(dir, `${base}.${ts}.${pid}.${agent}.${task}.safe_backup`);
 }
 
@@ -376,7 +390,8 @@ export function cleanupStaleBackups(
 
     let files: { name: string; fpath: string; mtimeMs: number }[];
     try {
-      files = fs.readdirSync(backupDir)
+      files = fs
+        .readdirSync(backupDir)
         .filter((f) => f.endsWith(".safe_backup"))
         .map((f) => {
           const fp = path.join(backupDir, f);
@@ -395,9 +410,13 @@ export function cleanupStaleBackups(
     if (files.length === 0) {
       // Remove empty backup directory
       try {
-        const remaining = fs.readdirSync(backupDir).filter((f) => !f.startsWith("."));
+        const remaining = fs
+          .readdirSync(backupDir)
+          .filter((f) => !f.startsWith("."));
         if (remaining.length === 0) fs.rmdirSync(backupDir);
-      } catch { /* non-critical */ }
+      } catch {
+        /* non-critical */
+      }
       return;
     }
 
@@ -418,7 +437,12 @@ export function cleanupStaleBackups(
 
     // Phase 2: Delete excess by count cap
     const remaining = files.filter((f) => {
-      try { fs.accessSync(f.fpath); return true; } catch { return false; }
+      try {
+        fs.accessSync(f.fpath);
+        return true;
+      } catch {
+        return false;
+      }
     });
     for (let i = maxPerDir; i < remaining.length; i++) {
       try {
@@ -431,13 +455,19 @@ export function cleanupStaleBackups(
 
     // Remove empty backup directory after cleanup
     try {
-      const after = fs.readdirSync(backupDir).filter((f) => f.endsWith(".safe_backup"));
+      const after = fs
+        .readdirSync(backupDir)
+        .filter((f) => f.endsWith(".safe_backup"));
       if (after.length === 0) {
         // Check for any remaining non-backup files (e.g. .gitkeep)
-        const allRemaining = fs.readdirSync(backupDir).filter((f) => !f.startsWith("."));
+        const allRemaining = fs
+          .readdirSync(backupDir)
+          .filter((f) => !f.startsWith("."));
         if (allRemaining.length === 0) fs.rmdirSync(backupDir);
       }
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
   };
 
   if (fullScan) {
@@ -483,7 +513,7 @@ export function validateEdit(
   content: string,
 ): EditValidation {
   if (!filePath || filePath.trim().length === 0) {
-    return { valid: false, error: 'File path is empty', resolvedPath: '' };
+    return { valid: false, error: "File path is empty", resolvedPath: "" };
   }
 
   const absPath = path.resolve(filePath);
@@ -503,7 +533,11 @@ export function validateEdit(
   }
 
   if (content === undefined || content === null) {
-    return { valid: false, error: 'Content is null or undefined', resolvedPath: absPath };
+    return {
+      valid: false,
+      error: "Content is null or undefined",
+      resolvedPath: absPath,
+    };
   }
 
   return { valid: true, resolvedPath: absPath };
@@ -520,8 +554,8 @@ export function validateEdit(
  * @public — Diff generation for future safe_diff tool and writeSafe verification.
  */
 export function generateDiff(original: string, updated: string): DiffResult {
-  const origLines = (original || '').split('\n');
-  const newLines = (updated || '').split('\n');
+  const origLines = (original || "").split("\n");
+  const newLines = (updated || "").split("\n");
 
   let added = 0;
   let removed = 0;
@@ -552,7 +586,7 @@ export function generateDiff(original: string, updated: string): DiffResult {
     hasChanges: added > 0 || removed > 0,
     added,
     removed,
-    diff: diffLines.join('\n'),
+    diff: diffLines.join("\n"),
   };
 }
 
@@ -581,9 +615,9 @@ export function writeSafe(
   options?: WriteOptions,
 ): WriteResult {
   const opts = options || {};
-  const agentType = opts.agentType || 'unknown';
-  const taskId = opts.taskId || 'unknown';
-  const encoding = opts.encoding || 'utf8';
+  const agentType = opts.agentType || "unknown";
+  const taskId = opts.taskId || "unknown";
+  const encoding = opts.encoding || "utf8";
   const createBackup = opts.createBackup !== false; // default true
 
   // Phase 0: Validate
@@ -623,16 +657,20 @@ export function writeSafe(
     }
     resolvedPath = origStat.path;
 
-    // Phase 2: Atomic backup
+    // Phase 2: Git-backed atomic backup
     let backupPathStr: string | undefined;
     if (createBackup) {
-      const bDir = path.join(path.dirname(resolvedPath), '.opencode_backups');
-      fs.mkdirSync(bDir, { recursive: true });
-      backupPathStr = backupPath(resolvedPath, agentType, taskId);
-
-      const tmpBackup = backupPathStr + '.tmp';
-      fs.writeFileSync(tmpBackup, origContent, encoding);
-      fs.renameSync(tmpBackup, backupPathStr);
+      const record = createGitBackup({
+        filePath: resolvedPath,
+        reason: "safe_edit",
+        agent: agentType,
+        sessionId: process.env.OPENCODE_SESSION_ID,
+        dagTaskId: process.env.DISPATCH_DAG_TASK_ID,
+        taskId,
+      });
+      if (record) {
+        backupPathStr = record.backup_file_path;
+      }
     }
 
     // Phase 3: DB-backed TOCTOU baseline (P3/G11: cross-process)
@@ -659,25 +697,37 @@ export function writeSafe(
       currentStat = captureStat(resolvedPath);
     } catch {
       if (backupPathStr) {
-        try { fs.rmSync(backupPathStr, { force: true }); } catch { /* ignore */ }
+        try {
+          fs.rmSync(backupPathStr, { force: true });
+        } catch {
+          /* ignore */
+        }
       }
       return {
         success: false,
-        error: 'TOCTOU race detected: file was removed between audit check and write',
+        error:
+          "TOCTOU race detected: file was removed between audit check and write",
       };
     }
 
     if (!statsEqual(origStat, currentStat)) {
       if (backupPathStr) {
-        try { fs.rmSync(backupPathStr, { force: true }); } catch { /* ignore */ }
+        try {
+          fs.rmSync(backupPathStr, { force: true });
+        } catch {
+          /* ignore */
+        }
       }
       const details: string[] = [];
-      if (origStat.ino !== currentStat.ino) details.push(`inode:${origStat.ino}->${currentStat.ino}`);
-      if (origStat.size !== currentStat.size) details.push(`size:${origStat.size}->${currentStat.size}`);
-      if (origStat.mtimeMs !== currentStat.mtimeMs) details.push('mtime changed');
+      if (origStat.ino !== currentStat.ino)
+        details.push(`inode:${origStat.ino}->${currentStat.ino}`);
+      if (origStat.size !== currentStat.size)
+        details.push(`size:${origStat.size}->${currentStat.size}`);
+      if (origStat.mtimeMs !== currentStat.mtimeMs)
+        details.push("mtime changed");
       return {
         success: false,
-        error: `TOCTOU race detected: file state changed between audit check and write. ${details.join(', ')}`,
+        error: `TOCTOU race detected: file state changed between audit check and write. ${details.join(", ")}`,
       };
     }
 
@@ -687,7 +737,7 @@ export function writeSafe(
     // executable bits (e.g., hooks/pre-commit, scripts/*.sh) are silently stripped
     // on every framework edit — causing recurring framework-self-test failures.
     const origMode = origStat.mode;
-    const tmpWrite = resolvedPath + '.tmp.' + Date.now();
+    const tmpWrite = resolvedPath + ".tmp." + Date.now();
     try {
       fs.writeFileSync(tmpWrite, content, encoding);
       fs.renameSync(tmpWrite, resolvedPath);
@@ -696,10 +746,22 @@ export function writeSafe(
         fs.chmodSync(resolvedPath, origMode);
       }
     } catch (e: unknown) {
-      try { fs.rmSync(tmpWrite, { force: true }); } catch { /* ignore */ }
+      try {
+        fs.rmSync(tmpWrite, { force: true });
+      } catch {
+        /* ignore */
+      }
       if (backupPathStr) {
-        try { fs.copyFileSync(backupPathStr, resolvedPath); } catch { /* ignore */ }
-        try { fs.rmSync(backupPathStr, { force: true }); } catch { /* ignore */ }
+        try {
+          fs.copyFileSync(backupPathStr, resolvedPath);
+        } catch {
+          /* ignore */
+        }
+        try {
+          fs.rmSync(backupPathStr, { force: true });
+        } catch {
+          /* ignore */
+        }
       }
       const msg = e instanceof Error ? e.message : String(e);
       return { success: false, error: `Write failed and rolled back: ${msg}` };
@@ -711,20 +773,32 @@ export function writeSafe(
       if (writtenContent !== content) {
         if (backupPathStr) {
           fs.copyFileSync(backupPathStr, resolvedPath);
-          try { fs.rmSync(backupPathStr, { force: true }); } catch { /* ignore */ }
+          try {
+            fs.rmSync(backupPathStr, { force: true });
+          } catch {
+            /* ignore */
+          }
         }
         return {
           success: false,
-          error: 'Write verification failed: content mismatch — rolled back, potential TOCTOU race',
+          error:
+            "Write verification failed: content mismatch — rolled back, potential TOCTOU race",
         };
       }
     } catch (e: unknown) {
       if (backupPathStr) {
         fs.copyFileSync(backupPathStr, resolvedPath);
-        try { fs.rmSync(backupPathStr, { force: true }); } catch { /* ignore */ }
+        try {
+          fs.rmSync(backupPathStr, { force: true });
+        } catch {
+          /* ignore */
+        }
       }
       const msg = e instanceof Error ? e.message : String(e);
-      return { success: false, error: `Write verification failed: ${msg} — rolled back` };
+      return {
+        success: false,
+        error: `Write verification failed: ${msg} — rolled back`,
+      };
     }
 
     // Phase 7: Success — refresh baseline in both layers (P3/G11)
@@ -747,13 +821,10 @@ export function writeSafe(
 
     // SA-IMPL-BACKUP-LIFECYCLE: Opportunistic cleanup of stale backups
     try {
-      cleanupStaleBackups(
-        path.dirname(resolvedPath),
-        7 * 24 * 60 * 60 * 1000,
-        20,
-        false,
-      );
-    } catch { /* non-critical */ }
+      cleanupGitBackups();
+    } catch {
+      /* non-critical */
+    }
     return { success: true, backupPath: backupPathStr };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -782,9 +853,12 @@ export function restore(
 
   try {
     if (!fs.existsSync(absBackup)) {
-      return { success: false, error: `Backup file not found: ${backupPathStr}` };
+      return {
+        success: false,
+        error: `Backup file not found: ${backupPathStr}`,
+      };
     }
-    const tmpRestore = absTarget + '.restore.' + Date.now();
+    const tmpRestore = absTarget + ".restore." + Date.now();
     fs.copyFileSync(absBackup, tmpRestore);
     fs.renameSync(tmpRestore, absTarget);
     return { success: true };
@@ -794,11 +868,17 @@ export function restore(
       const files = fs.readdirSync(dir);
       const base = path.basename(absTarget);
       for (const f of files) {
-        if (f.startsWith(base + '.restore.')) {
-          try { fs.rmSync(path.join(dir, f), { force: true }); } catch { /* ignore */ }
+        if (f.startsWith(base + ".restore.")) {
+          try {
+            fs.rmSync(path.join(dir, f), { force: true });
+          } catch {
+            /* ignore */
+          }
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     const msg = e instanceof Error ? e.message : String(e);
     return { success: false, error: `Restore failed: ${msg}` };
   }
@@ -838,9 +918,9 @@ export function writeSafeFull(
   options?: WriteOptions,
 ): WriteResult {
   const opts = options || {};
-  const agentType = opts.agentType || 'unknown';
-  const taskId = opts.taskId || 'unknown';
-  const encoding = opts.encoding || 'utf8';
+  const agentType = opts.agentType || "unknown";
+  const taskId = opts.taskId || "unknown";
+  const encoding = opts.encoding || "utf8";
   const createBackup = opts.createBackup !== false; // default true
 
   // Phase 0: Validate
@@ -873,12 +953,16 @@ export function writeSafeFull(
     // Phase 2a: Atomic backup not needed for new files (nothing to back up)
 
     // Phase 2b: Atomic write (temp → rename)
-    const tmpWrite = absPath + '.tmp.' + Date.now();
+    const tmpWrite = absPath + ".tmp." + Date.now();
     try {
       fs.writeFileSync(tmpWrite, content, encoding);
       fs.renameSync(tmpWrite, absPath);
     } catch (e: unknown) {
-      try { fs.rmSync(tmpWrite, { force: true }); } catch { /* ignore */ }
+      try {
+        fs.rmSync(tmpWrite, { force: true });
+      } catch {
+        /* ignore */
+      }
       const msg = e instanceof Error ? e.message : String(e);
       return { success: false, error: `Write failed: ${msg}` };
     }
@@ -887,10 +971,14 @@ export function writeSafeFull(
     try {
       const writtenContent = fs.readFileSync(absPath, encoding);
       if (writtenContent !== content) {
-        try { fs.rmSync(absPath, { force: true }); } catch { /* ignore */ }
+        try {
+          fs.rmSync(absPath, { force: true });
+        } catch {
+          /* ignore */
+        }
         return {
           success: false,
-          error: 'Write verification failed: content mismatch',
+          error: "Write verification failed: content mismatch",
         };
       }
     } catch (e: unknown) {
@@ -923,7 +1011,6 @@ export function writeSafeFull(
     if (releaseLock) releaseLock();
   }
 }
-
 
 // ════════════════════════════════════════════════════════════
 // PUBLIC: safeDelete
@@ -991,12 +1078,18 @@ export function safeDelete(
     }
 
     // Create backup
-    const bDir = path.join(path.dirname(resolvedPath), ".opencode_backups");
-    fs.mkdirSync(bDir, { recursive: true });
-    const backupPathStr = backupPath(resolvedPath, agentType, taskId);
-    const tmpBackup = backupPathStr + ".tmp";
-    fs.copyFileSync(resolvedPath, tmpBackup);
-    fs.renameSync(tmpBackup, backupPathStr);
+    let backupPathStr: string | undefined;
+    const record = createGitBackup({
+      filePath: resolvedPath,
+      reason: "safe_delete",
+      agent: agentType,
+      sessionId: process.env.OPENCODE_SESSION_ID,
+      dagTaskId: process.env.DISPATCH_DAG_TASK_ID,
+      taskId,
+    });
+    if (record) {
+      backupPathStr = record.backup_file_path;
+    }
 
     // Atomic delete: rename to trash first, then unlink
     const trashPath = resolvedPath + ".trash." + Date.now();
@@ -1005,13 +1098,10 @@ export function safeDelete(
 
     // SA-IMPL-BACKUP-LIFECYCLE: Opportunistic cleanup after successful delete
     try {
-      cleanupStaleBackups(
-        path.dirname(resolvedPath),
-        7 * 24 * 60 * 60 * 1000,
-        20,
-        false,
-      );
-    } catch { /* non-critical */ }
+      cleanupGitBackups();
+    } catch {
+      /* non-critical */
+    }
 
     // P3/G11: Consume baseline (file is gone; baseline no longer valid).
     // Next writeSafe on this path will re-establish via _populateBaseline.

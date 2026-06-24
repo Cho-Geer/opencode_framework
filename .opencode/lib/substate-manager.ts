@@ -40,9 +40,7 @@ const SRC = "lib-substate-manager";
 /**
  * Read a specific sub-state (DB-only).
  */
-export function readSubState<K extends SubStateKey>(
-  key: K,
-): SubStateMap[K] {
+export function readSubState<K extends SubStateKey>(key: K): SubStateMap[K] {
   try {
     const dbResult = dbReadSubState(key);
     if (dbResult !== null && dbResult !== undefined) return dbResult;
@@ -57,13 +55,17 @@ export function readSubState<K extends SubStateKey>(
 
 /**
  * Write a specific sub-state (DB-only).
+ *
+ * G3 FIX (2026-06-23): Supports expectedUpdatedAt for optimistic concurrency.
+ * When provided, write fails if concurrent write detected (changes === 0).
  */
 export function writeSubState<K extends SubStateKey>(
   key: K,
   value: SubStateMap[K],
+  expectedUpdatedAt?: number,
 ): boolean {
   try {
-    return dbWriteSubState(key, value);
+    return dbWriteSubState(key, value, expectedUpdatedAt);
   } catch (e: any) {
     writeLog(SRC, "ERROR", {
       event: "DB-WRITE-SUBSTATE-FAILED",

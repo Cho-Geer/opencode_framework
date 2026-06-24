@@ -1,21 +1,37 @@
 # 三层九角色多智能体体系 - 全局协作规范
 
 ### 🚨 P0 强制规则: 所有任务必须从 `/compliance-gate` 开始
+
 任何开发、分析、设计、审查或部署任务必须以 `/compliance-gate "<task_description>"` 命令启动。合规门未武装（gate not armed），严禁进入分析、设计、编码或审查阶段。此规则优先级高于本文件所有其他规则。
 
-### 🚨 P0 子Agent派遣规则: 必须使用 `/dispatch` 命令
+### 🚨 P0 凭据要求：每个结论必须有凭有据，禁止胡编乱造
+
+任何Agent在陈述结论时，必须：
+
+1. 引用具体来源（文件路径+行号，或工具输出原文）
+2. 直接引用原文内容作为证据
+3. 若没有证据，必须声明"我目前没有足够证据下结论"
+
+**禁止**：无凭据猜测、编造根因、以假设替代事实。
+
+任何 Agent 在给出结论前，必须充分阅读代码、搜索日志、验证数据，搜集足够充分的依据。不可仅凭局部信息或单次观测就断言全局结论。
+
+### 🚨 P0 子Agent派遣规则: 必须使用 `dispatch_subagent` 工具
+
 当主Agent需要委托子Agent（subagent）执行任务时，必须通过以下流程：
+
 1. 调用 `dispatch_subagent` 工具生成包装后的 Prompt
 2. 将生成的包装Prompt原样传递给 `Task()` 工具的 `prompt` 参数
 3. 禁止手动编写子Agent Prompt绕过执行前检查
 
 包装后的Prompt自动包含：
+
 - `.opencode/agents/<agent_type>.md` 中声明的全部 `skills` 和 `mcp_tools` 调用指令
-- 基于任务描述自动判断的 context7 技术栈查询指令
 - 完整的 compliance_gate_check → confirm → complete 流程
 - 子Agent配置文件中定义的执行协议
+- 如需外部文档，由子Agent通过 UC7KS 管道自行 dispatch `@Knowledge-Curator`
 
-此规则确保子Agent始终执行完整的 P0 协议，无论接收何种类型的任务。
+此规则由 `dispatch-before.ts` 和 `framework-enforcer.ts` 物理强制执行。
 
 ### 🚨 P0 Super-Admin 调度规则
 
@@ -23,19 +39,21 @@
 
 **Super-Admin 调用矩阵**:
 
-| 场景 | 正确动作 | 违规动作 |
-|------|---------|---------|
-| 框架文件损坏 | @Orchestrator `dispatch_subagent @Super-Admin "repair..."`（需匹配修复模式） | ❌ @Orchestrator 自行修改 |
-| 子状态文件不一致（P1-B split architecture） | @Orchestrator `dispatch_subagent @Super-Admin "fix state..."` | ❌ @Orchestrator 自行修改 |
-| 合规门无法关闭 | @Orchestrator `dispatch_subagent @Super-Admin "drain gate..."` | ❌ @Orchestrator 直接提交 |
-| 插件完整性破坏 | @Orchestrator `dispatch_subagent @Super-Admin "repair plugin"` | ❌ @Coder-BE 直接编辑 |
-| UC7KS 知识获取 / 缓存扩充 | @Super-Admin 直接 `dispatch_subagent @Knowledge-Curator` | ❌ 必须通过 @Orchestrator 中转 |
-| Locked 模式紧急修复 | 人工 `/dispatch @Super-Admin`（Locked 下禁止自动调度） | ❌ @Orchestrator 自动派遣 |
-/**
- * FW-ROUTE-FIX-03: Updated Super-Admin routing matrix and Agent Scope Boundaries.
- * Adds explicit .opencode/ framework routing entries and clarifies Architect's
- * scope to exclude framework infrastructure. Enforced by framework-enforcer.ts.
- */
+| 场景                                        | 正确动作                                                                     | 违规动作                       |
+| ------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------ |
+| 框架文件损坏                                | @Orchestrator `dispatch_subagent @Super-Admin "repair..."`（需匹配修复模式） | ❌ @Orchestrator 自行修改      |
+| 子状态文件不一致（P1-B split architecture） | @Orchestrator `dispatch_subagent @Super-Admin "fix state..."`                | ❌ @Orchestrator 自行修改      |
+| 合规门无法关闭                              | @Orchestrator `dispatch_subagent @Super-Admin "drain gate..."`               | ❌ @Orchestrator 直接提交      |
+| 插件完整性破坏                              | @Orchestrator `dispatch_subagent @Super-Admin "repair plugin"`               | ❌ @Coder-BE 直接编辑          |
+| UC7KS 知识获取 / 缓存扩充                   | @Super-Admin 直接 `dispatch_subagent @Knowledge-Curator`                     | ❌ 必须通过 @Orchestrator 中转 |
+| Locked 模式紧急修复                         | 人工 `dispatch_subagent @Super-Admin`（Locked 下禁止自动调度）               | ❌ @Orchestrator 自动派遣      |
+
+/\*\*
+
+- FW-ROUTE-FIX-03: Updated Super-Admin routing matrix and Agent Scope Boundaries.
+- Adds explicit .opencode/ framework routing entries and clarifies Architect's
+- scope to exclude framework infrastructure. Enforced by framework-enforcer.ts.
+  \*/
 
 ### 🚨 P0 Agent 职责边界与路由规则
 
@@ -43,46 +61,49 @@
 
 **Agent Scope 边界矩阵**:
 
-| Agent | 正确职责范围 | 越界行为 | 路由目标 |
-|-------|------------|---------|---------|
-| @Architect | 业务代码架构设计、`contract.yaml`、需求设计文档、`docs/` 架构文档 | ❌ 修改 `.opencode/` 框架文件 | **自动转发 → @Super-Admin** |
-| @Coder-BE | 后端业务代码 `booking-backend/src/` | ❌ 修改前端代码或 `.opencode/` | **自动阻断，转 @Orchestrator** |
-| @Coder-FE | 前端业务代码 `booking-frontend/` | ❌ 修改后端代码或 `.opencode/` | **自动阻断，转 @Orchestrator** |
-| @Orchestrator | DAG 调度、状态追踪、产物合并 | ❌ 修改 `.opencode/` 框架文件 | **自动转发 → @Super-Admin** |
-| @Super-Admin | `.opencode/` 框架修复、治理修改 | ❌ 修改业务代码 (`booking-*/src/`) | **自动阻断（enforce.ts）** |
+| Agent         | 正确职责范围                                                      | 越界行为                           | 路由目标                       |
+| ------------- | ----------------------------------------------------------------- | ---------------------------------- | ------------------------------ |
+| @Architect    | 业务代码架构设计、`contract.yaml`、需求设计文档、`docs/` 架构文档 | ❌ 修改 `.opencode/` 框架文件      | **自动转发 → @Super-Admin**    |
+| @Coder-BE     | 后端业务代码 `booking-backend/src/`                               | ❌ 修改前端代码或 `.opencode/`     | **自动阻断，转 @Orchestrator** |
+| @Coder-FE     | 前端业务代码 `booking-frontend/`                                  | ❌ 修改后端代码或 `.opencode/`     | **自动阻断，转 @Orchestrator** |
+| @Orchestrator | DAG 调度、状态追踪、产物合并                                      | ❌ 修改 `.opencode/` 框架文件      | **自动转发 → @Super-Admin**    |
+| @Super-Admin  | `.opencode/` 框架修复、治理修改                                   | ❌ 修改业务代码 (`booking-*/src/`) | **自动阻断（enforce.ts）**     |
 
 **路由执行规则**:
+
 - 上述路由由 `framework-enforcer.ts` 的 `ROUTE-MISMATCH` 检查在物理层强制执行
 - strict/locked 模式下：越界写操作直接被框架抛出异常阻断
 - advisory 模式下：记录审计日志但不阻断
 - 路由触发时，Agent 应输出明确的拒绝信息并建议正确的路由目标
 
 ### 🚨 P0 全域入口规则: 所有新工作项必须先经 @Meta-Planner
+
 任何新工作项——包括但不限于功能开发、Bug修复、样式调整、性能优化、配置变更——在进入分析、设计或编码阶段前，**必须先经由 @Meta-Planner** 生成或更新 `Task.DAG.json`。禁止任何Agent在 @Meta-Planner 未参与的情况下自行分析或拆解需求。
 
 全域路由判定矩阵：
 
-| 工作项类型 | 是否需要 @Meta-Planner | 操作 |
-|-----------|----------------------|------|
-| 全新功能/模块 | ✅ 强制 | 调用 @Meta-Planner 生成完整 Task.DAG.json |
-| Bug修复 | ✅ 强制 | 调用 @Meta-Planner 生成最小 DAG（分析→RED→GREEN→审查） |
-| 样式/UI调整 | ✅ 强制 | 调用 @Meta-Planner 生成最小 DAG |
-| 报错排查（涉及代码变更） | ✅ 强制 | 调用 @Meta-Planner 做根因假设分析并生成 DAG |
-| 纯信息查询/文档阅读 | ⚠️ 无需 | 直接回答，无需 DAG |
-| 配置/环境变量简单变更 | ⚠️ @Orchestrator 自行判断 | 简单→直接执行；复杂→调 @Meta-Planner |
+| 工作项类型               | 是否需要 @Meta-Planner    | 操作                                                   |
+| ------------------------ | ------------------------- | ------------------------------------------------------ |
+| 全新功能/模块            | ✅ 强制                   | 调用 @Meta-Planner 生成完整 Task.DAG.json              |
+| Bug修复                  | ✅ 强制                   | 调用 @Meta-Planner 生成最小 DAG（分析→RED→GREEN→审查） |
+| 样式/UI调整              | ✅ 强制                   | 调用 @Meta-Planner 生成最小 DAG                        |
+| 报错排查（涉及代码变更） | ✅ 强制                   | 调用 @Meta-Planner 做根因假设分析并生成 DAG            |
+| 纯信息查询/文档阅读      | ⚠️ 无需                   | 直接回答，无需 DAG                                     |
+| 配置/环境变量简单变更    | ⚠️ @Orchestrator 自行判断 | 简单→直接执行；复杂→调 @Meta-Planner                   |
 
 **违规后果**：跳过 @Meta-Planner 直接执行的任务视为无效，@Guardian 审查时自动拒绝。@Orchestrator 不得调度未经 @Meta-Planner 规划的任务。
 
 ### 🚨 P0 @Orchestrator 职责边界: 专职调度，禁止越权分析
+
 @Orchestrator 的核心职责是**按图调度**，不是需求分析或任务拆解。具体边界：
 
-| 场景 | 正确动作 | 违规动作 |
-|------|---------|---------|
-| 收到新工作项，无对应 DAG | 调用 `dispatch_subagent` 工具派遣 @Meta-Planner | ❌ 自行分析需求 |
-| DAG 已存在，任务状态 pending | 按 DAG 依赖顺序调度子Agent | ❌ 自行修改 DAG 任务定义 |
-| DAG 状态与文件状态不同步 | 调 @Meta-Planner 更新 DAG 状态 | ❌ 自行修改 task.status |
-| DAG 覆盖率不足（<100%） | 暂停执行，通知 @Meta-Planner 补充 | ❌ 跳过未覆盖任务继续执行 |
-| 执行中任务失败需重试 | 按熔断策略执行（降级/专家/人工） | ❌ 自行修改任务范围 |
+| 场景                         | 正确动作                                        | 违规动作                  |
+| ---------------------------- | ----------------------------------------------- | ------------------------- |
+| 收到新工作项，无对应 DAG     | 调用 `dispatch_subagent` 工具派遣 @Meta-Planner | ❌ 自行分析需求           |
+| DAG 已存在，任务状态 pending | 按 DAG 依赖顺序调度子Agent                      | ❌ 自行修改 DAG 任务定义  |
+| DAG 状态与文件状态不同步     | 调 @Meta-Planner 更新 DAG 状态                  | ❌ 自行修改 task.status   |
+| DAG 覆盖率不足（<100%）      | 暂停执行，通知 @Meta-Planner 补充               | ❌ 跳过未覆盖任务继续执行 |
+| 执行中任务失败需重试         | 按熔断策略执行（降级/专家/人工）                | ❌ 自行修改任务范围       |
 
 @Orchestrator 的专属输出产物仅限于：调度状态报告、任务进度追踪、最终产物合并。**禁止 @Orchestrator 产出任何分析性文档（Project.graph、根因分析等）**，这些是 @Meta-Planner 或 @Architect 的职责。
 
@@ -92,11 +113,11 @@
 必须已经存在对应 `dag_task_id` 的任务条目(由 @Meta-Planner 规划)。
 框架在三个独立层次强制执行此约束:
 
-| 层次 | 文件 | 行为 |
-|---|---|---|
-| Layer 1 | `plugins/dispatch-before.ts` | 策略驱动;在工具运行前拒绝不合规派遣 |
-| Layer 2 | `tools/dispatch_subagent.ts` | 无条件代码;直接调用 `findTaskInDag()`;若启用 `auto_plan=true` 则触发自愈 |
-| Layer 3 | `plugins/gate-before.ts` P2-1 | 修改工具调用时的防御纵深审计 |
+| 层次    | 文件                          | 行为                                                                     |
+| ------- | ----------------------------- | ------------------------------------------------------------------------ |
+| Layer 1 | `plugins/dispatch-before.ts`  | 策略驱动;在工具运行前拒绝不合规派遣                                      |
+| Layer 2 | `tools/dispatch_subagent.ts`  | 无条件代码;直接调用 `findTaskInDag()`;若启用 `auto_plan=true` 则触发自愈 |
+| Layer 3 | `plugins/gate-before.ts` P2-1 | 修改工具调用时的防御纵深审计                                             |
 
 **DAG-exempt agents**(无需 DAG 条目即可派遣):
 @Meta-Planner、@Orchestrator、@Super-Admin、@Knowledge-Curator。
@@ -106,6 +127,7 @@
 子 Agent 但任务尚未规划时,设置 `auto_plan: true`,框架将自动派遣
 @Meta-Planner 生成规划,轮询 `Task.DAG.json` 直到条目出现,然后
 继续原派遣。受 `dispatch_policy` 约束:
+
 - `auto_plan_enabled: true` 才允许(默认 rollout 阶段为 `false`)
 - `auto_plan_max_per_session: 5`(每会话次数上限)
 - `auto_plan_timeout_ms: 120000`(每次超时)
@@ -113,6 +135,7 @@
 - 所有尝试记入 `transaction-state.json` 的 `auto_plan_history` 字段（P1-B split architecture）
 
 **@Orchestrator 不能绕过**:
+
 - 无法修改 `dispatch_subagent.ts` 或 `dispatch-before.ts`
   (其 `safe_edit` 权限禁止 `.opencode/**`)
 - 无法修改 `project.config.json.dispatch_policy`(同上,加上
@@ -128,6 +151,7 @@
 本项目采用**三层九角色**全生命周期自治多智能体架构，覆盖从需求规划、开发实现、质量验证到运维部署的完整链路，严格遵循项目规则。
 
 ### 可用子Agent清单（必须完整声明）
+
 - @Meta-Planner
 - @Orchestrator
 - @Architect
@@ -139,12 +163,17 @@
 - @Super-Admin
 
 ## 二、全局强制规则（Always Apply，最高优先级）
+
 所有智能体必须严格遵循以下项目规则文件（自动加载）：
+
 1. 核心规则
+
 - `.opencode/rules/common-project.md`：通用项目开发规范
 - `.opencode/rules/mcp-compliance-guide.md`：MCP工具使用合规要求
 - `.opencode/rules/skill-compliance-guide.md`：Skill调用权限与合规要求
+
 2. 项目要件与设计文档（强制遵循）
+
 - `.opencode/context/requirements/系统架构设计文档（SAD）.md`
 - `.opencode/context/requirements/接口设计规范文档.md`
 - `.opencode/context/requirements/数据架构设计文档.md`
@@ -156,7 +185,9 @@
 - `.opencode/context/code_standards/testing-coding-standard.md`（测试编写与审查强制遵循）
 
 ### 🚨 合规门禁强制（所有Agent无条件遵守，最高优先级）
+
 所有任务开始前必须依序执行以下三步（均不可跳过）：
+
 1. 调用 `compliance_gate_check(task_description)` — 执行合规门禁检查
 2. 向用户展示完整任务计划并等待确认
 3. 调用 `compliance_gate_confirm(plan_summary)` — 武装合规门禁
@@ -164,11 +195,13 @@
 合规门未武装，任何Agent不得进入分析、设计或编码阶段。此门禁优先级高于所有其他规则。
 
 ### 🚨 任务完成强制：compliance_gate_complete（所有Agent无条件遵守）
+
 所有任务结束时必须调用 `compliance_gate_complete(session_id, execution_summary)` — 标记任务完成并消费武装状态。
 
 **未调用 compliance_gate_complete 的任务视为未完成。** @Orchestrator 拒绝调度未完成任务的下一个任务。compliance_gate_complete 内部执行 ESLint mock-audit 全量扫描，违规 > 0 时 complete 返回 failed。
 
 ### 🚨 TDD 强制铁律（所有Agent无条件遵守）
+
 1. 测试绝对先行：**无测试用例，禁止编写任何业务代码**
 2. RED阶段：测试用例必须先执行失败，方可进入开发
 3. GREEN阶段：仅编写最简代码通过测试，禁止过度实现
@@ -179,25 +212,25 @@
 
 ### 元认知层（Meta Layer）
 
-| 角色名 | 核心定位 | 调用方式 | 专属职责边界 |
-|-------|---------|---------|-------------|
-| @Meta-Planner | 项目CTO，顶层需求拆解与DAG规划 | `@Meta-Planner` | 需求分析/拆解、DAG生成/更新、技术债扫描、全局规划。必须遵循 `.opencode/rules/rule_detail/dag-generation-standard.md` |
-| @Orchestrator | 项目经理，**专职调度与状态管控** | `@Orchestrator` | **仅负责**：按 DAG 调度子Agent、追踪任务状态、合并最终产物、协调重试。**禁止**：分析需求、拆解任务、修改 DAG 定义 |
+| 角色名        | 核心定位                         | 调用方式        | 专属职责边界                                                                                                         |
+| ------------- | -------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| @Meta-Planner | 项目CTO，顶层需求拆解与DAG规划   | `@Meta-Planner` | 需求分析/拆解、DAG生成/更新、技术债扫描、全局规划。必须遵循 `.opencode/rules/rule_detail/dag-generation-standard.md` |
+| @Orchestrator | 项目经理，**专职调度与状态管控** | `@Orchestrator` | **仅负责**：按 DAG 调度子Agent、追踪任务状态、合并最终产物、协调重试。**禁止**：分析需求、拆解任务、修改 DAG 定义    |
 
 ### 编排与执行层（Orchestration & Execution Layer）
 
-| 角色名 | 核心定位 | 调用方式 |
-|-------|---------|---------|
-| @Architect | 系统架构师，接口契约与技术规范定义 | `@Architect` |
-| @Coder-FE | 前端开发工程师，页面/组件/交互实现 | `@Coder-FE` |
-| @Coder-BE | 后端/服务端开发工程师，API/业务逻辑实现 | `@Coder-BE` |
+| 角色名     | 核心定位                                | 调用方式     |
+| ---------- | --------------------------------------- | ------------ |
+| @Architect | 系统架构师，接口契约与技术规范定义      | `@Architect` |
+| @Coder-FE  | 前端开发工程师，页面/组件/交互实现      | `@Coder-FE`  |
+| @Coder-BE  | 后端/服务端开发工程师，API/业务逻辑实现 | `@Coder-BE`  |
 
 ### 验证与运维层（Validation & Operation Layer）
 
-| 角色名 | 核心定位 | 调用方式 |
-|-------|---------|---------|
-| @Guardian | 质量门禁，代码规范/安全/架构约束审查 + 测试执行证据验证 | `@Guardian` |
-| @Arbiter | 技术委员会，冲突裁决与技术债豁免审批 | `@Arbiter` |
+| 角色名       | 核心定位                                                                           | 调用方式       |
+| ------------ | ---------------------------------------------------------------------------------- | -------------- |
+| @Guardian    | 质量门禁，代码规范/安全/架构约束审查 + 测试执行证据验证                            | `@Guardian`    |
+| @Arbiter     | 技术委员会，冲突裁决与技术债豁免审批                                               | `@Arbiter`     |
 | @CI-CD-Agent | DevOps/SRE，CI管道运维、自动部署、git版本管理（commit/push/tag/release）与生产自愈 | `@CI-CD-Agent` |
 
 ## 四、核心协作协议
@@ -218,7 +251,7 @@
 
 ### 运行时产物路径规范
 
-所有 Agent 运行时产物（TASK_LOG.md, HANDOVER.md, test_report.json, *_report.json）统一存放于 `.task_temp/{taskId}/` 目录下。全局交叉任务文件（WAIVE.md, incident_report.md, deployment_status.json）存放于 `.task_temp/_global/`。`Task.DAG.json` 存放于项目根目录且必须由 Git 跟踪（pre-commit hook 校验需要）。
+所有 Agent 运行时产物（TASK_LOG.md, HANDOVER.md, test_report.json, \*\_report.json）统一存放于 `.task_temp/{taskId}/` 目录下。全局交叉任务文件（WAIVE.md, incident_report.md, deployment_status.json）存放于 `.task_temp/_global/`。`Task.DAG.json` 存放于项目根目录且必须由 Git 跟踪（pre-commit hook 校验需要）。
 
 ## 五、Skill调用规范
 
@@ -239,9 +272,9 @@
 6. 【TDD-REFACTOR 阶段】@Coder 重构代码 → 回归测试（保持全量通过）→ 更新 test_report.json
 7. 【合规门关闭环】@Coder 调用 **compliance_gate_complete** → 内部执行 ESLint mock-audit 全量扫描（CAT1.1 检查 + CAT1.0 绕过检查）→ eslint-state.json 更新 → 违规 > 0 时返回 failed，@Coder 必须修复后重试
 8. @Guardian 代码审查（规范/安全/架构 + **eslint-state.json 合规检查** + **测试执行证据验证（DoD 强制检查）**）→ 冲突由 @Arbiter 裁决
-8. Git Hook 校验 keystone-hashes.json 契约哈希同步 → 代码合并
-9. @CI-CD-Agent 部署/自愈 → 结果回传@Orchestrator → 全流程闭环
-10. 【熔断重试】若连续3次未通过 → @Arbiter 介入 → @Orchestrator 执行降级重试/专家切换/人工待命
+9. Git Hook 校验 keystone-hashes.json 契约哈希同步 → 代码合并
+10. @CI-CD-Agent 部署/自愈 → 结果回传@Orchestrator → 全流程闭环
+11. 【熔断重试】若连续3次未通过 → @Arbiter 介入 → @Orchestrator 执行降级重试/专家切换/人工待命
 
 ---
 

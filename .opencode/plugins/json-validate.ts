@@ -41,7 +41,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const agent = resolveAgent(input.sessionID);
 
   writeLog("json-validate", "runtime", {
-    sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+    sessionID: input.sessionID, callID: input.callID, agent,
     event: "TOOL-BEFORE",
     detail: `enter | tool=${input.tool}`,
   });
@@ -49,7 +49,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   // Only check content-writing tools
   if (input.tool !== "write" && input.tool !== "edit" && input.tool !== "safe_edit") {
     writeLog("json-validate", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-BEFORE",
       detail: `exit (skip) non-content tool: ${input.tool}`,
     });
@@ -64,7 +64,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   });
   if (!isCritical) {
     writeLog("json-validate", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-BEFORE",
       detail: `exit (skip) not critical: ${fp || "(none)"}`,
     });
@@ -81,7 +81,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const isOverwrite = output.args?.content !== undefined;
   if (!isOverwrite) {
     writeLog("json-validate", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-BEFORE",
       detail: `exit (skip) patch mode, safe_edit validates: ${fp}`,
     });
@@ -91,7 +91,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   try {
     tolerantParse(output.args!.content);
     writeLog("json-validate", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-BEFORE",
       detail: `exit (pass) valid JSON: ${fp}`,
     });
@@ -108,7 +108,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       const modeDowngrade = detectModeDowngrade(output.args!.content, fp);
       if (modeDowngrade) {
         writeLog("json-validate", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID, callID: input.callID, agent,
           level: "ERROR",
           event: "TOOL-BEFORE",
           detail: `BLOCKED | ${fp} | ${modeDowngrade}`,
@@ -122,7 +122,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
     }
   } catch (e: any) {
     writeLog("json-validate", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       level: "ERROR",
       event: "TOOL-BEFORE",
       detail: `BLOCKED | ${fp} | ${e.message}`,

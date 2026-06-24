@@ -177,7 +177,8 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     // Non-KC agent writing to docs/official_docs/ -- UC7-008 should have blocked.
     // Log a warning but don't crash (scope-before.ts is the primary enforcement).
     writeLog("uc7ks-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID,
+      sessionID: input.sessionID,
+      callID: input.callID,
       level: "WARN",
       event: "UC7-003-NON-KC-WRITE",
       detail: `Non-KC agent "${agent}" wrote to ${targetPath}. UC7-008 should have blocked this.`,
@@ -199,11 +200,25 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       const sizeKB = (stat.size / 1024).toFixed(1);
 
       writeLog("uc7ks-after", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent, agentType: agent,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agent,
         event: "UC7-003-VERIFIED",
         detail: `post-write verified | file=${targetPath} | size=${sizeKB}KB`,
       });
+
+      // P0-CHECKLIST: wire UC7-003 verification to checklist
+      try {
+        const cwp = require("../lib/checklist-hooks");
+        cwp.checklistWirePassed(
+          input.sessionID,
+          agent,
+          taskId || null,
+          "knowledge_post_write_verified",
+          `file=${targetPath} size=${sizeKB}KB`,
+        );
+      } catch {}
 
       // === Update knowledge_cache_state with verification record ===
       try {
@@ -219,20 +234,25 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
           });
           // Cap at 100 entries to prevent unbounded growth
           if (state.post_write_verifications.length > 100) {
-            state.post_write_verifications = state.post_write_verifications.slice(-100);
+            state.post_write_verifications =
+              state.post_write_verifications.slice(-100);
           }
         });
 
         writeLog("uc7ks-after", "runtime", {
-          sessionID: input.sessionID, callID: input.callID,
-          agent, agentType: agent,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agent,
           event: "UC7-003-STATE-UPDATED",
           detail: `post-write state updated | file=${targetPath} | size=${stat.size}B`,
         });
       } catch (stateErr: any) {
         writeLog("uc7ks-after", "runtime", {
-          sessionID: input.sessionID, callID: input.callID,
-          agent, agentType: agent,
+          sessionID: input.sessionID,
+          callID: input.callID,
+          agent,
+          agent,
           level: "ERROR",
           event: "UC7-003-STATE-FAIL",
           detail: `state update failed: ${stateErr.message} | file=${targetPath}`,
@@ -242,8 +262,10 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     } else {
       // File missing after write -- SAVE-OR-FAIL triggered
       writeLog("uc7ks-after", "runtime", {
-        sessionID: input.sessionID, callID: input.callID,
-        agent, agentType: agent,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agent,
         level: "ERROR",
         event: "UC7-003-MISSING",
         detail: `post-write MISSING | file=${targetPath} | mode=${mode}`,
@@ -253,28 +275,28 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
         throw new Error(
           `
 ` +
-          `  UC7-003 POST-WRITE SAVE-OR-FAIL -- ${mode.toUpperCase()} MODE
+            `  UC7-003 POST-WRITE SAVE-OR-FAIL -- ${mode.toUpperCase()} MODE
 ` +
-          `  File:    ${targetPath}
+            `  File:    ${targetPath}
 ` +
-          `  Agent:   ${agent}
+            `  Agent:   ${agent}
 ` +
-          `  Status:  WRITE REPORTED SUCCESS, FILE NOT FOUND ON DISK
+            `  Status:  WRITE REPORTED SUCCESS, FILE NOT FOUND ON DISK
 ` +
-          `  The write operation completed without error but the file
+            `  The write operation completed without error but the file
 ` +
-          `  does not exist at the expected path. This may indicate:
+            `  does not exist at the expected path. This may indicate:
 ` +
-          `  1. Write tool silently failed (permission/disk issue)
+            `  1. Write tool silently failed (permission/disk issue)
 ` +
-          `  2. File was written to a different path than reported
+            `  2. File was written to a different path than reported
 ` +
-          `  3. Post-write deletion by another process
+            `  3. Post-write deletion by another process
 ` +
-          `  REMEDIATION: Retry the write. Verify disk space and
+            `  REMEDIATION: Retry the write. Verify disk space and
 ` +
-          `  permissions. Check write tool output for actual path.
-`
+            `  permissions. Check write tool output for actual path.
+`,
         );
       }
       // advisory mode: log only, no throw
@@ -285,8 +307,10 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
     // Non-UC7-003 errors (e.g., filesystem errors during stat)
     writeLog("uc7ks-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID,
-      agent, agentType: agent,
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      agent,
       level: "ERROR",
       event: "UC7-003-FS-ERROR",
       detail: `verification error: ${err.message} | file=${targetPath}`,

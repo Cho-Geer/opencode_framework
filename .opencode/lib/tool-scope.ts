@@ -6,15 +6,82 @@ import { STATE_PATHS, isSourceFile } from "./state-utils";
 import * as path from "node:path";
 
 export function isModifyTool(tool: string): boolean {
-  return tool === "write" || tool === "edit" || tool === "safe_edit" || tool === "safe_mkdir" || tool === "safe_delete" || tool === "safe_shell";
+  return (
+    tool === "docker_run_container" ||
+    tool === "docker_create_container" ||
+    tool === "docker_recreate_container" ||
+    tool === "docker_build_image" ||
+    tool === "write" ||
+    tool === "edit" ||
+    tool === "safe_edit" ||
+    tool === "safe_mkdir" ||
+    tool === "safe_delete" ||
+    tool === "safe_shell"
+  );
 }
 
 export function getModifyPath(args: Record<string, unknown>): string {
   return (args?.filePath || args?.dirPath || args?.command || "") as string;
 }
 
+// Quote-aware: splits only when not inside '...' or "...".
+export function splitShellCommand(command: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let quote = null;
+  let escaped = false;
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i];
+    if (escaped) {
+      current += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      current += ch;
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      current += ch;
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      current += ch;
+      continue;
+    }
+    if (
+      ch === ";" ||
+      ch === "|" ||
+      ch === "&" ||
+      ch === "<" ||
+      ch === ">" ||
+      ch === "\n"
+    ) {
+      if (current.trim()) result.push(current.trim());
+      if (
+        (ch === "&" || ch === "|" || ch === "<" || ch === ">") &&
+        command[i + 1] === ch
+      )
+        i++;
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (current.trim()) result.push(current.trim());
+  return result.length > 0 ? result : [command.trim()];
+}
+
 export function isModifyShell(args: Record<string, unknown>): boolean {
-  return /^(cp|mv|rm|python3|node|bun|npx|tee|cat|sed|dd|sh|bash|touch)\b/.test((args?.command || "") as string);
+  const cmd = (args?.command || "") as string;
+  if (!cmd) return false;
+  const subCmds = splitShellCommand(cmd);
+  const modifyRe =
+    /^(cp|mv|rm|python3|node|bun|npx|tee|cat|sed|dd|sh|bash|touch)\b/;
+  return subCmds.some((s) => modifyRe.test(s));
 }
 
 /**
@@ -28,9 +95,11 @@ export function isModifyShell(args: Record<string, unknown>): boolean {
  * as backward-compat wrapper.
  */
 export function getEffectivePathScopeFilePath(
-  tool: string, args: Record<string, any>
+  tool: string,
+  args: Record<string, any>,
 ): string | null {
-  if (tool === "safe_shell") return isModifyShell(args) ? getModifyPath(args) : null;
+  if (tool === "safe_shell")
+    return isModifyShell(args) ? getModifyPath(args) : null;
   return getModifyPath(args);
 }
 
@@ -67,13 +136,36 @@ export function parseShellWriteTargets(command: string): ScopePathResult {
     return { applies: false, paths: [], reason: "read_only_shell" };
   }
 
+  // FW-FIX-I2: iterate ALL sub-commands, aggregate targets
+  const subCmds = splitShellCommand(command);
+  const allPaths: string[] = [];
+  let anyUnparseable = false;
+  for (const subCmd of subCmds) {
+    const subResult = parseSingleCommand(subCmd);
+    if (subResult.reason === "unparseable_modify_shell") anyUnparseable = true;
+    if (subResult.applies) {
+      for (const p of subResult.paths) allPaths.push(p);
+    }
+  }
+  if (anyUnparseable)
+    return { applies: true, paths: [], reason: "unparseable_modify_shell" };
+  if (allPaths.length === 0)
+    return { applies: false, paths: [], reason: "read_only_shell" };
+  return { applies: true, paths: allPaths, reason: "parsed" };
+}
+
+/** parseSingleCommand — the original per-command logic, extracted for sub-command iteration */
+function parseSingleCommand(command: string): ScopePathResult {
   const trimmed = command.trim();
   const cmdMatch = trimmed.match(/^(\S+)/);
-  if (!cmdMatch) return { applies: false, paths: [], reason: "read_only_shell" };
+  if (!cmdMatch)
+    return { applies: false, paths: [], reason: "read_only_shell" };
   const cmd = cmdMatch[1];
 
   // Non-modify commands
-  if (!/^(cp|mv|rm|python3|node|bun|npx|tee|cat|sed|dd|sh|bash|touch)$/.test(cmd)) {
+  if (
+    !/^(cp|mv|rm|python3|node|bun|npx|tee|cat|sed|dd|sh|bash|touch)$/.test(cmd)
+  ) {
     return { applies: false, paths: [], reason: "read_only_shell" };
   }
 
@@ -83,14 +175,16 @@ export function parseShellWriteTargets(command: string): ScopePathResult {
   if (cmd === "sed") {
     // Extract the file path: sed [-i[.ext]] ['s/pattern/repl/'] file
     // Match the last non-option, non-script argument as file path
-    var sedParts = trimmed.split(/\s+/).filter(function (p) { return p.length > 0; });
+    var sedParts = trimmed.split(/\s+/).filter(function (p) {
+      return p.length > 0;
+    });
     // Filter out: 'sed', -i*, quoted regex patterns, flags
     var sedFiles: string[] = [];
     for (var si = 1; si < sedParts.length; si++) {
       var sp = sedParts[si];
       if (sp === "sed") continue;
       if (sp.startsWith("-i")) continue; // -i or -i.bak
-      if (sp.startsWith("'") || sp.startsWith("\"")) continue; // quoted pattern
+      if (sp.startsWith("'") || sp.startsWith('"')) continue; // quoted pattern
       if (/^[a-zA-Z0-9_./-]+\.[a-zA-Z]+$/.test(sp)) sedFiles.push(sp);
     }
     if (sedFiles.length === 0) {
@@ -176,15 +270,38 @@ export function parseShellWriteTargets(command: string): ScopePathResult {
     return { applies: false, paths: [], reason: "read_only_shell" };
   }
 
+  // FW-FIX-I3 (P0-6): Heredoc (<<), stdin redirect (<), and dash-from-stdin (-)
+  // are all opaque input forms that can carry arbitrary writes.
+  const stdinOrHeredocRe =
+    /(<<\s*['"]?\w+['"]?|<<\s*\\?\w+|\s<\s+\S+|\s-\s*$|\s-\s)/;
+  if (stdinOrHeredocRe.test(trimmed)) {
+    if (
+      cmd === "node" ||
+      cmd === "bun" ||
+      cmd === "python3" ||
+      cmd === "sh" ||
+      cmd === "bash"
+    ) {
+      return { applies: true, paths: [], reason: "unparseable_modify_shell" };
+    }
+  }
+
   // node -e / bun -e (inline eval, might write) → unparseable
-  if (((cmd === "node" || cmd === "bun") && trimmed.includes(" -e ")) || (cmd === "python3" && trimmed.includes(" -c "))) {
+  if (
+    ((cmd === "node" || cmd === "bun") && trimmed.includes(" -e ")) ||
+    (cmd === "python3" && trimmed.includes(" -c "))
+  ) {
     return { applies: true, paths: [], reason: "unparseable_modify_shell" };
   }
 
-  // node/bun script.ts → read_only (script is executed, not written to)
+  // node/bun/python3/npx script execution → unparseable_modify_shell
+  // BACKUP-BYPASS-PREVENTION (2026-06-24): Script execution can perform
+  // arbitrary file writes via fs.writeFileSync, bypassing safe_edit's
+  // backup mechanism. Classify as unparseable to trigger scope-before
+  // block in strict/locked mode. safe-bash-core.ts content scanning
+  // still applies for allowed script paths.
   if (cmd === "node" || cmd === "bun" || cmd === "npx" || cmd === "python3") {
-    // Script execution — the script file itself is not a write target
-    return { applies: false, paths: [], reason: "read_only_shell" };
+    return { applies: true, paths: [], reason: "unparseable_modify_shell" };
   }
 
   // sh -c "..." / bash -c "..." → unparseable
@@ -210,7 +327,8 @@ export function parseShellWriteTargets(command: string): ScopePathResult {
  * multi-path shell write target support.
  */
 export function getEffectivePathScopePaths(
-  tool: string, args: Record<string, any>
+  tool: string,
+  args: Record<string, any>,
 ): ScopePathResult {
   // Non-modify tools
   if (!isModifyTool(tool)) {
@@ -281,10 +399,12 @@ export function isUC7KSWriteTarget(filePath: string): boolean {
   if (rel.startsWith(".opencode/")) return true;
 
   // Review and design docs
-  if (rel.startsWith("docs/review/") || rel.startsWith("docs/design/")) return true;
+  if (rel.startsWith("docs/review/") || rel.startsWith("docs/design/"))
+    return true;
 
   // Root config files
-  if (rel === "AGENTS.md" || rel === "contract.yaml" || rel === "opencode.json") return true;
+  if (rel === "AGENTS.md" || rel === "contract.yaml" || rel === "opencode.json")
+    return true;
 
   return false;
 }
@@ -311,10 +431,12 @@ export function isUC7KSExcludedPath(filePath: string): boolean {
   if (rel.startsWith(".opencode/logs/") || rel.startsWith("logs/")) return true;
 
   // Temp artifacts
-  if (rel.startsWith(".task_temp/") || rel.startsWith("task_temp/")) return true;
+  if (rel.startsWith(".task_temp/") || rel.startsWith("task_temp/"))
+    return true;
 
   // Node modules
-  if (rel.startsWith("node_modules/") || rel.includes("/node_modules/")) return true;
+  if (rel.startsWith("node_modules/") || rel.includes("/node_modules/"))
+    return true;
 
   // Knowledge cache (managed by @Knowledge-Curator, UC7-008)
   if (rel.startsWith("docs/official_docs/")) return true;
@@ -323,23 +445,70 @@ export function isUC7KSExcludedPath(filePath: string): boolean {
 }
 
 export function readDispatchAllowedTools(agent: string): string[] | "*" {
-  const FALLBACK = ["task","read","todowrite","compliance_gate_check","compliance_gate_confirm","compliance_gate_complete","dispatch_subagent"];
+  // V6.2 FIX (2026-06-23, @Super-Admin): Expanded FALLBACK from 7 to 20 tools.
+  // The old FALLBACK only had 7 tools: task, read, todowrite, 3 gate tools, dispatch_subagent.
+  // This caused agents without explicit agent_dispatch_allowed_tools config to be unable
+  // to use safe_edit, safe_shell, knowledge tools, glob/grep, question, write, etc.
+  // New FALLBACK covers all commonly needed agent operations.
+  const FALLBACK = [
+    "task",
+    "read",
+    "todowrite",
+    "write",
+    "edit",
+    "compliance_gate_check",
+    "compliance_gate_confirm",
+    "compliance_gate_complete",
+    "compliance_gate_submit_deliverables",
+    "compliance_gate_approve_deliverables",
+    "dispatch_subagent",
+    "safe_edit",
+    "safe_shell",
+    "safe_delete",
+    "safe_mkdir",
+    "safe_diff",
+    "safe_restore",
+    "knowledge_cache_search",
+    "knowledge_cache_attest",
+    "module_scope_declare",
+    "config_read_attest",
+    "question",
+    "glob",
+    "grep",
+  ];
   try {
     let cfg: any = null;
-    try { cfg = JSON.parse(fs.readFileSync(STATE_PATHS.projectConfig(), "utf8")); } catch {}
+    try {
+      cfg = JSON.parse(fs.readFileSync(STATE_PATHS.projectConfig(), "utf8"));
+    } catch {}
+    // OPT-08 (2026-06-23): FALLBACK dynamic — override from project.config.json.dispatch_policy.fallback_tools
+    const configFallback = cfg?.dispatch_policy?.fallback_tools;
+    const effectiveFallback =
+      Array.isArray(configFallback) && configFallback.length > 0
+        ? configFallback
+        : FALLBACK;
     const tools = cfg?.agent_dispatch_allowed_tools;
-    if (!tools || typeof tools !== "object") return FALLBACK;
+    if (!tools || typeof tools !== "object") return effectiveFallback;
     const atForm = agent.startsWith("@") ? agent : "@" + agent;
     const plainForm = agent.replace(/^@/, "");
     const entry = tools[atForm] || tools[plainForm];
     if (!entry) return FALLBACK;
-    if (entry === "*" || (Array.isArray(entry) && entry.length === 1 && entry[0] === "*")) return "*";
+    if (
+      entry === "*" ||
+      (Array.isArray(entry) && entry.length === 1 && entry[0] === "*")
+    )
+      return "*";
     if (Array.isArray(entry)) return entry;
     return FALLBACK;
-  } catch { return FALLBACK; }
+  } catch {
+    return FALLBACK;
+  }
 }
 
-export function isToolAllowed(allowedList: string[] | "*", tool: string): boolean {
+export function isToolAllowed(
+  allowedList: string[] | "*",
+  tool: string,
+): boolean {
   if (allowedList === "*") return true;
   if (!Array.isArray(allowedList)) return false;
   if (allowedList.includes(tool)) return true;

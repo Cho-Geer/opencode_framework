@@ -19,11 +19,13 @@
  * Sub-agents remain restricted to Knowledge-Curator only; all other targets
  * must be routed through @Orchestrator or @Super-Admin.
  *
- * NOTE: task_id is a dispatch session identifier — an ID
- * assigned to the background sub-agent process/delegation in OpenCode. It is
- * used for output path namespacing (.task_temp/{taskId}/) and session tracking.
- * It is NOT a DAG task ID and should NOT be validated against Task.DAG.json.
- * Pre-execution gate is called with --dispatch-session flag to skip DAG checks.
+ * NOTE: The 2nd positional arg is `session_namespace` — the OpenCode upstream
+ * task_id used for output path namespacing (.task_temp/{sessionNamespace}/) and
+ * session tracking. It is conceptually distinct from `dag_task_id` (received via
+ * DISPATCH_DAG_TASK_ID env var), which is the DAG work unit identifier validated
+ * against Task.DAG.json. When both are the same value (the common case), they
+ * share the same string but serve different semantic purposes.
+ * @see docs/review/framework-refactor/task-id-duality-complete-audit.md
  *
  * Reads:
  *   .opencode/project.config.json          — project config (project_root, tech_stack, paths)
@@ -46,8 +48,12 @@ const {
   deliverablesTemplateMarkdown,
   isExemptAgent,
 } = require("../../lib/deliverables-templates");
-const { dbQuerySessionByDagTaskId, dbQueryLatestSessionByDagTaskId } = require("../../lib/db-state-manager");
+const {
+  dbQuerySessionByDagTaskId,
+  dbQueryLatestSessionByDagTaskId,
+} = require("../../lib/db-state-manager");
 const { writeLog } = require("../../lib/log-manager");
+const { checklistWirePassed } = require("../../lib/checklist-hooks");
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
   ? path.resolve(process.env.OPENCODE_ROOT)
@@ -86,22 +92,33 @@ function logWarn(msg) {
 // ──────────────────────────────────────────────
 // Support:
 //   bun dispatch-subagent.ts <agent_type> "<task_description>" [--task-id <id>]
-//   bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>" [--task-id <id>]
+//   bun dispatch-subagent.ts <agent_type> "<session_namespace>" "<task_description>" [--task-id <id>]
 //
 // Resolution priority (highest wins):
-//   1. --task-id CLI flag (explicit)
-//   2. Positional args: argv[3]=task_id, argv[4]=task_description (if both present)
-//   3. .dispatch_ctx file (written by dispatch_subagent.ts, dag_task_id field)
-//   4. Single positional arg: argv[3]=task_description (backward compatible)
+//   1. --task-id CLI flag (explicit — legacy)
+//   2. DISPATCH_NAMESPACE env var (from parent dispatch_subagent tool, authoritative)
+//   3. DISPATCH_DAG_TASK_ID env var (from parent dispatch_subagent tool)
+//   4. Positional args: argv[3]=session_namespace, argv[4]=task_description
+//   5. .dispatch_ctx file (written by dispatch_subagent.ts, dagTaskId field)
+//   6. Single positional arg: argv[3]=task_description (backward compatible)
 // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env var removed from all paths.
 // The child script now reads task_id from .dispatch_ctx file or CLI args only.
+
+// session_namespace: OpenCode upstream task_id for output path (.task_temp/{ns}/)
+let sessionNamespace = process.env.DISPATCH_NAMESPACE || null;
+
+// dagTaskId: DAG task ID for audit, DB writes, and preamble injection
+let dagTaskId = process.env.DISPATCH_DAG_TASK_ID || null;
+
+// Legacy unified taskId (backward compat — falls back to sessionNamespace or dagTaskId)
 let taskId = null;
 
-// NEW: Detect 2+ positional params after agent_type for task_id+task_description
-// Pattern: bun dispatch-subagent.ts <agent_type> "<task_id>" "<task_description>"
-if (!taskId && process.argv.length >= 5 && !process.argv[3].startsWith("--")) {
+// NEW: Detect 2+ positional params after agent_type for session_namespace+task_description
+// Pattern: bun dispatch-subagent.ts <agent_type> "<session_namespace>" "<task_description>"
+if (process.argv.length >= 5 && !process.argv[3].startsWith("--")) {
   taskId = process.argv[3];
-  // Remove task_id from argv so process.argv[3] shifts to task_description
+  if (!sessionNamespace) sessionNamespace = taskId;
+  // Remove session_namespace from argv so process.argv[3] shifts to task_description
   process.argv.splice(3, 1);
 }
 
@@ -110,6 +127,7 @@ if (!taskId) {
   const taskIdFlagIdx = process.argv.indexOf("--task-id");
   if (taskIdFlagIdx !== -1 && taskIdFlagIdx + 1 < process.argv.length) {
     taskId = process.argv[taskIdFlagIdx + 1];
+    if (!sessionNamespace) sessionNamespace = taskId;
     // Remove --task-id and its value from argv for clean processing
     process.argv.splice(taskIdFlagIdx, 2);
   }
@@ -127,11 +145,19 @@ if (!taskId) {
     if (fs.existsSync(ctxPath)) {
       const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
       taskId = ctx.dagTaskId || null;
+      if (!sessionNamespace) sessionNamespace = taskId;
+      if (!dagTaskId) dagTaskId = taskId;
     }
   } catch {
     /* file missing or malformed — continue without task_id */
   }
 }
+
+// If we still don't have dagTaskId, use sessionNamespace or taskId
+if (!dagTaskId) dagTaskId = sessionNamespace || taskId;
+if (!sessionNamespace) sessionNamespace = dagTaskId || taskId;
+// Legacy: taskId fallback for backward compat consumers
+if (!taskId) taskId = sessionNamespace;
 process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
 const agentType = process.argv[2];
@@ -164,10 +190,58 @@ if (!taskDescription) {
   process.exit(1);
 }
 
+// ════════════════════════════════════════════════════════════
+// Step 4 (P0-CHECKLIST): Dispatch payload integrity validation
+// Block dispatches with incomplete task descriptions
+// (e.g., "provided below" without actual findings content).
+// Records valid payloads to dispatch_payload_integrity table.
+// ════════════════════════════════════════════════════════════
+try {
+  const { validateDispatchPayload } = require("../../lib/execution-checklist");
+  const payloadResult = validateDispatchPayload({
+    task_description: taskDescription,
+    agent_type: agentType,
+  });
+  if (!payloadResult.passed) {
+    writeLog("dispatch-subagent", "runtime", {
+      level: "ERROR",
+      event: "PAYLOAD-INTEGRITY-FAILED",
+      detail: `agent=${agentType} error="${payloadResult.error}"`,
+    });
+    console.error(`ERROR: ${payloadResult.error}`);
+    process.exit(1);
+  }
+  // Payload passed validation — record integrity
+  const {
+    recordDispatchPayloadIntegrity,
+  } = require("../../lib/execution-checklist");
+  const crypto = require("crypto");
+  recordDispatchPayloadIntegrity({
+    agent_type: agentType,
+    dag_task_id: dagTaskId,
+    task_description: taskDescription,
+    normalized_payload: taskDescription.replace(/\s+/g, " ").trim(),
+    sha256: crypto.createHash("sha256").update(taskDescription).digest("hex"),
+    completeness_status: "passed",
+    // FW-FA-DISPATCH-PARENT-LINEAGE (2026-06-22, @Super-Admin):
+    // The dispatch_subagent tool runs dispatch-subagent.ts in a child process and
+    // sets OPENCODE_SESSION_ID to the caller's (parent's) session. The prompt file
+    // created by this script is consumed by the future sub-agent session, so the
+    // current OPENCODE_SESSION_ID is precisely the sub-agent's parent_session_id.
+    parent_session_id: process.env.OPENCODE_SESSION_ID || null,
+  });
+  logInfo(
+    `Payload validation passed for agent=${agentType} task_id=${taskId || "none"}`,
+  );
+} catch (e) {
+  // Non-fatal: payload integrity module may not be loaded yet
+  logWarn(`Payload integrity check skipped: ${e.message}`);
+}
+
 // ──────────────────────────────────────────────
 // 1.5 Pre-Execution Gate Check (if --task-id provided)
 // ──────────────────────────────────────────────
-if (taskId) {
+if (sessionNamespace) {
   const gateScript = path.join(
     OPENCODE_ROOT,
     ".opencode",
@@ -176,12 +250,12 @@ if (taskId) {
   );
   if (fs.existsSync(gateScript)) {
     logInfo(
-      `Running pre-execution-gate.ts for dispatch session '${taskId}' (--dispatch-session)...`,
+      `Running pre-execution-gate.ts for dispatch session '${sessionNamespace}' (--dispatch-session)...`,
     );
     try {
       const { execSync } = require("child_process");
       const gateResult = execSync(
-        `"${process.execPath}" "${gateScript}" "${taskId}" --dispatch-session`,
+        `"${process.execPath}" "${gateScript}" "${sessionNamespace}" --dispatch-session`,
         {
           encoding: "utf8",
           stdio: ["pipe", "pipe", "pipe"],
@@ -307,11 +381,29 @@ function findRelevantStacks(description, mapping, stackConfig) {
   return result;
 }
 
-const relevantStacks = findRelevantStacks(
-  taskDescription,
-  taskMapping,
-  techStack,
+// Phase G1 (2026-06-22): framework/checklist/DB tasks must NOT trigger
+// business-stack Context7 injection (avoids noise like NestJS/Prisma/Redis/Angular).
+const FRAMEWORK_TASK_KEYWORDS = [
+  "framework-self-test",
+  "checklist",
+  "db-canonical",
+  "p0-checklist",
+  "dispatch-subagent",
+  "subagent-preamble",
+  "scope-before",
+  "checklist-before",
+  "execution-checklist",
+  "framework-doctor",
+  "e2e-final",
+  "e2e-test",
+  "framework-state.db",
+];
+const isFrameworkTask = FRAMEWORK_TASK_KEYWORDS.some((k) =>
+  taskDescription.toLowerCase().includes(k),
 );
+const relevantStacks = isFrameworkTask
+  ? []
+  : findRelevantStacks(taskDescription, taskMapping, techStack);
 
 // ──────────────────────────────────────────────
 // 3. Read agent config file (case-insensitive lookup)
@@ -611,17 +703,17 @@ if (fs.existsSync(PREAMBLE_FILE)) {
   );
 }
 
-// P2-FIX R4: Inject dag_task_id into preamble so sub-agent knows its assigned task_id
-// taskId is resolved from CLI args, .dispatch_ctx file, or positional arguments.
+// P2-FIX R4: Inject dag_task_id into preamble so sub-agent knows its DAG task ID
+// dagTaskId is resolved from env DISPATCH_DAG_TASK_ID, CLI args, or .dispatch_ctx.
 // This prevents the sub-agent from fabricating a task_id from thin air.
-if (taskId) {
-  preamble += `\n> **Your dispatch-assigned task_id**: \`${taskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.\n`;
+if (dagTaskId) {
+  preamble += `\n> **Your dispatch-assigned dag_task_id**: \`${dagTaskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.\n`;
 }
 
 // P2-FIX R2: Pre-write session_map BEFORE generating prompt to eliminate race condition
 // Without this, session.ts chat.message hook may write session_map AFTER sub-agent's
 // compliance_gate_check, causing DISPATCH_TASKID_TAMPER false positive
-if (taskId) {
+if (dagTaskId) {
   try {
     const {
       dbWriteSessionMap,
@@ -629,12 +721,14 @@ if (taskId) {
     } = require("../../lib/db-state-manager");
     const sessionId = process.env.OPENCODE_SESSION_ID || "";
     if (sessionId) {
-      dbWriteSessionMap(sessionId, agentType, taskId);
+      // FW-FIX-H1 (P0-5): clone-safe — read existing agent, write it back unchanged.
+      const existing = dbReadSessionMap(sessionId);
+      dbWriteSessionMap(sessionId, existing?.agent || agentType, dagTaskId);
       const verify = dbReadSessionMap(sessionId);
       if (!verify?.dag_task_id) {
         writeLog("dispatch-subagent", "ERROR", {
           event: "SESSION_MAP_WRITE_FAILED",
-          detail: `dbWriteSessionMap succeeded but read-back failed for sessionId=${sessionId} taskId=${taskId}`,
+          detail: `dbWriteSessionMap succeeded but read-back failed for sessionId=${sessionId} dagTaskId=${dagTaskId}`,
         });
       }
     }
@@ -649,7 +743,7 @@ if (taskId) {
 // IMPLEMENT-DISPATCH-CTX-FIX: Per-dispatch context file (dagTaskId-keyed, no overwrites)
 // Eliminates the session_map race condition caused by concurrent dispatches
 // overwriting the shared .dispatch_ctx singleton.
-if (taskId) {
+if (dagTaskId) {
   try {
     const { writeDispatchCtx } = require("../../lib/agent-resolver");
     // Infer domainId from agent_domain_map in project config
@@ -658,7 +752,7 @@ if (taskId) {
       const agentDomainMap = projectConfig.agent_domain_map || {};
       inferredDomainId = agentDomainMap[agentType] || null;
     } catch {}
-    writeDispatchCtx(taskId, agentType, inferredDomainId || undefined);
+    writeDispatchCtx(dagTaskId, agentType, inferredDomainId || undefined);
   } catch (e: any) {
     writeLog("dispatch-subagent", "ERROR", {
       event: "DISPATCH_CTX_WRITE_ERROR",
@@ -686,7 +780,7 @@ if (taskId) {
 // This enables: (a) resolveDomainId → Priority 1.5 → returns domain_id
 //               (b) resolveTaskId  → Priority 1.5 → returns dag_task_id
 //               (c) resolveAgentFromSessionMap → returns agent type
-if (taskId) {
+if (dagTaskId) {
   try {
     const { dbWriteSessionMap } = require("../../lib/db-state-manager");
     // Infer domainId from agent_domain_map (same as above)
@@ -695,11 +789,11 @@ if (taskId) {
       const agentDomainMap = projectConfig.agent_domain_map || {};
       inferredDomainId = agentDomainMap[agentType] || null;
     } catch {}
-    const childSlotKey = `dispatch:child:${taskId}`;
+    const childSlotKey = `dispatch:child:${dagTaskId}`;
     dbWriteSessionMap(
       childSlotKey,
       agentType,
-      taskId,
+      dagTaskId,
       inferredDomainId || null,
     );
     logInfo(
@@ -759,18 +853,7 @@ const projectContext = [
 // ──────────────────────────────────────────────
 
 const permissionsSection = `
-## 🔑 Your Permissions
 
-See your agent config (\`.opencode/agents/${agentFileEntry}\`) + \`opencode.json\` for full permissions.
-
-**IMPORTANT**: P0 Step 0e requires you to read these files using the \`read\` tool
-and call \`config_read_attest()\` to unlock writes. The \`scope-before\` plugin
-will BLOCK writes until this attestation is complete.
-
-### Conflict Resolution
-If agent config and opencode.json conflict, **opencode.json is authoritative**.
-- Tools/config declared in your config file but NOT in opencode.json → may be blocked at runtime
-- Permissions granted in opencode.json but NOT in your config file → still usable (opencode.json grants them)
 `;
 
 // ── Agent-specific scope line (replaces the full 8-agent table) ──
@@ -813,6 +896,17 @@ ${context7Section}`
     : "";
 
 const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
+
+### Task Payload
+
+- **Agent**: ${agentName}
+- **Task**: ${resolvedTaskDescription}
+- **payload_sha256**: ${crypto.createHash("sha256").update(resolvedTaskDescription, "utf8").digest("hex").substring(0, 16)}
+- **task_id**: ${taskId || "(none)"}
+- **Invocation Summary**: append \`## 📊 Invocation Summary\` to output and \`.task_temp/_dispatch/INVOCATION_SUMMARY.md\`
+
+### 🚨 Your Scope — Framework-Enforced
+${scopeLine(agentType)}
 
 ### P0 Protocol — Read and execute FIRST
 
@@ -868,28 +962,10 @@ ${permissionsSection}
 
 ${projectContext}${context7Block}
 
----
-
-### 📊 Mandatory Audit Trail
-
-Append \`## 📊 Invocation Summary\` to your output: skills invoked, MCP tools called, gate session status (check/confirm/complete). Save to \`.task_temp/_dispatch/INVOCATION_SUMMARY.md\` (append).
 
 ---
 
-### Task
-
-**Agent**: ${agentName}
-**Description**: ${resolvedTaskDescription}
-
-### 🚨 Your Scope — Framework-Enforced
-${scopeLine(agentType)}
-
-### Execution Order
-1. Execute all P0 protocol steps (pipeline → skills → gate → deliverables)
-2. Perform the task
-3. Include \`## 📊 Invocation Summary\` in output
-
-Remember: All runtime artifacts go to \`.task_temp/{taskId}/\`.`;
+`;
 
 // ──────────────────────────────────────────────
 // 5.5 Final template resolution pass on the wrapped prompt
@@ -924,6 +1000,68 @@ const dispatchToken = crypto
   .digest("hex");
 const tokenizedPrompt = resolvedPrompt + `\n//DISPATCH_TOKEN:${dispatchToken}`;
 fs.writeFileSync(outputFile, tokenizedPrompt, "utf8");
+
+// P0-CHECKLIST: mark dispatch success (Phase A fix — prevents Task() self-deadlock)
+// P0-1 FIX (2026-06-23): In strict/locked mode, marking failure is FATAL.
+// Previously the try/catch swallowed errors, causing silent marking failures
+// that left child sessions permanently blocked in dispatch_payload.
+// See: docs/review/framework-refactor/e2e-findings-root-cause-diagnosis.md §7.4
+const sessionId2 = process.env.OPENCODE_SESSION_ID || "";
+try {
+  checklistWirePassed(
+    sessionId2,
+    agentType,
+    taskId,
+    "payload_complete",
+    "prompt saved to " + outputFile,
+  );
+  checklistWirePassed(
+    sessionId2,
+    agentType,
+    taskId,
+    "dispatch_token_created",
+    "token=" + dispatchToken.substring(0, 16) + "...",
+  );
+  checklistWirePassed(
+    sessionId2,
+    agentType,
+    taskId,
+    "session_context_bound",
+    "child slot bound to " + (taskId || "none"),
+  );
+  logInfo(
+    "Checklist items marked for agent=" +
+      agentType +
+      " task=" +
+      (taskId || "none"),
+  );
+} catch (e) {
+  // Determine enforcement mode for fatal-vs-warning decision
+  let enforcementMode = "advisory";
+  try {
+    enforcementMode = require("../../lib/gate-core").getEnforcementMode();
+  } catch {
+    /* gate-core not available — default to advisory */
+  }
+  if (enforcementMode === "strict" || enforcementMode === "locked") {
+    // FATAL: marking failure in strict/locked mode must not be swallowed.
+    // Silent failures cause child sessions to deadlock in dispatch_payload.
+    logError(
+      "Checklist marking FATAL (strict/locked): " +
+        e.message +
+        " — dispatch will fail. Child session would be permanently blocked.",
+    );
+    throw new Error(
+      "[FW-ENFORCE][P0-CHECKLIST] Dispatch fact marking failed in " +
+        enforcementMode +
+        " mode: " +
+        e.message,
+    );
+  }
+  // Advisory mode: log warning and continue (dispatch still works)
+  logWarn("Checklist marking skipped (advisory): " + e.message);
+}
+
 /**
  * FW-PROMPT-HARDEN-04: Maintain FIFO queue of pending dispatch prompts.
  * Each dispatch saves an entry to .task_temp/_dispatch/.pending.json
@@ -994,7 +1132,8 @@ try {
 const beforeDedup = queue.length;
 const dedupedEntries: any[] = [];
 queue = queue.filter((e) => {
-  if (e.agentType === agentType && e.taskId === taskId) {
+  // dagTaskId is the DAG task identifier — dedup by agentType + dagTaskId
+  if (e.agentType === agentType && e.taskId === dagTaskId) {
     // Same agent type AND same dag_task_id → deduplicate old entry
     if (e.promptHash && e.promptHash !== promptHash) {
       dedupedEntries.push(e);
@@ -1073,7 +1212,7 @@ if (dedupedEntries.length > 0) {
 }
 if (queue.length < beforeDedup) {
   logInfo(
-    `Deduped ${beforeDedup - queue.length} stale .pending.json entries for agentType="${agentType}" taskId="${taskId}"`,
+    `Deduped ${beforeDedup - queue.length} stale .pending.json entries for agentType="${agentType}" dagTaskId="${dagTaskId}"`,
   );
 }
 
@@ -1083,7 +1222,7 @@ queue.push({
   filePath: outputFile,
   createdAt: new Date().toISOString(),
   agentType: agentType,
-  taskId: taskId || null, // FW-CLEANUP-FRAMEWORK-TASK-ID: env fallback removed
+  taskId: dagTaskId || null, // dag_task_id: DAG work unit identifier for dispatch dedup
 });
 
 // FW-DIAG-D2 (2026-06-10, @Super-Admin): Diagnostic log for entry creation tracing.

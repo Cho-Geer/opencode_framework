@@ -3,7 +3,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
-import { resolveAgent, resolveTaskId, sessionLastDispatched } from "../lib/agent-resolver";
+import {
+  resolveAgent,
+  resolveTaskId,
+  sessionLastDispatched,
+} from "../lib/agent-resolver";
 import { atomicWriteJson } from "../lib/state-utils";
 import { dbAppendDispatchFailed } from "../lib/db-state-manager";
 
@@ -11,7 +15,9 @@ const PENDING_FILE = ".task_temp/_dispatch/.pending.json";
 const FAILED_FILE = ".task_temp/_dispatch/.pending.json.failed";
 const STALE_TIMEOUT_MS = 30 * 60 * 1000;
 
-export default withPluginLifecycle("dispatch-after", { "tool.execute.after": toolExecuteAfter });
+export default withPluginLifecycle("dispatch-after", {
+  "tool.execute.after": toolExecuteAfter,
+});
 
 async function toolExecuteAfter(input: any, output: any): Promise<void> {
   // Only track Task() dispatch calls
@@ -39,7 +45,6 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       sessionID: input.sessionID,
       callID: input.callID,
       agent: resolveAgent(input.sessionID),
-      agentType: resolveAgent(input.sessionID),
       event: "TOOL-AFTER",
       detail: "TASK-IDENTITY: cleaned up _dispatch_target.json",
     });
@@ -51,7 +56,9 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   const taskId = resolveTaskId(input.sessionID);
 
   writeLog("dispatch-after", "runtime", {
-    sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+    sessionID: input.sessionID,
+    callID: input.callID,
+    agent,
     event: "TOOL-AFTER",
     detail: `dispatch-complete | agentType=${input.args?.subagent_type || "?"} | taskId=${taskId}`,
   });
@@ -92,15 +99,20 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       }
       atomicWriteJson(pf, queue);
       writeLog("dispatch-after", "runtime", {
-        sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
         event: "TOOL-AFTER",
         detail: `stale-drain | removed=${stale.length} | remaining=${queue.length}`,
       });
     }
   } catch (err: any) {
     writeLog("dispatch-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-      level: "ERROR", event: "TOOL-AFTER",
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      level: "ERROR",
+      event: "TOOL-AFTER",
       detail: "stale-drain failed: " + err.message,
     });
   }
@@ -123,7 +135,9 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
             const age = now - new Date(submittedAt).getTime();
             if (age > DELIVERED_TIMEOUT_MS) {
               writeLog("dispatch-after", "WARN", {
-                sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+                sessionID: input.sessionID,
+                callID: input.callID,
+                agent,
                 event: "DELIVERED-TIMEOUT",
                 detail: `Session ${sid} in 'delivered' state for ${Math.round(age / 3600000)}h (agent: ${ses.agent}). Orchestrator: call compliance_gate_approve_deliverables to approve or reject.`,
               });

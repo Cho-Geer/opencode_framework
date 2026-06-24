@@ -152,14 +152,15 @@ export function dbEnqueueDispatch(
  *
  * Called by task-before.ts when a Task() call is intercepted.
  *
- * @param agentType  Target sub-agent type to match
- * @param sessionId  Session ID of the consumer (lease owner)
- * @param leaseTtlMs Lease TTL in ms (default 60000)
+ * @param agentType         Target sub-agent type to match
+ * @param opencodeSessionId OpenCode session ID (ses_*) of the sub-agent consumer,
+ *                          used as lease_owner. NOT a gate session (cg_ses_*).
+ * @param leaseTtlMs        Lease TTL in ms (default 60000)
  * @returns The dequeued entry, or null if nothing pending
  */
 export function dbDequeueWithLease(
   agentType: string,
-  sessionId: string,
+  opencodeSessionId: string,
   leaseTtlMs: number = DEFAULT_LEASE_TTL_MS,
 ): DispatchQueueEntry | null {
   try {
@@ -188,7 +189,7 @@ export function dbDequeueWithLease(
         `UPDATE dispatch_queue
          SET status = 'running', lease_owner = ?, lease_expiry = ?, updated_at = ?
          WHERE id = ?`,
-        [sessionId, expiry, now, row.id],
+        [opencodeSessionId, expiry, now, row.id],
       );
 
       entry = {
@@ -198,7 +199,7 @@ export function dbDequeueWithLease(
         dag_task_id: row.dag_task_id as string,
         session_id: (row.session_id as string) || null,
         prompt_ref_id: (row.prompt_ref_id as number) || null,
-        lease_owner: sessionId,
+        lease_owner: opencodeSessionId,
         lease_expiry: expiry,
         created_at: row.created_at as number,
         updated_at: now,
@@ -210,7 +211,7 @@ export function dbDequeueWithLease(
     if (entry) {
       writeLog(SRC, "INFO", {
         event: "DISPATCH-QUEUE-DEQUEUE",
-        detail: `queueId=${entry.id} agentType=${agentType} sessionId=${sessionId} leaseExpiry=${entry.lease_expiry}`,
+        detail: `queueId=${entry.id} agentType=${agentType} opencodeSessionId=${opencodeSessionId} leaseExpiry=${entry.lease_expiry}`,
       });
     }
 
@@ -218,7 +219,7 @@ export function dbDequeueWithLease(
   } catch (e: any) {
     writeLog(SRC, "ERROR", {
       event: "DISPATCH-QUEUE-DEQUEUE-FAILED",
-      detail: `agentType=${agentType} sessionId=${sessionId} err=${e.message}`,
+      detail: `agentType=${agentType} opencodeSessionId=${opencodeSessionId} err=${e.message}`,
     });
     return null;
   }
@@ -232,11 +233,15 @@ export function dbDequeueWithLease(
  * Mark a dispatch entry as consumed after successful Task() completion.
  * Called by task-after.ts when a sub-agent dispatch completes successfully.
  *
- * @param queueId   The dispatch_queue.id to mark consumed
- * @param sessionId Session ID of the sub-agent (for verification)
+ * @param queueId            The dispatch_queue.id to mark consumed
+ * @param opencodeSessionId  OpenCode session ID (ses_*) of the sub-agent.
+ *                           NOT a gate session (cg_ses_*).
  * @returns true on success, false on failure
  */
-export function dbConsumeDispatch(queueId: number, sessionId: string): boolean {
+export function dbConsumeDispatch(
+  queueId: number,
+  opencodeSessionId: string,
+): boolean {
   try {
     const db = getDb();
     const now = Date.now();
@@ -245,13 +250,13 @@ export function dbConsumeDispatch(queueId: number, sessionId: string): boolean {
       `UPDATE dispatch_queue
        SET status = 'consumed', session_id = ?, updated_at = ?
        WHERE id = ?`,
-      [sessionId, now, queueId],
+      [opencodeSessionId, now, queueId],
     );
 
     if (result.changes > 0) {
       writeLog(SRC, "INFO", {
         event: "DISPATCH-QUEUE-CONSUME",
-        detail: `queueId=${queueId} sessionId=${sessionId}`,
+        detail: `queueId=${queueId} opencodeSessionId=${opencodeSessionId}`,
       });
     } else {
       writeLog(SRC, "WARN", {
@@ -273,14 +278,14 @@ export function dbConsumeDispatch(queueId: number, sessionId: string): boolean {
 /**
  * Mark a dispatch entry as failed after unsuccessful Task() completion.
  *
- * @param queueId   The dispatch_queue.id to mark failed
- * @param sessionId Session ID of the sub-agent
- * @param errorMsg  Error message (optional)
+ * @param queueId            The dispatch_queue.id to mark failed
+ * @param opencodeSessionId  OpenCode session ID (ses_*) of the sub-agent
+ * @param errorMsg           Error message (optional)
  * @returns true on success, false on failure
  */
 export function dbFailDispatch(
   queueId: number,
-  sessionId: string,
+  opencodeSessionId: string,
   errorMsg?: string,
 ): boolean {
   try {
@@ -291,13 +296,13 @@ export function dbFailDispatch(
       `UPDATE dispatch_queue
        SET status = 'failed', session_id = ?, updated_at = ?
        WHERE id = ?`,
-      [sessionId, now, queueId],
+      [opencodeSessionId, now, queueId],
     );
 
     if (result.changes > 0) {
       writeLog(SRC, "WARN", {
         event: "DISPATCH-QUEUE-FAILED",
-        detail: `queueId=${queueId} sessionId=${sessionId} err=${errorMsg || "(none)"}`,
+        detail: `queueId=${queueId} opencodeSessionId=${opencodeSessionId} err=${errorMsg || "(none)"}`,
       });
     }
 
@@ -358,13 +363,15 @@ export function dbInsertDispatchContext(
  * Insert a dispatch attempt record. Called by task-after.ts after
  * every Task() dispatch (both success and failure).
  *
+ * @param opencodeSessionId  OpenCode session ID (ses_*) of the sub-agent.
+ *                           May be null if session is unknown.
  * @returns The inserted dispatch_attempts.id, or null on failure
  */
 export function dbInsertDispatchAttempt(
   dispatchId: number,
   attemptNumber: number,
   status: string,
-  sessionId?: string,
+  opencodeSessionId?: string,
   errorMsg?: string,
 ): number | null {
   try {
@@ -379,7 +386,7 @@ export function dbInsertDispatchAttempt(
         dispatchId,
         attemptNumber,
         status,
-        sessionId || null,
+        opencodeSessionId || null,
         errorMsg || null,
         now,
       ],

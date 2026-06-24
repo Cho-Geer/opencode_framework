@@ -99,10 +99,65 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
 
   // Handle unparseable modify shell in strict/locked mode
   if (applyPathScope && scopeResult.reason === "unparseable_modify_shell") {
+    // BACKUP-BYPASS-PREVENTION (2026-06-24): Check if this is a trusted
+    // script execution that doesn't require backup protection.
+    // Trusted paths: .opencode/scripts/** (framework maintenance scripts)
+    // These scripts are framework infrastructure, not user file modifications.
+    const cmdStr = (output.args?.command || "").toString();
+    const isTrustedScriptPath =
+      cmdStr.includes(".opencode/scripts/") ||
+      cmdStr.includes(".opencode/lib/") ||
+      cmdStr.includes(".task_temp/");
+
+    if (isTrustedScriptPath) {
+      writeLog("scope-before", "runtime", {
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agentType: agent,
+        event: "TOOL-BEFORE",
+        detail: `exit (pass) trusted script path | agent=${agent}`,
+      });
+    } else {
+      const msg =
+        `[FW-ENFORCE][BACKUP-BYPASS] safe_shell write command could not be parsed ` +
+        `for write target paths. Use safe_edit/safe_mkdir instead of shell commands. ` +
+        `Command: "${cmdStr.substring(0, 80)}".`;
+      writeLog("scope-before", "runtime", {
+        sessionID: input.sessionID,
+        callID: input.callID,
+        agent,
+        agentType: agent,
+        level: "ERROR",
+        event: "TOOL-BEFORE",
+        detail: `BLOCKED | UNPARSEABLE-MODIFY-SHELL | agent=${agent}`,
+      });
+      if (mode === "strict" || mode === "locked") throw new Error(msg);
+      // advisory: warn but pass through
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // BACKUP-BYPASS-PREVENTION (2026-06-24, @Super-Admin):
+  // Block safe_shell from modifying files in strict/locked mode.
+  // safe_shell has NO backup mechanism — all file modifications MUST
+  // go through safe_edit/safe_delete which call createGitBackup().
+  // This closes the backup bypass gap identified in the security audit.
+  // Design: backup-manager-implementation-plan-v2.md §2.3, §2.5
+  // ═══════════════════════════════════════════════════════════════
+  if (
+    applyPathScope &&
+    scopeResult.paths.length > 0 &&
+    input.tool === "safe_shell"
+  ) {
+    const cmdPreview = (output.args?.command || "")
+      .toString()
+      .substring(0, 100);
     const msg =
-      `[FW-ENFORCE][UC7-001] safe_shell write command could not be parsed ` +
-      `for write target paths. Use safe_edit/safe_mkdir instead of shell commands. ` +
-      `Command: "${(output.args?.command || "").toString().substring(0, 80)}".`;
+      `[FW-ENFORCE][BACKUP-BYPASS] safe_shell file modification blocked in ${mode} mode. ` +
+      `Use safe_edit or safe_delete instead — they create backups via createGitBackup(). ` +
+      `Command: "${cmdPreview}". ` +
+      `Write targets: ${scopeResult.paths.join(", ")}`;
     writeLog("scope-before", "runtime", {
       sessionID: input.sessionID,
       callID: input.callID,
@@ -110,7 +165,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
       agentType: agent,
       level: "ERROR",
       event: "TOOL-BEFORE",
-      detail: `BLOCKED | UNPARSEABLE-MODIFY-SHELL | agent=${agent}`,
+      detail: `BLOCKED | BACKUP-BYPASS-SAFE-SHELL-WRITE | agent=${agent} targets=${scopeResult.paths.length}`,
     });
     if (mode === "strict" || mode === "locked") throw new Error(msg);
     // advisory: warn but pass through

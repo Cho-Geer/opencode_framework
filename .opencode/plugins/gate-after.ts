@@ -16,7 +16,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
   if (isGateTool) {
     writeLog("gate-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-AFTER",
       detail: `gate-complete | tool=${input.tool}`,
     });
@@ -25,14 +25,14 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       const stale = autoDrainStaleSessions(STATE_PATHS);
       if (stale > 0) {
         writeLog("gate-after", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID, callID: input.callID, agent,
           event: "TOOL-AFTER",
           detail: `stale-drain | drained=${stale}`,
         });
       }
     } catch (err: any) {
       writeLog("gate-after", "runtime", {
-        sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+        sessionID: input.sessionID, callID: input.callID, agent,
         level: "ERROR", event: "TOOL-AFTER",
         detail: "stale-drain failed: " + err.message,
       });

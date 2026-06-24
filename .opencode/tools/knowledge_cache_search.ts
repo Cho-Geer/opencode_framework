@@ -3,30 +3,27 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { tolerantParse } from "../lib/tolerant-json";
 import {
-  getDomainEntry,
-  updateAgentRollups,
   readCacheSufficiency,
   isPipelineDeclared,
-  evictOldAgents,
-  pruneSessionAccess,
   MAX_AGENTS,
   type CacheSufficiency,
   type CacheDiscovery,
-  type PruneOptions,
-  normalizeAgentKey,
-  writeCacheDiscovery,
 } from "../lib/uc7ks-schema";
 import {
   readManifest,
   searchByTags,
+  searchByDomain,
   type KnowledgeManifest,
 } from "../lib/knowledge-store";
 import { writeLog } from "../lib/log-manager";
 const { readSubState } = require("../lib/substate-manager");
-import { atomicWriteSubState } from "../lib/state-utils";
 import { withInterruptGuard } from "../lib";
 import { incrementAuditCounter, touchCacheCheck } from "../lib/knowledge-audit";
-import { getDb } from "../lib/db-manager";
+import { checklistWirePassed } from "../lib/checklist-hooks";
+import {
+  resolvePipelineId,
+  atomicUpsertDiscovery,
+} from "../lib/uc7ks-pipeline-db";
 
 export default tool({
   description:
@@ -201,19 +198,47 @@ export default tool({
             }),
           });
         }
-      } else if (domainKeywords.length > 0) {
-        // Domain filter with keywords — use store-based tag search
+      } else {
+        // P1-2 FIX: unconditional domain-first search (no longer gated by domainKeywords length)
+        var seenEntries: Record<string, boolean> = {};
+        if (args.domain) {
+          try {
+            var domainResults = searchByDomain(args.domain);
+            for (var i = 0; i < domainResults.length; i++) {
+              var e = domainResults[i];
+              var key = e.library_id + "|" + e.query_topic;
+              if (!seenEntries[key]) {
+                seenEntries[key] = true;
+                hitEntries.push({
+                  library_id: e.library_id,
+                  topic: e.query_topic,
+                  tags: e.tags || [],
+                  cached_files: (e.files || []).map(function (f: any) {
+                    return f.path;
+                  }),
+                });
+              }
+            }
+          } catch {
+            /* non-fatal */
+          }
+        }
+        // Domain filter with keywords — use store-based tag search (fallback)
         var results = searchByTags(domainKeywords);
         for (var i = 0; i < results.length; i++) {
           var e = results[i];
-          hitEntries.push({
-            library_id: e.library_id,
-            topic: e.query_topic,
-            tags: e.tags || [],
-            cached_files: (e.files || []).map(function (f: any) {
-              return f.path;
-            }),
-          });
+          var key = e.library_id + "|" + e.query_topic;
+          if (!seenEntries[key]) {
+            seenEntries[key] = true;
+            hitEntries.push({
+              library_id: e.library_id,
+              topic: e.query_topic,
+              tags: e.tags || [],
+              cached_files: (e.files || []).map(function (f: any) {
+                return f.path;
+              }),
+            });
+          }
         }
       }
       // else: domainKeywords empty AND args.domain set → no hits
@@ -247,12 +272,15 @@ export default tool({
         discovered_at: discoveredAt,
       };
 
-      // Legacy cache_sufficiency for backward compat display only.
-      // reason/files_read/content_summary are EMPTY — must come from
-      // knowledge_cache_attest agent-submitted verification.
-      // status/missing_topics/declared_at synced from discovery for compat.
+      // FW-FIX-CHECK35 (2026-06-23, @Super-Admin): cache_sufficiency.status
+      // is now "pending_attestation" (not "sufficient") when discovery finds
+      // hits. This prevents stale pre-HARDEN entries: if attestation fails,
+      // the entry stays "pending_attestation" (not "sufficient" with empty
+      // evidence), so Check 35's hasValidEvidence() correctly skips it.
+      // knowledge_cache_attest promotes status to "sufficient" on success.
+      // discovery.status remains "sufficient" (machine-generated, accurate).
       var sufficiency: CacheSufficiency = {
-        status: cacheSufficient ? "sufficient" : "insufficient",
+        status: cacheSufficient ? "pending_attestation" : "insufficient",
         missing_topics: cacheSufficient
           ? []
           : domainKeywords.length > 0
@@ -267,207 +295,43 @@ export default tool({
         discovery: discovery,
       };
 
-      // ── Write to sub-state files via CAS (F2: nested schema + F4: atomic) ──
+      // ════════════════════════════════════════════════════════════
+      // DB-Canonical Write (v19 — uc7ks_pipeline_state, Phase 2: DB-only)
+      // The uc7ks_pipeline_state table is the sole writable data source.
+      // JSON blob (knowledge_cache_state) and v11 typed tables
+      // (knowledge_session_access, knowledge_discovery) are frozen
+      // as read-only historical snapshots.
+      // ════════════════════════════════════════════════════════════
       var uc7Recorded = false;
       try {
-        var taskId = args.task_id || "unknown";
-        var domainName = args.domain || "all";
-        var agentRef = normalizeAgentKey(agent);
-
-        // Write knowledge_cache_state
-        var cacheWriteOk = atomicWriteSubState(
-          "knowledge_cache_state",
-          function (kcs: any) {
-            kcs.session_access = kcs.session_access || {};
-            kcs.compliance = kcs.compliance || {};
-
-            // Ensure agent entry
-            var agentKey = agentRef;
-            var existing = kcs.session_access[agentRef] || {};
-            kcs.session_access[agentRef] = existing;
-
-            // Phase 0 (2026-06-18): Write discovery via helper.
-            // This writes discovery fields to the nested domain entry.
-            // Legacy sufficiency is synced for backward compat display only.
-            // uc7_001_compliant global flag is NOT set — attestation is now
-            // the authoritative write-block evidence (see uc7ks-utils.ts).
-            var domainEntry = getDomainEntry(
-              kcs.session_access,
-              agentRef,
-              taskId,
-              domainName,
-            );
-            domainEntry.pipeline_status = "completed";
-            domainEntry.declared_at = new Date().toISOString();
-            domainEntry.cache_sufficiency = sufficiency;
-            // Also write discovery explicitly via helper (ensures schema compliance)
-            writeCacheDiscovery(
-              kcs.session_access,
-              agentRef,
-              taskId,
-              domainName,
-              discovery,
-            );
-
-            // Update agent rollups (legacy + new)
-            updateAgentRollups(kcs.session_access, agentRef);
-
-            // Legacy flat fields (backward compat bridge)
-            kcs.session_access[agentRef].pipeline_task_id = taskId;
-            kcs.session_access[agentRef].declared_scope = domainName;
-            kcs.session_access[agentRef].pipeline_status = "completed";
-            kcs.session_access[agentRef].cache_sufficiency = sufficiency;
-            // Phase 0: uc7_001_compliant is no longer set by cache_search alone.
-            // Attestation via knowledge_cache_attest is now required for write-block
-            // pass in strict/locked mode. Advisory mode still accepts legacy sufficient.
-
-            // Cap management (F8: 50 agents)
-            evictOldAgents(kcs.session_access);
-
-            // P3/S85-1 + KC-03: Per-agent nested session_access pruning.
-            // Replaces broken inline LRU (which only pruned top-level agentEntries keys,
-            // missing the nested tasks[task_id].domains[domain_id] structure).
-            // Uses shared pruneSessionAccess() from uc7ks-schema.ts.
-            // Reads config thresholds from project.config.json template_resolution.
-            // KC-03 (2026-06-20): @Super-Admin — replaced inline LRU with shared helper.
-            const pruneOpts: PruneOptions = {
-              session_access_ttl_days:
-                config?.template_resolution?.[
-                  "knowledge.session_access_ttl_days"
-                ] || 30,
-              session_access_max_tasks_per_agent:
-                config?.template_resolution?.[
-                  "knowledge.session_access_max_tasks_per_agent"
-                ] || 50,
-              session_access_max_domains_per_task:
-                config?.template_resolution?.[
-                  "knowledge.session_access_max_domains_per_task"
-                ] || 8,
-              session_access_preserve_attested_days:
-                config?.template_resolution?.[
-                  "knowledge.session_access_preserve_attested_days"
-                ] || 90,
-              // KC-14: Archive pruned DB rows before deletion.
-              // Inline prune (during search) only prunes in-memory;
-              // DB-level archiving is handled by nightly-compaction.
-              archive_enabled: false,
-            };
-            const pruneResult = pruneSessionAccess(
-              kcs.session_access,
-              pruneOpts,
-              taskId,
-              domainName,
-            );
-            if (
-              pruneResult.removedTaskEntries > 0 ||
-              pruneResult.removedDomainEntries > 0 ||
-              pruneResult.removedStaleAgents > 0
-            ) {
-              writeLog("knowledge-cache-prune", "INFO", {
-                event: "KC-SESSION-ACCESS-PRUNED",
-                detail: `tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
-                task_id: taskId,
-                domain: domainName,
-              });
-            }
-
-            // Compliance rollup
-            kcs.compliance.cache_hits =
-              (kcs.compliance.cache_hits || 0) + hitEntries.length;
-          },
-        );
-
-        // Write knowledge_state
-        var stateWriteOk = atomicWriteSubState(
-          "knowledge_state",
-          function (ks: any) {
-            var newCount = totalEntries;
-            var oldCount = ks.total_docs_count || 0;
-            if (oldCount < newCount) {
-              ks.total_docs_count = newCount;
-            }
-          },
-        );
-
-        uc7Recorded = cacheWriteOk && stateWriteOk;
-      } catch (e) {
-        /* non-fatal */
-      }
-
-      // ════════════════════════════════════════════════════════════
-      // KC-12 (2026-06-21): Normalize into v11 typed tables.
-      // After writing session_access to knowledge_cache_state,
-      // also INSERT into knowledge_session_access and
-      // knowledge_discovery v11 typed tables.
-      // Non-fatal: DB failures do NOT block the search response.
-      // Uses INSERT OR IGNORE for idempotency across re-runs.
-      // ════════════════════════════════════════════════════════════
-      try {
-        var db = getDb();
-        var sessionId =
+        const sessionId =
           (typeof context !== "undefined" &&
             (context as any) &&
             (context as any).sessionID) ||
-          null;
-        var now = Date.now();
-        // A2 (v13 UPSERT): Replace INSERT OR IGNORE with UPSERT using
-        // the unique indexes added in db-manager.ts v13 migration.
-        // Monotonic status guard: status only upgraded declared→discovered.
-        // ON CONFLICT with DO UPDATE replaces silent ignore with idempotent
-        // row creation + monotonic field updates.
-        // Note: domainName is already defined above (line ~275)
-        db.run(
-          `INSERT INTO knowledge_session_access
-           (agent, task_id, domain_id, opencode_session_id, status,
-            discovered_at, declared_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 'discovered', ?, ?, ?, ?)
-           ON CONFLICT(agent, task_id, domain_id) DO UPDATE SET
-             opencode_session_id = excluded.opencode_session_id,
-             status = CASE WHEN knowledge_session_access.status = 'declared'
-                       THEN 'discovered'
-                       ELSE knowledge_session_access.status END,
-             discovered_at = CASE WHEN knowledge_session_access.discovered_at IS NULL
-                            THEN excluded.discovered_at
-                            ELSE knowledge_session_access.discovered_at END,
-             updated_at = excluded.updated_at`,
-          [agentRef, taskId, domainName, sessionId, now, now, now, now],
-        );
-        db.run(
-          `INSERT INTO knowledge_discovery
-           (session_id, agent, task_id, domain_id, result_status,
-            matched_entries, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(agent, task_id, domain_id) DO UPDATE SET
-             session_id = excluded.session_id,
-             result_status = excluded.result_status,
-             matched_entries = excluded.matched_entries,
-             created_at = excluded.created_at`,
-          [
-            sessionId,
-            agentRef,
-            taskId,
-            domainName,
-            cacheSufficient ? "sufficient" : "insufficient",
-            hitEntries.length,
-            now,
-          ],
-        );
-        writeLog("knowledge_cache_search", "INFO", {
-          event: "KC12-DB-NORMALIZE",
-          detail: "v11 knowledge_session_access + knowledge_discovery INSERTs",
-          task_id: taskId,
-          domain: domainName,
-          agent: agentRef,
-          session_id: sessionId,
-          hits: hitEntries.length,
+          undefined;
+        const pipelineId = resolvePipelineId(args, sessionId);
+        const dagTaskId = args.task_id || undefined;
+        const domainIdForDb = args.domain || "all";
+
+        uc7Recorded = atomicUpsertDiscovery({
+          pipelineId,
+          agent,
+          domainId: domainIdForDb,
+          sessionId,
+          dagTaskId,
+          discovery: {
+            status: (sufficiency.discovery?.status || sufficiency.status) as
+              | "sufficient"
+              | "insufficient",
+            discovered_files: discoveredFiles,
+            missing_topics: [],
+            discovered_at: new Date().toISOString(),
+          },
         });
-      } catch (dbErr: any) {
-        /* Non-fatal: v11 DB write failure does NOT block cache search */
+      } catch (e: any) {
         writeLog("knowledge_cache_search", "WARN", {
-          event: "KC12-DB-NORMALIZE-FAILED",
-          detail: dbErr.message || String(dbErr),
-          task_id: args.task_id,
-          domain: args.domain,
+          event: "UC7KS-DB-CANONICAL-WRITE-FAILED",
+          detail: `DB-canonical discovery write failed (non-fatal): ${e.message}`,
         });
       }
 
@@ -487,6 +351,17 @@ export default tool({
           incrementAuditCounter("total_cache_misses");
         } catch {}
       }
+
+      // P0-CHECKLIST: wire cache search success to checklist
+      try {
+        checklistWirePassed(
+          (context as any)?.sessionID || "",
+          agent,
+          args.task_id || "",
+          "knowledge_search_completed",
+          `domain=${args.domain || "all"} hits=${hitEntries.length}`,
+        );
+      } catch {}
 
       // ── F1: Response includes cache_sufficiency evidence ──
       // Phase 0 (2026-06-18): Response includes discovery (machine-generated)

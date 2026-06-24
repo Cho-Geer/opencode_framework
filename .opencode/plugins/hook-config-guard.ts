@@ -19,6 +19,10 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
 
+// Run plugin parts guard at module load time (startup validation).
+// FW-PLUGIN-PARTS-GUARD (2026-06-24 @Super-Admin)
+setTimeout(() => runPluginPartsGuard(), 0);
+
 export default withPluginLifecycle("hook-config-guard", {
   "tool.execute.before": toolExecuteBefore,
 });
@@ -53,6 +57,103 @@ const FORBIDDEN_PATTERNS: Array<{ pattern: RegExp; name: string }> = [
   },
 ];
 
+// ── Plugin source code mutation guard ────────────────────────
+// Plugins MUST NOT modify output.parts (message parts array).
+// This array is reserved for OpenCode runtime and user/LLM interaction.
+// Detected patterns indicate attempts to inject content into conversations.
+// FW-PLUGIN-PARTS-GUARD (2026-06-24 @Super-Admin)
+const PLUGIN_PARTS_MUTATION_PATTERNS: Array<{ pattern: RegExp; name: string }> = [
+  { pattern: /output\.parts\.unshift\s*\(/, name: "output.parts.unshift()" },
+  { pattern: /output\.parts\.push\s*\(/, name: "output.parts.push()" },
+  { pattern: /output\.parts\.splice\s*\(/, name: "output.parts.splice()" },
+  { pattern: /output\.parts\.pop\s*\(/, name: "output.parts.pop()" },
+  { pattern: /output\.parts\.shift\s*\(/, name: "output.parts.shift()" },
+  { pattern: /output\.parts\s*=\s*\[/, name: "output.parts = [...] (reassignment)" },
+  { pattern: /output\.parts\s*\+=/, name: "output.parts += (concatenation)" },
+];
+
+/**
+ * Scan all plugin source files for output.parts mutation patterns.
+ * Called at plugin load time and exported for framework-self-test.ts.
+ * Returns array of violations found (empty = all clean).
+ * FW-PLUGIN-PARTS-GUARD (2026-06-24 @Super-Admin)
+ */
+export function validatePluginFiles(root: string = process.cwd()): Array<{
+  file: string;
+  pattern: string;
+  line: number;
+}> {
+  const violations: Array<{ file: string; pattern: string; line: number }> = [];
+  const pluginsDir = require("path").join(root, ".opencode", "plugins");
+  const fs = require("fs");
+  const path = require("path");
+
+  // Skip the guard plugin itself — it defines the patterns, not violations.
+  const EXEMPT_FILES = new Set(["hook-config-guard.ts", "hook-config-guard.js"]);
+
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(pluginsDir);
+  } catch {
+    return violations;
+  }
+
+  for (const entry of entries) {
+    if (!entry.endsWith(".ts") && !entry.endsWith(".js")) continue;
+    if (EXEMPT_FILES.has(entry)) continue;
+    const filePath = path.join(pluginsDir, entry);
+    let content: string;
+    try {
+      content = fs.readFileSync(filePath, "utf-8");
+    } catch {
+      continue;
+    }
+
+    const lines = content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      for (const p of PLUGIN_PARTS_MUTATION_PATTERNS) {
+        if (p.pattern.test(line)) {
+          violations.push({ file: entry, pattern: p.name, line: i + 1 });
+        }
+      }
+    }
+  }
+  return violations;
+}
+
+/**
+ * Run plugin parts guard validation and log results.
+ * Called once at plugin load time.
+ */
+function runPluginPartsGuard(): void {
+  const violations = validatePluginFiles();
+  const mode = getEnforcementMode();
+
+  if (violations.length === 0) {
+    writeLog("hook-config-guard", "loaded", {
+      event: "PLUGIN-PARTS-GUARD",
+      detail: "All plugins clean — no output.parts mutations detected",
+    });
+    return;
+  }
+
+  for (const v of violations) {
+    const msg = `[FW-PLUGIN-PARTS-GUARD] Plugin ${v.file}:${v.line} contains forbidden "${v.pattern}". Plugins MUST NOT modify output.parts — this array is reserved for OpenCode runtime and user/LLM interaction. Remove the mutation or use output.context.push() in compaction hooks instead.`;
+
+    writeLog("hook-config-guard", "reject", {
+      event: "PLUGIN-PARTS-VIOLATION",
+      detail: `${v.file}:${v.line} | ${v.pattern} | mode=${mode}`,
+    });
+
+    if (mode === "strict" || mode === "locked") {
+      console.error(msg);
+    } else {
+      console.warn(`[ADVISORY] ${msg}`);
+    }
+  }
+}
+
 /**
  * Approved callers: scripts that are allowed to configure hooks.
  * Currently: install-hooks.ts (hook installation during setup).
@@ -82,7 +183,7 @@ async function toolExecuteBefore(input: any, _output: any): Promise<void> {
     writeLog("hook-config-guard", "runtime", {
       sessionID: input.sessionID,
       agent,
-      agentType: agent,
+      agent,
       event: "APPROVED_SCRIPT",
       detail: `Approved script allowed: ${cmd.substring(0, 120)}`,
     });
@@ -110,7 +211,7 @@ To use --no-verify in an emergency:
         sessionID: input.sessionID,
         callID: input.callID,
         agent,
-        agentType: agent,
+        agent,
         event: "BLOCKED",
         detail: `Blocked ${fp.name} | mode=${mode}`,
         command: cmd.substring(0, 500),

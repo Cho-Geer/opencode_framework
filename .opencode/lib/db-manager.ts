@@ -1392,6 +1392,453 @@ export function initializeSchema(db: Database): void {
       detail: `v17: ${e.message}`,
     });
   }
+
+  // ════════════════════════════════════════════════════════════
+  // v18 — P0-CHECKLIST: Add DB-canonical execution checklist
+  //   and dispatch payload integrity tables.
+  //
+  //   Tables:
+  //   1. execution_checklist_runs — tracks checklist execution
+  //      sessions per opencode session
+  //   2. execution_checklist_items — individual checklist items
+  //      within a run, with status and verification tracking
+  //   3. execution_checklist_events — event log for checklist
+  //      state transitions (audit trail)
+  //   4. dispatch_payload_integrity — normalized dispatch
+  //      payloads with SHA-256 integrity and completeness
+  //      verification
+  //
+  //   Writers:
+  //     - gate-before.ts (checklist enforcement)
+  //     - dispatch-subagent.ts (payload integrity)
+  //   Readers:
+  //     - gate-before.ts (checklist status queries)
+  //     - framework-enforcer.ts (dispatch audit)
+  //     - framework-self-test.ts (compliance verification)
+  //
+  //   @see docs/review/cicd-dag-block/p0-checklist-optimization-plan.md
+  // ════════════════════════════════════════════════════════════
+  try {
+    // 1. execution_checklist_runs
+    db.run(`
+      CREATE TABLE IF NOT EXISTS execution_checklist_runs (
+        run_id              TEXT PRIMARY KEY,
+        opencode_session_id TEXT NOT NULL,
+        parent_session_id   TEXT,
+        task_id             TEXT,
+        agent               TEXT NOT NULL,
+        domain_id           TEXT,
+        worktree            TEXT,
+        phase               TEXT NOT NULL,
+        status              TEXT NOT NULL,
+        task_payload_hash   TEXT,
+        payload_ref         TEXT,
+        created_at          INTEGER NOT NULL,
+        updated_at          INTEGER NOT NULL,
+        completed_at        INTEGER
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ecr_session
+      ON execution_checklist_runs(opencode_session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ecr_task
+      ON execution_checklist_runs(task_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ecr_agent_status
+      ON execution_checklist_runs(agent, status)`);
+
+    // 2. execution_checklist_items
+    db.run(`
+      CREATE TABLE IF NOT EXISTS execution_checklist_items (
+        item_id       TEXT PRIMARY KEY,
+        run_id        TEXT NOT NULL REFERENCES execution_checklist_runs(run_id),
+        item_key      TEXT NOT NULL,
+        phase         TEXT NOT NULL,
+        required_when TEXT NOT NULL,
+        status        TEXT NOT NULL,
+        blocking      INTEGER NOT NULL DEFAULT 1,
+        verifier      TEXT NOT NULL,
+        evidence_ref  TEXT,
+        fail_reason   TEXT,
+        remediation   TEXT,
+        created_at    INTEGER NOT NULL,
+        updated_at    INTEGER NOT NULL,
+        UNIQUE(run_id, item_key)
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_eci_run_status
+      ON execution_checklist_items(run_id, status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_eci_item
+      ON execution_checklist_items(item_key)`);
+
+    // 3. execution_checklist_events
+    db.run(`
+      CREATE TABLE IF NOT EXISTS execution_checklist_events (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id       TEXT NOT NULL,
+        item_id      TEXT,
+        event_type   TEXT NOT NULL,
+        actor        TEXT,
+        tool_name    TEXT,
+        old_status   TEXT,
+        new_status   TEXT,
+        evidence_ref TEXT,
+        message      TEXT,
+        created_at   INTEGER NOT NULL
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ece_run_created
+      ON execution_checklist_events(run_id, created_at)`);
+
+    // 4. dispatch_payload_integrity
+    db.run(`
+      CREATE TABLE IF NOT EXISTS dispatch_payload_integrity (
+        payload_id          TEXT PRIMARY KEY,
+        dispatch_ref_id     TEXT,
+        parent_session_id   TEXT,
+        agent_type          TEXT NOT NULL,
+        dag_task_id         TEXT,
+        task_description    TEXT NOT NULL,
+        normalized_payload  TEXT NOT NULL,
+        sha256              TEXT NOT NULL,
+        completeness_status TEXT NOT NULL,
+        completeness_error  TEXT,
+        prompt_path         TEXT,
+        created_at          INTEGER NOT NULL
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dpi_session
+      ON dispatch_payload_integrity(parent_session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dpi_task
+      ON dispatch_payload_integrity(dag_task_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dpi_status
+      ON dispatch_payload_integrity(completeness_status)`);
+
+    // Schema version record
+    db.run(
+      `
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (18, ?, 'P0-CHECKLIST: add DB-canonical execution checklist and dispatch payload integrity tables')
+    `,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v18: execution_checklist_runs/items/events + dispatch_payload_integrity tables + indexes created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v18: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v19 — UC7KS Pipeline DB-Canonical
+  //   Replaces substate_kv JSON blob + knowledge_discovery +
+  //   knowledge_attestation row tables with a single unified table.
+  //
+  //   Table: uc7ks_pipeline_state
+  //   Unique key: (pipeline_id, agent, domain_id)
+  //   Concurrency: SQLite UNIQUE + UPSERT (row-level lock)
+  //
+  //   Writers:
+  //     - knowledge_cache_search.ts (discovery phase)
+  //     - knowledge_cache_attest.ts (attestation phase)
+  //   Readers:
+  //     - knowledge_cache_attest.ts (read discovery for verification)
+  //     - uc7ks-utils.ts checkUC7KSWrite (write gate)
+  //     - framework-self-test.ts (compliance verification)
+  //
+  //   @see docs/review/framework-refactor/uc7ks-pipeline-db-canonical-design.md
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS uc7ks_pipeline_state (
+        id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        -- ── 复合唯一键（并发隔离边界）──
+        pipeline_id             TEXT NOT NULL,
+        agent                   TEXT NOT NULL,
+        domain_id               TEXT NOT NULL,
+
+        -- ── 会话关联 ──
+        session_id              TEXT,
+        dag_task_id             TEXT,
+
+        -- ── 发现阶段（knowledge_cache_search 写入）──
+        discovery_status        TEXT DEFAULT 'undeclared',
+        discovered_files        TEXT DEFAULT '[]',
+        discovered_count        INTEGER DEFAULT 0,
+        missing_topics          TEXT DEFAULT '[]',
+        discovered_at           INTEGER,
+
+        -- ── 验证阶段（knowledge_cache_attest 写入）──
+        attestation_status      TEXT DEFAULT 'unattested',
+        cache_sufficient        INTEGER DEFAULT 0,
+        files_read              TEXT DEFAULT '[]',
+        evidence_file_count     INTEGER DEFAULT 0,
+        content_summary         TEXT DEFAULT '',
+        attested_at             INTEGER,
+
+        -- ── 元数据 ──
+        created_at              INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+        updated_at              INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+
+        UNIQUE(pipeline_id, agent, domain_id)
+      )
+    `);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_agent
+      ON uc7ks_pipeline_state(agent)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_session
+      ON uc7ks_pipeline_state(session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_domain
+      ON uc7ks_pipeline_state(domain_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_attestation
+      ON uc7ks_pipeline_state(attestation_status, domain_id)
+      WHERE attestation_status != 'unattested'`);
+
+    db.run(
+      `
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (19, ?, 'UC7KS Pipeline DB-Canonical: uc7ks_pipeline_state table (replaces JSON blob + knowledge_discovery + knowledge_attestation)')
+    `,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v19: uc7ks_pipeline_state table + indexes created (DB-canonical UC7KS pipeline)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v19: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v20 — Phase 3 Cleanup: Drop legacy knowledge tables.
+  //   Replaced by uc7ks_pipeline_state (v19).
+  //   Tables dropped:
+  //     - knowledge_session_access (v11)
+  //     - knowledge_discovery (v11)
+  //     - knowledge_attestation (v11)
+  //   (knowledge_session_access_archive and knowledge_entries remain)
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`DROP TABLE IF EXISTS knowledge_session_access`);
+    db.run(`DROP TABLE IF EXISTS knowledge_discovery`);
+    db.run(`DROP TABLE IF EXISTS knowledge_attestation`);
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (20, ?, 'Phase 3 Cleanup: drop knowledge_session_access/knowledge_discovery/knowledge_attestation — replaced by uc7ks_pipeline_state (v19)')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v20: dropped legacy knowledge tables (replaced by uc7ks_pipeline_state)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v20: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v21: V7.2-FIX — Add opencode_session_id to gate_sessions.
+  //      Fixes bug where compliance-gate calls checklistWirePassed()
+  //      with gateSessionId (cg_ses_*) instead of OpenCode session ID
+  //      (ses_*), causing gate facts to be written to the wrong
+  //      checklist run — the run keyed by cg_ses_* is never read
+  //      by any agent.
+  //
+  //      Design: Column is nullable TEXT — backward compatible.
+  //      When NULL, checklistWirePassed falls back to gateSessionId
+  //      with a WARNING log.
+  // ════════════════════════════════════════════════════════════
+  try {
+    const gateCols = db
+      .query("PRAGMA table_info(gate_sessions)")
+      .all() as Array<{ name: string }>;
+    const gateColNames = new Set(gateCols.map((c) => c.name));
+
+    if (!gateColNames.has("opencode_session_id")) {
+      db.run(
+        "ALTER TABLE gate_sessions ADD COLUMN opencode_session_id TEXT DEFAULT NULL",
+      );
+    }
+
+    db.run(
+      `
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (21, ?, 'V7.2-FIX: add opencode_session_id to gate_sessions for correct checklist run wiring')
+    `,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v21: opencode_session_id column added to gate_sessions",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v21: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v22 — OPT-09 (2026-06-23): UC7KS pipeline index optimization.
+  //   Adds covering indexes for high-frequency query patterns:
+  //   1. idx_uc7ks_agent_domain: (agent, domain_id) — used by
+  //      uc7ks-utils.ts to check attestation status by agent+domain.
+  //   2. idx_uc7ks_dag_task: (dag_task_id) WHERE NOT NULL —
+  //      used by resolvePipelineId to find pipeline rows by dagTaskId.
+  //   Existing UNIQUE(pipeline_id, agent, domain_id) remains as PK.
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_uc7ks_agent_domain ON uc7ks_pipeline_state(agent, domain_id)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_uc7ks_dag_task ON uc7ks_pipeline_state(dag_task_id) WHERE dag_task_id IS NOT NULL`,
+    );
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (22, ?, 'OPT-09: UC7KS pipeline index optimization — idx_uc7ks_agent_domain + idx_uc7ks_dag_task (partial)')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v22: UC7KS pipeline covering indexes added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v22: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v23 — OPT-06 (2026-06-24): DROP dispatch_context table.
+  //   dispatch_context was a write-only table (dbInsertDispatchContext
+  //   inserted rows but no code ever SELECTed from it). session_map DB
+  //   is the canonical source for dispatch context. The call to
+  //   dbInsertDispatchContext was removed from task-after.ts.
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`DROP TABLE IF EXISTS dispatch_context`);
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (23, ?, 'OPT-06: DROP dispatch_context table — write-only dead table, session_map is canonical')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v23: dispatch_context table dropped (OPT-06)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v23: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v24 — FW-SESSION-MODEL-IDENTITY (2026-06-24): Add model_id to session_map.
+  //   Stores the LLM model identifier (e.g. "deepseek/deepseek-v4-pro")
+  //   alongside the session agent mapping. Enables round-start agent/model
+  //   identification logging and audit trail of which model served each
+  //   conversation round.
+  //
+  //   Populated by session.ts chatMessageHook at every chat.message event.
+  //   Model resolved from opencode.json agent configuration.
+  //
+  //   Subsystems: Log Central Management, DB-canonical, Central State Mgmt,
+  //               Multi-Agent, Framework Harness
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`ALTER TABLE session_map ADD COLUMN model_id TEXT DEFAULT NULL`);
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (24, ?, 'FW-SESSION-MODEL-IDENTITY: add model_id to session_map')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v24: model_id column added to session_map",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v24: ${e.message}`,
+    });
+  }
+
+  // ============================================================
+  // v25 - BACKUP-MANAGER (2026-06-24): backup_log table.
+  // FIX: Use db.run() per statement (not db.exec with multi-statement).
+  // bun:sqlite db.exec() silently fails on multi-statement CREATE.
+  // Each statement must be executed individually via db.run().
+  // ============================================================
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS backup_log (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid            TEXT NOT NULL UNIQUE,
+        timestamp       TEXT NOT NULL,
+        event           TEXT NOT NULL,
+        agent           TEXT DEFAULT 'unknown',
+        session_id      TEXT,
+        dag_task_id     TEXT,
+        dag_session_id  TEXT,
+        task_id         TEXT,
+        reason          TEXT NOT NULL,
+        original_file_path TEXT NOT NULL,
+        backup_file_path   TEXT NOT NULL,
+        git_commit      TEXT,
+        file_size       INTEGER DEFAULT 0,
+        file_hash       TEXT,
+        cleanup_time    TEXT,
+        cleanup_reason  TEXT,
+        status          TEXT DEFAULT 'active'
+      )
+    `);
+    db.run("CREATE INDEX IF NOT EXISTS idx_backup_uuid ON backup_log(uuid)");
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_file ON backup_log(original_file_path)",
+    );
+    db.run("CREATE INDEX IF NOT EXISTS idx_backup_agent ON backup_log(agent)");
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_session ON backup_log(session_id)",
+    );
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_dag ON backup_log(dag_task_id)",
+    );
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_status ON backup_log(status)",
+    );
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_time ON backup_log(timestamp)",
+    );
+    db.run("CREATE INDEX IF NOT EXISTS idx_backup_event ON backup_log(event)");
+    db.run(
+      "INSERT OR IGNORE INTO schema_version (version, applied_at, comment) VALUES (25, ?, 'BACKUP-MANAGER: backup_log table (db.run fix)')",
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v25: backup_log table + indexes created (db.run per-statement fix)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-SCHEMA-MIGRATION-FAILED",
+      detail: `v25 backup_log creation failed: ${e.message}`,
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════

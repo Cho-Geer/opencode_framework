@@ -6,19 +6,24 @@ import { isModifyTool, getModifyPath } from "../lib/tool-scope";
 import { isSourceFile } from "../lib/state-utils";
 import { atomicWriteSubState } from "../lib/state-utils";
 
-export default withPluginLifecycle("audit-after", { "tool.execute.after": toolExecuteAfter });
+export default withPluginLifecycle("audit-after", {
+  "tool.execute.after": toolExecuteAfter,
+});
 
 async function toolExecuteAfter(input: any, output: any): Promise<void> {
   if (!isModifyTool(input.tool)) return;
 
   // after-hook: args live in input.args
   const filePath = getModifyPath(input.args || {});
-  if (!filePath || !isSourceFile(filePath)) return;
+  if (!filePath) return;
+  if (input.tool !== "safe_delete" && !isSourceFile(filePath)) return;
 
   const agent = resolveAgent(input.sessionID);
 
   writeLog("audit-after", "runtime", {
-    sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+    sessionID: input.sessionID,
+    callID: input.callID,
+    agent,
     event: "TOOL-AFTER",
     detail: `audit-track | tool=${input.tool} | file=${filePath}`,
   });
@@ -42,8 +47,11 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     });
   } catch (err: any) {
     writeLog("audit-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
-      level: "ERROR", event: "TOOL-AFTER",
+      sessionID: input.sessionID,
+      callID: input.callID,
+      agent,
+      level: "ERROR",
+      event: "TOOL-AFTER",
       detail: "audit-state update failed: " + err.message,
     });
   }

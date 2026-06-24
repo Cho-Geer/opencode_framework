@@ -135,7 +135,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
   if (!isTddAgent(agent)) {
     writeLog("tdd-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-AFTER",
       detail: "exit (skip) non-coder agent",
     });
@@ -144,7 +144,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
 
   if (!isTddTool(input.tool)) {
     writeLog("tdd-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-AFTER",
       detail: `exit (skip) non-tdd tool: ${input.tool}`,
     });
@@ -154,7 +154,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   const fp = getModifyPath(input.args || {});
   if (!isBusinessSourceFile(fp)) {
     writeLog("tdd-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-AFTER",
       detail: `exit (skip) non-business file: ${fp || "(none)"}`,
     });
@@ -188,13 +188,13 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   if (isTest) {
     if (diffResult.hasChanges) {
       writeLog("tdd-after", "runtime", {
-        sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+        sessionID: input.sessionID, callID: input.callID, agent,
         event: "TOOL-AFTER",
         detail: `verified test file | ${fp} | ${diffSummary(diffResult)}`,
       });
     } else {
       writeLog("tdd-after", "runtime", {
-        sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+        sessionID: input.sessionID, callID: input.callID, agent,
         level: "WARN",
         event: "TOOL-AFTER",
         detail: `shallow-test warning | ${fp} | no content changes detected`,
@@ -202,7 +202,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
     }
   } else {
     writeLog("tdd-after", "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+      sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-AFTER",
       detail: `diff evidence captured | ${fp} | ${diffSummary(diffResult)}`,
     });
@@ -211,7 +211,7 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
       const tddState = readSubState("tdd_enforcement_state");
       if (tddState?.current_session?.test_written && hasOnlyShallowTests(tddState)) {
         writeLog("tdd-after", "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent, agentType: agent,
+          sessionID: input.sessionID, callID: input.callID, agent,
           level: "WARN",
           event: "TOOL-AFTER",
           detail: `shallow-test circumvention detected | impl=${fp} | test files have no real changes`,

@@ -139,26 +139,25 @@ async function archiveOldDAGTasks() {
 }
 
 // SA-IMPL-BACKUP-LIFECYCLE: Nightly backup cleanup step.
-// Uses cleanupStaleBackups() from safe-edit-core.ts to remove backups older than
-// TTL (default 7 days) and enforce per-directory count caps (default 20).
+// Uses backup-manager.ts to remove backups older than TTL (default 7 days).
+// No count cap — TTL-only cleanup.
 async function cleanupStaleBackupsStep() {
   const stepName = "backup-cleanup";
   try {
-    const { cleanupStaleBackups } = await import("../lib/safe-edit-core.ts");
+    const { cleanupStaleBackups } = await import("../lib/backup-manager");
     const ttlDays = 7;
-    const maxPerDir = 20;
     const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
 
     if (DRY_RUN) {
       log(
-        `[${stepName}] Would scan all .opencode_backups/ [TTL=${ttlDays}d, cap=${maxPerDir}] — DRY-RUN`,
+        `[${stepName}] Would scan backup_log table [TTL=${ttlDays}d] — DRY-RUN`,
       );
       return;
     }
 
-    const result = cleanupStaleBackups(PROJECT_ROOT, ttlMs, maxPerDir, true);
+    const result = cleanupStaleBackups(ttlMs);
     log(
-      `[${stepName}] Scanned ${result.dirs} dirs, ${result.scanned} files, deleted ${result.deleted}`,
+      `[${stepName}] Scanned ${result.scanned} records, deleted ${result.deleted}`,
     );
   } catch (err) {
     log(
@@ -352,6 +351,114 @@ async function dbMaintenanceStep() {
   }
 }
 
+/**
+ * OPT-10 (2026-06-23): Nightly log archiving.
+ * Archives log files older than 7 days or larger than 10MB
+ * to .task_temp/_logs/archive/{YYYY-MM-DD}/.
+ */
+async function logArchiveStep(): Promise<void> {
+  const stepName = "Log Archive";
+  const LOG_DIR = join(process.env.OPENCODE_ROOT || ".", ".opencode", "logs");
+  const TEMP_LOG_DIR = join(
+    process.env.OPENCODE_ROOT || ".",
+    ".task_temp",
+    "_logs",
+  );
+  const ARCHIVE_ROOT = join(
+    process.env.OPENCODE_ROOT || ".",
+    ".task_temp",
+    "_logs",
+    "archive",
+  );
+  const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+  const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+  const now = Date.now();
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const archiveDir = join(ARCHIVE_ROOT, today);
+    let archivedCount = 0;
+
+    for (const logDir of [LOG_DIR, TEMP_LOG_DIR]) {
+      if (!existsSync(logDir)) continue;
+      try {
+        for (const entry of readdirSync(logDir)) {
+          if (!entry.endsWith(".log")) continue;
+          const fullPath = join(logDir, entry);
+          try {
+            const st = statSync(fullPath);
+            const age = now - st.mtimeMs;
+            if (age > MAX_AGE_MS || st.size > MAX_SIZE_BYTES) {
+              if (!existsSync(archiveDir))
+                mkdirSync(archiveDir, { recursive: true });
+              const archivePath = join(archiveDir, entry);
+              renameSync(fullPath, archivePath);
+              archivedCount++;
+              writeLog(NC_SRC, "INFO", {
+                event: "LOG-ARCHIVED",
+                detail: `${entry} → archive/${today}/${entry} (age=${Math.round(age / 86400000)}d, size=${Math.round(st.size / 1024)}KB)`,
+              });
+            }
+          } catch {
+            /* skip unreadable files */
+          }
+        }
+      } catch {
+        /* skip unreadable dirs */
+      }
+    }
+    log(`[${stepName}] ${archivedCount} log files archived to ${today}/`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`[${stepName}] ERROR: ${msg}`);
+    writeLog(NC_SRC, "ERROR", { event: "LOG-ARCHIVE-FAILED", detail: msg });
+  }
+}
+
+/**
+ * OPT-P1 (2026-06-24): Cleanup stale ctx/ files from .task_temp/_dispatch/ctx/.
+ * Removes per-dispatch context files older than 24 hours that were left behind
+ * by task-after.ts when sub-agents failed or checklist blocked cleanup.
+ */
+async function cleanupStaleCtxFiles(): Promise<void> {
+  const stepName = "Ctx Cleanup";
+  const CTX_DIR = join(
+    process.env.OPENCODE_ROOT || ".",
+    ".task_temp",
+    "_dispatch",
+    "ctx",
+  );
+  const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  let removedCount = 0;
+
+  try {
+    if (!existsSync(CTX_DIR)) return;
+    for (const entry of readdirSync(CTX_DIR)) {
+      if (!entry.endsWith(".json")) continue;
+      const fullPath = join(CTX_DIR, entry);
+      try {
+        const st = statSync(fullPath);
+        if (now - st.mtimeMs > MAX_AGE_MS) {
+          rmSync(fullPath);
+          removedCount++;
+          writeLog(NC_SRC, "INFO", {
+            event: "CTX-CLEANUP",
+            detail: `${entry} removed (age=${Math.round((now - st.mtimeMs) / 3600000)}h)`,
+          });
+        }
+      } catch {
+        /* skip */
+      }
+    }
+    log(`[${stepName}] ${removedCount} stale ctx/ files removed`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`[${stepName}] ERROR: ${msg}`);
+    writeLog(NC_SRC, "ERROR", { event: "CTX-CLEANUP-FAILED", detail: msg });
+  }
+}
+
 async function main() {
   log(`Nightly Compaction — ${TODAY} ${DRY_RUN ? "(DRY-RUN)" : ""}`);
   log("");
@@ -376,9 +483,15 @@ async function main() {
   await dbMaintenanceStep();
   log("");
 
+  // OPT-10 (2026-06-23): Nightly log archiving — auto-archive logs >7 days or >10MB.
+  await logArchiveStep();
+  log("");
+
+  // OPT-P1 (2026-06-24): Cleanup stale per-dispatch ctx/ files (>24h)
+  await cleanupStaleCtxFiles();
+  log("");
+
   log("Nightly compaction complete.");
-  // Output metrics
-  const hotFile = join(STATE_DIR, "gate-state.json");
   if (existsSync(hotFile)) {
     const hot = JSON.parse(readFileSync(hotFile, "utf8"));
     log(

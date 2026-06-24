@@ -12,6 +12,7 @@ skills:
   - context7-first
   - customize-opencode
 mcp_tools:
+  - checklist_status
   # UC7-009 HARDEN: ALL external queries routed via @Knowledge-Curator.
   # webfetch/websearch/Github REMOVED — dispatch @Knowledge-Curator instead.
   # FW-DISPATCH-BYPASS: Super-Admin may dispatch @Knowledge-Curator directly

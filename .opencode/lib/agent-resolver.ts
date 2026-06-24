@@ -62,7 +62,9 @@ function _findChildDagTaskId(): string | null {
               fs.readFileSync(path.join(ctxDir, file), "utf8"),
             );
             if (ctx?.dagTaskId) {
-              const childSlot = dbReadSessionMap("dispatch:child:" + ctx.dagTaskId);
+              const childSlot = dbReadSessionMap(
+                "dispatch:child:" + ctx.dagTaskId,
+              );
               if (childSlot?.domain_id) {
                 return ctx.dagTaskId;
               }
@@ -72,14 +74,9 @@ function _findChildDagTaskId(): string | null {
       }
     }
   } catch {}
-  // Fall back to .dispatch_ctx (legacy)
-  try {
-    const ctxPath = path.join(dispatchDir, ".dispatch_ctx");
-    if (fs.existsSync(ctxPath)) {
-      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      if (ctx?.dagTaskId) return ctx.dagTaskId;
-    }
-  } catch {}
+  // OPT-02 (2026-06-23): DB-canonical — legacy .dispatch_ctx fallback removed.
+  // All dispatch context now flows through session_map DB (primary).
+  // Per-dispatch ctx/{dagTaskId}.json files are the isolated fallback.
   return null;
 }
 
@@ -126,56 +123,35 @@ export function resolveAgent(sessionID?: string): string {
     }
   }
 
-  // 2) _dispatch_target.json — fallback. CAUTION: single shared file,
-  //    race condition when multiple Task() dispatches run in parallel.
-  //    Only used when session map misses (rare — old entries evicted
-  //    from 50-entry cap, or chatMessageHook hasn't fired yet).
-  try {
-    const p = path.join(
-      process.env.OPENCODE_ROOT || ".",
-      ".task_temp",
-      "_dispatch_target.json",
-    );
-    if (fs.existsSync(p)) {
-      const d = JSON.parse(fs.readFileSync(p, "utf8"));
-      const currentRunId = process.env.OPENCODE_RUN_ID || "";
-      if (currentRunId) {
-        // P0-7: Use run_id comparison when OPENCODE_RUN_ID is available
-        if (!d.run_id || d.run_id !== currentRunId) {
-          try {
-            fs.unlinkSync(p);
-          } catch {}
-          // stale dispatch, fall through
-        } else if (d.agent) {
-          writeLog(SRC, "INFO", {
-            event: "AGENT-RESOLVED-DISPATCH",
-            agent: d.agent,
-            detail: `resolveAgent: dispatch target → ${d.agent}`,
-          });
-          return d.agent.startsWith("@") ? d.agent : `@${d.agent}`;
-        }
-      } else {
-        // P0-7 FALLBACK: Timestamp-based staleness when OPENCODE_RUN_ID
-        // is unset. _dispatch_target.json older than 30 min → stale.
-        const STALE_MS = 30 * 60 * 1000;
-        const mtime = fs.statSync(p).mtimeMs;
-        if (Date.now() - mtime > STALE_MS) {
-          try {
-            fs.unlinkSync(p);
-          } catch {}
-          // stale dispatch, fall through
-        } else if (d.agent) {
-          writeLog(SRC, "INFO", {
-            event: "AGENT-RESOLVED-DISPATCH",
-            agent: d.agent,
-            detail: `resolveAgent: dispatch target → ${d.agent}`,
-          });
-          return d.agent.startsWith("@") ? d.agent : `@${d.agent}`;
-        }
-      }
-    }
-  } catch {}
+  // OPT-07 (2026-06-23): agent-resolver fallback chain simplified.
+  // _dispatch_target.json fallback removed — it was a single shared file
+  // with cross-dispatch overwrite races. Resolution now: session_map DB →
+  // FRAMEWORK_AGENT env var → ERROR.
 
+  // 3) FRAMEWORK_AGENT env var — last-resort fallback (V1.4 FIX, 2026-06-23).
+  //    When all resolution paths above fail, use the FRAMEWORK_AGENT
+  //    environment variable (set by dispatch-subagent.ts before spawning
+  //    the sub-agent process). This prevents resolveAgent from returning "",
+  //    which causes scope-before.ts to skip write-scope enforcement (V6.1)
+  //    and 9+ plugins to operate with empty agent identity (V1.4).
+  const frameworkAgent = process.env.FRAMEWORK_AGENT || "";
+  if (frameworkAgent) {
+    writeLog(SRC, "WARN", {
+      event: "AGENT-RESOLVED-FRAMEWORK-FALLBACK",
+      agent: frameworkAgent,
+      detail: `resolveAgent: FRAMEWORK_AGENT fallback → ${frameworkAgent} (session_map and dispatch_target both missed)`,
+    });
+    return frameworkAgent.startsWith("@")
+      ? frameworkAgent
+      : `@${frameworkAgent}`;
+  }
+
+  // 4) Absolute last resort — no identity available.
+  //    V1.4 FIX: Log ERROR so this silent identity gap is visible in audits.
+  writeLog(SRC, "ERROR", {
+    event: "AGENT-RESOLUTION-FAILED",
+    detail: `resolveAgent: ALL sources exhausted (session_map, dispatch_target, FRAMEWORK_AGENT) — returning ""`,
+  });
   return "";
 }
 
@@ -237,32 +213,10 @@ export function writeDispatchCtx(
       detail: `Per-dispatch context written: ctx/${dagTaskId}.json`,
     });
 
-    // §3.3: Dual-write legacy .dispatch_ctx for backward compatibility.
-    // The per-dispatch ctx/{dagTaskId}.json is the new race-free format,
-    // but existing consumers (gate-core.ts, dispatch-subagent.ts fallback,
-    // task-after.ts) still read the shared .dispatch_ctx singleton.
-    // Phase 1: write BOTH. Phase 2: migrate readers, then remove this block.
-    const legacyCtxPath = path.join(
-      process.env.OPENCODE_ROOT || ".",
-      ".task_temp",
-      "_dispatch",
-      ".dispatch_ctx",
-    );
-    fs.writeFileSync(
-      legacyCtxPath,
-      JSON.stringify({
-        dagTaskId,
-        agentType,
-        domainId: domainId || null,
-        createdAt: Date.now(),
-      }),
-    );
-    writeLog(SRC, "INFO", {
-      event: "DISPATCH-CTX-LEGACY-WRITE",
-      dagTaskId,
-      agentType,
-      detail: "Legacy .dispatch_ctx dual-write for backward compat (§3.3)",
-    });
+    // OPT-02 (2026-06-23): DB-canonical — legacy .dispatch_ctx dual-write removed.
+    // All consumers now read from session_map DB (primary) or per-dispatch
+    // ctx/{dagTaskId}.json files (race-free). The shared .dispatch_ctx singleton
+    // caused cross-dispatch overwrite races and is no longer needed.
   } catch (e: any) {
     // Best-effort; never block dispatch
     writeLog(SRC, "ERROR", {
@@ -290,11 +244,10 @@ export interface ResolvedWithSource<T> {
     | "ctx_single" // Single ctx/ file — likely this session's dispatch
     | "ctx_exact" // Multiple ctx/ files, exact dagTaskId match found
     | "ctx_newest" // Multiple ctx/ files, picked newest (ambiguous!)
-    | "dispatch_ctx" // Legacy .dispatch_ctx singleton (race condition!)
-    | "dispatch_target" // Legacy _dispatch_target.json (even less reliable)
     | "child_slot" // dispatch:child:{dagTaskId} synthetic slot
     | "ctx_ambiguous" // Multiple ctx/ files, no exact match (returned null)
     | "none"; // No resolution — returned empty/null
+  // OPT-02 (2026-06-23): dispatch_ctx and dispatch_target removed.
 }
 
 /** Resolve task ID from session_map DB, per-dispatch ctx/ files, .dispatch_ctx, or _dispatch_target.json
@@ -429,41 +382,14 @@ export function resolveTaskIdWithSource(
     });
   }
 
-  // Priority 3: .dispatch_ctx file (legacy fallback, subject to race condition
-  // with concurrent dispatches but preserved for backward compatibility)
-  try {
-    const ctxPath = path.join(
-      process.env.OPENCODE_ROOT || ".",
-      ".task_temp",
-      "_dispatch",
-      ".dispatch_ctx",
-    );
-    if (fs.existsSync(ctxPath)) {
-      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      if (ctx && ctx.dagTaskId) {
-        writeLog(SRC, "WARN", {
-          event: "DISPATCH-CTX-FALLBACK",
-          dagTaskId: ctx.dagTaskId,
-          detail: `resolveTaskIdWithSource: LEGACY .dispatch_ctx fallback → ${ctx.dagTaskId}`,
-        });
-        return { value: ctx.dagTaskId, resolved_from: "dispatch_ctx" };
-      }
-    }
-  } catch {}
-
-  // Priority 4: _dispatch_target.json (legacy, no longer written)
-  try {
-    const p = path.join(
-      process.env.OPENCODE_ROOT || ".",
-      ".task_temp",
-      "_dispatch_target.json",
-    );
-    if (fs.existsSync(p)) {
-      const d = JSON.parse(fs.readFileSync(p, "utf8"));
-      if (d.task_id)
-        return { value: d.task_id, resolved_from: "dispatch_target" };
-    }
-  } catch {}
+  // OPT-02 (2026-06-23): DB-canonical — legacy .dispatch_ctx and _dispatch_target.json fallbacks removed.
+  // All dispatch context now flows through session_map DB (Priority 1) and
+  // per-dispatch ctx/{dagTaskId}.json files (Priority 2). The shared singleton
+  // files caused cross-dispatch overwrite races and are no longer written or read.
+  writeLog(SRC, "INFO", {
+    event: "TASKID-RESOLUTION-FAILED",
+    detail: `resolveTaskIdWithSource: ALL sources exhausted (session_map, child_slot, ctx/) — returning none`,
+  });
   return { value: "", resolved_from: "none" };
 }
 
@@ -619,27 +545,9 @@ export function resolveDomainIdWithSource(
     });
   }
 
-  // Priority 3: .dispatch_ctx file (legacy fallback, subject to race)
-  try {
-    const ctxPath = path.join(
-      process.env.OPENCODE_ROOT || ".",
-      ".task_temp",
-      "_dispatch",
-      ".dispatch_ctx",
-    );
-    if (fs.existsSync(ctxPath)) {
-      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      if (ctx && ctx.domainId) {
-        writeLog(SRC, "WARN", {
-          event: "DISPATCH-CTX-FALLBACK-DOMAIN",
-          domainId: ctx.domainId,
-          detail: `resolveDomainIdWithSource: LEGACY .dispatch_ctx fallback → ${ctx.domainId}`,
-        });
-        return { value: ctx.domainId, resolved_from: "dispatch_ctx" };
-      }
-    }
-  } catch {}
-
+  // OPT-02 (2026-06-23): DB-canonical — legacy .dispatch_ctx fallback removed.
+  // Domain resolution now relies exclusively on session_map DB (Priority 1),
+  // child slots (Priority 1.5), and per-dispatch ctx/{dagTaskId}.json files (Priority 2).
   return { value: null, resolved_from: "none" };
 }
 

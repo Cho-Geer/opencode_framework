@@ -13,6 +13,7 @@ skills:
   - context7-first
   - cicd-database-seeding
 mcp_tools:
+  - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
   # M14 (2026-06-19): dispatch_subagent for direct @Knowledge-Curator dispatch
   - dispatch_subagent
@@ -33,6 +34,7 @@ mcp_tools:
   - compliance_gate_complete
   - resolve_domain_id
   - knowledge_cache_attest
+  - todowrite
 # Hardened: safe_edit, safe_shell, safe_test only — native edit denied
 permission:
   edit: deny

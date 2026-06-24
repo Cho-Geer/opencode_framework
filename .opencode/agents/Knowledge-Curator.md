@@ -17,6 +17,7 @@ skills:
   - context7-first
   - spreadsheet-processor
 mcp_tools:
+  - checklist_status
   - context7_resolve-library-id
   - context7_query-docs
   - webfetch

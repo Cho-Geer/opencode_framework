@@ -11,6 +11,7 @@ skills:
   - context7-first
   - new-asset-integrator
 mcp_tools:
+  - checklist_status
   # Context7 denied per UC7-004 — route via @Knowledge-Curator
   - dispatch_subagent
   - compliance_gate_*

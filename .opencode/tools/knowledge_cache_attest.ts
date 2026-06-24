@@ -1,28 +1,26 @@
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { readSubState } from "../lib/substate-manager";
-import {
-  readCacheDiscovery,
-  writeCacheAttestation,
-  type CacheDiscovery,
-  type CacheAttestation,
-  normalizeAgentKey,
-} from "../lib/uc7ks-schema";
-import { atomicWriteSubState } from "../lib/state-utils";
+import { normalizeAgentKey } from "../lib/uc7ks-schema";
 import { withInterruptGuard } from "../lib";
 import { writeLog } from "../lib/log-manager";
+import { checklistWirePassed } from "../lib/checklist-hooks";
 import {
   getReadEventsForSession,
   normalizeReadAuditPath,
 } from "../lib/read-audit";
 import { incrementAuditCounter } from "../lib/knowledge-audit";
+import {
+  resolvePipelineId,
+  readDiscoveryForAttest,
+  atomicUpsertAttestation,
+} from "../lib/uc7ks-pipeline-db";
 import { readManifest, searchByDomain } from "../lib/knowledge-store";
-import { getDb } from "../lib/db-manager";
 
 const SRC = "knowledge-cache-attest";
 
 // ── Helpers ────────────────────────────────────────────────────
+// BUN-CACHE-VERSION: 2026-06-23T11:06:00Z — force Bun recompilation
 // Path normalization and audit log access now uses shared API:
 //   normalizeReadAuditPath() + getReadEventsForSession() from ../lib/read-audit
 // These replaced the previous inline readAuditLog() and normalizePathForAudit()
@@ -61,7 +59,7 @@ export default tool({
       var agent = (context && context.agent) || "unknown";
       var sessionId = (context && context.sessionID) || "";
       var agentRef = normalizeAgentKey(agent);
-      var domain = args.domain;
+      var domainId = args.domain;
       var taskId = args.task_id || "";
       var rawReason = (args.reason || "").trim();
       var filesRead: string[] = args.files_read || [];
@@ -93,38 +91,23 @@ export default tool({
 
       // ════════════════════════════════════════════════════
       // Step 1: Verify discovery exists and is sufficient
+      // DB-Canonical (v19 Phase 2): uc7ks_pipeline_state is the sole source.
+      // JSON blob fallback removed.
       // ════════════════════════════════════════════════════
-      var kcs: any;
-      try {
-        kcs = readSubState("knowledge_cache_state");
-      } catch (e: any) {
-        writeLog(SRC, "ERROR", {
-          sessionID: sessionId,
-          agent,
-          event: "UC7KS-ATTEST-FAIL-STATE",
-          detail: `Cannot read knowledge_cache_state: ${e.message}`,
-        });
-        return JSON.stringify({
-          attested: false,
-          step: 1,
-          error:
-            "Cannot read knowledge_cache_state. Run knowledge_cache_search first.",
-        });
-      }
+      const pipelineId = resolvePipelineId(args, sessionId);
 
-      var discovery = readCacheDiscovery(
-        kcs?.session_access || {},
-        agentRef,
-        taskId,
-        domain,
-      );
+      var discovery = readDiscoveryForAttest({
+        pipelineId,
+        agent,
+        domainId: domainId,
+      });
 
       if (!discovery || discovery.status !== "sufficient") {
         writeLog(SRC, "ERROR", {
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-FAIL-DISCOVERY",
           detail: `discovery ${discovery?.status || "missing"}. Must call knowledge_cache_search first.`,
         });
@@ -133,7 +116,7 @@ export default tool({
           step: 1,
           error:
             "Discovery insufficient. Call knowledge_cache_search(" +
-            domain +
+            domainId +
             ", " +
             taskId +
             ") first.",
@@ -153,7 +136,7 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-FAIL-EMPTY-FILES",
           detail:
             "files_read is empty. Agent must read at least one cache file via 'read' tool before attesting.",
@@ -166,7 +149,7 @@ export default tool({
           cache_sufficient: false,
           remediation:
             "Step 1: Use the 'read' tool to open relevant cache files from discovered_files.\nStep 2: knowledge_cache_attest(domain='" +
-            domain +
+            domainId +
             "', task_id='" +
             taskId +
             "', reason='...', files_read=[...], content_summary='...')",
@@ -196,7 +179,7 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-FAIL-FILES",
           detail: `${invalidFiles.length} files not in discovered_files: ${invalidFiles.join(", ")}`,
         });
@@ -221,7 +204,7 @@ export default tool({
       var manifestPaths = new Set<string>();
       try {
         var manifest = readManifest();
-        var domainEntries = searchByDomain(domain);
+        var domainEntries = searchByDomain(domainId);
         for (var de = 0; de < domainEntries.length; de++) {
           var entry = domainEntries[de];
           for (var df = 0; df < (entry.files || []).length; df++) {
@@ -235,9 +218,9 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-MANIFEST-CHECK",
-          detail: `domain=${domain} manifest_entries=${domainEntries.length} manifest_paths=${manifestPaths.size}`,
+          detail: `domain=${domainId} manifest_entries=${domainEntries.length} manifest_paths=${manifestPaths.size}`,
         });
       } catch (e: any) {
         // Non-fatal: manifest read failure logs a warning but does not block
@@ -245,7 +228,7 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-MANIFEST-FAILED",
           detail: `Cannot read knowledge manifest: ${e.message || String(e)}`,
         });
@@ -264,9 +247,9 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-MANIFEST-MISMATCH",
-          detail: `${unmatchedInManifest.length} file(s) not found in knowledge-store manifest for domain "${domain}": ${unmatchedInManifest.join(", ")}`,
+          detail: `${unmatchedInManifest.length} file(s) not found in knowledge-store manifest for domain "${domainId}": ${unmatchedInManifest.join(", ")}`,
         });
       }
 
@@ -281,7 +264,7 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-FAIL-SESSION",
           detail:
             "context.sessionID unavailable — cannot cross-verify read_audit",
@@ -329,7 +312,7 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-FAIL-AUDIT",
           detail: `${notRead.length} file(s) not found in read_audit for session ${sessionId}: ${notRead.join(", ")}`,
         });
@@ -370,17 +353,21 @@ export default tool({
           );
         }
       }
-      // M9: Check retry limits
+      // M9: Retry limit check — query DB-canonical attestation status
       var currentRetryCount = 0;
       var MAX_RETRIES = 3;
       if (!cacheSufficient) {
+        // DB-Canonical: query uc7ks_pipeline_state for attestation count
+        // (retry tracking moved to DB in Phase 2)
         try {
-          var kcs2 = readSubState("knowledge_cache_state");
-          var agentEntry2 = kcs2?.session_access?.[agentRef];
-          if (agentEntry2?.tasks?.[taskId]?.domains?.[domain]?.attestation) {
-            currentRetryCount =
-              agentEntry2.tasks[taskId].domains[domain].attestation
-                .retry_count || 0;
+          const { readPipelineState } = require("../lib/uc7ks-pipeline-db");
+          const state = readPipelineState({
+            pipelineId,
+            agent,
+            domainId: domainId,
+          });
+          if (state?.attestation_status === "insufficient") {
+            currentRetryCount = 1; // at least one prior insufficient attestation
           }
         } catch (e: any) {
           /* ignore — first attempt */
@@ -406,7 +393,7 @@ export default tool({
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-FAIL-EMPTY",
           detail: `Empty fields: ${emptyFields.join(", ")}`,
         });
@@ -421,74 +408,35 @@ export default tool({
 
       // ════════════════════════════════════════════════════
       // Step 5: All checks passed — write attestation
-      // M9: Status = "insufficient" when cache_sufficient=false
-      //    Status = "attested" when cache_sufficient=true (default)
+      // DB-Canonical (v19 Phase 2): uc7ks_pipeline_state is the sole writable source.
+      // JSON blob (knowledge_cache_state) and v11 typed table
+      // (knowledge_attestation) writes removed.
       // ════════════════════════════════════════════════════
       var attestationStatus = cacheSufficient ? "attested" : "insufficient";
-      var attestation: CacheAttestation & {
-        cache_sufficient?: boolean;
-        insufficiency_reason?: string;
-        retry_count?: number;
-        max_retries?: number;
-      } = {
-        status: attestationStatus,
-        reason: reason,
-        files_read: filesRead,
-        content_summary: contentSummary,
-        attested_at: attestedAt,
-      };
-      if (cacheSufficient !== undefined) {
-        attestation.cache_sufficient = cacheSufficient;
-      }
-      if (!cacheSufficient && insufficiencyReason) {
-        attestation.insufficiency_reason = insufficiencyReason;
-        attestation.retry_count = currentRetryCount + 1;
-        attestation.max_retries = MAX_RETRIES;
-      }
-
       var writeOk = false;
       try {
-        writeOk = atomicWriteSubState(
-          "knowledge_cache_state",
-          function (state: any) {
-            state.session_access = state.session_access || {};
-            var ok = writeCacheAttestation(
-              state.session_access,
-              agentRef,
-              taskId,
-              domain,
-              attestation as any,
-            );
-            if (!ok) {
-              throw new Error(
-                "writeCacheAttestation failed — discovery not sufficient",
-              );
-            }
-            // M9: Persist retry_count for insufficiency tracking
-            if (
-              !cacheSufficient &&
-              state.session_access[agentRef]?.tasks?.[taskId]?.domains?.[domain]
-                ?.attestation
-            ) {
-              state.session_access[agentRef].tasks[taskId].domains[
-                domain
-              ].attestation.retry_count = currentRetryCount + 1;
-              state.session_access[agentRef].tasks[taskId].domains[
-                domain
-              ].attestation.max_retries = MAX_RETRIES;
-            }
+        writeOk = atomicUpsertAttestation({
+          pipelineId,
+          agent,
+          domainId: domainId,
+          sessionId,
+          attestation: {
+            status: attestationStatus,
+            cache_sufficient: cacheSufficient,
+            files_read: filesRead,
+            content_summary: args.content_summary || "",
+            attested_at: Date.now(),
           },
-        );
+        });
       } catch (e: any) {
         writeLog(SRC, "ERROR", {
           sessionID: sessionId,
           agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-FAIL-WRITE",
-          detail: `Failed to write attestation: ${e.message}`,
+          detail: `Failed to write attestation to DB: ${e.message}`,
         });
-        // KC-02 (2026-06-21): Non-fatal — count write failure as attestation failure
         try {
           incrementAuditCounter("total_attestation_failures");
         } catch {}
@@ -504,81 +452,33 @@ export default tool({
         writeLog(SRC, "INFO", {
           sessionID: sessionId,
           agent,
-          agentType: agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-PASS",
-          detail: `taskId=${taskId} domainId=${domain} files=${filesRead.length} status=attested`,
+          detail: `taskId=${taskId} domainId=${domainId} files=${filesRead.length} status=attested`,
         });
         // KC-02 (2026-06-21): Non-fatal audit rollup — count attestations
         try {
           incrementAuditCounter("total_attestations");
         } catch {}
 
-        // KC-07 + A2 (v13 UPSERT): Non-fatal knowledge_attestation DB write
-        // Records each attestation event in the knowledge_attestation table
-        // for audit trail and analytics. Failure does NOT block attestation.
-        //
-        // A2: Replaced INSERT with UPSERT using v13 unique index on
-        // (agent, task_id, domain_id). ON CONFLICT DO UPDATE ensures
-        // idempotent re-runs: subsequent attestations for the same
-        // agent+task+domain overwrite the previous record.
-        // Monotonic: never downgrade from 'attested' to 'insufficient'.
+        // P0-CHECKLIST: wire attestation success to checklist
         try {
-          var db = getDb();
-          db.run(
-            `INSERT INTO knowledge_attestation
-             (session_id, agent, task_id, domain_id, status, cache_sufficient, files_read, evidence_file_count, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-             ON CONFLICT(agent, task_id, domain_id) DO UPDATE SET
-               session_id = excluded.session_id,
-               status = CASE WHEN knowledge_attestation.status = 'attested'
-                         THEN 'attested'
-                         ELSE excluded.status END,
-               cache_sufficient = excluded.cache_sufficient,
-               files_read = excluded.files_read,
-               evidence_file_count = excluded.evidence_file_count,
-               created_at = excluded.created_at`,
-            [
-              sessionId || null,
-              agent,
-              taskId,
-              domain,
-              attestationStatus,
-              cacheSufficient ? 1 : 0,
-              JSON.stringify(filesRead),
-              filesRead.length,
-              Date.now(),
-            ],
+          checklistWirePassed(
+            sessionId,
+            agent,
+            taskId,
+            "knowledge_attested",
+            JSON.stringify({ files: filesRead.length, domain: domainId }),
           );
-          writeLog(SRC, "INFO", {
-            sessionID: sessionId,
-            agent,
-            taskId,
-            domainId: domain,
-            event: "KC-ATTESTATION-DB-WRITTEN",
-            detail: `taskId=${taskId} domainId=${domain} status=${attestationStatus} files=${filesRead.length}`,
-          });
-          // KC-08 (2026-06-21): Non-fatal audit rollup — count DB attestation writes
-          try {
-            incrementAuditCounter("total_attestations");
-          } catch {}
-        } catch (dbErr: any) {
-          writeLog(SRC, "WARN", {
-            sessionID: sessionId,
-            agent,
-            taskId,
-            domainId: domain,
-            event: "KC-ATTESTATION-DB-FAILED",
-            detail: `Non-fatal: knowledge_attestation DB write failed: ${dbErr.message || String(dbErr)}`,
-          });
+        } catch {
+          /* non-fatal */
         }
 
         return JSON.stringify({
           attested: true,
           step: 5,
           cache_sufficient: true,
-          attestation: attestation,
           verified_files: filesRead,
           next_step:
             "Knowledge attestation complete. You may now write source files. Call compliance_gate_complete when task finishes.",
@@ -587,11 +487,10 @@ export default tool({
         writeLog(SRC, "WARN", {
           sessionID: sessionId,
           agent,
-          agentType: agent,
           taskId,
-          domainId: domain,
+          domainId: domainId,
           event: "UC7KS-ATTEST-INSUFFICIENT",
-          detail: `taskId=${taskId} domainId=${domain} retry=${currentRetryCount + 1}/${MAX_RETRIES} reason="${insufficiencyReason}"`,
+          detail: `taskId=${taskId} domainId=${domainId} retry=${currentRetryCount + 1}/${MAX_RETRIES} reason="${insufficiencyReason}"`,
         });
         // KC-02 (2026-06-21): Non-fatal audit rollup — count attestation failures
         try {

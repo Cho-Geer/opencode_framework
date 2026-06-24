@@ -11,6 +11,7 @@ import { tool } from "@opencode-ai/plugin";
 import { resolveDomainId } from "../lib/agent-resolver";
 import { dbReadSessionMap } from "../lib/db-state-manager";
 import { getDb } from "../lib/db-manager";
+import { checklistWirePassed } from "../lib/checklist-hooks";
 
 export default tool({
   description:
@@ -104,6 +105,19 @@ export default tool({
         resolvedFrom = "dispatch_ctx";
         confidence = "medium";
       }
+    }
+
+    // P0-CHECKLIST: wire domain resolution to checklist
+    if (domainId) {
+      try {
+        checklistWirePassed(
+          sessionId,
+          (context as any)?.agent || "",
+          dagTaskId,
+          "domain_resolved",
+          `domain=${domainId}`,
+        );
+      } catch {}
     }
 
     return JSON.stringify({

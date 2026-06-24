@@ -176,10 +176,7 @@ function isLockedMode(): boolean {
       ),
     );
     const tr = cfg?.template_resolution || {};
-    const mode =
-      tr.develop_enforcement_mode ||
-      tr.runtime_enforcement_mode ||
-      tr.enforcement_mode;
+    const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode;
     return mode === "locked";
   } catch {
     return false;

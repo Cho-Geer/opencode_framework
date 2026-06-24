@@ -4,7 +4,9 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { isModifyTool, getModifyPath } from "../lib/tool-scope";
 import { isSourceFile, atomicWriteSubState } from "../lib/state-utils";
 
-export default withPluginLifecycle("scope-after", { "tool.execute.after": toolExecuteAfter });
+export default withPluginLifecycle("scope-after", {
+  "tool.execute.after": toolExecuteAfter,
+});
 
 /**
  * after-hook: args live in input.args (before-hook uses output.args)
@@ -14,7 +16,9 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   if (!isModifyTool(input.tool)) return;
 
   const filePath = getModifyPath(input.args || {});
-  if (!filePath || !isSourceFile(filePath)) return;
+  if (!filePath) return;
+  const skipSourceCheck = input.tool === "safe_delete";
+  if (!skipSourceCheck && !isSourceFile(filePath)) return;
 
   writeLog("scope-after", "runtime", {
     sessionID: input.sessionID,
@@ -24,6 +28,8 @@ async function toolExecuteAfter(input: any, output: any): Promise<void> {
   });
 
   // Update eslint-state.json dirty_modules (P1-B split)
+  // Skip non-source files — eslint has no lint rules for them
+  if (!isSourceFile(filePath)) return;
   try {
     atomicWriteSubState("eslint_state", (state) => {
       state.aggregate = state.aggregate || { dirty_modules: [] };

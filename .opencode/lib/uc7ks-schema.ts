@@ -44,7 +44,7 @@ export const CONFIG_KEYS = {
 // TYPES
 
 export interface CacheSufficiency {
-  status: "sufficient" | "insufficient" | "undeclared";
+  status: "sufficient" | "insufficient" | "undeclared" | "pending_attestation";
   missing_topics: string[];
   declared_at: string | null;
   reason: string;
@@ -776,41 +776,6 @@ export function pruneSessionAccessFromDB(
 // ════════════════════════════════════════════════════════════
 
 /**
- * Read the cache discovery for a specific domain+task.
- * Tries nested path first, falls back to legacy cache_sufficiency.
- * Returns null if no discovery exists.
- */
-export function readCacheDiscovery(
-  sa: SessionAccess,
-  agent: string,
-  taskId: string,
-  domain: string,
-): CacheDiscovery | null {
-  const agentKey = normalizeAgentKey(agent);
-  const a = sa[agentKey] || sa[agent] || sa;
-  if (!a) return null;
-
-  // Try nested discovery field
-  const nested = a.tasks?.[taskId]?.domains?.[domain];
-  if (nested?.cache_sufficiency?.discovery) {
-    return nested.cache_sufficiency.discovery;
-  }
-
-  // Fall back to legacy cache_sufficiency as discovery (migration bridge)
-  const legacy = nested?.cache_sufficiency || a.cache_sufficiency;
-  if (legacy && legacy.status && legacy.status !== "undeclared") {
-    return {
-      status: legacy.status,
-      missing_topics: legacy.missing_topics || [],
-      discovered_files: legacy.files_read || [],
-      discovered_at: legacy.declared_at || new Date(0).toISOString(),
-    };
-  }
-
-  return null;
-}
-
-/**
  * Read the cache attestation for a specific domain+task.
  * Returns null if no attestation exists (not yet attested by agent).
  */
@@ -867,47 +832,6 @@ export function isDomainKnowledgeAttested(
   if (mode === "advisory" && att.status === "legacy_discovered_only")
     return true;
   return false;
-}
-
-/**
- * Write discovery data to the domain entry. Only updates discovery fields.
- * Does NOT touch attestation or legacy reason/files_read/content_summary.
- */
-export function writeCacheDiscovery(
-  sa: SessionAccess,
-  agent: string,
-  taskId: string,
-  domain: string,
-  discovery: CacheDiscovery,
-): void {
-  const entry = getDomainEntry(sa, agent, taskId, domain);
-  entry.cache_sufficiency.discovery = discovery;
-  // Sync legacy status for backward compat display
-  entry.cache_sufficiency.status = discovery.status;
-  entry.cache_sufficiency.missing_topics = discovery.missing_topics;
-  entry.cache_sufficiency.declared_at = discovery.discovered_at;
-  // Legacy reason/files_read/content_summary are NOT set — they must be
-  // agent-written via knowledge_cache_attest tool
-}
-
-/**
- * Write attestation data to the domain entry. Verifies discovery exists.
- * Returns true on success, false if discovery is insufficient.
- */
-export function writeCacheAttestation(
-  sa: SessionAccess,
-  agent: string,
-  taskId: string,
-  domain: string,
-  attestation: CacheAttestation,
-): boolean {
-  const entry = getDomainEntry(sa, agent, taskId, domain);
-  const discovery = entry.cache_sufficiency.discovery;
-  if (!discovery || discovery.status !== "sufficient") {
-    return false;
-  }
-  entry.cache_sufficiency.attestation = attestation;
-  return true;
 }
 
 /**

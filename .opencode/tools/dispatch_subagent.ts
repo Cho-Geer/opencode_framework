@@ -16,6 +16,9 @@ import {
   dbQuerySessionByDagTaskId,
 } from "../lib/db-state-manager";
 
+/** Log source identifier for writeLog calls. */
+const SRC = "tool-dispatch-subagent";
+
 // ── UC7KS Dispatch Bypass Helpers (FW-DISPATCH-BYPASS) ──
 
 /**
@@ -216,10 +219,23 @@ export default tool({
       .string()
       .optional()
       .describe(
-        "Dispatch session identifier with DUAL semantics — read carefully before use.\n" +
-          "(a) Output/audit: used for .task_temp/{dag_task_id}/ path namespacing. The pre-execution gate (pre-execution-gate.ts) skips DAG coverage when --dispatch-session is set.\n" +
-          "(b) DAG audit: the gate-before plugin (P2-1 DAG Task Existence Audit) treats the task ID as a DAG task ID and REQUIRES this ID to exist in Task.DAG.json — either in the top-level tasks[] array or inside an execution_order group. If it does not exist, modify tools (safe_shell/safe_edit/safe_mkdir/safe_delete) are blocked with [FW-ENFORCE][DAG] 'Task \"…\" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order)'.\n" +
-          "Callers MUST ensure ONE of: (1) the ID already exists in Task.DAG.json; (2) dispatch @Meta-Planner first to add it (Meta-Planner/Orchestrator/Super-Admin/Knowledge-Curator are DAG-exempt); (3) the subagent itself is DAG-exempt. See docs/review/cicd-dag-block/plan-first-redesign.md for the PLAN-FIRST design.",
+        "DAG Task ID — must exist in Task.DAG.json for non-DAG-exempt agents. " +
+          "This is the project work unit identifier assigned by @Meta-Planner. " +
+          "It is validated against Task.DAG.json tasks[] and execution_order by " +
+          "the PLAN-FIRST gate (Layer 1/2/3). When require_dag_entry=true in " +
+          "dispatch_policy, this ID MUST be found in the DAG with status pending/in_progress. " +
+          "DAG-exempt agents (Meta-Planner/Orchestrator/Super-Admin/Knowledge-Curator) " +
+          "bypass this check. See docs/review/cicd-dag-block/plan-first-redesign.md.",
+      ),
+    session_namespace: tool.schema
+      .string()
+      .optional()
+      .describe(
+        "Output path namespace — used for .task_temp/{session_namespace}/ directory " +
+          "and session tracking. This is conceptually the OpenCode upstream task_id: " +
+          "the identifier passed to Task() for session naming and recovery. " +
+          "Defaults to dag_task_id when not provided. " +
+          "Use a distinct namespace when multiple dispatches target the same DAG task.",
       ),
     auto_plan: tool.schema
       .boolean()
@@ -269,6 +285,22 @@ export default tool({
       const dagTaskId = args.dag_task_id || "";
       const policy = readDispatchPolicy();
       const callerAgent = context.agent || "";
+
+      // V1.1 FIX (2026-06-23, @Super-Admin, agent-execution-flow-vulnerability-analysis.md):
+      // Auto-generate pipeline tracking UUID when dag_task_id is missing.
+      // Ensures UC7KS resolvePipelineId has a deterministic, non-empty pipeline_id.
+      // Design: docs/review/framework-refactor/uc7ks-pipeline-db-canonical-design.md §3.5.3
+      var effectiveDagTaskId = dagTaskId;
+      if (!effectiveDagTaskId) {
+        const trackingUuid = require("node:crypto").randomUUID();
+        effectiveDagTaskId = trackingUuid;
+        writeLog(SRC, "INFO", {
+          event: "DAGTASK-ID-AUTO-GENERATED",
+          detail:
+            `dispatch to ${targetAgent} (caller=${callerAgent}) has no dag_task_id — ` +
+            `auto-generated tracking UUID: ${trackingUuid} for UC7KS pipeline continuity.`,
+        });
+      }
 
       if (!isDagExempt(targetAgent) && policy.require_dag_entry) {
         if (!dagTaskId) {
@@ -483,12 +515,19 @@ export default tool({
 
         const worktree = context.worktree || process.cwd();
         const dagTaskId = args.dag_task_id || "";
+        /**
+         * session_namespace: the OpenCode upstream task_id — used for output path
+         * namespacing (.task_temp/{sessionNamespace}/) and session tracking.
+         * Defaults to dag_task_id when not explicitly provided.
+         * @see docs/review/framework-refactor/task-id-duality-complete-audit.md §1
+         */
+        const sessionNamespace = args.session_namespace || dagTaskId;
 
         // ── Execute dispatch-subagent.js ──
         // Use execFileSync to bypass shell, preventing injection/misparsing of
         // special characters (newlines, backticks, CJK) in task_description.
-        // task_description and dag_task_id passed via env vars (authoritative) AND
-        // positional args (for CLI/test compatibility with the new 2-param pattern).
+        // dag_task_id passed via env var for DAG audit; session_namespace passed as
+        // positional arg for output path namespacing.
         const scriptPath = path.join(
           /**
            * FW-HOTFIX-001: Changed .js→.ts to match actual file extension.
@@ -502,12 +541,12 @@ export default tool({
           "dispatch-subagent.ts",
         );
 
-        // Build argv: [scriptPath, agent_type, dag_task_id?, task_description?]
-        // dag_task_id is passed as 2nd positional param so dispatch-subagent.js
-        // can extract it when called with the 2-param pattern.
+        // Build argv: [scriptPath, agent_type, sessionNamespace?, task_description?]
+        // sessionNamespace is passed as 2nd positional param for output path namespacing
+        // and .dispatch_ctx file content.
         const scriptArgs = [args.agent_type];
-        if (dagTaskId) {
-          scriptArgs.push(dagTaskId);
+        if (sessionNamespace) {
+          scriptArgs.push(sessionNamespace);
         }
         scriptArgs.push(args.task_description);
 
@@ -534,9 +573,14 @@ export default tool({
               stdio: ["pipe", "pipe", "pipe"],
               env: {
                 ...process.env,
+                OPENCODE_SESSION_ID: context.sessionID || "",
                 DISPATCH_TASK_DESC: args.task_description,
-                // FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID removed from child env.
-                // The child script now reads dag_task_id from .dispatch_ctx file instead.
+                // DISPATCH_NAMESPACE: OpenCode upstream task_id for output path (.task_temp/...)
+                ...(sessionNamespace
+                  ? { DISPATCH_NAMESPACE: sessionNamespace }
+                  : {}),
+                // DISPATCH_DAG_TASK_ID: DAG task ID for audit/validation in child script
+                ...(effectiveDagTaskId ? { DISPATCH_DAG_TASK_ID: effectiveDagTaskId } : {}),
                 ...(args.resume_session_id
                   ? { DISPATCH_RESUME_SESSION_ID: args.resume_session_id }
                   : {}),
@@ -630,14 +674,14 @@ export default tool({
                 agent: args.agent_type,
                 level: "WARN",
                 event: "AUTO-DISPATCH-QUEUE-APPEND",
-                detail: `Appending to queue (${queue.length} existing). New: ${args.agent_type}:${dagTaskId || "?"}`,
+                detail: `Appending to queue (${queue.length} existing). New: ${args.agent_type}:${sessionNamespace || "?"}`,
               });
             }
 
             queue.push({
               sessionId: context.sessionID || "",
               agentType: args.agent_type,
-              taskId: dagTaskId || "",
+              taskId: sessionNamespace || "",
               filePath: outputFilePath,
               createdAt: Date.now(),
             });
@@ -660,39 +704,23 @@ export default tool({
           }
         }
 
-        // ── S25-FIX-V4: Write .dispatch_ctx for task-after.ts ──
-        // Replaces process.env.FRAMEWORK_TASK_ID propagation. The file is
-        // consumed (read + delete) by task-after.ts after Task() completes.
-        // FW-UC7KS-DOMAIN-001: domainId included for uc7ks-after.ts fallback.
-        const inferredDomainId = inferDomainId(args.agent_type);
-        if (dagTaskId) {
+        // ── V1.3 Phase 2 FIX (2026-06-23, @Super-Admin): ──
+        // REMOVED: Legacy .dispatch_ctx shared-singleton write.
+        // Previously Phase 1 dual-wrote both .dispatch_ctx (shared, race-prone)
+        // AND ctx/{dagTaskId}.json (per-dispatch, isolated). The shared file caused
+        // race conditions when concurrent dispatches overwrote each other's data.
+        //
+        // Phase 2 removes the write side. Readers still fall back to existing
+        // .dispatch_ctx files for backward compat (singleton cleanup still valid).
+        // All NEW dispatches use ctx/{dagTaskId}.json only.
+        //
+        // §3.3: Per-dispatch ctx file (dagTaskId-keyed, no overwrites)
+        // Eliminates the session_map race condition caused by concurrent dispatches
+        // overwriting the shared .dispatch_ctx singleton. Each dispatch gets its own
+        // ctx/{dagTaskId}.json file — isolated, race-free.
+        if (effectiveDagTaskId) {
           try {
             const root = process.env.OPENCODE_ROOT || process.cwd();
-            const dispatchCtxDir = path.join(root, ".task_temp", "_dispatch");
-            const dispatchCtxPath = path.join(dispatchCtxDir, ".dispatch_ctx");
-            if (!existsSync(dispatchCtxDir)) {
-              require("node:fs").mkdirSync(dispatchCtxDir, { recursive: true });
-            }
-            writeFileSync(
-              dispatchCtxPath,
-              JSON.stringify({
-                dagTaskId,
-                domainId: inferredDomainId,
-                createdAt: Date.now(),
-              }),
-              "utf8",
-            );
-          } catch {
-            // Best-effort; never block dispatch
-          }
-
-          // §3.3: Per-dispatch ctx file (dagTaskId-keyed, no overwrites)
-          // Eliminates the session_map race condition caused by concurrent dispatches
-          // overwriting the shared .dispatch_ctx singleton. Each dispatch gets its own
-          // ctx/{dagTaskId}.json file — isolated, race-free.
-          // Phase 1 dual-write: legacy .dispatch_ctx above + per-dispatch ctx/ below.
-          // Phase 2 (future): migrate all readers to ctx/ files, then remove .dispatch_ctx.
-          try {
             const ctxPerDispatchDir = path.join(
               root,
               ".task_temp",
@@ -706,7 +734,7 @@ export default tool({
             }
             const ctxPerDispatchPath = path.join(
               ctxPerDispatchDir,
-              dagTaskId + ".json",
+              effectiveDagTaskId + ".json",
             );
             writeFileSync(
               ctxPerDispatchPath,
@@ -714,10 +742,15 @@ export default tool({
                 dagTaskId,
                 agentType: args.agent_type,
                 domainId: inferredDomainId,
+                parentSessionId: context.sessionID,
                 createdAt: Date.now(),
               }),
               "utf8",
             );
+            writeLog(SRC, "INFO", {
+              event: "DISPATCH-CTX-WRITTEN",
+              detail: `ctx/${dagTaskId}.json — .dispatch_ctx write REMOVED (V1.3 Phase 2)`,
+            });
           } catch {
             // Best-effort; never block dispatch
           }
@@ -726,20 +759,38 @@ export default tool({
         // ── FW-DISPATCH-TASKID-IMMUTABLE + FW-UC7KS-DOMAIN-001 ──
         // Write dagTaskId + domainId to session_map DB.
         // Per-session DB record is immune to concurrent dispatch race conditions
-        // (unlike shared .dispatch_ctx file) and survives task-after.ts deletion.
-        // Preserves existing agent identity to avoid temporary agent mapping pollution
-        // (parent session should keep its own agent, not the dispatched sub-agent type).
-        if (dagTaskId && context.sessionID) {
+        //
+        // V1.2 FIX (2026-06-23, @Super-Admin, agent-execution-flow-vulnerability-analysis.md):
+        //   Removed existing?.agent guard. Previously: when chatMessageHook (session.ts)
+        //   had not yet fired, existing?.agent was null, and dbWriteSessionMap was
+        //   skipped. This caused dagTaskId to never be written — breaking checklist
+        //   resolution for the child agent.
+        //
+        //   New behavior: Always write dagTaskId + domainId. Use existing agent if
+        //   available, else "pending" placeholder. chatMessageHook will overwrite
+        //   with the actual agent when it fires (INSERT OR REPLACE handles this).
+        //
+        //   The child dispatch slot (dispatch:child:{dagTaskId}) is ALSO written
+        //   below for redundancy — resolving via Priority 1.5 in agent-resolver.
+        if (effectiveDagTaskId && context.sessionID) {
           try {
             const existing = dbReadSessionMap(context.sessionID);
+            const agentForWrite = existing?.agent || "pending";
             dbWriteSessionMap(
               context.sessionID,
-              existing?.agent || args.agent_type,
+              agentForWrite,
               dagTaskId,
               inferredDomainId || undefined,
             );
-          } catch {
-            // Best-effort; never block dispatch
+            writeLog(SRC, "INFO", {
+              event: "SESSION-MAP-DAGTASK-WRITE",
+              detail: `session=${context.sessionID} dagTaskId=${dagTaskId} agent=${agentForWrite} domainId=${inferredDomainId || "—"}`,
+            });
+          } catch (err: any) {
+            writeLog(SRC, "WARN", {
+              event: "SESSION-MAP-DAGTASK-WRITE-FAILED",
+              detail: `session=${context.sessionID} dagTaskId=${dagTaskId} err=${err.message}`,
+            });
           }
         }
 
@@ -779,7 +830,7 @@ export default tool({
               "--no-cache",
               dp,
               args.agent_type,
-              dagTaskId || "(none)",
+              effectiveDagTaskId || "(none)",
               args.task_description || "",
             ],
             {
@@ -793,7 +844,7 @@ export default tool({
           return [
             `/// DISPATCH RESULT (fallback — CLI failed: ${e?.message || e})`,
             `/// agent_type: ${args.agent_type}`,
-            `/// dag_task_id: ${dagTaskId || "(none)"}`,
+            `/// dag_task_id: ${effectiveDagTaskId || "(none)"}`,
             `///    Retry with dispatch_subagent() manually.`,
           ].join("\n");
         }

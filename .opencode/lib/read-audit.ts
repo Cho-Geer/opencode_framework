@@ -335,15 +335,8 @@ export function verifyRead(
       };
     }
 
-    // DB says no — check JSONL as fallback before final negative
-    const jsonlResult = verifyReadJsonl(
-      normalizedAgent,
-      normalizedPath,
-      sessionId,
-      cutoff,
-    );
-    if (jsonlResult.verified) return jsonlResult;
-
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    // DB is the sole read_audit source. JSONL is retained as historical archive only.
     const absPath = path.resolve(process.env.OPENCODE_ROOT || ".", filePath);
     return {
       verified: false,
@@ -358,8 +351,11 @@ export function verifyRead(
       event: "VERIFY_READ_DB_FAILED",
       error: err.message,
     });
-    // Fallback to JSONL
-    return verifyReadJsonl(normalizedAgent, normalizedPath, sessionId, cutoff);
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    return {
+      verified: false,
+      reason: `Read audit DB query failed: ${err.message}. No JSONL fallback (OPT-03 DB-canonical).`,
+    };
   }
 }
 
@@ -463,14 +459,16 @@ export function getReadEventsForSession(
     if (rows.length > 0) {
       return rows.map(dbEntryToReadAuditEntry);
     }
-    // DB empty — check JSONL fallback
-    return getReadEventsForSessionJsonl(normalizedAgent, sessionId);
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    // DB is the sole read_audit source.
+    return [];
   } catch (err: any) {
     writeLog("lib-read-audit", "ERROR", {
       event: "GET_READ_EVENTS_DB_FAILED",
       error: err.message,
     });
-    return getReadEventsForSessionJsonl(normalizedAgent, sessionId);
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    return [];
   }
 }
 

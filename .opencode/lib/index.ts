@@ -21,6 +21,19 @@ export * from "./safe-bash-core";
 export * from "./safe-test-core";
 export * from "./permission-isolation-core";
 export * from "./critical-files";
+export {
+  createBackup,
+  restoreBackup,
+  cleanupStaleBackups,
+  getBackup,
+  findLatestBackup,
+  getBackupsByFile,
+  getBackupsByAgent,
+  getBackupsBySession,
+  getBackupsByDagTask,
+  type BackupCreateInput,
+  type BackupRecord,
+} from "./backup-manager";
 
 // gate-core is exported separately since it has dependencies
 // on the compliance gate MCP tool infrastructure

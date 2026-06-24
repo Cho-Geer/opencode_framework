@@ -323,9 +323,10 @@ function isEnforcementDebugEnabled(root?: string): boolean {
  *   3. project.config.json `runtime_enforcement_mode` (fallback)
  *   4. Default: "advisory"
  *
- * **Why this change**: The old key `template_resolution.enforcement_mode` was
- * replaced by the two-tier `develop_enforcement_mode` / `runtime_enforcement_mode`
- * in FW-HARNESS-P6. All consumers must use the new keys.
+ * **Why this change**: The old singular key `template_resolution.enforcement_mode`
+ * was replaced by the two-tier `develop_enforcement_mode` / `runtime_enforcement_mode`
+ * in FW-HARNESS-P6. All consumers use the new dual keys exclusively.
+ * Legacy `enforcement_mode` fallback removed in FW-CLEANUP-ENFORCEMENT-LEGACY (2026-06-23).
  *
  * @public
  */
@@ -689,15 +690,15 @@ export function loadGateStore(root?: string): GateStore {
  * and ensures the armed-session predicate stays consistent across all
  * consumers (plugin, gate-core, CI scripts).
  *
- * @returns { found: true, sessionId } when an armed session exists;
- *          { found: false, sessionId: null } otherwise.
+ * @returns { found: true, gateSessionId } when an armed session exists;
+ *          { found: false, gateSessionId: null } otherwise.
  *
  * @public — Used by framework-enforcer.ts for pre-execution gate checks.
  * @since FW-HARNESS-P0-2a
  */
 export function findArmedSession(root?: string): {
   found: boolean;
-  sessionId: string | null;
+  gateSessionId: string | null;
 } {
   const gate = loadGateStore(root);
   const sessions = Object.values(gate.sessions);
@@ -705,8 +706,8 @@ export function findArmedSession(root?: string): {
     (s) => s.gate_status === "armed" && s.consumed_at === null,
   );
   return armed
-    ? { found: true, sessionId: armed.session_id }
-    : { found: false, sessionId: null };
+    ? { found: true, gateSessionId: armed.gate_session_id }
+    : { found: false, gateSessionId: null };
 }
 
 /**
@@ -716,15 +717,15 @@ export function findArmedSession(root?: string): {
  * session without demanding the stricter "armed" status.  Previously
  * inlined in framework-enforcer.ts (~22 lines).
  *
- * @returns { found: true, sessionId } when a valid session exists;
- *          { found: false, sessionId: null } otherwise.
+ * @returns { found: true, gateSessionId } when a valid session exists;
+ *          { found: false, gateSessionId: null } otherwise.
  *
  * @public — Used by framework-enforcer.ts for task-scheduling gate checks.
  * @since FW-HARNESS-P0-2a
  */
 export function findAnyGateSession(root?: string): {
   found: boolean;
-  sessionId: string | null;
+  gateSessionId: string | null;
 } {
   const gate = loadGateStore(root);
   const sessions = Object.values(gate.sessions);
@@ -732,8 +733,8 @@ export function findAnyGateSession(root?: string): {
     (s) => s.consumed_at === null && s.gate_status !== "drained",
   );
   return valid
-    ? { found: true, sessionId: valid.session_id }
-    : { found: false, sessionId: null };
+    ? { found: true, gateSessionId: valid.gate_session_id }
+    : { found: false, gateSessionId: null };
 }
 
 /**
@@ -760,7 +761,7 @@ export function saveGateStore(store: GateStore, root?: string): void {
  * Generate a unique session ID.
  * @internal — Internal helper; external consumers use createSession() which calls this
  */
-export function generateSessionId(): string {
+export function generateGateSessionId(): string {
   return "cg_ses_" + Date.now();
 }
 
@@ -769,7 +770,7 @@ export function generateSessionId(): string {
  * Returns the created session.
  * @public — Primary session creation API (compliance_gate_check entry point)
  */
-export function createSession(
+export function createGateSession(
   taskDescription: string,
   failedItems: GateCheckItem[],
   ruleStatus: Record<string, string>,
@@ -777,11 +778,11 @@ export function createSession(
   root?: string,
 ): { session: GateSession; store: GateStore } {
   const store = loadGateStore(root);
-  const sessionId = generateSessionId();
+  const gateSessionId = generateGateSessionId();
   const hasHighSeverity = failedItems.some((f) => f.severity === "HIGH");
 
   const session: GateSession = {
-    session_id: sessionId,
+    session_id: gateSessionId,
     created_at: new Date().toISOString(),
     task_description: taskDescription || "",
     enforcement_mode: mode,
@@ -794,7 +795,7 @@ export function createSession(
     audit: null,
   };
 
-  store.sessions[sessionId] = session;
+  store.sessions[gateSessionId] = session;
   store.last_updated = new Date().toISOString();
   saveGateStore(store, root);
 
@@ -805,8 +806,8 @@ export function createSession(
  * Validate and arm a session (confirm).
  * @public — Primary session arming API (compliance_gate_confirm entry point)
  */
-export function armSession(
-  sessionId: string,
+export function armGateSession(
+  gateSessionId: string,
   planSummary: string,
   agent?: string,
   taskId?: string,
@@ -926,26 +927,26 @@ export function armSession(
   }
 
   const store = loadGateStore(root);
-  const session = sessionId ? store.sessions[sessionId] : undefined;
+  const session = gateSessionId ? store.sessions[gateSessionId] : undefined;
 
   if (!session) {
     return {
       status: "rejected",
-      reason: `session not found: ${sessionId || "(missing)"}. Must call compliance_gate_check first.`,
+      reason: `session not found: ${gateSessionId || "(missing)"}. Must call compliance_gate_check first.`,
     };
   }
 
   if (session.gate_status === "armed") {
     return {
       status: "rejected",
-      reason: `session ${sessionId} is already armed. Cannot re-arm.`,
+      reason: `session ${gateSessionId} is already armed. Cannot re-arm.`,
     };
   }
 
   if (session.gate_status !== "checked") {
     return {
       status: "rejected",
-      reason: `session ${sessionId} is not in "checked" state (current: ${session.gate_status}). Must call compliance_gate_check first.`,
+      reason: `session ${gateSessionId} is not in "checked" state (current: ${session.gate_status}). Must call compliance_gate_check first.`,
     };
   }
 
@@ -960,7 +961,7 @@ export function armSession(
   if (session.last_check_passed === false && mode !== "advisory") {
     return {
       status: "rejected",
-      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${sessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${mode} enforcement mode.`,
+      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${gateSessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${mode} enforcement mode.`,
     };
   }
 
@@ -1003,8 +1004,8 @@ export function armSession(
     return s && s.gate_status === "armed" && !s.consumed_at;
   });
 
-  if (!store.active_sessions.includes(sessionId)) {
-    store.active_sessions.push(sessionId);
+  if (!store.active_sessions.includes(gateSessionId)) {
+    store.active_sessions.push(gateSessionId);
   }
 
   store.last_updated = new Date().toISOString();
@@ -1012,7 +1013,7 @@ export function armSession(
 
   return {
     status: "armed",
-    session_id: sessionId,
+    session_id: gateSessionId,
     confirmed_at: session.confirmed_at,
     expires_at: session.expires_at,
     plan_summary: planSummary.trim().substring(0, 200),
@@ -1023,18 +1024,18 @@ export function armSession(
  * Complete a session and produce audit record.
  * @public — Primary session completion API (compliance_gate_complete entry point)
  */
-export function completeSession(
-  sessionId: string,
+export function completeGateSession(
+  gateSessionId: string,
   executionSummary: string,
   root?: string,
 ): GateCompleteResult {
   const store = loadGateStore(root);
-  const session = sessionId ? store.sessions[sessionId] : undefined;
+  const session = gateSessionId ? store.sessions[gateSessionId] : undefined;
 
   if (!session) {
     return {
       status: "rejected",
-      reason: `session not found: ${sessionId || "(missing)"}. Must call compliance_gate_check and compliance_gate_confirm first.`,
+      reason: `session not found: ${gateSessionId || "(missing)"}. Must call compliance_gate_check and compliance_gate_confirm first.`,
     };
   }
 
@@ -1052,14 +1053,14 @@ export function completeSession(
       }
       return {
         status: "rejected",
-        reason: `session ${sessionId} requires Orchestrator approval (status: ${session.gate_status}). ${guidance}`,
+        reason: `session ${gateSessionId} requires Orchestrator approval (status: ${session.gate_status}). ${guidance}`,
       };
     }
   } else {
     if (session.gate_status !== "armed") {
       return {
         status: "rejected",
-        reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
+        reason: `session ${gateSessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
       };
     }
   }
@@ -1067,7 +1068,7 @@ export function completeSession(
   if (session.consumed_at) {
     return {
       status: "rejected",
-      reason: `session ${sessionId} already completed at ${session.consumed_at}. Cannot re-complete.`,
+      reason: `session ${gateSessionId} already completed at ${session.consumed_at}. Cannot re-complete.`,
     };
   }
 
@@ -1096,7 +1097,7 @@ export function completeSession(
       "ESLint mock-audit violations found in modules: " +
       dirtyModules.join(", ");
     store.active_sessions = store.active_sessions.filter(
-      (sid) => sid !== sessionId,
+      (sid) => sid !== gateSessionId,
     );
     store.last_updated = new Date().toISOString();
     saveGateStore(store, root);
@@ -1110,11 +1111,11 @@ export function completeSession(
   }
 
   // Task artifact validation — @super-admin-handover-enforcement: pass
-  // sessionId as fallback so sessions without DAG task_id still get validated.
+  // gateSessionId as fallback so sessions without DAG task_id still get validated.
   const missing = validateTaskArtifacts(
     session.task_id || null,
     root,
-    sessionId,
+    gateSessionId,
   );
   if (missing.length > 0 && mode !== "advisory") {
     const now = new Date().toISOString();
@@ -1124,7 +1125,7 @@ export function completeSession(
       "Missing required task artifacts: " + missing.join(", ");
     session.missing_artifacts = missing;
     store.active_sessions = store.active_sessions.filter(
-      (sid) => sid !== sessionId,
+      (sid) => sid !== gateSessionId,
     );
     store.last_updated = new Date().toISOString();
     saveGateStore(store, root);
@@ -1149,7 +1150,7 @@ export function completeSession(
     store.audit_history = [];
   }
   store.audit_history.push({
-    session_id: sessionId,
+    session_id: gateSessionId,
     task_description: session.task_description,
     plan_summary: session.plan_summary,
     agent: session.agent,
@@ -1166,7 +1167,7 @@ export function completeSession(
   }
 
   store.active_sessions = store.active_sessions.filter(
-    (sid) => sid !== sessionId,
+    (sid) => sid !== gateSessionId,
   );
   store.last_updated = now;
   saveGateStore(store, root);
@@ -1174,7 +1175,7 @@ export function completeSession(
   return {
     status: "completed",
     audit: {
-      session_id: sessionId,
+      session_id: gateSessionId,
       task_description: session.task_description,
       plan_summary: session.plan_summary,
       confirmed_at: session.confirmed_at,
@@ -1191,31 +1192,31 @@ export function completeSession(
  * @public — Deliverables submission API
  */
 export function submitDeliverables(
-  sessionId: string,
+  gateSessionId: string,
   deliverablesEvidence: DeliverableEvidence[],
   root?: string,
 ): { status: string; session_id: string; reason?: string } {
   const store = loadGateStore(root);
-  const session = sessionId ? store.sessions[sessionId] : undefined;
+  const session = gateSessionId ? store.sessions[gateSessionId] : undefined;
 
   if (!session) {
     return {
       status: "rejected",
-      session_id: sessionId,
-      reason: `session not found: ${sessionId}`,
+      session_id: gateSessionId,
+      reason: `session not found: ${gateSessionId}`,
     };
   }
   if (session.gate_status !== "armed") {
     return {
       status: "rejected",
-      session_id: sessionId,
-      reason: `session ${sessionId} is not armed (status: ${session.gate_status})`,
+      session_id: gateSessionId,
+      reason: `session ${gateSessionId} is not armed (status: ${session.gate_status})`,
     };
   }
   if (!deliverablesEvidence || deliverablesEvidence.length === 0) {
     return {
       status: "rejected",
-      session_id: sessionId,
+      session_id: gateSessionId,
       reason: "deliverables_evidence must be non-empty",
     };
   }
@@ -1227,7 +1228,7 @@ export function submitDeliverables(
   }));
 
   // Validate artifacts exist (HANDOVER.md + TASK_LOG.md)
-  const taskId = session.task_id || sessionId;
+  const taskId = session.task_id || gateSessionId;
   const taskDir = path.join(getProjectRoot(), ".task_temp", taskId || "");
   const missing: string[] = [];
 
@@ -1245,7 +1246,7 @@ export function submitDeliverables(
     saveGateStore(store, root);
     return {
       status: "recoverable",
-      session_id: sessionId,
+      session_id: gateSessionId,
       reason: `Missing: ${missing.join(", ")}`,
     };
   }
@@ -1254,7 +1255,7 @@ export function submitDeliverables(
   session.submitted_deliverables = evidenceWithTimestamps;
   store.last_updated = now;
   saveGateStore(store, root);
-  return { status: "delivered", session_id: sessionId };
+  return { status: "delivered", session_id: gateSessionId };
 }
 
 /**
@@ -1262,27 +1263,27 @@ export function submitDeliverables(
  * @public — Deliverables approval API (Orchestrator/Super-Admin only)
  */
 export function approveDeliverables(
-  sessionId: string,
+  gateSessionId: string,
   decision: "approve" | "reject",
   approvalNote?: string,
   executionSummary?: string,
   root?: string,
 ): { status: string; session_id: string; reason?: string } {
   const store = loadGateStore(root);
-  const session = sessionId ? store.sessions[sessionId] : undefined;
+  const session = gateSessionId ? store.sessions[gateSessionId] : undefined;
 
   if (!session) {
     return {
       status: "rejected",
-      session_id: sessionId,
-      reason: `session not found: ${sessionId}`,
+      session_id: gateSessionId,
+      reason: `session not found: ${gateSessionId}`,
     };
   }
   if (session.gate_status !== "delivered") {
     return {
       status: "rejected",
-      session_id: sessionId,
-      reason: `session ${sessionId} is not in delivered state`,
+      session_id: gateSessionId,
+      reason: `session ${gateSessionId} is not in delivered state`,
     };
   }
 
@@ -1302,13 +1303,13 @@ export function approveDeliverables(
         completed_at: now,
       };
       store.active_sessions = store.active_sessions.filter(
-        (sid) => sid !== sessionId,
+        (sid) => sid !== gateSessionId,
       );
     }
 
     store.last_updated = now;
     saveGateStore(store, root);
-    return { status: session.gate_status, session_id: sessionId };
+    return { status: session.gate_status, session_id: gateSessionId };
   }
 
   if (decision === "reject") {
@@ -1319,14 +1320,14 @@ export function approveDeliverables(
     saveGateStore(store, root);
     return {
       status: "rejected",
-      session_id: sessionId,
+      session_id: gateSessionId,
       reason: approvalNote || "rejected",
     };
   }
 
   return {
     status: "rejected",
-    session_id: sessionId,
+    session_id: gateSessionId,
     reason: `Invalid decision: ${decision}`,
   };
 }
@@ -1453,7 +1454,7 @@ export function drainStaleSessions(
  * Validate that HANDOVER.md and TASK_LOG.md exist for a given task.
  *
  * @super-admin-handover-enforcement: When taskId is null (common for
- * @Super-Admin sessions that bypass the DAG), the sessionId is used as a
+ * @Super-Admin sessions that bypass the DAG), the gateSessionId is used as a
  * fallback directory name under .task_temp/. This ensures @Super-Admin
  * sessions receive the same HANDOVER.md enforcement as other agents,
  * satisfying SUPER-ADMIN-HARDEN-01.
@@ -1461,15 +1462,15 @@ export function drainStaleSessions(
  * @public — Task artifact validation used by completeSession and external audits
  * @param taskId - The task ID to validate (DAG task ID or dispatch session ID)
  * @param root - Project root path
- * @param sessionId - Fallback identifier when taskId is null (e.g., cg_ses_*)
+ * @param gateSessionId - Fallback identifier when taskId is null (e.g., cg_ses_*)
  * @since v1.2.0 — Added fallback subdirectory scan (SA-FIX-VALIDATE-PATH, @Super-Admin 2026-06-11)
  */
 export function validateTaskArtifacts(
   taskId: string | null,
   root?: string,
-  sessionId?: string | null,
+  gateSessionId?: string | null,
 ): string[] {
-  const resolvedId = taskId || sessionId;
+  const resolvedId = taskId || gateSessionId;
   if (!resolvedId) return [];
   const projectRoot = root || getProjectRoot();
   const taskDir = path.join(projectRoot, ".task_temp", resolvedId);
@@ -1761,7 +1762,7 @@ export function checkDagProgress(dag: {
 
 export interface ArmedSessionResult {
   found: boolean;
-  sessionId: string | null;
+  gateSessionId: string | null;
 }
 
 /**
@@ -1770,7 +1771,7 @@ export interface ArmedSessionResult {
  * and gate_status is "armed" (not "failed" or "drained").
  *
  * @param gateState - Parsed gate-state.json object
- * @returns { found, sessionId }
+ * @returns { found, gateSessionId }
  * @public — Migrated from framework-validation.cjs (FW-ENHANCE-A2-A5-EXTRAS)
  */
 export function checkArmedSession(gateState: {
@@ -1780,15 +1781,15 @@ export function checkArmedSession(gateState: {
   >;
 }): ArmedSessionResult {
   if (!gateState || !gateState.sessions) {
-    return { found: false, sessionId: null };
+    return { found: false, gateSessionId: null };
   }
   const sessions = Object.values(gateState.sessions);
   const armed = sessions.find(
     (s) => s.gate_status === "armed" && s.consumed_at === null,
   );
   return armed
-    ? { found: true, sessionId: armed.session_id || null }
-    : { found: false, sessionId: null };
+    ? { found: true, gateSessionId: armed.gate_session_id || null }
+    : { found: false, gateSessionId: null };
 }
 
 export interface StaleSessionInfo {
@@ -1835,7 +1836,7 @@ export function checkStaleSessions(
     const ageHours = (now - createdAt) / (60 * 60 * 1000);
     if (s.gate_status === "drained" && ageHours * 60 * 60 * 1000 > THRESHOLD) {
       stale.push({
-        id: s.session_id || "",
+        id: s.gate_session_id || s.session_id || "",
         age: Math.round(ageHours * 10) / 10,
       });
       continue;
@@ -1846,7 +1847,7 @@ export function checkStaleSessions(
       ageHours * 60 * 60 * 1000 > THRESHOLD
     ) {
       stale.push({
-        id: s.session_id || "",
+        id: s.gate_session_id || s.session_id || "",
         age: Math.round(ageHours * 10) / 10,
       });
     }
@@ -1894,7 +1895,7 @@ export function checkGateIntegrity(gateState: {
       );
     }
     for (const s of sessions) {
-      if (!s.session_id) {
+      if (!s.gate_session_id) {
         issues.push("gate-state.json: session entry missing session_id");
       }
       if (
@@ -1904,7 +1905,7 @@ export function checkGateIntegrity(gateState: {
         )
       ) {
         issues.push(
-          `gate-state.json: unknown gate_status '${s.gate_status}' in session ${s.session_id || "(unknown)"}`,
+          `gate-state.json: unknown gate_status '${s.gate_status}' in session ${s.gate_session_id || "(unknown)"}`,
         );
       }
     }

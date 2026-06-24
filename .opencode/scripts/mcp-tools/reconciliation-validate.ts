@@ -197,12 +197,12 @@ for (const task of dagInProgress) {
 
 // 1b: Every armed gate session must reference a valid DAG task
 const armedSessions = sessionEntries.filter(([, s]) => s.gate_status === 'armed');
-for (const [sessionId, session] of armedSessions) {
+for (const [gateSessionId, session] of armedSessions) {
   const matchedTasks = findDagTasksForSession(session.task_description);
 
   if (matchedTasks.length === 0) {
     const descPreview = (session.task_description || '').substring(0, 80);
-    logInconsistency(`Gate session '${sessionId}' is armed but references no valid DAG task. Task description: '${descPreview}...'`);
+    logInconsistency(`Gate session '${gateSessionId}' is armed but references no valid DAG task. Task description: '${descPreview}...'`);
     continue;
   }
 
@@ -210,7 +210,7 @@ for (const [sessionId, session] of armedSessions) {
   const hasValidStatus = matchedTasks.some(t => validDagStatuses.includes(t.status));
   if (!hasValidStatus) {
     const statuses = [...new Set(matchedTasks.map(t => t.status))].join(', ');
-    logWarning(`Gate session '${sessionId}' is armed but all matched DAG tasks have status "${statuses}" (expected pending or in_progress)`);
+    logWarning(`Gate session '${gateSessionId}' is armed but all matched DAG tasks have status "${statuses}" (expected pending or in_progress)`);
   }
 }
 
@@ -247,7 +247,7 @@ if (armedSessions.length > 0) {
 const ONE_HOUR_MS = 3600 * 1000;
 const now = Date.now();
 
-for (const [sessionId, session] of armedSessions) {
+for (const [gateSessionId, session] of armedSessions) {
   const confirmedAt = session.confirmed_at;
   const consumedAt = session.consumed_at;
 
@@ -257,7 +257,7 @@ for (const [sessionId, session] of armedSessions) {
       const ageMs = now - confirmedTime;
       if (ageMs > ONE_HOUR_MS) {
         const ageHours = Math.floor(ageMs / ONE_HOUR_MS);
-        logInconsistency(`Gate session '${sessionId}' armed for ${ageHours}h without being consumed (orphaned session)`);
+        logInconsistency(`Gate session '${gateSessionId}' armed for ${ageHours}h without being consumed (orphaned session)`);
       }
     }
   }

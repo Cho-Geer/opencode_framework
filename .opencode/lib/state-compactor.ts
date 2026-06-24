@@ -91,7 +91,7 @@ const COMPACTION_CONFIG = {
  * const compactor = new StateCompactor();
  *
  * // In compliance_gate_complete handler:
- * await compactor.onGateComplete(sessionId, sessionData);
+ * await compactor.onGateComplete(gateSessionId, sessionData);
  *
  * // In nightly cron (@CI-CD-Agent):
  * await compactor.nightlyCompaction();
@@ -124,11 +124,11 @@ export class StateCompactor {
    *   2. gate-state.index.json (metadata entry)
    *   3. recent_sessions in gate-state.json (metadata reference)
    *
-   * @param sessionId - The completed session ID
+   * @param gateSessionId - The completed session ID
    * @param session - Full session data from the hot file before removal
    */
   async onGateComplete(
-    sessionId: string,
+    gateSessionId: string,
     session: GateSessionHot,
   ): Promise<void> {
     const dateKey = getDateKey();
@@ -142,8 +142,8 @@ export class StateCompactor {
     const historyRef = this.writeToHistory(dateKey, session);
 
     // 3. Update index
-    this.updateIndex(sessionId, {
-      session_id: sessionId,
+    this.updateIndex(gateSessionId, {
+      session_id: gateSessionId,
       created_at: session.created_at,
       gate_status: "completed",
       consumed_at: new Date().toISOString(),
@@ -151,7 +151,7 @@ export class StateCompactor {
     });
 
     // 4. Move from active to recent in hot storage
-    this.moveToRecent(sessionId, historyRef);
+    this.moveToRecent(gateSessionId, historyRef);
 
     // 5. Update meta counts
     this.updateMeta();
@@ -159,7 +159,7 @@ export class StateCompactor {
     // P3/S63-3: Sync hot state to DB (non-fatal; best-effort)
     try {
       dbSyncCompactorHot(this.readHotState());
-      dbMarkSessionArchived(sessionId);
+      dbMarkSessionArchived(gateSessionId);
     } catch {
       /* DB unavailable — JSON remains primary */
     }
@@ -169,15 +169,15 @@ export class StateCompactor {
    * OpenCode native hook: session.compacted
    * Triggered when OpenCode compacts a session context.
    *
-   * @param sessionId - The compacted session ID
+   * @param gateSessionId - The compacted session ID
    */
-  async onSessionCompacted(sessionId: string): Promise<void> {
+  async onSessionCompacted(gateSessionId: string): Promise<void> {
     // Check if this session has gate data we should archive
     const hotState = this.readHotState();
-    const activeSession = hotState.active_sessions[sessionId];
+    const activeSession = hotState.active_sessions[gateSessionId];
 
     if (activeSession && activeSession.gate_status !== "active") {
-      await this.onGateComplete(sessionId, activeSession);
+      await this.onGateComplete(gateSessionId, activeSession);
     }
 
     // P3/S63-3: Sync hot state to DB
@@ -212,29 +212,29 @@ export class StateCompactor {
     // Read or create archive
     const archive = this.readOrCreateArchive();
 
-    for (const sessionId of oldSessionIds) {
-      const recent = hotState.recent_sessions[sessionId];
+    for (const gateSessionId of oldSessionIds) {
+      const recent = hotState.recent_sessions[gateSessionId];
       if (!recent) continue;
 
       // Move to archive
-      archive.sessions[sessionId] = {
+      archive.sessions[gateSessionId] = {
         session_id: recent.session_id,
         archive_ref: recent.archive_ref,
       };
       archive.session_count++;
 
       // Update index status to "drained"
-      this.updateIndexStatus(sessionId, "drained");
+      this.updateIndexStatus(gateSessionId, "drained");
 
       // Remove from recent_sessions
-      delete hotState.recent_sessions[sessionId];
+      delete hotState.recent_sessions[gateSessionId];
     }
 
     archive.archived_at = new Date().toISOString();
 
     // Write archive and updated hot state
     this.writeArchive(archive);
-    this.writeHotState(hotState);
+    // OPT-01: writeHotState is no-op (DB-canonical)
     this.updateMeta();
 
     // P3/S63-3: Sync archived sessions to DB
@@ -262,7 +262,7 @@ export class StateCompactor {
     const now = Date.now();
     let drainedCount = 0;
 
-    for (const [sessionId, session] of Object.entries(
+    for (const [gateSessionId, session] of Object.entries(
       hotState.active_sessions,
     )) {
       const createdAt = new Date(session.created_at).getTime();
@@ -270,14 +270,14 @@ export class StateCompactor {
 
       if (ageHours > thresholdHours && session.gate_status !== "active") {
         // Archive the session
-        await this.archiveSession(sessionId, session);
-        delete hotState.active_sessions[sessionId];
+        await this.archiveSession(gateSessionId, session);
+        delete hotState.active_sessions[gateSessionId];
         drainedCount++;
       }
     }
 
     if (drainedCount > 0) {
-      this.writeHotState(hotState);
+      // OPT-01: writeHotState is no-op (DB-canonical)
       this.updateMeta();
 
       // P3/S63-3: Sync drained sessions to DB
@@ -329,10 +329,12 @@ export class StateCompactor {
       archive_path: archiveRef,
     });
 
+    // OPT-01 (2026-06-23): DB-canonical — JSON file fallback removed.
+    // DB write failure is now treated as hard error; compactor gate is authoritative.
     if (!dbOk) {
-      writeLog(SRC, "WARN", {
-        event: "GATE-FILE-FALLBACK",
-        detail: `DB write failed — falling back to JSONL append for sid=${session.session_id}`,
+      writeLog(SRC, "ERROR", {
+        event: "GATE-DB-WRITE-FAILED",
+        detail: `DB write failed for sid=${session.session_id} — gate archive persistence lost`,
       });
     }
 
@@ -419,10 +421,10 @@ export class StateCompactor {
    *   2. Materialize gate-state.index.json as export cache (non-fatal)
    *   3. On DB failure, fall back to JSON file write
    */
-  private updateIndex(sessionId: string, session: GateSessionIndex): void {
+  private updateIndex(gateSessionId: string, session: GateSessionIndex): void {
     // 1. DB-first: UPSERT into gate_compactor_index
     const dbOk = dbUpsertCompactorIndex({
-      session_id: sessionId,
+      session_id: gateSessionId,
       status: session.gate_status,
       created_at: session.created_at
         ? new Date(session.created_at).getTime()
@@ -433,16 +435,17 @@ export class StateCompactor {
       archive_ref: session.archive_ref,
     });
 
+    // OPT-01 (2026-06-23): DB-canonical — JSON index fallback removed.
     if (!dbOk) {
-      writeLog(SRC, "WARN", {
-        event: "GATE-FILE-FALLBACK",
-        detail: `DB upsert failed — falling back to JSON index for sid=${sessionId}`,
+      writeLog(SRC, "ERROR", {
+        event: "GATE-DB-UPSERT-FAILED",
+        detail: `DB upsert failed for sid=${gateSessionId} — index entry lost`,
       });
     }
 
     // 2. Materialize gate-state.index.json as export cache
     const index = this.readIndex();
-    index.sessions[sessionId] = session;
+    index.sessions[gateSessionId] = session;
     this.writeIndex(index);
   }
 
@@ -450,13 +453,13 @@ export class StateCompactor {
    * Update only the status field of an index entry (DB-first, A8).
    */
   private updateIndexStatus(
-    sessionId: string,
+    gateSessionId: string,
     newStatus: "completed" | "drained",
   ): void {
     // 1. DB-first: UPSERT with new status
     const now = Date.now();
     dbUpsertCompactorIndex({
-      session_id: sessionId,
+      session_id: gateSessionId,
       status: newStatus,
       created_at: now,
       drained_at: newStatus === "drained" ? now : undefined,
@@ -464,8 +467,8 @@ export class StateCompactor {
 
     // 2. Materialize gate-state.index.json as export cache
     const index = this.readIndex();
-    if (index.sessions[sessionId]) {
-      index.sessions[sessionId].gate_status = newStatus;
+    if (index.sessions[gateSessionId]) {
+      index.sessions[gateSessionId].gate_status = newStatus;
       this.writeIndex(index);
     }
   }
@@ -475,13 +478,13 @@ export class StateCompactor {
   // ==========================================================================
 
   /**
-   * Read the hot gate-state. DB-first with JSON fallback (A8 DB-first).
+   * Read the hot gate-state. DB-only (OPT-01, 2026-06-23).
    *
    * Strategy:
    *   1. Query DB (gate_sessions + gate_drained_sessions + gate_compactor_index)
    *   2. If DB succeeds, return DB view (authoritative)
-   *   3. If DB fails, fall back to gate-state.json file
-   *   4. Log GATE-FILE-FALLBACK when JSON fallback is used
+   *   3. If DB fails, throw — JSON file fallback removed (OPT-01)
+   *      gate-state.json is preserved as read-only migration snapshot.
    */
   private readHotState(): GateStateHot {
     // Try DB first (A8: DB is authoritative)
@@ -499,67 +502,32 @@ export class StateCompactor {
       // DB unavailable — fall through to JSON file
     }
 
-    // Fallback: read gate-state.json
-    if (!existsSync(this.hotFile)) {
-      return {
-        formatVersion: "3.0",
-        active_sessions: {},
-        recent_sessions: {},
-        meta: {
-          total_sessions: 0,
-          active_count: 0,
-          recent_count: 0,
-          last_compacted: new Date().toISOString(),
-        },
-      };
-    }
-
-    writeLog(SRC, "WARN", {
-      event: "GATE-FILE-FALLBACK",
-      detail: `DB unavailable — falling back to gate-state.json for read`,
+    // OPT-01 (2026-06-23): DB-canonical — JSON file fallback removed.
+    // gate-state.json is preserved as read-only migration snapshot; DB is the sole source.
+    writeLog(SRC, "ERROR", {
+      event: "GATE-DB-UNAVAILABLE",
+      detail: `DB unavailable for readHotState — no fallback available (OPT-01)`,
     });
-
-    try {
-      const data = JSON.parse(readFileSync(this.hotFile, "utf8"));
-
-      // Handle v2 format gracefully
-      if (data.formatVersion === "2.0") {
-        return this.migrateV2ToV3(data);
-      }
-
-      return data as GateStateHot;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, "ERROR", {
-        event: "HOT-PARSE-FAILED",
-        detail: `hotFile=${this.hotFile} err=${message}`,
-      });
-      throw error;
-    }
+    throw new Error(
+      "Gate DB unavailable — cannot read hot state (OPT-01 DB-canonical)",
+    );
   }
 
   /**
-   * Write the hot gate-state.json file atomically.
+   * OPT-01 (2026-06-23): DB-canonical — gate-state.json write removed.
+   * JSON file is preserved as read-only migration snapshot. DB is authoritative.
    */
-  private writeHotState(state: GateStateHot): void {
-    try {
-      writeFileSync(this.hotFile, JSON.stringify(state, null, 2));
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      writeLog(SRC, "ERROR", {
-        event: "HOT-WRITE-FAILED",
-        detail: `hotFile=${this.hotFile} err=${message}`,
-      });
-      throw error;
-    }
+  private writeHotState(_state: GateStateHot): void {
+    // No-op: gate-state.json is no longer written (OPT-01 DB-canonical).
+    // DB (gate_sessions + gate_drained_sessions + gate_compactor_index) is the sole source.
   }
 
   /**
    * Move a session from active_sessions to recent_sessions in the hot file.
    */
-  private moveToRecent(sessionId: string, archiveRef: string): void {
+  private moveToRecent(gateSessionId: string, archiveRef: string): void {
     const hotState = this.readHotState();
-    const activeSession = hotState.active_sessions[sessionId];
+    const activeSession = hotState.active_sessions[gateSessionId];
 
     if (!activeSession) return;
 
@@ -571,26 +539,33 @@ export class StateCompactor {
       archive_ref: archiveRef,
     };
 
-    hotState.recent_sessions[sessionId] = recentSession;
-    delete hotState.active_sessions[sessionId];
+    hotState.recent_sessions[gateSessionId] = recentSession;
+    delete hotState.active_sessions[gateSessionId];
 
-    this.writeHotState(hotState);
+    // OPT-01: writeHotState is no-op (DB-canonical)
   }
 
   /**
    * Update metadata counts in the hot file.
    */
   private updateMeta(): void {
-    const hotState = this.readHotState();
-    hotState.meta = {
-      total_sessions:
-        Object.keys(hotState.active_sessions).length +
-        Object.keys(hotState.recent_sessions).length,
-      active_count: Object.keys(hotState.active_sessions).length,
-      recent_count: Object.keys(hotState.recent_sessions).length,
-      last_compacted: new Date().toISOString(),
-    };
-    this.writeHotState(hotState);
+    try {
+      const hotState = this.readHotState();
+      hotState.meta = {
+        total_sessions:
+          Object.keys(hotState.active_sessions).length +
+          Object.keys(hotState.recent_sessions).length,
+        active_count: Object.keys(hotState.active_sessions).length,
+        recent_count: Object.keys(hotState.recent_sessions).length,
+        last_compacted: new Date().toISOString(),
+      };
+      // OPT-01: writeHotState is no-op (DB-canonical); DB is authoritative
+    } catch (e: any) {
+      writeLog(SRC, "WARN", {
+        event: "GATE-DB-UNAVAILABLE",
+        detail: `Cannot update metadata: ${e.message}`,
+      });
+    }
   }
 
   /**
@@ -615,14 +590,14 @@ export class StateCompactor {
       Record<string, unknown>
     >;
 
-    for (const [sessionId, session] of Object.entries(sessions)) {
+    for (const [gateSessionId, session] of Object.entries(sessions)) {
       if (
         ["active", "armed", "checked", "pending"].includes(
           String(session.gate_status),
         )
       ) {
-        hot.active_sessions[sessionId] = {
-          session_id: sessionId,
+        hot.active_sessions[gateSessionId] = {
+          session_id: gateSessionId,
           created_at: String(session.created_at || ""),
           gate_status: session.gate_status as GateSessionHot["gate_status"],
           confirmed_at: session.confirmed_at
@@ -695,15 +670,15 @@ export class StateCompactor {
    * Archive a single session (write to history, update index, add to archive).
    */
   private async archiveSession(
-    sessionId: string,
+    gateSessionId: string,
     session: GateSessionHot,
   ): Promise<void> {
     const dateKey = getDateKey();
     const historyRef = this.writeToHistory(dateKey, session);
 
     // Update index
-    this.updateIndex(sessionId, {
-      session_id: sessionId,
+    this.updateIndex(gateSessionId, {
+      session_id: gateSessionId,
       created_at: session.created_at,
       gate_status: "drained",
       consumed_at: new Date().toISOString(),
@@ -712,8 +687,8 @@ export class StateCompactor {
 
     // Add to archive
     const archive = this.readOrCreateArchive();
-    archive.sessions[sessionId] = {
-      session_id: sessionId,
+    archive.sessions[gateSessionId] = {
+      session_id: gateSessionId,
       archive_ref: historyRef,
     };
     archive.session_count++;

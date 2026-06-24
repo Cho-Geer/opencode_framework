@@ -191,7 +191,15 @@ export default tool({
             }
           } catch {}
 
-          var kcs = readSubState("knowledge_cache_state");
+          // Phase 2 (v19): JSON blob is frozen read-only snapshot.
+          // Pruning is now a best-effort cleanup of the frozen blob.
+          // Future: migrate pruning logic to uc7ks_pipeline_state DB table.
+          var kcs: any = {};
+          try {
+            kcs = readSubState("knowledge_cache_state");
+          } catch {
+            /* non-fatal — frozen blob may not exist */
+          }
           var sa = kcs?.session_access || {};
 
           var pruneOpts: PruneOptions = {

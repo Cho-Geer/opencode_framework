@@ -556,7 +556,7 @@ export function l4_dagCheck(
   isDagExemptFn: (agent: string) => boolean,
 ): string {
   if (candidates.length === 0) return "";
-  const agent = candidates[0];
+  if (!dagTaskId) return "";
   if (agent === "@Orchestrator") return "";
   if (isDagExemptFn(agent)) return agent;
   return agent;

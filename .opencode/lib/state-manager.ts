@@ -14,11 +14,17 @@
  * @since Phase 0 (Foundation)
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
-import { join, dirname, relative } from 'node:path';
-import { writeLog } from './log-manager';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  statSync,
+} from "node:fs";
+import { join, dirname, relative } from "node:path";
+import { writeLog } from "./log-manager";
 
-const SRC = 'lib-state-manager';
+const SRC = "lib-state-manager";
 
 // ============================================================================
 // Type Definitions
@@ -33,7 +39,7 @@ export interface GateSessionHot {
   /** ISO 8601 timestamp of session creation */
   created_at: string;
   /** Current gate status */
-  gate_status: 'checked' | 'active' | 'armed' | 'pending';
+  gate_status: "checked" | "active" | "armed" | "pending";
   /** ISO 8601 timestamp of user confirmation */
   confirmed_at?: string;
   /** Original task description from compliance_gate_check */
@@ -52,7 +58,7 @@ export interface GateSessionRecent {
   /** ISO 8601 timestamp of session creation */
   created_at: string;
   /** Always "completed" for recent sessions */
-  gate_status: 'completed';
+  gate_status: "completed";
   /** ISO 8601 timestamp of completion (compliance_gate_complete) */
   consumed_at: string;
   /** Reference to full session data: "gate-state.history/YYYY-MM-DD.jsonl#N" */
@@ -68,7 +74,7 @@ export interface GateSessionIndex {
   /** ISO 8601 timestamp of session creation */
   created_at: string;
   /** Completed or drained status */
-  gate_status: 'completed' | 'drained';
+  gate_status: "completed" | "drained";
   /** ISO 8601 timestamp of completion */
   consumed_at?: string;
   /** Reference to full session data */
@@ -115,7 +121,7 @@ export interface GateStateMeta {
  */
 export interface GateStateHot {
   /** Format version — always "3.0" */
-  formatVersion: '3.0';
+  formatVersion: "3.0";
   /** Active and pending sessions */
   active_sessions: Record<string, GateSessionHot>;
   /** Recently completed sessions (≤7 days) */
@@ -129,7 +135,7 @@ export interface GateStateHot {
  */
 export interface GateStateIndex {
   /** Format version */
-  formatVersion: '3.0';
+  formatVersion: "3.0";
   /** All completed/drained sessions, keyed by session_id */
   sessions: Record<string, GateSessionIndex>;
 }
@@ -139,7 +145,7 @@ export interface GateStateIndex {
  */
 export interface GateStateArchive {
   /** Format version */
-  formatVersion: '3.0';
+  formatVersion: "3.0";
   /** ISO 8601 timestamp of archive creation */
   archived_at: string;
   /** Number of sessions in this archive */
@@ -153,7 +159,7 @@ export interface GateStateArchive {
  */
 export interface DAGTask {
   id: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: "pending" | "in_progress" | "completed";
   completed_at?: string;
   [key: string]: unknown;
 }
@@ -179,25 +185,25 @@ export interface DAGMeta {
  */
 export const STATE_PATHS = {
   /** Hot gate-state.json — active + recent sessions */
-  GATE_STATE_HOT: '.opencode/state/gate-state.json',
+  GATE_STATE_HOT: ".opencode/state/gate-state.json",
   /** Session metadata index */
-  GATE_STATE_INDEX: '.opencode/state/gate-state.index.json',
+  GATE_STATE_INDEX: ".opencode/state/gate-state.index.json",
   /** Archived sessions (cold storage) */
-  GATE_STATE_ARCHIVE: '.opencode/state/gate-state.archive.json',
+  GATE_STATE_ARCHIVE: ".opencode/state/gate-state.archive.json",
   /** Append-only history directory */
-  GATE_STATE_HISTORY_DIR: '.opencode/state/gate-state.history',
+  GATE_STATE_HISTORY_DIR: ".opencode/state/gate-state.history",
   /** Hot Task.DAG.json — pending + recent completed */
-  DAG_HOT: 'Task.DAG.json',
+  DAG_HOT: "Task.DAG.json",
   /** Version snapshots directory */
-  DAG_VERSIONS_DIR: 'Task.DAG.versions',
+  DAG_VERSIONS_DIR: "Task.DAG.versions",
   /** Append-only changelog */
-  DAG_CHANGELOG: 'Task.DAG.changelog.md',
+  DAG_CHANGELOG: "Task.DAG.changelog.md",
   /** Task lookup index */
-  DAG_INDEX: 'Task.DAG.index.json',
+  DAG_INDEX: "Task.DAG.index.json",
   /** Current safe-bash log */
-  SAFE_BASH_LOG: '.opencode/logs/safe-bash.log',
+  SAFE_BASH_LOG: ".opencode/logs/safe-bash.log",
   /** Log archive directory */
-  LOG_ARCHIVE_DIR: '.opencode/logs/archive',
+  LOG_ARCHIVE_DIR: ".opencode/logs/archive",
 } as const;
 
 // ============================================================================
@@ -208,7 +214,7 @@ export const STATE_PATHS = {
  * Generate a date key for history files (YYYY-MM-DD format).
  */
 export function getDateKey(date: Date = new Date()): string {
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 }
 
 /**
@@ -217,9 +223,9 @@ export function getDateKey(date: Date = new Date()): string {
 export function getTimestampKey(date: Date = new Date()): string {
   return date
     .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\..+/, '')
-    .replace('T', '_');
+    .replace(/[-:]/g, "")
+    .replace(/\..+/, "")
+    .replace("T", "_");
 }
 
 /**
@@ -237,11 +243,11 @@ export function findOldSessions(
   const cutoff = cutoffDate.getTime();
   const oldIds: string[] = [];
 
-  for (const [sessionId, session] of Object.entries(sessions)) {
+  for (const [gateSessionId, session] of Object.entries(sessions)) {
     if (session.consumed_at) {
       const consumedTime = new Date(session.consumed_at).getTime();
       if (consumedTime < cutoff) {
-        oldIds.push(sessionId);
+        oldIds.push(gateSessionId);
       }
     }
   }
@@ -266,8 +272,12 @@ export function buildArchiveRef(dateKey: string, entryIndex: number): string {
  * @param ref - Reference string like "gate-state.history/2026-06-03.jsonl#5"
  * @returns Parsed reference or null if format is invalid
  */
-export function parseArchiveRef(ref: string): { filename: string; lineIndex: number } | null {
-  const match = ref.match(/^gate-state\.history\/(\d{4}-\d{2}-\d{2}\.jsonl)#(\d+)$/);
+export function parseArchiveRef(
+  ref: string,
+): { filename: string; lineIndex: number } | null {
+  const match = ref.match(
+    /^gate-state\.history\/(\d{4}-\d{2}-\d{2}\.jsonl)#(\d+)$/,
+  );
   if (!match) return null;
   return {
     filename: match[1],
@@ -284,11 +294,14 @@ export function parseArchiveRef(ref: string): { filename: string; lineIndex: num
 export function countJsonlLines(filePath: string): number {
   if (!existsSync(filePath)) return 0;
   try {
-    const content = readFileSync(filePath, 'utf8');
-    return content.split('\n').filter((line) => line.trim().length > 0).length;
+    const content = readFileSync(filePath, "utf8");
+    return content.split("\n").filter((line) => line.trim().length > 0).length;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    writeLog(SRC, 'ERROR', { event: 'JSONL-LINE-COUNT-FAILED', detail: `filePath=${filePath} err=${message}` });
+    writeLog(SRC, "ERROR", {
+      event: "JSONL-LINE-COUNT-FAILED",
+      detail: `filePath=${filePath} err=${message}`,
+    });
     return 0;
   }
 }
@@ -305,7 +318,7 @@ export function getFileSize(filePath: string): number {
  * Get human-readable file size string.
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes < 0) return 'N/A';
+  if (bytes < 0) return "N/A";
   if (bytes < 1024) return `${bytes}B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;

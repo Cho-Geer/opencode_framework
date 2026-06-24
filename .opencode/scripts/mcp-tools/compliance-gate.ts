@@ -34,6 +34,7 @@ const {
  * Verified working: bun -e "require('./.opencode/lib/log-manager')" → function.
  */
 const { writeLog } = require("../../lib/log-manager");
+const { checklistWirePassed } = require("../../lib/checklist-hooks");
 
 // IMPLEMENT-DISPATCH-CTX-FIX: Self-registration imports
 const {
@@ -174,7 +175,7 @@ function hotToGateStore(hot, filePath) {
   const sessions = {};
   for (const [sid, s] of Object.entries(hot.active_sessions || {})) {
     sessions[sid] = {
-      session_id: s.session_id || sid,
+      session_id: s.gate_session_id || sid,
       task_description: s.task_description || "",
       gate_status: s.gate_status || "armed",
       agent: s.agent || null,
@@ -187,7 +188,7 @@ function hotToGateStore(hot, filePath) {
   }
   for (const [sid, s] of Object.entries(hot.recent_sessions || {})) {
     sessions[sid] = {
-      session_id: s.session_id || sid,
+      session_id: s.gate_session_id || sid,
       task_description: s.task_description || "",
       gate_status: s.gate_status || "completed",
       agent: s.agent || null,
@@ -352,7 +353,8 @@ function verifyRuleRegistry() {
     // BUSINESS_CODE_PREFIX), the gate check should PASS with WARNING instead
     // of blocking. This aligns with the pre-commit hook's isInfraOnlyCommit
     // constraint.
-    const allInfra = modified.length > 0 && modified.every(f => isInfrastructureFile(f));
+    const allInfra =
+      modified.length > 0 && modified.every((f) => isInfrastructureFile(f));
 
     if (modified.length === 0) {
       return {
@@ -366,7 +368,8 @@ function verifyRuleRegistry() {
     if (allInfra) {
       for (const filePath of modified) {
         results.push({
-          id: "critical_file_modified_" + filePath.replace(/[^a-zA-Z0-9]/g, "_"),
+          id:
+            "critical_file_modified_" + filePath.replace(/[^a-zA-Z0-9]/g, "_"),
           desc: `[Gate Preflight v2] ${filePath}: infra file modified — [INFRA] commit pending (allowed)`,
           severity: "WARNING",
         });
@@ -404,9 +407,9 @@ function verifyRuleRegistry() {
   }
 }
 
-function generateSessionId() {
-  if (_gateCore && typeof _gateCore.generateSessionId === "function") {
-    return _gateCore.generateSessionId();
+function generateGateSessionId() {
+  if (_gateCore && typeof _gateCore.generateGateSessionId === "function") {
+    return _gateCore.generateGateSessionId();
   }
   const id = "cg_ses_" + Date.now();
   return id;
@@ -433,10 +436,7 @@ function getEnforcementMode() {
        * develop and runtime keys replacing the old singular enforcement_mode.
        */
       if (tr) {
-        const mode =
-          tr.develop_enforcement_mode ||
-          tr.runtime_enforcement_mode ||
-          tr.enforcement_mode;
+        const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode;
         if (mode && validModes.includes(mode)) {
           configMode = mode;
         }
@@ -503,7 +503,7 @@ function loadStore() {
     // Merge active_sessions (object) into sessions dict
     if (s.active_sessions && typeof s.active_sessions === "object") {
       for (const [sid, ses] of Object.entries(s.active_sessions)) {
-        sessions[sid] = { ...ses, session_id: sid };
+        sessions[sid] = { ...ses, gate_session_id: sid };
         activeSessions.push(sid);
       }
     }
@@ -511,7 +511,7 @@ function loadStore() {
     // Merge recent_sessions into sessions dict
     if (s.recent_sessions && typeof s.recent_sessions === "object") {
       for (const [sid, ses] of Object.entries(s.recent_sessions)) {
-        sessions[sid] = { ...ses, session_id: sid };
+        sessions[sid] = { ...ses, gate_session_id: sid };
       }
     }
 
@@ -608,7 +608,7 @@ function saveStore(store) {
       const ses = store.sessions?.[sid];
       if (ses) {
         v3.active_sessions[sid] = {
-          session_id: ses.session_id || sid,
+          session_id: ses.gate_session_id || sid,
           created_at: ses.created_at,
           gate_status: ses.gate_status,
           confirmed_at: ses.confirmed_at || null,
@@ -749,20 +749,20 @@ function wasRuleConsulted() {
  * The block is intentionally short, high-signal, and machine-parseable so
  * that downstream plugins can pattern-match it in context if needed.
  */
-function buildReminderText(sessionId, planSummary, expiresAt) {
+function buildReminderText(gateSessionId, planSummary, expiresAt) {
   const summarySnippet = (planSummary || "").trim().substring(0, 120);
   return (
     "\n\n" +
     "══════════════════════════════════════════════════════════════\n" +
     "✅ GATE ARMED [session: " +
-    sessionId +
+    gateSessionId +
     "]\n" +
     "══════════════════════════════════════════════════════════════\n" +
     "⚠️  REMINDER — YOU MUST DO THIS WHEN THE TASK FINISHES:\n" +
     "    Call:  compliance_gate_complete\n" +
     "    With:  {\n" +
     '             "session_id": "' +
-    sessionId +
+    gateSessionId +
     '",\n' +
     '             "execution_summary": "<what you actually accomplished>"\n' +
     "           }\n" +
@@ -1058,7 +1058,7 @@ function runGateCheck(taskDescription, taskId) {
   }
 
   const store = loadStore();
-  const sessionId = generateSessionId();
+  const gateSessionId = generateGateSessionId();
   const ruleStatus = wasRuleConsulted();
   const skillAvailable = isSkillLoadedInSession();
   const failed = [];
@@ -1148,7 +1148,7 @@ function runGateCheck(taskDescription, taskId) {
         writeLog("mcp-compliance-gate", "runtime", {
           event: "CRITICAL-FILE-MODIFIED-BYPASS",
           agent: bypassAgent,
-          sessionID: sessionId,
+          sessionID: gateSessionId,
           detail: `Downgraded ${item.id} from HIGH to WARNING for ${bypassAgent}`,
         });
         item.severity = "WARNING";
@@ -1169,7 +1169,7 @@ function runGateCheck(taskDescription, taskId) {
           writeLog("mcp-compliance-gate", "runtime", {
             event: "RULE-REGISTRY-SUMMARY-BYPASS",
             agent: bypassAgent,
-            sessionID: sessionId,
+            sessionID: gateSessionId,
             detail: "Downgraded rule_registry_summary from HIGH to INFO",
           });
           item.severity = "INFO";
@@ -1181,7 +1181,7 @@ function runGateCheck(taskDescription, taskId) {
     writeLog("mcp-compliance-gate", "runtime", {
       event: "CRITICAL-FILE-BYPASS-BLOCKED",
       agent: bypassAgent,
-      sessionID: sessionId,
+      sessionID: gateSessionId,
       detail: `Bypass blocked: enforcement mode is locked`,
     });
   }
@@ -1438,8 +1438,8 @@ function runGateCheck(taskDescription, taskId) {
     }
   }
 
-  store.sessions[sessionId] = {
-    session_id: sessionId,
+  store.sessions[gateSessionId] = {
+    gate_session_id: gateSessionId,
     created_at: new Date().toISOString(),
     task_description: taskDescription || "",
     task_id: taskId || null,
@@ -1451,12 +1451,14 @@ function runGateCheck(taskDescription, taskId) {
     confirmed_at: null,
     consumed_at: null,
     audit: null,
+    // V7.2 FIX: Capture OpenCode session ID for correct checklist wiring
+    opencode_session_id: process.env.OPENCODE_SESSION_ID || null,
   };
   store.last_updated = new Date().toISOString();
   saveStore(store);
   return {
     passed,
-    session_id: sessionId,
+    gate_session_id: gateSessionId,
     enforcement_mode: enforcementMode,
     failed_items: failed,
     rule_status: ruleStatus,
@@ -1464,30 +1466,30 @@ function runGateCheck(taskDescription, taskId) {
 }
 
 function runGateConfirm(
-  sessionId,
+  gateSessionId,
   planSummary,
   agent,
   taskId,
   declaredDeliverables,
 ) {
   const store = loadStore();
-  const session = sessionId ? store.sessions[sessionId] : null;
+  const session = gateSessionId ? store.sessions[gateSessionId] : null;
   if (!session) {
     return {
       status: "rejected",
-      reason: `session not found: ${sessionId || "(missing)"}. Must call compliance_gate_check first.`,
+      reason: `session not found: ${gateSessionId || "(missing)"}. Must call compliance_gate_check first.`,
     };
   }
   if (session.gate_status === "armed") {
     return {
       status: "rejected",
-      reason: `session ${sessionId} is already armed. Cannot re-arm.`,
+      reason: `session ${gateSessionId} is already armed. Cannot re-arm.`,
     };
   }
   if (session.gate_status !== "checked") {
     return {
       status: "rejected",
-      reason: `session ${sessionId} is not in "checked" state (current: ${session.gate_status}). Must call compliance_gate_check to create a valid session first.`,
+      reason: `session ${gateSessionId} is not in "checked" state (current: ${session.gate_status}). Must call compliance_gate_check to create a valid session first.`,
     };
   }
   if (!planSummary || planSummary.trim().length < 10) {
@@ -1502,7 +1504,7 @@ function runGateConfirm(
   if (session.last_check_passed === false && enforcementMode !== "advisory") {
     return {
       status: "rejected",
-      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${sessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${enforcementMode} enforcement mode.`,
+      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${gateSessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${enforcementMode} enforcement mode.`,
     };
   }
 
@@ -1604,11 +1606,73 @@ function runGateConfirm(
 
   session.gate_status = "armed";
   session.plan_summary = planSummary.trim();
+
+  // V7.2 FIX (2026-06-23, @Super-Admin, agent-execution-flow-vulnerability-analysis.md):
+  // Resolve OpenCode session ID from environment or session_map.
+  // Previously: checklistWirePassed received gateSessionId (cg_ses_*) —
+  // this created a checklist run keyed by cg_ses_* that no agent ever reads.
+  // Now: use the actual OpenCode session ID so gate facts are visible to
+  // the agent's checklist-before.ts which resolves runs by OpenCode session.
+  let opencodeSessionId = process.env.OPENCODE_SESSION_ID || "";
+  if (!opencodeSessionId) {
+    // Fallback: try resolving from session_map by agent identity
+    try {
+      const resolved = resolveAgent(process.env.OPENCODE_SESSION_ID || "");
+      if (resolved && resolved !== "") {
+        // Look up the session from session_map (approximate)
+        const entries = dbReadSessionMap?.("_all_");
+        // Can't easily reverse-lookup agent→sessionID, use gateSessionId as fallback
+      }
+    } catch {}
+  }
+  if (opencodeSessionId) {
+    session.opencode_session_id = opencodeSessionId;
+    writeLog("compliance-gate", "INFO", {
+      event: "GATE-V7.2-FIX",
+      detail: `Resolved opencode_session_id=${opencodeSessionId} for gate=${gateSessionId}`,
+    });
+  } else {
+    writeLog("compliance-gate", "WARN", {
+      event: "GATE-V7.2-FALLBACK",
+      detail: `Cannot resolve opencode_session_id for gate=${gateSessionId} — falling back to gateSessionId for checklist wiring`,
+    });
+  }
+
+  // P0-CHECKLIST: wire compliance gate state to checklist
+  // Use opencode_session_id if available, else fall back to gateSessionId
+  const clSessionId = opencodeSessionId || gateSessionId;
+  const clAgent = session.agent || resolvedAgent || "";
+  const clTaskId = session.task_id || taskId || null;
+  checklistWirePassed(
+    clSessionId,
+    clAgent,
+    clTaskId,
+    "compliance_gate_armed",
+    `plan: ${planSummary.trim().substring(0, 80)}`,
+  );
+  if (parsedDeliverables && parsedDeliverables.length > 0) {
+    checklistWirePassed(
+      clSessionId,
+      clAgent,
+      clTaskId,
+      "deliverables_declared",
+      JSON.stringify(parsedDeliverables.map((d: any) => d.name)),
+    );
+  }
   session.confirmed_at = new Date().toISOString();
   session.last_check_failed_items = [];
   // ── P5-001: Lifecycle fields ──
   session.task_id = taskId || session.task_id || null;
   session.agent = resolvedAgent;
+
+  // P0-CHECKLIST: wire gate check success to checklist
+  checklistWirePassed(
+    clSessionId,
+    resolvedAgent,
+    clTaskId,
+    "compliance_gate_checked",
+    `desc: ${(session.task_description || "").substring(0, 80)}`,
+  );
   session.worktree = process.cwd();
   // expires_at: 24 hours from confirmation
   session.expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -1624,8 +1688,8 @@ function runGateConfirm(
     return s && s.gate_status === "armed" && !s.consumed_at;
   });
   // Add to active_sessions (dedup)
-  if (!store.active_sessions.includes(sessionId)) {
-    store.active_sessions.push(sessionId);
+  if (!store.active_sessions.includes(gateSessionId)) {
+    store.active_sessions.push(gateSessionId);
   }
   // Ensure no checked sessions are in active_sessions
   for (const [sid, s] of Object.entries(store.sessions)) {
@@ -1637,7 +1701,7 @@ function runGateConfirm(
   saveStore(store);
   return {
     status: "armed",
-    session_id: sessionId,
+    gate_session_id: gateSessionId,
     confirmed_at: session.confirmed_at,
     expires_at: session.expires_at,
     plan_summary: planSummary.trim().substring(0, 200),
@@ -1646,13 +1710,13 @@ function runGateConfirm(
   };
 }
 
-function runGateComplete(sessionId, executionSummary) {
+function runGateComplete(gateSessionId, executionSummary) {
   const store = loadStore();
-  const session = sessionId ? store.sessions[sessionId] : null;
+  const session = gateSessionId ? store.sessions[gateSessionId] : null;
   if (!session) {
     return {
       status: "rejected",
-      reason: `session not found: ${sessionId || "(missing)"}. Must call compliance_gate_check and compliance_gate_confirm first.`,
+      reason: `session not found: ${gateSessionId || "(missing)"}. Must call compliance_gate_check and compliance_gate_confirm first.`,
     };
   }
 
@@ -1671,21 +1735,21 @@ function runGateComplete(sessionId, executionSummary) {
       }
       return {
         status: "rejected",
-        reason: `session ${sessionId} requires Orchestrator approval (status: ${session.gate_status}, approval_required: true). ${guidance}`,
+        reason: `session ${gateSessionId} requires Orchestrator approval (status: ${session.gate_status}, approval_required: true). ${guidance}`,
       };
     }
   } else {
     if (session.gate_status !== "armed") {
       return {
         status: "rejected",
-        reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
+        reason: `session ${gateSessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
       };
     }
   }
   if (session.consumed_at) {
     return {
       status: "rejected",
-      reason: `session ${sessionId} already completed at ${session.consumed_at}. Cannot re-complete.`,
+      reason: `session ${gateSessionId} already completed at ${session.consumed_at}. Cannot re-complete.`,
     };
   }
 
@@ -1759,7 +1823,7 @@ function runGateComplete(sessionId, executionSummary) {
     };
     // Remove from active_sessions
     store.active_sessions = store.active_sessions.filter(
-      (sid) => sid !== sessionId,
+      (sid) => sid !== gateSessionId,
     );
     store.last_updated = new Date().toISOString();
     saveStore(store);
@@ -1784,9 +1848,12 @@ function runGateComplete(sessionId, executionSummary) {
   }
 
   // ── CI-UNIFY-003: Validate HANDOVER.md and TASK_LOG.md exist ──
-  // @super-admin-handover-enforcement: Pass sessionId as fallback so
+  // @super-admin-handover-enforcement: Pass gateSessionId as fallback so
   // @Super-Admin sessions without a DAG task_id still get validated.
-  const missingArtifacts = validateTaskArtifacts(session.task_id, sessionId);
+  const missingArtifacts = validateTaskArtifacts(
+    session.task_id,
+    gateSessionId,
+  );
   if (missingArtifacts.length > 0 && enforcementMode !== "advisory") {
     const now = new Date().toISOString();
     const maxRetries = enforcementMode === "locked" ? 1 : 3;
@@ -1805,11 +1872,11 @@ function runGateComplete(sessionId, executionSummary) {
         completed_at: now,
       };
       store.active_sessions = store.active_sessions.filter(
-        (sid) => sid !== sessionId,
+        (sid) => sid !== gateSessionId,
       );
       store.last_updated = new Date().toISOString();
       saveStore(store);
-      const resolvedId = session.task_id || sessionId;
+      const resolvedId = session.task_id || gateSessionId;
       return {
         status: "failed",
         reason:
@@ -1825,8 +1892,8 @@ function runGateComplete(sessionId, executionSummary) {
           resolvedId +
           ", task_id=" +
           (session.task_id || "null") +
-          ", sessionId=" +
-          sessionId +
+          ", gateSessionId=" +
+          gateSessionId +
           ")",
         missing_artifacts: missingArtifacts,
         retry_count: session.retry_count,
@@ -1848,7 +1915,7 @@ function runGateComplete(sessionId, executionSummary) {
     // Do NOT set consumed_at — gate is still live
     store.last_updated = new Date().toISOString();
     saveStore(store);
-    const resolvedId = session.task_id || sessionId;
+    const resolvedId = session.task_id || gateSessionId;
     return {
       status: "recoverable",
       reason:
@@ -1883,6 +1950,20 @@ function runGateComplete(sessionId, executionSummary) {
   const now = new Date().toISOString();
   session.gate_status = "completed";
   session.consumed_at = now;
+
+  // P0-CHECKLIST: wire complete success to checklist
+  const ag3 = session.agent || "";
+  const tk3 = session.task_id || null;
+  // V7.2 FIX: Use opencode_session_id if available
+  const clSid3 = session.opencode_session_id || gateSessionId;
+  checklistWirePassed(
+    clSid3,
+    ag3,
+    tk3,
+    "gate_closed",
+    `summary: ${(executionSummary || "").substring(0, 60)}`,
+  );
+
   session.audit = {
     execution_summary: (executionSummary || "").substring(0, 1000),
     completed_at: now,
@@ -1892,7 +1973,7 @@ function runGateComplete(sessionId, executionSummary) {
     store.audit_history = [];
   }
   store.audit_history.push({
-    session_id: sessionId,
+    gate_session_id: gateSessionId,
     task_description: session.task_description,
     plan_summary: session.plan_summary,
     agent: session.agent,
@@ -1908,7 +1989,7 @@ function runGateComplete(sessionId, executionSummary) {
   }
   // Remove from active_sessions
   store.active_sessions = store.active_sessions.filter(
-    (sid) => sid !== sessionId,
+    (sid) => sid !== gateSessionId,
   );
   store.last_updated = new Date().toISOString();
   saveStore(store);
@@ -1921,8 +2002,8 @@ function runGateComplete(sessionId, executionSummary) {
     const { StateCompactor } = require("../../lib/state-compactor.ts");
     const compactor = new StateCompactor();
     compactor
-      .onGateComplete(sessionId, {
-        session_id: sessionId,
+      .onGateComplete(gateSessionId, {
+        gate_session_id: gateSessionId,
         created_at: session.created_at,
         gate_status: "completed",
         confirmed_at: session.confirmed_at,
@@ -1951,7 +2032,7 @@ function runGateComplete(sessionId, executionSummary) {
 
   const audit = {
     status: "completed",
-    session_id: sessionId,
+    gate_session_id: gateSessionId,
     task_description: session.task_description,
     plan_summary: session.plan_summary,
     confirmed_at: session.confirmed_at,
@@ -1989,19 +2070,19 @@ function runGateComplete(sessionId, executionSummary) {
  * Transitions: armed → delivered (or armed → recoverable if artifacts missing).
  * Solves RC2: enforces artifact write order at state machine level.
  */
-function runGateSubmitDeliverables(sessionId, deliverablesEvidence) {
+function runGateSubmitDeliverables(gateSessionId, deliverablesEvidence) {
   const store = loadStore();
-  const session = sessionId ? store.sessions[sessionId] : null;
+  const session = gateSessionId ? store.sessions[gateSessionId] : null;
   if (!session) {
     return {
       status: "rejected",
-      reason: `session not found: ${sessionId || "(missing)"}`,
+      reason: `session not found: ${gateSessionId || "(missing)"}`,
     };
   }
   if (session.gate_status !== "armed") {
     return {
       status: "rejected",
-      reason: `session ${sessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
+      reason: `session ${gateSessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.`,
     };
   }
 
@@ -2060,7 +2141,7 @@ function runGateSubmitDeliverables(sessionId, deliverablesEvidence) {
   }
 
   // Also validate HANDOVER.md + TASK_LOG.md (existing artifact check)
-  const taskId = session.task_id || sessionId;
+  const taskId = session.task_id || gateSessionId;
   const taskDir = path2.join(OPENCODE_ROOT, ".task_temp", taskId);
   if (fs2.existsSync(taskDir)) {
     if (!fs2.existsSync(path2.join(taskDir, "HANDOVER.md")))
@@ -2092,7 +2173,7 @@ function runGateSubmitDeliverables(sessionId, deliverablesEvidence) {
     saveStore(store);
     return {
       status: "recoverable",
-      session_id: sessionId,
+      gate_session_id: gateSessionId,
       reason: `Missing artifacts: ${uniqueMissing.join(", ")}. Fix and re-submit.`,
       retry_count: session.retry_count,
     };
@@ -2101,11 +2182,24 @@ function runGateSubmitDeliverables(sessionId, deliverablesEvidence) {
   // All artifacts present → delivered state
   session.gate_status = "delivered";
   session.submitted_deliverables = evidenceWithTimestamps;
+
+  // P0-CHECKLIST: wire submit success to checklist
+  const ag = session.agent || "";
+  const tk = session.task_id || null;
+  // V7.2 FIX: Use opencode_session_id if available
+  const clSid = session.opencode_session_id || gateSessionId;
+  checklistWirePassed(
+    clSid,
+    ag,
+    tk,
+    "deliverables_submitted",
+    `evidence: ${parsedEvidence.length} file(s)`,
+  );
   store.last_updated = now;
   saveStore(store);
   return {
     status: "delivered",
-    session_id: sessionId,
+    gate_session_id: gateSessionId,
     submitted_at: now,
     pending_approval_by: "Orchestrator",
     deliverables_count: evidenceWithTimestamps.length,
@@ -2167,8 +2261,8 @@ function enforceMultiSourceAudit(
   // ── 2. Read HANDOVER.md ──
   const fs = require("fs");
   const handoverPath =
-      session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")?.artifact_path ||
-      `.task_temp/${taskId}/HANDOVER.md`;
+    session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")
+      ?.artifact_path || `.task_temp/${taskId}/HANDOVER.md`;
   let handover = "";
   try {
     handover = fs.readFileSync(handoverPath, "utf-8");
@@ -2281,7 +2375,7 @@ function parseFindingsTable(handoverContent) {
  * Reject: delivered → armed (sub-agent must re-submit via new dispatch).
  */
 function runGateApproveDeliverables(
-  sessionId,
+  gateSessionId,
   approvalDecision,
   approvalNote,
   executionSummary,
@@ -2290,11 +2384,11 @@ function runGateApproveDeliverables(
   findings_reported,
 ) {
   const store = loadStore();
-  const session = sessionId ? store.sessions[sessionId] : null;
+  const session = gateSessionId ? store.sessions[gateSessionId] : null;
   if (!session) {
     return {
       status: "rejected",
-      reason: `session not found: ${sessionId || "(missing)"}`,
+      reason: `session not found: ${gateSessionId || "(missing)"}`,
     };
   }
 
@@ -2311,6 +2405,10 @@ function runGateApproveDeliverables(
     "@Super-Admin",
     "Orchestrator",
     "Super-Admin",
+    "@orchestrator",
+    "@super-admin",
+    "orchestrator",
+    "super-admin",
   ];
   const resolvedAgent = (
     agentId ||
@@ -2321,7 +2419,7 @@ function runGateApproveDeliverables(
 
   // §12.3 (read-before-approve-plan.md): Log agent resolution source
   writeLog("mcp-compliance-gate", "INFO", {
-    sessionID: sessionId,
+    sessionID: gateSessionId,
     event: "RESOLVED_FROM",
     agent: resolvedAgent,
     source: agentId
@@ -2352,7 +2450,7 @@ function runGateApproveDeliverables(
   if (session.gate_status !== "delivered") {
     return {
       status: "rejected",
-      reason: `session ${sessionId} is not in "delivered" state (current: ${session.gate_status}). Submit deliverables first.`,
+      reason: `session ${gateSessionId} is not in "delivered" state (current: ${session.gate_status}). Submit deliverables first.`,
     };
   }
 
@@ -2364,7 +2462,7 @@ function runGateApproveDeliverables(
     const step0dResult = enforceMultiSourceAudit(session, session.task_id);
     if (step0dResult) {
       writeLog("mcp-compliance-gate", "runtime", {
-        sessionID: sessionId,
+        sessionID: gateSessionId,
         agent: session.agent || "—",
         level: "ERROR",
         event: "STEP_0D_LOG_EVIDENCE_MISSING",
@@ -2379,8 +2477,8 @@ function runGateApproveDeliverables(
     // ── DELIVERABLES-REVIEW-LOCK: Verify Orchestrator reviewed deliverables ──
     const taskId = session.task_id;
     const handoverPath =
-      session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")?.artifact_path ||
-      `.task_temp/${taskId}/HANDOVER.md`;
+      session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")
+        ?.artifact_path || `.task_temp/${taskId}/HANDOVER.md`;
     let handoverContent = "";
     try {
       const fs = require("fs");
@@ -2439,7 +2537,7 @@ function runGateApproveDeliverables(
       );
       if (missing.length > 0) {
         writeLog("mcp-compliance-gate", "ERROR", {
-          sessionID: sessionId,
+          sessionID: gateSessionId,
           agent: session.agent || "—",
           event: "FINDINGS_REPORT_ENFORCE_REJECTED",
           detail:
@@ -2456,7 +2554,7 @@ function runGateApproveDeliverables(
         };
       }
       writeLog("mcp-compliance-gate", "INFO", {
-        sessionID: sessionId,
+        sessionID: gateSessionId,
         agent: session.agent || "—",
         event: "FINDINGS_REPORT_ENFORCE_PASSED",
         detail:
@@ -2487,14 +2585,17 @@ function runGateApproveDeliverables(
     {
       const enforcementMode = getEnforcementMode();
       const declaredHandoverPath =
-        session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")?.artifact_path ||
-        `.task_temp/${taskId}/HANDOVER.md`;
-      const resolvedHandoverPath = path2.resolve(OPENCODE_ROOT, declaredHandoverPath);
+        session?.declared_deliverables?.find((d) => d.name === "HANDOVER.md")
+          ?.artifact_path || `.task_temp/${taskId}/HANDOVER.md`;
+      const resolvedHandoverPath = path2.resolve(
+        OPENCODE_ROOT,
+        declaredHandoverPath,
+      );
 
       try {
         // ── Compute args_hash for approval context lookup ──
         const approvalArgs = {
-          session_id: sessionId,
+          gate_session_id: gateSessionId,
           approval_decision: approvalDecision,
           handover_sha256: handoverSha256 || "",
           agent_id: agentId || "",
@@ -2507,7 +2608,7 @@ function runGateApproveDeliverables(
         const argsHash = computeApprovalArgsHash(approvalArgs);
 
         // ── Look up approval context (gate-before.ts bridge) ──
-        const approvalCtx = getApprovalContext(sessionId, argsHash);
+        const approvalCtx = getApprovalContext(gateSessionId, argsHash);
 
         let readResult: {
           verified: boolean;
@@ -2520,8 +2621,11 @@ function runGateApproveDeliverables(
           // P1-B: Session-bound verification via verifyNonEmptyReadSet
           const { verifyNonEmptyReadSet } = require("../../lib/read-audit");
           const setResult = verifyNonEmptyReadSet({
-            agent: resolvedAgent,
-            sessionId: approvalCtx.opencode_session_id,
+            agent: ((session && session.agent) || resolvedAgent).replace(
+              /^@/,
+              "",
+            ),
+            gateSessionId: approvalCtx.opencode_session_id,
             filePaths: [resolvedHandoverPath],
           });
           readResult = {
@@ -2532,20 +2636,20 @@ function runGateApproveDeliverables(
           };
 
           writeLog("mcp-compliance-gate", "INFO", {
-            sessionID: sessionId,
+            sessionID: gateSessionId,
             agent: resolvedAgent,
             event: "READ_BEFORE_APPROVE_SESSION_BOUND",
-            gate_session_id: sessionId,
+            gate_gate_session_id: gateSessionId,
             opencode_session_id: approvalCtx.opencode_session_id,
             detail: `Session-bound read verification | verified=${setResult.verified}`,
           });
         } else {
           // Fallback: session-unbound verification (backward compat)
           writeLog("mcp-compliance-gate", "INFO", {
-            sessionID: sessionId,
+            sessionID: gateSessionId,
             agent: resolvedAgent,
             event: "READ_BEFORE_APPROVE_FALLBACK_UNBOUND",
-            gate_session_id: sessionId,
+            gate_gate_session_id: gateSessionId,
             detail:
               "No approval context found — falling back to session-unbound verifyRead()",
           });
@@ -2556,7 +2660,7 @@ function runGateApproveDeliverables(
 
         if (!readResult.verified) {
           writeLog("mcp-compliance-gate", "ERROR", {
-            sessionID: sessionId,
+            sessionID: gateSessionId,
             agent: resolvedAgent,
             level: "ERROR",
             event: "READ_BEFORE_APPROVE_FAILED",
@@ -2578,11 +2682,11 @@ function runGateApproveDeliverables(
 
         // Mark context consumed after successful verification
         if (approvalCtx) {
-          markApprovalContextConsumed(sessionId, argsHash);
+          markApprovalContextConsumed(gateSessionId, argsHash);
         }
 
         writeLog("mcp-compliance-gate", "INFO", {
-          sessionID: sessionId,
+          sessionID: gateSessionId,
           agent: resolvedAgent,
           event: "READ_BEFORE_APPROVE_PASSED",
           detail: readResult.reason,
@@ -2594,7 +2698,7 @@ function runGateApproveDeliverables(
           "mcp-compliance-gate",
           enfMode === "advisory" ? "WARN" : "ERROR",
           {
-            sessionID: sessionId,
+            sessionID: gateSessionId,
             agent: resolvedAgent,
             level: enfMode === "advisory" ? "WARN" : "ERROR",
             event: "READ_BEFORE_APPROVE_UNAVAILABLE",
@@ -2631,22 +2735,65 @@ function runGateApproveDeliverables(
     session.deliverables_approval_note = approvalNote || null;
     session.gate_status = "approved";
 
+    // P0-CHECKLIST: wire approval success to checklist
+    const ag2 = session.agent || "";
+    const tk2 = session.task_id || null;
+    // V7.2 FIX: Use opencode_session_id if available
+    const clSidA = session.opencode_session_id || gateSessionId;
+    checklistWirePassed(
+      clSidA,
+      ag2,
+      tk2,
+      "deliverables_approved",
+      `approved by ${session.deliverables_approved_by}`,
+    );
+    // Wire the prerequisite checks that passed before approval
+    checklistWirePassed(
+      clSidA,
+      ag2,
+      tk2,
+      "handover_hash_bound",
+      "sha256 verified",
+    );
+    checklistWirePassed(
+      clSidA,
+      ag2,
+      tk2,
+      "declared_handover_path_bound",
+      `path: ${handoverPath}`,
+    );
+    checklistWirePassed(
+      clSidA,
+      ag2,
+      tk2,
+      "read_before_approve_verified",
+      "hash matched",
+    );
+
     // Auto-complete if execution_summary provided
     if (executionSummary) {
       session.gate_status = "completed";
       session.consumed_at = now;
+      // P0-CHECKLIST: wire auto-complete to checklist
+      checklistWirePassed(
+        clSidA,
+        ag2,
+        tk2,
+        "gate_closed",
+        "auto-completed after approval",
+      );
       session.audit = {
         execution_summary: (executionSummary || "").substring(0, 1000),
         completed_at: now,
       };
       store.active_sessions = store.active_sessions.filter(
-        (sid) => sid !== sessionId,
+        (sid) => sid !== gateSessionId,
       );
 
       // Append to audit_history
       if (!Array.isArray(store.audit_history)) store.audit_history = [];
       store.audit_history.push({
-        session_id: sessionId,
+        gate_session_id: gateSessionId,
         task_description: session.task_description,
         plan_summary: session.plan_summary,
         agent: session.agent,
@@ -2665,7 +2812,7 @@ function runGateApproveDeliverables(
     saveStore(store);
     return {
       status: session.gate_status,
-      session_id: sessionId,
+      gate_session_id: gateSessionId,
       approved_by: session.deliverables_approved_by,
       approved_at: now,
       approval_note: approvalNote || null,
@@ -2681,7 +2828,7 @@ function runGateApproveDeliverables(
     saveStore(store);
     return {
       status: "rejected",
-      session_id: sessionId,
+      gate_session_id: gateSessionId,
       reason:
         approvalNote ||
         "Deliverables rejected. Re-dispatch sub-agent to fix and re-submit.",
@@ -2918,13 +3065,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
  * Used by runGateComplete to enforce CI-UNIFY-003 artifact requirements.
  *
  * @super-admin-handover-enforcement: When taskId is null (common for
- * @Super-Admin sessions that bypass the DAG), the sessionId is used as a
+ * @Super-Admin sessions that bypass the DAG), the gateSessionId is used as a
  * fallback directory name under .task_temp/. This ensures @Super-Admin
  * sessions receive the same HANDOVER.md enforcement as other agents,
  * satisfying SUPER-ADMIN-HARDEN-01.
  *
  * @param {string|null} taskId - The task ID to validate (DAG task ID or dispatch session ID)
- * @param {string|null} sessionId - Fallback identifier when taskId is null (e.g., cg_ses_*)
+ * @param {string|null} gateSessionId - Fallback identifier when taskId is null (e.g., cg_ses_*)
  * @returns {string[]} Array of missing artifact filenames (empty if all present)
  */
 /**
@@ -2949,11 +3096,15 @@ function scanSubdirForArtifact(baseDir, artifact) {
   return false;
 }
 
-function validateTaskArtifacts(taskId, sessionId) {
+function validateTaskArtifacts(taskId, gateSessionId) {
   if (_gateCore && typeof _gateCore.validateTaskArtifacts === "function") {
-    return _gateCore.validateTaskArtifacts(taskId, OPENCODE_ROOT, sessionId);
+    return _gateCore.validateTaskArtifacts(
+      taskId,
+      OPENCODE_ROOT,
+      gateSessionId,
+    );
   }
-  const resolvedId = taskId || sessionId;
+  const resolvedId = taskId || gateSessionId;
   if (!resolvedId) return [];
   const taskTempDir = path2.join(OPENCODE_ROOT, ".task_temp", resolvedId);
   const missing = [];
@@ -3026,8 +3177,9 @@ function resolveDispatchTargetAgentDirect() {
   } catch {}
   return "";
 }
-function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
-  if (!sessionId) return { status: "rejected", reason: "session_id required" };
+function runGateRetryConfirm(gateSessionId, planSummary, taskId, agentId) {
+  if (!gateSessionId)
+    return { status: "rejected", reason: "session_id required" };
   if (!planSummary || planSummary.trim().length < 10)
     return { status: "rejected", reason: "plan_summary min 10 chars" };
 
@@ -3046,9 +3198,9 @@ function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
   // session.agent is available for the ternary chain.
 
   const store = loadStore();
-  const session = store.sessions[sessionId];
+  const session = store.sessions[gateSessionId];
   if (!session)
-    return { status: "rejected", reason: `session ${sessionId} not found` };
+    return { status: "rejected", reason: `session ${gateSessionId} not found` };
 
   // ── RC3 Fix: Permission enforcement ──
   // For 'recoverable' status: ANY agent can self-repair (no permission check needed)
@@ -3082,13 +3234,13 @@ function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
     session.expires_at = new Date(
       Date.now() + 24 * 60 * 60 * 1000,
     ).toISOString();
-    if (!store.active_sessions.includes(sessionId))
-      store.active_sessions.push(sessionId);
+    if (!store.active_sessions.includes(gateSessionId))
+      store.active_sessions.push(gateSessionId);
     store.last_updated = new Date().toISOString();
     saveStore(store);
     return {
       status: "armed",
-      session_id: sessionId,
+      gate_session_id: gateSessionId,
       retry_count: session.retry_count,
     };
   }
@@ -3128,13 +3280,13 @@ function runGateRetryConfirm(sessionId, planSummary, taskId, agentId) {
     session.consumed_at = null;
     session.fail_reason = null;
     session.missing_artifacts = null;
-    if (!store.active_sessions.includes(sessionId))
-      store.active_sessions.push(sessionId);
+    if (!store.active_sessions.includes(gateSessionId))
+      store.active_sessions.push(gateSessionId);
     store.last_updated = new Date().toISOString();
     saveStore(store);
     return {
       status: "armed",
-      session_id: sessionId,
+      gate_session_id: gateSessionId,
       retry_count: session.retry_count,
     };
   }

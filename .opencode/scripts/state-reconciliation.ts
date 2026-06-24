@@ -47,12 +47,16 @@ function getWriteLog() {
     try {
       const lm = require(path.join(__dirname, "..", "lib", "log-manager"));
       _writeLog = lm.writeLog;
-    } catch { _writeLog = () => {}; }
+    } catch {
+      _writeLog = () => {};
+    }
   }
   return _writeLog;
 }
 function srcLog(level, event, fields) {
-  try { getWriteLog()("script-state-reconciliation", level, { event, ...fields }); } catch {}
+  try {
+    getWriteLog()("script-state-reconciliation", level, { event, ...fields });
+  } catch {}
 }
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT
@@ -145,7 +149,12 @@ function buildTaskMap(dag) {
       if (Array.isArray(group)) {
         for (const id of group) {
           if (typeof id === "string" && !taskMap[id]) {
-            taskMap[id] = { id, status: "pending", owner: "", source: "execution_order" };
+            taskMap[id] = {
+              id,
+              status: "pending",
+              owner: "",
+              source: "execution_order",
+            };
           }
         }
       } else if (group && typeof group === "object") {
@@ -153,7 +162,12 @@ function buildTaskMap(dag) {
           if (Array.isArray(subgroup)) {
             for (const id of subgroup) {
               if (typeof id === "string" && !taskMap[id]) {
-                taskMap[id] = { id, status: "pending", owner: "", source: "execution_order" };
+                taskMap[id] = {
+                  id,
+                  status: "pending",
+                  owner: "",
+                  source: "execution_order",
+                };
               }
             }
           }
@@ -265,9 +279,14 @@ function checkArmedSessionDagReference(dag, gate) {
     // Without this exemption, reconciler Check 2 falsely reports HIGH inconsistencies
     // for armed gate sessions that legitimately reference non-DAG task_ids.
     const DAG_EXEMPT_AGENTS = [
-      "super-admin", "@super-admin",
-      "meta-planner", "@meta-planner",
-      "orchestrator", "@orchestrator",
+      "super-admin",
+      "@super-admin",
+      "meta-planner",
+      "@meta-planner",
+      "orchestrator",
+      "@orchestrator",
+      "knowledge-curator",
+      "@knowledge-curator",
     ];
     const sessionAgent = (session.agent || "").toLowerCase();
     if (DAG_EXEMPT_AGENTS.includes(sessionAgent)) continue;
@@ -699,9 +718,9 @@ function reconcile(options = {}) {
       valid: false,
       inconsistencies: [
         {
-          type: "gate_not_found",
+          type: "gate_db_unavailable",
           severity: "HIGH",
-          detail: `Cannot read gate-state.json at ${GATE_PATH}`,
+          detail: `Cannot load gate store from DB (dbLoadGateStore returned null)`,
         },
       ],
     };
@@ -756,11 +775,25 @@ function reconcile(options = {}) {
 
   if (options.fix && results.auto_fixable) {
     const fixes = { drained: 0, meta_corrected: false, details: [] };
-    const MACHINE_PATH = path.join(OPENCODE_ROOT, ".opencode", "state", "machine.json");
-    const indexPath = path.join(OPENCODE_ROOT, "docs", "official_docs", "index.json");
+    const MACHINE_PATH = path.join(
+      OPENCODE_ROOT,
+      ".opencode",
+      "state",
+      "machine.json",
+    );
+    const indexPath = path.join(
+      OPENCODE_ROOT,
+      "docs",
+      "official_docs",
+      "index.json",
+    );
 
     // Check6 fix: knowledge_state drift (SA-IMPL-LEGACY-FIXES)
-    if (!check6Pre.ok && fs.existsSync(indexPath) && fs.existsSync(MACHINE_PATH)) {
+    if (
+      !check6Pre.ok &&
+      fs.existsSync(indexPath) &&
+      fs.existsSync(MACHINE_PATH)
+    ) {
       try {
         const manifest = JSON.parse(fs.readFileSync(indexPath, "utf8"));
         const docsDir = path.join(OPENCODE_ROOT, "docs", "official_docs");
@@ -779,8 +812,14 @@ function reconcile(options = {}) {
         if (fs.existsSync(docsDir)) walk(docsDir);
 
         // Read current values before writing
-        const ksPath = path.join(OPENCODE_ROOT, ".opencode", "state", "knowledge-state.json");
-        let oldCount = 0, oldSize = 0;
+        const ksPath = path.join(
+          OPENCODE_ROOT,
+          ".opencode",
+          "state",
+          "knowledge-state.json",
+        );
+        let oldCount = 0,
+          oldSize = 0;
         if (fs.existsSync(ksPath)) {
           try {
             const currentKs = JSON.parse(fs.readFileSync(ksPath, "utf8"));
@@ -1071,7 +1110,11 @@ function runCLI() {
       console.log(
         `  🔧 Auto-fixable: ${result.auto_fixable ? "Yes (run with --fix)" : "No"}`,
       );
-      srcLog("WARN", "reconciliation_found_issues", { total: result.inconsistencies.length, high: highCount, warning: warnCount });
+      srcLog("WARN", "reconciliation_found_issues", {
+        total: result.inconsistencies.length,
+        high: highCount,
+        warning: warnCount,
+      });
     } else {
       console.log(`\n  ✅ All checks passed — no inconsistencies found.`);
       srcLog("INFO", "reconciliation_complete", { total: 0 });
@@ -1099,8 +1142,6 @@ function runCLI() {
       }
     }
 
-
-
     if (result.force_drain) {
       console.log(`\n  💪 Force-drain results:`);
       console.log(`    Drained sessions: ${result.force_drain.drained}`);
@@ -1121,8 +1162,6 @@ function runCLI() {
       }
     }
   }
-
-
 }
 
 if (require.main === module) {
@@ -1215,8 +1254,11 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
     const db = getDb();
 
     // 5a-DB: gate_sessions vs gate_session_index row count consistency
-    const sessionsCount = (db.query("SELECT COUNT(*) AS c FROM gate_sessions").get() || {}).c || 0;
-    const indexCount = (db.query("SELECT COUNT(*) AS c FROM gate_session_index").get() || {}).c || 0;
+    const sessionsCount =
+      (db.query("SELECT COUNT(*) AS c FROM gate_sessions").get() || {}).c || 0;
+    const indexCount =
+      (db.query("SELECT COUNT(*) AS c FROM gate_session_index").get() || {})
+        .c || 0;
     if (sessionsCount !== indexCount) {
       issues.push({
         ref: "gate_sessions",
@@ -1226,10 +1268,14 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
     }
 
     // 5b-DB: orphan gate_session_index rows
-    const orphanIdx = db.query(`
+    const orphanIdx = db
+      .query(
+        `
       SELECT COUNT(*) AS c FROM gate_session_index
       WHERE session_id NOT IN (SELECT session_id FROM gate_sessions)
-    `).get() || { c: 0 };
+    `,
+      )
+      .get() || { c: 0 };
     if (orphanIdx.c > 0) {
       issues.push({
         ref: "gate_session_index",
@@ -1239,11 +1285,15 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
     }
 
     // 5c-DB: status consistency
-    const statusMismatch = db.query(`
+    const statusMismatch = db
+      .query(
+        `
       SELECT COUNT(*) AS c FROM gate_sessions s
       JOIN gate_session_index i ON s.session_id = i.session_id
       WHERE s.status != i.status
-    `).get() || { c: 0 };
+    `,
+      )
+      .get() || { c: 0 };
     if (statusMismatch.c > 0) {
       issues.push({
         ref: "gate_sessions.status",
@@ -1254,10 +1304,14 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
 
     // 5c2-DB: delivered/approved state consistency — sessions in delivered/approved
     // should have approval_required=1 and declared_deliverables not null
-    const deliveredWithoutApproval = db.query(`
+    const deliveredWithoutApproval = db
+      .query(
+        `
       SELECT COUNT(*) AS c FROM gate_sessions
       WHERE status IN ('delivered', 'approved') AND (approval_required IS NULL OR approval_required = 0)
-    `).get() || { c: 0 };
+    `,
+      )
+      .get() || { c: 0 };
     if (deliveredWithoutApproval.c > 0) {
       issues.push({
         ref: "gate_sessions.delivered_consistency",
@@ -1266,10 +1320,14 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
       });
     }
 
-    const approvedWithoutBy = db.query(`
+    const approvedWithoutBy = db
+      .query(
+        `
       SELECT COUNT(*) AS c FROM gate_sessions
       WHERE status = 'approved' AND deliverables_approved_by IS NULL
-    `).get() || { c: 0 };
+    `,
+      )
+      .get() || { c: 0 };
     if (approvedWithoutBy.c > 0) {
       issues.push({
         ref: "gate_sessions.approved_consistency",
@@ -1279,10 +1337,14 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
     }
 
     // 5d-DB: drained sessions not also active
-    const drainedOrphan = db.query(`
+    const drainedOrphan = db
+      .query(
+        `
       SELECT COUNT(*) AS c FROM gate_drained_sessions
       WHERE session_id IN (SELECT session_id FROM gate_sessions WHERE status != 'drained')
-    `).get() || { c: 0 };
+    `,
+      )
+      .get() || { c: 0 };
     if (drainedOrphan.c > 0) {
       issues.push({
         ref: "gate_drained_sessions",
@@ -1325,32 +1387,36 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
   return { valid: issues.length === 0, issues, summary };
 }
 
-/** JSON-based check (retained as DB fallback) */
+/** JSON-based check (retained as DB fallback — OPT-01: gate-state.json is frozen snapshot) */
 function checkHierarchicalStateIntegrity(rootDir) {
   const issues = [];
   const gateHot = readJson(
     path.join(rootDir, ".opencode/state/gate-state.json"),
   );
-  const gateIndex = readJson(
-    path.join(rootDir, ".opencode/state/gate-state.index.json"),
-  );
-  const gateArchive = readJson(
-    path.join(rootDir, ".opencode/state/gate-state.archive.json"),
-  );
 
+  // OPT-01 (2026-06-24): gate-state.json is a frozen migration snapshot.
+  // DB is the sole source of truth. If JSON is missing/stale, skip JSON checks
+  // (DB checks already ran in checkHierarchicalStateIntegrityDB).
   if (!gateHot) {
-    issues.push({
-      ref: "gate-state.json",
-      severity: "HIGH",
-      detail: "gate-state.json missing or unparseable",
-    });
-    return { valid: false, issues };
+    // Not an error — DB is authoritative, JSON is optional frozen snapshot
+    return {
+      valid: true,
+      issues: [],
+      summary: "gate-state.json frozen snapshot absent — DB is authoritative",
+    };
   }
 
   // Only validate v3 format
   if (gateHot.formatVersion !== "3.0") {
     return { valid: true, issues: [] }; // v2 format — skip v3 checks
   }
+
+  const gateIndex = readJson(
+    path.join(rootDir, ".opencode/state/gate-state.index.json"),
+  );
+  const gateArchive = readJson(
+    path.join(rootDir, ".opencode/state/gate-state.archive.json"),
+  );
 
   const activeCount = Object.keys(gateHot.active_sessions || {}).length;
   const recentCount = Object.keys(gateHot.recent_sessions || {}).length;
@@ -1501,7 +1567,12 @@ function checkHierarchicalStateIntegrity(rootDir) {
   }
 
   // Check 5e (Wave 2.4): docs/official_docs/index.json integrity
-  const docsIndexPath = path.join(rootDir, "docs", "official_docs", "index.json");
+  const docsIndexPath = path.join(
+    rootDir,
+    "docs",
+    "official_docs",
+    "index.json",
+  );
   if (fs.existsSync(docsIndexPath)) {
     try {
       const manifest = JSON.parse(fs.readFileSync(docsIndexPath, "utf8"));
@@ -1510,7 +1581,8 @@ function checkHierarchicalStateIntegrity(rootDir) {
         issues.push({
           ref: "docs.index",
           severity: "MEDIUM",
-          detail: "index.json missing required fields (manifest_version, entries)",
+          detail:
+            "index.json missing required fields (manifest_version, entries)",
         });
       } else {
         // Validate total_entries matches actual count
@@ -1522,7 +1594,13 @@ function checkHierarchicalStateIntegrity(rootDir) {
           });
         }
         // Validate each entry has required fields
-        const entryRequired = ["library_id", "query_topic", "domain", "tags", "files"];
+        const entryRequired = [
+          "library_id",
+          "query_topic",
+          "domain",
+          "tags",
+          "files",
+        ];
         for (let i = 0; i < manifest.entries.length; i++) {
           const entry = manifest.entries[i];
           for (const key of entryRequired) {
@@ -1536,7 +1614,15 @@ function checkHierarchicalStateIntegrity(rootDir) {
           }
           // Validate files array
           if (Array.isArray(entry.files)) {
-            const fileRequired = ["path", "source", "sha256", "size_bytes", "created_at", "ttl_days", "status"];
+            const fileRequired = [
+              "path",
+              "source",
+              "sha256",
+              "size_bytes",
+              "created_at",
+              "ttl_days",
+              "status",
+            ];
             for (let j = 0; j < entry.files.length; j++) {
               const file = entry.files[j];
               for (const key of fileRequired) {
@@ -1684,7 +1770,8 @@ function checkSessionAccessIntegrity(projectRoot) {
     // P1-B split: Read knowledge_cache_state from dedicated sub-state file
     const kcs = readSubState("knowledge_cache_state");
     const sa = kcs?.session_access;
-    if (!sa || Object.keys(sa).length === 0) return { ok: true, detail: "no session_access entries", fixes: [] };
+    if (!sa || Object.keys(sa).length === 0)
+      return { ok: true, detail: "no session_access entries", fixes: [] };
 
     const now = Date.now();
     const staleThreshold = STALE_DAYS * 24 * 60 * 60 * 1000;
@@ -1702,7 +1789,9 @@ function checkSessionAccessIntegrity(projectRoot) {
       if (lastRead) {
         const age = now - new Date(lastRead).getTime();
         if (age > staleThreshold) {
-          issues.push(`Stale agent "${agent}" (last_read: ${lastRead.substring(0, 10)}, age: ${Math.round(age / 86400000)}d)`);
+          issues.push(
+            `Stale agent "${agent}" (last_read: ${lastRead.substring(0, 10)}, age: ${Math.round(age / 86400000)}d)`,
+          );
           fixes.push(`Remove stale agent entry "${agent}" from session_access`);
           invalidEntries.push(agent);
         }
@@ -1711,12 +1800,19 @@ function checkSessionAccessIntegrity(projectRoot) {
 
     return {
       ok: issues.length === 0,
-      detail: issues.length > 0 ? issues.join("; ") : "all session_access entries valid and fresh",
+      detail:
+        issues.length > 0
+          ? issues.join("; ")
+          : "all session_access entries valid and fresh",
       fixes,
       invalidEntries,
     };
   } catch (e) {
-    return { ok: false, detail: "Failed to read session access state: " + e.message, fixes: [] };
+    return {
+      ok: false,
+      detail: "Failed to read session access state: " + e.message,
+      fixes: [],
+    };
   }
 }
 

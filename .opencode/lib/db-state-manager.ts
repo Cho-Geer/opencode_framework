@@ -72,16 +72,46 @@ export function dbReadSubState<K extends SubStateKey>(
  *
  * @returns true on success, false on failure.
  */
+/**
+ * Write a sub-state value to the substate_kv table.
+ *
+ * G3 FIX (2026-06-23, @Super-Admin): Added optimistic concurrency control.
+ * When expectedUpdatedAt is provided, the write uses UPDATE ... WHERE
+ * updated_at = expectedUpdatedAt. If the WHERE clause matches 0 rows
+ * (concurrent write happened), returns false. Callers can retry.
+ *
+ * When expectedUpdatedAt is omitted, uses INSERT OR REPLACE (backward
+ * compatible — caller accepts last-write-wins semantics).
+ *
+ * @returns true on success, false on concurrent write conflict
+ */
 export function dbWriteSubState<K extends SubStateKey>(
   key: K,
   value: SubStateMap[K],
+  expectedUpdatedAt?: number,
 ): boolean {
   try {
     const db = getDb();
     const json = JSON.stringify(value);
     const now = Date.now();
 
-    // Use INSERT OR REPLACE for atomic upsert
+    if (expectedUpdatedAt !== undefined) {
+      // G3: Optimistic concurrency — UPDATE only if no concurrent write
+      const result = db.run(
+        "UPDATE substate_kv SET json = ?, updated_at = ? WHERE key = ? AND updated_at = ?",
+        [json, now, key as string, expectedUpdatedAt],
+      );
+      if (result.changes === 0) {
+        writeLog(SRC, "WARN", {
+          event: "DB-SUBSTATE-CONCURRENT-WRITE-CONFLICT",
+          detail: `key=${key} expectedUpdatedAt=${expectedUpdatedAt} — concurrent write detected`,
+        });
+        return false;
+      }
+      return true;
+    }
+
+    // Legacy path: INSERT OR REPLACE (atomic at SQL level, but no RMW guard)
     const writeSubState = db.transaction((k: string, j: string, t: number) => {
       db.run(
         "INSERT OR REPLACE INTO substate_kv (key, json, updated_at) VALUES (?, ?, ?)",
@@ -1586,6 +1616,82 @@ export function dbWriteSessionMap(
   } catch (e: any) {
     writeLog(SRC, "ERROR", {
       event: "DB-SESSION-MAP-WRITE-FAILED",
+      detail: e.message,
+    });
+    return false;
+  }
+}
+
+/**
+ * FW-SESSION-MODEL-IDENTITY (2026-06-24): Update model_id in session_map.
+ * Writes the LLM model identifier for the current session. Called by
+ * session.ts chatMessageHook at every chat.message event.
+ *
+ * Unlike dbWriteSessionMap, this is a simple UPDATE — model_id does not
+ * need COALESCE preservation because it changes every round and is NOT
+ * set during session creation (session.create). It is only meaningful
+ * after the first chat.message event.
+ *
+ * Design note: model_id is intentionally NOT added to dbWriteSessionMap's
+ * 4-path upsert to avoid 8-path combinatorial explosion. Instead, it's
+ * updated separately AFTER the initial upsert.
+ *
+ * @param sessionId  Session ID to update
+ * @param model      Model identifier (e.g. "deepseek/deepseek-v4-pro")
+ * @returns true on success, false on error
+ */
+export function dbUpdateSessionModel(
+  sessionId: string,
+  model: string,
+): boolean {
+  try {
+    const db = getDb();
+    const now = Date.now();
+    db.run(
+      `UPDATE session_map SET model_id = ?, updated_at = ? WHERE session_id = ?`,
+      [model, now, sessionId],
+    );
+    return true;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-SESSION-MODEL-UPDATE-FAILED",
+      agent: "db-state-manager",
+      detail: e.message,
+    });
+    return false;
+  }
+}
+
+/**
+ * FW-FIX-H2 (P0-5, 2026-06-22): TOCTOU-safe conditional session_map update.
+ * Only writes dag_task_id and domain_id; never touches agent field.
+ * Uses WHERE agent IS NOT NULL to atomically skip rows without agent identity.
+ * Eliminates the read-then-write race in dispatch_subagent.ts:735-739.
+ */
+export function dbUpdateSessionTaskFields(
+  sessionId: string,
+  dagTaskId?: string,
+  domainId?: string,
+): boolean {
+  try {
+    const db = getDb();
+    if (dagTaskId && domainId !== undefined) {
+      db.run(
+        `UPDATE session_map SET dag_task_id = ?, domain_id = ?, updated_at = ?
+         WHERE session_id = ? AND agent IS NOT NULL`,
+        [dagTaskId, domainId || null, Date.now(), sessionId],
+      );
+    } else if (dagTaskId) {
+      db.run(
+        `UPDATE session_map SET dag_task_id = ?, updated_at = ?
+         WHERE session_id = ? AND agent IS NOT NULL`,
+        [dagTaskId, Date.now(), sessionId],
+      );
+    }
+    return true;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-SESSION-TASK-UPDATE-FAILED",
       detail: e.message,
     });
     return false;

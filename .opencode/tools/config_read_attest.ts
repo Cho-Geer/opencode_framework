@@ -29,6 +29,7 @@ import { verifyRead, normalizeReadAuditPath } from "../lib/read-audit";
 import { writeSubState } from "../lib/substate-manager";
 import { dbAtomicWriteSubState } from "../lib/db-state-manager";
 import { writeLog } from "../lib/log-manager";
+import { checklistWirePassed } from "../lib/checklist-hooks";
 
 const SRC = "tool-config-read-attest";
 
@@ -44,16 +45,16 @@ const MANDATORY_CONFIG_FILES = [
  * Compute the agent config path from the agent type.
  * The agent type is resolved from context.agent (dispatch-assigned identity).
  */
-function resolveAgentConfigPath(agentType: string, worktree: string): string {
-  return path.join(worktree, ".opencode", "agents", `${agentType}.md`);
+function resolveAgentConfigPath(agent: string, worktree: string): string {
+  return path.join(worktree, ".opencode", "agents", `${agent}.md`);
 }
 
 /**
  * Resolve all 3 config file paths for the given agent.
  */
-function resolveConfigPaths(agentType: string, worktree: string): string[] {
+function resolveConfigPaths(agent: string, worktree: string): string[] {
   return [
-    resolveAgentConfigPath(agentType, worktree),
+    resolveAgentConfigPath(agent, worktree),
     path.join(worktree, MANDATORY_CONFIG_FILES[0]),
     path.join(worktree, MANDATORY_CONFIG_FILES[1]),
   ];
@@ -74,12 +75,27 @@ export default tool({
   },
 
   async execute(args: { task_id?: string }, context: any) {
-    const { agent, sessionID, directory, worktree } = context;
+    let agent = context.agent;
+    const { sessionID, directory, worktree } = context;
     const taskId = args.task_id || null;
+
+    // V3.3 FIX (2026-06-23, @Super-Admin): FRAMEWORK_AGENT fallback
+    // matches V1.4 fix in agent-resolver.ts. When context.agent is empty,
+    // try the FRAMEWORK_AGENT env var before giving up.
+    if (!agent) {
+      agent = process.env.FRAMEWORK_AGENT || "";
+      if (agent) {
+        writeLog(SRC, "WARN", {
+          event: "CONFIG-READ-ATTEST-FRAMEWORK-FALLBACK",
+          detail: `context.agent was empty, using FRAMEWORK_AGENT=${agent}`,
+        });
+      }
+    }
 
     if (!agent) {
       const msg =
-        "config_read_attest: agent identity not available from context";
+        "config_read_attest: agent identity not available from context or FRAMEWORK_AGENT. " +
+        "Ensure dispatch_subagent() is used to spawn sub-agents.";
       writeLog(SRC, "ERROR", {
         event: "CONFIG-READ-ATTEST-FAILED",
         detail: msg,
@@ -145,6 +161,15 @@ export default tool({
         status: "passed",
         files_verified: readVerifications.length,
       });
+
+      // P0-CHECKLIST: wire attestation success to checklist
+      checklistWirePassed(
+        sessionID,
+        agent,
+        taskId,
+        "config_read_attested",
+        JSON.stringify(readVerifications),
+      );
 
       return JSON.stringify({
         verified: true,

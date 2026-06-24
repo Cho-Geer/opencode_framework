@@ -5,7 +5,7 @@
  * FW-LOG-UNIFY-P3-C2 (2026-06-12, @Super-Admin): Lazy-load writeLog from
  * log-manager to avoid per-dispatch require() overhead. Only loaded on first
  * log call, staying nil when no logging is needed (clean exit).
- * 
+ *
  * Rationale: This script runs on EVERY agent dispatch. Adding a synchronous
  * require("../../lib/log-manager") at the top would add Bun transpile overhead
  * to every dispatch. Lazy-loading defers the cost to the first log call.
@@ -13,8 +13,11 @@
 let _writeLog = null;
 function getWriteLog() {
   if (!_writeLog) {
-    try { _writeLog = require("../lib/log-manager").writeLog; }
-    catch (e) { /* keep null — no logging available */ }
+    try {
+      _writeLog = require("../lib/log-manager").writeLog;
+    } catch (e) {
+      /* keep null — no logging available */
+    }
   }
   return _writeLog;
 }
@@ -33,13 +36,21 @@ function gateLog(category, level, data) {
 let _isDagExempt = null;
 function getIsDagExempt() {
   if (!_isDagExempt) {
-    try { _isDagExempt = require("../lib/dag-policy").isDagExempt; }
-    catch (e) {
+    try {
+      _isDagExempt = require("../lib/dag-policy").isDagExempt;
+    } catch (e) {
       // Fallback: inline the canonical list so the gate still works if
       // dag-policy is unreadable. Should never happen in practice.
       _isDagExempt = (agent) => {
-        const n = String(agent || "").toLowerCase().replace(/^@/, "");
-        return ["meta-planner", "orchestrator", "super-admin", "knowledge-curator"].includes(n);
+        const n = String(agent || "")
+          .toLowerCase()
+          .replace(/^@/, "");
+        return [
+          "meta-planner",
+          "orchestrator",
+          "super-admin",
+          "knowledge-curator",
+        ].includes(n);
       };
     }
   }
@@ -188,10 +199,7 @@ function getEnforcementMode() {
    */
   if (cfg.ok && cfg.data.template_resolution) {
     const tr = cfg.data.template_resolution;
-    const mode =
-      tr.develop_enforcement_mode ||
-      tr.runtime_enforcement_mode ||
-      tr.enforcement_mode;
+    const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode;
     if (mode && ["advisory", "strict", "locked"].includes(mode)) {
       return mode;
     }
@@ -259,8 +267,12 @@ function emitError(checkName, message, details) {
    * enforcement gate failures to log-manager via lazy-load gateLog().
    * These messages were previously DISCARDED on every dispatch.
    */
-  gateLog("gate_check_failed", (mode !== "advisory" ? "ERROR" : "WARN"), {
-    check: checkName, mode, message, violation, details: details || null,
+  gateLog("gate_check_failed", mode !== "advisory" ? "ERROR" : "WARN", {
+    check: checkName,
+    mode,
+    message,
+    violation,
+    details: details || null,
   });
 
   if (mode === "advisory") {
@@ -395,7 +407,10 @@ function checkDagCoverage(taskId) {
    * checkDagCoverage incorrectly reports "not found" for valid scheduled tasks.
    */
   const executionOrderIds = new Set();
-  if (dag.data.execution_order && typeof dag.data.execution_order === "object") {
+  if (
+    dag.data.execution_order &&
+    typeof dag.data.execution_order === "object"
+  ) {
     for (const group of Object.values(dag.data.execution_order)) {
       if (Array.isArray(group)) {
         group.forEach((id) => executionOrderIds.add(id));
@@ -411,11 +426,11 @@ function checkDagCoverage(taskId) {
       return true;
     }
 
-    const availableInTasks = dag.data.tasks
-      .slice(0, 10)
-      .map((t) => t.id);
+    const availableInTasks = dag.data.tasks.slice(0, 10).map((t) => t.id);
     const availableInExecOrder = [...executionOrderIds].slice(0, 10);
-    const allAvailable = [...new Set([...availableInTasks, ...availableInExecOrder])];
+    const allAvailable = [
+      ...new Set([...availableInTasks, ...availableInExecOrder]),
+    ];
     const blocked = emitError(
       "DAG Coverage",
       `Task '${taskId}' not found in Task.DAG.json (checked both tasks[] and execution_order)`,
@@ -534,19 +549,35 @@ function checkGateLifecycle(taskId) {
 function checkRoleViolations() {
   const complianceRecords = readSubState("compliance_records");
   if (!complianceRecords || Object.keys(complianceRecords).length === 0) {
-    gateLog("role_check", "INFO", { status: "no_compliance_records", reason: "empty_or_missing" });
+    gateLog("role_check", "INFO", {
+      status: "no_compliance_records",
+      reason: "empty_or_missing",
+    });
     return true; // No records → no violations
   }
   const violations = complianceRecords.role_violations || [];
   const unresolved = violations.filter((v) => v.status === "unresolved");
   if (unresolved.length > 0) {
-    const blocked = emitError("Role Violations", `${unresolved.length} unresolved role violation(s) detected`, {
-      violations: unresolved.map((v) => ({ agent: v.agent, file: v.violation_file, severity: v.severity, timestamp: v.timestamp })),
-    });
+    const blocked = emitError(
+      "Role Violations",
+      `${unresolved.length} unresolved role violation(s) detected`,
+      {
+        violations: unresolved.map((v) => ({
+          agent: v.agent,
+          file: v.violation_file,
+          severity: v.severity,
+          timestamp: v.timestamp,
+        })),
+      },
+    );
     if (blocked) process.exit(1);
     return false;
   }
-  gateLog("role_check", "INFO", { status: "clean", total_violations: violations.length, unresolved: 0 });
+  gateLog("role_check", "INFO", {
+    status: "clean",
+    total_violations: violations.length,
+    unresolved: 0,
+  });
   return true;
 }
 
@@ -583,7 +614,10 @@ function checkRuleRegistry() {
     console.error(
       `     Ensure commit message includes [INFRA] marker when committing.`,
     );
-    gateLog("critical_files_modified", "WARN", { modified_files: modified, enforcement_mode: mode });
+    gateLog("critical_files_modified", "WARN", {
+      modified_files: modified,
+      enforcement_mode: mode,
+    });
     return true;
   }
 
@@ -591,7 +625,10 @@ function checkRuleRegistry() {
   console.error(
     `  ⚠️  [ADVISORY] Critical infrastructure files modified: ${fileList}`,
   );
-  gateLog("critical_files_modified", "INFO", { modified_files: modified, enforcement_mode: mode });
+  gateLog("critical_files_modified", "INFO", {
+    modified_files: modified,
+    enforcement_mode: mode,
+  });
   return true;
 }
 
@@ -821,7 +858,9 @@ function main() {
 
     if (isKnowledgeCacheHealthy()) {
       // Cache HEALTHY → normal UC7KS enforcement applies
-      console.error("[GATE][UC7-009] Knowledge cache is HEALTHY — enforcing UC7KS pipeline.");
+      console.error(
+        "[GATE][UC7-009] Knowledge cache is HEALTHY — enforcing UC7KS pipeline.",
+      );
       gateLog("uc7ks_cache_healthy", "INFO", { agent, taskId });
       if (!checkKnowledgeGate(taskId)) {
         const mode = getEnforcementMode();
@@ -841,7 +880,11 @@ function main() {
         console.error(
           "[GATE][ADVISORY] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory mode).",
         );
-        gateLog("uc7ks_pipeline_warn", "WARN", { agent, taskId, mode: getEnforcementMode() });
+        gateLog("uc7ks_pipeline_warn", "WARN", {
+          agent,
+          taskId,
+          mode: getEnforcementMode(),
+        });
       }
     } else {
       // Cache UNHEALTHY → UC7-009 emergency bypass
@@ -889,34 +932,58 @@ function main() {
   const checkResults = {};
 
   console.error("  Check 1/6 — Config Validity...");
-  if (!checkConfigValidity()) { allPassed = false; }
-  else { console.error("    ✅ Config files present and readable"); checkResults.config = "pass"; }
+  if (!checkConfigValidity()) {
+    allPassed = false;
+  } else {
+    console.error("    ✅ Config files present and readable");
+    checkResults.config = "pass";
+  }
 
   console.error("  Check 2/6 — DAG Coverage...");
   if (isDispatchSession) {
     console.error(`    ⏭️  SKIPPED (--dispatch-session)`);
     checkResults.dag = "skipped";
-  } else if (!checkDagCoverage(taskId)) { allPassed = false; }
-  else { console.error(`    ✅ Task '${taskId}' found in DAG with status=pending`); checkResults.dag = "pass"; }
+  } else if (!checkDagCoverage(taskId)) {
+    allPassed = false;
+  } else {
+    console.error(`    ✅ Task '${taskId}' found in DAG with status=pending`);
+    checkResults.dag = "pass";
+  }
 
   console.error("  Check 3/6 — Gate Lifecycle...");
   if (isDispatchSession) {
     console.error(`    ⏭️  SKIPPED (--dispatch-session)`);
     checkResults.gate = "skipped";
-  } else if (checkGateLifecycle(taskId)) { console.error("    ✅ Armed gate session found"); checkResults.gate = "pass"; }
-  else { allPassed = false; }
+  } else if (checkGateLifecycle(taskId)) {
+    console.error("    ✅ Armed gate session found");
+    checkResults.gate = "pass";
+  } else {
+    allPassed = false;
+  }
 
   console.error("  Check 4/6 — Role Violations...");
-  if (checkRoleViolations()) { console.error("    ✅ No unresolved role violations"); checkResults.role = "pass"; }
-  else { allPassed = false; }
+  if (checkRoleViolations()) {
+    console.error("    ✅ No unresolved role violations");
+    checkResults.role = "pass";
+  } else {
+    allPassed = false;
+  }
 
   console.error("  Check 5/6 — Rule Registry...");
-  if (checkRuleRegistry()) { console.error("    ✅ Rule registry integrity verified"); checkResults.rule = "pass"; }
-  else { allPassed = false; }
+  if (checkRuleRegistry()) {
+    console.error("    ✅ Rule registry integrity verified");
+    checkResults.rule = "pass";
+  } else {
+    allPassed = false;
+  }
 
   console.error("  Check 6/6 — Knowledge Pipeline...");
-  if (checkKnowledgeGate(taskId)) { console.error("    ✅ Knowledge pipeline compliance verified"); checkResults.knowledge = "pass"; }
-  else { allPassed = false; }
+  if (checkKnowledgeGate(taskId)) {
+    console.error("    ✅ Knowledge pipeline compliance verified");
+    checkResults.knowledge = "pass";
+  } else {
+    allPassed = false;
+  }
 
   console.error("");
 
@@ -924,9 +991,12 @@ function main() {
    * FW-LOG-UNIFY-P3-C2 (2026-06-12): Persist gate check results to log-manager.
    * Previously ALL console.error output from this script was DISCARDED on dispatch.
    */
-  gateLog("gate_result", (allPassed ? "INFO" : "ERROR"), {
-    mode, taskId, isDispatchSession,
-    allPassed, checks: checkResults,
+  gateLog("gate_result", allPassed ? "INFO" : "ERROR", {
+    mode,
+    taskId,
+    isDispatchSession,
+    allPassed,
+    checks: checkResults,
   });
 
   // ── Summary ──

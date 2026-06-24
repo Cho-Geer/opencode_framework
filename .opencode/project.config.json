@@ -915,7 +915,54 @@
     "require_dag_entry": false,
     "auto_plan_enabled": true,
     "auto_plan_max_per_session": 5,
-    "auto_plan_timeout_ms": 120000
+    "auto_plan_timeout_ms": 120000,
+    "compatibility_profile": "native",
+    "fallback_tools": [
+      "task",
+      "read",
+      "todowrite",
+      "write",
+      "edit",
+      "compliance_gate_check",
+      "compliance_gate_confirm",
+      "compliance_gate_complete",
+      "compliance_gate_submit_deliverables",
+      "compliance_gate_approve_deliverables",
+      "dispatch_subagent",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "safe_restore",
+      "knowledge_cache_search",
+      "knowledge_cache_attest",
+      "module_scope_declare",
+      "config_read_attest",
+      "question",
+      "glob",
+      "grep"
+    ]
+  },
+  "p0_checklist_policy": {
+    "$description": "P0-CHECKLIST (2026-06-22): DB-canonical P0 checklist policy. Defines write targets that require knowledge attest before modification and exclusions that don't. Read by checklist-before.ts and execution-checklist.ts.",
+    "monitored_write_targets": [
+      ".opencode/**",
+      "docs/review/**",
+      "docs/design/**",
+      "AGENTS.md",
+      "contract.yaml",
+      "opencode.json"
+    ],
+    "excluded_write_targets": [
+      "logs/**",
+      "**/logs/**",
+      ".opencode/logs/**",
+      "node_modules/**",
+      "node_modles/**",
+      "task_temp/**",
+      ".task_temp/**"
+    ]
   },
   "route_rules": {
     "$description": "Agent dispatch route validation table — four-layer chain: Verb → Scope → Permission → DAG. Read by dispatch-before.ts, gate-before.ts, and scope-before.ts.",
@@ -923,12 +970,8 @@
       "dispatch": "block",
       "dag_write": "block"
     },
-    "dispatch_exempt_agents": [
-      "@Orchestrator",
-      "@Meta-Planner",
-      "@Super-Admin"
-    ],
-    "$description_exempt": "These agents' dispatches are NOT subject to route validation — they have professional judgment authority per AGENTS.md P0",
+    "dispatch_exempt_agents": ["@Meta-Planner", "@Super-Admin"],
+    "$description_exempt": "These agents' dispatches are NOT subject to route validation — they have professional judgment authority per AGENTS.md P0. @Orchestrator removed (FW-ROUTE-FIX-EXEMPT-v2: Orchestrator must now undergo route validation like other agents).",
     "verb_to_agent": {
       "$description": "Layer 1: Chinese/English keywords in task_description → candidate agent pool",
       "分析_设计_拆解": {

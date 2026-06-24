@@ -12,6 +12,7 @@ skills:
   - execution-preflight-check
   - context7-first
 mcp_tools:
+  - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
   # M14 (2026-06-19): dispatch_subagent for direct @Knowledge-Curator dispatch
   - dispatch_subagent
@@ -26,6 +27,7 @@ mcp_tools:
   - compliance_gate_confirm
   - compliance_gate_complete
   - resolve_domain_id
+  - todowrite
 permission:
   edit: deny
   bash: deny
