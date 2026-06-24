@@ -66,7 +66,7 @@
     "container": "Docker Compose v2"
   },
   "template_resolution": {
-    "develop_enforcement_mode": "strict",
+    "develop_enforcement_mode": "advisory",
     "runtime_enforcement_mode": "strict",
     "compatibility_profile": "native",
     "super_admin_uc7ks_dispatch_patterns": [
@@ -943,6 +943,17 @@
       "glob",
       "grep"
     ]
+  },
+  "mandatory_knowledge": {
+    "$description": "MANDATORY-KNOWLEDGE (2026-06-24, @Super-Admin): Per-domain mandatory files that every agent MUST read before writing in strict/locked mode. Enforced by knowledge_cache_attest.ts Step 4.5 — attestation is rejected if any mandatory file for the current domain is missing from files_read. Each domain key maps to a list of file paths relative to docs/official_docs/.",
+    "enabled_in_modes": ["strict", "locked"],
+    "domains": {
+      "opencode_framework": [
+        "framework/mistake_precautions/plugin-debugging-precautions.md",
+        "framework/mistake_precautions/double-hook-trigger-prevention.md",
+        "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md"
+      ]
+    }
   },
   "p0_checklist_policy": {
     "$description": "P0-CHECKLIST (2026-06-22): DB-canonical P0 checklist policy. Defines write targets that require knowledge attest before modification and exclusions that don't. Read by checklist-before.ts and execution-checklist.ts.",

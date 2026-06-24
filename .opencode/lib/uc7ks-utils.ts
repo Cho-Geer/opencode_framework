@@ -1,10 +1,9 @@
 // uc7ks-utils.ts — UC7KS knowledge pipeline compliance utilities (lib)
+// BUN-CACHE-VERSION: 2026-06-24-SA-FIX-v2 — verified fix
 // Phase 3 (v19 DB-Canonical): enforcement sources unified to uc7ks_pipeline_state
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {
-  readCacheAttestation,
-} from "./uc7ks-schema";
+import { readCacheAttestation } from "./uc7ks-schema";
 import { readSubState } from "./substate-manager";
 import { writeLog } from "./log-manager";
 import { getDb } from "./db-manager";
@@ -442,6 +441,30 @@ export function checkUC7KSWrite(
   const agentKey = agent.replace(/^@/, "");
   const sa = readCachedSessionAccess(agentKey);
 
+  /**
+   * Build a formatted block message for UC7-001 write enforcement.
+   * Used by all enforcement paths within checkUC7KSWrite.
+   * @internal — defined inside checkUC7KSWrite closure
+   */
+  function buildBlockMessage(
+    title: string,
+    agent: string,
+    detail: string,
+    remediation: string,
+  ): string {
+    return (
+      `[FW-ENFORCE][UC7-001] ${title}\n` +
+      `Agent: ${agent || "unknown"}\n` +
+      `Detail: ${detail.substring(0, 200)}\n` +
+      `Remediation:\n${remediation
+        .split("\n")
+        .map(function (l) {
+          return "  " + l.substring(0, 100);
+        })
+        .join("\n")}`
+    );
+  }
+
   // ── FW-UC7KS-DOMAIN-001: Per-task per-domain check (priority) ──
   // Phase 0 (2026-06-18) dual-state: discovery (machine-generated) +
   // attestation (agent-submitted, verified against read_audit.jsonl).
@@ -461,7 +484,10 @@ export function checkUC7KSWrite(
     var pathABlocked = false;
     var pathABlockMsg: string | null = null;
     try {
-      const { queryAttestationForWriteGate, resolvePipelineId } = require("./uc7ks-pipeline-db");
+      const {
+        queryAttestationForWriteGate,
+        resolvePipelineId,
+      } = require("./uc7ks-pipeline-db");
       const pipelineId = resolvePipelineId({ task_id: taskId }, sessionId);
       if (pipelineId) {
         const gateResult = queryAttestationForWriteGate({
@@ -665,7 +691,10 @@ export function checkUC7KSWrite(
         if (dbDomains.length > 0) {
           dbUsed = true;
           for (var d = 0; d < dbDomains.length; d++) {
-            if (dbDomains[d].attestation_status !== "attested" || !dbDomains[d].cache_sufficient) {
+            if (
+              dbDomains[d].attestation_status !== "attested" ||
+              !dbDomains[d].cache_sufficient
+            ) {
               unattestedDomains.push(dbDomains[d].domain_id);
             }
           }

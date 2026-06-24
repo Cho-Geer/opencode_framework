@@ -4,7 +4,10 @@ import * as path from "node:path";
 import { normalizeAgentKey } from "../lib/uc7ks-schema";
 import { withInterruptGuard } from "../lib";
 import { writeLog } from "../lib/log-manager";
-import { checklistWirePassed } from "../lib/checklist-hooks";
+import {
+  checklistWirePassed,
+  checklistWireFailed,
+} from "../lib/checklist-hooks";
 import {
   getReadEventsForSession,
   normalizeReadAuditPath,
@@ -403,6 +406,116 @@ export default tool({
           error:
             "Reason and content_summary must be non-empty (min 10 chars each). Agent must write meaningful evidence.",
           empty_fields: emptyFields,
+        });
+      }
+
+      // ════════════════════════════════════════════════════════════
+      // Step 4.5: Mandatory Knowledge Files Check (错题集)
+      // In strict/locked mode, enforce that all mandatory knowledge
+      // files (mistake_precautions) are in files_read before allowing
+      // write attestation. Config: project.config.json.mandatory_knowledge.
+      // @since 2026-06-24 @Super-Admin
+      // ════════════════════════════════════════════════════════════
+      try {
+        var projectRoot = process.env.OPENCODE_ROOT || process.cwd();
+        var configPath = path.resolve(
+          projectRoot,
+          ".opencode",
+          "project.config.json",
+        );
+        if (fs.existsSync(configPath)) {
+          var pc = JSON.parse(fs.readFileSync(configPath, "utf8"));
+          var mk = pc.mandatory_knowledge;
+          if (mk) {
+            // Support both legacy flat "files" + "apply_to_domains" and
+            // new per-domain "domains" config.
+            var mandatoryForThisDomain: string[] = [];
+            if (mk.domains && typeof mk.domains === "object") {
+              mandatoryForThisDomain = mk.domains[domainId] || [];
+            } else if (mk.files && Array.isArray(mk.files) && mk.files.length > 0) {
+              var applyDomains = mk.apply_to_domains || [];
+              if (applyDomains.length === 0 || applyDomains.indexOf(domainId) >= 0) {
+                mandatoryForThisDomain = mk.files;
+              }
+            }
+            if (mandatoryForThisDomain.length > 0) {
+              var enabledModes = mk.enabled_in_modes || ["strict", "locked"];
+              var currentMode = (
+                process.env.ENFORCEMENT_MODE ||
+                (pc.template_resolution &&
+                  pc.template_resolution.develop_enforcement_mode) ||
+                "advisory"
+              ).toLowerCase();
+              if (enabledModes.indexOf(currentMode) >= 0) {
+                var missingFiles: string[] = [];
+                for (var mi = 0; mi < mandatoryForThisDomain.length; mi++) {
+                  var mf = mandatoryForThisDomain[mi];
+                  var found = false;
+                  for (var fj = 0; fj < filesRead.length; fj++) {
+                    if (filesRead[fj].indexOf(mf) >= 0 || filesRead[fj] === mf) {
+                      found = true;
+                      break;
+                    }
+                  }
+                  if (!found) missingFiles.push(mf);
+                }
+                if (missingFiles.length > 0) {
+                  writeLog(SRC, "ERROR", {
+                    sessionID: sessionId,
+                    agent: agent,
+                    taskId: taskId,
+                    domainId: domainId,
+                    event: "UC7KS-ATTEST-FAIL-MANDATORY",
+                    detail:
+                      "Missing mandatory knowledge files: " +
+                      missingFiles.join(", "),
+                  });
+                  try {
+                    checklistWireFailed(
+                      sessionId,
+                      agent,
+                      taskId,
+                      "mistake_precautions_read",
+                      "Missing mandatory files: " + missingFiles.join(", "),
+                      "Read the files via 'read' tool and re-attest: " +
+                        missingFiles.join(", "),
+                    );
+                  } catch (_) {}
+                  return JSON.stringify({
+                    attested: false,
+                    step: "4.5",
+                    error: "MANDATORY_KNOWLEDGE_MISSING",
+                    missing_files: missingFiles,
+                    mode: currentMode,
+                    remediation:
+                      "In " +
+                      currentMode +
+                      " mode, these mandatory knowledge files (错题集) MUST be read before writing. Use 'read' tool on each, then re-attest with all files in files_read:\n  - " +
+                      missingFiles.join("\n  - "),
+                  });
+                }
+                // All mandatory files present — mark checklist item passed
+                try {
+                  checklistWirePassed(
+                    sessionId,
+                    agent,
+                    taskId,
+                    "mistake_precautions_read",
+                    JSON.stringify({ files: mandatoryForThisDomain.length, mode: currentMode }),
+                  );
+                } catch (_) {}
+              }
+            }
+          }
+        }
+      } catch (e: any) {
+        // Non-fatal: if config read fails, skip mandatory check
+        writeLog(SRC, "WARN", {
+          sessionID: sessionId,
+          agent: agent,
+          event: "UC7KS-MANDATORY-CHECK-FAILED",
+          detail:
+            "Mandatory knowledge check failed: " + (e.message || String(e)),
         });
       }
 

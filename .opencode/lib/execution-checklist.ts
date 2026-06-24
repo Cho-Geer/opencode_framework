@@ -200,6 +200,15 @@ export const PHASE_ITEMS: Record<
         "Read at least one cache file via 'read' tool, then call " +
         "knowledge_cache_attest(domain, task_id, reason, files_read, content_summary).",
     },
+    {
+      key: "mistake_precautions_read",
+      verifier: "knowledge_cache_attest",
+      remediation:
+        "In strict/locked mode, read ALL files under " +
+        "docs/official_docs/framework/mistake_precautions/ (错题集) " +
+        "via 'read' tool before knowledge_cache_attest. " +
+        "Include them in files_read list.",
+    },
   ],
   gate_armed: [
     {
