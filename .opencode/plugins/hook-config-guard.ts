@@ -19,9 +19,22 @@ import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { resolveAgent } from "../lib/agent-resolver";
 import { getEnforcementMode } from "../lib/gate-core";
 
-// Run plugin parts guard at module load time (startup validation).
+// Run plugin parts guard lazily on first tool.execute.before invocation.
 // FW-PLUGIN-PARTS-GUARD (2026-06-24 @Super-Admin)
-setTimeout(() => runPluginPartsGuard(), 0);
+// FW-FIX (2026-06-25): Changed from setTimeout(0) to lazy initialization.
+// The setTimeout(0) caused "paths[0] property must be of type string" error
+// when OpenCode framework loaded the module via import() — the guard ran
+// before the framework's internal state was fully initialized.
+let _partsGuardRun = false;
+function ensurePartsGuardRun(): void {
+  if (_partsGuardRun) return;
+  _partsGuardRun = true;
+  try {
+    runPluginPartsGuard();
+  } catch {
+    // Best-effort — never block tool execution
+  }
+}
 
 export default withPluginLifecycle("hook-config-guard", {
   "tool.execute.before": toolExecuteBefore,
@@ -62,15 +75,19 @@ const FORBIDDEN_PATTERNS: Array<{ pattern: RegExp; name: string }> = [
 // This array is reserved for OpenCode runtime and user/LLM interaction.
 // Detected patterns indicate attempts to inject content into conversations.
 // FW-PLUGIN-PARTS-GUARD (2026-06-24 @Super-Admin)
-const PLUGIN_PARTS_MUTATION_PATTERNS: Array<{ pattern: RegExp; name: string }> = [
-  { pattern: /output\.parts\.unshift\s*\(/, name: "output.parts.unshift()" },
-  { pattern: /output\.parts\.push\s*\(/, name: "output.parts.push()" },
-  { pattern: /output\.parts\.splice\s*\(/, name: "output.parts.splice()" },
-  { pattern: /output\.parts\.pop\s*\(/, name: "output.parts.pop()" },
-  { pattern: /output\.parts\.shift\s*\(/, name: "output.parts.shift()" },
-  { pattern: /output\.parts\s*=\s*\[/, name: "output.parts = [...] (reassignment)" },
-  { pattern: /output\.parts\s*\+=/, name: "output.parts += (concatenation)" },
-];
+const PLUGIN_PARTS_MUTATION_PATTERNS: Array<{ pattern: RegExp; name: string }> =
+  [
+    { pattern: /output\.parts\.unshift\s*\(/, name: "output.parts.unshift()" },
+    { pattern: /output\.parts\.push\s*\(/, name: "output.parts.push()" },
+    { pattern: /output\.parts\.splice\s*\(/, name: "output.parts.splice()" },
+    { pattern: /output\.parts\.pop\s*\(/, name: "output.parts.pop()" },
+    { pattern: /output\.parts\.shift\s*\(/, name: "output.parts.shift()" },
+    {
+      pattern: /output\.parts\s*=\s*\[/,
+      name: "output.parts = [...] (reassignment)",
+    },
+    { pattern: /output\.parts\s*\+=/, name: "output.parts += (concatenation)" },
+  ];
 
 /**
  * Scan all plugin source files for output.parts mutation patterns.
@@ -89,7 +106,10 @@ export function validatePluginFiles(root: string = process.cwd()): Array<{
   const path = require("path");
 
   // Skip the guard plugin itself — it defines the patterns, not violations.
-  const EXEMPT_FILES = new Set(["hook-config-guard.ts", "hook-config-guard.js"]);
+  const EXEMPT_FILES = new Set([
+    "hook-config-guard.ts",
+    "hook-config-guard.js",
+  ]);
 
   let entries: string[];
   try {
@@ -165,6 +185,8 @@ const APPROVED_SCRIPTS = [
 
 // ── Hook implementation ──────────────────────────────────────
 async function toolExecuteBefore(input: any, _output: any): Promise<void> {
+  // FW-FIX (2026-06-25): Lazy-run parts guard on first invocation
+  ensurePartsGuardRun();
   const agent = resolveAgent(input.sessionID);
   const mode = getEnforcementMode();
 

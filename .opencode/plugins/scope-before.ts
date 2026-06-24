@@ -25,6 +25,7 @@ import {
   isFrameworkInfraFile,
   isBusinessCodeFile,
   findRouteAgentForFile,
+} from "../lib/route-validator";
 import { isKnowledgeCurator } from "../lib/agent-identity";
 
 export default withPluginLifecycle("scope-before", {
