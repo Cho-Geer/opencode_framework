@@ -55,6 +55,7 @@ const PASSTHROUGH_TOOLS = new Set([
   "todowrite",
   "question",
   "skill",
+  "dispatch_subagent",
 ]);
 
 /**
