@@ -223,4 +223,3 @@ function applyReset(clean, changed) {
 // ──────────────────────────────────────────────
 main();
 
-export {};

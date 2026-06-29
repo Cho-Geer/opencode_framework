@@ -54,3 +54,23 @@ export type { MarkerConsumeResult } from "./marker-consume";
 
 // ── Phase 3E-4: Dispatch Before-Hook Validation (from dispatch-before plugin) ──
 export { validateDispatchBefore } from "./dispatch-validate";
+
+// ── Phase 4B: Prompt Builder (extracted from dispatch-subagent.ts) ──
+export {
+  buildDispatchPrompt,
+  type PromptBuildInput,
+  type PromptBuildResult,
+} from "./prompt-builder";
+
+export {
+  findRelevantStacks,
+  isFrameworkTask,
+  buildContext7Section,
+  buildProjectContextSection,
+  buildScopeLine,
+  buildKCGateFlowSection,
+  buildTemplateResolutionMap,
+  resolveTemplateVariables,
+  type TechStackEntry,
+  type ProjectConfig,
+} from "./prompt-sections";

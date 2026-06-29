@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // safe_bash: allow-write
 /**
  * indexer.ts — UC7KS Knowledge Indexer v3.0.0 (Phase 2 CLI Ops)
@@ -256,4 +257,3 @@ module.exports = {
   retryFailedJobs: () => knowledgeStore.retryFailedJobs(),
 };
 
-export {};

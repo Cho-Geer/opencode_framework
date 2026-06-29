@@ -13,6 +13,7 @@ skills:
   - codegraph-first
   - opencode-mcp-integration
   - customize-opencode
+  - skill-creator
 mcp_tools:
   - checklist_status
   # UC7-009 HARDEN: ALL external queries routed via @Knowledge-Curator.
@@ -310,7 +311,7 @@ If a modification causes framework breakage:
 
 ## Compliance Requirements
 
-Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rules/mcp-compliance-guide.md`, and `.opencode/rules/skill-compliance-guide.md`. Note: `.opencode/rules/backend-coding-standard.md` and `.opencode/rules/frontend-coding-standard.md` do NOT apply (this agent does not write business code).
+Strictly follow all rules in `.opencode/rules/common/common-project.md`, `.opencode/rules/common/mcp-compliance-guide.md`, and `.opencode/rules/common/skill-compliance-guide.md`. Note: `.opencode/rules/coding/backend-coding-standard.md` and `.opencode/rules/coding/frontend-coding-standard.md` do NOT apply (this agent does not write business code).
 
 
 ## CodeGraph 框架全景

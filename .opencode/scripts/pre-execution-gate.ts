@@ -1025,4 +1025,3 @@ if (require.main === module) {
   };
 }
 
-export {};

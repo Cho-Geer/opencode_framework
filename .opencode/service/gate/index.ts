@@ -182,3 +182,44 @@ export {
   checklistWirePassed,
   checklistWireFailed,
 } from "./checklist-hooks";
+
+// ── Phase 4A: MCP Tool Service Layer (extracted from compliance-gate.ts) ──
+export {
+  retryConfirmGateSession,
+  type RetryConfirmResult,
+} from "./mcp-retry";
+
+export {
+  bulkReviewDeliverables,
+} from "./mcp-bulk";
+
+export {
+  submitDeliverablesWithCrossCheck,
+  approveDeliverablesWithAudit,
+  parseFindingsTable,
+  type SubmitResult,
+  type ApproveResult,
+} from "./mcp-deliverables";
+
+export {
+  validateDispatchTaskIntegrity,
+  checkTaskIdConflict,
+  type DispatchIntegrityResult,
+} from "./dispatch-integrity";
+
+export {
+  checkGateCompliance,
+  type GateCheckResult,
+  type GateCheckFailedItem,
+} from "./mcp-check";
+
+export {
+  confirmGateSession,
+  type ConfirmResult,
+  type DeliverableEntry,
+} from "./mcp-confirm";
+
+export {
+  completeGateWithRetry,
+  type CompleteResult,
+} from "./mcp-complete";

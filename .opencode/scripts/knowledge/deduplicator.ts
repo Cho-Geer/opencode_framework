@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 /**
  * deduplicator.js — UC7KS Knowledge Deduplicator v1.0.0
  *

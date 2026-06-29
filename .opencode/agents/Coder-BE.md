@@ -14,6 +14,7 @@ skills:
   - codegraph-first
   - opencode-mcp-integration
   - cicd-database-seeding
+  - auto-commit
 mcp_tools:
   - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
@@ -137,7 +138,7 @@ Before executing `git commit`, the following checks must be completed:
 
 ## Compliance Requirements
 
-Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rules/mcp-compliance-guide.md`, `.opencode/rules/skill-compliance-guide.md`, `.opencode/rules/backend-coding-standard.md`, and `.opencode/rules/test-coding-standard.md`.
+Strictly follow all rules in `.opencode/rules/common/common-project.md`, `.opencode/rules/common/mcp-compliance-guide.md`, `.opencode/rules/common/skill-compliance-guide.md`, `.opencode/rules/coding/backend-coding-standard.md`, and `.opencode/rules/coding/test-coding-standard.md`.
 
 ## Testing Requirements
 

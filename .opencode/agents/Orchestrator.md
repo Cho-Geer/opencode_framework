@@ -12,6 +12,7 @@ skills:
   - codegraph-first
   - opencode-mcp-integration
   - new-asset-integrator
+  - multi-agent-orchestration
 mcp_tools:
   - checklist_status
   # Context7 denied per UC7-004 — route via @Knowledge-Curator
@@ -436,4 +437,4 @@ When a task fails consecutively and triggers an @Arbiter circuit‑break, @Orche
 
 ## Compliance Requirements
 
-Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rules/mcp-compliance-guide.md`, and `.opencode/rules/skill-compliance-guide.md`.
+Strictly follow all rules in `.opencode/rules/common/common-project.md`, `.opencode/rules/common/mcp-compliance-guide.md`, and `.opencode/rules/common/skill-compliance-guide.md`.

@@ -82,7 +82,7 @@ export {
 // 只读查询
 export * as query from "./query";
 
-// TSC gate lock management (re-exports from tsc-gate-locks + composite ops)
+// TSC gate lock management
 export {
   resetAllTscGateLocks,
   acquireFileLock,
@@ -110,14 +110,59 @@ export type {
 export { getTscGateConfig } from "./tsc-gate-config";
 export type { TscGateConfig } from "./tsc-gate-config";
 
-// ── Phase 3: Write Audit Trail (from audit-after hook) ──
+// ── Phase 3: Write Audit Trail ──
 export { recordWriteAudit } from "./audit";
 
-// ── Phase 3: Dirty Module Tracking (from scope-after hook) ──
+// ── Phase 3: Dirty Module Tracking ──
 export { trackDirtyModule } from "./dirty-tracker";
 
-// ── Phase 3: Read Track Event (from read-track-after hook) ──
+// ── Phase 3: Read Track Event ──
 export { trackReadEvent } from "./read-audit-write";
 
-// ── Phase 3D: TSC Diagnostic Tracking (from tsc-diag-track hook) ──
+// ── Phase 3D: TSC Diagnostic Tracking ──
 export { updateDiagnosticState } from "./diagnostic-tracker";
+
+// ── B-4C: ESLint Runner (from eslint-audit.ts extraction) ──
+export {
+  getProjectRoot,
+  getStateDir,
+  extractModule,
+  generateTierRules,
+  runESLint,
+  updateEslintState,
+} from "./eslint-runner";
+export type {
+  TierRules,
+  EslintViolation,
+  EslintRunResult,
+  StateUpdateResult,
+} from "./eslint-runner";
+
+// ── B-4C: Quality Checks (from code-quality-lib.ts extraction) ──
+export {
+  runScopeCheck,
+  runPrettierCheck,
+  runDepCruiserCheck,
+  runEslintAudit,
+  runTddOrderCheck,
+  runTddSpecCheck,
+  firstPathSegment,
+} from "./quality-checks";
+export type {
+  CheckResult,
+  CheckViolation,
+  WriteScopes,
+  TddState,
+  TddOrderResult,
+} from "./quality-checks";
+
+// ── B-4C: Quality Batch Runners ──
+export {
+  runAllChecks,
+  runFullScan,
+} from "./quality-batch";
+export type {
+  RunAllChecksOptions,
+  RunAllChecksResult,
+  FullScanResult,
+} from "./quality-batch";

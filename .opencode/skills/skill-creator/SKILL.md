@@ -15,5 +15,11 @@ status: draft
 added_date: 2026-04-23
 added_by: system
 ---
-# Skill创建器 Skill（待完善）
-此技能配置文件已创建，但功能待完善。请根据实际需求补充工作流和功能描述。
+
+# skill-creator
+
+此技能待完善，请根据实际需求补充功能描述。
+
+**触发条件**: trigger_keywords:
+
+> 完整文档: 调用 read_skill("skill-creator") 获取

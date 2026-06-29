@@ -13,6 +13,7 @@ skills:
   - context7-first
   - codegraph-first
   - opencode-mcp-integration
+  - sqlite-bloat-investigation
 mcp_tools:
   - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
@@ -125,7 +126,7 @@ Before any manual review, read `machine.json` sub-states directly (code_quality_
 
 ## Compliance Requirements
 
-Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rules/mcp-compliance-guide.md`, `.opencode/rules/skill-compliance-guide.md`, `.opencode/rules/backend-coding-standard.md`, `.opencode/rules/frontend-coding-standard.md`, and `.opencode/rules/test-coding-standard.md`.
+Strictly follow all rules in `.opencode/rules/common/common-project.md`, `.opencode/rules/common/mcp-compliance-guide.md`, `.opencode/rules/common/skill-compliance-guide.md`, `.opencode/rules/coding/backend-coding-standard.md`, `.opencode/rules/coding/frontend-coding-standard.md`, and `.opencode/rules/coding/test-coding-standard.md`.
 
 ## Frontend Review Trigger Scenarios
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // safe_bash: allow-write
 "use strict";
 
@@ -1681,4 +1682,3 @@ function main() {
 
 main();
 
-export {};

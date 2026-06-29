@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // safe_bash: allow-write
 /**
  * integrity-check.ts — Reverse Orphan Detection & Manifest Integrity v1.1.0
@@ -528,4 +529,3 @@ module.exports = {
   autoIndexOrphans,
 };
 
-export {};

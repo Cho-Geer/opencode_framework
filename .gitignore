@@ -138,3 +138,5 @@ docs/handover/
 
 # CodeGraph index database
 .codegraph/
+
+logs/

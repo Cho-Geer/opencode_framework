@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // safe_bash: allow-write
 /**
  * janitor.ts — UC7KS Knowledge Janitor v2.0.0 (KC-11 DB-canonical)
@@ -855,4 +856,3 @@ job records are written for every purge/archive/evict action.`);
 
 module.exports = { run, cleanPreHardenEvidence };
 
-export {};

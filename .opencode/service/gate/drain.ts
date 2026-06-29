@@ -157,3 +157,23 @@ export function drainStaleSessions(
     remaining_total: Object.keys(store.sessions).length,
   };
 }
+
+/**
+ * Force-purge ALL sessions regardless of age.
+ * Used by compliance_gate_purge MCP tool for emergency cleanup.
+ */
+export function purgeStaleSessions(root?: string): {
+  purged: number;
+  purged_sessions: string[];
+  remaining_active: number;
+  remaining_total: number;
+} {
+  // Delegate to drainStaleSessions with 0-hour thresholds (purges everything)
+  const result = drainStaleSessions(0, 0, root);
+  return {
+    purged: result.purged,
+    purged_sessions: result.drained_sessions,
+    remaining_active: result.remaining_active,
+    remaining_total: result.remaining_total,
+  };
+}

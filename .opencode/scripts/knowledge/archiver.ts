@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 /**
  * archiver.js — UC7KS Knowledge Archiver v1.0.0
  *
@@ -80,4 +81,3 @@ if (require.main === module) {
 
 module.exports = { run };
 
-export {};

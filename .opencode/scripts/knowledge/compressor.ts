@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 /**
  * compressor.ts — UC7KS Knowledge Compressor v1.0.0
  *
@@ -139,4 +140,3 @@ function compressAll() {
 
 module.exports = { compressFile, compressAll };
 
-export {};

@@ -1115,4 +1115,3 @@ module.exports = {
   STATE_DIR,
 };
 
-export {};

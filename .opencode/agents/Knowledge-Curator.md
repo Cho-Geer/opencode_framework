@@ -18,6 +18,7 @@ skills:
   - codegraph-first
   - opencode-mcp-integration
   - spreadsheet-processor
+  - learning-mode-executor
 mcp_tools:
   - checklist_status
   - context7_resolve-library-id

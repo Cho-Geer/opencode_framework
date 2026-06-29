@@ -2,9 +2,9 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
     "AGENTS.md",
-    "docs/official_docs/index.json",
-    ".opencode/rules/**/*.md",
-    ".opencode/rules/rule_detail/*.md"
+    ".opencode/rules/common/**/*.md",
+    ".opencode/rules/rule_detail/**/*.md",
+    ".opencode/rules/coding/**/*.md"
   ],
   "lsp": true,
   "compaction": {
@@ -16,7 +16,7 @@
   "agent": {
     "Meta-Planner": {
       "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Meta-Planner.md",
       "permission": {
         "task": {
@@ -108,7 +108,8 @@
           ".opencode/scripts/**": "deny",
           ".opencode/state/**": "deny",
           "contract.yaml": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "Orchestrator": {
@@ -198,12 +199,13 @@
           "Task.DAG.json": "deny",
           ".opencode/**": "deny",
           "*": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "Architect": {
       "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Architect.md",
       "hidden": true,
       "permission": {
@@ -347,7 +349,8 @@
           "booking_system_refactor/booking-backend/src/**": "deny",
           "booking_system_refactor/booking-frontend/src/**": "deny",
           "booking_system_refactor/booking-backend/test/**": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "Coder-BE": {
@@ -461,7 +464,8 @@
           "contract.yaml": "deny",
           "opencode.json": "deny",
           ".opencode/**": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "Coder-FE": {
@@ -554,12 +558,13 @@
           "contract.yaml": "deny",
           "opencode.json": "deny",
           ".opencode/**": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "Guardian": {
       "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Guardian.md",
       "hidden": true,
       "permission": {
@@ -651,7 +656,8 @@
           ".opencode/**": "deny",
           "AGENTS.md": "deny",
           "PROJECT_REFERENCE.md": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "Arbiter": {
@@ -733,7 +739,8 @@
           "contract.yaml": "deny",
           ".opencode/tools/**": "deny",
           ".opencode/scripts/**": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "CI-CD-Agent": {
@@ -837,12 +844,13 @@
           "booking_system_refactor/booking-frontend/src/**": "deny",
           ".opencode/agents/**": "deny",
           ".opencode/rules/**": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     },
     "Super-Admin": {
       "mode": "all",
-      "model": "deepseek/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Super-Admin.md",
       "permission": {
         "task": {
@@ -953,7 +961,8 @@
         "codegraph_impact": "allow",
         "codegraph_node": "allow",
         "codegraph_status": "allow",
-        "codegraph_files": "allow"
+        "codegraph_files": "allow",
+        "read_skill": "allow"
       }
     },
     "Knowledge-Curator": {
@@ -1033,7 +1042,8 @@
           ".task_temp/**": "allow",
           "booking_system_refactor/**": "deny",
           ".opencode/**": "deny"
-        }
+        },
+        "read_skill": "allow"
       }
     }
   },
@@ -1081,7 +1091,8 @@
     "./.opencode/plugins/dispatch-auto.ts",
     "./.opencode/plugins/hook-config-guard.ts",
     "./.opencode/plugins/json-validate.ts",
-    "./.opencode/plugins/codegraph-enforce.ts"
+    "./.opencode/plugins/codegraph-enforce.ts",
+    "./.opencode/plugins/context-trimmer.ts"
   ],
   "mcp": {
     "compliance-gate": {

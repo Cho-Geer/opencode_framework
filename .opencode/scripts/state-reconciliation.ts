@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // safe_bash: allow-write
 /**
  * FW-REPAIR-13: safe_bash allow-write granted — this is a framework state repair tool
@@ -1823,4 +1824,3 @@ module.exports = {
   checkKnowledgeStateIntegrity,
 };
 
-export {};

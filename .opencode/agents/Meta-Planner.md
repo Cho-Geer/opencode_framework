@@ -90,7 +90,7 @@ tor
 
 ## Compliance Requirements
 
-Strictly follow all rules in `.opencode/rules/common-project.md`, `.opencode/rules/mcp-compliance-guide.md`, and `.opencode/rules/skill-compliance-guide.md`.
+Strictly follow all rules in `.opencode/rules/common/common-project.md`, `.opencode/rules/common/mcp-compliance-guide.md`, and `.opencode/rules/common/skill-compliance-guide.md`.
 
 ## Mandatory DAG Creation Rules
 
