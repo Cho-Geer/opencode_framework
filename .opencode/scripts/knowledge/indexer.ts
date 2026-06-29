@@ -255,3 +255,5 @@ module.exports = {
     knowledgeStore.getPendingMaterializationJobs(),
   retryFailedJobs: () => knowledgeStore.retryFailedJobs(),
 };
+
+export {};

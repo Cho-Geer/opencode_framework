@@ -13,10 +13,10 @@
 import { tool } from "@opencode-ai/plugin";
 import {
   restoreBackup,
-  withInterruptGuard,
   getBackup,
   type BackupRecord,
-} from "../lib";
+} from "../service/file-guard";
+import { withInterruptGuard } from "../lib";
 
 export default tool({
   description:

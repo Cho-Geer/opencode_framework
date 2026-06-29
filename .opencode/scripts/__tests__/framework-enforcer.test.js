@@ -1398,7 +1398,9 @@ function checkMachineCleanliness(root) {
     );
     const dirty = [];
     const esDirty = machine?.eslint_state?.aggregate?.dirty_modules || [];
-    const tsDirty = machine?.type_check_state?.dirty_files || [];
+    const tsDirty = Object.keys(machine?.diagnostic_state?.files || {}).filter(
+      (f) => Array.isArray(machine.diagnostic_state.files[f]?.errors) && machine.diagnostic_state.files[f].errors.length > 0
+    );  // replaces type_check_state.dirty_files (2026-06-26)
     const fmtDirty = machine?.format_state?.unformatted_files || [];
     dirty.push(...esDirty.map((f) => `eslint:${f}`));
     dirty.push(...tsDirty.map((f) => `tsc:${f}`));
@@ -2124,8 +2126,11 @@ describe("FW-HARNESS-BEFORE-DIRTY: Machine cleanliness check in tool.execute.bef
       machine.eslint_state = machine.eslint_state || { aggregate: {} };
       machine.eslint_state.aggregate.dirty_modules = files;
     } else if (section === "tsc") {
-      machine.type_check_state = machine.type_check_state || {};
-      machine.type_check_state.dirty_files = files;
+      // diagnostic_state replaces type_check_state (2026-06-26)
+      machine.diagnostic_state = machine.diagnostic_state || { files: {} };
+      for (const f of files) {
+        machine.diagnostic_state.files[f] = { errors: [{ message: "test error", line: 1, character: 1, code: "TS9999" }], updated_at: new Date().toISOString() };
+      }
     } else if (section === "format") {
       machine.format_state = machine.format_state || {};
       machine.format_state.unformatted_files = files;

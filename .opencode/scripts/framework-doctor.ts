@@ -167,7 +167,7 @@ function checkOpenCodeJson() {
 
   try {
     const oc = JSON.parse(raw);
-    const hasAgents = !!oc.agent && typeof oc.agent === "object";
+    const hasAgents = !!(oc as any).agent && typeof (oc as any).agent === "object";
     const hasInstructions = Array.isArray(oc.instructions);
     // Read _framework_authorities from .opencode/state/framework-authorities.json
     let hasFrameworkAuth = false;
@@ -178,7 +178,7 @@ function checkOpenCodeJson() {
       const fa = JSON.parse(faRaw);
       hasFrameworkAuth = !!fa && typeof fa === "object";
     } catch (_) {}
-    const agentCount = hasAgents ? Object.keys(oc.agent).length : 0;
+    const agentCount = hasAgents ? Object.keys((oc as any).agent).length : 0;
 
     const requiredFields = ["agent", "instructions"];
     const missing = requiredFields.filter((f) => !(f in oc));
@@ -277,7 +277,7 @@ function checkDagValidation() {
     // FW-REPAIR-13: Accept "agent" as equivalent to "owner" — the DAG schema
     // uses "agent" for task ownership per dag-generation-standard.md §7.
     const requiredFields = ["id", "status"];
-    const hasOwner = (t) => t.owner || t.agent;
+    const hasOwner = (t) => t.owner || (t as any).agent;
     let invalidTasks = [];
     let brokenDeps = [];
 
@@ -403,14 +403,14 @@ function checkGateDryRun() {
         anomalies.push(`${sid}: not an object`);
         continue;
       }
-      if (!session.session_id || !session.gate_status) {
+      if (!(session as any).session_id || !(session as any).gate_status) {
         corruptedCount++;
         anomalies.push(`${sid}: missing session_id or gate_status`);
       }
       // Check for corrupted timestamps
       if (
-        session.created_at &&
-        isNaN(Date.parse(session.created_at as string))
+        (session as any).created_at &&
+        isNaN(Date.parse((session as any).created_at as string))
       ) {
         corruptedCount++;
         anomalies.push(`${sid}: invalid created_at timestamp`);
@@ -480,7 +480,7 @@ function checkStateReconciliation() {
         // Show first few inconsistencies as summary
         const topIssues = allInconsistencies
           .slice(0, 5)
-          .map((i) => `${i.type}(${i.task_id || i.session_id || ""})`)
+          .map((i) => `${i.type}(${(i as any).task_id || (i as any).session_id || ""})`)
           .join(", ");
         detail = `${allInconsistencies.length} inconsistency(ies) found (${highCount} HIGH, ${warnCount} WARNING): ${topIssues}${allInconsistencies.length > 5 ? `... and ${allInconsistencies.length - 5} more` : ""}`;
       }
@@ -1094,16 +1094,16 @@ function checkRolePermissionSync() {
 
   try {
     const oc = JSON.parse(ocRaw);
-    const ocAgents = oc.agent || {};
+    const ocAgents = (oc as any).agent || {};
 
     let mismatches = [];
 
     // Verify that each agent in opencode.json has a permission.edit section
     for (const [agentName, agentCfg] of Object.entries(ocAgents)) {
-      if (!agentCfg.permission?.edit) {
+      if (!(agentCfg as any).permission?.edit) {
         mismatches.push(`${agentName}: missing permission.edit`);
       } else {
-        const writePerm = agentCfg.permission.edit;
+        const writePerm = (agentCfg as any).permission.edit;
         if (
           typeof writePerm === "object" &&
           Object.keys(writePerm).length === 0
@@ -1117,7 +1117,7 @@ function checkRolePermissionSync() {
 
     // Check write_audit_state.current_session agent vs opencode.json
     if (writeAudit.current_session?.agent) {
-      const sessionAgent = writeAudit.current_session.agent;
+      const sessionAgent = writeAudit.current_session?.agent;
       if (!ocAgents[sessionAgent.replace("@", "")]) {
         mismatches.push(
           `write_audit session agent "${sessionAgent}" not in opencode.json agents`,
@@ -1164,10 +1164,10 @@ function checkFrameworkCompliance() {
       encoding: "utf8",
     });
     const result = JSON.parse(output);
-    const allPassed = result.status !== "FAIL";
+    const allPassed = (result as any).status !== "FAIL";
     const checkCount = (result.checks || []).length;
     const passedChecks = (result.checks || []).filter(
-      (c) => c.status === "pass",
+      (c) => (c as any).status === "pass",
     ).length;
 
     return {
@@ -1186,7 +1186,7 @@ function checkFrameworkCompliance() {
         const result = JSON.parse(stdout);
         const checkCount = (result.checks || []).length;
         const passedChecks = (result.checks || []).filter(
-          (c) => c.status === "pass",
+          (c) => (c as any).status === "pass",
         ).length;
         return {
           id: 11,
@@ -1435,7 +1435,7 @@ function runChecks() {
 
   if (SINGLE_CHECK !== null) {
     if (SINGLE_CHECK < 1 || SINGLE_CHECK > CHECKS.length) {
-      console.error(
+      (console as any).error(
         `[WARN] Invalid check index: ${SINGLE_CHECK}. Valid range: 1-${CHECKS.length}`,
       );
       results = [];
@@ -1465,8 +1465,8 @@ const FIX_MAP = {
  * Returns { fixed: number, remainingUnfixable: number, details: string[] }
  */
 function attemptFix(results) {
-  const fixables = results.filter((r) => r.status === FAIL && FIX_MAP[r.id]);
-  const unfixables = results.filter((r) => r.status === FAIL && !FIX_MAP[r.id]);
+  const fixables = results.filter((r) => (r as any).status === FAIL && FIX_MAP[r.id]);
+  const unfixables = results.filter((r) => (r as any).status === FAIL && !FIX_MAP[r.id]);
   const details = [];
   let fixedCount = 0;
 
@@ -1525,8 +1525,8 @@ function printHuman(results) {
   }
 
   for (const r of results) {
-    const icon = r.status === PASS ? "✅" : "❌";
-    console.log(`  ${icon} [${r.status}] Check ${r.id}: ${r.name}`);
+    const icon = (r as any).status === PASS ? "✅" : "❌";
+    console.log(`  ${icon} [${(r as any).status}] Check ${r.id}: ${r.name}`);
     console.log(`     ${r.detail}`);
     console.log("");
   }
@@ -1535,8 +1535,8 @@ function printHuman(results) {
     "═══════════════════════════════════════════════════════════════",
   );
 
-  const passedCount = results.filter((r) => r.status === PASS).length;
-  const failedCount = results.filter((r) => r.status === FAIL).length;
+  const passedCount = results.filter((r) => (r as any).status === PASS).length;
+  const failedCount = results.filter((r) => (r as any).status === FAIL).length;
 
   if (failedCount === 0) {
     console.log(`  ✅ ALL ${results.length} CHECKS PASSED`);
@@ -1559,8 +1559,8 @@ function printHuman(results) {
 }
 
 function printJSON(results) {
-  const passedCount = results.filter((r) => r.status === PASS).length;
-  const failedCount = results.filter((r) => r.status === FAIL).length;
+  const passedCount = results.filter((r) => (r as any).status === PASS).length;
+  const failedCount = results.filter((r) => (r as any).status === FAIL).length;
 
   const output = {
     version: VERSION,
@@ -1584,8 +1584,8 @@ function writeReport(results) {
       fs.mkdirSync(REPORT_DIR, { recursive: true });
     }
 
-    const passedCount = results.filter((r) => r.status === PASS).length;
-    const failedCount = results.filter((r) => r.status === FAIL).length;
+    const passedCount = results.filter((r) => (r as any).status === PASS).length;
+    const failedCount = results.filter((r) => (r as any).status === FAIL).length;
 
     const report = {
       version: VERSION,
@@ -1602,14 +1602,14 @@ function writeReport(results) {
 
     fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2), "utf-8");
   } catch (e) {
-    console.error(`[WARN] Could not write report: ${e.message}`);
+    (console as any).error(`[WARN] Could not write report: ${e.message}`);
   }
 }
 
 // ─── Main ──────────────────────────────────────────────────────
 function main() {
   const results = runChecks();
-  const failedCount = results.filter((r) => r.status === FAIL).length;
+  const failedCount = results.filter((r) => (r as any).status === FAIL).length;
 
   if (FIX_MODE && failedCount > 0) {
     if (!JSON_OUTPUT) {
@@ -1628,7 +1628,7 @@ function main() {
     // Re-run checks after fixes to verify
     const recheckResults = runChecks();
     const remainingFailed = recheckResults.filter(
-      (r) => r.status === FAIL,
+      (r) => (r as any).status === FAIL,
     ).length;
 
     if (!JSON_OUTPUT) {
@@ -1680,3 +1680,5 @@ function main() {
 }
 
 main();
+
+export {};

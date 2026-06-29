@@ -79,3 +79,5 @@ if (require.main === module) {
 }
 
 module.exports = { generate };
+
+export {};

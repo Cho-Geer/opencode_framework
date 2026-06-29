@@ -149,10 +149,10 @@ function findDagTasksForSession(sessionDesc) {
 // Helper: check if any gate session references a given DAG task
 function anySessionReferencesTask(taskId, statusFilter) {
   for (const [, session] of sessionEntries) {
-    const desc = (session.task_description || '').toLowerCase();
+    const desc = ((session as any).task_description || '').toLowerCase();
     if (desc.includes(taskId.toLowerCase())) {
       if (!statusFilter) return true;
-      if (statusFilter.includes(session.gate_status)) return true;
+      if (statusFilter.includes((session as any).gate_status)) return true;
     }
   }
   return false;
@@ -165,8 +165,8 @@ process.stderr.write('[reconciliation-validate] Loading write_audit_state via re
 const writeAudit = readSubState("write_audit_state") || {};
 const currentSession = writeAudit.current_session || {};
 const writeHistory = writeAudit.history || [];
-const currentTaskId = currentSession.task_id || null;
-const currentAgent = currentSession.agent || null;
+const currentTaskId = (currentSession as any).task_id || null;
+const currentAgent = (currentSession as any).agent || null;
 
 // ─── Header ────────────────────────────────────────────────────
 verbose('═══════════════════════════════════════════════════════════════');
@@ -179,8 +179,8 @@ verbose('');
 // ═══════════════════════════════════════════════════════════════
 verbose('── Check 1: DAG ↔ Gate ──────────────────────────────────────');
 
-const dagInProgress = tasks.filter(t => t.status === 'in_progress');
-const dagPending = tasks.filter(t => t.status === 'pending');
+const dagInProgress = tasks.filter(t => (t as any).status === 'in_progress');
+const dagPending = tasks.filter(t => (t as any).status === 'pending');
 const validDagStatuses = ['pending', 'in_progress'];
 
 // 1a: Every in_progress DAG task must have an armed gate session (or completed)
@@ -196,20 +196,20 @@ for (const task of dagInProgress) {
 }
 
 // 1b: Every armed gate session must reference a valid DAG task
-const armedSessions = sessionEntries.filter(([, s]) => s.gate_status === 'armed');
+const armedSessions = sessionEntries.filter(([, s]) => (s as any).gate_status === 'armed');
 for (const [gateSessionId, session] of armedSessions) {
-  const matchedTasks = findDagTasksForSession(session.task_description);
+  const matchedTasks = findDagTasksForSession((session as any).task_description);
 
   if (matchedTasks.length === 0) {
-    const descPreview = (session.task_description || '').substring(0, 80);
+    const descPreview = ((session as any).task_description || '').substring(0, 80);
     logInconsistency(`Gate session '${gateSessionId}' is armed but references no valid DAG task. Task description: '${descPreview}...'`);
     continue;
   }
 
   // Verify at least one matched task has valid status
-  const hasValidStatus = matchedTasks.some(t => validDagStatuses.includes(t.status));
+  const hasValidStatus = matchedTasks.some(t => validDagStatuses.includes((t as any).status));
   if (!hasValidStatus) {
-    const statuses = [...new Set(matchedTasks.map(t => t.status))].join(', ');
+    const statuses = [...new Set(matchedTasks.map(t => (t as any).status))].join(', ');
     logWarning(`Gate session '${gateSessionId}' is armed but all matched DAG tasks have status "${statuses}" (expected pending or in_progress)`);
   }
 }
@@ -229,7 +229,7 @@ if (armedSessions.length > 0) {
   if (!currentAgent || currentAgent === 'null') {
     logInconsistency(`${armedSessions.length} gate session(s) armed but write_audit_state.current_session is empty (no active write audit tracking)`);
   } else {
-    // Verify current_session.task_id matches an armed gate session
+    // Verify (current_session as any).task_id matches an armed gate session
     if (currentTaskId && currentTaskId !== 'null') {
       const taskHasArmed = anySessionReferencesTask(currentTaskId, ['armed']);
       if (!taskHasArmed) {
@@ -248,8 +248,8 @@ const ONE_HOUR_MS = 3600 * 1000;
 const now = Date.now();
 
 for (const [gateSessionId, session] of armedSessions) {
-  const confirmedAt = session.confirmed_at;
-  const consumedAt = session.consumed_at;
+  const confirmedAt = (session as any).confirmed_at;
+  const consumedAt = (session as any).consumed_at;
 
   if (confirmedAt && confirmedAt !== 'null' && (!consumedAt || consumedAt === 'null')) {
     const confirmedTime = new Date(confirmedAt).getTime();
@@ -273,13 +273,13 @@ if (!QUIET && !JSON_OUTPUT) {
 // ═══════════════════════════════════════════════════════════════
 verbose('── Check 3: DAG ↔ Machine ───────────────────────────────────');
 
-const dagCompleted = tasks.filter(t => t.status === 'completed');
+const dagCompleted = tasks.filter(t => (t as any).status === 'completed');
 
 // 3a: Tasks with status 'completed' should have write audit evidence
 //     (either in history array or as current_session task_id after completion)
 const writeHistoryTaskIds = new Set();
 for (const entry of writeHistory) {
-  if (entry.task_id) writeHistoryTaskIds.add(entry.task_id);
+  if ((entry as any).task_id) writeHistoryTaskIds.add((entry as any).task_id);
 }
 // Also consider current_session if it seems to match a completed task
 const completedInHistory = new Set([...writeHistoryTaskIds]);
@@ -322,7 +322,7 @@ const gateArmedCount = armedSessions.length;
 // no longer embedded in machine.json. Use readSubState() to load it.
 process.stderr.write('[reconciliation-validate] Loading eslint_state via readSubState (P1-B split)\n');
 const eslintSubState = readSubState("eslint_state") || {};
-const eslintStatus = ((eslintSubState.aggregate || {}).total_violations) || 0;
+const eslintStatus = (((eslintSubState as any).aggregate || {}).total_violations) || 0;
 const machineStatus = eslintStatus === 0 ? 'clean' : `dirty(${eslintStatus} violations)`;
 
 if (JSON_OUTPUT) {
@@ -382,3 +382,5 @@ if (typeof module !== "undefined" && module.exports) {
     anySessionReferencesTask,
   };
 }
+
+export {};

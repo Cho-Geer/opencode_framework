@@ -1,5 +1,6 @@
 import { tool } from "@opencode-ai/plugin"
-import { validateTestReport, withInterruptGuard } from "../lib"
+import { validateTestReport } from "../service/tdd/test-report"
+import { withInterruptGuard } from "../lib"
 
 export default tool({
   description:

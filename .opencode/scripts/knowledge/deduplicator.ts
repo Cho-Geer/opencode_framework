@@ -9,9 +9,11 @@
  * Returns: { is_duplicate: boolean, existing_path: string|null }
  */
 
-function checkDuplicate(sha256) {
+import { readManifest } from "../../lib/knowledge-store";
+
+function checkDuplicate(sha256: string) {
   const manifest = readManifest();
-  for (const entry of manifest.entries) {
+  for (const entry of manifest.entries || []) {
     for (const file of entry.files || []) {
       if (file.sha256 === sha256) {
         return {
@@ -29,7 +31,7 @@ function checkDuplicate(sha256) {
 /**
  * Compute SHA-256 of a file.
  */
-function computeHash(filePath) {
+function computeHash(filePath: string): string {
   const crypto = require("node:crypto");
   const fs = require("node:fs");
   const hash = crypto.createHash("sha256");
@@ -37,4 +39,4 @@ function computeHash(filePath) {
   return `sha256:${hash.digest("hex")}`;
 }
 
-module.exports = { checkDuplicate, computeHash };
+export { checkDuplicate, computeHash };

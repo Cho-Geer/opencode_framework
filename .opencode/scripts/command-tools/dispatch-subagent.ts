@@ -993,6 +993,63 @@ const dispatchToken = crypto
   .update(resolvedPrompt, "utf8")
   .digest("hex");
 const tokenizedPrompt = resolvedPrompt + `\n//DISPATCH_TOKEN:${dispatchToken}`;
+const promptHash = crypto
+  .createHash("sha256")
+  .update(tokenizedPrompt, "utf8")
+  .digest("hex");
+const PENDING_FILE = path.join(OUTPUT_DIR, ".pending.json");
+let queue = [];
+try {
+  if (fs.existsSync(PENDING_FILE)) {
+    queue = JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
+    if (!Array.isArray(queue)) queue = [];
+  }
+} catch {
+  queue = [];
+}
+
+/**
+ * P0-FIX-BUG-14 (2026-06-09, @Super-Admin): Three hardening layers for .pending.json writes.
+ *
+ * Layer 1 — Dedup by agentType: Remove existing entries for the same agentType
+ *   before appending the new one. Prevents stale-orphan accumulation when the
+ *   Orchestrator re-dispatches the same agent (e.g., double dispatch_subagent
+ *   with same dag_task_id). The latest dispatch always wins.
+ *
+ * Layer 2 — Retry + Fatal: Previously, write failures were silently logged
+ *   (logWarn) and the script continued — the dispatch file existed but the
+ *   .pending.json entry was absent. This caused TASK-PROMPT-MISMATCH errors
+ *   because enforce.ts found only stale entries in the queue. Now the write
+ *   is retried once, and if both attempts fail, the script exits with code 1
+ *   so the Orchestrator is alerted that the dispatch was not registered.
+ *
+ * Layer 3 — Read-back verification: After writing, immediately re-read the
+ *   file and verify the entry is present. If not, exit with an error message
+ *   identifying the missing entry.
+ */
+// Layer 1: Deduplicate — remove existing entries for the same agentType + taskId
+// P0-FIX-BUG-15-L1 (2026-06-09): HARDENED dag_task_id reuse BLOCK.
+//   Same agentType + same taskId + same promptHash → idempotent re-dispatch → silent dedup ✅
+//   Same agentType + same taskId + different promptHash → dag_task_id REUSED → FATAL EXIT ❌
+//   Same agentType + DIFFERENT taskId → parallel dispatch → entry KEPT ✅
+//   The Orchestrator MUST use a unique dag_task_id per dispatch. No warnings — block.
+// SA-FIX-PARALLEL-DISPATCH-20260611 (@Super-Admin): Clarified that dedup key is
+//   agentType+taskId composite, NOT agentType alone. Parallel dispatches for the
+//   same agentType with different taskIds are allowed and preserved in the queue.
+const beforeDedup = queue.length;
+const dedupedEntries: any[] = [];
+queue = queue.filter((e) => {
+  // dagTaskId is the DAG task identifier — dedup by agentType + dagTaskId
+  if (e.agentType === agentType && e.taskId === dagTaskId) {
+    // Same agent type AND same dag_task_id → deduplicate old entry
+    if (e.promptHash && e.promptHash !== promptHash) {
+      dedupedEntries.push(e);
+    }
+    return false;
+  }
+  return true;
+});
+
 fs.writeFileSync(outputFile, tokenizedPrompt, "utf8");
 
 // P0-CHECKLIST: mark dispatch success (Phase A fix — prevents Task() self-deadlock)
@@ -1082,130 +1139,6 @@ try {
  * Queue format:
  *   [{ dispatchId, promptHash, filePath, createdAt, agentType }]
  */
-const promptHash = crypto
-  .createHash("sha256")
-  .update(tokenizedPrompt, "utf8")
-  .digest("hex");
-const PENDING_FILE = path.join(OUTPUT_DIR, ".pending.json");
-let queue = [];
-try {
-  if (fs.existsSync(PENDING_FILE)) {
-    queue = JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
-    if (!Array.isArray(queue)) queue = [];
-  }
-} catch {
-  queue = [];
-}
-
-/**
- * P0-FIX-BUG-14 (2026-06-09, @Super-Admin): Three hardening layers for .pending.json writes.
- *
- * Layer 1 — Dedup by agentType: Remove existing entries for the same agentType
- *   before appending the new one. Prevents stale-orphan accumulation when the
- *   Orchestrator re-dispatches the same agent (e.g., double dispatch_subagent
- *   with same dag_task_id). The latest dispatch always wins.
- *
- * Layer 2 — Retry + Fatal: Previously, write failures were silently logged
- *   (logWarn) and the script continued — the dispatch file existed but the
- *   .pending.json entry was absent. This caused TASK-PROMPT-MISMATCH errors
- *   because enforce.ts found only stale entries in the queue. Now the write
- *   is retried once, and if both attempts fail, the script exits with code 1
- *   so the Orchestrator is alerted that the dispatch was not registered.
- *
- * Layer 3 — Read-back verification: After writing, immediately re-read the
- *   file and verify the entry is present. If not, exit with an error message
- *   identifying the missing entry.
- */
-// Layer 1: Deduplicate — remove existing entries for the same agentType + taskId
-// P0-FIX-BUG-15-L1 (2026-06-09): HARDENED dag_task_id reuse BLOCK.
-//   Same agentType + same taskId + same promptHash → idempotent re-dispatch → silent dedup ✅
-//   Same agentType + same taskId + different promptHash → dag_task_id REUSED → FATAL EXIT ❌
-//   Same agentType + DIFFERENT taskId → parallel dispatch → entry KEPT ✅
-//   The Orchestrator MUST use a unique dag_task_id per dispatch. No warnings — block.
-// SA-FIX-PARALLEL-DISPATCH-20260611 (@Super-Admin): Clarified that dedup key is
-//   agentType+taskId composite, NOT agentType alone. Parallel dispatches for the
-//   same agentType with different taskIds are allowed and preserved in the queue.
-const beforeDedup = queue.length;
-const dedupedEntries: any[] = [];
-queue = queue.filter((e) => {
-  // dagTaskId is the DAG task identifier — dedup by agentType + dagTaskId
-  if (e.agentType === agentType && e.taskId === dagTaskId) {
-    // Same agent type AND same dag_task_id → deduplicate old entry
-    if (e.promptHash && e.promptHash !== promptHash) {
-      dedupedEntries.push(e);
-    }
-    return false;
-  }
-  return true;
-});
-if (dedupedEntries.length > 0) {
-  // P0-BUG-FIX-TDZ (2026-06-18): Use resolvedTaskId to avoid TDZ with outer let taskId.
-  // FW-CLEANUP-FRAMEWORK-TASK-ID: env fallback removed; taskId comes from CLI + session_map DB + ctx/{dagTaskId}.json (DB-canonical V1.3 Phase 2).
-  const resolvedTaskId = taskId || "(unknown)";
-  // HARDENED CONSTRAINT: same dag_task_id → different task = BLOCKED.
-  // This is NOT just a warning — the dispatch is PHYSICALLY REJECTED.
-  // The Orchestrator MUST use a unique dag_task_id per dispatch.
-  const fatalMsg =
-    `\n╔══════════════════════════════════════════════════════════════════╗\n` +
-    `║  HARDENED CONSTRAINT: DAG_TASK_ID REUSE BLOCKED                  ║\n` +
-    `║  dag_task_id: "${resolvedTaskId}"                               \n` +
-    `║  This ID was already used for a different task dispatch.         ║\n` +
-    `║  Previous dispatch: ${dedupedEntries[0].dispatchId.split("/").pop()}\n` +
-    `║                                                                  ║\n` +
-    `║  CORRECT PRACTICE: Each dispatch MUST use a UNIQUE dag_task_id.  ║\n` +
-    `║  Like a database primary key — one ID = one task.                ║\n` +
-    `║                                                                  ║\n` +
-    `║  FIX: Re-run dispatch_subagent with a DIFFERENT dag_task_id.     ║\n` +
-    `║       e.g., "VERIFY-REPORT-FINAL" → "VERIFY-REPORT-FINAL-V2"     ║\n` +
-    `╚══════════════════════════════════════════════════════════════════╝\n`;
-  writeLog("dispatch-subagent", "runtime", {
-    level: "ERROR",
-    event: "DAG-TASK-ID-REUSE-BLOCKED",
-    detail: `DAG_TASK_ID reuse blocked: ${taskId} (agentType=${agentType})`,
-  });
-  console.error(fatalMsg);
-  logWarn(`DAG-TASK-ID REUSE BLOCKED: ${taskId} (agentType=${agentType})`);
-  // FW-DIAG-D1 (2026-06-10, @Super-Admin): Diagnostic log for dedup block tracing.
-  // Captures agentType, both taskIds, and both promptHashes to verify
-  // whether stale .pending.json entries are blocking legitimate re-dispatches.
-  logInfo(
-    `DIAG-DEDUP-BLOCK | agentType=${agentType} | ` +
-      `blockedDagTaskId=${dedupedEntries[0].taskId || "?"} | ` +
-      `newDagTaskId=${taskId} | ` +
-      `prevHash=${(dedupedEntries[0].promptHash || "").substring(0, 12)} | ` +
-      `newHash=${promptHash.substring(0, 12)}`,
-  );
-
-  // ── P6/S23: RESUME BRANCH (S25 v4: DB query replaces SESSION_ID.md) ──
-  // If DISPATCH_RESUME_SESSION_ID is set, this is a resume dispatch (not a new task).
-  // Allow same dag_task_id + different promptHash when resuming a previous session.
-  // Verify the prior session exists via session_log DB table to prevent misuse.
-  const resumeSessionId = process.env.DISPATCH_RESUME_SESSION_ID || null;
-  if (resumeSessionId) {
-    const taskIdForResume = taskId || "(unknown)";
-    const priorSession = dbQueryLatestSessionByDagTaskId(taskIdForResume);
-    if (priorSession) {
-      logInfo(
-        `RESUME dispatch allowed: dag_task_id=${taskIdForResume} resume_session_id=${resumeSessionId} prior_session=${priorSession}`,
-      );
-      // Continue — skip fatal exit, proceed to push new entry
-    } else {
-      writeLog("dispatch-subagent", "runtime", {
-        level: "ERROR",
-        event: "DAG-TASK-ID-REUSE-BLOCKED",
-        detail: `DAG_TASK_ID reuse blocked (no session_log entry): ${taskIdForResume}`,
-      });
-      console.error(fatalMsg);
-      logWarn(
-        `DAG-TASK-ID REUSE BLOCKED (no session_log entry): ${taskIdForResume}`,
-      );
-      process.exit(1);
-    }
-  } else {
-    console.error(fatalMsg);
-    process.exit(1);
-  }
-}
 if (queue.length < beforeDedup) {
   logInfo(
     `Deduped ${beforeDedup - queue.length} stale .pending.json entries for agentType="${agentType}" dagTaskId="${dagTaskId}"`,

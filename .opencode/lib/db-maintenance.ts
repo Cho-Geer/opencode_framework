@@ -271,3 +271,89 @@ export function runMaintenance(backupTargetPath?: string): {
 
   return { checkpoint, integrity, backup };
 }
+// Append to lib/db-maintenance.ts — runAuditCleanup + runDbVacuum
+// Extracted from plugins/db-health.ts (Batch 2)
+
+/**
+ * Run audit table cleanup: delete expired rows + truncate over-limit + multi-table cleanup.
+ * Extracted from db-health plugin to keep all DB writes in infrastructure layer.
+ *
+ * @param retentionDays - Number of days to retain audit records
+ * @param maxAuditRows - Maximum rows in gate_audit_history
+ * @returns Total number of deleted rows
+ */
+export function runAuditCleanup(
+  retentionDays: number = 7,
+  maxAuditRows: number = 10000,
+): number {
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  let totalDeleted = 0;
+
+  try {
+    const db = getDb();
+
+    // 1. Clean expired rows in gate_audit_history (using correct column name)
+    try {
+      const res = db.run(
+        "DELETE FROM gate_audit_history WHERE confirmed_at < ?",
+        [cutoff],
+      );
+      totalDeleted += res.changes;
+    } catch { /* skip */ }
+
+    // 2. If still over limit, force-truncate (keep newest N rows)
+    try {
+      const count = db
+        .query("SELECT COUNT(*) as c FROM gate_audit_history")
+        .get() as { c: number };
+      if (count.c > maxAuditRows) {
+        const res = db.run(
+          `DELETE FROM gate_audit_history
+           WHERE id NOT IN (
+             SELECT id FROM gate_audit_history
+             ORDER BY id DESC
+             LIMIT ?
+           )`,
+          [maxAuditRows],
+        );
+        totalDeleted += res.changes;
+      }
+    } catch { /* skip */ }
+
+    // 3. Clean other audit tables
+    const cleanupTargets: Array<[string, string]> = [
+      ["audit_log", "timestamp"],
+      ["read_audit", "created_at"],
+      ["execution_checklist_events", "created_at"],
+      ["dispatch_failed_log", "failed_at"],
+      ["session_log", "created_at"],
+    ];
+    for (const [table, col] of cleanupTargets) {
+      try {
+        const res = db.run(`DELETE FROM ${table} WHERE ${col} < ?`, [cutoff]);
+        totalDeleted += res.changes;
+      } catch { /* skip */ }
+    }
+  } catch { /* skip */ }
+
+  return totalDeleted;
+}
+
+/**
+ * Run VACUUM if freelist pages exceed threshold.
+ * @param freeListThreshold - Minimum freelist pages to trigger VACUUM
+ * @returns Number of reclaimed pages (0 if skipped)
+ */
+export function runDbVacuum(freeListThreshold: number = 100): number {
+  try {
+    const db = getDb();
+    const fl = db.query("PRAGMA freelist_count").get() as {
+      freelist_count: number;
+    };
+    if (fl.freelist_count > freeListThreshold) {
+      db.run("VACUUM");
+      return fl.freelist_count;
+    }
+  } catch { /* skip */ }
+  return 0;
+}

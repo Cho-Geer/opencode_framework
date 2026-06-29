@@ -12,7 +12,12 @@ const { execSync } = require("child_process");
 // __dirname = .opencode/scripts/__tests__/
 // Need ../../.. to get to project root
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
-const SELF_TEST_SCRIPT = path.join(PROJECT_ROOT, ".opencode", "scripts", "framework-self-test.js");
+const SELF_TEST_SCRIPT = path.join(
+  PROJECT_ROOT,
+  ".opencode",
+  "scripts",
+  "framework-self-test.js",
+);
 
 describe("framework-self-test CLI", () => {
   test("script file exists", () => {
@@ -72,16 +77,32 @@ describe("checkStateDir", () => {
   });
 
   test("machine.json exists in state dir", () => {
-    const machinePath = path.join(PROJECT_ROOT, ".opencode", "state", "machine.json");
+    const machinePath = path.join(
+      PROJECT_ROOT,
+      ".opencode",
+      "state",
+      "machine.json",
+    );
     expect(fs.existsSync(machinePath)).toBe(true);
   });
 });
 
 describe("checkMachineSubStates", () => {
   test("machine.json has required sub-states", () => {
-    const machinePath = path.join(PROJECT_ROOT, ".opencode", "state", "machine.json");
+    const machinePath = path.join(
+      PROJECT_ROOT,
+      ".opencode",
+      "state",
+      "machine.json",
+    );
     const machine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
-    ["meta", "eslint_state", "type_check_state", "dependency_state", "format_state"].forEach((s) => {
+    [
+      "meta",
+      "eslint_state",
+      "diagnostic_state",
+      "dependency_state",
+      "format_state",
+    ].forEach((s) => {
       expect(machine).toHaveProperty(s);
     });
   });
@@ -89,7 +110,12 @@ describe("checkMachineSubStates", () => {
 
 describe("checkAgentSkillsClean", () => {
   test("coder-be.md has skills list", () => {
-    const agentPath = path.join(PROJECT_ROOT, ".opencode", "agents", "coder-be.md");
+    const agentPath = path.join(
+      PROJECT_ROOT,
+      ".opencode",
+      "agents",
+      "coder-be.md",
+    );
     const content = fs.readFileSync(agentPath, "utf8");
     expect(content).toContain("skills");
   });
@@ -99,7 +125,11 @@ describe("checkThreeLayersEightRoles", () => {
   test("AGENTS.md references 8 agent types", () => {
     const agentsPath = path.join(PROJECT_ROOT, "AGENTS.md");
     const content = fs.readFileSync(agentsPath, "utf8");
-    const count = (content.match(/@Meta-Planner|@Orchestrator|@Architect|@Coder-FE|@Coder-BE|@Guardian|@Arbiter|@CI-CD-Agent/g) || []).length;
+    const count = (
+      content.match(
+        /@Meta-Planner|@Orchestrator|@Architect|@Coder-FE|@Coder-BE|@Guardian|@Arbiter|@CI-CD-Agent/g,
+      ) || []
+    ).length;
     expect(count).toBeGreaterThanOrEqual(8);
   });
 });
@@ -112,14 +142,22 @@ describe("checkReferencedFiles", () => {
 
 describe("checkTemplateResolution", () => {
   test("project.config.json has template_resolution or project_root", () => {
-    const cfg = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, ".opencode", "project.config.json"), "utf8"));
+    const cfg = JSON.parse(
+      fs.readFileSync(
+        path.join(PROJECT_ROOT, ".opencode", "project.config.json"),
+        "utf8",
+      ),
+    );
     expect(cfg.template_resolution || cfg.project_root).toBeDefined();
   });
 });
 
 describe("checkAbsolutePathLeakage", () => {
   test("AGENTS.md has no leaked absolute paths", () => {
-    const content = fs.readFileSync(path.join(PROJECT_ROOT, "AGENTS.md"), "utf8");
+    const content = fs.readFileSync(
+      path.join(PROJECT_ROOT, "AGENTS.md"),
+      "utf8",
+    );
     const absolutePaths = content.match(/\/home\/\w+/g) || [];
     expect(absolutePaths.length).toBe(0);
   });
@@ -127,7 +165,12 @@ describe("checkAbsolutePathLeakage", () => {
 
 describe("checkESLintRules", () => {
   test("eslint_state has valid structure", () => {
-    const machine = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, ".opencode", "state", "machine.json"), "utf8"));
+    const machine = JSON.parse(
+      fs.readFileSync(
+        path.join(PROJECT_ROOT, ".opencode", "state", "machine.json"),
+        "utf8",
+      ),
+    );
     expect(machine.eslint_state).toHaveProperty("modules");
     expect(machine.eslint_state).toHaveProperty("aggregate");
   });
@@ -135,18 +178,29 @@ describe("checkESLintRules", () => {
 
 describe("checkPreCommitHooks", () => {
   test("pre-commit hook exists", () => {
-    expect(fs.existsSync(path.join(PROJECT_ROOT, ".opencode", "hooks", "pre-commit"))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(PROJECT_ROOT, ".opencode", "hooks", "pre-commit"),
+      ),
+    ).toBe(true);
   });
 
   test("commit-msg hook exists", () => {
-    expect(fs.existsSync(path.join(PROJECT_ROOT, ".opencode", "hooks", "commit-msg"))).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(PROJECT_ROOT, ".opencode", "hooks", "commit-msg"),
+      ),
+    ).toBe(true);
   });
 });
 
 describe("checkCommitMsgTDD", () => {
   test("recent commits use [Red] or [Green] markers", () => {
     try {
-      const log = execSync("git log --oneline -20", { cwd: PROJECT_ROOT, encoding: "utf8" });
+      const log = execSync("git log --oneline -20", {
+        cwd: PROJECT_ROOT,
+        encoding: "utf8",
+      });
       expect(log).toMatch(/\[Red\]|\[Green\]/);
     } catch {
       // Non-git environment
@@ -157,7 +211,16 @@ describe("checkCommitMsgTDD", () => {
 
 describe("checkCQGBootstrap", () => {
   test("code-quality-gate.js has bootstrap logic", () => {
-    const content = fs.readFileSync(path.join(PROJECT_ROOT, ".opencode", "scripts", "mcp-tools", "code-quality-gate.js"), "utf8");
+    const content = fs.readFileSync(
+      path.join(
+        PROJECT_ROOT,
+        ".opencode",
+        "scripts",
+        "mcp-tools",
+        "code-quality-gate.js",
+      ),
+      "utf8",
+    );
     expect(content).toContain("OPENCODE_ROOT");
   });
 });
@@ -174,33 +237,52 @@ describe("checkAgentsNoBackslashes", () => {
 });
 // Check 22: opencode.json adapter validation
 
-
 // P2-D v2.1: Replaced "agent_write_scopes completeness" with "opencode.json permission
 // completeness" since authority moved from project.config.json to opencode.json.
 describe("FX-DIAG-HARD-3 (P2-D): opencode.json permission completeness", () => {
-  it('should verify opencode.json has permission blocks for all 8 agents', () => {
+  it("should verify opencode.json has permission blocks for all 8 agents", () => {
     // Read opencode.json directly to verify it has agent permissions
-    const opencodePath = path.join(OPENCODE_ROOT, 'opencode.json');
-    const oc = JSON.parse(fs.readFileSync(opencodePath, 'utf8'));
-    const expectedAgents = ['Coder-BE', 'Coder-FE', 'Architect', 'Meta-Planner', 'Orchestrator', 'Guardian', 'Arbiter', 'CI-CD-Agent'];
-    const allHavePermissions = expectedAgents.every(a =>
-      oc.agent?.[a]?.permission && Object.keys(oc.agent[a].permission).length > 0
+    const opencodePath = path.join(OPENCODE_ROOT, "opencode.json");
+    const oc = JSON.parse(fs.readFileSync(opencodePath, "utf8"));
+    const expectedAgents = [
+      "Coder-BE",
+      "Coder-FE",
+      "Architect",
+      "Meta-Planner",
+      "Orchestrator",
+      "Guardian",
+      "Arbiter",
+      "CI-CD-Agent",
+    ];
+    const allHavePermissions = expectedAgents.every(
+      (a) =>
+        oc.agent?.[a]?.permission &&
+        Object.keys(oc.agent[a].permission).length > 0,
     );
     expect(allHavePermissions).toBe(true);
   });
 
-  it('should verify framework-self-test.ts validates opencode.json permissions', () => {
-    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-self-test.ts'), 'utf8');
+  it("should verify framework-self-test.ts validates opencode.json permissions", () => {
+    const src = fs.readFileSync(
+      path.join(OPENCODE_ROOT, ".opencode/scripts/framework-self-test.ts"),
+      "utf8",
+    );
     // P2-D v2.1: self-test now verifies opencode.json agent permissions
-    expect(src).toContain('opencode.json');
-    expect(src).toContain('hasAgentPermissions');
+    expect(src).toContain("opencode.json");
+    expect(src).toContain("hasAgentPermissions");
   });
 });
 
 describe("FX-DIAG-UNIV-1: template resolution consistency", () => {
-  it('should resolve all template keys without UNRESOLVED prefix (RED: some keys may be missing)', () => {
-    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/command-tools/dispatch-subagent.js'), 'utf8');
-    expect(src).toContain('buildTemplateResolutionMap');
-    expect(src).not.toContain('UNRESOLVED');
+  it("should resolve all template keys without UNRESOLVED prefix (RED: some keys may be missing)", () => {
+    const src = fs.readFileSync(
+      path.join(
+        OPENCODE_ROOT,
+        ".opencode/scripts/command-tools/dispatch-subagent.js",
+      ),
+      "utf8",
+    );
+    expect(src).toContain("buildTemplateResolutionMap");
+    expect(src).not.toContain("UNRESOLVED");
   });
 });

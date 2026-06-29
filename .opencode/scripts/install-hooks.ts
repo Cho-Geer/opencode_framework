@@ -202,3 +202,5 @@ function output(results, needsRepair) {
 }
 
 main();
+
+export {};

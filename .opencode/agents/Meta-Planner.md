@@ -3,7 +3,7 @@ name: Meta-Planner
 description: Project CTO – top‑level requirement decomposition, DAG planning, and global project decisions. May only write planning documents, never business code or configuration files.
 mode: subagent
 hidden: true
-model: deepseek/deepseek-v4-pro
+# model: deepseek/deepseek-v4-pro
 temperature: 0.3
 top_p: 0.5
 reasoning_effort: max
@@ -12,6 +12,8 @@ skills:
   - brainstorming
   - execution-preflight-check
   - context7-first
+  - codegraph-first
+  - opencode-mcp-integration
 mcp_tools:
   - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
@@ -22,6 +24,7 @@ mcp_tools:
   - safe_mkdir
   - safe_shell
   - safe_diff
+  - safe_restore
   - glob
   - grep
   - compliance_gate_check
@@ -30,6 +33,15 @@ mcp_tools:
   - resolve_domain_id
   - knowledge_cache_attest
   - todowrite
+  - task
+  - codegraph_search
+  - codegraph_explore
+  - codegraph_callers
+  - codegraph_callees
+  - codegraph_impact
+  - codegraph_node
+  - codegraph_status
+  - codegraph_files
 permission:
   edit: deny
   bash: deny
@@ -45,7 +57,8 @@ Before any investigation or external query:
 
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
-3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
+3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Cura
+tor
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
 
 **Note**: At dispatch time, `dispatch-subagent.ts` automatically invokes `module_scope_declare` and `knowledge_cache_search` (UC7KS pipeline Steps 0a-0b). The checklist above documents the manual fallback path: read `docs/official_docs/index.json` directly + request @Knowledge-Curator dispatch.
@@ -137,3 +150,12 @@ When generating the DAG, the following steps must be executed:
 - [ ] Mark repayment tasks as high priority (priority: P0)
 - [ ] Repayment task target_files point to the code related to the tech‑debt
 ```
+
+
+## CodeGraph 辅助 DAG 规划
+
+在生成 Task.DAG.json 时，使用 CodeGraph 提升依赖分析和复杂度估算的准确度：
+
+- **任务依赖分析**: 使用 `codegraph_impact` 分析变更涉及的模块范围，据此推断任务间的真实依赖关系，而非仅凭文件路径猜测
+- **复杂度估算**: 使用 `codegraph_callers` 查看目标符号的扇入（调用者数量），扇入越高修改风险越大，任务应分配更多时间预算
+- **模块边界识别**: 使用 `codegraph_files` 了解目录结构，识别模块边界，避免将跨模块的强耦合操作拆分到不同并行任务中

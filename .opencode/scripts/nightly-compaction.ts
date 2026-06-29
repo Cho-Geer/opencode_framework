@@ -246,7 +246,7 @@ async function cleanupStaleSessionAccessStep() {
       };
 
       // Step 3: KC-03 — Nested pruning via shared helper (in-memory SessionAccess)
-      pruneResult = pruneSessionAccess(sa, pruneOpts);
+      pruneResult = pruneSessionAccess(sa as any, pruneOpts);
 
       // Step 3b: KC-14 — DB-level pruning with optional archiving
       try {
@@ -458,6 +458,8 @@ async function cleanupStaleCtxFiles(): Promise<void> {
     writeLog(NC_SRC, "ERROR", { event: "CTX-CLEANUP-FAILED", detail: msg });
   }
 }
+
+const hotFile = join(STATE_DIR, "gate-state.hot.json");
 
 async function main() {
   log(`Nightly Compaction — ${TODAY} ${DRY_RUN ? "(DRY-RUN)" : ""}`);

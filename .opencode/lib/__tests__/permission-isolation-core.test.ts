@@ -10,7 +10,7 @@ const {
 } = require('../permission-isolation-core');
 
 describe('permission-isolation-core', () => {
-  let pi: PermissionIsolation;
+  let pi: any;
 
   beforeEach(() => {
     pi = new PermissionIsolation();
@@ -30,9 +30,9 @@ describe('permission-isolation-core', () => {
 
     it('should define tool permissions for each agent', () => {
       for (const [name, profile] of Object.entries(PERMISSION_PROFILES)) {
-        expect(profile.tools.edit).toMatch(/^(allow|deny)$/);
-        expect(profile.tools.bash).toMatch(/^(allow|deny)$/);
-        expect(profile.tools.task).toMatch(/^(allow|deny)$/);
+        expect((profile as any).tools.edit).toMatch(/^(allow|deny)$/);
+        expect((profile as any).tools.bash).toMatch(/^(allow|deny)$/);
+        expect((profile as any).tools.task).toMatch(/^(allow|deny)$/);
       }
     });
   });
@@ -85,7 +85,7 @@ describe('permission-isolation-core', () => {
     it('should return a copy of the permission profile', async () => {
       const profile = await pi.getAgentPermissions('@Coder-BE');
       expect(profile.agentType).toBe('@Coder-BE');
-      expect(profile.tools.edit).toBe('deny');
+      expect((profile as any).tools.edit).toBe('deny');
     });
 
     it('should throw for unknown agent', async () => {

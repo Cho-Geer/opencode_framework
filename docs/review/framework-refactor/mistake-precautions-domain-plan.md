@@ -1,9 +1,10 @@
 # 错题集独立域 + 摘要方案实施计划
 
-**版本**: v1.0.0  
-**日期**: 2026-06-25  
+**版本**: v1.1.0  
+**日期**: 2026-06-26（修订自 2026-06-25 v1.0.0）  
 **作者**: @Super-Admin  
-**状态**: draft
+**状态**: draft  
+**修订**: §3.2 修正 index.json 实际 library_id/domain 值（`"framework"` → `"mistake_precautions"`）；§3.3 补充 DB 当前状态说明（domain 实际为 `'opencode'`）
 
 ---
 
@@ -27,7 +28,7 @@ Knowledge-Curator 收集错题集时产出的是散文格式，没有规则提�
 
 ### 2.1 错题集独立域
 
-从 `opencode_framework` 域中拆出独立的 `mistake_precautions` 域：
+从 `opencode_framework` 域（config 键）/ `opencode` 域（DB domain 值）中拆出独立的 `mistake_precautions` 域：
 
 ```
 opencode_framework          mistake_precautions（新）
@@ -113,15 +114,19 @@ KC 收集新文档
 
 ### 3.2 docs/official_docs/index.json
 
-3 条错题集条目的 `library_id` 从 `"opencode-framework"` 改为 `"mistake_precautions"`：
+> **当前实际值（2026-06-26 审计确认）**: 3 条错题集条目的 `library_id` 为 `"framework"`，`domain` 为 `"framework"`，`tags` 为 `["framework"]`。以下变更基于实际值。
+
+3 条错题集条目的 `library_id` 从 `"framework"` 改为 `"mistake_precautions"`，`domain` 同步更新：
 
 ```diff
   {
--   "library_id": "opencode-framework",
+-   "library_id": "framework",
 +   "library_id": "mistake_precautions",
+-   "domain": "framework",
++   "domain": "mistake_precautions",
     "query_topic": "OpenCode plugin debugging precautions...",
-    "domain": "opencode_framework",
-    "tags": ["opencode", "plugins", "debugging", "mistake-prevention", ...],
+-   "tags": ["framework"],
++   "tags": ["mistake_precautions"],
     ...
   }
 ```
@@ -150,9 +155,12 @@ KC 收集新文档
 
 ### 3.3 DB 数据变更
 
+> **当前实际状态（2026-06-26 审计确认）**: `knowledge_entries` 有 63 行数据（非空）。3 份错题集文件已索引（entry_id 513/515/516），`domain='opencode'`，`library_id='opencode-framework'`，`access_count=0`（从未通过 UC7KS 流程读取）。
+
 **表: `knowledge_entries`**
 
 ```sql
+-- 当前 domain='opencode'，改为 'mistake_precautions'
 UPDATE knowledge_entries
 SET domain = 'mistake_precautions', updated_at = unixepoch('now') * 1000
 WHERE library_id IN (
@@ -257,8 +265,8 @@ Agent 执行任务 (strict 模式)
 | :--: | -------------------------------------- | ------------------------ | :------: |
 | 1.1  | 新增 `mistake_precautions` 域定义      | `project.config.json`    |   配置   |
 | 1.2  | 更新 `mandatory_knowledge.domains`     | `project.config.json`    |   配置   |
-| 1.3  | 更新 `knowledge_entries.domain`        | SQLite                   | DB 数据  |
-| 1.4  | 更新 `index.json` 条目 library_id      | `index.json`             | 缓存索引 |
+| 1.3  | 更新 `knowledge_entries.domain`（`'opencode'` → `'mistake_precautions'`） | SQLite                   | DB 数据  |
+| 1.4  | 更新 `index.json` 条目（`"framework"` → `"mistake_precautions"`） | `index.json`             | 缓存索引 |
 | 1.5  | 更新 `framework-self-test.ts` Check 30 | `framework-self-test.ts` |   代码   |
 
 ### Phase 2: 内容改造

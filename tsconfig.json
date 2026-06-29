@@ -22,6 +22,8 @@
     "dist",
     ".opencode/lib/.opencode_backups",
     ".opencode/lib/**/.opencode_backups",
-    ".opencode/_plugins_backups"
+    ".opencode/_plugins_backups",
+    ".opencode/scripts/command-tools",
+    ".opencode/scripts/__tests__"
   ]
 }

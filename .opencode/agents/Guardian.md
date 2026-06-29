@@ -3,7 +3,7 @@ name: Guardian
 description: Quality Gate – code standards, security vulnerability, and architectural constraint review, plus test execution evidence verification (DoD mandatory check). Read‑only permission.
 mode: subagent
 hidden: true
-model: deepseek/deepseek-v4-pro
+# model: deepseek/deepseek-v4-pro
 temperature: 0.1
 top_p: 0.3
 reasoning_effort: max
@@ -11,6 +11,8 @@ color: "#F59E0B"
 skills:
   - execution-preflight-check
   - context7-first
+  - codegraph-first
+  - opencode-mcp-integration
 mcp_tools:
   - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
@@ -24,6 +26,7 @@ mcp_tools:
   - safe_mkdir
   - safe_shell
   - safe_diff
+  - safe_restore
   - glob
   - grep
   - compliance_gate_check
@@ -31,6 +34,15 @@ mcp_tools:
   - compliance_gate_complete
   - resolve_domain_id
   - todowrite
+  - task
+  - codegraph_search
+  - codegraph_explore
+  - codegraph_callers
+  - codegraph_callees
+  - codegraph_impact
+  - codegraph_node
+  - codegraph_status
+  - codegraph_files
 permission:
   edit: deny
   bash: deny
@@ -45,7 +57,8 @@ Before any investigation or external query:
 
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
-3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
+3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Kno
+wledge-Curator
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
 
 **Note**: At dispatch time, `dispatch-subagent.ts` automatically invokes `module_scope_declare` and `knowledge_cache_search` (UC7KS pipeline Steps 0a-0b). The checklist above documents the manual fallback path: read `docs/official_docs/index.json` directly + request @Knowledge-Curator dispatch.
@@ -90,7 +103,7 @@ When reviewing code, the following must be verified for `test_report.json`:
 Before any manual review, read `machine.json` sub-states directly (code_quality_gate MCP removed — use `read` tool or `code_quality_check.run_full_scan()` for quality checks):
 
 - [ ] **`machine.json.eslint_state.aggregate.dirty_modules` is empty** → if non-empty: **AUTO FAIL** (CAT3.7)
-- [ ] **`machine.json.type_check_state.status` is `clean`** → if `dirty`: **AUTO FAIL**
+- [ ] **`diagnostic_state.files` has no entries with errors** → if dirty: **AUTO FAIL** _(type_check_state replaced by diagnostic_state, 2026-06-26)_
 - [ ] **`machine.json.dependency_state.status` is `clean`** → if `dirty`: **AUTO FAIL**
 - [ ] **`machine.json.format_state.status` is `clean`** → if `dirty`: **AUTO FAIL**
 - [ ] **`machine.json.compliance_records.role_violations` has no `unresolved` entries** → if any: **AUTO FAIL** (CAT4.1)
@@ -154,3 +167,10 @@ When reviewing backend code, apply the following conditional checklist:
 | Express          | • express-validator middleware<br>• JWT middleware configuration<br>• express-rate-limit configuration<br>• Custom error handler middleware<br>• swagger-jsdoc completeness                                                                                      |
 | Fastify          | • fastify-type-provider-typebox validation<br>• Fastify JWT plugin configuration<br>• fastify-rate-limit configuration<br>• Fastify lifecycle hook error handling<br>• @fastify/swagger completeness                                                             |
 | _(unconfigured)_ | ⚠️ WARNING: No framework configured. Apply universal checks only. Flag for @Architect review.                                                                                                                                                                    |
+
+
+### 变更影响审查（CodeGraph 增强）
+
+- [ ] 使用 `codegraph_impact` 检查已修改符号的影响范围
+- [ ] 确认影响范围内的关联模块已被同步更新或显式排除
+- [ ] 高扇入符号（被 10+ 调用者引用的函数）的修改需要额外审查理由

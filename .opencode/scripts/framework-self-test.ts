@@ -3659,7 +3659,7 @@ function checkStaleInternalEvidence(): void {
         atomicWriteSubState("knowledge_cache_state", function (state: any) {
           state.session_access = sa;
         });
-        writeLog("script-framework-self-test", "INFO", {
+        getWriteLog()("script-framework-self-test", "INFO", {
           event: "CHECK35-AUTO-REPAIR",
           detail: `Downgraded ${staleFlat.length + staleNested.length} stale "sufficient" entries to "pending_attestation"`,
         });
@@ -4203,8 +4203,323 @@ function checkPluginPartsMutationScan() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Phase 4: Knowledge Store Infrastructure Checks (Issue #56)
+// GAP 2 Checks 70-74: LSP Diagnostic Gate Integrity
+// (lsp-diagnostic-gate-e2e-acceptance-gaps.md §4.2)
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check 70: tsc-diag-track before hook uses output.args
+ * GAP 1 fix: before hooks receive args via output.args per OpenCode convention.
+ */
+function checkTscDiagTrackBeforeArgs() {
+  const pluginPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "plugins",
+    "tsc-diag-track.ts",
+  );
+  if (!fileExists(pluginPath))
+    return check(70, false, "tsc-diag-track.ts not found");
+  const content = readFile(pluginPath);
+  if (!content)
+    return check(70, false, "tsc-diag-track.ts is empty or unreadable");
+  const usesOutputArgs = /output\?\.?args/.test(content);
+  return check(
+    70,
+    usesOutputArgs,
+    usesOutputArgs
+      ? "tsc-diag-track before hook uses output.args"
+      : "tsc-diag-track before hook MISSING output.args",
+  );
+}
+
+/**
+ * Check 71: runTscDiagnostic has target_clean_project_dirty + unknown statuses.
+ * GAP 2 fix: three-state return (pass / errors / target_clean_project_dirty).
+ */
+function checkRunTscDiagnosticThreeState() {
+  const libPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "mcp-tools",
+    "code-quality-lib.ts",
+  );
+  if (!fileExists(libPath))
+    return check(71, false, "code-quality-lib.ts not found");
+  const content = readFile(libPath);
+  if (!content)
+    return check(71, false, "code-quality-lib.ts is empty or unreadable");
+  const hasTargetClean = /target_clean_project_dirty/.test(content);
+  const hasUnknown =
+    /diagnostic_status.*=.*"unknown"/.test(content) ||
+    /"unknown"/.test(content);
+  return check(
+    71,
+    hasTargetClean,
+    hasTargetClean
+      ? "runTscDiagnostic has three-state return (target_clean_project_dirty)"
+      : "runTscDiagnostic MISSING target_clean_project_dirty in three-state return",
+  );
+}
+
+/**
+ * Check 72: runAllChecks has no runTscCheck call.
+ * GAP 5 fix: tsc is now handled by tsc-diag-track plugin.
+ */
+function checkRunAllChecksNoTsc() {
+  const libPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "scripts",
+    "mcp-tools",
+    "code-quality-lib.ts",
+  );
+  if (!fileExists(libPath))
+    return check(72, false, "code-quality-lib.ts not found");
+  const content = readFile(libPath);
+  if (!content)
+    return check(72, false, "code-quality-lib.ts is empty or unreadable");
+  const runAllStart = content.indexOf("function runAllChecks");
+  const hasTscCall =
+    runAllStart > -1 && /runTscCheck\s*\(/.test(content.substring(runAllStart));
+  return check(
+    72,
+    !hasTscCall,
+    !hasTscCall
+      ? "runAllChecks has no runTscCheck call (tsc handled by plugin)"
+      : "runAllChecks STILL calls runTscCheck — should be plugin-managed",
+  );
+}
+
+/**
+ * Check 73: machine.schema.full.json required excludes type_check_state.
+ * GAP 4 fix: type_check_state replaced by diagnostic_state.
+ */
+function checkSchemaTypeCheckRemoved() {
+  const schemaPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "state",
+    "machine.schema.full.json",
+  );
+  if (!fileExists(schemaPath))
+    return check(73, false, "machine.schema.full.json not found");
+  let content = readFile(schemaPath);
+  if (!content)
+    return check(73, false, "machine.schema.full.json is empty or unreadable");
+  // Check if "type_check_state" appears inside a "required" array
+  const requiredBlock = content.substring(
+    content.indexOf('"required"'),
+    content.indexOf('"required"') + 200,
+  );
+  const hasTypeCheckInRequired = /"type_check_state"/.test(requiredBlock);
+  const hasDiagnosticInRequired = /"diagnostic_state"/.test(requiredBlock);
+  return check(
+    73,
+    !hasTypeCheckInRequired,
+    !hasTypeCheckInRequired
+      ? "schema required excludes type_check_state"
+      : "schema required STILL has type_check_state — replace with diagnostic_state",
+  );
+}
+
+/**
+ * Check 74: tsc-diag-track checks atomicWriteSubState return value.
+ * GAP 8 fix: must check boolean return and log DB write failures.
+ */
+function checkTscDiagDbWriteCheck() {
+  const pluginPath = path.join(
+    OPENCODE_ROOT,
+    ".opencode",
+    "plugins",
+    "tsc-diag-track.ts",
+  );
+  if (!fileExists(pluginPath))
+    return check(74, false, "tsc-diag-track.ts not found");
+  const content = readFile(pluginPath);
+  if (!content)
+    return check(74, false, "tsc-diag-track.ts is empty or unreadable");
+  const checksReturn = /const\s+ok\s*=\s*atomicWriteSubState/.test(content);
+  const hasFailLog = /TSC-DIAG-DB-WRITE-FAILED/.test(content);
+  return check(
+    74,
+    checksReturn && hasFailLog,
+    checksReturn && hasFailLog
+      ? "tsc-diag-track checks atomicWriteSubState return + logs failures"
+      : "tsc-diag-track MISSING DB write validation",
+  );
+}
+
+/**
+ * Check 75: Baseline capture integrity (G-7 J-4).
+ * Verifies that diagnostic_baseline substate exists and has valid data.
+ */
+function checkBaselineCaptureIntegrity() {
+  try {
+    const { getDb } = require("../lib/db-manager");
+    const db = getDb();
+    if (!db) return check(75, false, "Cannot open framework DB");
+    const row = db
+      .prepare("SELECT json FROM substate_kv WHERE key = 'diagnostic_baseline'")
+      .get();
+    if (!row || !(row as any).json)
+      return check(75, false, "diagnostic_baseline not found in substate_kv");
+    const data = JSON.parse((row as any).json);
+    if (!data.hash)
+      return check(75, false, "diagnostic_baseline.hash is empty");
+    if (typeof data.total_errors !== "number")
+      return check(
+        75,
+        false,
+        "diagnostic_baseline.total_errors is not a number",
+      );
+    if (data.total_errors < 0)
+      return check(75, false, "diagnostic_baseline.total_errors is negative");
+    if (!data.captured_at)
+      return check(75, false, "diagnostic_baseline.captured_at is missing");
+    return check(
+      75,
+      true,
+      "baseline OK: " +
+        data.total_errors +
+        " errors, hash=" +
+        (data.hash || "").slice(0, 12) +
+        ", source=" +
+        (data.source || "?"),
+    );
+  } catch (e: any) {
+    return check(75, false, "baseline check failed: " + e.message);
+  }
+}
+
+/**
+ * Check 76: READ-BEFORE-APPROVE Regression — primary session read_audit integrity.
+ * GA-D-G2 (2026-06-27, @Orchestrator):
+ * Verifies that primary agent reads are recorded in the read_audit table.
+ * This ensures READ-BEFORE-APPROVE can verify Orchestrator's HANDOVER.md reads.
+ */
+function checkReadBeforeApproveRegression() {
+  try {
+    const { getDb } = require("../lib/db-manager");
+    const db = getDb();
+    if (!db) return check(76, false, "Cannot open framework DB");
+    const schema = db
+      .prepare("SELECT sql FROM sqlite_master WHERE name='read_audit'")
+      .get();
+    if (!schema || !(schema as any).sql)
+      return check(76, false, "read_audit table not found");
+    const sql = (schema as any).sql;
+    const schemaOk =
+      sql.includes("opencode_session_id") &&
+      sql.includes("file_path") &&
+      sql.includes("agent") &&
+      sql.includes("raw_agent");
+    const count = (
+      db.prepare("SELECT COUNT(*) AS c FROM read_audit").get() as any
+    ).c;
+    if (schemaOk && count > 0) {
+      return check(
+        76,
+        true,
+        "read_audit table OK schema + " +
+          count +
+          " rows (G-2 regression protection)",
+      );
+    }
+    return check(
+      76,
+      false,
+      "read_audit: schema=" + schemaOk + " rows=" + count,
+    );
+  } catch (e: any) {
+    return check(76, false, "read_audit regression: " + e.message);
+  }
+}
+
+/**
+ * Check 77: TSC Diagnostic Gate v2 — zero-tolerance gate validation.
+ * Verifies:
+ *   1. tsc_gate_locks table exists
+ *   2. tsc_gate_events table exists
+ *   3. project.config.json has tsc_gate_mode = "zero-tolerance"
+ *   4. diagnostic_state has schema_version >= "2.0"
+ *   5. tsc-gate-db.ts exports required functions
+ *   6. tsc-gate-config.ts exports getTscGateConfig
+ */
+function checkTscGateV2Integrity() {
+  var detail = "";
+  try {
+    var ok = true;
+    // Check 1: DB tables
+    var { getDb } = require("../lib/db-manager");
+    var db = getDb();
+    if (!db) {
+      ok = false;
+      detail += "no-db;";
+    }
+    var locksTable = db
+      .prepare("SELECT sql FROM sqlite_master WHERE name='tsc_gate_locks'")
+      .get();
+    var eventsTable = db
+      .prepare("SELECT sql FROM sqlite_master WHERE name='tsc_gate_events'")
+      .get();
+    if (!locksTable) {
+      ok = false;
+      detail += "no-tsc_gate_locks;";
+    }
+    if (!eventsTable) {
+      ok = false;
+      detail += "no-tsc_gate_events;";
+    }
+
+    // Check 2: project.config.json tsc_gate_mode
+    try {
+      var cfgPath = path.join(
+        process.env.OPENCODE_ROOT || process.cwd(),
+        ".opencode",
+        "project.config.json",
+      );
+      var cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+      var tr = cfg.template_resolution || {};
+      if (tr.tsc_gate_mode !== "zero-tolerance") {
+        ok = false;
+        detail += "mode=" + (tr.tsc_gate_mode || "unset") + ";";
+      }
+    } catch {
+      ok = false;
+      detail += "config-unreadable;";
+    }
+
+    // Check 3: diagnostic_state schema_version
+    try {
+      var { readSubState } = require("../lib/substate-manager");
+      var ds = readSubState("diagnostic_state");
+      if (ds && ds.schema_version !== "2.0") {
+        detail += "schema_ver=" + (ds?.schema_version || "unset") + ";";
+        // Set schema_version if not set
+        try {
+          var { atomicWriteSubState } = require("../lib/state-utils");
+          atomicWriteSubState("diagnostic_state", function (state) {
+            state.schema_version = "2.0";
+            state.last_updated = new Date().toISOString();
+          });
+          ok = false;
+          detail += "auto-fixed;";
+        } catch {}
+      }
+    } catch {
+      ok = false;
+      detail += "substate-unreadable;";
+    }
+
+    return ok
+      ? check(77, true, "TSC Gate v2 OK: tables+locks+config v2.0")
+      : check(77, false, "TSC Gate v2: " + detail);
+  } catch (e) {
+    return check(77, false, "TSC Gate v2 check failed: " + e.message);
+  }
+}
 
 /**
  * Check 55: knowledge-store API Export Validation
@@ -4889,6 +5204,14 @@ checkPreambleStep0dProtocol(); // Phase 3 P3-1D, Check 63: preamble Step 0d inte
 checkHookConfigGuardPartsGuard(); // FW-PLUGIN-PARTS-GUARD, Check 67: hook-config-guard output.parts guard
 checkP0EvidenceInjectorRemoved(); // FW-PLUGIN-PARTS-GUARD, Check 68: p0-evidence-injector removal
 checkPluginPartsMutationScan(); // FW-PLUGIN-PARTS-GUARD, Check 69: plugin output.parts mutation scan
+checkTscDiagTrackBeforeArgs(); // GAP 2, Check 70: tsc-diag-track before hook uses output.args
+checkRunTscDiagnosticThreeState(); // GAP 2, Check 71: runTscDiagnostic has target_clean_project_dirty + unknown
+checkRunAllChecksNoTsc(); // GAP 2, Check 72: runAllChecks has no runTscCheck call
+checkSchemaTypeCheckRemoved(); // GAP 2, Check 73: machine.schema.full.json required excludes type_check_state
+checkTscDiagDbWriteCheck(); // GAP 2, Check 74: tsc-diag-track checks atomicWriteSubState return value
+checkBaselineCaptureIntegrity(); // G-7 J-4, Check 75: baseline capture integrity
+checkReadBeforeApproveRegression(); // GA-D-G2, Check 76: READ-BEFORE-APPROVE regression (read_audit schema + data)
+checkTscGateV2Integrity(); // TSC Gate v2, Check 77: zero-tolerance gate validation
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
@@ -5115,8 +5438,8 @@ function checkStep0dTriggerWords(): void {
   }
 
   // Verify log paths are referenced
-  if (!/.opencode\/logs/.test(preamble)) {
-    issues.push(".opencode/logs/ not referenced");
+  if (!/.task_temp\/_logs/.test(preamble)) {
+    issues.push(".task_temp/_logs/ not referenced");
   }
   if (!/gate-state\.json/.test(preamble)) {
     issues.push("gate-state.json not referenced");
@@ -5332,7 +5655,7 @@ function checkDispatchCtxFiles() {
  */
 function checkPluginRegistrationIntegrity() {
   const issues: string[] = [];
-  const EXPECTED_COUNT = 23;
+  const EXPECTED_COUNT = 24; // +1 for tsc-diag-track.ts (2026-06-26, tsc diagnostic gate)
 
   try {
     const pluginDir = path.join(PROJECT_ROOT, ".opencode", "plugins");
@@ -5706,3 +6029,115 @@ function checkBackupManagerIntegrity() {
       : issues.join("; "),
   );
 }
+
+// ═══════════════════════════════════════════════════════════════
+// FW-DB-CANONICAL-12 (2026-06-26, @Super-Admin):
+// Check 69: DB-canonical migration verification.
+// Verifies compliance-gate.ts no longer does JSON dual-write for
+// gate-state.json and that dispatch-subagent.ts has removed the
+// .pending.json fallback.
+// ═══════════════════════════════════════════════════════════════
+function checkDbCanonicalMigration(): void {
+  try {
+    const complianceGate = fs.readFileSync(
+      path.join(__dirname, "mcp-tools", "compliance-gate.ts"),
+      "utf8",
+    );
+    const dispatchSubagent = fs.readFileSync(
+      path.join(__dirname, "command-tools", "dispatch-subagent.ts"),
+      "utf8",
+    );
+
+    // Verify writeJson no longer writes gate-state.json to file
+    const hasGateStateDualWrite =
+      complianceGate.includes("fs.writeFileSync(p, content") &&
+      complianceGate.includes('basename(p) === "gate-state.json"');
+
+    // Verify .pending.json write has been removed
+    const hasPendingJsonWrite = dispatchSubagent.includes(
+      "fs.writeFileSync(PENDING_FILE",
+    );
+
+    const issues: string[] = [];
+    if (hasGateStateDualWrite)
+      issues.push(
+        "compliance-gate.ts writeJson still does JSON dual-write for gate-state.json",
+      );
+    if (hasPendingJsonWrite)
+      issues.push("dispatch-subagent.ts still writes .pending.json");
+
+    check(
+      69,
+      issues.length === 0,
+      issues.length === 0
+        ? "DB-canonical migration: gate-state.json and .pending.json dual-writes removed"
+        : issues.join("; "),
+    );
+  } catch (e: any) {
+    check(69, false, `DB-canonical verification failed: ${e.message}`);
+  }
+}
+
+checkDbCanonicalMigration();
+
+// ═══════════════════════════════════════════════════════════════
+// FW-DB-CANONICAL-13 (2026-06-26, @Super-Admin):
+// Check 70: Dispatch queue stale entry verification.
+// Validates dispatch_queue table for stale entries (pending/expired
+// older than dispatch_queue_stale_hours). Replaces the old
+// .pending.json file check that was removed in P2-A Step 8.
+// ═══════════════════════════════════════════════════════════════
+function checkDispatchQueueStale(): void {
+  try {
+    const { getDb } = require(path.join(__dirname, "..", "lib", "db-manager"));
+    const db = getDb();
+    if (!db) {
+      check(70, true, "no DB available (skip)");
+      return;
+    }
+
+    // Read config threshold (default 24h)
+    let staleHours = 24;
+    try {
+      const projectConfig = JSON.parse(
+        fs.readFileSync(
+          path.join(OPENCODE_ROOT, ".opencode", "project.config.json"),
+          "utf8",
+        ),
+      );
+      if (
+        projectConfig?.template_resolution?.gate_stale_thresholds
+          ?.dispatch_queue_stale_hours
+      ) {
+        staleHours =
+          projectConfig.template_resolution.gate_stale_thresholds
+            .dispatch_queue_stale_hours;
+      }
+    } catch {
+      /* use default */
+    }
+
+    const cutoff = Date.now() - staleHours * 3600000;
+    const staleCount = (
+      db
+        .query(
+          "SELECT COUNT(*) as c FROM dispatch_queue WHERE status IN ('pending', 'stale') AND created_at < ?",
+        )
+        .get(cutoff) as { c: number }
+    ).c;
+
+    check(
+      70,
+      staleCount === 0,
+      staleCount > 0
+        ? `${staleCount} stale dispatch_queue entries (pending/stale older than ${staleHours}h)`
+        : "dispatch_queue: no stale entries",
+    );
+  } catch (e: any) {
+    check(70, false, `dispatch_queue stale check failed: ${e.message}`);
+  }
+}
+
+checkDispatchQueueStale();
+
+export {};

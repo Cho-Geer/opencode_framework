@@ -22,7 +22,8 @@
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { generateDiff, withInterruptGuard } from "../lib";
+import { generateDiff } from "../service/file-guard";
+import { withInterruptGuard } from "../lib";
 
 export default tool({
   description:

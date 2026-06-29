@@ -122,7 +122,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   const bypassIncident = bypassMatch ? bypassMatch[1].trim() : "";
 
   if (bypassIncident && isSuperAdmin(agent)) {
-    writeLog("git-guard-before", "warn", {
+    writeLog("git-guard-before","WARN", {
       sessionID: input.sessionID,
       callID: input.callID,
       agent,
@@ -138,7 +138,7 @@ async function toolExecuteBefore(input: any, output: any): Promise<void> {
   }
 
   // Block with audit log
-  writeLog("git-guard-before", "error", {
+  writeLog("git-guard-before","ERROR", {
     sessionID: input.sessionID,
     callID: input.callID,
     agent,

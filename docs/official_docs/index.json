@@ -1,15 +1,13 @@
 {
   "manifest_version": "1.5.0",
-  "last_updated": "2026-06-24T17:39:28.964482+00:00",
-  "total_entries": 48,
+  "last_updated": "2026-06-26T10:23:00.000000+00:00",
+  "total_entries": 49,
   "entries": [
     {
       "library_id": "backend",
       "query_topic": "e2e-test",
       "domain": "backend",
-      "tags": [
-        "backend"
-      ],
+      "tags": ["backend"],
       "files": [
         {
           "path": "backend/e2e-test/uc7-003-write-verification.md",
@@ -26,9 +24,7 @@
       "library_id": "backend",
       "query_topic": "nestjs",
       "domain": "backend",
-      "tags": [
-        "backend"
-      ],
+      "tags": ["backend"],
       "files": [
         {
           "path": "backend/nestjs/nestjs-controller-service-testing.md",
@@ -45,9 +41,7 @@
       "library_id": "backend",
       "query_topic": "nestjs",
       "domain": "backend",
-      "tags": [
-        "backend"
-      ],
+      "tags": ["backend"],
       "files": [
         {
           "path": "backend/nestjs/prisma-testing.md",
@@ -64,9 +58,7 @@
       "library_id": "backend",
       "query_topic": "prisma",
       "domain": "backend",
-      "tags": [
-        "backend"
-      ],
+      "tags": ["backend"],
       "files": [
         {
           "path": "backend/prisma/prisma-transactions-relations.md",
@@ -83,9 +75,7 @@
       "library_id": "bun",
       "query_topic": "",
       "domain": "bun",
-      "tags": [
-        "bun"
-      ],
+      "tags": ["bun"],
       "files": [
         {
           "path": "bun/bun-module-resolution.md",
@@ -102,9 +92,7 @@
       "library_id": "bun",
       "query_topic": "",
       "domain": "bun",
-      "tags": [
-        "bun"
-      ],
+      "tags": ["bun"],
       "files": [
         {
           "path": "bun/bun-overview.md",
@@ -121,9 +109,7 @@
       "library_id": "bun",
       "query_topic": "",
       "domain": "bun",
-      "tags": [
-        "bun"
-      ],
+      "tags": ["bun"],
       "files": [
         {
           "path": "bun/bun-typescript-support.md",
@@ -140,9 +126,7 @@
       "library_id": "database",
       "query_topic": "redis",
       "domain": "database",
-      "tags": [
-        "database"
-      ],
+      "tags": ["database"],
       "files": [
         {
           "path": "database/redis/redis-ioredis-cache-patterns.md",
@@ -159,9 +143,7 @@
       "library_id": "devops",
       "query_topic": "docker",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/docker/docker-compose-test-environments.md",
@@ -178,9 +160,7 @@
       "library_id": "devops",
       "query_topic": "docker",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/docker/github-actions-workflow-syntax.md",
@@ -197,9 +177,7 @@
       "library_id": "devops",
       "query_topic": "docker/github-actions",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/docker/github-actions/ci-test-pipeline-integration.md",
@@ -216,9 +194,7 @@
       "library_id": "devops",
       "query_topic": "docker/github-actions",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/docker/github-actions/test-reporting-coverage.md",
@@ -235,9 +211,7 @@
       "library_id": "devops",
       "query_topic": "github",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/github/gh-sub-issue-commands.md",
@@ -254,9 +228,7 @@
       "library_id": "devops",
       "query_topic": "github",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/github/github-fine-grained-pat-permissions-deep.md",
@@ -273,9 +245,7 @@
       "library_id": "devops",
       "query_topic": "github",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/github/github-fine-grained-pat-permissions.md",
@@ -292,9 +262,7 @@
       "library_id": "devops",
       "query_topic": "github",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/github/github-projects-overview.md",
@@ -311,9 +279,7 @@
       "library_id": "devops",
       "query_topic": "testing",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/testing/jest-unit-testing.md",
@@ -330,9 +296,7 @@
       "library_id": "devops",
       "query_topic": "testing",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/testing/nestjs-testing.md",
@@ -349,9 +313,7 @@
       "library_id": "devops",
       "query_topic": "testing",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/testing/playwright-e2e-testing.md",
@@ -368,9 +330,7 @@
       "library_id": "devops",
       "query_topic": "testing",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/testing/supertest-integration-testing.md",
@@ -387,9 +347,7 @@
       "library_id": "devops",
       "query_topic": "testing",
       "domain": "devops",
-      "tags": [
-        "devops"
-      ],
+      "tags": ["devops"],
       "files": [
         {
           "path": "devops/testing/tdd-best-practices.md",
@@ -406,9 +364,7 @@
       "library_id": "framework",
       "query_topic": "mistake_precautions",
       "domain": "framework",
-      "tags": [
-        "framework"
-      ],
+      "tags": ["framework"],
       "files": [
         {
           "path": "framework/mistake_precautions/double-hook-trigger-prevention.md",
@@ -425,9 +381,7 @@
       "library_id": "framework",
       "query_topic": "mistake_precautions",
       "domain": "framework",
-      "tags": [
-        "framework"
-      ],
+      "tags": ["framework"],
       "files": [
         {
           "path": "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md",
@@ -444,9 +398,7 @@
       "library_id": "framework",
       "query_topic": "mistake_precautions",
       "domain": "framework",
-      "tags": [
-        "framework"
-      ],
+      "tags": ["framework"],
       "files": [
         {
           "path": "framework/mistake_precautions/plugin-debugging-precautions.md",
@@ -463,9 +415,7 @@
       "library_id": "framework",
       "query_topic": "",
       "domain": "framework",
-      "tags": [
-        "framework"
-      ],
+      "tags": ["framework"],
       "files": [
         {
           "path": "framework/plugin-programming-conventions.md",
@@ -482,9 +432,7 @@
       "library_id": "framework",
       "query_topic": "state-mgmt",
       "domain": "framework",
-      "tags": [
-        "framework"
-      ],
+      "tags": ["framework"],
       "files": [
         {
           "path": "framework/state-mgmt/read-audit-db-migration-summary.md",
@@ -501,9 +449,7 @@
       "library_id": "frontend",
       "query_topic": "angular",
       "domain": "frontend",
-      "tags": [
-        "frontend"
-      ],
+      "tags": ["frontend"],
       "files": [
         {
           "path": "frontend/angular/angular-component-testing.md",
@@ -520,9 +466,7 @@
       "library_id": "frontend",
       "query_topic": "angular",
       "domain": "frontend",
-      "tags": [
-        "frontend"
-      ],
+      "tags": ["frontend"],
       "files": [
         {
           "path": "frontend/angular/angular-http-testing.md",
@@ -539,9 +483,7 @@
       "library_id": "frontend",
       "query_topic": "angular",
       "domain": "frontend",
-      "tags": [
-        "frontend"
-      ],
+      "tags": ["frontend"],
       "files": [
         {
           "path": "frontend/angular/angular-signal-store-testing.md",
@@ -558,9 +500,7 @@
       "library_id": "multi-agent-patterns",
       "query_topic": "",
       "domain": "multi-agent-patterns",
-      "tags": [
-        "multi-agent-patterns"
-      ],
+      "tags": ["multi-agent-patterns"],
       "files": [
         {
           "path": "multi-agent-patterns/anthropic-building-effective-agents.md",
@@ -577,9 +517,7 @@
       "library_id": "multi-agent-patterns",
       "query_topic": "",
       "domain": "multi-agent-patterns",
-      "tags": [
-        "multi-agent-patterns"
-      ],
+      "tags": ["multi-agent-patterns"],
       "files": [
         {
           "path": "multi-agent-patterns/cross-framework-synthesis.md",
@@ -596,9 +534,7 @@
       "library_id": "multi-agent-patterns",
       "query_topic": "",
       "domain": "multi-agent-patterns",
-      "tags": [
-        "multi-agent-patterns"
-      ],
+      "tags": ["multi-agent-patterns"],
       "files": [
         {
           "path": "multi-agent-patterns/framework-architectures.md",
@@ -615,9 +551,7 @@
       "library_id": "multi-agent-patterns",
       "query_topic": "",
       "domain": "multi-agent-patterns",
-      "tags": [
-        "multi-agent-patterns"
-      ],
+      "tags": ["multi-agent-patterns"],
       "files": [
         {
           "path": "multi-agent-patterns/google-a2a-protocol.md",
@@ -634,9 +568,7 @@
       "library_id": "opencode",
       "query_topic": "findings",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/findings/01-log-central-management.md",
@@ -653,9 +585,7 @@
       "library_id": "opencode",
       "query_topic": "findings",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/findings/02-harness-system.md",
@@ -672,9 +602,7 @@
       "library_id": "opencode",
       "query_topic": "findings",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/findings/03-permission-matrix.md",
@@ -691,9 +619,7 @@
       "library_id": "opencode",
       "query_topic": "findings",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/findings/04-layout-architecture.md",
@@ -710,9 +636,7 @@
       "library_id": "opencode",
       "query_topic": "findings",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/findings/05-central-state-management.md",
@@ -729,9 +653,7 @@
       "library_id": "opencode",
       "query_topic": "findings",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/findings/06-multi-agent-system.md",
@@ -748,9 +670,7 @@
       "library_id": "opencode",
       "query_topic": "mcp-typescript-bun",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/mcp-typescript-bun/findings-summary.md",
@@ -767,9 +687,7 @@
       "library_id": "opencode",
       "query_topic": "plugins",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/plugins/official-permissions-docs.md",
@@ -786,9 +704,7 @@
       "library_id": "opencode",
       "query_topic": "plugins",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/plugins/official-plugins-docs.md",
@@ -805,9 +721,7 @@
       "library_id": "opencode",
       "query_topic": "plugins",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/plugins/plugin-hook-reference.md",
@@ -824,9 +738,7 @@
       "library_id": "opencode",
       "query_topic": "plugins",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/plugins/scope-before-write-blocking.md",
@@ -843,9 +755,7 @@
       "library_id": "opencode",
       "query_topic": "releases",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/releases/v1.17.2-release-notes.md",
@@ -862,9 +772,7 @@
       "library_id": "opencode",
       "query_topic": "sessions",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/sessions/opencode-session-api.md",
@@ -881,9 +789,7 @@
       "library_id": "opencode",
       "query_topic": "source-analysis",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/source-analysis/agent-identity-plugin-hooks.md",
@@ -900,9 +806,7 @@
       "library_id": "opencode",
       "query_topic": "source-analysis",
       "domain": "opencode",
-      "tags": [
-        "opencode"
-      ],
+      "tags": ["opencode"],
       "files": [
         {
           "path": "opencode/source-analysis/agent-mode-values.md",
@@ -910,6 +814,23 @@
           "sha256": "237e61cc049dfb6f1d719d46b6f5faa3446689ad17665aa390b87359dbb35e39",
           "size_bytes": 6440,
           "created_at": "2026-06-11T06:01:54.150292+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "library_id": "opencode",
+      "query_topic": "lsp",
+      "domain": "opencode",
+      "tags": ["opencode", "lsp", "hooks"],
+      "files": [
+        {
+          "path": "opencode/lsp/lsp-hook-integration-analysis.md",
+          "source": "local",
+          "sha256": "78edf3e3598cfccd1d537ad037108b65d3baf19a885b980eacec86c23085d62e",
+          "size_bytes": 9346,
+          "created_at": "2026-06-26T10:23:00.000000+00:00",
           "ttl_days": 30,
           "status": "active"
         }

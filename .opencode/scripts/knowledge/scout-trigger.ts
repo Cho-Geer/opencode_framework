@@ -1,4 +1,9 @@
 /**
+ * @deprecated CodeGraph MCP 已替代 Scout 层的代码结构分析功能。
+ * 保留此脚本仅用于历史兼容。新任务应使用 codegraph_impact / codegraph_callers。
+ * 退役日期: 2026-06-27
+ */
+/**
  * scout-trigger.ts — UC7KS Scout Trigger Condition Detector v1.0.0
  *
  * Analyzes task descriptions for trigger keywords that indicate
@@ -16,13 +21,53 @@
  * Returns: { should_escalate: boolean, matched_triggers: string[], confidence: "low"|"medium"|"high" }
  */
 
-
-  { keywords: ["internally", "under the hood", "how does it work"], category: "implementation_pipeline", weight: 3 },
-  { keywords: ["why does", "unexpected", "surprising", "bug"], category: "potential_implementation_bug", weight: 2 },
-  { keywords: ["edge case", "undocumented", "not documented", "missing docs"], category: "undocumented_behavior", weight: 3 },
-  { keywords: ["source code", "implementation detail", "look at the code", "inspect"], category: "source_inspection", weight: 3 },
-  { keywords: ["type narrowing", "generic constraint", "type system", "tsc behavior", "compiler"], category: "type_system_internals", weight: 2 },
-  { keywords: ["plugin api", "hook internals", "dispatch mechanism", "execution order"], category: "framework_internals", weight: 3 },
+const TRIGGER_PATTERNS = [
+  {
+    keywords: ["internally", "under the hood", "how does it work"],
+    category: "implementation_pipeline",
+    weight: 3,
+  },
+  {
+    keywords: ["why does", "unexpected", "surprising", "bug"],
+    category: "potential_implementation_bug",
+    weight: 2,
+  },
+  {
+    keywords: ["edge case", "undocumented", "not documented", "missing docs"],
+    category: "undocumented_behavior",
+    weight: 3,
+  },
+  {
+    keywords: [
+      "source code",
+      "implementation detail",
+      "look at the code",
+      "inspect",
+    ],
+    category: "source_inspection",
+    weight: 3,
+  },
+  {
+    keywords: [
+      "type narrowing",
+      "generic constraint",
+      "type system",
+      "tsc behavior",
+      "compiler",
+    ],
+    category: "type_system_internals",
+    weight: 2,
+  },
+  {
+    keywords: [
+      "plugin api",
+      "hook internals",
+      "dispatch mechanism",
+      "execution order",
+    ],
+    category: "framework_internals",
+    weight: 3,
+  },
 ];
 
 function detect(taskDescription) {
@@ -40,18 +85,17 @@ function detect(taskDescription) {
     }
   }
 
-  const confidence = totalWeight >= 6 ? "high" : totalWeight >= 3 ? "medium" : "low";
+  const confidence =
+    totalWeight >= 6 ? "high" : totalWeight >= 3 ? "medium" : "low";
   const shouldEscalate = totalWeight >= 3;
 
   return {
     should_escalate: shouldEscalate,
-    matched_triggers: matched.map(m => m.keyword),
-    matched_categories: [...new Set(matched.map(m => m.category))],
+    matched_triggers: matched.map((m) => m.keyword),
+    matched_categories: [...new Set(matched.map((m) => m.category))],
     confidence,
     total_weight: totalWeight,
   };
 }
-
-
 
 module.exports = { detect };

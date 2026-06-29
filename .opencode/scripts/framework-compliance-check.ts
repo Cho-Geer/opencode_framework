@@ -206,7 +206,7 @@ function main() {
   // P1-B: Sub-states are now in dedicated files; read via readSubState().
   if (machine) {
     const eslintState = readSubState("eslint_state");
-    const typeCheckState = readSubState("type_check_state");
+    const diagState = readSubState("diagnostic_state");
     const formatState = readSubState("format_state");
     const dependencyState = readSubState("dependency_state");
 
@@ -220,8 +220,16 @@ function main() {
         `eslint_state: ${eslintState.aggregate.total_violations} violations`,
       );
     }
-    if (typeCheckState && typeCheckState.status !== "clean") {
-      dirtyStates.push(`type_check_state: ${typeCheckState.status}`);
+    // diagnostic_state (replaces type_check_state, 2026-06-26)
+    const diagFiles = diagState?.files || {};
+    const diagErrorCount = Object.entries(diagFiles).filter(
+      ([_, d]: [string, any]) =>
+        Array.isArray(d?.errors) && d.errors.length > 0,
+    ).length;
+    if (diagErrorCount > 0) {
+      dirtyStates.push(
+        `diagnostic_state: ${diagErrorCount} file(s) with errors`,
+      );
     }
     if (formatState && formatState.status !== "clean") {
       dirtyStates.push(`format_state: ${formatState.status}`);
@@ -311,3 +319,5 @@ if (require.main === module) {
 }
 
 module.exports = { main };
+
+export {};

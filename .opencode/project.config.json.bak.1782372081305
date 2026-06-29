@@ -1,0 +1,1237 @@
+{
+  "$schema": "./.opencode/state/project.config.schema.json",
+  "project": {
+    "name": "booking-system",
+    "description": "Appointment booking system with NestJS backend and Angular frontend",
+    "version": "1.0.0"
+  },
+  "project_root": ".",
+  "paths": {
+    "backend_src": "booking_system_refactor/booking-backend/src/",
+    "frontend_src": "booking_system_refactor/booking-frontend/",
+    "business_code_root": "booking_system_refactor/",
+    "contracts": "contract.yaml",
+    "requirements": ".opencode/context/requirements/",
+    "code_standards": ".opencode/context/code_standards/",
+    "tests": "booking_system_refactor/booking-backend/test/",
+    "state": ".opencode/state/",
+    "knowledge_docs": "docs/official_docs/",
+    "knowledge_index": "docs/official_docs/index.json"
+  },
+  "tech_stack": {
+    "backend": {
+      "framework": "NestJS",
+      "version": "11+",
+      "runtime": "Node.js 22.x",
+      "language": "TypeScript 5.x",
+      "context7_query": "NestJS controller service module best practices",
+      "context7_library": "/nestjs/nest"
+    },
+    "frontend": {
+      "framework": "Angular",
+      "version": "21+",
+      "language": "TypeScript 5.x",
+      "state_management": "NgRx SignalStore",
+      "ui_library": "PrimeNG",
+      "css": "Tailwind CSS v4",
+      "context7_query": "Angular standalone component signal store",
+      "context7_library": "/angular/angular"
+    },
+    "database": {
+      "orm": "Prisma",
+      "version": "7.x",
+      "engine": "PostgreSQL 16",
+      "context7_query": "Prisma transactions relations",
+      "context7_library": "/prisma/prisma"
+    },
+    "cache": {
+      "engine": "Redis 7.x",
+      "client": "ioredis",
+      "context7_query": "Redis cache pattern ioredis",
+      "context7_library": "/redis/ioredis"
+    },
+    "queue": "BullMQ",
+    "auth": {
+      "mechanism": "JWT + Passport",
+      "token_validity": "15m",
+      "refresh_validity": "7d"
+    },
+    "testing": {
+      "unit": "Jest 29+",
+      "e2e": "Playwright",
+      "integration": "Supertest + Testcontainers",
+      "coverage_threshold": 80
+    },
+    "ci_cd": "GitHub Actions",
+    "container": "Docker Compose v2"
+  },
+  "template_resolution": {
+    "develop_enforcement_mode": "advisory",
+    "runtime_enforcement_mode": "strict",
+    "compatibility_profile": "native",
+    "super_admin_uc7ks_dispatch_patterns": [
+      "knowledge",
+      "cache",
+      "docs",
+      "official",
+      "context7",
+      "uc7ks",
+      "fetch",
+      "curator",
+      "index",
+      "explore",
+      "source code",
+      "repository",
+      "github",
+      "documentation",
+      "library",
+      "api reference"
+    ],
+    "checklist_passthrough_tools": [
+      "compliance-gate_compliance_gate_purge",
+      "compliance-gate_compliance_gate_approve_deliverables",
+      "read",
+      "glob",
+      "grep",
+      "safe_hash"
+    ],
+    "uc7ks_external_tools": [
+      "context7_resolve-library-id",
+      "context7_query-docs",
+      "context7",
+      "webfetch",
+      "websearch",
+      "github_get_file_contents",
+      "github_search_code",
+      "github_search_repositories",
+      "github_search_issues",
+      "playwright_browser_navigate"
+    ],
+    "tdd_modify_tools": ["write", "edit", "safe_edit"],
+    "route_biz_scopes": ["booking-backend/src/", "booking-frontend/"],
+    "route_fw_scopes": [".opencode/", "opencode.json", "AGENTS.md"],
+    "framework_path_prefixes": [
+      ".opencode/",
+      "docs/",
+      ".task_temp/",
+      "node_modules/"
+    ],
+    "framework_root_files": [
+      "opencode.json",
+      "AGENTS.md",
+      "contract.yaml",
+      "Task.DAG.json",
+      "TECH_DEBT_REGISTRY.md",
+      "WAIVE.md",
+      "PROJECT_REFERENCE.md",
+      "Project.graph"
+    ],
+    "dispatch_integrity_bypass_agents": ["explore"],
+    "checklist_task_bypass_agents": ["explore"],
+    "checklist_agent_bypass": ["explore"],
+    "super_admin_repair_patterns": [
+      "repair",
+      "fix",
+      "restore",
+      "corrupt",
+      "broken",
+      "emergency",
+      "reset",
+      "drain",
+      "purge",
+      "reconcile",
+      "inconsistency",
+      "state",
+      "hook",
+      "plugin",
+      "integrity",
+      "machine.json",
+      "gate-state",
+      "compliance",
+      "validate",
+      "audit",
+      "test",
+      "baseline"
+    ],
+    "enforcement_config": {
+      "advisory": {
+        "description": "Warnings only, non-blocking. Suitable for local development.",
+        "block_on": [],
+        "log_level": "warn"
+      },
+      "strict": {
+        "description": "Blocks non-compliant actions. Suitable for CI/staging. UC7KS pipeline enforced: external doc queries blocked if local cache exists but not searched.",
+        "block_on": [
+          "gate_armed",
+          "keystone_hash",
+          "tdd_order",
+          "dag_gate",
+          "eslint_audit",
+          "role_scope",
+          "uc7ks_pipeline"
+        ],
+        "log_level": "error"
+      },
+      "locked": {
+        "description": "Prevents all changes without governance override. ALL external doc queries blocked — only @Knowledge-Curator may fetch docs. Suitable for production config branches.",
+        "block_on": [
+          "gate_armed",
+          "keystone_hash",
+          "keystone_integrity",
+          "tdd_order",
+          "dag_gate",
+          "eslint_audit",
+          "role_scope",
+          "workspace_root",
+          "gate_state_sync",
+          "write_audit_integrity",
+          "uc7ks_pipeline"
+        ],
+        "log_level": "error",
+        "allow_waivers": false,
+        "allow_downgrade": false
+      }
+    },
+    "contract_hash_command": "bun .opencode/scripts/mcp-tools/keystone-validate.ts --hash contract.yaml",
+    "backend.src": "booking_system_refactor/booking-backend/src/",
+    "backend.framework": "NestJS",
+    "backend.runtime": "Node.js 22.x",
+    "backend.language": "TypeScript 5.x",
+    "backend.orm.schema": "booking_system_refactor/booking-backend/prisma/schema.prisma",
+    "backend.orm.transaction": "Prisma $transaction() with interactive transactions",
+    "backend.auth": "JWT + Passport with @Roles() and @SkipAuth() decorators",
+    "backend.rate_limit": "NestJS ThrottlerModule: 15/min auth, 60/min admin, 120/min health",
+    "backend.error_handler": "Global ExceptionFilter + PrismaExceptionFilter, unified ResponseDto envelope",
+    "backend.logger": "NestJS Logger with request interceptor (method, URL, status, duration)",
+    "backend.api_docs": "Swagger/OpenAPI via @nestjs/swagger with @ApiProperty decorators",
+    "backend.cache_pattern": "Redis 7.x + ioredis, cache-aside pattern (TTL 300s)",
+    "frontend.src": "booking_system_refactor/booking-frontend/",
+    "frontend.framework": "Angular 21+",
+    "frontend.state_management": "NgRx SignalStore",
+    "frontend.ui_library": "PrimeNG",
+    "frontend.css": "Tailwind CSS v4",
+    "frontend.dto_path": "src/app/shared/dto/",
+    "frontend.env_path": "src/environments/environment.ts",
+    "frontend.css_strategy": "Tailwind CSS v4 First; SCSS for complex animations; BEM naming for private styles",
+    "frontend.state_pattern": "NgRx SignalStore: signalStore() + withState() + withComputed() + withMethods()",
+    "frontend.component_hierarchy": "Atomic Design: Atoms → Molecules → Organisms → Layouts → Pages",
+    "frontend.lazy_loading": "Angular loadChildren/loadComponent + @defer(on viewport)",
+    "frontend.api_pattern": "Service encapsulation + DTO alignment; HttpClient forbidden in components",
+    "cache.engine": "Redis 7.x",
+    "cache.client": "ioredis",
+    "queue.engine": "BullMQ",
+    "knowledge.max_file_size": 524288,
+    "knowledge.max_total_size": 52428800,
+    "knowledge.default_ttl": 30,
+    "knowledge.fallback_ttl": 14,
+    "knowledge.opencode_ttl": 7,
+    "knowledge.scout_ttl": 14,
+    "backup.ttl_days": 7,
+    "backup.max_per_dir": 20,
+    "knowledge.janitor_interval_hours": 24,
+    "read_max_age_ms": 300000,
+    "knowledge.compression_threshold_kb": 200,
+    "knowledge.materialization_lock_ttl_ms": 60000,
+    "knowledge.materialization_jobs_limit": 1000,
+    "knowledge.materialization_retry_max": 3,
+    "knowledge.session_access_ttl_days": 30,
+    "knowledge.session_access_max_tasks_per_agent": 50,
+    "knowledge.session_access_max_domains_per_task": 8,
+    "knowledge.session_access_preserve_attested_days": 90,
+    "knowledge.session_access_archive_enabled": true,
+    "knowledge.fallback_url_nestjs": "https://docs.nestjs.com/{topic}",
+    "knowledge.fallback_url_prisma": "https://www.prisma.io/docs/{topic}",
+    "knowledge.fallback_url_angular": "https://angular.dev/{topic}",
+    "knowledge.fallback_url_redis": "https://redis.io/docs/{topic}",
+    "knowledge.fallback_url_bullmq": "https://docs.bullmq.io/{topic}",
+    "knowledge.fallback_url_jest": "https://jestjs.io/docs/{topic}",
+    "knowledge.fallback_url_jwt": "https://jwt.io/introduction",
+    "knowledge.fallback_url_eslint": "https://eslint.org/docs/{topic}",
+    "knowledge.fallback_url_docker": "https://docs.docker.com/{topic}",
+    "knowledge.fallback_url_opencode": "https://opencode.ai/docs/{topic}",
+    "knowledge.fallback_url_git": "https://git-scm.com/docs/{topic}",
+    "knowledge.fallback_url_state": "https://opencode.ai/docs/{topic}",
+    "knowledge.fallback_url_machine": ".opencode/rules/rule_detail/state-machine-standard.md",
+    "logs.dir": ".task_temp/_logs",
+    "logs.retention_days": 7,
+    "logs.delimiter": " | ",
+    "logs.buffer_size": 20,
+    "logs.flush_interval_ms": 5000,
+    "logs.level": "INFO",
+    "logs.file_prefix": "plugin",
+    "logs.source_types": "mcp,script,lib,plugin"
+  },
+  "context7_task_mapping": [
+    {
+      "agent": "@Coder-BE",
+      "keywords": [
+        "backend",
+        "api",
+        "controller",
+        "service",
+        "database",
+        "prisma",
+        "nest",
+        "endpoint",
+        "module",
+        "auth",
+        "jwt",
+        "redis",
+        "cache",
+        "queue",
+        "rate limit"
+      ],
+      "stacks": ["backend", "database", "cache"],
+      "priority": 1
+    },
+    {
+      "agent": "@Coder-FE",
+      "keywords": [
+        "frontend",
+        "component",
+        "page",
+        "ui",
+        "angular",
+        "signal",
+        "store",
+        "style",
+        "tailwind",
+        "primeng",
+        "routing",
+        "guard"
+      ],
+      "stacks": ["frontend"],
+      "priority": 1
+    },
+    {
+      "agent": "@Architect",
+      "keywords": [
+        "architecture",
+        "design",
+        "contract",
+        "schema",
+        "api design",
+        "database design",
+        "module",
+        "interface"
+      ],
+      "stacks": ["backend", "frontend", "database"],
+      "priority": 1
+    },
+    {
+      "agent": "@Guardian",
+      "keywords": [
+        "review",
+        "audit",
+        "security",
+        "lint",
+        "quality",
+        "eslint",
+        "tdd"
+      ],
+      "stacks": ["backend", "frontend"],
+      "priority": 2
+    },
+    {
+      "agent": "@CI-CD-Agent",
+      "keywords": [
+        "deploy",
+        "docker",
+        "ci",
+        "cd",
+        "pipeline",
+        "container",
+        "build",
+        "release",
+        "migrate"
+      ],
+      "stacks": ["backend", "frontend"],
+      "priority": 2
+    }
+  ],
+  "knowledge_semantic_map": {
+    "domains": [
+      {
+        "domain_id": "backend_api",
+        "keywords": [
+          "controller",
+          "endpoint",
+          "guard",
+          "middleware",
+          "swagger",
+          "dto",
+          "api",
+          "service",
+          "module",
+          "interceptor",
+          "pipe",
+          "filter",
+          "provider",
+          "decorator"
+        ],
+        "context7_libraries": ["{backend.framework}"],
+        "fallback_pattern": "https://docs.nestjs.com/{topic}",
+        "save_path": "backend/nestjs/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "persistence",
+        "keywords": [
+          "database",
+          "prisma",
+          "schema",
+          "migration",
+          "transaction",
+          "sql",
+          "orm",
+          "seed",
+          "model",
+          "relation"
+        ],
+        "context7_libraries": ["{db.orm}"],
+        "fallback_pattern": "https://www.prisma.io/docs/{topic}",
+        "save_path": "backend/prisma/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "frontend_ui",
+        "keywords": [
+          "component",
+          "template",
+          "signal",
+          "store",
+          "style",
+          "css",
+          "tailwind",
+          "angular",
+          "primeng",
+          "routing",
+          "lazy",
+          "defer",
+          "directive",
+          "pipe"
+        ],
+        "context7_libraries": ["{frontend.framework}", "{frontend.ui_library}"],
+        "fallback_pattern": "https://angular.dev/{topic}",
+        "save_path": "frontend/angular/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "caching",
+        "keywords": [
+          "cache",
+          "redis",
+          "ioredis",
+          "ttl",
+          "cache-aside",
+          "cache-pattern"
+        ],
+        "context7_libraries": ["{cache.engine}"],
+        "fallback_pattern": "https://redis.io/docs/{topic}",
+        "save_path": "database/redis/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "queue",
+        "keywords": [
+          "queue",
+          "bullmq",
+          "job",
+          "worker",
+          "scheduler",
+          "message-queue"
+        ],
+        "context7_libraries": ["{queue.engine}"],
+        "fallback_pattern": "https://docs.bullmq.io/{topic}",
+        "save_path": "devops/bullmq/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "testing",
+        "keywords": [
+          "test",
+          "jest",
+          "spec",
+          "coverage",
+          "e2e",
+          "playwright",
+          "supertest",
+          "mock",
+          "stub",
+          "spy",
+          "assert"
+        ],
+        "context7_libraries": ["{testing.unit}", "{testing.e2e}"],
+        "fallback_pattern": "https://jestjs.io/docs/{topic}",
+        "save_path": "devops/testing/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "auth_security",
+        "keywords": [
+          "auth",
+          "jwt",
+          "passport",
+          "oauth",
+          "guard",
+          "token",
+          "refresh",
+          "csrf",
+          "rate-limit",
+          "helmet",
+          "roles"
+        ],
+        "context7_libraries": ["{auth.mechanism}"],
+        "fallback_pattern": "https://jwt.io/introduction",
+        "save_path": "backend/auth/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "framework_tools",
+        "keywords": [
+          "eslint",
+          "prettier",
+          "typescript",
+          "hook",
+          "plugin",
+          "config",
+          "linter",
+          "formatter",
+          "tsc",
+          "tsconfig"
+        ],
+        "context7_libraries": ["/eslint/eslint", "/typescript/typescript"],
+        "fallback_pattern": "https://eslint.org/docs/{topic}",
+        "save_path": "framework/eslint/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "devops_ci",
+        "keywords": [
+          "docker",
+          "compose",
+          "github-actions",
+          "ci",
+          "cd",
+          "pipeline",
+          "deploy",
+          "workflow",
+          "container",
+          "image"
+        ],
+        "context7_libraries": ["/docker/docker", "/github/github"],
+        "fallback_pattern": "https://docs.docker.com/{topic}",
+        "save_path": "devops/docker/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "opencode_framework",
+        "keywords": [
+          "opencode",
+          "agent",
+          "skill",
+          "mcp",
+          "framework",
+          "compliance",
+          "gate",
+          "orchestrator",
+          "dispatch",
+          "subagent",
+          "permission",
+          "plugin",
+          "config"
+        ],
+        "context7_libraries": [],
+        "fallback_pattern": "https://opencode.ai/docs/{topic}",
+        "save_path": "opencode/framework/",
+        "ttl_days": 7
+      },
+      {
+        "domain_id": "infrastructure",
+        "keywords": [
+          "git",
+          "json-schema",
+          "nodejs",
+          "markdown",
+          "yaml",
+          "pandoc",
+          "shell",
+          "bash",
+          "npm",
+          "npx"
+        ],
+        "context7_libraries": ["/git/git"],
+        "fallback_pattern": "https://git-scm.com/docs/{topic}",
+        "save_path": "framework/git/",
+        "ttl_days": 30
+      },
+      {
+        "domain_id": "state_management",
+        "keywords": [
+          "machine.json",
+          "gate-state.json",
+          "state",
+          "keystone",
+          "hash",
+          "transition",
+          "lifecycle",
+          "enforcement",
+          "schema",
+          "revision",
+          "transaction",
+          "WAL"
+        ],
+        "context7_libraries": [],
+        "fallback_pattern": "{knowledge.fallback_url_opencode}",
+        "save_path": "opencode/state/",
+        "ttl_days": 7
+      }
+    ]
+  },
+  "agent_domain_map": {
+    "$description": "Maps agent types to their primary knowledge domain from knowledge_semantic_map.domains[].domain_id. Used by dispatch_subagent.ts to infer domain_id at dispatch time for per-domain UC7KS write checks (FW-UC7KS-DOMAIN-001). null means the agent has no fixed domain (cross-domain or non-writing roles).",
+    "Coder-BE": "backend_api",
+    "Coder-FE": "frontend_ui",
+    "Architect": "backend_api",
+    "CI-CD-Agent": "devops_ci",
+    "Super-Admin": "opencode_framework",
+    "Knowledge-Curator": null,
+    "Orchestrator": null,
+    "Meta-Planner": null,
+    "Guardian": null,
+    "Arbiter": null
+  },
+  "path_lint": {
+    "$description": "Absolute path leakage detection configuration. Used by Check 19 in framework-self-test.js and path-canonical-lint.sh.",
+    "scan_roots": [".opencode/", "."],
+    "file_extensions": [".md", ".json", ".yaml", ".yml", ".sh", ".js", ".ts"],
+    "leak_patterns": [
+      {
+        "name": "Linux home",
+        "pattern": "/home/"
+      },
+      {
+        "name": "macOS home",
+        "pattern": "/Users/"
+      },
+      {
+        "name": "root user",
+        "pattern": "/root/"
+      },
+      {
+        "name": "Windows absolute",
+        "pattern": "[A-Za-z]:\\\\"
+      }
+    ],
+    "whitelist": {
+      "approved_absolute_paths": ["/tmp/opencode", "/usr/bin/"],
+      "template_patterns": ["{\\w+}", "\\$\\{"],
+      "url_patterns": ["https?://", "ftp://"],
+      "skip_directories": [".opencode/state/"]
+    },
+    "suggestion_templates": {
+      "project_root_match": "{project_root}/<relative> OR ./<relative>",
+      "github_runner_match": "${GITHUB_WORKSPACE}/<relative> OR ./<relative>",
+      "generic_home_match": "Consider replacing with {project_root}/... or a repo-relative path",
+      "windows_drive_match": "Consider replacing with a repo-relative path (./...)",
+      "tmp_not_opencode": "Consider using /tmp/opencode/ (approved) or $TMPDIR",
+      "fallback": "Consider replacing with a repo-relative path or {placeholder}"
+    }
+  },
+  "agent_tool_scopes": {
+    "$description": "UC7KS knowledge pipeline tool permissions per agent. Controls which agents may use external documentation tools (webfetch, websearch, context7_*). Enforced by uc7ks-enforcer.ts plugin and framework-enforcer.ts. Values: 'allow' (direct access), 'via_curator' (must route through @Knowledge-Curator in strict+ modes), 'deny' (never allowed).",
+    "@Knowledge-Curator": {
+      "doc_tools": "allow",
+      "reason": "Designated knowledge curator — must fetch external docs to populate local cache"
+    },
+    "@Super-Admin": {
+      "doc_tools": "via_curator",
+      "reason": "Emergency framework admin — should follow UC7KS pipeline; bypass only in advisory mode"
+    },
+    "@Coder-BE": {
+      "doc_tools": "via_curator",
+      "reason": "Backend developer — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Coder-FE": {
+      "doc_tools": "via_curator",
+      "reason": "Frontend developer — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Architect": {
+      "doc_tools": "via_curator",
+      "reason": "System architect — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Meta-Planner": {
+      "doc_tools": "via_curator",
+      "reason": "Project CTO — external docs must be cached by @Knowledge-Curator first"
+    },
+    "@Orchestrator": {
+      "doc_tools": "via_curator",
+      "reason": "Project manager — should dispatch @Knowledge-Curator rather than query directly"
+    },
+    "@Guardian": {
+      "doc_tools": "deny",
+      "reason": "Quality gate — read-only; uses cached rules and standards only"
+    },
+    "@Arbiter": {
+      "doc_tools": "deny",
+      "reason": "Technical committee — reads cached rules and standards only"
+    },
+    "@CI-CD-Agent": {
+      "doc_tools": "via_curator",
+      "reason": "DevOps/SRE — deployment docs should be cached by @Knowledge-Curator first"
+    }
+  },
+  "agent_dispatch_allowed_tools": {
+    "$description": "Orchestrator dispatch gate tool allowlist. Replaces hardcoded 7-tool ALLOWED list in enforce.ts. Agent entries define allowed tools per agent. Special: ['*'] = wildcard for Super-Admin. Fallback: minimum viable set (task/read/todowrite/compliance_gate_check/confirm/complete/dispatch_subagent). Added FW-DISPATCH-GATE-EXTERNALIZE (2026-06-09 @Super-Admin).",
+    "@Orchestrator": [
+      "task",
+      "read",
+      "todowrite",
+      "compliance_gate_check",
+      "compliance_gate_confirm",
+      "compliance_gate_complete",
+      "compliance_gate_drain_stale",
+      "compliance_gate_purge",
+      "dispatch_subagent",
+      "question",
+      "skill",
+      "safe_diff",
+      "safe_shell",
+      "compliance_gate_retry_confirm"
+    ],
+    "@Super-Admin": ["*"],
+    "@Architect": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_mkdir",
+      "safe_delete",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_check",
+      "compliance_gate_confirm",
+      "compliance_gate_complete",
+      "dispatch_subagent"
+    ],
+    "@Meta-Planner": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent"
+    ],
+    "@Coder-BE": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_test",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "docker",
+      "postgre_sql",
+      "eslint_audit",
+      "code_quality_check"
+    ],
+    "@Coder-FE": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_test",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "playwright",
+      "eslint_audit",
+      "code_quality_check"
+    ],
+    "@Guardian": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_test",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "eslint_audit",
+      "code_quality_check"
+    ],
+    "@Arbiter": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent"
+    ],
+    "@CI-CD-Agent": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "dispatch_subagent",
+      "docker",
+      "github"
+    ],
+    "@Knowledge-Curator": [
+      "task",
+      "read",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "todowrite",
+      "question",
+      "skill",
+      "glob",
+      "grep",
+      "compliance_gate_*",
+      "webfetch",
+      "websearch",
+      "context7",
+      "pandoc"
+    ]
+  },
+  "safe_shell": {
+    "$description": "Safe shell command allowlist and dangerous pattern configuration. Externalized from safe-bash-core.ts for runtime configurability. Added FW-UNIFY-TS-P3.",
+    "default_allowlist": [
+      "npm run *",
+      "npx jest *",
+      "npx tsc *",
+      "npx eslint *",
+      "node * --help",
+      "node *.js",
+      "node *.ts",
+      "node *.js *",
+      "node *.ts *",
+      "node -e *",
+      "bun *.ts",
+      "bun *.ts *",
+      "bun -e *",
+      "git status",
+      "git log *",
+      "git diff",
+      "git diff *",
+      "git show *",
+      "git branch *",
+      "docker --version",
+      "docker-compose --version",
+      "echo *",
+      "cat *",
+      "ls *",
+      "pwd",
+      "grep *",
+      "find *",
+      "head *",
+      "tail *",
+      "wc -l *",
+      "sort *",
+      "uniq *",
+      "cp * *",
+      "mv * *",
+      "touch *",
+      "mkdir -p *",
+      "rm -rf .task_temp/*",
+      "rm -rf .opencode/lib/*",
+      "rm -rf .opencode/scripts/*.js",
+      "rm -rf .opencode/scripts/*.ts",
+      "rm -rf .opencode/scripts/*.mjs",
+      "whoami",
+      "date",
+      "uname *",
+      "which *",
+      "env | grep *"
+    ],
+    "agent_allowed_scripts": {
+      "@Super-Admin": ["state-reconciliation.ts", "state-transaction.ts"]
+    },
+    "agent_dangerous_bypass": {
+      "$description": "FW-REPAIR-BUN-CACHE-001: Agent-specific dangerous pattern bypasses. Allows @Super-Admin and @Orchestrator to clear Bun's module cache (~/.cache/bun) which is needed for plugin development and framework repair operations where stale Bun cache causes plugin loading failures.",
+      "@Super-Admin": [
+        "rm -rf ~/.cache/bun",
+        "rm -rf ~/.cache/bun/*",
+        "rm -rf /home/zhaoge/.cache/bun",
+        "rm -rf /home/zhaoge/.cache/bun/*",
+        "rm -rf /etc*",
+        "rm -rf /tmp*"
+      ],
+      "@Orchestrator": [
+        "rm -rf ~/.cache/bun",
+        "rm -rf ~/.cache/bun/*",
+        "rm -rf /home/zhaoge/.cache/bun",
+        "rm -rf /home/zhaoge/.cache/bun/*"
+      ]
+    },
+    "dangerous_patterns": [
+      "rm .*\\.(json|yaml|yml|md|ts|js)\\b",
+      "rm -rf /",
+      "> .*(opencode|git)",
+      "curl .*\\| sh",
+      "wget .*\\| sh",
+      "eval \\(",
+      "exec \\(",
+      "child_process",
+      "require\\(['\"]http['\"]\\)",
+      "require\\(['\"]https['\"]\\)",
+      "git add .*\\.opencode/(state|agents|rules|hooks|lib)\\b",
+      "(cp|mv) .*\\.opencode/(hooks|state|agents|rules)\\b",
+      "tee .*\\.opencode/(hooks|state|agents|rules)\\b",
+      "chmod .*\\.opencode/(hooks|agents)\\b",
+      "sed -i .*\\.opencode/(hooks|state|agents|rules|lib)\\b",
+      "> *docs/official_docs/",
+      "tee .*docs/official_docs/",
+      "touch .*docs/official_docs/",
+      "sed -i .*docs/official_docs/",
+      "(cp|mv) .*docs/official_docs/"
+    ],
+    "write_patterns": [
+      "\\.writeFileSync\\(",
+      "\\.writeFile\\(",
+      "\\.appendFileSync\\(",
+      "\\.createWriteStream\\(",
+      "\\.renameSync\\(",
+      "\\.copyFileSync\\(",
+      "\\.mkdirSync\\(",
+      "writeFileSync\\("
+    ],
+    "allowed_script_paths": ["__tests__", ".opencode_backups", ".task_temp"]
+  },
+  "dispatch_policy": {
+    "$description": "FW-PLAN-FIRST (2026-06-14): Policy governing PLAN-FIRST dispatch constraint and autonomous @Meta-Planner self-healing. Read by the dispatch-before plugin (Layer 1) and dispatch_subagent.ts (Layer 2). Orchestrator cannot override this block — framework-enforcer DISPATCH-POLICY-TAMPER check rejects edits from non-@Super-Admin sessions.",
+    "require_dag_entry": false,
+    "auto_plan_enabled": true,
+    "auto_plan_max_per_session": 5,
+    "auto_plan_timeout_ms": 120000,
+    "compatibility_profile": "native",
+    "fallback_tools": [
+      "task",
+      "read",
+      "todowrite",
+      "write",
+      "edit",
+      "compliance_gate_check",
+      "compliance_gate_confirm",
+      "compliance_gate_complete",
+      "compliance_gate_submit_deliverables",
+      "compliance_gate_approve_deliverables",
+      "dispatch_subagent",
+      "safe_edit",
+      "safe_shell",
+      "safe_delete",
+      "safe_mkdir",
+      "safe_diff",
+      "safe_restore",
+      "knowledge_cache_search",
+      "knowledge_cache_attest",
+      "module_scope_declare",
+      "config_read_attest",
+      "question",
+      "glob",
+      "grep"
+    ]
+  },
+  "mandatory_knowledge": {
+    "$description": "MANDATORY-KNOWLEDGE (2026-06-24, @Super-Admin): Per-domain mandatory files that every agent MUST read before writing in strict/locked mode. Enforced by knowledge_cache_attest.ts Step 4.5 — attestation is rejected if any mandatory file for the current domain is missing from files_read. Each domain key maps to a list of file paths relative to docs/official_docs/.",
+    "enabled_in_modes": ["strict", "locked"],
+    "domains": {
+      "opencode_framework": [
+        "framework/mistake_precautions/plugin-debugging-precautions.md",
+        "framework/mistake_precautions/double-hook-trigger-prevention.md",
+        "framework/mistake_precautions/opencode-plugin-loading-bun-cache.md"
+      ]
+    }
+  },
+  "p0_checklist_policy": {
+    "$description": "P0-CHECKLIST (2026-06-22): DB-canonical P0 checklist policy. Defines write targets that require knowledge attest before modification and exclusions that don't. Read by checklist-before.ts and execution-checklist.ts.",
+    "monitored_write_targets": [
+      ".opencode/**",
+      "docs/review/**",
+      "docs/design/**",
+      "AGENTS.md",
+      "contract.yaml",
+      "opencode.json"
+    ],
+    "excluded_write_targets": [
+      "logs/**",
+      "**/logs/**",
+      ".opencode/logs/**",
+      "node_modules/**",
+      "node_modles/**",
+      "task_temp/**",
+      ".task_temp/**"
+    ]
+  },
+  "route_rules": {
+    "$description": "Agent dispatch route validation table — four-layer chain: Verb → Scope → Permission → DAG. Read by dispatch-before.ts, gate-before.ts, and scope-before.ts.",
+    "enforcement": {
+      "dispatch": "block",
+      "dag_write": "block"
+    },
+    "dispatch_exempt_agents": ["@Meta-Planner", "@Super-Admin"],
+    "$description_exempt": "These agents' dispatches are NOT subject to route validation — they have professional judgment authority per AGENTS.md P0. @Orchestrator removed (FW-ROUTE-FIX-EXEMPT-v2: Orchestrator must now undergo route validation like other agents).",
+    "verb_to_agent": {
+      "$description": "Layer 1: Chinese/English keywords in task_description → candidate agent pool",
+      "分析_设计_拆解": {
+        "keywords": [
+          "分析",
+          "设计",
+          "拆解",
+          "规划",
+          "contract",
+          "architecture",
+          "requirement"
+        ],
+        "agents": ["@Meta-Planner", "@Architect"]
+      },
+      "编码_实现_修改": {
+        "keywords": [
+          "编码",
+          "实现",
+          "修改",
+          "编写",
+          "开发",
+          "implement",
+          "code",
+          "build"
+        ],
+        "agents": ["@Coder-BE", "@Coder-FE"]
+      },
+      "审查_合规_验证": {
+        "keywords": [
+          "审查",
+          "合规",
+          "验证",
+          "review",
+          "audit",
+          "lint",
+          "check",
+          "质量"
+        ],
+        "agents": ["@Guardian"]
+      },
+      "诊断_调查_根因": {
+        "keywords": [
+          "诊断",
+          "调查",
+          "根因",
+          "排查",
+          "investigate",
+          "diagnose",
+          "root-cause",
+          "原因"
+        ],
+        "agents": ["@Architect", "@Super-Admin"]
+      },
+      "修复_修改框架": {
+        "keywords": ["修复", "fix", "repair", "恢复", "补丁", "patch"],
+        "agents": ["@Super-Admin"]
+      },
+      "裁决_豁免": {
+        "keywords": [
+          "裁决",
+          "豁免",
+          "waiver",
+          "waive",
+          "arbitration",
+          "技术债",
+          "tech-debt"
+        ],
+        "agents": ["@Arbiter"]
+      },
+      "部署_提交_CI_CD": {
+        "keywords": [
+          "部署",
+          "commit",
+          "CI",
+          "CD",
+          "pipeline",
+          "deploy",
+          "docker",
+          "镜像"
+        ],
+        "agents": ["@CI-CD-Agent"]
+      },
+      "获取知识_查文档": {
+        "keywords": ["知识", "context7", "knowledge", "fetch", "acquire"],
+        "agents": ["@Knowledge-Curator"]
+      },
+      "调度_状态追踪": {
+        "keywords": ["调度", "dispatch", "schedule", "状态"],
+        "agents": ["@Orchestrator"]
+      }
+    },
+    "scope_to_agent": {
+      "$description": "Layer 2: target file path patterns → agent mapping (filters L1 candidates). REVISED: scope matching now uses Task.DAG.json target_files[] as input, not task_description text",
+      "rules": [
+        {
+          "scope": ".opencode/",
+          "agent": "@Super-Admin",
+          "priority": 1,
+          "desc": "Agent configs, rules, plugins, scripts, state"
+        },
+        {
+          "scope": "opencode.json",
+          "agent": "@Super-Admin",
+          "priority": 1,
+          "desc": "Runtime configuration"
+        },
+        {
+          "scope": "AGENTS.md",
+          "agent": "@Super-Admin",
+          "priority": 1,
+          "desc": "Agent collaboration spec"
+        },
+        {
+          "scope": "booking-backend/src/",
+          "agent": "@Coder-BE",
+          "priority": 1,
+          "desc": "Backend business code"
+        },
+        {
+          "scope": "booking-backend/test/",
+          "agent": "@Coder-BE",
+          "priority": 1,
+          "desc": "Backend test code"
+        },
+        {
+          "scope": "booking-frontend/",
+          "agent": "@Coder-FE",
+          "priority": 1,
+          "desc": "Frontend business code"
+        },
+        {
+          "scope": "contract.yaml",
+          "agent": "@Architect",
+          "priority": 1,
+          "desc": "Interface contract"
+        },
+        {
+          "scope": ".opencode/context/",
+          "agent": "@Architect",
+          "priority": 1,
+          "desc": "Context code standards"
+        },
+        {
+          "scope": ".github/workflows/doc-decompose.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin doc-decompose workflow fix"
+        },
+        {
+          "scope": ".github/workflows/framework-ci.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin framework-ci workflow fix"
+        },
+        {
+          "scope": ".github/workflows/cascade-close.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin cascade-close workflow fix (FW-REPAIR-14)"
+        },
+        {
+          "scope": ".github/workflows/state-sync.yml",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "desc": "Emergency repair — Super-Admin state-sync workflow fix (FW-REPAIR-14)"
+        },
+        {
+          "scope": ".github/",
+          "agent": "@CI-CD-Agent",
+          "priority": 1,
+          "desc": "CI/CD pipeline"
+        },
+        {
+          "scope": "Dockerfile",
+          "agent": "@CI-CD-Agent",
+          "priority": 1,
+          "desc": "Container config"
+        },
+        {
+          "scope": "Task.DAG.json",
+          "agent": "@Meta-Planner",
+          "priority": 1,
+          "desc": "DAG file"
+        },
+        {
+          "scope": "WAIVE.md",
+          "agent": "@Arbiter",
+          "priority": 1,
+          "desc": "Waiver records"
+        },
+        {
+          "scope": "TECH_DEBT_REGISTRY.md",
+          "agent": "@Arbiter",
+          "priority": 1,
+          "desc": "Tech debt registry"
+        }
+      ],
+      "cross_domain": {
+        "agent": "@Super-Admin",
+        "$description": "When scope matches both business-code and framework-code paths, narrow to Super-Admin"
+      },
+      "no_scope_match": {
+        "behavior": "keep_l1_candidates",
+        "$description": "When target_files[] has no scope pattern match, retain all L1 candidates for L3 filtering"
+      },
+      "scope_priority_over_l1": true,
+      "$description_scope_priority": "REVISED: When L1 ∩ SCOPE = empty set, scope-matched agent takes priority over L1 candidates. Scope is more reliable than verb keywords."
+    }
+  }
+}

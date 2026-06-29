@@ -18,11 +18,11 @@ async function formatAfterHook(input: any, output: any): Promise<void> {
     const projectRoot = process.env.OPENCODE_ROOT || process.cwd();
     const result = runPrettierCheck(filePath, projectRoot, true);
     if (!result.pass) {
-      writeLog("format-after","warn",{event:"FORMAT-FAILED",filePath,detail:result.detail?.substring(0,200)});
+      writeLog("format-after","WARN",{event:"FORMAT-FAILED",filePath,detail:result.detail?.substring(0,200)});
     } else if (result.detail === "Prettier auto-fixed") {
-      writeLog("format-after","info",{event:"FORMAT-FIXED",filePath});
+      writeLog("format-after","INFO",{event:"FORMAT-FIXED",filePath});
     }
   } catch (err: any) {
-    writeLog("format-after","error",{event:"FORMAT-ERROR",filePath,detail:err.message?.substring(0,200)});
+    writeLog("format-after","ERROR",{event:"FORMAT-ERROR",filePath,detail:err.message?.substring(0,200)});
   }
 }

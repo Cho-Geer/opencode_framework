@@ -178,7 +178,10 @@ const {
 // ── Adapter: v3 GateStateHot → GateStore shape (for dbSaveGateStore) ──
 function hotToGateStore(hot, filePath) {
   const sessions = {};
-  for (const [sid, s] of Object.entries(hot.active_sessions || {})) {
+  for (const [sid, s] of Object.entries(hot.active_sessions || {}) as [
+    string,
+    any,
+  ][]) {
     sessions[sid] = {
       session_id: s.gate_session_id || sid,
       task_description: s.task_description || "",
@@ -191,7 +194,10 @@ function hotToGateStore(hot, filePath) {
       consumed_at: s.consumed_at,
     };
   }
-  for (const [sid, s] of Object.entries(hot.recent_sessions || {})) {
+  for (const [sid, s] of Object.entries(hot.recent_sessions || {}) as [
+    string,
+    any,
+  ][]) {
     sessions[sid] = {
       session_id: s.gate_session_id || sid,
       task_description: s.task_description || "",
@@ -235,31 +241,49 @@ function readJson(p) {
 // Strategy: DB is the single source of truth. JSON file write retained as
 // read-only frozen snapshot (backward-compat with legacy consumers) but
 // no longer wrapped in a transactional protocol.
+/**
+ * Write JSON state file with DB-first strategy (P2-A Step 8 completion).
+ *
+ * For gate-state.json: DB is the single canonical source. No JSON file dual-write.
+ * For other JSON files: writeFileSync is retained as primary (non-DB-managed state).
+ *
+ * @since v2.10.0 — DB-only for gate-state.json (FW-DB-CANONICAL-01, @Super-Admin 2026-06-26)
+ */
 function writeJson(p, data) {
-  // 1. DB write (primary)
-  try {
-    const isGateState = path.basename(p) === "gate-state.json";
-    const isDrainedStore =
-      path.basename(p) === "gate-state.drained-sessions.json";
-    if (isGateState && typeof data === "object") {
+  // 1. DB write (primary) — gate-state.json ONLY
+  const isGateState = path.basename(p) === "gate-state.json";
+  if (isGateState && typeof data === "object") {
+    try {
       const store = hotToGateStore(data, p);
       const dbOk = dbSaveGateStore(store);
       if (!dbOk) {
-        writeLog("mcp-compliance-gate", "WARN", {
-          event: "db_save_gate_store_failed",
+        writeLog("mcp-compliance-gate", "ERROR", {
+          event: "DB-SAVE-GATE-FAILED-NO-FALLBACK",
+          detail:
+            "gate-state.json DB write failed — no JSON fallback, DB is canonical source",
           file: path.relative(OPENCODE_ROOT, p),
         });
+        const enfMode = getEnforcementMode();
+        if (enfMode !== "advisory") {
+          throw new Error(
+            `[FW-ENFORCE][DB-SAVE-GATE-FAILED] DB is canonical source for gate-state.json; cannot proceed`,
+          );
+        }
       }
+      return; // DB-only: no JSON file write for gate-state.json
+    } catch (dbErr: any) {
+      writeLog("mcp-compliance-gate", "ERROR", {
+        event: "DB-WRITE-FATAL",
+        error: dbErr.message,
+        file: path.relative(OPENCODE_ROOT, p),
+      });
+      const enfMode = getEnforcementMode();
+      if (enfMode !== "advisory") throw dbErr;
+      return;
     }
-  } catch (dbErr) {
-    writeLog("mcp-compliance-gate", "WARN", {
-      event: "db_write_nonfatal",
-      error: dbErr.message,
-      file: path.relative(OPENCODE_ROOT, p),
-    });
   }
 
-  // 2. JSON file write (frozen snapshot, non-transactional)
+  // 2. JSON file write — for non-gate-state files only (e.g., rule_registry.json)
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const content = JSON.stringify(data, null, 2);
   try {
@@ -268,7 +292,7 @@ function writeJson(p, data) {
       event: "json_write",
       file: path.relative(OPENCODE_ROOT, p),
     });
-  } catch (writeErr) {
+  } catch (writeErr: any) {
     const enfMode = getEnforcementMode();
     writeLog("mcp-compliance-gate", "ERROR", {
       event: "json_write_failed",
@@ -508,7 +532,10 @@ function loadStore() {
 
     // Merge active_sessions (object) into sessions dict
     if (s.active_sessions && typeof s.active_sessions === "object") {
-      for (const [sid, ses] of Object.entries(s.active_sessions)) {
+      for (const [sid, ses] of Object.entries(s.active_sessions) as [
+        string,
+        any,
+      ][]) {
         sessions[sid] = { ...ses, gate_session_id: sid };
         activeSessions.push(sid);
       }
@@ -516,7 +543,10 @@ function loadStore() {
 
     // Merge recent_sessions into sessions dict
     if (s.recent_sessions && typeof s.recent_sessions === "object") {
-      for (const [sid, ses] of Object.entries(s.recent_sessions)) {
+      for (const [sid, ses] of Object.entries(s.recent_sessions) as [
+        string,
+        any,
+      ][]) {
         sessions[sid] = { ...ses, gate_session_id: sid };
       }
     }
@@ -568,7 +598,7 @@ function loadStore() {
       }
       return true;
     });
-    for (const [sid, ses] of Object.entries(s.sessions)) {
+    for (const [sid, ses] of Object.entries(s.sessions) as [string, any][]) {
       if (
         ses.gate_status === "armed" &&
         !ses.consumed_at &&
@@ -627,7 +657,10 @@ function saveStore(store) {
 
     // Identify recent completed sessions
     const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    for (const [sid, ses] of Object.entries(store.sessions || {})) {
+    for (const [sid, ses] of Object.entries(store.sessions || {}) as [
+      string,
+      any,
+    ][]) {
       if (store.active_sessions?.includes(sid)) continue;
       if (ses.gate_status === "completed" && ses.consumed_at) {
         const consumedMs = new Date(ses.consumed_at).getTime();
@@ -678,13 +711,19 @@ function purgeStaleSessions() {
     let reason = "";
     let drainType = "";
 
-    // Armed but never consumed > 24h
-    if (ses.gate_status === "armed" && !ses.consumed_at && ses.confirmed_at) {
-      const age = nowTs - new Date(ses.confirmed_at).getTime();
+    // Armed but never consumed > 24h (includes interrupt orphans with null confirmed_at)
+    /**
+     * FW-DB-CANONICAL-06 (2026-06-26, @Super-Admin):
+     * Allow purge when confirmed_at IS NULL (interrupt orphan).
+     * Uses created_at as fallback reference time.
+     */
+    if (ses.gate_status === "armed" && !ses.consumed_at) {
+      const refTime = ses.confirmed_at || ses.created_at;
+      const age = nowTs - new Date(refTime).getTime();
       if (age > ARMED_STALE_MS) {
         shouldDrain = true;
         drainType = "STALE_ARMED";
-        reason = `armed for ${Math.floor(age / 3600000)}h without completion`;
+        reason = `armed for ${Math.floor(age / 3600000)}h without completion${!ses.confirmed_at ? " [orphan: no confirmed_at]" : ""}`;
       }
     }
 
@@ -897,7 +936,12 @@ function runGateCheck(taskDescription, taskId) {
     dispatchAssignedTaskIds.includes(taskId)
   ) {
     try {
-      const contextSessionId = context?.sessionID || "";
+      // FIX-MCP-CRASH-v1 (2026-06-27): 'context' is NOT available in MCP servers
+      // (CJS standalone process via Bun). MCP servers communicate via stdio JSON-RPC
+      // and do NOT have access to OpenCode's Tool.Context. The caller's sessionID
+      // must come from the caller side (plugin hooks), not from within the MCP server.
+      // Self-registration from the MCP context is not possible — skip it.
+      const contextSessionId = "";
       if (contextSessionId) {
         const existing = dbReadSessionMap(contextSessionId);
         if (!existing?.dag_task_id || existing.dag_task_id !== taskId) {
@@ -1629,13 +1673,46 @@ function runGateConfirm(
     store.active_sessions.push(gateSessionId);
   }
   // Ensure no checked sessions are in active_sessions
-  for (const [sid, s] of Object.entries(store.sessions)) {
+  for (const [sid, s] of Object.entries(store.sessions) as [string, any][]) {
     if (s.gate_status === "checked" && store.active_sessions.includes(sid)) {
       store.active_sessions = store.active_sessions.filter((a) => a !== sid);
     }
   }
   store.last_updated = new Date().toISOString();
   saveStore(store);
+
+  // ── SA-GATE-OPT-002: Proactive artifact reminder ──
+  // Remind the agent about implicit required files BEFORE they start working,
+  // so they don't discover the requirement at submit/complete time.
+  const reminderTaskId = session.task_id || gateSessionId;
+  const reminderTaskDir = path2.join(
+    OPENCODE_ROOT,
+    ".task_temp",
+    reminderTaskId,
+  );
+  const implicitRequired = ["HANDOVER.md", "TASK_LOG.md"];
+  const missingImplicit = implicitRequired.filter(
+    (f) => !fs2.existsSync(path2.join(reminderTaskDir, f)),
+  );
+
+  // Build role-specific next-steps guidance
+  let nextStepsGuidance: string;
+  if (isExempt) {
+    // Orchestrator / Super-Admin: can skip submit/approve, go straight to complete
+    nextStepsGuidance =
+      "Exempt agent: you may call compliance_gate_complete directly after finishing. " +
+      "Ensure HANDOVER.md + TASK_LOG.md exist under .task_temp/" +
+      reminderTaskId +
+      "/ before completing.";
+  } else {
+    // Non-exempt subagent: must submit → wait for Orchestrator approve
+    nextStepsGuidance =
+      "Non-exempt agent: you MUST call compliance_gate_submit_deliverables after finishing, " +
+      "then wait for Orchestrator to approve. " +
+      "declared_deliverables should only include HANDOVER.md. " +
+      "TASK_LOG.md must exist on disk but must NOT be in deliverables_evidence.";
+  }
+
   return {
     status: "armed",
     gate_session_id: gateSessionId,
@@ -1644,6 +1721,16 @@ function runGateConfirm(
     plan_summary: planSummary.trim().substring(0, 200),
     declared_deliverables: parsedDeliverables ? parsedDeliverables.length : 0,
     approval_required: !isExempt,
+    artifact_reminder: {
+      task_dir: `.task_temp/${reminderTaskId}/`,
+      required_files: implicitRequired,
+      currently_missing: missingImplicit,
+      note:
+        missingImplicit.length > 0
+          ? `Create ${missingImplicit.join(", ")} before completing the task.`
+          : "All required artifacts already exist.",
+    },
+    next_steps: nextStepsGuidance,
   };
 }
 
@@ -1666,7 +1753,17 @@ function runGateComplete(gateSessionId, executionSummary) {
           "You must call compliance_gate_submit_deliverables first, then wait for Orchestrator approval.";
       } else if (session.gate_status === "delivered") {
         guidance =
-          "Session is awaiting Orchestrator approval. Wait for compliance_gate_approve_deliverables.";
+          "Session is awaiting Orchestrator approval (status=delivered). " +
+          "You CANNOT call compliance_gate_complete — it will be rejected. " +
+          "Wait for @Orchestrator or @Super-Admin to call compliance_gate_approve_deliverables. " +
+          "If you are @Orchestrator or @Super-Admin self-approving: " +
+          "(1) read HANDOVER.md via the `read` tool, " +
+          "(2) compute its SHA-256 via safe_hash, " +
+          "(3) call compliance_gate_approve_deliverables with handover_sha256 + execution_summary.";
+      } else if (session.gate_status === "recoverable") {
+        guidance =
+          "Session is in 'recoverable' state. " +
+          "Call compliance_gate_retry_confirm first, then re-submit deliverables.";
       } else {
         guidance = "Must call compliance_gate_confirm first.";
       }
@@ -1781,6 +1878,55 @@ function runGateComplete(gateSessionId, executionSummary) {
     writeLog("mcp-compliance-gate", "WARN", {
       event: "eslint_dirty_advisory",
       dirty_modules: dirtyModules,
+    });
+  }
+
+  // ── TypeScript Diagnostic Check (Layer 3, tsc diagnostic gate 2026-06-26) ──
+  // Read diagnostic_state and fail gate if any file has TS errors.
+  let tscErrorCount = 0;
+  let tscErrorFiles: string[] = [];
+  try {
+    const diagState = readSubState("diagnostic_state");
+    const allFiles = diagState?.files || {};
+    for (const [filePath, diag] of Object.entries(allFiles)) {
+      const errors = (diag as any)?.errors;
+      if (Array.isArray(errors) && errors.length > 0) {
+        tscErrorCount += errors.length;
+        tscErrorFiles.push(filePath);
+      }
+    }
+  } catch (_e) {
+    // Non-blocking: readSubState returns {} on failure
+  }
+
+  if (tscErrorCount > 0 && enforcementMode !== "advisory") {
+    const now = new Date().toISOString();
+    session.gate_status = "failed";
+    session.consumed_at = now;
+    session.fail_reason = `TypeScript errors in ${tscErrorFiles.length} file(s): ${tscErrorFiles.join(", ")} (${tscErrorCount} total error(s))`;
+    session.audit = {
+      execution_summary: (executionSummary || "").substring(0, 1000),
+      completed_at: now,
+    };
+    store.active_sessions = store.active_sessions.filter(
+      (sid) => sid !== gateSessionId,
+    );
+    store.last_updated = new Date().toISOString();
+    saveStore(store);
+    writeLog("mcp-compliance-gate", "ERROR", {
+      event: "GATE_COMPLETE_TSC_ERRORS",
+      detail: `${tscErrorCount} error(s) in ${tscErrorFiles.length} file(s): ${tscErrorFiles.join(",")}`,
+    });
+    return {
+      status: "failed",
+      reason: `TypeScript errors detected in ${tscErrorCount} location(s) across ${tscErrorFiles.length} file(s). Fix all errors before completing.`,
+    };
+  }
+  // In advisory mode: log as warning but proceed
+  if (tscErrorCount > 0 && enforcementMode === "advisory") {
+    writeLog("mcp-compliance-gate", "WARN", {
+      event: "GATE_COMPLETE_TSC_ERRORS_ADVISORY",
+      detail: `${tscErrorCount} error(s) in ${tscErrorFiles.length} file(s)`,
     });
   }
 
@@ -2111,8 +2257,15 @@ function runGateSubmitDeliverables(gateSessionId, deliverablesEvidence) {
     return {
       status: "recoverable",
       gate_session_id: gateSessionId,
-      reason: `Missing artifacts: ${uniqueMissing.join(", ")}. Fix and re-submit.`,
+      reason:
+        `Missing artifacts: ${uniqueMissing.join(", ")}. ` +
+        `Next steps: (1) Create the missing file(s) under .task_temp/${taskId}/. ` +
+        `(2) Call compliance_gate_retry_confirm(session_id="${gateSessionId}", plan_summary="..."). ` +
+        `(3) Re-call compliance_gate_submit_deliverables. ` +
+        `Do NOT re-submit without retry_confirm — session is in 'recoverable' state.`,
       retry_count: session.retry_count,
+      missing_artifacts: uniqueMissing,
+      next_action: "retry_confirm",
     };
   }
 
@@ -2140,6 +2293,13 @@ function runGateSubmitDeliverables(gateSessionId, deliverablesEvidence) {
     submitted_at: now,
     pending_approval_by: "Orchestrator",
     deliverables_count: evidenceWithTimestamps.length,
+    next_action:
+      "Delivered. If you are @Orchestrator or @Super-Admin self-approving: " +
+      "(1) read HANDOVER.md via the `read` tool (NOT safe_hash — read_audit requires the read tool), " +
+      "(2) compute its SHA-256 via safe_hash, " +
+      '(3) call compliance_gate_approve_deliverables with approval_decision="approve", ' +
+      "handover_sha256=<hash>, and execution_summary=<summary>. " +
+      "If you are a non-exempt subagent: wait for Orchestrator to approve.",
   };
 }
 
@@ -2219,8 +2379,7 @@ function enforceMultiSourceAudit(
   const hasLogsSection = /##\s+Logs\s+Checked/i.test(handover);
   if (!hasLogsSection) {
     const logPaths = [
-      ".opencode/logs/",
-      ".opencode/logs/mcp-compliance-gate/",
+      ".task_temp/_logs/",
       ".opencode/state/gate-state.json",
       ".opencode/state/machine.json",
       ".task_temp/_dispatch/",
@@ -2529,18 +2688,22 @@ function runGateApproveDeliverables(
 
       try {
         // ── Compute args_hash for approval context lookup ──
-        const approvalArgs = {
-          gate_session_id: gateSessionId,
-          approval_decision: approvalDecision,
-          handover_sha256: handoverSha256 || "",
-          agent_id: agentId || "",
-        };
+        // GA-D-G3 (2026-06-27): canonical buildApprovalArgsHashInput
+        // fixes gate-before.ts (session_id) vs compliance-gate.ts (gate_session_id) key mismatch.
         const {
           computeApprovalArgsHash,
+          buildApprovalArgsHashInput,
           getApprovalContext,
           markApprovalContextConsumed,
         } = require("../../lib/approval-read-context");
-        const argsHash = computeApprovalArgsHash(approvalArgs);
+        const argsHash = computeApprovalArgsHash(
+          buildApprovalArgsHashInput({
+            gate_session_id: gateSessionId,
+            approval_decision: approvalDecision,
+            handover_sha256: handoverSha256 || "",
+            agent_id: agentId || "",
+          }),
+        );
 
         // ── Look up approval context (gate-before.ts bridge) ──
         const approvalCtx = getApprovalContext(gateSessionId, argsHash);
@@ -2555,12 +2718,19 @@ function runGateApproveDeliverables(
         if (approvalCtx) {
           // P1-B: Session-bound verification via verifyNonEmptyReadSet
           const { verifyNonEmptyReadSet } = require("../../lib/read-audit");
+          /**
+           * FIX-VFYREAD-PARAM-v1: Changed property name from 'gateSessionId' to 'sessionId'
+           * to match verifyNonEmptyReadSet()'s interface. The old name was silently dropped
+           * because the function destructures {agent, sessionId, filePaths, windowMs} —
+           * 'gateSessionId' was never recognized, so session-bound verification never worked.
+           * @see read-audit.ts:518-523 for the function signature
+           */
           const setResult = verifyNonEmptyReadSet({
             agent: ((session && session.agent) || resolvedAgent).replace(
               /^@/,
               "",
             ),
-            gateSessionId: approvalCtx.opencode_session_id,
+            sessionId: approvalCtx.opencode_session_id,
             filePaths: [resolvedHandoverPath],
           });
           readResult = {
@@ -2669,6 +2839,7 @@ function runGateApproveDeliverables(
     session.deliverables_approved_at = now;
     session.deliverables_approval_note = approvalNote || null;
     session.gate_status = "approved";
+    session.consumed_at = now; // F3: approve 即写入 consumed_at，释放 GATE-APPROVAL-LOCK
 
     // P0-CHECKLIST: wire approval success to checklist
     const ag2 = session.agent || "";
@@ -2773,6 +2944,151 @@ function runGateApproveDeliverables(
   return {
     status: "rejected",
     reason: `Invalid approval_decision: "${approvalDecision}". Must be "approve" or "reject".`,
+  };
+}
+
+/**
+ * handleBulkReviewDeliverables — Bulk approve/reject multiple gate sessions.
+ *
+ * FW-BULK-REVIEW: Enables batch processing of deliverable reviews to reduce
+ * pipeline serialization overhead. Validates session_ids (max 50), iterates
+ * per-session calling dbAtomicUpdateGateSession, and returns aggregated results.
+ *
+ * @param sessionIds - Array of gate session IDs to review (max 50)
+ * @param decision - "approve" or "reject"
+ * @param executionSummary - Optional summary (sets gate_status='completed' when provided with approve)
+ * @param approvalNote - Optional note stored on each session
+ * @returns { status, applied, failed, total_ms }
+ */
+function handleBulkReviewDeliverables(
+  sessionIds: string[],
+  decision: string,
+  executionSummary?: string,
+  approvalNote?: string,
+): {
+  status: string;
+  applied: string[];
+  failed: Array<{ session_id: string; reason: string }>;
+  total_ms: number;
+} {
+  const startMs = Date.now();
+  const SRC = "mcp-compliance-gate";
+
+  // ── Validation ──────────────────────────────────────────────────────────
+  if (!Array.isArray(sessionIds) || sessionIds.length === 0) {
+    return {
+      status: "rejected",
+      applied: [],
+      failed: [],
+      total_ms: Date.now() - startMs,
+    };
+  }
+
+  if (sessionIds.length > 50) {
+    writeLog(SRC, "WARN", {
+      event: "BULK-REVIEW-REJECTED",
+      detail: `session_ids length ${sessionIds.length} exceeds max 50`,
+    });
+    return {
+      status: "rejected",
+      applied: [],
+      failed: sessionIds.map((sid) => ({
+        session_id: sid,
+        reason: "session_ids length exceeds max 50",
+      })),
+      total_ms: Date.now() - startMs,
+    };
+  }
+
+  if (decision !== "approve" && decision !== "reject") {
+    return {
+      status: "rejected",
+      applied: [],
+      failed: sessionIds.map((sid) => ({
+        session_id: sid,
+        reason: `Invalid decision: "${decision}". Must be "approve" or "reject".`,
+      })),
+      total_ms: Date.now() - startMs,
+    };
+  }
+
+  // ── Import dbAtomicUpdateGateSession ────────────────────────────────────
+  const { dbAtomicUpdateGateSession } = require("../../lib/db-state-manager");
+
+  const applied: string[] = [];
+  const failed: Array<{ session_id: string; reason: string }> = [];
+  const now = Date.now();
+
+  // ── Iterate per-session ─────────────────────────────────────────────────
+  for (const sid of sessionIds) {
+    try {
+      const modifier = (row: any) => {
+        if (decision === "approve") {
+          return {
+            status: executionSummary ? "completed" : "approved",
+            consumed_at: now,
+            completed_at: executionSummary ? now : row.completed_at,
+            audit: {
+              ...(row.audit || {}),
+              approval_note: approvalNote || null,
+              execution_summary: executionSummary || null,
+              bulk_review: true,
+            },
+          };
+        } else {
+          // reject → return to armed state
+          return {
+            status: "armed",
+            consumed_at: null,
+            completed_at: null,
+            audit: {
+              ...(row.audit || {}),
+              rejection_note: approvalNote || null,
+              bulk_review: true,
+            },
+          };
+        }
+      };
+
+      const result = dbAtomicUpdateGateSession(sid, modifier);
+
+      if (result.ok) {
+        applied.push(sid);
+        writeLog(SRC, "INFO", {
+          event: "BULK-REVIEW-APPLIED",
+          detail: `session=${sid} decision=${decision} newVersion=${result.newVersion}`,
+        });
+      } else {
+        failed.push({
+          session_id: sid,
+          reason: "Update failed (NOT_FOUND or lock exhaustion)",
+        });
+        writeLog(SRC, "WARN", {
+          event: "BULK-REVIEW-FAILED",
+          detail: `session=${sid} decision=${decision} result=${JSON.stringify(result)}`,
+        });
+      }
+    } catch (err: any) {
+      failed.push({ session_id: sid, reason: err.message || "Unknown error" });
+      writeLog(SRC, "ERROR", {
+        event: "BULK-REVIEW-ERROR",
+        detail: `session=${sid} error=${err.message}`,
+      });
+    }
+  }
+
+  const totalMs = Date.now() - startMs;
+
+  writeLog(SRC, "INFO", {
+    event: "BULK-REVIEW-COMPLETE",
+    detail: `decision=${decision} applied=${applied.length} failed=${failed.length} total_ms=${totalMs}`,
+  });
+
+  return {
+    status: applied.length > 0 ? "ok" : "failed",
+    applied,
+    failed,
+    total_ms: totalMs,
   };
 }
 
@@ -2990,6 +3306,39 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
         },
         required: ["session_id", "plan_summary"],
+      },
+    },
+    {
+      name: "compliance_gate_bulk_review_deliverables",
+      description:
+        "Bulk approve or reject multiple gate sessions in a single transaction. " +
+        "Releases GATE-APPROVAL-LOCK for all listed sessions atomically. " +
+        "Use when multiple sub-agents have submitted deliverables and the " +
+        "Orchestrator wants to review them in batch without pipeline serialization.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          session_ids: {
+            type: "array",
+            items: { type: "string" },
+            description: "List of gate_session_id values to review (max 50)",
+          },
+          decision: {
+            type: "string",
+            enum: ["approve", "reject"],
+            description: "Bulk decision applied to all listed sessions",
+          },
+          execution_summary: {
+            type: "string",
+            description:
+              "Optional summary (sets gate_status='completed' when provided with approve)",
+          },
+          approval_note: {
+            type: "string",
+            description: "Optional note stored on each session",
+          },
+        },
+        required: ["session_ids", "decision"],
       },
     },
   ],
@@ -3220,7 +3569,7 @@ function drainStaleSessions(armedHours, checkedHours) {
     drainedArmed = 0,
     drainedChecked = 0;
   const drainedIds = [];
-  for (const [sid, ses] of Object.entries(store.sessions)) {
+  for (const [sid, ses] of Object.entries(store.sessions) as [string, any][]) {
     if (!ses) continue;
     let shouldDrain = false,
       reason = "",
@@ -3283,7 +3632,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // When plan_summary is provided AND check passed, auto-arm the session
     // in this single call — no separate compliance_gate_confirm needed.
     const planSummary = args?.plan_summary;
-    if (planSummary && result.passed && result.session_id) {
+    if (planSummary && result.passed && result.gate_session_id) {
       // Validate plan_summary length (same rule as runGateConfirm)
       if (planSummary.trim().length < 10) {
         const merged = {
@@ -3300,7 +3649,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       const armResult = runGateConfirm(
-        result.session_id,
+        result.gate_session_id,
         planSummary,
         args?.agent,
         args?.task_id,
@@ -3313,15 +3662,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ...result,
           combined: true,
           combined_status: "armed",
-          confirmed_at: armResult.confirmed_at,
-          expires_at: armResult.expires_at,
-          plan_summary: armResult.plan_summary,
-          agent: armResult.agent,
+          confirmed_at: (armResult as any).confirmed_at,
+          expires_at: (armResult as any).expires_at,
+          plan_summary: (armResult as any).plan_summary,
+          agent: (armResult as any).agent,
         };
         const text =
           JSON.stringify(merged, null, 2) +
           buildReminderText(
-            result.session_id,
+            result.gate_session_id,
             armResult.plan_summary,
             armResult.expires_at,
           );
@@ -3371,7 +3720,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const text =
         JSON.stringify(result, null, 2) +
         buildReminderText(
-          result.session_id,
+          result.gate_session_id,
           result.plan_summary,
           result.expires_at,
         );
@@ -3475,11 +3824,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   }
 
+  if (name === "compliance_gate_bulk_review_deliverables") {
+    if (!args?.session_ids || !args?.decision) {
+      throw new Error("Missing required parameters: session_ids and decision");
+    }
+    const result = handleBulkReviewDeliverables(
+      args.session_ids,
+      args.decision,
+      args.execution_summary,
+      args.approval_note,
+    );
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      isError: result.status === "rejected",
+    };
+  }
+
   throw new Error(`Unknown tool: ${name}`);
 });
 
 // 启动 stdio 传输
-let _activeTransport: StdioServerTransport | null = null;
+let _activeTransport: typeof StdioServerTransport | null = null;
 async function main() {
   const transport = new StdioServerTransport();
   _activeTransport = transport;
@@ -3526,5 +3891,8 @@ if (typeof module !== "undefined" && module.exports) {
     runGateRetryConfirm,
     validateTaskArtifacts,
     getEnforcementMode,
+    handleBulkReviewDeliverables,
   };
 }
+
+export {};

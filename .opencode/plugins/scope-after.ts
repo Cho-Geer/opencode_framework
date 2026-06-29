@@ -1,8 +1,7 @@
 // scope-after.ts — "tool.execute.after" plugin: post-write state tracking
-import { writeLog } from "../lib/log-manager";
+// Phase 3: Pure middleware — delegates to FileGuardService
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
-import { isModifyTool, getModifyPath } from "../lib/tool-scope";
-import { isSourceFile, atomicWriteSubState } from "../lib/state-utils";
+import { trackDirtyModule } from "../service/file-guard";
 
 export default withPluginLifecycle("scope-after", {
   "tool.execute.after": toolExecuteAfter,
@@ -13,38 +12,10 @@ export default withPluginLifecycle("scope-after", {
  * @see docs/official_docs/framework/mistake_precautions/double-hook-trigger-prevention.md
  */
 async function toolExecuteAfter(input: any, output: any): Promise<void> {
-  if (!isModifyTool(input.tool)) return;
-
-  const filePath = getModifyPath(input.args || {});
-  if (!filePath) return;
-  const skipSourceCheck = input.tool === "safe_delete";
-  if (!skipSourceCheck && !isSourceFile(filePath)) return;
-
-  writeLog("scope-after", "runtime", {
+  trackDirtyModule({
     sessionID: input.sessionID,
     callID: input.callID,
-    event: "TOOL-AFTER",
-    detail: "tool=" + input.tool + " file=" + filePath,
+    tool: input.tool,
+    args: input.args || {},
   });
-
-  // Update eslint-state.json dirty_modules (P1-B split)
-  // Skip non-source files — eslint has no lint rules for them
-  if (!isSourceFile(filePath)) return;
-  try {
-    atomicWriteSubState("eslint_state", (state) => {
-      state.aggregate = state.aggregate || { dirty_modules: [] };
-      state.aggregate.dirty_modules = state.aggregate.dirty_modules || [];
-      if (!state.aggregate.dirty_modules.includes(filePath)) {
-        state.aggregate.dirty_modules.push(filePath);
-      }
-    });
-  } catch (err: any) {
-    writeLog("scope-after", "runtime", {
-      sessionID: input.sessionID,
-      callID: input.callID,
-      level: "ERROR",
-      event: "TOOL-AFTER",
-      detail: "state-update failed: " + err.message,
-    });
-  }
 }

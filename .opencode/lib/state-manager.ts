@@ -200,10 +200,8 @@ export const STATE_PATHS = {
   DAG_CHANGELOG: "Task.DAG.changelog.md",
   /** Task lookup index */
   DAG_INDEX: "Task.DAG.index.json",
-  /** Current safe-bash log */
-  SAFE_BASH_LOG: ".opencode/logs/safe-bash.log",
-  /** Log archive directory */
-  LOG_ARCHIVE_DIR: ".opencode/logs/archive",
+  // SAFE_BASH_LOG / LOG_ARCHIVE_DIR removed — logs unified to .task_temp/_logs/
+  // See: docs/review/framework-refactor/opencode-logs-deprecation-plan.md
 } as const;
 
 // ============================================================================

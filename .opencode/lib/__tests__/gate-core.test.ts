@@ -104,24 +104,24 @@ describe("gate-core", () => {
 
   describe("generateSessionId", () => {
     it("should generate a non-empty session ID", () => {
-      const id = generateSessionId();
+      const id = generateGateSessionId();
       expect(id).toBeTruthy();
       expect(id).toContain("cg_ses_");
     });
   });
 
-  describe("createSession", () => {
+  describe("createGateSession", () => {
     it("should create a session and return it", () => {
-      const { session } = createSession("Test task", [], {}, "advisory");
+      const { session } = createGateSession("Test task", [], {}, "advisory");
       expect(session.session_id).toBeTruthy();
       expect(session.gate_status).toBe("checked");
       expect(session.task_description).toBe("Test task");
     });
   });
 
-  describe("armSession", () => {
+  describe("armGateSession", () => {
     it("should reject non-existent sessions", () => {
-      const result = armSession("nonexistent", "Plan summary here");
+      const result = armGateSession("nonexistent", "Plan summary here");
       expect(result.status).toBe("rejected");
       expect(result.reason).toContain("session not found");
     });
@@ -179,8 +179,8 @@ describe("gate-core", () => {
         dbWriteSessionMap(testSessionId, testAgent, "GAP-FIX-ALL-001");
 
         // Sub-agent attempts to use GAP-FIX-ALL-002 — not registered → fabricated
-        const { session } = createSession("Test", [], {}, "advisory");
-        const result = armSession(
+        const { session } = createGateSession("Test", [], {}, "advisory");
+        const result = armGateSession(
           session.session_id,
           "Plan summary here",
           "TestAgent",
@@ -196,8 +196,8 @@ describe("gate-core", () => {
         dbWriteSessionMap(testSessionId, testAgent, "GAP-FIX-ALL-001");
 
         // No .dispatch_ctx file, no explicit taskId — should use DB value
-        const { session } = createSession("Test", [], {}, "advisory");
-        const result = armSession(
+        const { session } = createGateSession("Test", [], {}, "advisory");
+        const result = armGateSession(
           session.session_id,
           "Plan summary here",
           "Orchestrator",
@@ -212,8 +212,8 @@ describe("gate-core", () => {
         dbWriteSessionMap(testSessionId, testAgent, "GAP-FIX-ALL-001");
 
         // Sub-agent provides matching taskId — legitimate
-        const { session } = createSession("Test", [], {}, "advisory");
-        const result = armSession(
+        const { session } = createGateSession("Test", [], {}, "advisory");
+        const result = armGateSession(
           session.session_id,
           "Plan summary here",
           "Orchestrator",
@@ -225,8 +225,8 @@ describe("gate-core", () => {
       it("should pass when no dag_task_id entries in session_map (no dispatch context)", () => {
         // No dag_task_id entries → no integrity constraint → manual invocation
         // Any taskId is allowed (no Orchestrator dispatch happened)
-        const { session } = createSession("Test", [], {}, "advisory");
-        const result = armSession(
+        const { session } = createGateSession("Test", [], {}, "advisory");
+        const result = armGateSession(
           session.session_id,
           "Plan summary here",
           "Orchestrator",
@@ -241,8 +241,8 @@ describe("gate-core", () => {
         dbWriteSessionMap("session-2", "Coder-FE", "GAP-FIX-ALL-002");
 
         // Sub-agent fabricates a third taskId — not registered in any session
-        const { session } = createSession("Test", [], {}, "advisory");
-        const result = armSession(
+        const { session } = createGateSession("Test", [], {}, "advisory");
+        const result = armGateSession(
           session.session_id,
           "Plan summary here",
           "TestAgent",
@@ -263,9 +263,9 @@ describe("gate-core", () => {
     });
   });
 
-  describe("completeSession", () => {
+  describe("completeGateSession", () => {
     it("should reject non-existent sessions", () => {
-      const result = completeSession("nonexistent", "Done");
+      const result = completeGateSession("nonexistent", "Done");
       expect(result.status).toBe("rejected");
       expect(result.reason).toContain("session not found");
     });

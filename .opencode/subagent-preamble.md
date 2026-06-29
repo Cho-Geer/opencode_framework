@@ -29,7 +29,7 @@ Before stating any conclusion, the agent MUST read code, search logs, and verify
 ## Required Milestones
 
 - **Step 0**: `checklist_status` → check phase + blockers.
-- **Step 0d: Investigation evidence**. Investigation keywords: investigation, audit, analysis, diagnose, debug, troubleshoot, root-cause, trace, tracing, forensic, 调查, 排查, 调试, 诊断, 根因, 审计, 追溯, 排错, 定位. Must search code + ≥2 log sources (`.opencode/logs/`, `gate-state.json`, `.task_temp/_logs/`) and produce `## Logs Checked` in HANDOVER.md.
+- **Step 0d: Investigation evidence**. Investigation keywords: investigation, audit, analysis, diagnose, debug, troubleshoot, root-cause, trace, tracing, forensic, 调查, 排查, 调试, 诊断, 根因, 审计, 追溯, 排错, 定位. Must search code + ≥2 log sources (`.task_temp/_logs/`, `gate-state.json`) and produce `## Logs Checked` in HANDOVER.md.
 - **Step 0e: Config Read Attestation**. Read `.opencode/agents/{Type}.md`, `opencode.json`, `.opencode/project.config.json` via `read` tool, then call `config_read_attest(task_id)`.
 - **Knowledge pipeline**: `resolve_domain_id()` → `module_scope_declare()` → `knowledge_cache_search()` → `knowledge_cache_attest()`. Insufficient cache → dispatch @Knowledge-Curator.
 - **Subagent Interaction Protocol**: Do NOT call the built-in `question`. Record non-blocking questions in HANDOVER.md under `## Questions for User`, assumptions under `## Assumptions`, destructive actions under `## Blocked Actions Requiring User Approval`.
@@ -46,6 +46,26 @@ Before stating any conclusion, the agent MUST read code, search logs, and verify
 3. Execute — write TASK_LOG.md and HANDOVER.md
 4. Submit deliverables → compliance_gate_submit_deliverables
 5. Close gate (exempt: complete direct. non-exempt: Orchestrator approval)
+
+## Compliance Gate Best Practices (SA-GATE-OPT-002)
+
+**Full documentation**: `.opencode/rules/rule_detail/compliance-gate-state-machine.md`
+
+### Role-specific paths
+
+| Role                                                                                               | Path                                                                                                       | Key rules                                                                               |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Non-exempt subagent** (Coder-BE/FE, Architect, Guardian, Arbiter, CI-CD-Agent, KC, Meta-Planner) | check → confirm(declared_deliverables=[HANDOVER.md]) → submit → delivered → (wait for approve) → completed | `declared_deliverables` required; cannot call `approve` or `complete`                   |
+| **Exempt: Orchestrator/Super-Admin (own task)**                                                    | check → confirm(optional deliverables) → complete                                                          | Can skip submit/approve; `complete` still checks HANDOVER.md + TASK_LOG.md              |
+| **Exempt: approving others**                                                                       | read HANDOVER.md → approve_deliverables                                                                    | MUST use `read` tool (not `safe_hash`); provide `handover_sha256` + `execution_summary` |
+
+### Common pitfalls (avoid these)
+
+1. **TASK_LOG.md paradox**: Must exist on disk at submit/complete time, but must NOT be in `declared_deliverables` or `deliverables_evidence`. Only `HANDOVER.md` goes in both.
+2. **recoverable state**: After submit/complete fails with missing artifacts, call `compliance_gate_retry_confirm` FIRST, then re-submit. Do NOT re-submit directly — session is not `armed`.
+3. **delivered state**: Cannot call `complete` — it will be rejected. Must wait for `approve_deliverables` (Orchestrator/Super-Admin).
+4. **READ-BEFORE-APPROVE**: `safe_hash` does NOT satisfy the read audit. Must use the `read` tool to open HANDOVER.md within 5 minutes before approving.
+5. **Stale session**: Armed session > 24h blocks new gates for same task_id. Call `compliance_gate_drain_stale` to clear.
 
 ## Runtime Authority
 

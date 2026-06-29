@@ -225,17 +225,17 @@ function updateMachineJson(moduleName, violations, waivers, taskId) {
     };
 
     // Recalculate aggregate
-    const allModules = Object.values(eslint_state.modules);
+    const allModules: any[] = Object.values(eslint_state.modules);
     eslint_state.aggregate = {
       total_violations: allModules.reduce(
-        (sum, m) => sum + m.violations.length,
+        (sum: number, m: any) => sum + (m.violations?.length || 0),
         0,
       ),
       dirty_modules: Object.entries(eslint_state.modules)
-        .filter(([, m]) => m.status === "dirty")
+        .filter(([, m]: [string, any]) => m.status === "dirty")
         .map(([k]) => k),
       waived_modules: Object.entries(eslint_state.modules)
-        .filter(([, m]) => m.status === "waived")
+        .filter(([, m]: [string, any]) => m.status === "waived")
         .map(([k]) => k),
     };
     eslint_state.last_full_scan = new Date().toISOString();
@@ -322,6 +322,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     full_scan ? "all_modules" : moduleName,
     result.violations || [],
     waivers || [],
+    undefined,
   );
 
   return {
@@ -364,7 +365,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
  *
  * @fix FW-REPAIR-ESLINT-32000 — 2026-06-06 @Super-Admin
  */
-let _activeTransport: StdioServerTransport | null = null;
+let _activeTransport: typeof StdioServerTransport | null = null;
 async function main() {
   const transport = new StdioServerTransport();
   _activeTransport = transport;
@@ -402,5 +403,22 @@ main().catch((err: Error) => {
   process.exit(1);
 });
 
-// Export internals for testing
-module.exports = { getProjectRoot, generateTierRules, runESLint };
+/**
+ * ── Module exports (for testability) ──
+ *
+ * FW-REPAIR-ESLINT-EXPORTS: Previously used unguarded `module.exports = {...}`
+ * with `export {};` at end of file. The `export {};` directive causes Bun to
+ * treat this file as an ES module in some interop scenarios, where `module` may
+ * be undefined. This produced a "ReferenceError: module is not defined" crash.
+ *
+ * Now uses the guard pattern `if (typeof module !== "undefined" && module.exports)`
+ * matching the canonical compliance-gate.ts reference implementation (line 3676),
+ * which safely checks for CJS module availability before exporting.
+ *
+ * @fix FW-REPAIR-ESLINT-EXPORTS — 2026-06-27 @Super-Admin
+ */
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { getProjectRoot, generateTierRules, runESLint };
+}
+
+export {};

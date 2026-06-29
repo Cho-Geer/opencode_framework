@@ -22,9 +22,12 @@
  *   firstPathSegment(relativePath)
  *
  * Standard return: { pass: boolean, violations: array, detail: string, execution_evidence: string }
+ *
+ * TSC-FIX (2026-06-27): Removed export {}; at EOF that caused Bun ESM mode override
+ * of module.exports. Renamed fs→fsLib to avoid TS2451 redeclaration in CJS context.
  */
 
-const fs = require("node:fs");
+const fsLib = require("node:fs");
 const path = require("node:path");
 const { execSync } = require("node:child_process");
 
@@ -160,7 +163,7 @@ function runPrettierCheck(filePath, projectRoot, autoFix) {
   let absPath = filePath;
   if (!path.isAbsolute(absPath)) absPath = path.resolve(projectRoot, absPath);
 
-  if (!fs.existsSync(absPath)) {
+  if (!fsLib.existsSync(absPath)) {
     return makeResult(true, [], `File not found: ${absPath}`, "");
   }
 
@@ -237,7 +240,7 @@ function runDepCruiserCheck(filePath, projectRoot) {
   let absPath = filePath;
   if (!path.isAbsolute(absPath)) absPath = path.resolve(projectRoot, absPath);
 
-  if (!fs.existsSync(absPath)) {
+  if (!fsLib.existsSync(absPath)) {
     return makeResult(true, [], `File not found: ${absPath}`, "");
   }
 
@@ -337,7 +340,7 @@ function runEslintAudit(filePath, projectRoot, options) {
   let absPath = filePath;
   if (!path.isAbsolute(absPath)) absPath = path.resolve(projectRoot, absPath);
 
-  if (!fs.existsSync(absPath)) {
+  if (!fsLib.existsSync(absPath)) {
     return makeResult(true, [], `File not found: ${absPath}`, "");
   }
 
@@ -357,7 +360,7 @@ function runEslintAudit(filePath, projectRoot, options) {
   // as violations since there is no business code to audit against.
   if (opts.phase === "red") {
     const businessCodePath = deriveBusinessCodePath(absPath);
-    if (!fs.existsSync(businessCodePath)) {
+    if (!fsLib.existsSync(businessCodePath)) {
       return makeResult(
         true,
         [],
@@ -374,7 +377,7 @@ function runEslintAudit(filePath, projectRoot, options) {
     "eslint-plugin",
     "eslint-plugin-opencode-mock-audit",
   );
-  if (!fs.existsSync(pluginDir)) {
+  if (!fsLib.existsSync(pluginDir)) {
     return makeResult(true, [], "ESLint plugin not found — audit skipped", "");
   }
 
@@ -440,72 +443,107 @@ function runEslintAudit(filePath, projectRoot, options) {
 // CHECK 5: TypeScript Incremental Check
 // ═══════════════════════════════════════════════════════════
 /**
- * Run tsc --noEmit --incremental on the affected project (backend or frontend).
+ * Run tsc --noEmit --incremental on the ENTIRE project (root tsconfig).
+ * Internal function — called by tsc-diag-track.ts plugin via require().
+ * Not exposed as an MCP tool. Replaces the old runTscCheck() which was
+ * limited to backend/frontend sub-directories.
  *
- * @param {string} filePath - absolute path
- * @param {string} projectRoot - project root
- * @param {string} backendDir - absolute path to backend directory
- * @param {string} frontendDir - absolute path to frontend directory
- * @returns {{ pass, violations, detail, execution_evidence }}
+ * @param {string} absPath - absolute path to changed file (for diagnostic scoping)
+ * @param {string} projectRoot - project root directory (cwd for tsc)
+ * @returns {{ pass: boolean, errors?: Array<{message,line,character,code}>, elapsed?: number, detail?: string }}
  */
-function runTscCheck(filePath, projectRoot, backendDir, frontendDir) {
-  let absPath = filePath;
-  if (!path.isAbsolute(absPath)) absPath = path.resolve(projectRoot, absPath);
+function runTscDiagnostic(absPath, projectRoot) {
+  const TSC_TIMEOUT_MS = 30000;
+  const TSC_BUILDINFO = ".opencode/state/.tsbuildinfo";
 
-  if (!fs.existsSync(absPath)) {
-    return makeResult(true, [], `File not found: ${absPath}`, "");
+  if (!fsLib.existsSync(absPath)) {
+    return { pass: true, detail: `File not found: ${absPath}` };
   }
-  if (!absPath.endsWith(".ts")) {
-    return makeResult(true, [], "Not a TypeScript file", "");
-  }
-
-  // Determine which project directory
-  const isBackend =
-    (backendDir && absPath.startsWith(backendDir)) ||
-    (backendDir && absPath.includes(path.basename(backendDir)));
-  const isFrontend =
-    (frontendDir && absPath.startsWith(frontendDir)) ||
-    (frontendDir && absPath.includes(path.basename(frontendDir)));
-
-  if (!isBackend && !isFrontend) {
-    return makeResult(
-      true,
-      [],
-      "Not in backend or frontend src — tsc skipped",
-      "",
-    );
+  if (!absPath.endsWith(".ts") && !absPath.endsWith(".tsx")) {
+    return { pass: true, detail: "Not a TypeScript file" };
   }
 
-  const cwd = isBackend ? backendDir : frontendDir;
-
+  // Run tsc from project root with root tsconfig.json
+  // This covers .opencode/ framework files AND business code
   try {
     const start = Date.now();
-    const out = execSync("npx tsc --noEmit --incremental --pretty false", {
-      cwd,
-      encoding: "utf8",
-      timeout: 30000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const out = execSync(
+      `npx tsc --noEmit --incremental --pretty false --tsBuildInfoFile ${TSC_BUILDINFO}`,
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        timeout: TSC_TIMEOUT_MS,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
     const elapsed = Date.now() - start;
-    return makeResult(
-      true,
-      [],
-      `tsc passed (${elapsed}ms)`,
-      out.substring(0, 500),
-    );
+    return {
+      pass: true,
+      elapsed,
+      detail: `tsc passed (${elapsed}ms)`,
+    };
   } catch (e) {
-    const errMsg =
-      e.stderr?.substring(0, 500) ||
-      e.stdout?.substring(0, 500) ||
-      e.message?.substring(0, 300) ||
-      "TypeScript compilation error";
-    return makeResult(
-      false,
-      [{ check: "tsc", severity: "BLOCKER", message: errMsg.split("\n")[0] }],
-      `TypeScript error in ${path.basename(cwd)}`,
-      errMsg,
-    );
+    const output = e.stdout || e.stderr || e.message || "";
+    const errors = parseTscOutput(output, absPath);
+    // GAP 2: distinguish timeout/crash from project-level errors
+    if (
+      e.killed ||
+      e.signal === "SIGTERM" ||
+      /timed out/i.test(e.message || "")
+    ) {
+      return {
+        pass: false,
+        errors: [],
+        diagnostic_status: "unknown",
+        detail: `tsc timed out or crashed: ${output.substring(0, 300)}`,
+      };
+    }
+    if (errors.length > 0) {
+      // Target file has specific TS errors
+      return {
+        pass: false,
+        errors,
+        detail: output.substring(0, 500),
+      };
+    }
+    // tsc failed but target file has no errors → project-level errors only
+    return {
+      pass: true,
+      errors: [],
+      diagnostic_status: "target_clean_project_dirty",
+      detail: output.substring(0, 500),
+    };
   }
+}
+
+/**
+ * Parse tsc output to extract errors for a specific file.
+ * Format: file.ts(line,col): error TSXXXX: message
+ * @returns {Array<{message:string, line:number, character:number, code:string}>}
+ */
+function parseTscOutput(output, targetFile) {
+  const errors = [];
+  const targetAbs = path.resolve(targetFile);
+  const lines = output.split("\n");
+
+  for (const line of lines) {
+    const match = line.match(
+      /^(.+?)\((\d+),(\d+)\):\s*(error|warning)\s+(TS\d+):\s*(.+)$/,
+    );
+    if (!match) continue;
+    const [, filePath, lineNum, charNum, severity, code, message] = match;
+    if (severity !== "error") continue;
+    const absFilePath = path.resolve(filePath);
+    if (absFilePath === targetAbs) {
+      errors.push({
+        message: message.trim(),
+        line: parseInt(lineNum, 10),
+        character: parseInt(charNum, 10),
+        code: code,
+      });
+    }
+  }
+  return errors;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -707,7 +745,13 @@ function runTddSpecCheck(filePath, existingFiles, tddState) {
 function runAllChecks(filePath, projectRoot, agentType, taskId, options) {
   const opts = options || {};
   const skip = new Set(opts.skip_checks || []);
-  const results = {
+  const results: {
+    checks: Record<string, any>;
+    overall: string;
+    violations: any[];
+    fixes_applied: any[];
+    tddState: any;
+  } = {
     checks: {},
     overall: "pass",
     violations: [],
@@ -789,22 +833,9 @@ function runAllChecks(filePath, projectRoot, agentType, taskId, options) {
     }
   }
 
-  // Check 5: tsc incremental
-  if (!skip.has("tsc")) {
-    const r = runTscCheck(
-      absPath,
-      projectRoot,
-      opts.backendDir,
-      opts.frontendDir,
-    );
-    results.checks.tsc = r;
-    if (!r.pass) {
-      results.overall = "fail";
-      results.violations.push(
-        ...r.violations.map((v) => ({ ...v, check: "tsc" })),
-      );
-    }
-  }
+  // Check 5: tsc check REMOVED — handled automatically by tsc-diag-track.ts plugin (2026-06-26)
+  // The plugin runs tsc --noEmit on every write via tool.execute.after hook.
+  // This avoids duplicate tsc runs and ensures diagnostic_state is the single source of truth.
 
   // Check 6: TDD Order Enforcement
   if (!skip.has("tdd")) {
@@ -838,37 +869,17 @@ function runAllChecks(filePath, projectRoot, agentType, taskId, options) {
 // FULL SCAN: runFullScan
 // ═══════════════════════════════════════════════════════════
 /**
- * Full project scan — tsc, depcruise, prettier on entire codebase.
+ * Full project scan — dependency-cruiser + prettier on entire codebase.
+ * Note: tsc is now handled automatically by tsc-diag-track.ts plugin;
+ * removed from full scan (2026-06-26, tsc diagnostic gate).
  *
  * @param {string} projectRoot - project root
  * @param {string} backendDir - absolute backend dir
  * @param {string} frontendDir - absolute frontend dir
- * @returns {{ overall: "pass"|"fail", violations: array, tscErrors: number }}
+ * @returns {{ overall: "pass"|"fail", violations: array }}
  */
 function runFullScan(projectRoot, backendDir, frontendDir) {
-  const results = { overall: "pass", violations: [], tscErrors: 0 };
-
-  // TypeScript full check
-  for (const cwd of [backendDir, frontendDir]) {
-    if (!cwd || !fs.existsSync(cwd)) continue;
-    try {
-      execSync("npx tsc --noEmit --pretty false", {
-        cwd,
-        encoding: "utf8",
-        timeout: 60000,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-    } catch (e) {
-      results.tscErrors++;
-      results.overall = "fail";
-      results.violations.push({
-        check: "tsc_full",
-        severity: "BLOCKER",
-        message: `TypeScript errors in ${path.basename(cwd)}`,
-        detail: (e.stderr || e.stdout || "").substring(0, 500),
-      });
-    }
-  }
+  const results = { overall: "pass", violations: [] };
 
   // dependency-cruiser full scan
   try {
@@ -1032,7 +1043,9 @@ module.exports = {
   runPrettierCheck,
   runDepCruiserCheck,
   runEslintAudit,
-  runTscCheck,
+  /** @deprecated runTscCheck removed — tsc handled automatically by tsc-diag-track plugin (2026-06-26) */
+  runTscCheck: undefined,
+  runTscDiagnostic,
   runTddOrderCheck,
   runTddSpecCheck,
 
@@ -1043,3 +1056,9 @@ module.exports = {
   runAllChecks,
   runFullScan,
 };
+
+// NOTE: NO ESM export {} here — this file is a CJS library consumed via require().
+// Adding export {} triggers Bun ESM mode, which overrides module.exports and
+// causes all require()-based imports to receive an empty object {}.
+// See: docs/official_docs/opencode/mcp-typescript-bun/findings-summary.md §6
+// (2026-06-27, @Super-Admin, FIX-MCP-CODECHECK-v1)

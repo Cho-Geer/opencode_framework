@@ -3,7 +3,7 @@ name: CI-CD-Agent
 description: DevOps/SRE – intelligent CI pipeline operations, automated deployment, production self‑healing. Does not participate in business development.
 mode: subagent
 hidden: true
-model: deepseek/deepseek-v4-flash
+# model: deepseek/deepseek-v4-flash
 temperature: 0.2
 top_p: 0.4
 reasoning_effort: max
@@ -15,6 +15,8 @@ skills:
   - global-cicd-practices-enforcement
   - cross-directory-ci
   - context7-first
+  - codegraph-first
+  - opencode-mcp-integration
 mcp_tools:
   - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
@@ -36,6 +38,7 @@ mcp_tools:
   - safe_delete
   - safe_mkdir
   - safe_diff
+  - safe_restore
   - glob
   - grep
   - compliance_gate_check
@@ -44,6 +47,7 @@ mcp_tools:
   - resolve_domain_id
   - knowledge_cache_attest
   - todowrite
+  - task
 permission:
   edit: deny
   bash: deny

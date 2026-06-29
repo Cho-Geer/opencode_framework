@@ -5,19 +5,24 @@
 **Tool**: webfetch
 
 ## Overview
+
 Plugins allow you to extend OpenCode by hooking into various events and customizing behavior. You can create plugins to add new features, integrate with external services, or modify OpenCode's default behavior.
 
 ## Use a Plugin
 
 ### From Local Files
+
 Place JavaScript or TypeScript files in the plugin directory:
+
 - `.opencode/plugins/` — Project-level plugins
 - `~/.config/opencode/plugins/` — Global plugins
 
 Files in these directories are automatically loaded at startup.
 
 ### From npm
+
 Specify npm packages in your config:
+
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
@@ -26,10 +31,12 @@ Specify npm packages in your config:
 ```
 
 ### How Plugins Are Installed
+
 - **npm plugins**: Installed automatically using Bun at startup. Cached in `~/.cache/opencode/node_modules/`.
 - **Local plugins**: Loaded directly from plugin directory.
 
 ### Load Order
+
 1. Global config (`~/.config/opencode/opencode.json`)
 2. Project config (`opencode.json`)
 3. Global plugin directory (`~/.config/opencode/plugins/`)
@@ -38,28 +45,39 @@ Specify npm packages in your config:
 ## Create a Plugin
 
 ### Basic Structure
+
 ```javascript
 export const MyPlugin = async ({ project, client, $, directory, worktree }) => {
-  console.log("Plugin initialized!")
+  console.log("Plugin initialized!");
   return {
     // Hook implementations go here
-  }
-}
+  };
+};
 ```
 
 ### TypeScript Support
+
 ```typescript
-import type { Plugin } from "@opencode-ai/plugin"
-export const MyPlugin: Plugin = async ({ project, client, $, directory, worktree }) => {
-  return { /* Type-safe hook implementations */ }
-}
+import type { Plugin } from "@opencode-ai/plugin";
+export const MyPlugin: Plugin = async ({
+  project,
+  client,
+  $,
+  directory,
+  worktree,
+}) => {
+  return {
+    /* Type-safe hook implementations */
+  };
+};
 ```
 
 ## Events (Complete List)
+
 - **Command**: `command.executed`
 - **File**: `file.edited`, `file.watcher.updated`
 - **Installation**: `installation.updated`
-- **LSP**: `lsp.client.diagnostics`, `lsp.updated`
+- **LSP**: `lsp.client.diagnostics` ⚠️, `lsp.updated`
 - **Message**: `message.part.removed`, `message.part.updated`, `message.removed`, `message.updated`
 - **Permission**: `permission.asked`, `permission.replied`
 - **Server**: `server.connected`
@@ -69,24 +87,34 @@ export const MyPlugin: Plugin = async ({ project, client, $, directory, worktree
 - **Tool**: `tool.execute.after`, `tool.execute.before`
 - **TUI**: `tui.prompt.append`, `tui.command.execute`, `tui.toast.show`
 
+> ⚠️ **`lsp.client.diagnostics`**: SDK 事件类型，非插件直接 hook；payload 仅 `{serverID, path}` 无诊断数据。详见 `lsp-hook-integration-analysis.md`。_(2026-06-26)_
+
 ## Key Documentation Points
 
 ### Throwing in tool.execute.before BLOCKS tool execution
+
 ```javascript
-export const EnvProtection = async ({ project, client, $, directory, worktree }) => {
+export const EnvProtection = async ({
+  project,
+  client,
+  $,
+  directory,
+  worktree,
+}) => {
   return {
     "tool.execute.before": async (input, output) => {
       if (input.tool === "read" && output.args.filePath.includes(".env")) {
-        throw new Error("Do not read .env files")
+        throw new Error("Do not read .env files");
       }
     },
-  }
-}
+  };
+};
 ```
 
 ### Custom Tools via Plugins
+
 ```typescript
-import { type Plugin, tool } from "@opencode-ai/plugin"
+import { type Plugin, tool } from "@opencode-ai/plugin";
 export const CustomToolsPlugin: Plugin = async (ctx) => {
   return {
     tool: {
@@ -94,21 +122,22 @@ export const CustomToolsPlugin: Plugin = async (ctx) => {
         description: "This is a custom tool",
         args: { foo: tool.schema.string() },
         async execute(args, context) {
-          return `Hello ${args.foo}`
+          return `Hello ${args.foo}`;
         },
       }),
     },
-  }
-}
+  };
+};
 ```
 
 ### Compaction Hooks
+
 ```typescript
 export const CompactionPlugin: Plugin = async (ctx) => {
   return {
     "experimental.session.compacting": async (input, output) => {
-      output.context.push(`## Custom Context...`)
+      output.context.push(`## Custom Context...`);
     },
-  }
-}
+  };
+};
 ```

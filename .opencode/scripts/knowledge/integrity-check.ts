@@ -527,3 +527,5 @@ module.exports = {
   logOrphanReport,
   autoIndexOrphans,
 };
+
+export {};

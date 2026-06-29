@@ -89,6 +89,26 @@ function generateUUID() {
   });
 }
 
+
+// FW-LOG-UNIFY: Lazy-load writeLog for state-transaction audit trail
+let _writeLog = null;
+function getWriteLog() {
+  if (!_writeLog) {
+    try {
+      const lm = require(path.join(__dirname, '..', 'lib', 'log-manager'));
+      _writeLog = lm.writeLog;
+    } catch {
+      _writeLog = () => {};
+    }
+  }
+  return _writeLog;
+}
+function writeLog(src, level, fields) {
+  try {
+    getWriteLog()(src, level, fields);
+  } catch {}
+}
+
 // ─── SHA-256 Hash ─────────────────────────────────────────
 function sha256(content) {
   return "sha256-" + crypto.createHash("sha256").update(content).digest("hex");
@@ -231,6 +251,20 @@ function fsyncFile(filePath) {
 
 // ─── Transaction Class ────────────────────────────────────
 class StateTransaction {
+  filePath: string;
+  agent: string;
+  taskId: string;
+  operationId: string;
+  oldHash: string | null;
+  newHash: string | null;
+  newRevision: number | null;
+  tmpPath: string;
+  preparedPath: string;
+  committed: boolean;
+  rolledBack: boolean;
+  startTime: number;
+  _oldContent: string | null;
+
   /**
    * @param {string} filePath  - Absolute path to the target state file
    * @param {string} agent     - Agent identity (@Architect, @Coder-BE, etc.)
@@ -559,6 +593,20 @@ class StateTransaction {
  * @returns {StateTransaction}
  */
 function beginTransaction(filePath, agent, taskId) {
+  /**
+   * FW-DB-CANONICAL-13 (2026-06-26, @Super-Admin):
+   * Runtime deprecation warning — beginTransaction() is superseded by
+   * atomicWriteSubState() / dbSaveGateStore() for state writes.
+   * See L6-28 for full deprecation notice.
+   */
+  writeLog("state-transaction", "WARN", {
+    event: "DEPRECATED-BEGIN-TRANSACTION",
+    detail:
+      "beginTransaction() is deprecated. Use atomicWriteSubState() or dbSaveGateStore() instead. See state-transaction.ts L6-28.",
+    file: path.relative(OPENCODE_ROOT, filePath),
+    agent: agent || "unknown",
+    taskId: taskId || "unknown",
+  });
   ensureStateDir();
   return new StateTransaction(filePath, agent, taskId);
 }
@@ -1066,3 +1114,5 @@ module.exports = {
   MACHINE_JSON,
   STATE_DIR,
 };
+
+export {};

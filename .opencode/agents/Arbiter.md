@@ -3,7 +3,7 @@ name: Arbiter
 description: Technical Committee – conflict arbitration, tech‑debt waiver approval. Read‑only on business code and contracts; allowed to create arbitration artefacts and update the tech‑debt registry.
 mode: subagent
 hidden: true
-model: deepseek/deepseek-v4-flash
+# model: deepseek/deepseek-v4-flash
 temperature: 0.2
 top_p: 0.2
 reasoning_effort: max
@@ -11,6 +11,8 @@ color: "#EF4444"
 skills:
   - execution-preflight-check
   - context7-first
+  - codegraph-first
+  - opencode-mcp-integration
 mcp_tools:
   - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
@@ -21,6 +23,7 @@ mcp_tools:
   - safe_mkdir
   - safe_shell
   - safe_diff
+  - safe_restore
   - glob
   - grep
   - compliance_gate_check
@@ -28,6 +31,7 @@ mcp_tools:
   - compliance_gate_complete
   - resolve_domain_id
   - todowrite
+  - task
 permission:
   edit: deny
   bash: deny

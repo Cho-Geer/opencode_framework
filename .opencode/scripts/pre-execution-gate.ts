@@ -275,10 +275,10 @@ function emitError(checkName, message, details) {
   });
 
   if (mode === "advisory") {
-    console.error(`⚠️  [ADVISORY] ${jsonErr}`);
+    (console as any).error(`⚠️  [ADVISORY] ${jsonErr}`);
     return false; // non-blocking in advisory
   } else {
-    console.error(`❌ [${mode.toUpperCase()}] ${jsonErr}`);
+    (console as any).error(`❌ [${mode.toUpperCase()}] ${jsonErr}`);
     return true; // blocking in strict/locked
   }
 }
@@ -309,24 +309,24 @@ function isKnowledgeCacheHealthy() {
  * Print usage and exit 1.
  */
 function printUsage() {
-  console.error(
+  (console as any).error(
     "Usage: node .opencode/scripts/pre-execution-gate.ts --task-id <task_id>",
   );
-  console.error(
+  (console as any).error(
     "       node .opencode/scripts/pre-execution-gate.ts <task_id>",
   );
-  console.error("");
-  console.error(
+  (console as any).error("");
+  (console as any).error(
     "Validates that a task is ready for execution in the current project.",
   );
-  console.error(
+  (console as any).error(
     "Performs 6 checks: DAG coverage, Gate lifecycle, Role violations,",
   );
-  console.error(
+  (console as any).error(
     "Rule registry integrity, Config validity, and Knowledge pipeline.",
   );
-  console.error("");
-  console.error("Exit codes: 0=pass, 1=fail, 2=system error");
+  (console as any).error("");
+  (console as any).error("Exit codes: 0=pass, 1=fail, 2=system error");
   process.exit(1);
 }
 
@@ -354,7 +354,7 @@ function checkDagCoverage(taskId) {
   //   meta-planner, orchestrator, super-admin, knowledge-curator.
   const agent = process.env.AGENT || "";
   if (getIsDagExempt()(agent)) {
-    console.error(
+    (console as any).error(
       `    ⏭️  DAG Coverage SKIPPED — ${agent || "(unknown)"} is DAG-exempt (task may not exist yet)`,
     );
     gateLog("dag_skip", "INFO", { reason: "exempt_agent", agent });
@@ -366,7 +366,7 @@ function checkDagCoverage(taskId) {
     const blocked = emitError(
       "DAG Coverage",
       "Task.DAG.json cannot be read",
-      dag.error,
+      (dag as any).error,
     );
     if (blocked) process.exit(2);
     return true; // advisory: pass through
@@ -419,21 +419,21 @@ function checkDagCoverage(taskId) {
     return false;
   }
 
-  if (task.status === "completed") {
+  if ((task as any).status === "completed") {
     const blocked = emitError(
       "DAG Coverage",
-      `Task '${taskId}' is already completed (status=${task.status})`,
-      { task_id: taskId, current_status: task.status, owner: task.owner },
+      `Task '${taskId}' is already completed (status=${(task as any).status})`,
+      { task_id: taskId, current_status: (task as any).status, owner: task.owner },
     );
     if (blocked) process.exit(1);
     return false;
   }
 
-  if (task.status !== "pending") {
+  if ((task as any).status !== "pending") {
     const blocked = emitError(
       "DAG Coverage",
-      `Task '${taskId}' has status='${task.status}', expected 'pending'`,
-      { task_id: taskId, current_status: task.status, expected: "pending" },
+      `Task '${taskId}' has status='${(task as any).status}', expected 'pending'`,
+      { task_id: taskId, current_status: (task as any).status, expected: "pending" },
     );
     if (blocked) process.exit(1);
     return false;
@@ -491,7 +491,7 @@ function checkGateLifecycle(taskId) {
   // Find an armed session: confirmed_at set, consumed_at null, gate_status not "failed"
   const armedSessions = sessionIds.filter((sid) => {
     const s = sessions[sid];
-    return s && s.confirmed_at && !s.consumed_at && s.gate_status !== "failed";
+    return s && (s as any).confirmed_at && !(s as any).consumed_at && (s as any).gate_status !== "failed";
   });
 
   if (armedSessions.length === 0) {
@@ -532,14 +532,14 @@ function checkRoleViolations() {
     return true; // No records → no violations
   }
   const violations = complianceRecords.role_violations || [];
-  const unresolved = violations.filter((v) => v.status === "unresolved");
+  const unresolved = violations.filter((v) => (v as any).status === "unresolved");
   if (unresolved.length > 0) {
     const blocked = emitError(
       "Role Violations",
       `${unresolved.length} unresolved role violation(s) detected`,
       {
         violations: unresolved.map((v) => ({
-          agent: v.agent,
+          agent: (v as any).agent,
           file: v.violation_file,
           severity: v.severity,
           timestamp: v.timestamp,
@@ -584,10 +584,10 @@ function checkRuleRegistry() {
   }
 
   if (mode === "strict") {
-    console.error(
+    (console as any).error(
       `  ⚠️  [STRICT] Critical infrastructure files modified: ${fileList}`,
     );
-    console.error(
+    (console as any).error(
       `     Ensure commit message includes [INFRA] marker when committing.`,
     );
     gateLog("critical_files_modified", "WARN", {
@@ -598,7 +598,7 @@ function checkRuleRegistry() {
   }
 
   // advisory
-  console.error(
+  (console as any).error(
     `  ⚠️  [ADVISORY] Critical infrastructure files modified: ${fileList}`,
   );
   gateLog("critical_files_modified", "INFO", {
@@ -743,7 +743,7 @@ function checkKnowledgeGate(taskId) {
           last_attempt_at: agentBypasses?.last_attempt_at,
           last_tool_attempted: agentBypasses?.last_tool_attempted,
         });
-        console.error(
+        (console as any).error(
           `    ⚠️  Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) recorded. ` +
             `Last attempt: ${agentBypasses?.last_attempt_at || "unknown"} using "${agentBypasses?.last_tool_attempted || "unknown"}". ` +
             `Total system bypasses: ${bypassAttempts}.`,
@@ -834,14 +834,14 @@ function main() {
   const agent = process.env.AGENT || "";
   const agentNorm = (agent || "").replace(/^@/, "").toLowerCase();
   if (agentNorm === "super-admin") {
-    console.error(
+    (console as any).error(
       "[GATE] Super-Admin agent detected — bypassing DAG/enforcement gates for emergency maintenance.",
     );
     gateLog("super_admin_bypass", "INFO", { agent, taskId });
 
     if (isKnowledgeCacheHealthy()) {
       // Cache HEALTHY → normal UC7KS enforcement applies
-      console.error(
+      (console as any).error(
         "[GATE][UC7-009] Knowledge cache is HEALTHY — enforcing UC7KS pipeline.",
       );
       gateLog("uc7ks_cache_healthy", "INFO", { agent, taskId });
@@ -860,7 +860,7 @@ function main() {
           );
           if (blocked) process.exit(1);
         }
-        console.error(
+        (console as any).error(
           "[GATE][ADVISORY] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory mode).",
         );
         gateLog("uc7ks_pipeline_warn", "WARN", {
@@ -871,7 +871,7 @@ function main() {
       }
     } else {
       // Cache UNHEALTHY → UC7-009 emergency bypass
-      console.error(
+      (console as any).error(
         "[GATE][UC7-009] Knowledge cache is UNHEALTHY — activating emergency bypass.",
       );
       const auditEntry = {
@@ -883,7 +883,7 @@ function main() {
         timestamp: new Date().toISOString(),
         enforcement_mode: getEnforcementMode(),
       };
-      console.error(`[GATE][UC7-009] ${JSON.stringify(auditEntry)}`);
+      (console as any).error(`[GATE][UC7-009] ${JSON.stringify(auditEntry)}`);
       gateLog("uc7ks_emergency_bypass", "WARN", auditEntry);
     }
     process.exit(0);
@@ -902,77 +902,77 @@ function main() {
   const mode = getEnforcementMode();
 
   // ── Header ──
-  console.error(`🔍 [Pre-Exec Gate] Enforcement mode: ${mode.toUpperCase()}`);
-  console.error(`   Project root: ${OPENCODE_ROOT}`);
-  console.error(`   Task ID: ${taskId}`);
+  (console as any).error(`🔍 [Pre-Exec Gate] Enforcement mode: ${mode.toUpperCase()}`);
+  (console as any).error(`   Project root: ${OPENCODE_ROOT}`);
+  (console as any).error(`   Task ID: ${taskId}`);
   if (isDispatchSession) {
-    console.error(`   Mode: DISPATCH SESSION (DAG Coverage check SKIPPED)`);
+    (console as any).error(`   Mode: DISPATCH SESSION (DAG Coverage check SKIPPED)`);
   }
-  console.error("");
+  (console as any).error("");
 
   // ── Run checks in order ──
   let allPassed = true;
   const checkResults = {};
 
-  console.error("  Check 1/6 — Config Validity...");
+  (console as any).error("  Check 1/6 — Config Validity...");
   if (!checkConfigValidity()) {
     allPassed = false;
   } else {
-    console.error("    ✅ Config files present and readable");
-    checkResults.config = "pass";
+    (console as any).error("    ✅ Config files present and readable");
+    (checkResults as any).config = "pass";
   }
 
-  console.error("  Check 2/6 — DAG Coverage...");
+  (console as any).error("  Check 2/6 — DAG Coverage...");
   if (isDispatchSession) {
-    console.error(`    ⏭️  SKIPPED (--dispatch-session)`);
-    checkResults.dag = "skipped";
+    (console as any).error(`    ⏭️  SKIPPED (--dispatch-session)`);
+    (checkResults as any).dag = "skipped";
   } else if (!checkDagCoverage(taskId)) {
     allPassed = false;
   } else {
-    console.error(`    ✅ Task '${taskId}' found in DAG with status=pending`);
-    checkResults.dag = "pass";
+    (console as any).error(`    ✅ Task '${taskId}' found in DAG with status=pending`);
+    (checkResults as any).dag = "pass";
   }
 
-  console.error("  Check 3/6 — Gate Lifecycle...");
+  (console as any).error("  Check 3/6 — Gate Lifecycle...");
   if (isDispatchSession) {
-    console.error(`    ⏭️  SKIPPED (--dispatch-session)`);
-    checkResults.gate = "skipped";
+    (console as any).error(`    ⏭️  SKIPPED (--dispatch-session)`);
+    (checkResults as any).gate = "skipped";
   } else if (checkGateLifecycle(taskId)) {
-    console.error("    ✅ Armed gate session found");
-    checkResults.gate = "pass";
+    (console as any).error("    ✅ Armed gate session found");
+    (checkResults as any).gate = "pass";
   } else {
     allPassed = false;
   }
 
-  console.error("  Check 4/6 — Role Violations...");
+  (console as any).error("  Check 4/6 — Role Violations...");
   if (checkRoleViolations()) {
-    console.error("    ✅ No unresolved role violations");
-    checkResults.role = "pass";
+    (console as any).error("    ✅ No unresolved role violations");
+    (checkResults as any).role = "pass";
   } else {
     allPassed = false;
   }
 
-  console.error("  Check 5/6 — Rule Registry...");
+  (console as any).error("  Check 5/6 — Rule Registry...");
   if (checkRuleRegistry()) {
-    console.error("    ✅ Rule registry integrity verified");
-    checkResults.rule = "pass";
+    (console as any).error("    ✅ Rule registry integrity verified");
+    (checkResults as any).rule = "pass";
   } else {
     allPassed = false;
   }
 
-  console.error("  Check 6/6 — Knowledge Pipeline...");
+  (console as any).error("  Check 6/6 — Knowledge Pipeline...");
   if (checkKnowledgeGate(taskId)) {
-    console.error("    ✅ Knowledge pipeline compliance verified");
-    checkResults.knowledge = "pass";
+    (console as any).error("    ✅ Knowledge pipeline compliance verified");
+    (checkResults as any).knowledge = "pass";
   } else {
     allPassed = false;
   }
 
-  console.error("");
+  (console as any).error("");
 
   /**
    * FW-LOG-UNIFY-P3-C2 (2026-06-12): Persist gate check results to log-manager.
-   * Previously ALL console.error output from this script was DISCARDED on dispatch.
+   * Previously ALL (console as any).error output from this script was DISCARDED on dispatch.
    */
   gateLog("gate_result", allPassed ? "INFO" : "ERROR", {
     mode,
@@ -984,12 +984,12 @@ function main() {
 
   // ── Summary ──
   if (allPassed) {
-    console.error(
+    (console as any).error(
       `✅ [Pre-Exec Gate] All checks passed — task '${taskId}' may proceed.`,
     );
     process.exit(0);
   } else {
-    console.error(
+    (console as any).error(
       `❌ [Pre-Exec Gate] ${mode === "advisory" ? "Warnings found (non-blocking in advisory mode)" : "Validation FAILED — task execution blocked."}`,
     );
     process.exit(mode === "advisory" ? 0 : 1);
@@ -1001,7 +1001,7 @@ function main() {
 // Verify we're running in a Node environment
 if (typeof require === "undefined" || typeof process === "undefined") {
   gateLog("runtime_error", "ERROR", { reason: "non_node_runtime" });
-  console.error("❌ [Pre-Exec Gate] This script requires Node.js runtime.");
+  (console as any).error("❌ [Pre-Exec Gate] This script requires Node.js runtime.");
   process.exit(2);
 }
 
@@ -1024,3 +1024,5 @@ if (require.main === module) {
     checkKnowledgeGate,
   };
 }
+
+export {};

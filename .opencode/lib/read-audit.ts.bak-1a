@@ -1,0 +1,617 @@
+/**
+ * read-audit.ts — Read event audit trail for READ-BEFORE-APPROVE enforcement
+ * ═══════════════════════════════════════════════════════════════════════
+ * Records every `read` tool invocation (via read-track-after.ts plugin) to
+ * a SQLite DB (primary). JSONL is retained ONLY as a read-only fallback for
+ * historical data — no new events are written to it.
+ *
+ * Phase 1 (2026-06-18): DB-first writes + reads with JSONL fallback.
+ * Phase 2 (2026-06-19): DB-only writes; JSONL fallback retained for read.
+ *                      SA-STORAGE-IMPLEMENT-001 removed dual-write.
+ *                      read_audit.jsonl archived as .migrated for audit.
+ *
+ * Consumers:
+ *   - read-track-after.ts  → recordRead() on every read tool invocation
+ *   - compliance-gate.ts   → verifyRead() for READ-BEFORE-APPROVE
+ *   - knowledge_cache_attest.ts → getReadEventsForSession() for UC7KS attestation
+ *
+ * @author @Super-Admin
+ * @version 2.2.0 — DB-only writes (Phase 2), JSONL read fallback preserved
+ * @since 2026-06-18
+ *
+ * @see docs/review/framework-refactor/read-audit-db-migration-plan.md
+ * @see docs/review/framework-refactor/storage-entity-landscape.md
+ */
+
+import * as crypto from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { writeLog } from "./log-manager";
+import { getDb } from "./db-manager";
+import { STATE_PATHS } from "./state-utils";
+import { normalize } from "./agent-identity";
+
+// ── Types ──────────────────────────────────────────────────────
+
+export interface ReadAuditEntry {
+  /** ISO 8601 timestamp of the read event */
+  timestamp: string;
+  /** Agent identity (e.g. "Orchestrator", "@Super-Admin") */
+  agent: string;
+  /** Absolute or relative file path that was read */
+  filePath: string;
+  /** OpenCode session ID (ses_*) — NOT compliance gate session (cg_ses_*) */
+  sessionId?: string;
+  /** DAG task ID for context */
+  taskId?: string;
+  /** Read tool invocation ID (from OpenCode callID) */
+  callId?: string;
+}
+
+export interface ReadVerifyResult {
+  verified: boolean;
+  reason: string;
+  matchedEntry?: ReadAuditEntry;
+}
+
+// ── Configuration ──────────────────────────────────────────────
+
+/** Default maximum age of a read event to be considered valid for approval (5 min).
+ *  Can be overridden via project.config.json template_resolution.read_max_age_ms.
+ *  @since 2026-06-21 — P3 configurable READ_MAX_AGE_MS (read-before-approve-e2e-findings.md §6) */
+const READ_MAX_AGE_MS_DEFAULT = 5 * 60 * 1000;
+
+/** Maximum records to keep (DB + JSONL). Applied atomically in DB, RMW in JSONL. */
+const MAX_RECORDS = 10000;
+
+/**
+ * Get the configured read max age in milliseconds.
+ * Reads from project.config.json template_resolution.read_max_age_ms.
+ * If the config value is a positive number less than 1 hour, it is used.
+ * Otherwise, falls back to READ_MAX_AGE_MS_DEFAULT (5 minutes).
+ *
+ * Called at verification time (not module load time), so it picks up
+ * config changes on framework restart.
+ *
+ * @returns READ_MAX_AGE_MS in milliseconds
+ * @since 2026-06-21 — P3 (read-before-approve-e2e-findings.md §6)
+ */
+function getReadMaxAgeMs(): number {
+  try {
+    const configPath = path.resolve(
+      process.env.OPENCODE_ROOT || ".",
+      ".opencode/project.config.json",
+    );
+    const raw = fs.readFileSync(configPath, "utf8");
+    const config = JSON.parse(raw);
+    const configured = config?.template_resolution?.read_max_age_ms;
+    if (
+      typeof configured === "number" &&
+      configured > 0 &&
+      configured < 3600000
+    ) {
+      return configured;
+    }
+  } catch {
+    // Config read/parse failed — fall through to default
+  }
+  return READ_MAX_AGE_MS_DEFAULT;
+}
+
+// ── Post-E2E hardening event constants (§12 read-before-approve-plan.md) ──
+/** Logged when verifyNonEmptyReadSet encounters an empty target file list */
+const EVENT_READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS =
+  "READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS";
+/** Logged when verifyNonEmptyReadSet finds one or more unread deliverables */
+const EVENT_READ_BEFORE_APPROVE_FAILED_NOT_READ =
+  "READ_BEFORE_APPROVE_FAILED_NOT_READ";
+
+/**
+ * File path for read audit JSONL (Phase 2 read-only fallback for historical data).
+ * Delegates to STATE_PATHS for centralized path resolution.
+ * @see ../lib/state-utils.ts → STATE_PATHS.readAudit
+ * @see read-before-approve-plan.md §11.6 P1
+ */
+function getReadAuditPath(): string {
+  return STATE_PATHS.readAudit();
+}
+
+// ── Path & Agent Normalization ─────────────────────────────────
+
+/**
+ * Normalize a read audit file path for comparison and indexing.
+ * Resolves to absolute, lowercased, trailing-slash-stripped.
+ */
+export function normalizeReadAuditPath(filePath: string): string {
+  const root = process.env.OPENCODE_ROOT || ".";
+  const resolved = filePath.startsWith("/")
+    ? filePath
+    : path.resolve(root, filePath);
+  return path.normalize(resolved).replace(/\/+$/, "").toLowerCase();
+}
+
+/**
+ * Normalize agent identity: strip @ prefix, lowercase.
+ * @deprecated Use normalize() from lib/agent-identity.ts directly.
+ */
+export function normalizeAgent(agent: string): string {
+  return normalize(agent);
+}
+
+/**
+ * Generate a deterministic event_key for idempotent DB writes.
+ * Uses SHA-256 of all record fields joined by U+001F (unit separator).
+ */
+export function makeEventKey(entry: ReadAuditEntry): string {
+  const parts = [
+    entry.timestamp || "",
+    normalizeAgent(entry.agent),
+    normalizeReadAuditPath(entry.filePath || ""),
+    entry.sessionId || "",
+    entry.taskId || "",
+    entry.callId || "",
+  ];
+  return crypto.createHash("sha256").update(parts.join("\u001f")).digest("hex");
+}
+
+// ── DB Helpers ─────────────────────────────────────────────────
+
+function toDbBindings(entry: ReadAuditEntry): any[] {
+  const eventKey = makeEventKey(entry);
+  const normalizedAgent = normalizeAgent(entry.agent);
+  const normalizedPath = normalizeReadAuditPath(entry.filePath || "");
+  const now = Date.now();
+  return [
+    eventKey,
+    entry.timestamp,
+    normalizedAgent,
+    normalizedPath,
+    entry.sessionId || null,
+    entry.taskId || null,
+    entry.callId || null,
+    entry.agent,
+    entry.filePath,
+    now,
+  ];
+}
+
+function dbEntryToReadAuditEntry(row: any): ReadAuditEntry {
+  return {
+    timestamp: row.timestamp,
+    agent: row.raw_agent || row.agent,
+    filePath: row.raw_file_path || row.file_path,
+    sessionId: row.opencode_session_id || undefined,
+    taskId: row.task_id || undefined,
+    callId: row.call_id || undefined,
+  };
+}
+
+// ── recordRead — DB-only (Phase 2) ──────────────────────────────
+
+/**
+ * Record a read event. DB INSERT only (Phase 2).
+ * JSONL dual-write removed per SA-STORAGE-IMPLEMENT-001.
+ * JSONL read-fallback functions retained for historical data.
+ *
+ * Phase 2 change (2026-06-19): DB-only writes. JSONL fallback
+ * preserved for verifyRead() + getReadEventsForSession() to
+ * support historical data in read_audit.jsonl.migrated.
+ */
+export function recordRead(entry: ReadAuditEntry): void {
+  try {
+    const db = getDb();
+    db.transaction(() => {
+      db.run(
+        `INSERT OR IGNORE INTO read_audit
+         (event_key, timestamp, agent, file_path, opencode_session_id, task_id, call_id, raw_agent, raw_file_path, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        toDbBindings(entry),
+      );
+      // Capacity control: keep only last MAX_RECORDS
+      db.run(
+        `DELETE FROM read_audit
+         WHERE id NOT IN (SELECT id FROM read_audit ORDER BY id DESC LIMIT ?)`,
+        [MAX_RECORDS],
+      );
+    })();
+    writeLog("lib-read-audit", "INFO", {
+      event: "READ_RECORDED",
+      agent: entry.agent,
+      filePath: entry.filePath,
+      db: true,
+      detail: `Read recorded: ${entry.filePath}`,
+    });
+  } catch (err: any) {
+    writeLog("lib-read-audit", "ERROR", {
+      event: "READ_AUDIT_DB_WRITE_FAILED",
+      detail: err.message,
+    });
+  }
+}
+
+// ── JSONL Helpers (Phase 2 read-only fallback for historical data) ──
+
+function appendReadAuditJsonl(entry: ReadAuditEntry): void {
+  const auditPath = getReadAuditPath();
+  const dir = path.dirname(auditPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  const line = JSON.stringify(entry) + "\n";
+  fs.appendFileSync(auditPath, line, "utf8");
+}
+
+function cleanupOldRecordsJsonl(): void {
+  try {
+    const auditPath = getReadAuditPath();
+    if (!fs.existsSync(auditPath)) return;
+    const content = fs.readFileSync(auditPath, "utf8");
+    const lines = content.trim().split("\n").filter(Boolean);
+    if (lines.length <= MAX_RECORDS) return;
+    const kept = lines.slice(-MAX_RECORDS);
+    fs.writeFileSync(auditPath, kept.join("\n") + "\n", "utf8");
+    writeLog("lib-read-audit", "INFO", {
+      event: "READ_AUDIT_CLEANUP",
+      pruned: lines.length - kept.length,
+      remaining: kept.length,
+    });
+  } catch {
+    // Non-critical
+  }
+}
+
+function readAllJsonlEntries(): ReadAuditEntry[] {
+  try {
+    const auditPath = getReadAuditPath();
+    if (!fs.existsSync(auditPath)) return [];
+    const content = fs.readFileSync(auditPath, "utf8");
+    return content
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean) as ReadAuditEntry[];
+  } catch {
+    return [];
+  }
+}
+
+// ── verifyRead — DB-first with JSONL fallback ──────────────────
+
+/**
+ * Verify that an agent has read a specific file within the valid time window.
+ * DB query first; falls back to JSONL scan on DB error.
+ *
+ * @param agent - Agent identity (e.g. "Orchestrator")
+ * @param filePath - File path that must have been read
+ * @param sessionId - Optional OpenCode session ID (ses_*).
+ *                    Do NOT pass compliance gate session (cg_ses_*).
+ *                    ◾ FIX-VFYREAD-PARAM-v1: compliance-gate.ts NOW passes
+ *                    this via verifyNonEmptyReadSet({sessionId: ...}) for
+ *                    session-bound READ-BEFORE-APPROVE enforcement.
+ */
+export function verifyRead(
+  agent: string,
+  filePath: string,
+  sessionId?: string,
+): ReadVerifyResult {
+  const normalizedAgent = normalizeAgent(agent);
+  const normalizedPath = normalizeReadAuditPath(filePath);
+  const readMaxAgeMs = getReadMaxAgeMs();
+  const cutoff = Date.now() - readMaxAgeMs;
+  const cutoffIso = new Date(cutoff).toISOString();
+
+  // ── DB-first ──
+  try {
+    const db = getDb();
+    let row: any = null;
+    if (sessionId) {
+      row = db
+        .query(
+          `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
+         FROM read_audit
+         WHERE agent = ? AND file_path = ? AND opencode_session_id = ? AND timestamp >= ?
+         ORDER BY timestamp DESC LIMIT 1`,
+        )
+        .get(normalizedAgent, normalizedPath, sessionId, cutoffIso);
+    } else {
+      row = db
+        .query(
+          `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
+         FROM read_audit
+         WHERE agent = ? AND file_path = ? AND timestamp >= ?
+         ORDER BY timestamp DESC LIMIT 1`,
+        )
+        .get(normalizedAgent, normalizedPath, cutoffIso);
+    }
+
+    if (row) {
+      const matchedEntry = dbEntryToReadAuditEntry(row);
+      return {
+        verified: true,
+        reason: `Agent "${matchedEntry.agent}" read "${matchedEntry.filePath}" at ${matchedEntry.timestamp}`,
+        matchedEntry,
+      };
+    }
+
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    // DB is the sole read_audit source. JSONL is retained as historical archive only.
+    const absPath = path.resolve(process.env.OPENCODE_ROOT || ".", filePath);
+    return {
+      verified: false,
+      reason:
+        `Agent "@${normalizedAgent}" has NOT read "${filePath}" via the \`read\` tool ` +
+        `within the last ${readMaxAgeMs / 60000} minutes. ` +
+        `You MUST use the \`read\` tool to open and review HANDOVER.md before approving. ` +
+        `Compute hash manually: sha256sum ${absPath}`,
+    };
+  } catch (err: any) {
+    writeLog("lib-read-audit", "ERROR", {
+      event: "VERIFY_READ_DB_FAILED",
+      error: err.message,
+      detail: `Verify read DB failed: ${err.message}`,
+    });
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    return {
+      verified: false,
+      reason: `Read audit DB query failed: ${err.message}. No JSONL fallback (OPT-03 DB-canonical).`,
+    };
+  }
+}
+
+function verifyReadJsonl(
+  normalizedAgent: string,
+  normalizedPath: string,
+  sessionId: string | undefined,
+  cutoff: number,
+): ReadVerifyResult {
+  try {
+    const entries = readAllJsonlEntries();
+    const now = Date.now();
+
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i];
+      const entryTime = new Date(entry.timestamp).getTime();
+      if (entryTime < cutoff) break;
+
+      const entryAgent = normalizeAgent(entry.agent);
+      if (entryAgent !== normalizedAgent) continue;
+
+      if (pathsMatch(entry.filePath, normalizedPath)) {
+        /**
+         * P2-A (2026-06-21): Session-bound matching for JSONL fallback.
+         * When sessionId is provided:
+         *   1. Skip entries without a sessionId field (historical pre-P1 entries
+         *      should NOT match session-bound queries).
+         *   2. Skip entries with a mismatched sessionId.
+         * When sessionId is NOT provided: no session check (legacy behavior).
+         * @see read-before-approve-e2e-findings.md §8.3
+         */
+        if (sessionId) {
+          if (!entry.sessionId || entry.sessionId !== sessionId) {
+            continue;
+          }
+        }
+        return {
+          verified: true,
+          reason: `[JSONL] Agent "${entry.agent}" read "${entry.filePath}" at ${entry.timestamp}`,
+          matchedEntry: entry,
+        };
+      }
+    }
+
+    return {
+      verified: false,
+      reason: `Agent "@${normalizedAgent}" has NOT read the file within the time window (checked DB + JSONL).`,
+    };
+  } catch (err: any) {
+    return {
+      verified: false,
+      reason: `Read audit verification failed: ${err.message}`,
+    };
+  }
+}
+
+// ── pathsMatch (JSONL fallback helper) ─────────────────────────
+
+function pathsMatch(p1: string, p2: string): boolean {
+  const root = process.env.OPENCODE_ROOT || ".";
+  const normalize = (p: string): string => {
+    const resolved = p.startsWith("/") ? p : path.resolve(root, p);
+    return path.normalize(resolved).replace(/\/+$/, "").toLowerCase();
+  };
+  try {
+    return normalize(p1) === normalize(p2);
+  } catch {
+    return p1.toLowerCase() === p2.toLowerCase();
+  }
+}
+
+// ── getReadEventsForSession — DB-first with JSONL fallback ─────
+
+/**
+ * Get all read events for a specific agent and OpenCode session.
+ * DB query first; falls back to JSONL scan on DB error.
+ *
+ * @param agent - Agent identity (e.g., "@Coder-BE")
+ * @param sessionId - OpenCode session ID (e.g., "ses_126bd8762...")
+ *                    This is NOT a compliance gate session (cg_ses_*).
+ * @returns Array of matching read audit entries, newest first
+ */
+export function getReadEventsForSession(
+  agent: string,
+  sessionId: string,
+): ReadAuditEntry[] {
+  const normalizedAgent = normalizeAgent(agent);
+
+  // ── DB-first ──
+  try {
+    const db = getDb();
+    const rows = db
+      .query(
+        `SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id
+       FROM read_audit
+       WHERE opencode_session_id = ? AND agent = ?
+       ORDER BY timestamp DESC`,
+      )
+      .all(sessionId, normalizedAgent) as any[];
+
+    if (rows.length > 0) {
+      return rows.map(dbEntryToReadAuditEntry);
+    }
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    // DB is the sole read_audit source.
+    return [];
+  } catch (err: any) {
+    writeLog("lib-read-audit", "ERROR", {
+      event: "GET_READ_EVENTS_DB_FAILED",
+      error: err.message,
+      detail: `Get read events DB failed: ${err.message}`,
+    });
+    // OPT-03 (2026-06-23): DB-canonical — JSONL fallback removed.
+    return [];
+  }
+}
+
+function getReadEventsForSessionJsonl(
+  normalizedAgent: string,
+  sessionId: string,
+): ReadAuditEntry[] {
+  try {
+    const entries = readAllJsonlEntries();
+    const results: ReadAuditEntry[] = [];
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i];
+      const entryAgent = normalizeAgent(entry.agent);
+      if (entryAgent === normalizedAgent && entry.sessionId === sessionId) {
+        results.push(entry);
+      }
+    }
+    return results;
+  } catch (err: any) {
+    writeLog("lib-read-audit", "ERROR", {
+      event: "GET_READ_EVENTS_FAILED",
+      error: err.message,
+    });
+    return [];
+  }
+}
+
+// ── verifyNonEmptyReadSet — Post-E2E hardening (§12.1) ──────────
+
+/**
+ * Verify that a set of target files were all read by the specified agent
+ * within the valid time window. Unlike verifyRead() which checks a single
+ * file, this function validates an entire deliverable set at once.
+ *
+ * Used by compliance-gate.ts for READ-BEFORE-APPROVE enforcement when
+ * multiple deliverables must be reviewed before approval.
+ *
+ * @param input.agent - Agent identity (e.g. "Orchestrator")
+ * @param input.sessionId - Optional OpenCode session ID (ses_*)
+ * @param input.filePaths - List of file paths that must have been read
+ * @param input.windowMs - Optional override for getReadMaxAgeMs() (default: 5 min)
+ * @returns Verification result with emptyTargets flag and notRead list
+ * @see read-before-approve-plan.md §12.1
+ */
+export function verifyNonEmptyReadSet(input: {
+  agent: string;
+  sessionId?: string;
+  filePaths: string[];
+  windowMs?: number;
+}): {
+  verified: boolean;
+  reason: string;
+  emptyTargets: boolean;
+  notRead: string[];
+} {
+  // Guard: empty target list
+  if (
+    !input.filePaths ||
+    input.filePaths.length === 0 ||
+    input.filePaths.every(function (p) {
+      return !p || p.trim() === "";
+    })
+  ) {
+    writeLog("lib-read-audit", "WARN", {
+      event: EVENT_READ_BEFORE_APPROVE_FAILED_EMPTY_TARGETS,
+      agent: input.agent,
+      detail: "Empty target file list - no deliverables to verify",
+    });
+    return {
+      verified: false,
+      reason: "Empty target file list - no deliverables to verify",
+      emptyTargets: true,
+      notRead: [],
+    };
+  }
+
+  // Verify each file path
+  var notRead: string[] = [];
+  for (var i = 0; i < input.filePaths.length; i++) {
+    var fp = input.filePaths[i];
+    if (!fp || fp.trim() === "") continue;
+    var result = verifyRead(input.agent, fp, input.sessionId);
+    if (!result.verified) {
+      notRead.push(fp);
+    }
+  }
+
+  if (notRead.length > 0) {
+    writeLog("lib-read-audit", "WARN", {
+      event: EVENT_READ_BEFORE_APPROVE_FAILED_NOT_READ,
+      agent: input.agent,
+      notReadCount: notRead.length,
+      totalChecked: input.filePaths.length,
+      detail:
+        "Agent has not read " +
+        notRead.length +
+        " of " +
+        input.filePaths.length +
+        " deliverables: " +
+        notRead.join(", "),
+    });
+    return {
+      verified: false,
+      reason:
+        'Agent "' +
+        input.agent +
+        '" has not read ' +
+        notRead.length +
+        " of " +
+        input.filePaths.length +
+        " deliverables: " +
+        notRead.slice(0, 5).join(", ") +
+        (notRead.length > 5 ? " (+" + (notRead.length - 5) + " more)" : ""),
+      emptyTargets: false,
+      notRead: notRead,
+    };
+  }
+
+  writeLog("lib-read-audit", "INFO", {
+    event: "VERIFY_NONEMPTY_READ_SET",
+    agent: input.agent,
+    count: input.filePaths.length,
+    detail: "All " + input.filePaths.length + " deliverables verified",
+  });
+  return {
+    verified: true,
+    reason: "All " + input.filePaths.length + " deliverables verified",
+    emptyTargets: false,
+    notRead: [],
+  };
+}
+
+// ── Re-export constants ────────────────────────────────────────
+
+export {
+  getReadMaxAgeMs,
+  READ_MAX_AGE_MS_DEFAULT as READ_MAX_AGE_MS,
+  MAX_RECORDS,
+};

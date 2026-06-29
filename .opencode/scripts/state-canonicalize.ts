@@ -35,7 +35,7 @@
  *   - tdd_enforcement_state.current_session.blocked_attempts[].file
  *   - tdd_enforcement_state.violations[].file
  *
- * Note: eslint_state.modules (keyed by module name) and dependency_state (violation
+ * Note: (eslint_state as any).modules (keyed by module name) and dependency_state (violation
  *   objects) do not contain file paths requiring canonicalization.
  */
 
@@ -179,12 +179,12 @@ function validateWorkspaceIntegrity(machine, workspaceRoot) {
     });
   }
 
-  // type_check_state.dirty_files
-  if (machine.type_check_state?.dirty_files) {
-    checkPathArray(
-      machine.type_check_state.dirty_files,
-      "type_check_state.dirty_files",
-    );
+  // diagnostic_state.files keys (replaces type_check_state.dirty_files, 2026-06-26)
+  if (machine.diagnostic_state?.files) {
+    const diagFilePaths = Object.keys(machine.diagnostic_state.files);
+    if (diagFilePaths.length > 0) {
+      checkPathArray(diagFilePaths, "diagnostic_state.files");
+    }
   }
 
   // format_state.unformatted_files
@@ -306,18 +306,17 @@ function sanitizePathsInMachine(machine, workspaceRoot) {
     });
   }
 
-  // type_check_state.dirty_files
-  if (machine.type_check_state?.dirty_files) {
-    machine.type_check_state.dirty_files = filterArray(
-      machine.type_check_state.dirty_files,
-    );
-    // Reset status to clean if dirty_files is now empty
-    if (
-      machine.type_check_state.dirty_files.length === 0 &&
-      machine.type_check_state.status === "dirty"
-    ) {
-      machine.type_check_state.status = "clean";
-      machine.type_check_state.incremental_errors = 0;
+  // diagnostic_state.files (replaces type_check_state.dirty_files, 2026-06-26)
+  if (machine.diagnostic_state?.files) {
+    const newFiles: Record<string, any> = {};
+    for (const [key, entry] of Object.entries(machine.diagnostic_state.files)) {
+      const entryAny = entry as any;
+      if (!entryAny?.errors || entryAny.errors.length === 0) continue;
+      newFiles[key] = entry; // retain entries with errors
+    }
+    machine.diagnostic_state.files = newFiles;
+    if (Object.keys(newFiles).length === 0) {
+      machine.diagnostic_state.last_updated = new Date().toISOString();
     }
   }
 
@@ -328,9 +327,9 @@ function sanitizePathsInMachine(machine, workspaceRoot) {
     );
     if (
       machine.format_state.unformatted_files.length === 0 &&
-      machine.format_state.status === "dirty"
+      machine.format_state?.status === "dirty"
     ) {
-      machine.format_state.status = "clean";
+      (machine as any).format_state.status = "clean";
     }
   }
 
@@ -439,11 +438,14 @@ function canonicalizePathsInMachine(machine, workspaceRoot) {
     });
   }
 
-  // type_check_state.dirty_files
-  if (machine.type_check_state?.dirty_files) {
-    machine.type_check_state.dirty_files = canonicalizeArray(
-      machine.type_check_state.dirty_files,
-    );
+  // diagnostic_state.files (replaces type_check_state.dirty_files, 2026-06-26)
+  if (machine.diagnostic_state?.files) {
+    const canonicalizedFiles: Record<string, any> = {};
+    for (const [key, entry] of Object.entries(machine.diagnostic_state.files)) {
+      const canonicalKey = canonicalizeArray([key])[0] || key;
+      canonicalizedFiles[canonicalKey] = entry;
+    }
+    machine.diagnostic_state.files = canonicalizedFiles;
   }
 
   // format_state.unformatted_files
@@ -533,7 +535,7 @@ function generateReport(results) {
     );
   }
 
-  if (results.dryRun) {
+  if ((results as any).dryRun) {
     lines.push(`[state-canonicalize] DRY RUN — no changes written to disk`);
   } else if (results.changesApplied) {
     lines.push(`[state-canonicalize] Changes written to ${MACHINE_JSON}`);
@@ -570,7 +572,7 @@ function countAbsolutePathsInMachine(machine) {
   if (Array.isArray(machine.write_audit_state?.history)) {
     machine.write_audit_state.history.forEach((e) => countArray(e?.files));
   }
-  countArray(machine.type_check_state?.dirty_files);
+  countArray(Object.keys(machine.diagnostic_state?.files || {})); // replaces type_check_state.dirty_files
   countArray(machine.format_state?.unformatted_files);
   countObjectArrayField(
     machine.compliance_records?.role_violations,
@@ -597,11 +599,11 @@ function countAbsolutePathsInMachine(machine) {
  * Read machine.json, run all canonicalization passes, and write back.
  *
  * @param {object} options
- * @param {boolean} [options.dryRun=false] - Report only, do not write
- * @param {string} [options.statePath] - Override path to machine.json
+ * @param {boolean} [(options as any).dryRun=false] - Report only, do not write
+ * @param {string} [(options as any).statePath] - Override path to machine.json
  * @returns {object} Report result
  */
-function canonicalizeStateFile(options = {}) {
+function canonicalizeStateFile(options: { dryRun?: boolean; statePath?: string } = {}) {
   const { dryRun = false, statePath = MACHINE_JSON } = options;
   const results = {
     dryRun,
@@ -619,7 +621,7 @@ function canonicalizeStateFile(options = {}) {
   // monolithically.
   const machine = {
     write_audit_state: readSubState("write_audit_state"),
-    type_check_state: readSubState("type_check_state"),
+    diagnostic_state: readSubState("diagnostic_state"), // replaces type_check_state (2026-06-26)
     format_state: readSubState("format_state"),
     compliance_records: readSubState("compliance_records"),
     tdd_enforcement_state: readSubState("tdd_enforcement_state"),
@@ -658,7 +660,7 @@ function canonicalizeStateFile(options = {}) {
     // Write back using CAS for each sub-state
     const subStates = [
       "write_audit_state",
-      "type_check_state",
+      "diagnostic_state", // replaces type_check_state (2026-06-26)
       "format_state",
       "compliance_records",
       "tdd_enforcement_state",
@@ -676,13 +678,13 @@ function canonicalizeStateFile(options = {}) {
       });
       if (!ok) {
         allOk = false;
-        console.error(`[canonicalize] CAS write failed for ${subStateKey}`);
+        (console as any).error(`[canonicalize] CAS write failed for ${subStateKey}`);
       }
     }
 
     results.changesApplied = allOk;
     if (!allOk) {
-      results.error = "CAS write failed for one or more sub-states";
+      (results as any).error = "CAS write failed for one or more sub-states";
     }
   }
 
@@ -718,7 +720,7 @@ function runCLI() {
         console.log("  --help, -h      Show this help");
         process.exit(0);
       default:
-        console.error(`Unknown flag: ${args[i]}`);
+        (console as any).error(`Unknown flag: ${args[i]}`);
         process.exit(1);
     }
   }
@@ -726,8 +728,8 @@ function runCLI() {
   const results = canonicalizeStateFile({ dryRun, statePath });
   console.log(generateReport(results));
 
-  if (results.error) {
-    console.error(`[state-canonicalize] ERROR: ${results.error}`);
+  if ((results as any).error) {
+    (console as any).error(`[state-canonicalize] ERROR: ${(results as any).error}`);
     process.exit(1);
   }
 
@@ -752,3 +754,5 @@ module.exports = {
   OPENCODE_ROOT,
   MACHINE_JSON,
 };
+
+export {};

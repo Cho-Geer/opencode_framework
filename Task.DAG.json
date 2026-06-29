@@ -1842,6 +1842,775 @@
       "completed_at": "2026-06-21T09:00:41.963Z",
       "completed_by": "@Orchestrator",
       "completion_note": "Stale task cleanup — long-pending with no gate sessions; work completed in prior framework repair streams."
+    },
+    {
+      "id": "E2E-PLUGIN-REGISTER",
+      "name": "Register tsc-diag-track plugin in opencode.json",
+      "description": "Register the tsc-diag-track.ts plugin in opencode.json plugin array. Placement: after format-after.ts, before read-track-after.ts. Ensure hook chaining order: format → tsc diagnostic check → read track.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-TSC-PLUGIN-CREATE"
+      ],
+      "outputs": [
+        ".task_temp/E2E-PLUGIN-REGISTER/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-implementation-plan.md",
+        "section": "3.1 — 文件變更清單 + 插件註冊順序",
+        "clause": "Step 12: Register plugin in opencode.json. Placement after format-after.ts."
+      },
+      "target_files": [
+        "opencode.json"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "opencode.json (updated)"
+        ],
+        "logic_complete": "tsc-diag-track.ts is listed in opencode.json plugin array after format-after.ts and before read-track-after.ts",
+        "tests_pass": "framework-self-test.ts plugin registration check passes (EXPECTED_COUNT=25 or dynamic)",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TSC-PLUGIN-CREATE",
+      "name": "Create tsc-diag-track.ts plugin with after-hook tsc check and before-hook blocking",
+      "description": "Create .opencode/plugins/tsc-diag-track.ts plugin. Follow format-after.ts pattern: export default withPluginLifecycle, tool.execute.before for blocking, tool.execute.after for post-write tsc check. Use require() to call runTscDiagnostic() from code-quality-lib.ts. Layer 1: before hook reads diagnostic_state.files[target] and blocks in strict/locked mode. Layer 1.5: after hook runs tsc --noEmit --incremental and writes to diagnostic_state via atomicWriteSubState.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-TSC-LIB-REFACTOR",
+        "E2E-TSC-STATE-REGISTER"
+      ],
+      "outputs": [
+        ".task_temp/E2E-TSC-PLUGIN-CREATE/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-implementation-plan.md",
+        "section": "3.2 — 插件核心邏輯",
+        "clause": "Steps 4+5+6: Create tsc-diag-track.ts plugin with beforeWriteBlock + afterWriteTscCheck"
+      },
+      "target_files": [
+        ".opencode/plugins/tsc-diag-track.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/plugins/tsc-diag-track.ts"
+        ],
+        "logic_complete": "Plugin exports default withPluginLifecycle with tool.execute.before (Layer 1 blocking in strict/locked) and tool.execute.after (Layer 1.5 tsc check). Uses require() for runTscDiagnostic. atomicWriteSubState for diagnostic_state writes. writeLog for all events.",
+        "tests_pass": "bun --check .opencode/plugins/tsc-diag-track.ts passes; write to TS file triggers tsc diagnostic write to substate_kv",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TSC-STATE-REGISTER",
+      "name": "Register diagnostic_state + remove type_check_state from substate-types and substate-manager",
+      "description": "In substate-types.ts: add DiagnosticState interface and DiagnosticFileEntry, add diagnostic_state to SubStateMap, remove TypeCheckState and type_check_state entry. In substate-manager.ts: replace type_check_state with diagnostic_state in SUBSTATE_FILES. No DB migration needed — substate_kv is generic key-value.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-TSC-STATE-REGISTER/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-implementation-plan.md",
+        "section": "3.5 — 子狀態註冊 + type_check_state 遷移",
+        "clause": "Step 1: Register diagnostic_state + remove type_check_state"
+      },
+      "target_files": [
+        ".opencode/lib/substate-types.ts",
+        ".opencode/lib/substate-manager.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/lib/substate-types.ts (updated)",
+          ".opencode/lib/substate-manager.ts (updated)"
+        ],
+        "logic_complete": "DiagnosticState interface defined. SubStateMap has diagnostic_state, no type_check_state. SUBSTATE_FILES has diagnostic_state -> diagnostic-state.json, no type_check_state.",
+        "tests_pass": "bun --check on both files passes; no type_check_state references remain",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TSC-MIGRATE-CONSUMERS",
+      "name": "Migrate all type_check_state consumers to diagnostic_state",
+      "description": "Update all files that read/write type_check_state to use diagnostic_state: gate-core.ts checkMachineCleanliness, gate-checks.ts, state-canonicalize.ts, framework-compliance-check.ts, state-integrity-scan.ts, state-reset.ts, state-machine-reset.sh, machine.schema.full.json, Guardian.md, Super-Admin.md. Change readSubState('type_check_state') → readSubState('diagnostic_state'). Update jq paths in shell scripts.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-TSC-STATE-REGISTER"
+      ],
+      "outputs": [
+        ".task_temp/E2E-TSC-MIGRATE-CONSUMERS/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-implementation-plan.md",
+        "section": "5 — type_check_state → diagnostic_state 遷移",
+        "clause": "Step 2: Migrate all type_check_state consumers"
+      },
+      "target_files": [
+        ".opencode/lib/gate-core.ts",
+        ".opencode/lib/gate-checks.ts",
+        ".opencode/scripts/state-canonicalize.ts",
+        ".opencode/scripts/framework-compliance-check.ts",
+        ".opencode/scripts/state-integrity-scan.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "All 5+ files updated"
+        ],
+        "logic_complete": "All readSubState('type_check_state') replaced with readSubState('diagnostic_state'). checkMachineCleanliness reads diagnostic_state.files for error detection. gate-checks uses same pattern.",
+        "tests_pass": "bun --check on all modified files passes; grep -r 'type_check_state' .opencode/lib .opencode/scripts returns zero business logic references",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TSC-LIB-REFACTOR",
+      "name": "Refactor runTscCheck → runTscDiagnostic in code-quality-lib.ts + remove run_tsc_check MCP tool",
+      "description": "In code-quality-lib.ts: refactor runTscCheck() to runTscDiagnostic(absPath, projectRoot) — remove isBackend/isFrontend guard, use root tsconfig with --tsBuildInfoFile, return {pass, errors?, elapsed, detail}. In code-quality-check.ts: remove run_tsc_check MCP tool registration. In runFullScan: remove tsc loop. Keep parseTscOutput as internal helper.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-TSC-LIB-REFACTOR/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-implementation-plan.md",
+        "section": "4 — code_quality_check 清理",
+        "clause": "Steps 3+9+10: Refactor runTscCheck, remove MCP tool, modify runFullScan"
+      },
+      "target_files": [
+        ".opencode/scripts/mcp-tools/code-quality-lib.ts",
+        ".opencode/scripts/mcp-tools/code-quality-check.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/mcp-tools/code-quality-lib.ts (updated)",
+          ".opencode/scripts/mcp-tools/code-quality-check.ts (updated)"
+        ],
+        "logic_complete": "runTscDiagnostic() runs root tsc --noEmit --incremental with 30s timeout. No isBackend/isFrontend guard. Returns target-scoped errors. run_tsc_check MCP tool removed from ListTools + CallTool handlers. runFullScan returns depcruise + prettier only.",
+        "tests_pass": "bun --check on both files; npx tsc --noEmit (after bun-types fix) produces valid output",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TSC-GATE-LAYERS",
+      "name": "Add Layer 2 (submitDeliverables) and Layer 3 (compliance_gate_complete) diagnostic checks",
+      "description": "In gate-core.ts submitDeliverables: after HANDOVER.md check, cross-check write_audit_state.current_session.files_written against diagnostic_state.files for errors. If errors found → return recoverable. In compliance-gate.ts runGateComplete: after eslint audit, scan all diagnostic_state.files for errors. If errors found → return failed.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-TSC-MIGRATE-CONSUMERS",
+        "E2E-TSC-PLUGIN-CREATE"
+      ],
+      "outputs": [
+        ".task_temp/E2E-TSC-GATE-LAYERS/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-implementation-plan.md",
+        "section": "3.3 — submitDeliverables 閘門 + 3.4 — compliance_gate_complete 兜底",
+        "clause": "Steps 7+8: Layer 2 submit check + Layer 3 complete check"
+      },
+      "target_files": [
+        ".opencode/lib/gate-core.ts",
+        ".opencode/scripts/mcp-tools/compliance-gate.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/lib/gate-core.ts (updated)",
+          ".opencode/scripts/mcp-tools/compliance-gate.ts (updated)"
+        ],
+        "logic_complete": "submitDeliverables returns recoverable when task files have TS errors. compliance_gate_complete returns failed when any diagnostic_state.files have errors.",
+        "tests_pass": "E2E harness validates: submit with errors → recoverable; complete with errors → failed",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-HARNESS",
+      "name": "E2E: Create isolated DB E2E harness for tsc diagnostic gate",
+      "description": "Create .opencode/scripts/e2e/lsp-diagnostic-gate-e2e.ts. Use FRAMEWORK_DB_PATH=/tmp/lsp-diagnostic-gate-e2e.db for isolated testing. Validate 7 scenarios: (1) clean target → diagnostic_state.files[target] absent, (2) target TS error → diagnostic_state.files[target].errors[] exists, (3) before hook blocks with [FW-ENFORCE][TSC-DIAG], (4) target_clean_project_dirty → stale cleared, (5) safe_shell parsed TS target → DB update, (6) submitDeliverables → recoverable, (7) compliance_gate_complete → failed.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-TSC-PLUGIN-CREATE",
+        "E2E-TSC-GATE-LAYERS"
+      ],
+      "outputs": [
+        ".task_temp/E2E-HARNESS/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-e2e-acceptance-gaps.md",
+        "section": "4 — GAP 1",
+        "clause": "Missing isolated DB E2E harness for tsc diagnostic gate"
+      },
+      "target_files": [
+        ".opencode/scripts/e2e/lsp-diagnostic-gate-e2e.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/e2e/lsp-diagnostic-gate-e2e.ts"
+        ],
+        "logic_complete": "All 7 scenarios implemented with FRAMEWORK_DB_PATH isolation. Each scenario produces PASS/FAIL output.",
+        "tests_pass": "FRAMEWORK_DB_PATH=/tmp/lsp-diagnostic-gate-e2e.db bun .opencode/scripts/e2e/lsp-diagnostic-gate-e2e.ts → all 7 scenarios PASS",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-SELFTEST-CHECKS",
+      "name": "Add self-test checks 70-74 for LSP diagnostic gate verification",
+      "description": "Add 5 new checks to framework-self-test.ts: Check 70 (tsc-diag-track before hook uses output.args), Check 71 (runTscDiagnostic has target_clean_project_dirty + unknown statuses), Check 72 (runAllChecks has no runTscCheck call), Check 73 (machine.schema.full.json required excludes type_check_state), Check 74 (tsc-diag-track checks atomicWriteSubState return value). Update EXPECTED_COUNT to 29 (24+5).",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-TSC-PLUGIN-CREATE",
+        "E2E-TSC-STATE-REGISTER"
+      ],
+      "outputs": [
+        ".task_temp/E2E-SELFTEST-CHECKS/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-e2e-acceptance-gaps.md",
+        "section": "4 — GAP 2",
+        "clause": "Framework self-test lacks LSP diagnostic gate checks"
+      },
+      "target_files": [
+        ".opencode/scripts/framework-self-test.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/scripts/framework-self-test.ts (updated)"
+        ],
+        "logic_complete": "Checks 70-74 added with proper source grep/static analysis. EXPECTED_COUNT=29.",
+        "tests_pass": "bun .opencode/scripts/framework-self-test.ts → checks 70-74 all PASS",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-BUN-TYPES-FIX",
+      "name": "Fix bun-types root dependency for tsc baseline",
+      "description": "Add 'bun-types': '^1.3.14' to root package.json devDependencies. Run bun install to sync lockfile. Verify npx tsc --noEmit --incremental passes without TS2688 error. This enables runTscDiagnostic() to function correctly under root tsconfig.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-BUN-TYPES-FIX/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-e2e-acceptance-gaps.md",
+        "section": "4 — GAP 3",
+        "clause": "npx tsc fails with TS2688: Cannot find type definition file for 'bun-types'"
+      },
+      "target_files": [
+        "package.json",
+        "bun.lock"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          "package.json (updated)",
+          "bun.lock (updated)"
+        ],
+        "logic_complete": "bun-types added to devDependencies. bun install syncs lockfile.",
+        "tests_pass": "npx tsc --noEmit --incremental --pretty false --tsBuildInfoFile .opencode/state/.tsbuildinfo → no TS2688 error",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TSC-ESM-COMPLY",
+      "name": "ESM compliance: Extract runTscDiagnostic to .opencode/lib/tsc-diagnostic.ts",
+      "description": "Extract runTscDiagnostic() and parseTscOutput() from code-quality-lib.ts to .opencode/lib/tsc-diagnostic.ts. Use ES module export syntax (export function). Update tsc-diag-track.ts to use static import { runTscDiagnostic } from '../lib/tsc-diagnostic' instead of require(). Keep backward-compatible re-export in code-quality-lib.ts if needed for tests.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-TSC-LIB-REFACTOR"
+      ],
+      "outputs": [
+        ".task_temp/E2E-TSC-ESM-COMPLY/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-e2e-acceptance-gaps.md",
+        "section": "4 — GAP 4",
+        "clause": "Plugin uses require() which violates official ESM plugin conventions"
+      },
+      "target_files": [
+        ".opencode/lib/tsc-diagnostic.ts",
+        ".opencode/plugins/tsc-diag-track.ts",
+        ".opencode/scripts/mcp-tools/code-quality-lib.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/lib/tsc-diagnostic.ts (new)"
+        ],
+        "logic_complete": "runTscDiagnostic and parseTscOutput exported from tsc-diagnostic.ts. tsc-diag-track.ts uses import statement, no require(). code-quality-lib.ts re-exports or references the new lib.",
+        "tests_pass": "bun --check on all 3 files passes; tsc diagnostic function works via import",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-COMMENT-FIX",
+      "name": "Fix comment drift: Update DB-only semantics comments in gate-core.ts",
+      "description": "Update cleanliness check comments in gate-core.ts and related files to reflect DB-only reality: sub-states are read via readSubState() from SQLite substate_kv. JSON snapshots, if present, are frozen historical artifacts and not canonical. Remove references to 'separate JSON files under .opencode/state/'.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-COMMENT-FIX/HANDOVER.md"
+      ],
+      "priority": "P2",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/lsp-diagnostic-gate-e2e-acceptance-gaps.md",
+        "section": "4 — GAP 5",
+        "clause": "Comments still carry old JSON split semantics despite DB-only reality"
+      },
+      "target_files": [
+        ".opencode/lib/gate-core.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/lib/gate-core.ts (updated)"
+        ],
+        "logic_complete": "Comments reflect DB-only reality. No misleading 'JSON files' references for sub-states.",
+        "tests_pass": "bun --check passes; grep for legacy phrasing returns zero results",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-ROUTE-DISPLAY",
+      "name": "Fix @@Agent display bug in dispatch-before.ts",
+      "description": "Create formatAgent() helper that strips duplicate @ prefix. Replace all @${target} and @${finalAgent} string templates in dispatch-before.ts ROUTE-MISMATCH error messages with formatAgent(). Add self-test check for @@ prevention.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-ROUTE-DISPLAY/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/dispatch-shell-checklist-gaps-fix-plan-20260627.md",
+        "section": "3 — Gap A",
+        "clause": "Step A1: Fix @@Agent display bug. Error message拼接会制造@@Agent"
+      },
+      "target_files": [
+        ".opencode/plugins/dispatch-before.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/plugins/dispatch-before.ts (updated)"
+        ],
+        "logic_complete": "formatAgent() strips duplicate @ prefixes. All error messages use formatAgent(). Log fields preserve both normalized and display names.",
+        "tests_pass": "bun --check passes; self-test verifies no @@ in error output",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-ROUTE-PURPOSE",
+      "name": "Add dispatch purpose dimension and framework read-only audit route",
+      "description": "In route-validator.ts: add inferDispatchPurpose(task_description, target_files) returning DispatchPurpose enum (read_audit, write_repair, business_impl, ci_cd, unknown). In project.config.json: add purpose_to_agent routing table with framework_read_audit → [@Guardian, @Super-Admin] (read-only tools) and framework_write_repair → [@Super-Admin]. Insert L1.5 between L1 and L2 in dispatch-before.ts to filter by purpose.",
+      "agent": "@Coder-BE",
+      "dependencies": [
+        "E2E-ROUTE-DISPLAY"
+      ],
+      "outputs": [
+        ".task_temp/E2E-ROUTE-PURPOSE/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/dispatch-shell-checklist-gaps-fix-plan-20260627.md",
+        "section": "3 — Gap A",
+        "clause": "Steps A2-A4: Add dispatch purpose dimension + framework read-only audit route"
+      },
+      "target_files": [
+        ".opencode/lib/route-validator.ts",
+        ".opencode/plugins/dispatch-before.ts",
+        ".opencode/project.config.json"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/lib/route-validator.ts (updated)",
+          ".opencode/plugins/dispatch-before.ts (updated)",
+          ".opencode/project.config.json (updated)"
+        ],
+        "logic_complete": "inferDispatchPurpose classifies tasks. purpose_to_agent routes framework_read_audit to Guardian/Super-Admin (read-only). L1.5 filters by purpose. All route decisions logged.",
+        "tests_pass": "bun --check on modified files; self-test verifies framework_read_audit routes correctly",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-SHELL-CLASSIFY",
+      "name": "Implement shell command classifier with benign FD redirect stripping",
+      "description": "In tool-scope.ts: add stripBenignFdRedirects() to normalize stderr redirects (2>/dev/null, 2>&1). Add classifyShellCommand() returning ShellClassification (read_only | write | unparseable_write). Add read-only whitelist: npx tsc --noEmit, bun --check *.ts, node -e/bun -e (without FS write APIs), grep/rg/ls/cat + benign redirects. Integrate with scope-before.ts — only write/unparseable_write triggers backup-bypass.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-SHELL-CLASSIFY/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/dispatch-shell-checklist-gaps-fix-plan-20260627.md",
+        "section": "4 — Gap B",
+        "clause": "Steps B1-B4: Shell classifier + benign FD redirect + scope-before integration"
+      },
+      "target_files": [
+        ".opencode/lib/tool-scope.ts",
+        ".opencode/plugins/scope-before.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/lib/tool-scope.ts (updated)",
+          ".opencode/plugins/scope-before.ts (updated)"
+        ],
+        "logic_complete": "stripBenignFdRedirects normalizes stderr redirects. classifyShellCommand distinguishes read_only commands (npx tsc --noEmit, bun --check, grep 2>/dev/null) from write commands (cat >, tee, sed -i). scope-before only blocks write/unparseable_write.",
+        "tests_pass": "bun --check on both files; grep 2>/dev/null classified read_only; npx tsc --noEmit classified read_only; cat > file classified write and blocked in strict",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-CHECKLIST-DOMAIN",
+      "name": "Add main-session domain fallback and policy-ize checklist auto-pass",
+      "description": "In resolve_domain_id.ts: add agent_domain_map fallback for main sessions without dispatch context. In project.config.json: add p0_checklist_policy.main_session_auto_pass with agent list and auto-pass items. In session.ts: read policy instead of hardcoded rules, write execution_checklist_events with actor. In knowledge_cache_attest.ts: add mandatory_total/mandatory_read/mandatory_missing counts to response.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-CHECKLIST-DOMAIN/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/dispatch-shell-checklist-gaps-fix-plan-20260627.md",
+        "section": "5 — Gap C",
+        "clause": "Steps C1-C4: Main-session domain fallback + checklist policy-ization + mandatory knowledge UX"
+      },
+      "target_files": [
+        ".opencode/tools/resolve_domain_id.ts",
+        ".opencode/plugins/session.ts",
+        ".opencode/tools/knowledge_cache_attest.ts",
+        ".opencode/project.config.json"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/tools/resolve_domain_id.ts (updated)",
+          ".opencode/plugins/session.ts (updated)",
+          ".opencode/tools/knowledge_cache_attest.ts (updated)"
+        ],
+        "logic_complete": "resolve_domain_id falls back to agent_domain_map for main sessions. session.ts reads p0_checklist_policy. knowledge_cache_attest returns mandatory_total/read/missing counts. All auto-pass events recorded in execution_checklist_events.",
+        "tests_pass": "bun --check on modified files; Orchestrator main session auto-passes preflight from session_map + agent_domain_map",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-REPORT-TOOL",
+      "name": "Create safe_write_report tool for strict-mode report generation",
+      "description": "Create .opencode/tools/safe_write_report.ts. Internal implementation uses safe_edit backup/lock/audit components. Write scope: docs/review/** only. Must create backup, record write_audit_state, respect Permission Matrix. Allows report generation in strict/locked mode without shell redirect bypass.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-REPORT-TOOL/HANDOVER.md"
+      ],
+      "priority": "P2",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/dispatch-shell-checklist-gaps-fix-plan-20260627.md",
+        "section": "6 — Gap D",
+        "clause": "Create safe_write_report tool for report generation in strict mode"
+      },
+      "target_files": [
+        ".opencode/tools/safe_write_report.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/tools/safe_write_report.ts"
+        ],
+        "logic_complete": "Tool writes to docs/review/** with backup + audit. Respects Permission Matrix. Blocks non-docs paths.",
+        "tests_pass": "bun --check passes; write to docs/review/ succeeds in strict mode; write to .opencode/ is blocked",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TECHDEBT-017",
+      "name": "[Tech-Debt] TD-2026-017: Externalize pre-execution-gate.js REMEDIATION_MAP",
+      "description": "Extract hardcoded REMEDIATION_MAP from pre-execution-gate.js to project.config.json or a standalone config file. Deadline: 2026-07-01. Priority: P1 tech-debt repayment.",
+      "agent": "@Coder-BE",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-TECHDEBT-017/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "技术债登记",
+        "clause": "TD-2026-017: pre-execution-gate.js REMEDIATION_MAP currently has static strings — should be externalized (deadline 2026-07-01)"
+      },
+      "target_files": [
+        ".opencode/hooks/pre-execution-gate.js",
+        ".opencode/project.config.json"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".opencode/hooks/pre-execution-gate.js (updated)",
+          ".opencode/project.config.json (updated)"
+        ],
+        "logic_complete": "REMEDIATION_MAP read from project.config.json or standalone config. Static strings removed from pre-execution-gate.js.",
+        "tests_pass": "pre-execution-hook.sh DAG gate still functions with externalized config",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "E2E-TECHDEBT-018",
+      "name": "[Tech-Debt] TD-2026-018: Integrate framework-health-check.sh into CI/CD",
+      "description": "Add framework-health-check.sh invocation to GitHub Actions CI workflow. Deadline: 2026-07-01. Priority: P1 tech-debt repayment.",
+      "agent": "@CI-CD-Agent",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/E2E-TECHDEBT-018/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "TECH_DEBT_REGISTRY.md",
+        "section": "技术债登记",
+        "clause": "TD-2026-018: framework-health-check.sh should be integrated into CI/CD pipeline health checks (deadline 2026-07-01)"
+      },
+      "target_files": [
+        ".github/workflows/framework-ci.yml"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".github/workflows/framework-ci.yml (updated)"
+        ],
+        "logic_complete": "framework-health-check.sh added as CI step in framework-ci.yml. Non-zero exit triggers CI failure notification.",
+        "tests_pass": "CI pipeline step executes framework-health-check.sh and reports results",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "CALLER-ID-PHASE-0",
+      "name": "Phase 0: Audit Instrumentation — resolver-source + cleanup + hard-warning logging",
+      "description": "在 agent-resolver.ts 添加结构化 resolver-source 日志，在 session.ts cleanup 添加 deletion-audit session_id 日志，在 dispatch-before.ts 添加 CALLER-IDENTITY-UNRESOLVED 硬警告",
+      "agent": "@Super-Admin",
+      "dependencies": [],
+      "outputs": [
+        ".task_temp/CALLER-ID-PHASE-0/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md",
+        "section": "Phase 0 - Audit Instrumentation First",
+        "clause": "结构化 resolver-source 日志，deletion-audit 日志，硬警告事件"
+      },
+      "target_files": [
+        ".opencode/lib/agent-resolver.ts",
+        ".opencode/plugins/session.ts",
+        ".opencode/plugins/dispatch-before.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/CALLER-ID-PHASE-0/HANDOVER.md"
+        ],
+        "logic_complete": "agent-resolver.ts 有6种 source 日志；session.ts 有 bounded session_id 删除日志；dispatch-before.ts 有 unresolved 硬警告",
+        "tests_pass": "framework-self-test.ts 无回归；新增日志事件可通过 grep 查到",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "CALLER-ID-PHASE-1",
+      "name": "Phase 1: DB-Canonical Session Registry — new session_registry table",
+      "description": "新建 session_registry 表，chat.message 写 primary 行，task-after.ts 写 subagent 行，session_map 降级为兼容缓存",
+      "agent": "@Super-Admin",
+      "dependencies": [
+        "CALLER-ID-PHASE-0"
+      ],
+      "outputs": [
+        ".task_temp/CALLER-ID-PHASE-1/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md",
+        "section": "Phase 1 - Introduce DB-Canonical Session Registry",
+        "clause": "session_registry 表 + 写入规则 + session_map 兼容层"
+      },
+      "target_files": [
+        ".opencode/plugins/session.ts",
+        ".opencode/plugins/task-after.ts",
+        ".opencode/lib/db-manager.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/CALLER-ID-PHASE-1/HANDOVER.md"
+        ],
+        "logic_complete": "session_registry 表已创建；primary/subagent 行写入正确；session_map 为兼容缓存",
+        "tests_pass": "PRAGMA integrity_check OK；session_registry 可读写",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "CALLER-ID-PHASE-2",
+      "name": "Phase 2: Replace Unsafe Caller Resolution — remove global fallback from enforcement",
+      "description": "移除 dispatch-before.ts 中的全局 latest-dispatch fallback，替换为精确会话查询；未解析的 caller 要 fail closed",
+      "agent": "@Super-Admin",
+      "dependencies": [
+        "CALLER-ID-PHASE-1"
+      ],
+      "outputs": [
+        ".task_temp/CALLER-ID-PHASE-2/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md",
+        "section": "Phase 2 - Replace Unsafe Caller Resolution",
+        "clause": "新的 resolution order + 移除全局 fallback + fail closed"
+      },
+      "target_files": [
+        ".opencode/plugins/dispatch-before.ts",
+        ".opencode/lib/agent-resolver.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/CALLER-ID-PHASE-2/HANDOVER.md"
+        ],
+        "logic_complete": "dispatch-before.ts 使用 session_registry 精确查询；未解析时 fail closed 并返回 CALLER-IDENTITY-UNRESOLVED",
+        "tests_pass": "模拟精确会话和丢失会话场景，验证 M14 行为正确",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "CALLER-ID-PHASE-3",
+      "name": "Phase 3: Redesign Session Cleanup — registry-aware TTL-based policy",
+      "description": "替换当前不安全的 DELETE FROM session_map WHERE session_id NOT IN session_log，改为基于 session_kind/status/last_seen_at 的注册表感知清理",
+      "agent": "@Super-Admin",
+      "dependencies": [
+        "CALLER-ID-PHASE-1"
+      ],
+      "outputs": [
+        ".task_temp/CALLER-ID-PHASE-3/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md",
+        "section": "Phase 3 - Redesign Session Cleanup",
+        "clause": "TTL-based cleanup，primary 保留直到过期，subagent 基于 parent 状态"
+      },
+      "target_files": [
+        ".opencode/plugins/session.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/CALLER-ID-PHASE-3/HANDOVER.md"
+        ],
+        "logic_complete": "primary session 保留到 TTL 过期；subagent 基于 parent 状态清理；cleanup 事务性并记录 session_id",
+        "tests_pass": "模拟 cleanup 场景验证 primary 行不被误删",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "CALLER-ID-PHASE-4",
+      "name": "Phase 4: Exact Session Ownership in dispatch-before — resolveCallerIdentityStrict",
+      "description": "新增 resolveCallerIdentityStrict() helper，为 M14 决策强制执行精确会话语义，exact=false 永不授予特权身份",
+      "agent": "@Super-Admin",
+      "dependencies": [
+        "CALLER-ID-PHASE-2",
+        "CALLER-ID-PHASE-3"
+      ],
+      "outputs": [
+        ".task_temp/CALLER-ID-PHASE-4/HANDOVER.md"
+      ],
+      "priority": "P0",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md",
+        "section": "Phase 4 - Make dispatch-before Use Exact Session Ownership",
+        "clause": "resolveCallerIdentityStrict() + M14 decision: exact=true required"
+      },
+      "target_files": [
+        ".opencode/plugins/dispatch-before.ts",
+        ".opencode/lib/agent-resolver.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/CALLER-ID-PHASE-4/HANDOVER.md"
+        ],
+        "logic_complete": "resolveCallerIdentityStrict 返回 CallerIdentityResult；M14 仅 exact=true 时授权特权",
+        "tests_pass": "精确/非精确来源测试；特权路由 fail closed",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "CALLER-ID-PHASE-5",
+      "name": "Phase 5: Migration And Backfill — schema migration + data backfill",
+      "description": "Schema 迁移创建 session_registry，从 session_map/session_log/gate_sessions 回填数据，不确定的标记为 unknown",
+      "agent": "@Super-Admin",
+      "dependencies": [
+        "CALLER-ID-PHASE-1"
+      ],
+      "outputs": [
+        ".task_temp/CALLER-ID-PHASE-5/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md",
+        "section": "Phase 5 - Migration And Backfill",
+        "clause": "schema migration + 数据回填 + 兼容层"
+      },
+      "target_files": [
+        ".opencode/lib/db-manager.ts",
+        ".opencode/lib/db-state-manager.ts",
+        ".opencode/plugins/session.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/CALLER-ID-PHASE-5/HANDOVER.md"
+        ],
+        "logic_complete": "session_registry 表已创建；数据回填完成；不确定行标记为 unknown；迁移幂等且事务性",
+        "tests_pass": "回填后数据完整性检查；PRAGMA integrity_check OK",
+        "guardian_approved": false
+      }
+    },
+    {
+      "id": "CALLER-ID-PHASE-6",
+      "name": "Phase 6: Tests And Harness — e2e regression coverage for caller identity",
+      "description": "5 个端到端测试覆盖 caller identity 故障场景：同会话 dispatches、精确会话缺失、并发会话、startup cleanup、resume path",
+      "agent": "@Super-Admin",
+      "dependencies": [
+        "CALLER-ID-PHASE-4",
+        "CALLER-ID-PHASE-5"
+      ],
+      "outputs": [
+        ".task_temp/CALLER-ID-PHASE-6/HANDOVER.md"
+      ],
+      "priority": "P1",
+      "status": "pending",
+      "requirement_source": {
+        "document": "docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md",
+        "section": "Phase 6 - Tests And Harness",
+        "clause": "5 个 e2e 测试用例 + harness 要求"
+      },
+      "target_files": [
+        ".opencode/tests/caller-identity.test.ts"
+      ],
+      "definition_of_done": {
+        "files_exist": [
+          ".task_temp/CALLER-ID-PHASE-6/HANDOVER.md"
+        ],
+        "logic_complete": "5 个 e2e 测试实现并通过；harness 运行于 Bun + SQLite WAL",
+        "tests_pass": "5/5 测试用例通过",
+        "guardian_approved": false
+      }
     }
   ],
   "execution_order": {
@@ -2311,15 +3080,96 @@
     "techdebt_wv_recheck": [
       "T-TECHDEBT-WV011-FIX",
       "T-TECHDEBT-WV012-FIX"
-    ]
+    ],
+    "e2e_tsc_state_parallel": [
+      "E2E-TSC-STATE-REGISTER",
+      "E2E-TSC-LIB-REFACTOR",
+      "E2E-BUN-TYPES-FIX"
+    ],
+    "e2e_tsc_plugin_sequential": [
+      "E2E-TSC-MIGRATE-CONSUMERS",
+      "E2E-TSC-PLUGIN-CREATE",
+      "E2E-TSC-GATE-LAYERS"
+    ],
+    "e2e_tsc_post_parallel": [
+      "E2E-TSC-ESM-COMPLY",
+      "E2E-PLUGIN-REGISTER",
+      "E2E-SELFTEST-CHECKS",
+      "E2E-COMMENT-FIX"
+    ],
+    "e2e_tsc_e2e": [
+      "E2E-HARNESS"
+    ],
+    "e2e_dispatch_fix_parallel": [
+      "E2E-ROUTE-DISPLAY",
+      "E2E-SHELL-CLASSIFY",
+      "E2E-CHECKLIST-DOMAIN"
+    ],
+    "e2e_dispatch_fix_post": [
+      "E2E-ROUTE-PURPOSE",
+      "E2E-REPORT-TOOL"
+    ],
+    "e2e_techdebt_repay": [
+      "E2E-TECHDEBT-017",
+      "E2E-TECHDEBT-018"
+    ],
+    "caller_identity_fix": {
+      "phase_0_audit": [
+        "CALLER-ID-PHASE-0"
+      ],
+      "phase_1_registry": [
+        "CALLER-ID-PHASE-1"
+      ],
+      "phase_2_3_parallel": {
+        "resolution": [
+          "CALLER-ID-PHASE-2"
+        ],
+        "cleanup": [
+          "CALLER-ID-PHASE-3"
+        ]
+      },
+      "phase_4_strict": [
+        "CALLER-ID-PHASE-4"
+      ],
+      "phase_5_6_parallel": {
+        "migration": [
+          "CALLER-ID-PHASE-5"
+        ],
+        "tests": [
+          "CALLER-ID-PHASE-6"
+        ]
+      }
+    }
   },
   "meta": {
-    "version": "5.13.1",
+    "version": "5.14.0",
     "project": "booking-system",
     "generated_by": "@Meta-Planner",
-    "generated_at": "2026-06-19T06:46:00.000Z",
-    "description": "Appended 7 GH-WF tasks (auto-PR, doc decomposition, Project association, state sync) + 7 tech-debt repayment tasks. Now 52 active tasks.",
+    "generated_at": "2026-06-27T18:00:00.000Z",
+    "description": "Appended 19 E2E acceptance tasks from 3 framework refactor documents: tsc diagnostic gate (8), dispatch/shell/checklist gaps (7), E2E gaps (2), tech-debt repayment (2). Now 71 active tasks.",
     "changelog": [
+      {
+        "version": "5.14.0",
+        "date": "2026-06-27T09:39:10.190Z",
+        "changes": [
+          "CALLER-ID-FIX: Appended 7 caller identity resolution fix tasks (Phase 0-6) from orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md. All assigned to @Super-Admin. P0: Phase 0-4 (audit instrumentation, session_registry table, remove global fallback, registry-aware cleanup, exact session ownership). P1: Phase 5-6 (migration/backfill, e2e tests).",
+          "Added execution_order group: caller_identity_fix (Phase 0 → Phase 1 → Phase 2+3 parallel → Phase 4 → Phase 5+6 parallel).",
+          "Source: docs/review/framework-refactor/orchestrator-caller-identity-fallback-audit-and-fix-plan-20260627.md.",
+          "DAG total: 77 tasks (48 completed, 25 pending, 4 skipped)."
+        ]
+      },
+      {
+        "version": "5.14.0",
+        "date": "2026-06-27T18:00:00.000Z",
+        "changes": [
+          "E2E-ACCEPTANCE: Appended 19 framework integration acceptance tasks across 3 document sources: (1) lsp-diagnostic-gate-implementation-plan.md — 8 tasks: E2E-TSC-STATE-REGISTER, E2E-TSC-MIGRATE-CONSUMERS, E2E-TSC-LIB-REFACTOR, E2E-TSC-PLUGIN-CREATE, E2E-TSC-GATE-LAYERS, E2E-TSC-ESM-COMPLY, E2E-PLUGIN-REGISTER, E2E-COMMENT-FIX. (2) lsp-diagnostic-gate-e2e-acceptance-gaps.md — 2 tasks: E2E-HARNESS (isolated DB E2E), E2E-SELFTEST-CHECKS (self-test checks 70-74). (3) dispatch-shell-checklist-gaps-fix-plan-20260627.md — 7 tasks: E2E-ROUTE-DISPLAY (@@Agent fix), E2E-ROUTE-PURPOSE (dispatch purpose dimension), E2E-SHELL-CLASSIFY (shell classifier + FD redirect), E2E-CHECKLIST-DOMAIN (main-session fallback), E2E-REPORT-TOOL (safe_write_report), E2E-BUN-TYPES-FIX (root dependency). (4) TECH_DEBT_REGISTRY.md — 2 tasks: E2E-TECHDEBT-017 (TD-2026-017, deadline 2026-07-01), E2E-TECHDEBT-018 (TD-2026-018, deadline 2026-07-01).",
+          "Added 7 execution_order groups: e2e_tsc_state_parallel (3 P0 tasks), e2e_tsc_plugin_sequential (3 P0 tasks linear), e2e_tsc_post_parallel (4 P1/P2 tasks), e2e_tsc_e2e (1 P1 E2E harness), e2e_dispatch_fix_parallel (3 P0/P1 tasks), e2e_dispatch_fix_post (2 P1/P2 tasks), e2e_techdebt_repay (2 P1 tasks).",
+          "Dependency graph: E2E-TSC-STATE-REGISTER → E2E-TSC-MIGRATE-CONSUMERS; E2E-TSC-LIB-REFACTOR → E2E-TSC-PLUGIN-CREATE → E2E-TSC-GATE-LAYERS; E2E-TSC-PLUGIN-CREATE → E2E-PLUGIN-REGISTER, E2E-SELFTEST-CHECKS, E2E-TSC-ESM-COMPLY, E2E-HARNESS; E2E-ROUTE-DISPLAY → E2E-ROUTE-PURPOSE. Other tasks independent.",
+          "Tech-debt scan: TECH_DEBT_REGISTRY.md (216 lines). 5 items with deadline ≤ 2026-07-04 identified. 3 items (WV-2026-011/012 with deadline 2026-06-24, TD-2026-017/018 with deadline 2026-07-01) are framework-relevant. WV-011/012 already have existing tasks (T-TECHDEBT-WV011-FIX/WV012-FIX). TD-017/018 generated as new tasks E2E-TECHDEBT-017/018. TECH-002 (2026-06-30, backend price field) is business code domain — noted but not included in framework DAG.",
+          "Sources: docs/review/framework-refactor/lsp-diagnostic-gate-implementation-plan.md (879 lines), docs/review/framework-refactor/lsp-diagnostic-gate-e2e-acceptance-gaps.md (370 lines), docs/review/framework-refactor/dispatch-shell-checklist-gaps-fix-plan-20260627.md (645 lines), TECH_DEBT_REGISTRY.md (216 lines).",
+          "Compliance: dag-generation-standard.md G1-G4/T1-T4/D1-D4 met. G1: max 5 target_files per task. G2: 19 tasks ≥ minimum formula (append-only framework governance DAG). All tasks have requirement_source from specific document sections."
+        ]
+      },
       {
         "version": "5.13.1",
         "date": "2026-06-21T09:00:41.963Z",
@@ -2402,14 +3252,14 @@
         ]
       }
     ],
-    "total_tasks": 52,
+    "total_tasks": 77,
     "completed_tasks": 48,
-    "pending_tasks": 0,
+    "pending_tasks": 25,
     "archived_completed": 189,
     "skipped_tasks": 4,
-    "coverage_target": "GH-WORKFLOW: 7 implementation tasks + 7 tech-debt repayment tasks",
-    "progress": "92%",
-    "last_updated": "2026-06-21T09:04:21.400Z",
+    "coverage_target": "E2E-ACCEPTANCE: 19 framework integration acceptance tasks (tsc diagnostic gate + dispatch/shell gaps + E2E gaps + tech-debt repayment)",
+    "progress": "62%",
+    "last_updated": "2026-06-27T09:39:10.189Z",
     "recent_completed": 0,
     "last_compacted": "2026-06-04T09:04:52.630Z",
     "in_progress_tasks": 0

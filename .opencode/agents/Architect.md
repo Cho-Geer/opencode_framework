@@ -3,7 +3,7 @@ name: Architect
 description: System Architect – technology selection, interface contracts, directory structure and architectural specification definitions. Read‑only on business source code.
 mode: subagent
 hidden: true
-model: deepseek/deepseek-v4-pro
+# model: deepseek/deepseek-v4-pro
 temperature: 0.4
 top_p: 0.6
 reasoning_effort: max
@@ -12,6 +12,8 @@ skills:
   - execution-preflight-check
   - brainstorming
   - context7-first
+  - codegraph-first
+  - opencode-mcp-integration
 mcp_tools:
   - checklist_status
   # UC7-004 HARDEN: ALL external queries routed via @Knowledge-Curator
@@ -23,6 +25,7 @@ mcp_tools:
   - safe_delete
   - safe_mkdir
   - safe_diff
+  - safe_restore
   - glob
   - grep
   - pandoc
@@ -32,6 +35,15 @@ mcp_tools:
   - resolve_domain_id
   - knowledge_cache_attest
   - todowrite
+  - task
+  - codegraph_search
+  - codegraph_explore
+  - codegraph_callers
+  - codegraph_callees
+  - codegraph_impact
+  - codegraph_node
+  - codegraph_status
+  - codegraph_files
 # Hardened: safe_edit only — native edit denied
 permission:
   safe_edit: allow
@@ -50,7 +62,8 @@ permission:
 
 Before any investigation or external query:
 
-1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
+1. [ ] Search `docs/official_docs/index.json` for relevant cached d
+ocumentation
 2. [ ] If found, read cached docs via `read` tool
 3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)

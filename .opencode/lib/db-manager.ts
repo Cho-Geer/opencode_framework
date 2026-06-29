@@ -197,6 +197,7 @@ export function initializeSchema(db: Database): void {
   // These tables were never populated and had zero SQL readers.
 
   // ── gate_sessions (gate-state.json replacement — solves G1) ──
+  // F2 (2026-06-27): Added version column for optimistic lock.
   db.run(`
     CREATE TABLE IF NOT EXISTS gate_sessions (
       session_id        TEXT PRIMARY KEY,
@@ -221,10 +222,13 @@ export function initializeSchema(db: Database): void {
       fail_reason       TEXT,
       worktree          TEXT,
       audit             TEXT,
-      updated_at        INTEGER NOT NULL
+      updated_at        INTEGER NOT NULL,
+      version           INTEGER NOT NULL DEFAULT 1
     )
   `);
   db.run(`CREATE INDEX IF NOT EXISTS idx_gate_status ON gate_sessions(status)`);
+  // F2 migration: add version column to existing tables
+  try { db.run(`ALTER TABLE gate_sessions ADD COLUMN version INTEGER NOT NULL DEFAULT 1`); } catch {}
 
   // ── gate_drained_sessions (archived drained sessions) ─────
   db.run(`
@@ -555,7 +559,8 @@ export function initializeSchema(db: Database): void {
       "transaction_state",
       "knowledge_state",
       "knowledge_audit_state",
-      "type_check_state",
+      "type_check_state", // deprecated — but still may exist from pre-2026-06-26 runs
+      "diagnostic_state", // replaces type_check_state (2026-06-26)
       "format_state",
       "dependency_state",
     ];
@@ -1839,6 +1844,59 @@ export function initializeSchema(db: Database): void {
       detail: `v25 backup_log creation failed: ${e.message}`,
     });
   }
+
+  // v26: TSC Diagnostic Gate v2 — tsc_gate_locks + tsc_gate_events tables
+  // tsc_gate_locks: file-level write locks + tsc run mutex
+  // tsc_gate_events: structured audit events from tsc-diag-track.ts
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS tsc_gate_locks (
+        file_path  TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        locked_at  INTEGER NOT NULL,
+        lock_type  TEXT NOT NULL DEFAULT 'file_write',
+        PRIMARY KEY (file_path)
+      )
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS tsc_gate_events (
+        event_id    TEXT PRIMARY KEY,
+        session_id  TEXT,
+        file_path   TEXT NOT NULL,
+        event_type  TEXT NOT NULL,
+        error_count INTEGER DEFAULT 0,
+        elapsed_ms  INTEGER,
+        detail      TEXT,
+        created_at  INTEGER NOT NULL
+      )
+    `);
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_session ON tsc_gate_events(session_id)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_file ON tsc_gate_events(file_path)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_type ON tsc_gate_events(event_type)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_created ON tsc_gate_events(created_at)`,
+    );
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (26, ?, 'v26: tsc_gate_locks + tsc_gate_events tables — TSC Diagnostic Gate v2')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v26: tsc_gate_locks + tsc_gate_events tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v26: ${e.message}`,
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1851,12 +1909,7 @@ export function initializeSchema(db: Database): void {
 //   call multiple times.
 // ════════════════════════════════════════════════════════════
 
-/**
- * Backfill typed knowledge tables from index.json manifest.
- * Idempotent — safe to call multiple times (INSERT OR IGNORE).
- *
- * @returns Summary of inserted rows: { entriesInserted, filesInserted, tagsInserted }
- */
+// (F2: duplicate removed)
 export function backfillKnowledgeFromManifest(root?: string): {
   entriesInserted: number;
   filesInserted: number;
@@ -2021,153 +2074,153 @@ export function backfillKnowledgeFromManifest(root?: string): {
  *
  * @returns Summary of inserted rows: { entriesInserted, filesInserted, tagsInserted }
  */
-export function backfillKnowledgeFromManifest(root?: string): {
-  entriesInserted: number;
-  filesInserted: number;
-  tagsInserted: number;
-} {
-  // Initialize schema first (includes v11 tables), then backfill
-  const db = getDb({ root });
-  const entriesInserted = { count: 0 };
-  const filesInserted = { count: 0 };
-  const tagsInserted = { count: 0 };
-
-  // Read index.json manifest
-  const indexPath = path.join(
-    root || process.env.OPENCODE_ROOT || process.cwd(),
-    "docs",
-    "official_docs",
-    "index.json",
-  );
-
-  if (!fs.existsSync(indexPath)) {
-    writeLog(SRC, "WARN", {
-      event: "KC-BACKFILL-NO-MANIFEST",
-      detail: `Manifest not found at ${indexPath}`,
-    });
-    return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
-  }
-
-  let manifest: any;
-  try {
-    manifest = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-  } catch (e: any) {
-    writeLog(SRC, "ERROR", {
-      event: "KC-BACKFILL-PARSE-FAILED",
-      detail: `Manifest parse error: ${e.message}`,
-    });
-    return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
-  }
-
-  const entries = manifest.entries || [];
-  const now = Date.now();
-
-  const insertEntry = db.prepare(`
-    INSERT OR IGNORE INTO knowledge_entries
-      (library_id, query_topic, domain, tags, source, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertFile = db.prepare(`
-    INSERT OR IGNORE INTO knowledge_files
-      (entry_id, file_path, sha256, size_bytes, source, ttl_days, status,
-       access_count, last_accessed, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertTag = db.prepare(`
-    INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)
-  `);
-
-  const insertRoute = db.transaction((manifestEntries: any[]) => {
-    for (const entry of manifestEntries) {
-      const tags = entry.tags || [];
-      const entryFiles = entry.files || [];
-      const source =
-        entryFiles.length > 0 ? entryFiles[0].source : entry.source || null;
-      const createdMs = entry.last_updated
-        ? new Date(entry.last_updated).getTime()
-        : entryFiles.length > 0 && entryFiles[0].created_at
-          ? new Date(entryFiles[0].created_at).getTime()
-          : now;
-
-      const result = insertEntry.run(
-        entry.library_id || "unknown",
-        entry.query_topic || "untitled",
-        entry.domain || "fallback",
-        JSON.stringify(tags),
-        source || null,
-        entry.status || "active",
-        createdMs,
-        now,
-      );
-
-      if (result.changes > 0) {
-        entriesInserted.count++;
-      }
-
-      // Get entry_id (newly inserted or existing)
-      const entryRow = db
-        .query(
-          "SELECT id FROM knowledge_entries WHERE library_id = ? AND query_topic = ?",
-        )
-        .get(entry.library_id, entry.query_topic) as { id: number } | null;
-
-      if (!entryRow) continue;
-      const entryId = entryRow.id;
-
-      // Insert files
-      for (const file of entryFiles) {
-        const fileCreated = file.created_at
-          ? new Date(file.created_at).getTime()
-          : now;
-        const fileResult = insertFile.run(
-          entryId,
-          file.path || "",
-          file.sha256 || null,
-          file.size_bytes || 0,
-          file.source || null,
-          file.ttl_days ?? 30,
-          file.status || "active",
-          file.access_count || 0,
-          file.last_accessed ? new Date(file.last_accessed).getTime() : null,
-          fileCreated,
-          now,
-        );
-        if (fileResult.changes > 0) {
-          filesInserted.count++;
-        }
-      }
-
-      // Insert tags
-      for (const tag of tags) {
-        const tagResult = insertTag.run(entryId, tag);
-        if (tagResult.changes > 0) {
-          tagsInserted.count++;
-        }
-      }
-    }
-  });
-
-  try {
-    insertRoute(entries);
-    writeLog(SRC, "INFO", {
-      event: "KC-BACKFILL-COMPLETE",
-      detail: `entries=${entriesInserted.count} files=${filesInserted.count} tags=${tagsInserted.count}`,
-    });
-  } catch (e: any) {
-    writeLog(SRC, "ERROR", {
-      event: "KC-BACKFILL-FAILED",
-      detail: e.message,
-    });
-  }
-
-  return {
-    entriesInserted: entriesInserted.count,
-    filesInserted: filesInserted.count,
-    tagsInserted: tagsInserted.count,
-  };
-}
+// export function backfillKnowledgeFromManifest(root?: string): {
+//   entriesInserted: number;
+//   filesInserted: number;
+//   tagsInserted: number;
+// } {
+//   // Initialize schema first (includes v11 tables), then backfill
+//   const db = getDb({ root });
+//   const entriesInserted = { count: 0 };
+//   const filesInserted = { count: 0 };
+//   const tagsInserted = { count: 0 };
+// 
+//   // Read index.json manifest
+//   const indexPath = path.join(
+//     root || process.env.OPENCODE_ROOT || process.cwd(),
+//     "docs",
+//     "official_docs",
+//     "index.json",
+//   );
+// 
+//   if (!fs.existsSync(indexPath)) {
+//     writeLog(SRC, "WARN", {
+//       event: "KC-BACKFILL-NO-MANIFEST",
+//       detail: `Manifest not found at ${indexPath}`,
+//     });
+//     return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
+//   }
+// 
+//   let manifest: any;
+//   try {
+//     manifest = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+//   } catch (e: any) {
+//     writeLog(SRC, "ERROR", {
+//       event: "KC-BACKFILL-PARSE-FAILED",
+//       detail: `Manifest parse error: ${e.message}`,
+//     });
+//     return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
+//   }
+// 
+//   const entries = manifest.entries || [];
+//   const now = Date.now();
+// 
+//   const insertEntry = db.prepare(`
+//     INSERT OR IGNORE INTO knowledge_entries
+//       (library_id, query_topic, domain, tags, source, status, created_at, updated_at)
+//     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+//   `);
+// 
+//   const insertFile = db.prepare(`
+//     INSERT OR IGNORE INTO knowledge_files
+//       (entry_id, file_path, sha256, size_bytes, source, ttl_days, status,
+//        access_count, last_accessed, created_at, updated_at)
+//     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//   `);
+// 
+//   const insertTag = db.prepare(`
+//     INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)
+//   `);
+// 
+//   const insertRoute = db.transaction((manifestEntries: any[]) => {
+//     for (const entry of manifestEntries) {
+//       const tags = entry.tags || [];
+//       const entryFiles = entry.files || [];
+//       const source =
+//         entryFiles.length > 0 ? entryFiles[0].source : entry.source || null;
+//       const createdMs = entry.last_updated
+//         ? new Date(entry.last_updated).getTime()
+//         : entryFiles.length > 0 && entryFiles[0].created_at
+//           ? new Date(entryFiles[0].created_at).getTime()
+//           : now;
+// 
+//       const result = insertEntry.run(
+//         entry.library_id || "unknown",
+//         entry.query_topic || "untitled",
+//         entry.domain || "fallback",
+//         JSON.stringify(tags),
+//         source || null,
+//         entry.status || "active",
+//         createdMs,
+//         now,
+//       );
+// 
+//       if (result.changes > 0) {
+//         entriesInserted.count++;
+//       }
+// 
+//       // Get entry_id (newly inserted or existing)
+//       const entryRow = db
+//         .query(
+//           "SELECT id FROM knowledge_entries WHERE library_id = ? AND query_topic = ?",
+//         )
+//         .get(entry.library_id, entry.query_topic) as { id: number } | null;
+// 
+//       if (!entryRow) continue;
+//       const entryId = entryRow.id;
+// 
+//       // Insert files
+//       for (const file of entryFiles) {
+//         const fileCreated = file.created_at
+//           ? new Date(file.created_at).getTime()
+//           : now;
+//         const fileResult = insertFile.run(
+//           entryId,
+//           file.path || "",
+//           file.sha256 || null,
+//           file.size_bytes || 0,
+//           file.source || null,
+//           file.ttl_days ?? 30,
+//           file.status || "active",
+//           file.access_count || 0,
+//           file.last_accessed ? new Date(file.last_accessed).getTime() : null,
+//           fileCreated,
+//           now,
+//         );
+//         if (fileResult.changes > 0) {
+//           filesInserted.count++;
+//         }
+//       }
+// 
+//       // Insert tags
+//       for (const tag of tags) {
+//         const tagResult = insertTag.run(entryId, tag);
+//         if (tagResult.changes > 0) {
+//           tagsInserted.count++;
+//         }
+//       }
+//     }
+//   });
+// 
+//   try {
+//     insertRoute(entries);
+//     writeLog(SRC, "INFO", {
+//       event: "KC-BACKFILL-COMPLETE",
+//       detail: `entries=${entriesInserted.count} files=${filesInserted.count} tags=${tagsInserted.count}`,
+//     });
+//   } catch (e: any) {
+//     writeLog(SRC, "ERROR", {
+//       event: "KC-BACKFILL-FAILED",
+//       detail: e.message,
+//     });
+//   }
+// 
+//   return {
+//     entriesInserted: entriesInserted.count,
+//     filesInserted: filesInserted.count,
+//     tagsInserted: tagsInserted.count,
+//   };
+// }
 
 // ════════════════════════════════════════════════════════════
 // HEALTH / MAINTENANCE
@@ -2260,7 +2313,7 @@ export function dbVacuum(root?: string): boolean {
   try {
     const db = getDb({ root });
     db.run("VACUUM");
-    writeLog(SRC, "INFO", { event: "DB-VACUUM-COMPLETE" });
+    writeLog(SRC, "INFO", { event: "DB-VACUUM-COMPLETE", detail: "vacuum completed" });
     return true;
   } catch (e: any) {
     writeLog(SRC, "ERROR", { event: "DB-VACUUM-FAILED", detail: e.message });
@@ -2280,21 +2333,22 @@ export function dbCleanStaleEntries(
   try {
     const db = getDb({ root });
     let total = 0;
-    for (const table of [
-      "audit_log",
-      "write_audit_state",
-      "eslint_state",
-      "gate_audit_history",
-    ]) {
+    // 1. 统一循环只处理有 timestamp 列的表
+    for (const table of ["audit_log", "write_audit_state", "eslint_state"]) {
       try {
-        const res = db.run(`DELETE FROM ${table} WHERE timestamp < ?`, [
-          cutoff,
-        ]);
+        const res = db.run(`DELETE FROM ${table} WHERE timestamp < ?`, [cutoff]);
         total += res.changes;
-      } catch {
-        // Some tables have different timestamp columns; skip silently
-      }
+      } catch { /* skip */ }
     }
+
+    // 2. gate_audit_history 单独处理，使用正确的列名
+    try {
+      const res = db.run(
+        "DELETE FROM gate_audit_history WHERE confirmed_at < ?",
+        [cutoff],
+      );
+      total += res.changes;
+    } catch { /* skip */ }
 
     // v6 tables: session_log uses created_at, dispatch_failed_log uses failed_at
     try {

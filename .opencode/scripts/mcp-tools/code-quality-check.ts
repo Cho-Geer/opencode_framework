@@ -7,10 +7,9 @@
  *
  * Exposes tools:
  *   code_quality_check.run_depcruise_check({ changed_file }) — single-file dependency-cruiser
- *   code_quality_check.run_tsc_check({ changed_file }) — single-file tsc incremental check
- *   code_quality_check.run_full_scan() — full tsc + depcruise + prettier scan
+ *   code_quality_check.run_full_scan() — full depcruise + prettier scan (tsc removed, handled by tsc-diag-track plugin)
  *
- * Uses code-quality-lib.ts functions: runDepCruiserCheck(), runTscCheck(), runFullScan()
+ * Uses code-quality-lib.ts functions: runDepCruiserCheck(), runFullScan()
  */
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
@@ -68,7 +67,7 @@ function getConfig() {
 // ─── Load Shared Library ──────────────────────────────────
 const {
   runDepCruiserCheck,
-  runTscCheck,
+  // runTscCheck removed — tsc now handled automatically by tsc-diag-track.ts plugin (2026-06-26)
   runFullScan,
 } = require("./code-quality-lib");
 
@@ -96,23 +95,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
-      name: "code_quality_check.run_tsc_check",
-      description: "Run tsc --noEmit incremental type check on a single file",
-      inputSchema: {
-        type: "object",
-        properties: {
-          changed_file: {
-            type: "string",
-            description: "Path to the changed file",
-          },
-        },
-        required: ["changed_file"],
-      },
-    },
-    {
       name: "code_quality_check.run_full_scan",
       description:
-        "Full project scan: tsc + dependency-cruiser + prettier on entire codebase",
+        "Full project scan: dependency-cruiser + prettier on entire codebase (tsc handled automatically by tsc-diag-track plugin)",
       inputSchema: { type: "object", properties: {} },
     },
   ],
@@ -125,17 +110,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (name) {
     case "code_quality_check.run_depcruise_check": {
       const result = runDepCruiserCheck(args.changed_file, projectRoot);
-      return {
-        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-      };
-    }
-    case "code_quality_check.run_tsc_check": {
-      const result = runTscCheck(
-        args.changed_file,
-        projectRoot,
-        backendDir,
-        frontendDir,
-      );
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
@@ -167,3 +141,5 @@ main().catch((err) => {
 if (typeof module !== "undefined" && module.exports) {
   module.exports = { getConfig };
 }
+
+export {};

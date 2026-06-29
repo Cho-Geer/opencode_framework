@@ -41,12 +41,66 @@ export type LogCategory = "loaded" | "hooks" | "runtime" | LogLevel;
 /** Unified log entry fields */
 export interface LogFields {
   sessionID?: string;
+  /** Alias for sessionID (camelCase variant used by some callers) */
+  sessionId?: string;
   callID?: string;
+  call_id?: string;
   agent?: string;
   agentType?: string;
   level?: LogLevel;
   event: string;
-  detail: string;
+  detail?: string;
+  candidates?: string;
+  /** Optional gate session ID for gate-related log entries (FW-REPAIR-TS-BASELINE) */
+  gate_session_id?: string;
+  /** Optional DAG task ID for task-related log entries (FW-REPAIR-TS-BASELINE) */
+  taskId?: string;
+  /** Optional DAG task ID in snake_case (FW-REPAIR-TS-BASELINE) */
+  task_id?: string;
+  /** Optional full DAG task ID key (FW-REPAIR-TS-BASELINE) */
+  dag_task_id?: string;
+  /** Optional purposes for route-validator L0 purpose inference */
+  purposes?: string;
+  /** Optional kind/category classification (e.g. "interrupt", "error") */
+  kind?: string;
+  /** Optional domain ID in snake_case (UC7KS pipeline) */
+  domain_id?: string;
+  /** Optional domain ID in camelCase (UC7KS pipeline) */
+  domainId?: string;
+  /** Optional error message */
+  error?: string;
+  /** Optional file path */
+  filePath?: string;
+  /** Optional file count */
+  fileCount?: number;
+  /** Optional args hash for approval context */
+  args_hash?: string;
+  /** Optional OpenCode session ID (distinct from gate session ID) */
+  opencode_session_id?: string;
+  /** Optional pruned count (read-audit cleanup) */
+  pruned?: number;
+  /** Optional not-read count */
+  notReadCount?: number;
+  /** Optional generic count */
+  count?: number;
+  /** Optional command string (safe-bash) */
+  command?: string;
+  /** Optional pipeline ID (UC7KS pipeline DB) */
+  pipeline_id?: string;
+  /** Optional consumed_at timestamp */
+  consumed_at?: string | number | null;
+  /** Optional exit code */
+  exitCode?: number | null;
+  /** Optional timestamp */
+  timestamp?: string;
+  /** Optional db flag */
+  db?: boolean;
+  /** Optional pipeline ID (camelCase) */
+  pipelineId?: string;
+  /** Optional agent key */
+  agentKey?: string;
+  /** Allow additional fields for extensibility */
+  [key: string]: unknown;
 }
 
 /**
@@ -113,7 +167,9 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
  * @param cat - Raw category from caller (may be a LogLevel string)
  * @returns Canonical category for file routing
  */
-export function normalizeCategory(cat: LogCategory): "loaded" | "hooks" | "runtime" {
+export function normalizeCategory(
+  cat: LogCategory,
+): "loaded" | "hooks" | "runtime" {
   if (cat === "loaded" || cat === "hooks" || cat === "runtime") return cat;
   // LogLevel strings → "runtime"
   return "runtime";
@@ -156,13 +212,17 @@ function resolveConfig(): {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
       const tr = cfg.template_resolution || {};
       if (tr["logs.dir"]) config.logRoot = tr["logs.dir"];
-      if (tr["logs.retention_days"]) config.retentionDays = Number(tr["logs.retention_days"]);
+      if (tr["logs.retention_days"])
+        config.retentionDays = Number(tr["logs.retention_days"]);
       if (tr["logs.delimiter"]) config.delimiter = tr["logs.delimiter"];
-      if (tr["logs.buffer_size"]) config.bufferSize = Number(tr["logs.buffer_size"]);
-      if (tr["logs.flush_interval_ms"]) config.flushIntervalMs = Number(tr["logs.flush_interval_ms"]);
+      if (tr["logs.buffer_size"])
+        config.bufferSize = Number(tr["logs.buffer_size"]);
+      if (tr["logs.flush_interval_ms"])
+        config.flushIntervalMs = Number(tr["logs.flush_interval_ms"]);
       if (tr["logs.level"]) {
         const lv = tr["logs.level"].toUpperCase();
-        if (["DEBUG","INFO","WARN","ERROR"].includes(lv)) config.logLevel = lv as LogLevel;
+        if (["DEBUG", "INFO", "WARN", "ERROR"].includes(lv))
+          config.logLevel = lv as LogLevel;
       }
       if (tr["logs.file_prefix"]) config.filePrefix = tr["logs.file_prefix"];
     }
@@ -269,15 +329,18 @@ export function flushBuffer(plugin: string, category: LogCategory): void {
 
   try {
     ensureLogDir();
-    const file = path.join(getLogDir(), `${config.filePrefix}-${plugin}-${normCat}.log`);
+    const file = path.join(
+      getLogDir(),
+      `${config.filePrefix}-${plugin}-${normCat}.log`,
+    );
     const content = lines.join("");
 
     // POSIX O_APPEND: atomic seek-to-end + write
     // O_CREAT: create if not exists; O_WRONLY: write-only
     // Use fs.constants for correctness (0o8 is not valid octal — digits 0-7 only)
-    const O_APPEND = fs.constants.O_APPEND;  // 8 (decimal)
-    const O_CREAT  = fs.constants.O_CREAT;   // 64 (0o100)
-    const O_WRONLY = fs.constants.O_WRONLY;  // 1 (0o1)
+    const O_APPEND = fs.constants.O_APPEND; // 8 (decimal)
+    const O_CREAT = fs.constants.O_CREAT; // 64 (0o100)
+    const O_WRONLY = fs.constants.O_WRONLY; // 1 (0o1)
 
     let fd: number | null = null;
     try {
@@ -297,7 +360,9 @@ export function flushBuffer(plugin: string, category: LogCategory): void {
 
     buffer.set(key, []);
   } catch (err: any) {
-    logSelfError(`flushBuffer failed for ${plugin}/${category}: ${err.message}`);
+    logSelfError(
+      `flushBuffer failed for ${plugin}/${category}: ${err.message}`,
+    );
   }
 }
 
@@ -345,7 +410,15 @@ export function writeLog(
       detail = fields.detail;
     } else {
       // Extract extra fields (everything not in LogFields keys)
-      const knownKeys = new Set(["sessionID","callID","agent","agentType","level","event","detail"]);
+      const knownKeys = new Set([
+        "sessionID",
+        "callID",
+        "agent",
+        "agentType",
+        "level",
+        "event",
+        "detail",
+      ]);
       const extras: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(fields)) {
         if (!knownKeys.has(k)) extras[k] = v;
@@ -353,16 +426,17 @@ export function writeLog(
       detail = Object.keys(extras).length > 0 ? JSON.stringify(extras) : "—";
     }
 
-    const line = [
-      new Date().toISOString(),
-      fields.sessionID || "—",
-      fields.callID || "—",
-      fields.agent || process.env.FRAMEWORK_AGENT || "—",
-      fields.agentType || "—",
-      level,
-      fields.event,
-      detail,
-    ].join(config.delimiter) + "\n";
+    const line =
+      [
+        new Date().toISOString(),
+        fields.sessionID || "—",
+        fields.callID || "—",
+        fields.agent || process.env.FRAMEWORK_AGENT || "—",
+        fields.agentType || "—",
+        level,
+        fields.event,
+        detail,
+      ].join(config.delimiter) + "\n";
 
     const key = getBufferKey(plugin, category);
     if (!buffer.has(key)) {
@@ -443,7 +517,9 @@ export function updateIndex(plugin: string, event: string): void {
     const loadedPlugins = new Set<string>();
     if (fs.existsSync(logDir)) {
       for (const f of fs.readdirSync(logDir)) {
-        const m = f.match(new RegExp(`^${escapeRegex(config.filePrefix)}-(.+)-loaded\\.log$`));
+        const m = f.match(
+          new RegExp(`^${escapeRegex(config.filePrefix)}-(.+)-loaded\\.log$`),
+        );
         if (m) loadedPlugins.add(m[1]);
       }
     }
@@ -486,7 +562,9 @@ function scanSources(
 
   for (const f of fs.readdirSync(logDir)) {
     // Match pattern: {prefix}-{source}-{category}.log
-    const m = f.match(new RegExp(`^${prefix}-(.+)-(loaded|hooks|runtime)\\.log$`));
+    const m = f.match(
+      new RegExp(`^${prefix}-(.+)-(loaded|hooks|runtime)\\.log$`),
+    );
     if (!m) continue;
 
     const source = m[1];
@@ -630,7 +708,13 @@ export function readIndex(): LogIndex | null {
  * Get the log file path for a specific plugin and category.
  * FW-LOG-UNIFY-F1: Category is normalized before constructing path.
  */
-export function getPluginLogPath(plugin: string, category: LogCategory): string {
+export function getPluginLogPath(
+  plugin: string,
+  category: LogCategory,
+): string {
   const normCat = normalizeCategory(category);
-  return path.join(getLogDir(), `${config.filePrefix}-${plugin}-${normCat}.log`);
+  return path.join(
+    getLogDir(),
+    `${config.filePrefix}-${plugin}-${normCat}.log`,
+  );
 }

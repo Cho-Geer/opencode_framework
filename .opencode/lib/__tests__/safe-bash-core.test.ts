@@ -183,3 +183,5 @@ describe('safe-bash-core', () => {
     });
   });
 });
+
+export {};

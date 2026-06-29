@@ -141,7 +141,7 @@ function runPluginPartsGuard(): void {
   for (const v of violations) {
     const msg = `[FW-PLUGIN-PARTS-GUARD] Plugin ${v.file}:${v.line} contains forbidden "${v.pattern}". Plugins MUST NOT modify output.parts — this array is reserved for OpenCode runtime and user/LLM interaction. Remove the mutation or use output.context.push() in compaction hooks instead.`;
 
-    writeLog("hook-config-guard", "reject", {
+    writeLog("hook-config-guard", "ERROR", {
       event: "PLUGIN-PARTS-VIOLATION",
       detail: `${v.file}:${v.line} | ${v.pattern} | mode=${mode}`,
     });
@@ -183,7 +183,6 @@ async function toolExecuteBefore(input: any, _output: any): Promise<void> {
     writeLog("hook-config-guard", "runtime", {
       sessionID: input.sessionID,
       agent,
-      agent,
       event: "APPROVED_SCRIPT",
       detail: `Approved script allowed: ${cmd.substring(0, 120)}`,
     });
@@ -207,10 +206,9 @@ To use --no-verify in an emergency:
   2. Include incident ID in commit body: Incident: <id>
   3. CI semantic validator will verify the marker`;
 
-      writeLog("hook-config-guard", "reject", {
+      writeLog("hook-config-guard", "ERROR", {
         sessionID: input.sessionID,
         callID: input.callID,
-        agent,
         agent,
         event: "BLOCKED",
         detail: `Blocked ${fp.name} | mode=${mode}`,

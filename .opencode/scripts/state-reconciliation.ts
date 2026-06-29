@@ -193,21 +193,21 @@ function checkCompletedDagHasGateSession(dag, gate, machine) {
       ...(machine.compliance_records.tdd_violations || []),
     ];
     for (const rec of allRecords) {
-      if (rec.reconciled && rec.session_id) {
-        reconciledTaskIds.add(rec.session_id);
+      if (rec.reconciled && (rec as any).session_id) {
+        reconciledTaskIds.add((rec as any).session_id);
       }
     }
   }
 
   for (const task of tasks) {
-    if (task.status === "completed") {
+    if ((task as any).status === "completed") {
       // If this task has a reconciled compliance record, skip it
       if (reconciledTaskIds.has(task.id)) continue;
 
       // Look for a gate session that references this task_id
       const matchingSession = Object.entries(sessions).find(
         ([sid, s]) =>
-          s.task_id === task.id || s.task_description?.includes(task.id),
+          (s as any).task_id === task.id || (s as any).task_description?.includes(task.id),
       );
 
       if (!matchingSession) {
@@ -224,16 +224,16 @@ function checkCompletedDagHasGateSession(dag, gate, machine) {
 
       // Check if session was consumed (completed or failed)
       if (
-        session.gate_status !== "completed" &&
-        session.gate_status !== "failed"
+        (session as any).gate_status !== "completed" &&
+        (session as any).gate_status !== "failed"
       ) {
         inconsistencies.push({
           type: "completed_task_unconsumed_session",
           severity: "WARNING",
           task_id: task.id,
           session_id: sid,
-          gate_status: session.gate_status,
-          detail: `Task "${task.id}" is completed but its gate session (${sid}) has status "${session.gate_status}" (not consumed)`,
+          gate_status: (session as any).gate_status,
+          detail: `Task "${task.id}" is completed but its gate session (${sid}) has status "${(session as any).gate_status}" (not consumed)`,
         });
       }
     }
@@ -271,7 +271,7 @@ function checkArmedSessionDagReference(dag, gate) {
     }
 
     // Only check armed sessions
-    if (session.gate_status !== "armed") continue;
+    if ((session as any).gate_status !== "armed") continue;
 
     // SA-FIX-RECONCILER-EXEMPT (@Super-Admin): DAG-exempt agents bypass DAG reference check.
     // Super-Admin (emergency framework repairs), Meta-Planner and Orchestrator (DAG creators)
@@ -288,10 +288,10 @@ function checkArmedSessionDagReference(dag, gate) {
       "knowledge-curator",
       "@knowledge-curator",
     ];
-    const sessionAgent = (session.agent || "").toLowerCase();
+    const sessionAgent = ((session as any).agent || "").toLowerCase();
     if (DAG_EXEMPT_AGENTS.includes(sessionAgent)) continue;
 
-    const taskId = session.task_id;
+    const taskId = (session as any).task_id;
     if (!taskId) {
       inconsistencies.push({
         type: "armed_session_no_task_id",
@@ -314,9 +314,9 @@ function checkArmedSessionDagReference(dag, gate) {
       continue;
     }
 
-    if (dagTask.status === "completed") {
+    if ((dagTask as any).status === "completed") {
       // Downgrade to WARNING when all DAG tasks are completed (maintenance mode)
-      const anyPending = tasks.some((t) => t.status !== "completed");
+      const anyPending = tasks.some((t) => (t as any).status !== "completed");
       inconsistencies.push({
         type: "armed_session_completed_task",
         severity: anyPending ? "HIGH" : "WARNING",
@@ -345,24 +345,24 @@ function checkOrphanedSessions(dag, gate) {
   const now = Date.now();
 
   for (const [sid, session] of Object.entries(sessions)) {
-    if (session.gate_status !== "armed") continue;
-    if (!session.confirmed_at) continue;
+    if ((session as any).gate_status !== "armed") continue;
+    if (!(session as any).confirmed_at) continue;
 
-    const age = now - new Date(session.confirmed_at).getTime();
+    const age = now - new Date((session as any).confirmed_at).getTime();
     if (age <= STALE_MS) continue;
 
     // Session is armed and >24h old
-    const taskId = session.task_id;
+    const taskId = (session as any).task_id;
     let reason = "";
 
     if (taskId && taskMap[taskId]) {
       const dagTask = taskMap[taskId];
-      if (dagTask.status === "completed") {
+      if ((dagTask as any).status === "completed") {
         reason = `Task "${taskId}" is completed but gate session ${sid} is still armed (${Math.floor(age / 3600000)}h old)`;
-      } else if (dagTask.status === "pending") {
+      } else if ((dagTask as any).status === "pending") {
         reason = `Gate session ${sid} has been armed for ${Math.floor(age / 3600000)}h for pending task "${taskId}"`;
       } else {
-        reason = `Gate session ${sid} has been armed for ${Math.floor(age / 3600000)}h for task "${taskId}" (status: ${dagTask.status})`;
+        reason = `Gate session ${sid} has been armed for ${Math.floor(age / 3600000)}h for task "${taskId}" (status: ${(dagTask as any).status})`;
       }
     } else if (taskId && !taskMap[taskId]) {
       reason = `Gate session ${sid} references non-existent task "${taskId}" and is ${Math.floor(age / 3600000)}h old`;
@@ -399,7 +399,7 @@ function checkDagMetaCounts(dag) {
   let actualOther = 0;
 
   for (const task of tasks) {
-    switch (task.status) {
+    switch ((task as any).status) {
       case "completed":
         actualCompleted++;
         break;
@@ -471,14 +471,14 @@ function fixDrainOrphanedSessions(gate) {
   for (const sid of sessionIds) {
     const s = gate.sessions[sid];
     if (!s) continue;
-    if (s.gate_status !== "armed") continue;
-    if (!s.confirmed_at) continue;
+    if ((s as any).gate_status !== "armed") continue;
+    if (!(s as any).confirmed_at) continue;
 
-    const age = now - new Date(s.confirmed_at).getTime();
+    const age = now - new Date((s as any).confirmed_at).getTime();
     if (age <= STALE_MS) continue;
 
     // Drain this session
-    s.gate_status = "drained";
+    (s as any).gate_status = "drained";
     s.drained_at = new Date().toISOString();
     s.drain_reason = "auto-reconciled: stale armed session >24h";
     // FW-REPAIR-13: V2 (array) → use filter; V3 (object) → use delete
@@ -525,10 +525,10 @@ function fixForceDrainOrphanedSessions(gate, dag) {
     if (!s) continue;
 
     // Only drain armed or checked sessions (not already completed/failed/drained)
-    if (s.gate_status !== "armed" && s.gate_status !== "checked") continue;
+    if ((s as any).gate_status !== "armed" && (s as any).gate_status !== "checked") continue;
 
-    const taskId = s.task_id;
-    const desc = s.task_description || "";
+    const taskId = (s as any).task_id;
+    const desc = (s as any).task_description || "";
     let shouldDrain = false;
     let reason = "";
 
@@ -553,7 +553,7 @@ function fixForceDrainOrphanedSessions(gate, dag) {
 
     if (!shouldDrain) continue;
 
-    s.gate_status = "drained";
+    (s as any).gate_status = "drained";
     s.drained_at = new Date().toISOString();
     s.drain_reason = reason;
     // FW-REPAIR-13: V2 (array) → use filter; V3 (object) → use delete
@@ -577,12 +577,12 @@ function backfillComplianceRecords(dag, machine) {
   // Build a set of task_ids already tracked in write_audit_state
   const auditTaskIds = new Set();
   const was = machine.write_audit_state || {};
-  if (was.current_session && was.current_session.task_id) {
-    auditTaskIds.add(was.current_session.task_id);
+  if (was.current_session && was.current_session && was.current_session.task_id) {
+    auditTaskIds.add(was.current_session && was.current_session.task_id);
   }
   if (was.history && Array.isArray(was.history)) {
     for (const h of was.history) {
-      if (h.task_id) auditTaskIds.add(h.task_id);
+      if ((h as any).task_id) auditTaskIds.add((h as any).task_id);
     }
   }
 
@@ -593,7 +593,7 @@ function backfillComplianceRecords(dag, machine) {
   const backfilledList = [];
 
   for (const task of tasks) {
-    if (task.status !== "completed") continue;
+    if ((task as any).status !== "completed") continue;
 
     // If already has a write_audit record, skip
     if (auditTaskIds.has(task.id)) continue;
@@ -637,7 +637,7 @@ function fixDagMetaCounts(dag) {
   let inProgress = 0;
 
   for (const t of tasks) {
-    switch (t.status) {
+    switch ((t as any).status) {
       case "completed":
         completed++;
         break;
@@ -727,7 +727,7 @@ function reconcile(options = {}) {
   }
 
   // Run checks (skip Check #1 in --quick mode)
-  const check1 = options.quick
+  const check1 = (options as any).quick
     ? {
         passed: true,
         inconsistencies: [],
@@ -742,7 +742,7 @@ function reconcile(options = {}) {
   results.checks.check2 = check2;
   results.checks.check3 = check3;
   results.checks.check4 = check4;
-  results.quick_mode = options.quick || false;
+  (results as any).quick_mode = (options as any).quick || false;
 
   // Collect all inconsistencies
   const allInconsistencies = [
@@ -773,7 +773,7 @@ function reconcile(options = {}) {
 
   // ─── --fix flag: apply auto-repair ──────────────────────
 
-  if (options.fix && results.auto_fixable) {
+  if ((options as any).fix && results.auto_fixable) {
     const fixes = { drained: 0, meta_corrected: false, details: [] };
     const MACHINE_PATH = path.join(
       OPENCODE_ROOT,
@@ -833,14 +833,14 @@ function reconcile(options = {}) {
           ks.total_size_bytes = actualSize;
         });
         if (ok) {
-          console.error(
+          (console as any).error(
             `[fix] check6: total_docs_count ${oldCount} → ${manifest.entries.length}, total_size_bytes ${oldSize} → ${actualSize}`,
           );
         } else {
-          console.error(`[fix] check6: CAS write failed after 3 retries`);
+          (console as any).error(`[fix] check6: CAS write failed after 3 retries`);
         }
       } catch (e: any) {
-        console.error(`[fix] check6: ${e.message}`);
+        (console as any).error(`[fix] check6: ${e.message}`);
       }
     }
 
@@ -876,11 +876,11 @@ function reconcile(options = {}) {
   }
 
   // ─── --force-drain flag: drain orphaned sessions regardless of age ──
-  if (options.forceDrain) {
+  if ((options as any).forceDrain) {
     const forceResult = fixForceDrainOrphanedSessions(gate, dag);
-    if (!results.force_drain) results.force_drain = {};
-    results.force_drain.drained = forceResult.drained;
-    results.force_drain.drainedList = forceResult.drainedList;
+    if (!(results as any).force_drain) (results as any).force_drain = {};
+    (results as any).force_drain.drained = forceResult.drained;
+    (results as any).force_drain.drainedList = forceResult.drainedList;
 
     if (forceResult.drained > 0) {
       delete gate.sessions; // Remove V3→V2 virtual field before writing back
@@ -889,11 +889,11 @@ function reconcile(options = {}) {
   }
 
   // ─── --backfill-audit flag: create synthetic compliance records ──
-  if (options.backfillAudit) {
+  if ((options as any).backfillAudit) {
     const backfillResult = backfillComplianceRecords(dag, machine);
-    if (!results.backfill_audit) results.backfill_audit = {};
-    results.backfill_audit.backfilled = backfillResult.backfilled;
-    results.backfill_audit.backfilledList = backfillResult.backfilledList;
+    if (!(results as any).backfill_audit) (results as any).backfill_audit = {};
+    (results as any).backfill_audit.backfilled = backfillResult.backfilled;
+    (results as any).backfill_audit.backfilledList = backfillResult.backfilledList;
 
     if (backfillResult.backfilled > 0) {
       const newViolations = machine.compliance_records?.gate_violations || [];
@@ -901,28 +901,28 @@ function reconcile(options = {}) {
         cr.gate_violations = newViolations;
       });
       if (!ok) {
-        console.error(`[fix] backfill: CAS write failed after 3 retries`);
+        (console as any).error(`[fix] backfill: CAS write failed after 3 retries`);
       }
     }
   }
 
   // ─── --dry-run flag ─────────────────────────────────────
-  if (options.dryRun && results.auto_fixable) {
-    results.dry_run_plan = {};
+  if ((options as any).dryRun && results.auto_fixable) {
+    (results as any).dry_run_plan = {};
 
     if (hasStaleSessions) {
       const staleSessions = allInconsistencies
         .filter((i) => i.type === "stale_armed_session")
         .map((i) => ({
-          session_id: i.session_id,
-          task_id: i.task_id,
+          session_id: (i as any).session_id,
+          task_id: (i as any).task_id,
           age_hours: i.age_hours,
         }));
-      results.dry_run_plan.drain_sessions = staleSessions;
+      (results as any).dry_run_plan.drain_sessions = staleSessions;
     }
 
     if (hasMetaMismatch) {
-      results.dry_run_plan.correct_meta = {
+      (results as any).dry_run_plan.correct_meta = {
         reported: {
           total: dag.meta?.total_tasks,
           completed: dag.meta?.completed_tasks,
@@ -934,14 +934,14 @@ function reconcile(options = {}) {
   }
 
   // ─── --dry-run for --force-drain ────────────────────────
-  if (options.dryRun && options.forceDrain) {
-    if (!results.dry_run_plan) results.dry_run_plan = {};
+  if ((options as any).dryRun && (options as any).forceDrain) {
+    if (!(results as any).dry_run_plan) (results as any).dry_run_plan = {};
     const dagLocal = readJson(DAG_PATH);
     // Post-Step-8 DB-only migration: read from DB instead of frozen JSON snapshot
     const gateLocal = dbLoadGateStore();
     if (dagLocal && gateLocal) {
       const result = fixForceDrainOrphanedSessions(gateLocal, dagLocal);
-      results.dry_run_plan.force_drain = {
+      (results as any).dry_run_plan.force_drain = {
         count: result.drained,
         sessions: result.drainedList,
       };
@@ -949,8 +949,8 @@ function reconcile(options = {}) {
   }
 
   // ─── --dry-run for --backfill-audit ─────────────────────
-  if (options.dryRun && options.backfillAudit) {
-    if (!results.dry_run_plan) results.dry_run_plan = {};
+  if ((options as any).dryRun && (options as any).backfillAudit) {
+    if (!(results as any).dry_run_plan) (results as any).dry_run_plan = {};
     const dagLocal = readJson(DAG_PATH);
     const machineLocal = readJson(MACHINE_PATH) || {};
     // P1-B split: Overlay sub-state keys for backfill dry-run
@@ -958,7 +958,7 @@ function reconcile(options = {}) {
     machineLocal.write_audit_state = readSubState("write_audit_state");
     if (dagLocal && machineLocal) {
       const result = backfillComplianceRecords(dagLocal, machineLocal);
-      results.dry_run_plan.backfill_audit = {
+      (results as any).dry_run_plan.backfill_audit = {
         count: result.backfilled,
         tasks: result.backfilledList,
       };
@@ -1049,18 +1049,18 @@ function runCLI() {
     backfillAudit: args.includes("--backfill-audit"),
   };
 
-  if (options.quick) {
-    console.error(
+  if ((options as any).quick) {
+    (console as any).error(
       "⚡ [State Reconciliation] Quick mode — skipping Check #1 (write-audit deep scan)",
     );
   }
-  if (options.forceDrain) {
-    console.error(
+  if ((options as any).forceDrain) {
+    (console as any).error(
       "💪 [State Reconciliation] Force-drain mode — draining orphaned sessions regardless of age",
     );
   }
-  if (options.backfillAudit) {
-    console.error(
+  if ((options as any).backfillAudit) {
+    (console as any).error(
       "📋 [State Reconciliation] Backfill-audit mode — creating synthetic compliance records for completed tasks",
     );
   }
@@ -1071,7 +1071,7 @@ function runCLI() {
     console.log(JSON.stringify(result, null, 2));
   } else {
     const statusIcon = result.valid ? "✅" : "❌";
-    const quickTag = result.quick_mode ? " ⚡ Quick mode" : "";
+    const quickTag = (result as any).quick_mode ? " ⚡ Quick mode" : "";
     console.log(
       `\n${statusIcon} [State Reconciliation]${quickTag} ${result.timestamp}\n`,
     );
@@ -1120,20 +1120,20 @@ function runCLI() {
       srcLog("INFO", "reconciliation_complete", { total: 0 });
     }
 
-    if (result.dry_run_plan) {
+    if ((result as any).dry_run_plan) {
       console.log(`\n  📋 Dry-run plan (--fix would apply):`);
-      if (result.dry_run_plan.drain_sessions?.length) {
+      if ((result as any).dry_run_plan.drain_sessions?.length) {
         console.log(
-          `    Drain ${result.dry_run_plan.drain_sessions.length} stale session(s)`,
+          `    Drain ${(result as any).dry_run_plan.drain_sessions.length} stale session(s)`,
         );
-        for (const s of result.dry_run_plan.drain_sessions) {
+        for (const s of (result as any).dry_run_plan.drain_sessions) {
           console.log(
-            `      - ${s.session_id} (${s.age_hours}h, task: ${s.task_id})`,
+            `      - ${(s as any).session_id} (${s.age_hours}h, task: ${(s as any).task_id})`,
           );
         }
       }
-      if (result.dry_run_plan.correct_meta) {
-        const m = result.dry_run_plan.correct_meta;
+      if ((result as any).dry_run_plan.correct_meta) {
+        const m = (result as any).dry_run_plan.correct_meta;
         console.log(
           `    Correct DAG meta: total ${m.reported.total}→${m.actual.total}, ` +
             `completed ${m.reported.completed}→${m.actual.completed}, ` +
@@ -1142,22 +1142,22 @@ function runCLI() {
       }
     }
 
-    if (result.force_drain) {
+    if ((result as any).force_drain) {
       console.log(`\n  💪 Force-drain results:`);
-      console.log(`    Drained sessions: ${result.force_drain.drained}`);
-      for (const entry of result.force_drain.drainedList || []) {
-        const sid = typeof entry === "string" ? entry : entry.session_id;
+      console.log(`    Drained sessions: ${(result as any).force_drain.drained}`);
+      for (const entry of (result as any).force_drain.drainedList || []) {
+        const sid = typeof entry === "string" ? entry : (entry as any).session_id;
         const reason = typeof entry === "string" ? "" : entry.reason || "";
         console.log(`    - ${sid}${reason ? ` (${reason})` : ""}`);
       }
     }
 
-    if (result.backfill_audit) {
+    if ((result as any).backfill_audit) {
       console.log(`\n  📋 Backfill-audit results:`);
       console.log(
-        `    Backfilled records: ${result.backfill_audit.backfilled}`,
+        `    Backfilled records: ${(result as any).backfill_audit.backfilled}`,
       );
-      for (const tid of result.backfill_audit.backfilledList || []) {
+      for (const tid of (result as any).backfill_audit.backfilledList || []) {
         console.log(`    - ${tid}`);
       }
     }
@@ -1225,7 +1225,7 @@ function validateWriteAuditIntegrity(machine, rootDir) {
       if (e.files) for (const f of e.files) checkFile(f, e.session);
   if (was.current_session?.files_written)
     for (const f of was.current_session.files_written)
-      checkFile(f, was.current_session.task_id || "current");
+      checkFile(f, was.current_session && was.current_session.task_id || "current");
   return {
     valid: violations.length === 0,
     violations,
@@ -1289,14 +1289,14 @@ function checkHierarchicalStateIntegrityDB(rootDir) {
       .query(
         `
       SELECT COUNT(*) AS c FROM gate_sessions s
-      JOIN gate_session_index i ON s.session_id = i.session_id
-      WHERE s.status != i.status
+      JOIN gate_session_index i ON (s as any).session_id = (i as any).session_id
+      WHERE (s as any).status != (i as any).status
     `,
       )
       .get() || { c: 0 };
     if (statusMismatch.c > 0) {
       issues.push({
-        ref: "gate_sessions.status",
+        ref: "(gate_sessions as any).status",
         severity: "MEDIUM",
         detail: `${statusMismatch.c} rows with status mismatch`,
       });
@@ -1438,15 +1438,15 @@ function checkHierarchicalStateIntegrity(rootDir) {
       3,
     );
     for (const [sid, entry] of recentEntries) {
-      if (entry.archive_ref) {
-        const refMatch = entry.archive_ref.match(
+      if ((entry as any).archive_ref) {
+        const refMatch = (entry as any).archive_ref.match(
           /^gate-state\.history\/(\d{4}-\d{2}-\d{2}\.jsonl)#(\d+)$/,
         );
         if (!refMatch) {
           issues.push({
             ref: `session ${sid.substring(0, 20)}`,
             severity: "MEDIUM",
-            detail: `Invalid archive_ref format: ${entry.archive_ref}`,
+            detail: `Invalid archive_ref format: ${(entry as any).archive_ref}`,
           });
         } else {
           const historyFile = path.join(
@@ -1538,11 +1538,11 @@ function checkHierarchicalStateIntegrity(rootDir) {
             try {
               const entry = JSON.parse(line);
               if (
-                !entry.session_id ||
-                !/^cg_ses_\d{13}$/.test(entry.session_id)
+                !(entry as any).session_id ||
+                !/^cg_ses_\d{13}$/.test((entry as any).session_id)
               )
                 invalid++;
-              if (!entry.task_description || entry.task_description.length < 5)
+              if (!(entry as any).task_description || (entry as any).task_description.length < 5)
                 invalid++;
               checked++;
             } catch {
@@ -1822,3 +1822,5 @@ module.exports = {
   checkHierarchicalStateIntegrity,
   checkKnowledgeStateIntegrity,
 };
+
+export {};

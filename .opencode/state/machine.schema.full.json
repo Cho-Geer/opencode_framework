@@ -7,7 +7,7 @@
   "required": [
     "meta",
     "eslint_state",
-    "type_check_state",
+    "diagnostic_state",
     "dependency_state",
     "format_state",
     "write_audit_state",
@@ -63,10 +63,7 @@
     "eslint_state": {
       "type": "object",
       "description": "ESLint mock-audit state tracking per-module and aggregate.",
-      "required": [
-        "modules",
-        "aggregate"
-      ],
+      "required": ["modules", "aggregate"],
       "properties": {
         "last_full_scan": {
           "oneOf": [
@@ -94,11 +91,7 @@
             "properties": {
               "status": {
                 "type": "string",
-                "enum": [
-                  "clean",
-                  "dirty",
-                  "waived"
-                ],
+                "enum": ["clean", "dirty", "waived"],
                 "description": "Current audit status for this module."
               },
               "violations": {
@@ -127,11 +120,7 @@
         "aggregate": {
           "type": "object",
           "description": "Aggregate ESLint state across all modules.",
-          "required": [
-            "total_violations",
-            "dirty_modules",
-            "waived_modules"
-          ],
+          "required": ["total_violations", "dirty_modules", "waived_modules"],
           "properties": {
             "total_violations": {
               "type": "integer",
@@ -158,63 +147,51 @@
       },
       "additionalProperties": true
     },
-    "type_check_state": {
+    "diagnostic_state": {
       "type": "object",
-      "description": "TypeScript incremental type-check state.",
-      "required": [
-        "status",
-        "dirty_files",
-        "incremental_errors"
-      ],
+      "description": "TypeScript diagnostic state for 3-layer tsc gating. Replaces deprecated type_check_state (2026-06-26). Written by tsc-diag-track.ts plugin.",
       "properties": {
-        "status": {
+        "files": {
+          "type": "object",
+          "description": "Per-file diagnostic entries, keyed by absolute file path.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "line": { "type": "integer", "minimum": 1 },
+                    "character": { "type": "integer", "minimum": 0 },
+                    "code": { "type": "string" },
+                    "received_at": { "type": "string", "format": "date-time" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "line": { "type": "integer", "minimum": 1 },
+                    "received_at": { "type": "string", "format": "date-time" }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "updated_at": { "type": "string", "format": "date-time" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "last_updated": {
           "type": "string",
-          "enum": [
-            "clean",
-            "dirty"
-          ],
-          "description": "Current type-check status."
-        },
-        "dirty_files": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Files with unresolved type errors."
-        },
-        "incremental_errors": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Count of incremental type errors."
-        },
-        "full_errors": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Count of full-scan type errors."
-        },
-        "last_full_check": {
-          "oneOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "ISO 8601 timestamp of last full type check, or null."
-        },
-        "last_incremental_check": {
-          "oneOf": [
-            {
-              "type": "string",
-              "format": "date-time"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "ISO 8601 timestamp of last incremental type check, or null."
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of last diagnostic update."
         }
       },
       "additionalProperties": true
@@ -255,10 +232,7 @@
         },
         "status": {
           "type": "string",
-          "enum": [
-            "clean",
-            "dirty"
-          ],
+          "enum": ["clean", "dirty"],
           "description": "Current dependency audit status."
         }
       },
@@ -267,18 +241,11 @@
     "format_state": {
       "type": "object",
       "description": "Prettier format check state.",
-      "required": [
-        "status",
-        "unformatted_files",
-        "last_check"
-      ],
+      "required": ["status", "unformatted_files", "last_check"],
       "properties": {
         "status": {
           "type": "string",
-          "enum": [
-            "clean",
-            "dirty"
-          ],
+          "enum": ["clean", "dirty"],
           "description": "Current formatting status."
         },
         "unformatted_files": {
@@ -323,11 +290,7 @@
     "write_audit_state": {
       "type": "object",
       "description": "Write-time audit tracking for every file change.",
-      "required": [
-        "enabled",
-        "current_session",
-        "history"
-      ],
+      "required": ["enabled", "current_session", "history"],
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -408,12 +371,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "session",
-              "files",
-              "timestamp",
-              "result"
-            ],
+            "required": ["session", "files", "timestamp", "result"],
             "properties": {
               "session": {
                 "type": "string",
@@ -433,10 +391,7 @@
               },
               "result": {
                 "type": "string",
-                "enum": [
-                  "pass",
-                  "fail"
-                ],
+                "enum": ["pass", "fail"],
                 "description": "Session audit result."
               }
             },
@@ -450,11 +405,7 @@
     "compliance_records": {
       "type": "object",
       "description": "Compliance violation records across role, gate, and TDD enforcement.",
-      "required": [
-        "role_violations",
-        "gate_violations",
-        "tdd_violations"
-      ],
+      "required": ["role_violations", "gate_violations", "tdd_violations"],
       "properties": {
         "role_violations": {
           "type": "array",
@@ -483,21 +434,12 @@
               },
               "status": {
                 "type": "string",
-                "enum": [
-                  "unresolved",
-                  "resolved",
-                  "waived"
-                ],
+                "enum": ["unresolved", "resolved", "waived"],
                 "description": "Resolution status."
               },
               "severity": {
                 "type": "string",
-                "enum": [
-                  "BLOCKER",
-                  "HIGH",
-                  "MEDIUM",
-                  "LOW"
-                ],
+                "enum": ["BLOCKER", "HIGH", "MEDIUM", "LOW"],
                 "description": "Violation severity level."
               },
               "denied_by": {
@@ -537,26 +479,18 @@
     "knowledge_audit_state": {
       "type": "object",
       "description": "UC7KS Knowledge Pipeline audit state. Tracks knowledge acquisition activity across all agents.",
-      "required": [
-        "enabled"
-      ],
+      "required": ["enabled"],
       "properties": {
         "enabled": {
           "type": "boolean",
           "description": "Whether knowledge pipeline auditing is enabled."
         },
         "last_cache_check": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "description": "ISO 8601 timestamp of last cache check."
         },
         "last_knowledge_acquisition": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "description": "ISO 8601 timestamp of last external knowledge acquisition."
         },
         "current_session": {
@@ -564,10 +498,7 @@
           "description": "Per-session knowledge audit state.",
           "properties": {
             "agent": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": ["string", "null"]
             },
             "cache_checked": {
               "type": "boolean"
@@ -631,12 +562,7 @@
     "tdd_enforcement_state": {
       "type": "object",
       "description": "TDD enforcement tracking state.",
-      "required": [
-        "enabled",
-        "current_session",
-        "violations",
-        "history"
-      ],
+      "required": ["enabled", "current_session", "violations", "history"],
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -670,10 +596,7 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "file",
-                      "timestamp"
-                    ],
+                    "required": ["file", "timestamp"],
                     "properties": {
                       "file": {
                         "type": "string"
@@ -717,10 +640,7 @@
                       },
                       "type": {
                         "type": "string",
-                        "enum": [
-                          "test",
-                          "impl"
-                        ]
+                        "enum": ["test", "impl"]
                       },
                       "hasChanges": {
                         "type": "boolean"
@@ -761,12 +681,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "timestamp",
-              "file",
-              "code",
-              "message"
-            ],
+            "required": ["timestamp", "file", "code", "message"],
             "properties": {
               "timestamp": {
                 "type": "string",
@@ -871,12 +786,7 @@
       "properties": {
         "cache_status": {
           "type": "string",
-          "enum": [
-            "healthy",
-            "stale",
-            "empty",
-            "corrupt"
-          ],
+          "enum": ["healthy", "stale", "empty", "corrupt"],
           "description": "Overall health status of the local knowledge cache."
         },
         "total_entries": {
@@ -960,10 +870,7 @@
           "description": "UC7-001 per-agent cache access tracking. Records when each agent type last read docs/official_docs/index.json. Used by compliance_gate_check and uc7ks-enforcer to enforce the 'local-first' mandate. Keyed by agent type (e.g. '@Super-Admin', '@Coder-BE'). Added FW-HARDEN-UC7KS-001.",
           "additionalProperties": {
             "type": "object",
-            "required": [
-              "last_read_at",
-              "uc7_001_compliant"
-            ],
+            "required": ["last_read_at", "uc7_001_compliant"],
             "properties": {
               "last_read_at": {
                 "type": "string",
@@ -984,17 +891,11 @@
                 "description": "Total number of times this agent has read cache files."
               },
               "declared_scope": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "description": "Agent's declared module domain from knowledge_semantic_map (e.g., 'backend_api', 'persistence'). Set by module_scope_declare tool. FW-HARDEN-UC7KS-002."
               },
               "declared_at": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time",
                 "description": "ISO 8601 timestamp when the agent declared its module scope."
               },
@@ -1011,11 +912,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "sufficient",
-                      "insufficient",
-                      "undeclared"
-                    ],
+                    "enum": ["sufficient", "insufficient", "undeclared"],
                     "description": "Whether the local cache covers the agent's knowledge needs."
                   },
                   "reason": {
@@ -1043,10 +940,7 @@
                     "description": "Specific topics the agent found missing in cache."
                   },
                   "declared_at": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": ["string", "null"],
                     "format": "date-time",
                     "description": "ISO 8601 timestamp when sufficiency was declared."
                   }
@@ -1064,10 +958,7 @@
       "properties": {
         "gate_state_format": {
           "type": "string",
-          "enum": [
-            "2.0",
-            "3.0"
-          ],
+          "enum": ["2.0", "3.0"],
           "description": "Active gate-state.json format version. '3.0' indicates hierarchical storage is active."
         },
         "gate_state_index": {
@@ -1114,10 +1005,7 @@
         },
         "dag_format": {
           "type": "string",
-          "enum": [
-            "1.0",
-            "2.0"
-          ],
+          "enum": ["1.0", "2.0"],
           "description": "Active Task.DAG.json format version. '2.0' indicates hierarchical storage with external changelog."
         },
         "dag_changelog": {
@@ -1163,10 +1051,7 @@
     "plugin_state": {
       "type": "object",
       "description": "Framework plugin load state tracking. Synchronized with .task_temp/_logs/index.json by state-reconciliation.",
-      "required": [
-        "last_reconciliation",
-        "plugins"
-      ],
+      "required": ["last_reconciliation", "plugins"],
       "properties": {
         "last_reconciliation": {
           "type": "string",
@@ -1178,11 +1063,7 @@
           "description": "Per-plugin state tracking keyed by plugin name (e.g., session, scope-before, uc7ks-before).",
           "additionalProperties": {
             "type": "object",
-            "required": [
-              "loaded",
-              "hooks_registered",
-              "last_seen"
-            ],
+            "required": ["loaded", "hooks_registered", "last_seen"],
             "properties": {
               "loaded": {
                 "type": "boolean",
@@ -1240,13 +1121,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "attempt",
-              "success",
-              "timeout",
-              "rate_limited",
-              "failure"
-            ]
+            "enum": ["attempt", "success", "timeout", "rate_limited", "failure"]
           },
           "elapsed_ms": {
             "type": "integer",
@@ -1285,10 +1160,7 @@
           },
           "dag_entry_source": {
             "type": "string",
-            "enum": [
-              "tasks",
-              "execution_order"
-            ]
+            "enum": ["tasks", "execution_order"]
           },
           "dag_entry_status": {
             "type": "string"

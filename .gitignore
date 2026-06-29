@@ -135,3 +135,6 @@ docs/handover/
 
 # Backup artifacts (stray .bak files from framework edits)
 *.bak
+
+# CodeGraph index database
+.codegraph/

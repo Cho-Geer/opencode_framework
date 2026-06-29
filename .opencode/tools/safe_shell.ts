@@ -1,5 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
-import { safeBashTool, withInterruptGuard } from "../lib";
+import { safeBashTool } from "../service/file-guard";
+import { withInterruptGuard } from "../lib";
 
 export default tool({
   description:

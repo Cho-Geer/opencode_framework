@@ -1,17 +1,9 @@
-// resolve_domain_id.ts — Custom MCP tool: resolve dispatch-assigned domain_id for agent self-check
-// FW-UC7KS-DOMAIN-002: Wraps resolveDomainId() from agent-resolver.ts as a query tool.
-// Agents call this in Step 0a (subagent-preamble.md) to verify their dispatch-assigned domain
-// before calling module_scope_declare(), preventing domain mismatch errors.
-// The underlying resolveDomainId() reads from session_map DB (primary) and .dispatch_ctx (fallback).
-// Created: 2026-06-18 @Super-Admin (SA-ADD-DOMAIN-SELFCHECK-TOOL)
-// Updated: 2026-06-21 @Super-Admin — Issue #115: added dag_task_id optional param,
-//   confidence field (high/medium/low/none), and more specific resolved_from sources.
+// resolve_domain_id.ts — Resolve dispatch-assigned domain_id for agent self-check
+// Thin Controller: delegates to SessionService.resolveDomainIdForTool()
 
 import { tool } from "@opencode-ai/plugin";
-import { resolveDomainId } from "../lib/agent-resolver";
-import { dbReadSessionMap } from "../lib/db-state-manager";
-import { getDb } from "../lib/db-manager";
-import { checklistWirePassed } from "../lib/checklist-hooks";
+import { resolveDomainIdForTool } from "../service/session/";
+import { checklistWirePassed } from "../service/gate/checklist-hooks";
 
 export default tool({
   description:
@@ -33,98 +25,35 @@ export default tool({
       .optional()
       .describe(
         "Optional DAG task ID. If provided and sessionId is not, the tool will " +
-          "look up the sessionId from session_map DB by dag_task_id before resolving the domain. " +
-          "This enables domain resolution in dispatch contexts where only dag_task_id is known.",
+          "look up the sessionId from session_map DB by dag_task_id before resolving the domain.",
       ),
   },
   async execute(args, context) {
-    var sessionId =
+    const sessionId =
       args.sessionId || ((context as any)?.sessionID as string) || "";
-    var dagTaskId = (args.dag_task_id as string) || "";
+    const dagTaskId = (args.dag_task_id as string) || "";
+    const agentKey = (context as any)?.agent || "";
 
-    // If dag_task_id provided but no sessionId, try to resolve sessionId from session_map DB
-    // by dag_task_id. This enables domain resolution when the caller only has dag_task_id.
-    if (dagTaskId && !sessionId) {
-      try {
-        const db = getDb();
-        const row = db
-          .query(
-            "SELECT session_id FROM session_map WHERE dag_task_id = ? ORDER BY updated_at DESC LIMIT 1",
-          )
-          .get(dagTaskId) as { session_id: string } | null;
-        if (row?.session_id) {
-          sessionId = row.session_id;
-        }
-      } catch (_e) {
-        // Best-effort: if DB lookup fails, fall through with whatever sessionId we have
-      }
-    }
-
-    if (!sessionId) {
-      return JSON.stringify({
-        domain_id: null,
-        error:
-          "No sessionId available — cannot resolve domain without session context. " +
-          "Provide sessionId, dag_task_id, or ensure context.sessionID is set.",
-        resolved_from: "none",
-        confidence: "none",
-      });
-    }
-
-    var domainId: string | null = null;
-    var resolvedFrom = "none";
-    var confidence = "none";
-
-    // Confidence levels:
-    //   "high"   — resolved directly from session_map DB (per-session, authoritative)
-    //   "medium" — resolved from per-dispatch ctx/ or .dispatch_ctx fallback
-    //   "low"    — reserved for future lower-confidence resolution sources
-    //   "none"   — no resolution available
-    //
-    // Priority 1: Check session_map DB directly (high confidence).
-    // We check this BEFORE calling resolveDomainId() so we can accurately report
-    // the confidence level rather than just a binary resolved_from value.
-    try {
-      const entry = dbReadSessionMap(sessionId);
-      if (entry?.domain_id) {
-        domainId = entry.domain_id;
-        resolvedFrom = "session_map";
-        confidence = "high";
-      }
-    } catch (_e) {
-      // Session map read failed — fall through to resolveDomainId()
-    }
-
-    // Priority 2: If not found in session_map, use resolveDomainId() which checks
-    // per-dispatch ctx/ files and .dispatch_ctx legacy fallback.
-    if (!domainId) {
-      domainId = resolveDomainId(sessionId);
-      if (domainId) {
-        // resolveDomainId() found the domain from ctx/ files or .dispatch_ctx fallback.
-        // These are less authoritative than session_map (medium confidence).
-        resolvedFrom = "dispatch_ctx";
-        confidence = "medium";
-      }
-    }
+    const result = resolveDomainIdForTool(sessionId, dagTaskId, agentKey);
 
     // P0-CHECKLIST: wire domain resolution to checklist
-    if (domainId) {
+    if (result.domain_id) {
       try {
         checklistWirePassed(
           sessionId,
-          (context as any)?.agent || "",
+          agentKey,
           dagTaskId,
           "domain_resolved",
-          `domain=${domainId}`,
+          `domain=${result.domain_id}`,
         );
       } catch {}
     }
 
     return JSON.stringify({
-      domain_id: domainId,
-      resolved_from: resolvedFrom,
-      confidence: confidence,
-      note: domainId
+      domain_id: result.domain_id,
+      resolved_from: result.resolved_from,
+      confidence: result.confidence,
+      note: result.domain_id
         ? "Use this domain_id as the 'module' argument for module_scope_declare()"
         : "No dispatch domain assigned — agent_domain_map may not have this agent type, or the dispatch hasn't been recorded yet",
     });

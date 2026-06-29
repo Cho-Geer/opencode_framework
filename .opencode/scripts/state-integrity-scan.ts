@@ -28,7 +28,7 @@ function main() {
     "machine.json": paths.machine,
     "project.config.json": paths.projectConfig,
     "rule_registry.json": paths.ruleRegistry,
-    "Task.DAG.json": paths.dag,
+    "Task.DAG.json": (paths as any).dag,
   };
 
   // ── JSON validity check ──
@@ -96,7 +96,7 @@ function main() {
         if (typeof session !== "object" || session === null) {
           continue;
         }
-        if (!session.session_id) {
+        if (!(session as any).session_id) {
           inconsistencies.push({
             severity: "WARNING",
             file: "gate-state.json",
@@ -104,7 +104,7 @@ function main() {
             detail: `Session key '${sid}' missing session_id field`,
           });
         }
-        if (!session.created_at) {
+        if (!(session as any).created_at) {
           inconsistencies.push({
             severity: "WARNING",
             file: "gate-state.json",
@@ -112,7 +112,7 @@ function main() {
             detail: `Session '${sid}' missing created_at`,
           });
         }
-        if (!session.gate_status) {
+        if (!(session as any).gate_status) {
           inconsistencies.push({
             severity: "WARNING",
             file: "gate-state.json",
@@ -131,7 +131,7 @@ function main() {
     const machineMeta = readMachineMeta();
     const requiredSubStates = [
       "eslint_state",
-      "type_check_state",
+      "diagnostic_state", // replaces type_check_state (2026-06-26)
       "dependency_state",
       "format_state",
       "write_audit_state",
@@ -239,7 +239,9 @@ function main() {
             if (typeof id === "string") taskIds.add(id);
           }
         } else if (group && typeof group === "object") {
-          for (const subgroup of Object.values(group as Record<string, unknown>)) {
+          for (const subgroup of Object.values(
+            group as Record<string, unknown>,
+          )) {
             if (Array.isArray(subgroup)) {
               for (const id of subgroup) {
                 if (typeof id === "string") taskIds.add(id);
@@ -251,12 +253,12 @@ function main() {
     }
     for (const [sid, session] of Object.entries(gateState.sessions)) {
       if (typeof session !== "object" || session === null) continue;
-      if (session.task_id && !taskIds.has(session.task_id)) {
+      if ((session as any).task_id && !taskIds.has((session as any).task_id)) {
         inconsistencies.push({
           severity: "WARNING",
           file: "gate-state.json",
           issue: "orphaned_task_ref",
-          detail: `Session '${sid}' references non-existent task '${session.task_id}'`,
+          detail: `Session '${sid}' references non-existent task '${(session as any).task_id}'`,
         });
         autoFixPossible = true;
         if (shouldFix && !dryRun) {
@@ -285,7 +287,6 @@ function main() {
     }
   }
 
-
   // ── FW-PLAN-FIRST (2026-06-14): auto_plan_history cross-check ──
   // Every successful auto-plan attempt must have a matching DAG entry.
   // A "success" record whose dag_task_id is no longer in the DAG indicates
@@ -303,13 +304,19 @@ function main() {
           for (const id of group) if (typeof id === "string") taskIds.add(id);
         } else if (group && typeof group === "object") {
           for (const sg of Object.values(group)) {
-            if (Array.isArray(sg)) for (const id of sg) if (typeof id === "string") taskIds.add(id);
+            if (Array.isArray(sg))
+              for (const id of sg) if (typeof id === "string") taskIds.add(id);
           }
         }
       }
     }
     for (const rec of transactionState.auto_plan_history) {
-      if (rec && rec.status === "success" && rec.dag_task_id && !taskIds.has(rec.dag_task_id)) {
+      if (
+        rec &&
+        (rec as any).status === "success" &&
+        rec.dag_task_id &&
+        !taskIds.has(rec.dag_task_id)
+      ) {
         inconsistencies.push({
           severity: "WARNING",
           file: "machine.json",
@@ -354,3 +361,5 @@ if (require.main === module) {
 }
 
 module.exports = { main };
+
+export {};

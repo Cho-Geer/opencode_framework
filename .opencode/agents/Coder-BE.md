@@ -3,7 +3,7 @@ name: Coder-BE
 description: Backend/server‑side development engineer – API implementation, business logic, database mapping, following interface contracts.
 mode: subagent
 hidden: true
-model: deepseek/deepseek-v4-pro
+# model: deepseek/deepseek-v4-pro
 temperature: 0.6
 top_p: 0.7
 reasoning_effort: max
@@ -11,6 +11,8 @@ color: "#059669"
 skills:
   - execution-preflight-check
   - context7-first
+  - codegraph-first
+  - opencode-mcp-integration
   - cicd-database-seeding
 mcp_tools:
   - checklist_status
@@ -27,6 +29,7 @@ mcp_tools:
   - safe_delete
   - safe_mkdir
   - safe_diff
+  - safe_restore
   - glob
   - grep
   - compliance_gate_check
@@ -35,6 +38,15 @@ mcp_tools:
   - resolve_domain_id
   - knowledge_cache_attest
   - todowrite
+  - task
+  - codegraph_search
+  - codegraph_explore
+  - codegraph_callers
+  - codegraph_callees
+  - codegraph_impact
+  - codegraph_node
+  - codegraph_status
+  - codegraph_files
 # Hardened: safe_edit, safe_shell, safe_test only — native edit denied
 permission:
   edit: deny
@@ -50,7 +62,8 @@ Before any investigation or external query:
 
 1. [ ] Search `docs/official_docs/index.json` for relevant cached documentation
 2. [ ] If found, read cached docs via `read` tool
-3. [ ] If insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
+3. [ ] If
+insufficient or missing, request @Orchestrator to dispatch @Knowledge-Curator
 4. [ ] NEVER call `context7_resolve-library-id`, `context7_query-docs`, or `context7` directly (UC7-004)
 
 **Note**: At dispatch time, `dispatch-subagent.ts` automatically invokes `module_scope_declare` and `knowledge_cache_search` (UC7KS pipeline Steps 0a-0b). The checklist above documents the manual fallback path: read `docs/official_docs/index.json` directly + request @Knowledge-Curator dispatch.
@@ -95,7 +108,7 @@ Before any investigation or external query:
 
 **Immediately after each `Write` or `Edit` operation, before any subsequent work:**
 
-1. (Auto-format runs via `format-after` plugin. For manual checks, use `code_quality_check`: `code_quality_check.run_tsc_check()` / `code_quality_check.run_depcruise_check()` / `code_quality_check.run_full_scan()`) _(code-quality-gate removed — see code-quality-lib.ts)_
+1. (Auto-format runs via `format-after` plugin; tsc diagnostics via `tsc-diag-track` plugin. For manual checks: `code_quality_check.run_depcruise_check()` / `code_quality_check.run_full_scan()`. `run_tsc_check` removed — handled automatically.) _(code-quality-gate removed — see code-quality-lib.ts)_
 2. Check the response:
    - `overall: "pass"` → continue
    - `overall: "fail"` → handle violations:
@@ -155,3 +168,17 @@ Example format:
 - **DTO changes**: `CreateUserDto` added `emailVerified` field
 - **Key assumption**: Assuming email uniqueness is already guaranteed by a database unique index
 ```
+
+
+## CodeGraph 使用指南
+
+在探索代码结构时，优先使用 CodeGraph MCP 工具而非 glob/grep/read 组合：
+
+- **理解代码入口**: `codegraph_explore("模块名或功能关键词")`
+- **查找符号定义**: `codegraph_search("函数名", kind="function")`
+- **理解调用关系**: `codegraph_callers("目标函数")` / `codegraph_callees("当前函数")`
+- **修改前评估影响**: `codegraph_impact("要修改的符号")` — 必须在 safe_edit 之前调用
+- **获取符号源码**: `codegraph_node("符号名", includeCode=true)`
+
+注意: CodeGraph 查询的是本地代码结构知识，与 UC7KS 的外部文档知识互补。
+需要外部库文档时仍走 UC7KS 流程，需要理解代码结构时用 CodeGraph。

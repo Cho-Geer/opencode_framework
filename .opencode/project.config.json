@@ -66,8 +66,8 @@
     "container": "Docker Compose v2"
   },
   "template_resolution": {
-    "develop_enforcement_mode": "advisory",
-    "runtime_enforcement_mode": "advisory",
+    "develop_enforcement_mode": "strict",
+    "runtime_enforcement_mode": "strict",
     "compatibility_profile": "native",
     "super_admin_uc7ks_dispatch_patterns": [
       "knowledge",
@@ -87,6 +87,80 @@
       "library",
       "api reference"
     ],
+    "checklist_passthrough_tools": [
+      "compliance-gate_compliance_gate_purge",
+      "compliance-gate_compliance_gate_approve_deliverables",
+      "read",
+      "glob",
+      "grep",
+      "safe_hash",
+      "task",
+      "question",
+      "todowrite",
+      "dispatch_subagent",
+      "config_read_attest",
+      "module_scope_declare",
+      "knowledge_cache_search",
+      "knowledge_cache_attest",
+      "compliance-gate_compliance_gate_check",
+      "compliance-gate_compliance_gate_confirm",
+      "compliance-gate_compliance_gate_complete",
+      "compliance-gate_compliance_gate_submit_deliverables",
+      "compliance-gate_compliance_gate_retry_confirm",
+      "checklist_status",
+      "advance_checklist_phase",
+      "resolve_domain_id",
+      "safe_shell",
+      "safe_edit",
+      "safe_mkdir"
+    ],
+    "uc7ks_external_tools": [
+      "context7_resolve-library-id",
+      "context7_query-docs",
+      "context7",
+      "webfetch",
+      "websearch",
+      "github_get_file_contents",
+      "github_search_code",
+      "github_search_repositories",
+      "github_search_issues",
+      "playwright_browser_navigate"
+    ],
+    "tdd_modify_tools": ["write", "edit", "safe_edit"],
+    "route_biz_scopes": ["booking-backend/src/", "booking-frontend/"],
+    "route_fw_scopes": [".opencode/", "opencode.json", "AGENTS.md"],
+    "framework_path_prefixes": [
+      ".opencode/",
+      "docs/",
+      ".task_temp/",
+      "node_modules/"
+    ],
+    "framework_root_files": [
+      "opencode.json",
+      "AGENTS.md",
+      "contract.yaml",
+      "Task.DAG.json",
+      "TECH_DEBT_REGISTRY.md",
+      "WAIVE.md",
+      "PROJECT_REFERENCE.md",
+      "Project.graph"
+    ],
+    "tsc_gate_mode": "advisory",
+    "tsc_gate_timeout_ms": 30000,
+    "tsc_gate_lock_timeout_ms": 60000,
+    "tsc_gate_block_on_all_errors": false,
+    "tsc_gate_max_errors_shown": 5,
+    "gate_stale_thresholds": {
+      "armed_hours": 24,
+      "checked_hours": 48,
+      "delivered_hours": 4,
+      "startup_cleanup_armed_hours": 1,
+      "approved_hours": 4,
+      "dispatch_queue_stale_hours": 24
+    },
+    "dispatch_integrity_bypass_agents": ["explore"],
+    "checklist_task_bypass_agents": ["explore"],
+    "checklist_agent_bypass": ["explore"],
     "super_admin_repair_patterns": [
       "repair",
       "fix",
@@ -804,7 +878,8 @@
       "websearch",
       "context7",
       "pandoc"
-    ]
+    ],
+    "@explore": ["task", "read", "glob", "grep", "bash"]
   },
   "safe_shell": {
     "$description": "Safe shell command allowlist and dangerous pattern configuration. Externalized from safe-bash-core.ts for runtime configurability. Added FW-UNIFY-TS-P3.",
@@ -1073,6 +1148,141 @@
         "keywords": ["调度", "dispatch", "schedule", "状态"],
         "agents": ["@Orchestrator"]
       }
+    },
+    "purpose_to_agent": {
+      "$description": "FIX-G1-ROUTE-PURPOSE-v1 (2026-06-27, @Super-Admin): Layer 0 — purpose inference maps task descriptions to canonical dispatch purposes before L1 verb matching. Purpose-based routing is more reliable than keyword matching because purposes are explicit about intent. Each purpose has priority (lower = higher priority) and keywords for inference.",
+      "rules": [
+        {
+          "purpose": "repair",
+          "agent": "@Super-Admin",
+          "priority": 0,
+          "keywords": [
+            "repair",
+            "fix",
+            "restore",
+            "emergency",
+            "修复",
+            "恢复",
+            "patch",
+            "broken",
+            "corrupt",
+            "drain",
+            "purge",
+            "reconcile"
+          ]
+        },
+        {
+          "purpose": "review",
+          "agent": "@Guardian",
+          "priority": 1,
+          "keywords": [
+            "review",
+            "audit",
+            "lint",
+            "审查",
+            "合规",
+            "验证",
+            "质量",
+            "check"
+          ]
+        },
+        {
+          "purpose": "implement_backend",
+          "agent": "@Coder-BE",
+          "priority": 2,
+          "keywords": [
+            "backend",
+            "api",
+            "controller",
+            "service",
+            "database",
+            "prisma",
+            "后端",
+            "编码",
+            "实现"
+          ]
+        },
+        {
+          "purpose": "implement_frontend",
+          "agent": "@Coder-FE",
+          "priority": 2,
+          "keywords": [
+            "frontend",
+            "component",
+            "ui",
+            "angular",
+            "前端",
+            "page",
+            "style"
+          ]
+        },
+        {
+          "purpose": "plan",
+          "agent": "@Meta-Planner",
+          "priority": 3,
+          "keywords": [
+            "plan",
+            "architect",
+            "analyze",
+            "分析",
+            "设计",
+            "规划",
+            "拆解",
+            "architecture",
+            "design"
+          ]
+        },
+        {
+          "purpose": "deploy",
+          "agent": "@CI-CD-Agent",
+          "priority": 4,
+          "keywords": [
+            "deploy",
+            "docker",
+            "pipeline",
+            "部署",
+            "build",
+            "release",
+            "ci",
+            "cd",
+            "镜像"
+          ]
+        },
+        {
+          "purpose": "arbitrate",
+          "agent": "@Arbiter",
+          "priority": 5,
+          "keywords": [
+            "waive",
+            "waiver",
+            "裁决",
+            "豁免",
+            "tech-debt",
+            "技术债",
+            "arbitration"
+          ]
+        },
+        {
+          "purpose": "knowledge",
+          "agent": "@Knowledge-Curator",
+          "priority": 6,
+          "keywords": [
+            "context7",
+            "knowledge",
+            "fetch",
+            "知识",
+            "docs",
+            "documentation",
+            "acquire"
+          ]
+        },
+        {
+          "purpose": "orchestrate",
+          "agent": "@Orchestrator",
+          "priority": 7,
+          "keywords": ["dispatch", "schedule", "调度", "orchestrate", "状态"]
+        }
+      ]
     },
     "scope_to_agent": {
       "$description": "Layer 2: target file path patterns → agent mapping (filters L1 candidates). REVISED: scope matching now uses Task.DAG.json target_files[] as input, not task_description text",

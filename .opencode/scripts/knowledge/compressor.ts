@@ -9,6 +9,7 @@
  */
 
 const fs = require("node:fs");
+const { readManifest, writeManifest } = require("./indexer");
 const path = require("node:path");
 const { execSync } = require("node:child_process");
 
@@ -137,3 +138,5 @@ function compressAll() {
 }
 
 module.exports = { compressFile, compressAll };
+
+export {};

@@ -1,12 +1,14 @@
 {
   "formatVersion": "3.0",
-  "active_sessions": {
+  "active_sessions": {},
+  "recent_sessions": {},
+  "drained_sessions": {
     "cg_ses_1782182430621": {
       "session_id": "cg_ses_1782182430621",
       "created_at": "2026-06-23T02:40:30.630Z",
       "task_description": "UC7KS 紧急缓存扩充：从 opencode.ai 拉取 framework/config.md、framework/cli.md、framework/agents.md 三份缺失的核心官方文档，回写 docs/official_docs/opencode/framework/，并原子化更新 index.json",
       "enforcement_mode": null,
-      "gate_status": "armed",
+      "gate_status": "drained",
       "last_check_passed": false,
       "last_check_failed_items": [],
       "plan_summary": "Fetch 3 missing opencode framework docs (config.md, cli.md, agents.md) from opencode.ai via webfetch, save to docs/official_docs/opencode/framework/, atomic index.json update, write HANDOVER.md and TASK_LOG.md",
@@ -18,14 +20,17 @@
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
-      "approval_required": false
+      "approval_required": false,
+      "drained_at": "2026-06-27T00:15:00.000Z",
+      "drained_by": "Super-Admin",
+      "drained_reason": "Stale armed session (96h > 24h threshold). Direct state surgery by Super-Admin (CLEANUP-STALE-SESSIONS-v1)."
     },
     "cg_ses_1782183204461": {
       "session_id": "cg_ses_1782183204461",
       "created_at": "2026-06-23T02:53:24.472Z",
       "task_description": "As @Orchestrator, execute E2E framework integration test acceptance after all fixes - dispatch static and runtime verification sub-agents, review deliverables, and produce final acceptance report.",
       "enforcement_mode": null,
-      "gate_status": "armed",
+      "gate_status": "drained",
       "last_check_passed": false,
       "last_check_failed_items": [],
       "plan_summary": "Execute E2E framework integration test acceptance after all fixes. Dispatch Coder-BE for static verification (framework-self-test 64 checks, schema, wiring, parent-run fallback), then Coder-BE for runtime verification (dispatch flow test, state reconciliation, doctor). Review and approve deliverables.",
@@ -37,14 +42,17 @@
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
-      "approval_required": false
+      "approval_required": false,
+      "drained_at": "2026-06-27T00:15:00.000Z",
+      "drained_by": "Super-Admin",
+      "drained_reason": "Stale armed session (93h > 24h threshold). Direct state surgery by Super-Admin (CLEANUP-STALE-SESSIONS-v1)."
     },
     "cg_ses_1782186020756": {
       "session_id": "cg_ses_1782186020756",
       "created_at": "2026-06-23T03:40:20.765Z",
       "task_description": "Execute framework E2E static verification: (1) run framework-self-test.ts ALL 64 checks, (2) verify Check 35 no stale entries, (3) Check 33 .pending.json clean, (4) Check 26/27 state reconciliation clean, (5) Check 22 no orphan docs, (6) Check 48 no stale ctx files, (7) parent-run fallback in checklist-before.ts, (8) Phase J DISPATCH_TOKEN hash round-trip, (9) Phase K resolveChecklistTaskId bridge",
       "enforcement_mode": null,
-      "gate_status": "armed",
+      "gate_status": "drained",
       "last_check_passed": false,
       "last_check_failed_items": [],
       "plan_summary": "Execute framework E2E static verification: run framework-self-test.ts (64 checks), verify Check 35, 33, 26/27, 22, 48, parent-run fallback, Phase J DISPATCH_TOKEN hash, Phase K resolveChecklistTaskId bridge. Output test_report.json and HANDOVER.md.",
@@ -56,14 +64,17 @@
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
-      "approval_required": false
+      "approval_required": false,
+      "drained_at": "2026-06-27T00:15:00.000Z",
+      "drained_by": "Super-Admin",
+      "drained_reason": "Stale armed session (93h > 24h threshold). Direct state surgery by Super-Admin (CLEANUP-STALE-SESSIONS-v1)."
     },
     "cg_ses_1782186439855": {
       "session_id": "cg_ses_1782186439855",
       "created_at": "2026-06-23T03:47:19.864Z",
       "task_description": "Execute framework E2E runtime verification after all fixes applied. Run framework-self-test.ts (all 64 checks), framework-doctor.ts --strict (13 checks), state-reconciliation.ts --fix, knowledge janitor integrity check, parent-run fallback E2E test, and approvable gate flow test. Output test_report.json and HANDOVER.md in .task_temp/E2E-ACCEPTANCE-RUNTIME-VFY/.",
       "enforcement_mode": null,
-      "gate_status": "armed",
+      "gate_status": "drained",
       "last_check_passed": false,
       "last_check_failed_items": [],
       "plan_summary": "Execute framework E2E runtime verification: (1) framework-self-test.ts all 64 checks PASS, (2) framework-doctor.ts --strict 13 checks PASS, (3) state-reconciliation.ts --fix 0 inconsistencies, (4) janitor integrity check, (5) parent-run fallback test, (6) approvable gate flow. Output HANDOVER.md, TASK_LOG.md, test_report.json in .task_temp/E2E-ACCEPTANCE-RUNTIME-VFY/.",
@@ -75,14 +86,17 @@
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
-      "approval_required": false
+      "approval_required": false,
+      "drained_at": "2026-06-27T00:15:00.000Z",
+      "drained_by": "Super-Admin",
+      "drained_reason": "Stale armed session (92h > 24h threshold). Direct state surgery by Super-Admin (CLEANUP-STALE-SESSIONS-v1)."
     },
     "cg_ses_1782187323059": {
       "session_id": "cg_ses_1782187323059",
       "created_at": "2026-06-23T04:02:03.068Z",
       "task_description": "E2E framework runtime verification round 2: Verify (1) framework-self-test 64 checks PASS, (2) framework-doctor --strict 13 PASS, (3) state-reconciliation --fix 0 inconsistencies, (4) parent-run fallback advances dispatch_payload→preflight, (5) safe_shell/safe_edit NOT blocked after fallback. Document findings in HANDOVER.md and test_report.json.",
       "enforcement_mode": null,
-      "gate_status": "armed",
+      "gate_status": "drained",
       "last_check_passed": false,
       "last_check_failed_items": [],
       "plan_summary": "Execute E2E runtime verification: run framework-self-test (64 checks), framework-doctor --strict (13 checks), state-reconciliation --fix, verify parent-run fallback advances checklist to preflight, verify safe_shell/safe_edit unblocked. Since tools blocked at dispatch_payload, will document findings and attempt via compliance gate arming to unblock.",
@@ -94,14 +108,19 @@
       "audit": null,
       "missing_artifacts": [],
       "deliverables_approved_at": null,
-      "approval_required": false
+      "approval_required": false,
+      "drained_at": "2026-06-27T00:15:00.000Z",
+      "drained_by": "Super-Admin",
+      "drained_reason": "Stale armed session (92h > 24h threshold). Direct state surgery by Super-Admin (CLEANUP-STALE-SESSIONS-v1)."
     }
   },
-  "recent_sessions": {},
   "meta": {
     "total_sessions": 5,
-    "active_count": 5,
+    "active_count": 0,
     "recent_count": 0,
-    "last_compacted": "2026-06-23T04:14:27.297Z"
+    "last_compacted": "2026-06-23T04:14:27.297Z",
+    "last_drained": "2026-06-27T00:15:00.000Z",
+    "drained_by": "Super-Admin",
+    "drained_task_id": "CLEANUP-STALE-SESSIONS-v1"
   }
 }

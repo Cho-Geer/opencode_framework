@@ -1,3 +1,14 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
+
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
+
+/**
+ * @deprecated CodeGraph MCP 已替代 Scout 层的代码结构分析功能。
+ * 保留此脚本仅用于历史兼容。新任务应使用 codegraph_impact / codegraph_callers。
+ * 退役日期: 2026-06-27
+ */
 /**
  * scout-extractor.js — UC7KS Scout Findings Extractor v1.0.0
  *
@@ -74,3 +85,5 @@ and may become stale with new library releases. Re-analyze after TTL expiry (14 
 
 
 module.exports = { extract };
+
+export {};
