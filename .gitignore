@@ -147,6 +147,9 @@ docs/handover/
 # Nested state files
 .opencode/scripts/command-tools/.opencode/
 .opencode/.opencode/state/gate-state.*
+.opencode/.opencode/state/framework-state.db*
+.opencode/state/gate-state.json
+.opencode/state/gate-state.history/
 
 # Runtime state
 Task.DAG.json
