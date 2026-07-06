@@ -136,6 +136,22 @@ docs/handover/
 # Backup artifacts (stray .bak files from framework edits)
 *.bak
 
+# Trash and backup directories (cleanup artifacts)
+.opencode/.trash-*/
+.opencode/legacy/
+
+# Pre-smoke / pre-phase backup files
+*.bak-pre-*
+*.bak-phase*
+
+# Nested state files
+.opencode/scripts/command-tools/.opencode/
+.opencode/.opencode/state/gate-state.*
+
+# Runtime state
+Task.DAG.json
+opencode.json.bak-pre-*
+
 # CodeGraph index database
 .codegraph/
 
