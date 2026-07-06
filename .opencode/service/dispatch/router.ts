@@ -132,6 +132,9 @@ export interface DispatchInput {
   callerAgent: string;
   sessionId: string;
   worktree: string;
+  dispatch_privilege?: string;
+  allowed_paths?: string[];
+  privilege_reason?: string;
 }
 
 export interface DispatchResult {
@@ -157,6 +160,21 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   const isOrchestrator = callerNorm === "orchestrator";
   const isSuperAdmin = callerNorm === "super-admin";
   const isKCTarget = isKC(target.requestedAgent);
+
+  // ── P1: Privilege grant validation ──
+  const { dispatch_privilege, allowed_paths, privilege_reason } = input;
+  if (dispatch_privilege) {
+    if (!isOrchestrator) {
+      writeLog(SRC, "ERROR", {
+        event: "PRIVILEGE-REJECTED-NON-ORCHESTRATOR",
+        callerAgent,
+        privilege: dispatch_privilege,
+      });
+      throw new Error(
+        `[FW-ENFORCE][PRIVILEGE] Only Orchestrator can create privilege grants. Caller: ${callerAgent}`
+      );
+    }
+  }
 
   // ── Auto-generate tracking UUID if dag_task_id missing ──
   let effectiveDagTaskId = dagTaskId || "";

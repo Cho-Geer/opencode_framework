@@ -1174,6 +1174,37 @@ export function initializeSchema(db: Database): void {
     db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_dq_dispatch_key
       ON dispatch_queue(dispatch_key) WHERE dispatch_key IS NOT NULL`);
 
+    // P0-B migration: add dispatch_key, parent_session_id, call_id to existing tables
+    for (const col of ["dispatch_key TEXT", "parent_session_id TEXT", "call_id TEXT"]) {
+      try { db.run(`ALTER TABLE dispatch_queue ADD COLUMN ${col}`); } catch {}
+    }
+
+    // ── P1: dispatch_privilege_grants ──────────────────────────
+    db.run(`
+      CREATE TABLE IF NOT EXISTS dispatch_privilege_grants (
+        id                 TEXT PRIMARY KEY,
+        dispatch_key       TEXT NOT NULL,
+        parent_session_id  TEXT NOT NULL,
+        child_session_id   TEXT,
+        dag_task_id        TEXT,
+        agent_type         TEXT NOT NULL,
+        privilege          TEXT NOT NULL,
+        allowed_tools      TEXT NOT NULL,
+        allowed_paths      TEXT NOT NULL,
+        reason             TEXT NOT NULL,
+        status             TEXT NOT NULL DEFAULT 'pending',
+        expires_at         INTEGER NOT NULL,
+        created_at         INTEGER NOT NULL,
+        bound_at           INTEGER,
+        consumed_at        INTEGER,
+        revoked_at         INTEGER
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dispatch_privilege_child
+      ON dispatch_privilege_grants(child_session_id, privilege, status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dispatch_privilege_dispatch
+      ON dispatch_privilege_grants(dispatch_key, status)`);
+
     // ── dispatch_context: per-dispatch session context ─────────
     // Replaces per-dispatch ctx/{dagTaskId}.json files.
     // Links dispatch to agent identity, task, and knowledge domain.

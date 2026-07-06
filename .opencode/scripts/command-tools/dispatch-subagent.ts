@@ -123,5 +123,44 @@ try {
   console.error("FATAL: DB enqueue failed: " + e.message);
   process.exit(1);
 }
+
+// ── P1: Privilege grant creation ──
+const dispatchPrivilege = process.env.DISPATCH_PRIVILEGE || "";
+if (dispatchPrivilege) {
+  try {
+    const { createGrant } = require("../../service/dispatch/privilege");
+    const allowedPathsStr = process.env.DISPATCH_ALLOWED_PATHS || "";
+    const allowedPaths = allowedPathsStr ? allowedPathsStr.split(",").map((p: string) => p.trim()) : [];
+    const dispatchKey = result.dispatchToken || require("node:crypto").randomUUID();
+    const grant = createGrant({
+      dispatch_key: dispatchKey,
+      parent_session_id: sessionId || "unknown",
+      agent_type: agentType,
+      privilege: dispatchPrivilege,
+      allowed_tools: ["safe_framework_edit"],
+      allowed_paths: allowedPaths,
+      reason: process.env.DISPATCH_PRIVILEGE_REASON || "Framework maintenance dispatch",
+      dag_task_id: dagTaskId || undefined,
+    });
+    if (grant) {
+      writeLog("dispatch-subagent", "INFO", {
+        event: "PRIVILEGE-GRANT-CREATED",
+        grantId: grant.id,
+        privilege: grant.privilege,
+        dispatchKey: grant.dispatch_key,
+      });
+    } else {
+      writeLog("dispatch-subagent", "WARN", {
+        event: "PRIVILEGE-GRANT-CREATION-FAILED",
+        privilege: dispatchPrivilege,
+      });
+    }
+  } catch (e: any) {
+    writeLog("dispatch-subagent", "WARN", {
+      event: "PRIVILEGE-GRANT-ERROR",
+      detail: e.message,
+    });
+  }
+}
 // ── Output file path to stdout ──
 console.log(outputFile);
