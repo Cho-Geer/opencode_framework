@@ -24,7 +24,7 @@ import * as crypto from "node:crypto";
 import { writeLog } from "../../lib/log-manager";
 import { loadGateStore, saveGateStore, getProjectRoot } from "./store-crud";
 import { checklistWirePassed } from "./checklist-hooks";
-import { getEnforcementMode } from "./enforcement";
+import { shouldBlock } from "../enforcement/rule-disposition";
 
 const SRC = "service-gate-mcp-deliverables";
 
@@ -231,7 +231,7 @@ export function submitDeliverablesWithCrossCheck(
   }
   const uniqueMissing = [...new Set(missingFiles)];
   const now = new Date().toISOString();
-  const evidenceWithTimestamps = parsedEvidence.map((ev) => ({ ...ev, submitted_at: now }));
+  const evidenceWithTimestamps = parsedEvidence.map((ev) => ({ ...ev, name: ev.name || ev.artifact_path || "unknown", submitted_at: now }));
 
   // ── Missing artifacts → recoverable ──
   if (uniqueMissing.length > 0) {
@@ -441,18 +441,17 @@ export function approveDeliverablesWithAudit(
     if (approvalCtx) markApprovalContextConsumed(gateSessionId, argsHash);
     writeLog(SRC, "INFO", { sessionID: gateSessionId, event: "READ_BEFORE_APPROVE_PASSED" });
   } catch (readAuditErr: any) {
-    const enfMode = getEnforcementMode();
-    writeLog(SRC, enfMode === "advisory" ? "WARN" : "ERROR", {
+    const blockReadAudit = shouldBlock("mcp-deliverable-check");
+    writeLog(SRC, blockReadAudit ? "ERROR" : "WARN", {
       sessionID: gateSessionId, event: "READ_BEFORE_APPROVE_UNAVAILABLE",
-      mode: enfMode, detail: readAuditErr.message,
+      policy: "mcp-deliverable-check", detail: readAuditErr.message,
     });
-    if (enfMode === "strict" || enfMode === "locked") {
+    if (blockReadAudit) {
       return {
         status: "rejected",
-        reason: `[READ-BEFORE-APPROVE] Read audit unavailable in ${enfMode} mode.\nError: ${readAuditErr.message}\n\nRemediation: verify read-track-after.ts plugin + framework-state.db read_audit table.`,
+        reason: `[READ-BEFORE-APPROVE] Read audit unavailable under the active deliverables policy.\nError: ${readAuditErr.message}\n\nRemediation: verify read-track-after.ts plugin + framework-state.db read_audit table.`,
       };
     }
-    // advisory: warn + allow
   }
 
   // ── Apply approval ──
@@ -482,7 +481,7 @@ export function approveDeliverablesWithAudit(
     store.active_sessions = store.active_sessions.filter((sid) => sid !== gateSessionId);
     if (!Array.isArray(store.audit_history)) store.audit_history = [];
     store.audit_history.push({
-      gate_session_id: gateSessionId,
+      session_id: gateSessionId,
       task_description: session.task_description,
       plan_summary: session.plan_summary,
       agent: session.agent,

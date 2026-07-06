@@ -132,7 +132,7 @@ All UC7 rules: Advisory=Warning | Strict=BLOCKED | Locked=BLOCKED. UC7-009 Locke
 
 ## §7 Related Documents
 
-`enforcement-modes-standard.md` | `TEMPLATE_VARIABLE_STANDARD.md` | `subagent-preamble.md` | `framework-self-test.ts` | `tool-execute.ts` | `uc7ks-enforcer.ts` | `framework-enforcer.ts` | `pre-execution-hook.sh` | `Knowledge-Curator.md` | `Super-Admin.md` | `docs/official_docs/index.json`
+`enforcement-modes-standard.md` | `TEMPLATE_VARIABLE_STANDARD.md` | `legacy/subagent-preamble.md (deprecated → Skills)` | `framework-self-test.ts` | `tool-execute.ts` | `uc7ks-enforcer.ts` | `framework-enforcer.ts` | `pre-execution-hook.sh` | `Knowledge-Curator.md` | `Super-Admin.md` | `docs/official_docs/index.json`
 
 ---
 

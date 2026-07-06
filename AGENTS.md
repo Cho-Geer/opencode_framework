@@ -1,8 +1,15 @@
 # 三层九角色多智能体体系 - 全局协作规范
 
-### 🚨 P0 强制规则: 所有任务必须从 `/compliance-gate` 开始
+### 🚨 P0 执行入口规则: 先走 `preflight-lite`，按风险升级
 
-任何开发、分析、设计、审查或部署任务必须以 `/compliance-gate "<task_description>"` 命令启动。合规门未武装（gate not armed），严禁进入分析、设计、编码或审查阶段。此规则优先级高于本文件所有其他规则。
+任何任务先执行 `preflight-lite` 的最小预检：
+
+1. 复述目标
+2. 判断风险级别
+3. 选择匹配 skill
+4. 决定是否需要 TodoWrite / Context7 / Scout / native Task 子任务
+
+不是所有任务都必须先武装 compliance gate、生成 DAG 或进入多 Agent 编排。只有高风险、需要审批、涉及正式 deliverables、跨 Agent 协作或复杂调查时，才升级到 gate / deliverables / dispatch 流程。
 
 ### 🚨 P0 凭据要求：每个结论必须有凭有据，禁止胡编乱造
 
@@ -16,22 +23,15 @@
 
 任何 Agent 在给出结论前，必须充分阅读代码、搜索日志、验证数据，搜集足够充分的依据。不可仅凭局部信息或单次观测就断言全局结论。
 
-### 🚨 P0 子Agent派遣规则: 必须使用 `dispatch_subagent` 工具
+### 🚨 P0 子任务派遣规则: 优先使用原生 `Task`
 
-当主Agent需要委托子Agent（subagent）执行任务时，必须通过以下流程：
+当主 Agent 需要委托子 Agent 或研究型子任务时：
 
-1. 调用 `dispatch_subagent` 工具生成包装后的 Prompt
-2. 将生成的包装Prompt原样传递给 `Task()` 工具的 `prompt` 参数
-3. 禁止手动编写子Agent Prompt绕过执行前检查
+1. 优先直接使用原生 `Task`
+2. 让子任务自行加载 `preflight-lite` 和匹配的执行 skill
+3. 需要 Scout / research / evidence gathering 时，优先 native Task，而不是依赖旧 preamble 包装
 
-包装后的Prompt自动包含：
-
-- `.opencode/agents/<agent_type>.md` 中声明的全部 `skills` 和 `mcp_tools` 调用指令
-- 完整的 compliance_gate_check → confirm → complete 流程
-- 子Agent配置文件中定义的执行协议
-- 如需外部文档，由子Agent通过 UC7KS 管道自行 dispatch `@Knowledge-Curator`
-
-此规则由 `dispatch-before.ts` 和 `framework-enforcer.ts` 物理强制执行。
+`dispatch_subagent` 仅保留为 legacy 兼容工具，不再是默认派遣入口。
 
 ### 🚨 P0 Super-Admin 调度规则
 
@@ -39,14 +39,13 @@
 
 **Super-Admin 调用矩阵**:
 
-| 场景                                        | 正确动作                                                                     | 违规动作                       |
-| ------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------ |
-| 框架文件损坏                                | @Orchestrator `dispatch_subagent @Super-Admin "repair..."`（需匹配修复模式） | ❌ @Orchestrator 自行修改      |
-| 子状态文件不一致（P1-B split architecture） | @Orchestrator `dispatch_subagent @Super-Admin "fix state..."`                | ❌ @Orchestrator 自行修改      |
-| 合规门无法关闭                              | @Orchestrator `dispatch_subagent @Super-Admin "drain gate..."`               | ❌ @Orchestrator 直接提交      |
-| 插件完整性破坏                              | @Orchestrator `dispatch_subagent @Super-Admin "repair plugin"`               | ❌ @Coder-BE 直接编辑          |
-| UC7KS 知识获取 / 缓存扩充                   | @Super-Admin 直接 `dispatch_subagent @Knowledge-Curator`                     | ❌ 必须通过 @Orchestrator 中转 |
-| Locked 模式紧急修复                         | 人工 `dispatch_subagent @Super-Admin`（Locked 下禁止自动调度）               | ❌ @Orchestrator 自动派遣      |
+| 场景 | 正确动作 | 违规动作 |
+| --- | --- | --- |
+| 框架文件损坏 | @Orchestrator 用原生 `Task` 派 `@Super-Admin` 修复 | ❌ @Orchestrator 自行修改 |
+| 子状态文件不一致 | @Orchestrator 用原生 `Task` 派 `@Super-Admin` 修复状态 | ❌ @Orchestrator 自行修改 |
+| 合规门/交付流异常 | @Orchestrator 用原生 `Task` 派专项修复 | ❌ 跳过审计直接收尾 |
+| 插件完整性破坏 | @Orchestrator 用原生 `Task` 派 `@Super-Admin` 修复 | ❌ 业务 Agent 直接编辑框架 |
+| UC7KS 知识获取 / 缓存扩充 | 根据任务需要用原生 `Task` 派 `@Knowledge-Curator` 或 Scout | ❌ 在无证据情况下直接外查 |
 
 /\*\*
 
@@ -72,52 +71,48 @@
 **路由执行规则**:
 
 - 上述路由由 `framework-enforcer.ts` 的 `ROUTE-MISMATCH` 检查在物理层强制执行
-- strict/locked 模式下：越界写操作直接被框架抛出异常阻断
-- advisory 模式下：记录审计日志但不阻断
+- safety-critical 越界写操作：直接阻断
+- 质量类越界或流程类异常：记录审计 / QoderWork 可观察信号
 - 路由触发时，Agent 应输出明确的拒绝信息并建议正确的路由目标
 
-### 🚨 P0 全域入口规则: 所有新工作项必须先经 @Meta-Planner
+### 🚨 P0 全域入口规则: 仅复杂任务升级到 @Meta-Planner / DAG
 
-任何新工作项——包括但不限于功能开发、Bug修复、样式调整、性能优化、配置变更——在进入分析、设计或编码阶段前，**必须先经由 @Meta-Planner** 生成或更新 `Task.DAG.json`。禁止任何Agent在 @Meta-Planner 未参与的情况下自行分析或拆解需求。
+只有非 trivial 的跨 Agent、多阶段、高风险工作项，才需要先经由 `@Meta-Planner` 生成或更新 `Task.DAG.json`。纯信息查询、局部小修、低风险单点修改不应被 DAG 前置卡住。
 
 全域路由判定矩阵：
 
-| 工作项类型               | 是否需要 @Meta-Planner    | 操作                                                   |
-| ------------------------ | ------------------------- | ------------------------------------------------------ |
-| 全新功能/模块            | ✅ 强制                   | 调用 @Meta-Planner 生成完整 Task.DAG.json              |
-| Bug修复                  | ✅ 强制                   | 调用 @Meta-Planner 生成最小 DAG（分析→RED→GREEN→审查） |
-| 样式/UI调整              | ✅ 强制                   | 调用 @Meta-Planner 生成最小 DAG                        |
-| 报错排查（涉及代码变更） | ✅ 强制                   | 调用 @Meta-Planner 做根因假设分析并生成 DAG            |
-| 纯信息查询/文档阅读      | ⚠️ 无需                   | 直接回答，无需 DAG                                     |
-| 配置/环境变量简单变更    | ⚠️ @Orchestrator 自行判断 | 简单→直接执行；复杂→调 @Meta-Planner                   |
+| 工作项类型 | 是否需要 @Meta-Planner | 操作 |
+| --- | --- | --- |
+| 全新功能/模块 | ✅ 通常需要 | 生成完整 Task.DAG.json |
+| 复杂 Bug / 跨模块重构 | ✅ 需要 | 生成最小可执行 DAG |
+| 样式/UI 小调整 | ⚠️ 视复杂度而定 | 简单直接执行；复杂再规划 |
+| 纯信息查询/文档阅读 | ❌ 无需 | 直接回答 |
+| 简单配置/环境变量修正 | ⚠️ 视风险而定 | 简单直接执行；复杂再规划 |
 
-**违规后果**：跳过 @Meta-Planner 直接执行的任务视为无效，@Guardian 审查时自动拒绝。@Orchestrator 不得调度未经 @Meta-Planner 规划的任务。
+**原则**：不要把所有任务都强行送进 DAG。DAG 只服务于确实需要规划、分工、审计的任务。
 
 ### 🚨 P0 @Orchestrator 职责边界: 专职调度，禁止越权分析
 
 @Orchestrator 的核心职责是**按图调度**，不是需求分析或任务拆解。具体边界：
 
-| 场景                         | 正确动作                                        | 违规动作                  |
-| ---------------------------- | ----------------------------------------------- | ------------------------- |
-| 收到新工作项，无对应 DAG     | 调用 `dispatch_subagent` 工具派遣 @Meta-Planner | ❌ 自行分析需求           |
-| DAG 已存在，任务状态 pending | 按 DAG 依赖顺序调度子Agent                      | ❌ 自行修改 DAG 任务定义  |
-| DAG 状态与文件状态不同步     | 调 @Meta-Planner 更新 DAG 状态                  | ❌ 自行修改 task.status   |
-| DAG 覆盖率不足（<100%）      | 暂停执行，通知 @Meta-Planner 补充               | ❌ 跳过未覆盖任务继续执行 |
-| 执行中任务失败需重试         | 按熔断策略执行（降级/专家/人工）                | ❌ 自行修改任务范围       |
+| 场景 | 正确动作 | 违规动作 |
+| --- | --- | --- |
+| 收到复杂新工作项且无规划 | 用原生 `Task` 派 `@Meta-Planner` | ❌ 直接硬拆需求并分派 |
+| DAG 已存在，任务状态 pending | 按 DAG 依赖顺序调度子任务 | ❌ 自行改写 DAG 定义 |
+| DAG 状态与文件状态不同步 | 调 `@Meta-Planner` 或 `@Super-Admin` 修正 | ❌ 静默篡改 task.status |
+| 执行中任务失败需重试 | 按熔断策略执行（降级/专家/人工） | ❌ 无审计重试 |
 
 @Orchestrator 的专属输出产物仅限于：调度状态报告、任务进度追踪、最终产物合并。**禁止 @Orchestrator 产出任何分析性文档（Project.graph、根因分析等）**，这些是 @Meta-Planner 或 @Architect 的职责。
 
 ### 🚨 P0 PLAN-FIRST 调度约束 (FW-PLAN-FIRST, 2026-06-14)
 
-@Orchestrator 派遣任何 **非 DAG-exempt** 子 Agent 前,`Task.DAG.json`
-必须已经存在对应 `dag_task_id` 的任务条目(由 @Meta-Planner 规划)。
-框架在三个独立层次强制执行此约束:
+@Orchestrator 在派遣任何 **非 DAG-exempt** 子 Agent 前，只有在任务已进入 DAG 治理路径时，才要求 `Task.DAG.json` 中存在对应 `dag_task_id` 条目。普通小任务不应被这一约束前置阻断。
 
 | 层次    | 文件                          | 行为                                                                     |
 | ------- | ----------------------------- | ------------------------------------------------------------------------ |
-| Layer 1 | `plugins/dispatch-before.ts`  | 策略驱动;在工具运行前拒绝不合规派遣                                      |
-| Layer 2 | `tools/dispatch_subagent.ts`  | 无条件代码;直接调用 `findTaskInDag()`;若启用 `auto_plan=true` 则触发自愈 |
-| Layer 3 | `plugins/gate-before.ts` P2-1 | 修改工具调用时的防御纵深审计                                             |
+| Layer 1 | `plugins/before-dispatcher.ts` | 策略驱动；在 active before chain 中审计/阻断不合规派遣 |
+| Layer 2 | 原生 `Task` / legacy `dispatch_subagent` compat | 建立子任务上下文 |
+| Layer 3 | `plugins/before-dispatcher.ts` + gate services | 对需要治理的任务做纵深审计 |
 
 **DAG-exempt agents**(无需 DAG 条目即可派遣):
 @Meta-Planner、@Orchestrator、@Super-Admin、@Knowledge-Curator。
@@ -131,7 +126,6 @@
 - `auto_plan_enabled: true` 才允许(默认 rollout 阶段为 `false`)
 - `auto_plan_max_per_session: 5`(每会话次数上限)
 - `auto_plan_timeout_ms: 120000`(每次超时)
-- **locked 模式下强制为 `false`**(必须人工介入)
 - 所有尝试记入 `transaction-state.json` 的 `auto_plan_history` 字段（P1-B split architecture）
 
 **@Orchestrator 不能绕过**:
@@ -142,7 +136,7 @@
   `framework-enforcer.ts` 的 `DISPATCH-POLICY-TAMPER` 检查)
 - 无法通过 @Super-Admin 绕过(@Super-Admin 派遣需匹配修复模式,
   编辑 `dispatch_policy` 不是修复模式)
-- 无法跳过 `dag_task_id`(严格模式下 Layer 1/2 直接拒绝)
+- 无法在需要治理的 DAG 任务上静默跳过 `dag_task_id`
 
 参考:`docs/review/cicd-dag-block/plan-first-redesign.md`。
 
@@ -184,21 +178,23 @@
 - `.opencode/context/code_standards/backend-coding-standard.md`（后端开发强制遵循）
 - `.opencode/context/code_standards/testing-coding-standard.md`（测试编写与审查强制遵循）
 
-### 🚨 合规门禁强制（所有Agent无条件遵守，最高优先级）
+### 🚨 合规门禁升级条件（按风险触发，不是全任务前置）
 
-所有任务开始前必须依序执行以下三步（均不可跳过）：
+只有下列任务默认升级到 `compliance_gate_check / confirm / complete`：
 
-1. 调用 `compliance_gate_check(task_description)` — 执行合规门禁检查
-2. 向用户展示完整任务计划并等待确认
-3. 调用 `compliance_gate_confirm(plan_summary)` — 武装合规门禁
+1. 高风险修改
+2. 需要审批或正式交付物
+3. 跨 Agent 协作链路
+4. 调查/审计类任务需要可追溯 deliverables
 
-合规门未武装，任何Agent不得进入分析、设计或编码阶段。此门禁优先级高于所有其他规则。
+低风险、局部、可快速验证的小任务，不应被 gate 前置阻断。
 
-### 🚨 任务完成强制：compliance_gate_complete（所有Agent无条件遵守）
+### 🚨 任务完成要求：按任务类型收尾
 
-所有任务结束时必须调用 `compliance_gate_complete(session_id, execution_summary)` — 标记任务完成并消费武装状态。
+- gate 治理路径中的任务：完成时调用 `compliance_gate_complete`
+- 非 gate 路径的小任务：完成必要验证、记录 evidence / TodoWrite / handover 即可
 
-**未调用 compliance_gate_complete 的任务视为未完成。** @Orchestrator 拒绝调度未完成任务的下一个任务。compliance_gate_complete 内部执行 ESLint mock-audit 全量扫描，违规 > 0 时 complete 返回 failed。
+不要把 `compliance_gate_complete` 误用成所有任务的统一强制收尾器。
 
 ### 🚨 TDD 强制铁律（所有Agent无条件遵守）
 
@@ -235,7 +231,7 @@
 
 ## 四、核心协作协议
 
-0. **【P0】全域 @Meta-Planner 入口协议**：所有新工作项必须先经 @Meta-Planner 生成 Task.DAG.json，再交由 @Orchestrator 调度。详见上方 P0 全域入口规则。
+0. **【P0】规划入口协议**：只有非 trivial 的跨 Agent、多阶段、高风险工作项才必须先经 @Meta-Planner 生成 Task.DAG.json。详见上方 P0 全域入口规则。
 1. **权限隔离原则**：每个智能体仅拥有专属Skill权限，禁止越权操作，严格遵循`skill-compliance-guide.md`。**@Orchestrator 尤其不得越权分析需求或拆解任务**。
 2. **DAG调度规则**：由@Orchestrator解析@Meta-Planner生成的`Task.DAG.json`，严格按依赖顺序调度子任务，无依赖任务并行执行。@Orchestrator **不得修改 DAG 中的任务定义**。
 3. **契约驱动开发**：@Architect输出的`contract.yaml`为只读锁定状态，前后端开发、测试、审查均以此为唯一依据。
@@ -257,13 +253,13 @@
 
 所有智能体仅可调用自身配置中绑定的专属Skill，禁止越权调用未授权Skill，严格遵循项目Skill合规要求。
 
-## 六、标准执行流程（全域入口 + RED/GREEN TDD 强制 + 工程化可靠性）
+## 六、标准执行流程（复杂任务 / DAG 治理路径）
 
-> ⚠️ **适用范围**：以下流程适用于**所有类型**的工作项——功能开发、Bug修复、样式调整、性能优化等。不限于"大型功能"。
+> ⚠️ **适用范围**：以下流程适用于跨 Agent、需交付、需审批、需持续审计的复杂任务。局部小任务应走 `preflight-lite + skill + active hook` 的轻路径，而不是机械套完整 DAG/gate 流程。
 
-0. 【入口判定】**@Orchestrator 或主Agent收到新工作项 → 立即检查 Task.DAG.json**：
-   - 若无 DAG 或无当前任务条目 → 先执行步骤 1（@Meta-Planner 规划）
-   - 若 DAG 已包含当前任务且状态为 pending → 跳至步骤 2
+0. 【入口判定】**@Orchestrator 或主Agent先判断任务复杂度与风险**：
+   - 若只是局部小任务 / 纯阅读 / 低风险修正 → 走 `preflight-lite + skill + active hook` 轻路径
+   - 若是跨 Agent、多阶段、高风险、需交付或需审批任务 → 再进入步骤 1（@Meta-Planner / DAG 治理）
 1. 需求输入 → @Meta-Planner 读取要件文档 + **扫描 TECH_DEBT_REGISTRY.md** → 生成 Project.graph + Task.DAG.json（或更新现有 DAG）
 2. @Orchestrator 按 DAG 调度任务 → @Architect 输出 contract.yaml（含 `x-keystone-state-hash`，接口/数据契约，TDD唯一依据）
 3. 【TDD-RED 阶段】@Coder-BE / @Coder-FE 基于契约+要件书 → 编写失败测试用例（Commit Message 标记 `[Red] {task_id}`）→ 执行测试（强制失败）

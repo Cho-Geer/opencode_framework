@@ -290,6 +290,25 @@ export interface ToolAuditState {
 // ── Master Type Map ──
 // Maps each substate key (string literal) to its interface type.
 // Used by readSubState<K>() / writeSubState<K>() for compile-time key + value type checking.
+
+/** Skill read attestation state */
+export interface SkillReadState {
+  sessions?: Record<string, {
+    files?: string[];
+    verified?: boolean;
+    attested_at?: string;
+  }>;
+}
+
+/** Rule read attestation state */
+export interface RuleReadState {
+  sessions?: Record<string, {
+    files?: string[];
+    verified?: boolean;
+    attested_at?: string;
+  }>;
+}
+
 export interface SubStateMap {
   eslint_state: EslintState;
   /** @deprecated type_check_state replaced by diagnostic_state (2026-06-26, tsc diagnostic gate) */
@@ -306,6 +325,8 @@ export interface SubStateMap {
   transaction_state: TransactionState;
   knowledge_state: KnowledgeState;
   config_read_state: ConfigReadState;
+  skill_read_state: SkillReadState;
+  rule_read_state: RuleReadState;
   /** G-7 (2026-06-27): diagnostic baseline — pre-existing TS errors snapshot */
   diagnostic_baseline: DiagnosticBaseline;
   /** Layer C (2026-06-27): tool audit state — tracks webfetch/websearch/etc success/failure */

@@ -41,7 +41,7 @@ Skill按功能分为以下类别，添加新Skill时必须归类：
 
 | 类别 | 类别描述 | 优先级范围 | 示例Skill |
 |------|---------|-----------|----------|
-| **P0 - 基础检查类** | 所有任务的前置检查，必须调用 | P0 | execution-preflight-check |
+| **P0 - 基础检查类** | 所有任务的前置检查，必须调用 | P0 | preflight-lite |
 | **P1 - 领域专业类** | 特定技术领域的专业指导 | P1 | devops-ci-cd-guardrails, cross-directory-ci, context7-first |
 | **P1 - 分析设计类** | 需求分析、方案设计、根因分析 | P1 | brainstorming |
 | **P2 - 技术栈类** | 特定技术栈的专项支持 | P2 | ~~salesforce-dx-expert（❌废弃）~~, ~~playwright-mcp-expert（❌废弃）~~, ~~devops-architect（❌废弃）~~, learning-mode-executor |
@@ -66,7 +66,7 @@ priority: P0/P1/P2  # 调用优先级
 core_features:  # 核心功能列表
   - 功能1
   - 功能2
-always_first: false  # 是否总是第一个调用（仅execution-preflight-check为true）
+always_first: false  # 是否总是第一个调用（仅preflight-lite为true）
 status: active/deprecated  # Skill状态
 added_date: YYYY-MM-DD  # 添加日期
 added_by: 添加者  # 添加者标识
@@ -80,7 +80,7 @@ added_by: 添加者  # 添加者标识
 
 | 显示名称 | Skill ID | 类别 | 触发关键词 | 优先级 | 状态 | 添加日期 |
 |---------|----------|------|-----------|--------|------|---------|
-| 执行前置检查 | execution-preflight-check | P0-基础检查类 | 所有任务, 前置检查, 规则合规 | P0 | ✅ 活跃 | 2026-04-09 |
+| 执行前置检查 | preflight-lite | P0-基础检查类 | 所有任务, 前置检查, 规则合规 | P0 | ✅ 活跃 | 2026-04-09 |
 | DevOps CI/CD保护 | devops-ci-cd-guardrails | P1-领域专业类 | CI, CD, workflow, GitHub Actions, Docker, compose, deploy, E2E, 镜像, 部署 | P1 | ✅ 活跃 | 2026-04-09 |
 | 跨目录CI指导 | cross-directory-ci | P1-领域专业类 | working-directory, path, CWD, subdirectory, monorepo, checkout多个仓库, 路径解析 | P1 | ✅ 活跃 | 2026-04-09 |
 | 全局CI/CD实践强制执行 | global-cicd-practices-enforcement | P1-领域专业类 | CI/CD, pipeline, best practices, enforcement, DORA, quality gate, secret management | P1 | ✅ 活跃 | 2026-04-09 |

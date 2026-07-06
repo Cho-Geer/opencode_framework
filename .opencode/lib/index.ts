@@ -77,6 +77,5 @@ export {
   resolveTaskId,
   resolveDomainId,
   resolveLatestDispatchAgent,
-  writeDispatchCtx,
   sessionLastDispatched,
 } from "./agent-resolver";

@@ -3,7 +3,7 @@
 **Version**: v2.0.0
 **Created**: 2026-05-23
 **Author**: @Architect (RVW-REVIEW-09)
-**Applies To**: All `.opencode/agents/*.md`, `.opencode/rules/**/*.md`, `.opencode/skills/**/SKILL.md`, `.opencode/subagent-preamble.md`, `project.config.json`
+**Applies To**: All `.opencode/agents/*.md`, `.opencode/rules/**/*.md`, `.opencode/skills/**/SKILL.md`, `.opencode/legacy/subagent-preamble.md (deprecated → Skills)`, `project.config.json`
 **Supersedes**: `COMPATIBILITY_PROFILE.md` (v1.0.0)
 **References**:
 - [TEMPLATE_VARIABLE_STANDARD.md](./TEMPLATE_VARIABLE_STANDARD.md)

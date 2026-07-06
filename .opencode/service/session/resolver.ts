@@ -114,7 +114,7 @@ export function resolveAgent(sessionID?: string): string {
     }
   }
   // FRAMEWORK_AGENT env var — last-resort fallback
-  const frameworkAgent = process.env.FRAMEWORK_AGENT || "";
+  const frameworkAgent = ""; // FRAMEWORK_AGENT env fallback removed for security
   if (frameworkAgent) {
     writeLog(SRC, "WARN", {
       event: "AGENT-RESOLVED-FRAMEWORK-FALLBACK",
@@ -385,7 +385,7 @@ export function resolveCallerIdentity(
     }
   } catch {}
   // FRAMEWORK_AGENT env var fallback (GA-D-G6-FIX)
-  const frameworkAgent = process.env.FRAMEWORK_AGENT || "";
+  const frameworkAgent = ""; // FRAMEWORK_AGENT env fallback removed for security
   if (frameworkAgent) {
     const n = normalizeAgent(frameworkAgent);
     writeLog(SRC, "WARN", {

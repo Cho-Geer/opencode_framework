@@ -67,7 +67,7 @@ export { executeWriteAuditCheck, writeAuditLogEntry, logAuditEntry, flushAuditTr
 // 读审计
 export { recordRead, normalizeReadAuditPath, makeEventKey } from "./read-audit-write";
 export type { ReadAuditEntry } from "./read-audit-write";
-export { verifyRead, verifyNonEmptyReadSet, getReadEventsForSession } from "./read-audit-verify";
+export { verifyRead, verifyNonEmptyReadSet, getReadEventsForSession, getRequiredReadRatio, computeFileHash, getFileSize } from "./read-audit-verify";
 export type { ReadVerifyResult } from "./read-audit-verify";
 
 // TSC 诊断基线

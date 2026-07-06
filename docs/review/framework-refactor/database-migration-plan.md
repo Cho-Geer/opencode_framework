@@ -3,8 +3,8 @@
 **日期：** 2026-06-17（六次更新；初始 2026-06-16）
 **状态：** **Step 0-8 全部已完成（2026-06-17，含 drain DB 化 + writeLog 修复）** + P3 schema v4（2026-06-16）+ gate-stuck-fix Phase 1-5 schema v5/v6（2026-06-17）
 **Self-test 基线：** framework-self-test.ts 39/40 PASS（唯一失败 Check 33 为预先存在的 stale dispatch entries）
-**DB Schema：** **v7** — initial (v1) + substate_kv (v2) + eslint_state.last_full_scan (v3) + file_baseline_kv + G2 cleanup (v4) + gate_sessions deliverables columns (v5) + session_log + dispatch_failed_log + session_map (v6) + drop 13 unused typed tables (v7)
-**DB 表数：** **16 张**（12 active typed + 4 auxiliary + sqlite_sequence，v7 清理 13 张未使用的 typed 表）
+**DB Schema：** **v32**（Phase 0 基线修正） — initial (v1) + substate_kv (v2) + eslint_state.last_full_scan (v3) + file_baseline_kv + G2 cleanup (v4) + gate_sessions deliverables columns (v5) + session_log + dispatch_failed_log + session_map (v6) + drop 13 unused typed tables (v7)
+**DB 表数：** **42 张**（Phase 0 基线实测，schema v32）
 **前置条件：** P1-A（CAS 统一）✅、P1-B（machine.json 拆分）✅ 已完成
 
 **Schema 演进时间线：**
@@ -892,7 +892,7 @@ export function dbUpdateKnowledgeCacheAccess(
 |------|--------|
 | DB 文件大小 | 1.1MB (framework-state.db) + 4MB WAL + 32KB SHM |
 | Schema 版本 | **v7** (initial + substate_kv + last_full_scan + file_baseline_kv + deliverables columns + session/dispatch tables + drop 13 unused typed tables) |
-| 表数量 | **16 张** (12 active typed + 4 auxiliary + sqlite_sequence，v7 清理 13 张未使用 typed 表) |
+| 表数量 | **42 张**（Phase 0 基线实测，schema v32） |
 | 新增表（v4-v6） | `file_baseline_kv` (v4)、`session_log` / `dispatch_failed_log` / `session_map` (v6) |
 | 清理表（v7） | DROP 13 张未使用 typed 子状态表（`eslint_state`、`write_audit_state`、`compliance_records`、`knowledge_session_access`、`knowledge_cache_meta`、`tdd_enforcement_state`、`keystone_hashes`、`transaction_state`、`knowledge_state`、`knowledge_audit_state`、`type_check_state`、`format_state`、`dependency_state`） |
 | gate_sessions 扩展（v5） | 6 列 deliverables 硬约束 |

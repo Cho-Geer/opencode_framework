@@ -1,3 +1,5 @@
+// @ts-ignore: require used for lazy circular import
+declare const require: any;
 // service/context/mcp-role-filter.ts
 // ═══════════════════════════════════════════════════════════════
 // Per-agent MCP server visibility map.

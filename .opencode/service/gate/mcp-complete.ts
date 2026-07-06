@@ -15,10 +15,11 @@ import {
   loadGateStore,
   saveGateStore,
 } from "./store-crud";
-import { getEnforcementMode } from "./enforcement";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { checklistWirePassed } from "./checklist-hooks";
 
 const SRC = "service-gate-mcp-complete";
+const ARTIFACT_RETRY_LIMIT = 3;
 
 export interface CompleteResult {
   status: string;
@@ -114,12 +115,11 @@ export function completeGateWithRetry(
     }
   } catch { /* allow gate to proceed */ }
 
-  const enforcementMode = getEnforcementMode();
-  if (eslintFailed && enforcementMode !== "advisory") {
+  if (eslintFailed && shouldBlock("mcp-complete-eslint")) {
     const now = new Date().toISOString();
     session.gate_status = "failed";
     session.consumed_at = now;
-    session.enforcement_mode = enforcementMode;
+    session.enforcement_mode = "rule-disposition-compat";
     session.fail_reason = "ESLint mock-audit violations found in modules: " + dirtyModules.join(", ");
     session.audit = { execution_summary: (executionSummary || "").substring(0, 1000), completed_at: now };
     store.active_sessions = store.active_sessions.filter((sid) => sid !== gateSessionId);
@@ -127,8 +127,8 @@ export function completeGateWithRetry(
     saveGateStore(store);
     return { status: "failed", reason: "CAT3.7: ESLint mock-audit violations in modules: " + dirtyModules.join(", ") + ". Run eslint-audit.run_audit({ full_scan: true }) to see details.", dirty_modules: dirtyModules };
   }
-  if (eslintFailed && enforcementMode === "advisory") {
-    writeLog(SRC, "WARN", { event: "eslint_dirty_advisory", dirty_modules: dirtyModules });
+  if (eslintFailed && !shouldBlock("mcp-complete-eslint")) {
+    writeLog(SRC, "WARN", { event: "eslint_dirty_audit_only", dirty_modules: dirtyModules });
   }
 
   // ── TypeScript Diagnostic Check ──
@@ -146,7 +146,7 @@ export function completeGateWithRetry(
     }
   } catch { /* non-blocking */ }
 
-  if (tscErrorCount > 0 && enforcementMode !== "advisory") {
+  if (tscErrorCount > 0 && shouldBlock("mcp-complete-tsc")) {
     const now = new Date().toISOString();
     session.gate_status = "failed";
     session.consumed_at = now;
@@ -158,15 +158,15 @@ export function completeGateWithRetry(
     writeLog(SRC, "ERROR", { event: "GATE_COMPLETE_TSC_ERRORS", detail: `${tscErrorCount} error(s) in ${tscErrorFiles.length} file(s)` });
     return { status: "failed", reason: `TypeScript errors detected in ${tscErrorCount} location(s) across ${tscErrorFiles.length} file(s). Fix all errors before completing.` };
   }
-  if (tscErrorCount > 0 && enforcementMode === "advisory") {
+  if (tscErrorCount > 0 && !shouldBlock("mcp-complete-tsc")) {
     writeLog(SRC, "WARN", { event: "GATE_COMPLETE_TSC_ERRORS_ADVISORY", detail: `${tscErrorCount} error(s) in ${tscErrorFiles.length} file(s)` });
   }
 
   // ── Artifact validation ──
   const missingArtifacts = validateTaskArtifacts(session.task_id, gateSessionId);
-  if (missingArtifacts.length > 0 && enforcementMode !== "advisory") {
+  if (missingArtifacts.length > 0 && shouldBlock("mcp-complete-artifact")) {
     const now = new Date().toISOString();
-    const maxRetries = enforcementMode === "locked" ? 1 : 3;
+    const maxRetries = ARTIFACT_RETRY_LIMIT;
     session.retry_count = (session.retry_count || 0) + 1;
 
     if (session.retry_count > maxRetries) {
@@ -194,8 +194,8 @@ export function completeGateWithRetry(
     const resolvedId = session.task_id || gateSessionId;
     return { status: "recoverable", reason: `Missing required task artifacts: ${missingArtifacts.join(", ")}. Create HANDOVER.md and TASK_LOG.md under .task_temp/${resolvedId}/ and call complete() again. (retry=${session.retry_count}/${maxRetries})`, missing_artifacts: missingArtifacts, retry_count: session.retry_count, max_retries: maxRetries };
   }
-  if (missingArtifacts.length > 0 && enforcementMode === "advisory") {
-    writeLog(SRC, "WARN", { event: "missing_artifacts_advisory", artifacts: missingArtifacts });
+  if (missingArtifacts.length > 0 && !shouldBlock("mcp-complete-artifact")) {
+    writeLog(SRC, "WARN", { event: "missing_artifacts_audit_only", artifacts: missingArtifacts });
   }
 
   // ── Success: complete the session ──
@@ -212,7 +212,7 @@ export function completeGateWithRetry(
 
   if (!Array.isArray(store.audit_history)) store.audit_history = [];
   store.audit_history.push({
-    gate_session_id: gateSessionId,
+    session_id: gateSessionId,
     task_description: session.task_description,
     plan_summary: session.plan_summary,
     agent: session.agent,

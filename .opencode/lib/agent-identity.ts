@@ -1,3 +1,4 @@
+import { isPrivilegedAgent, isDagExemptAgent } from "../service/enforcement/exemptions";
 /**
  * agent-identity.ts — Canonical Agent Identity Normalization
  * ============================================================
@@ -128,11 +129,15 @@ export function toDisplayName(input: string | undefined | null): string {
 
 /** True if the agent is Orchestrator or Super-Admin (privileged dispatchers) */
 export function isPrivileged(input: string | undefined | null): boolean {
+  // Config-driven override
+  if (isPrivilegedAgent(input)) return true;
   return PRIVILEGED_SET.has(normalize(input) as AgentId);
 }
 
 /** True if the agent is DAG-exempt (Meta-Planner/Orchestrator/Super-Admin/Knowledge-Curator) */
 export function isDagExempt(input: string | undefined | null): boolean {
+  // Config-driven override
+  if (isDagExemptAgent(input)) return true;
   return DAG_EXEMPT_SET.has(normalize(input) as AgentId);
 }
 

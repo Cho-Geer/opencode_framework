@@ -22,7 +22,6 @@ import { existsSync, readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 
 import {
-  getEnforcementMode,
   getEnforcementModeWithSource,
   getProjectRoot,
 } from "../../lib/gate-core";
@@ -59,35 +58,25 @@ if (!commitMsgFile || !existsSync(commitMsgFile)) {
 const msg = readFileSync(commitMsgFile, "utf8").trim();
 const root = getProjectRoot();
 
-const mode = getEnforcementMode(root);
-
-// ═══ FIX-004: Block env downgrades in strict/locked mode ═══
+// ═══ Phase 3 compat: ignore legacy env downgrade attempts ═══
 const modeSource = getEnforcementModeWithSource(root);
-if (modeSource.downgraded) {
+if (modeSource.envOverride) {
   console.log("═══════════════════════════════════════════════════════");
-  console.log("  ❌ COMMIT-MSG BLOCKED — Enforcement downgrade detected");
+  console.log("  ⚠️  COMMIT-MSG NOTICE — Legacy env override ignored");
   console.log("═══════════════════════════════════════════════════════");
-  console.log(`  Config mode: ${modeSource.configMode}`);
-  console.log(`  Env override: ${modeSource.envMode}`);
-  console.log(`  ${modeSource.downgradeReason}`);
-  console.log(
-    "  Unset ENFORCEMENT_MODE or set it to at least the config level.",
-  );
+  console.log(`  Compat policy: ${modeSource.mode}`);
+  console.log(`  Source: ${modeSource.source}`);
+  console.log("  Single-policy runtime ignores ENFORCEMENT_MODE overrides here.");
   console.log("═══════════════════════════════════════════════════════");
-  /**
-   * FIX-011: Emit structured Log Central event for commit-msg env downgrade.
-   */
   writeLog("hook-commit-msg", "hooks", {
-    level: "ERROR",
-    event: "ENFORCEMENT-MODE-DOWNGRADE-BLOCKED",
+    level: "WARN",
+    event: "ENFORCEMENT-MODE-DOWNGRADE-IGNORED",
     detail: JSON.stringify({
-      configMode: modeSource.configMode,
-      envMode: modeSource.envMode,
-      reason: modeSource.downgradeReason,
+      compatPolicy: modeSource.mode,
+      source: modeSource.source,
       hook: "commit-msg",
     }),
   });
-  process.exit(1);
 }
 
 // ── Skip merge commits ──
@@ -124,22 +113,11 @@ if (infraOnlyCommit) {
       '  Example: git commit -m "[INFRA] fix hook enforcement logic"',
     );
     console.log("═══════════════════════════════════════════════════════");
-    if (mode === "strict" || mode === "locked") {
-      console.log("  ❌ [INFRA] Blocked in strict/locked mode — fix and retry");
-      writeLog("hook-commit-msg", "hooks", {
-        level: "ERROR",
-        event: "INFRA-ONLY-MARKER-MISSING",
-        detail: JSON.stringify({ mode, msg: msg.substring(0, 200) }),
-      });
-      process.exit(1);
-    }
-    console.log(
-      `  ⚠️  [INFRA] Advisory: [INFRA] marker recommended but not enforced in ${mode} mode`,
-    );
+    console.log("  ⚠️  [INFRA] [INFRA] marker recommended for audit clarity");
     writeLog("hook-commit-msg", "hooks", {
       level: "WARN",
       event: "INFRA-ONLY-MARKER-MISSING-ADVISORY",
-      detail: JSON.stringify({ mode }),
+      detail: JSON.stringify({ policy: modeSource.mode }),
     });
   } else {
     console.log(
@@ -174,9 +152,9 @@ if (infraOnlyCommit) {
         .split("\n")
         .some((l) => new RegExp(`\\[Red\\].*${taskId}`, "i").test(l));
       if (!hasRed) {
-        console.log(`❌ [TDD] [Green] for ${taskId} without preceding [Red]`);
+        console.log(`⚠️  [TDD] [Green] for ${taskId} without preceding [Red]`);
         writeLog("hook-commit-msg", "hooks", {
-          level: "ERROR",
+          level: "WARN",
           event: "TDD-PHASE-VIOLATION",
           detail: JSON.stringify({
             phase: "green",
@@ -184,7 +162,6 @@ if (infraOnlyCommit) {
             reason: "no preceding [Red]",
           }),
         });
-        process.exit(1);
       }
     }
     if (phase === "refactor") {
@@ -193,10 +170,10 @@ if (infraOnlyCommit) {
         .some((l) => new RegExp(`\\[Green\\].*${taskId}`, "i").test(l));
       if (!hasGreen) {
         console.log(
-          `❌ [TDD] [Refactor] for ${taskId} without preceding [Green]`,
+          `⚠️  [TDD] [Refactor] for ${taskId} without preceding [Green]`,
         );
         writeLog("hook-commit-msg", "hooks", {
-          level: "ERROR",
+          level: "WARN",
           event: "TDD-PHASE-VIOLATION",
           detail: JSON.stringify({
             phase: "refactor",
@@ -204,26 +181,15 @@ if (infraOnlyCommit) {
             reason: "no preceding [Green]",
           }),
         });
-        process.exit(1);
       }
     }
     console.log(`✅ [TDD] Valid ${phase} commit for ${taskId}`);
-  } else if (mode === "strict" || mode === "locked") {
-    console.log(
-      "❌ [TDD] Commit message must contain [Red], [Green], or [Refactor]",
-    );
-    writeLog("hook-commit-msg", "hooks", {
-      level: "ERROR",
-      event: "TDD-MARKER-MISSING",
-      detail: JSON.stringify({ mode, msg: msg.substring(0, 200) }),
-    });
-    process.exit(1);
   } else {
-    console.log("⚠️  [TDD] Advisory: No TDD marker found");
+    console.log("⚠️  [TDD] No TDD marker found");
     writeLog("hook-commit-msg", "hooks", {
       level: "WARN",
       event: "TDD-MARKER-MISSING-ADVISORY",
-      detail: "TDD marker missing — advisory mode",
+      detail: "TDD marker missing — audit only",
     });
   }
 }
@@ -401,27 +367,14 @@ if (infraModified.length > 0) {
       'Example: git commit -m "[Green][INFRA] update agent permissions"',
     );
     console.log("═══════════════════════════════════════════════════════");
-    if (mode === "locked") {
-      console.log(
-        "❌ [INFRA] Blocked in locked mode — [INFRA] marker required",
-      );
-      writeLog("hook-commit-msg", "hooks", {
-        level: "ERROR",
-        event: "INFRA-MARKER-REQUIRED-LOCKED",
-        detail: JSON.stringify({ files: infraModified, mode }),
-      });
-      process.exit(1);
-    } else {
-      console.log(
-        `⚠️  [INFRA] Advisory: ${infraModified.length} infrastructure file(s) modified — ` +
-          `[INFRA] marker recommended but not enforced in ${mode} mode`,
-      );
-      writeLog("hook-commit-msg", "hooks", {
-        level: "WARN",
-        event: "INFRA-MARKER-RECOMMENDED",
-        detail: JSON.stringify({ files: infraModified, mode }),
-      });
-    }
+    console.log(
+      `⚠️  [INFRA] ${infraModified.length} infrastructure file(s) modified — [INFRA] marker recommended for audit clarity`,
+    );
+    writeLog("hook-commit-msg", "hooks", {
+      level: "WARN",
+      event: "INFRA-MARKER-RECOMMENDED",
+      detail: JSON.stringify({ files: infraModified, policy: modeSource.mode }),
+    });
   } else if (!infraOnlyCommit) {
     console.log(
       `✅ [INFRA] ${infraModified.length} infrastructure file(s) — marker confirmed`,

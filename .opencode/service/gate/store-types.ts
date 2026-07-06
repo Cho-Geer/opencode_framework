@@ -9,7 +9,7 @@ export interface DeliverableEntry {
   name: string;
   description: string;
   artifact_path?: string;
-  required: boolean;
+  required?: boolean;
 }
 
 export interface DeliverableEvidence {
@@ -21,6 +21,7 @@ export interface DeliverableEvidence {
 
 export interface GateSession {
   session_id: string;
+  opencode_session_id?: string | null;
   created_at: string;
   task_description?: string;
   enforcement_mode?: string;
@@ -128,11 +129,15 @@ export interface GateCompleteResult {
 export type EnforcementMode = "advisory" | "strict" | "locked";
 
 export interface EnforcementModeWithSource {
-  configMode: EnforcementMode;
-  envMode: EnforcementMode | null;
-  finalMode: EnforcementMode;
-  downgraded: boolean;
-  downgradeReason: string | null;
+  mode: EnforcementMode;
+  source: string;
+  envOverride: boolean;
+  // Legacy fields kept optional during the Phase 3 compat tail.
+  configMode?: EnforcementMode;
+  envMode?: EnforcementMode | null;
+  finalMode?: EnforcementMode;
+  downgraded?: boolean;
+  downgradeReason?: string | null;
 }
 
 export interface FrameworkPaths {

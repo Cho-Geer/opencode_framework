@@ -19,6 +19,10 @@ export {
   dbConsumeDispatch,
   dbFailDispatch,
   dbCleanStaleLeases,
+  dbFindPendingDispatch,
+  dbFindPendingDispatchByHash,
+  dbDequeueWithHash,
+  dbCheckDuplicateDispatch,
 } from "../service/dispatch/queue";
 
 // ── Logging + diagnostics (from session-log) ──────────────────────────

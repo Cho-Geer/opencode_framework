@@ -23,6 +23,10 @@ export {
   dbConsumeDispatch,
   dbFailDispatch,
   dbCleanStaleLeases,
+  dbFindPendingDispatch,
+  dbFindPendingDispatchByHash,
+  dbDequeueWithHash,
+  dbCheckDuplicateDispatch,
   type DispatchQueueEntry,
   type DispatchPromptRef,
 } from "./queue";

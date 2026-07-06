@@ -15,7 +15,7 @@ export default tool({
     content_summary: tool.schema.string().describe("Agent-written summary: WHAT was learned from the read files"),
   },
   async execute(args, context) {
-    return withInterruptGuard("knowledge_cache_attest", async () => {
+    const result = await withInterruptGuard("knowledge_cache_attest", async () => {
       const agent = (context && context.agent) || "unknown";
       const sessionId = (context && context.sessionID) || "";
       return attestCache({
@@ -28,5 +28,9 @@ export default tool({
         contentSummary: args.content_summary || "",
       });
     });
+    if (typeof result === "string") {
+      return { output: result };
+    }
+    return { output: JSON.stringify(result, null, 2) };
   },
 });

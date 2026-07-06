@@ -294,8 +294,16 @@ export function l4_dagCheck(
   isDagExemptFn: (agent: string) => boolean,
 ): string {
   if (candidates.length === 0) return "";
-  if (!dagTaskId) return "";
   const selected = candidates[0];
+
+  // No DAG: DAG-exempt agents (Super-Admin, etc.) pass through
+  if (!dagTaskId) {
+    if (isDagExemptFn(selected)) return selected;
+    // Non-exempt agents without DAG: return candidate for soft validation
+    // (dispatch-validate will allow if target matches this candidate)
+    return selected;
+  }
+
   if (selected === "@Orchestrator") return "";
   if (isDagExemptFn(selected)) return selected;
   return selected;

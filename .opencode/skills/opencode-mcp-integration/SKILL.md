@@ -10,4 +10,4 @@ version: 1.1.0
 
 **触发条件**: description: 将新的 MCP 工具（如 CodeGraph、Context7、Resend 等）集成到 OpenCode 多 Agent 框架的完整流程指南。覆盖 CLI 安装、索引初始化
 
-> 完整文档: 调用 read_skill("opencode-mcp-integration") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/opencode-mcp-integration/FULL.md

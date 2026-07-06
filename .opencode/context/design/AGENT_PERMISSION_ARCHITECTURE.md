@@ -38,7 +38,7 @@ Architect's permissions were reduced from full `.opencode/**` framework access t
 - `.task_temp/**` — task artifacts
 - `docs/**` — architecture design output
 
-All framework infrastructure (agents/, rules/, scripts/, plugins/, subagent-preamble.md, project.config.json, opencode.json) is now administered exclusively by @Super-Admin, which is P0 human-trigger-only.
+All framework infrastructure (agents/, rules/, scripts/, plugins/, legacy/subagent-preamble.md (deprecated → Skills), project.config.json, opencode.json) is now administered exclusively by @Super-Admin, which is P0 human-trigger-only.
 
 ## Change Log
 

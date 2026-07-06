@@ -16,14 +16,16 @@ import {
   generateGateSessionId,
   fileExists,
 } from "./store-crud";
-import { getEnforcementMode } from "./enforcement";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { drainStaleSessions } from "./drain";
 import {
   validateDispatchTaskIntegrity,
   checkTaskIdConflict,
 } from "./dispatch-integrity";
+import { type GateCheckResult } from './store';
 
 const SRC = "service-gate-mcp-check";
+const GATE_POLICY_COMPAT = "rule-disposition-compat";
 
 // ── Rule/Skill file paths ──
 const SKILL_INV_STD =
@@ -34,23 +36,15 @@ const MCP_INVENTORY =
   path.join(getProjectRoot(), ".opencode", "rules", "rule_detail", "mcp-tool-inventory.md");
 const COMMON_RULES =
   process.env.COMMON_RULES_PATH ||
-  path.join(getProjectRoot(), ".opencode", "rules", "common-project.md");
+  path.join(getProjectRoot(), ".opencode", "rules", "common", "common-project.md");
 const SKILL_FILE =
   process.env.SKILL_FILE_PATH ||
-  path.join(getProjectRoot(), ".opencode", "skills", "execution-preflight-check", "SKILL.md");
+  path.join(getProjectRoot(), ".opencode", "skills", "preflight-lite", "SKILL.md");
 
 export interface GateCheckFailedItem {
   id: string;
   desc: string;
   severity: "HIGH" | "WARNING" | "INFO";
-}
-
-export interface GateCheckResult {
-  passed: boolean;
-  gate_session_id: string;
-  enforcement_mode: string;
-  failed_items: GateCheckFailedItem[];
-  rule_status: Record<string, string>;
 }
 
 // ── Helper: purge stale sessions ──
@@ -188,8 +182,8 @@ export function checkGateCompliance(
   if (integrity.integrityViolation) {
     return {
       passed: false,
-      gate_session_id: "",
-      enforcement_mode: getEnforcementMode(),
+      session_id: "",
+      enforcement_mode: GATE_POLICY_COMPAT,
       failed_items: [{ id: "dispatch_integrity", desc: integrity.violationReason!, severity: "HIGH" }],
       rule_status: {},
     };
@@ -203,8 +197,8 @@ export function checkGateCompliance(
   if (conflict) {
     return {
       passed: false,
-      gate_session_id: "",
-      enforcement_mode: getEnforcementMode(),
+      session_id: "",
+      enforcement_mode: GATE_POLICY_COMPAT,
       failed_items: [{ id: "task_id_conflict", desc: conflict.reason, severity: "HIGH" }],
       rule_status: {},
     };
@@ -220,7 +214,6 @@ export function checkGateCompliance(
   } catch { /* ignore */ }
 
   // ── Auto-purge stale sessions ──
-  const enforcementMode = getEnforcementMode();
   const purgeResult = purgeStaleSessions();
   if (purgeResult.purged > 0) {
     writeLog(SRC, "INFO", { event: "purge_stale_sessions", purged: purgeResult.purged, remaining_total: purgeResult.remaining_total, remaining_active: purgeResult.remaining_active });
@@ -237,7 +230,7 @@ export function checkGateCompliance(
   const failed: GateCheckFailedItem[] = [];
 
   if (!skillAvailable) {
-    failed.push({ id: "skill_execution_preflight_check", desc: `execution-preflight-check SKILL.md not found at ${SKILL_FILE}`, severity: "HIGH" });
+    failed.push({ id: "skill_execution_preflight_check", desc: `preflight-lite SKILL.md not found at ${SKILL_FILE}`, severity: "HIGH" });
   }
   if (ruleStatus[path.basename(COMMON_RULES)] !== "found") {
     failed.push({ id: "rule_common_project", desc: `common-project.md not found at ${COMMON_RULES}`, severity: "HIGH" });
@@ -271,7 +264,7 @@ export function checkGateCompliance(
     const { resolveLatestDispatchAgent } = require("../../lib/agent-resolver");
     const bypassAgent = resolveLatestDispatchAgent(effectiveTaskId);
     const bypassNorm = (bypassAgent || "").replace(/^@/, "").toLowerCase();
-    if ((bypassNorm === "super-admin" || bypassNorm === "orchestrator") && enforcementMode !== "locked") {
+    if (bypassNorm === "super-admin" || bypassNorm === "orchestrator") {
       let bypassedCount = 0;
       for (const item of failed) {
         if (item.id?.startsWith("critical_file_modified_")) {
@@ -294,7 +287,7 @@ export function checkGateCompliance(
 
   // ── Determine pass/fail ──
   const hasHighSeverityItems = failed.some((f) => f.severity === "HIGH");
-  if (enforcementMode === "advisory") {
+  if (!shouldBlock("mcp-gate-check")) {
     for (const item of failed) {
       if (item.severity === "HIGH") {
         item.severity = "WARNING";
@@ -302,7 +295,7 @@ export function checkGateCompliance(
       }
     }
   }
-  const passed = enforcementMode === "advisory" ? true : !hasHighSeverityItems;
+  const passed = !shouldBlock("mcp-gate-check") ? true : !hasHighSeverityItems;
 
   // ── UC7KS: Knowledge cache check ──
   const uc7ksStateDir = resolveProjectState();
@@ -354,7 +347,7 @@ export function checkGateCompliance(
     }
 
     if (currentTaskId && !matchedAgent) {
-      const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+      const severity = !shouldBlock("mcp-gate-check") ? "WARNING" : "HIGH";
       failed.push({ id: "uc7ks_pipeline_not_started", desc: `[UC7KS] No agent has started the knowledge pipeline for task "${currentTaskId}".`, severity });
     } else if (matchedAgent) {
       const sa = sessionAccess[matchedAgent];
@@ -384,10 +377,10 @@ export function checkGateCompliance(
       }
 
       if (!pipelineCompleted) {
-        const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+        const severity = !shouldBlock("mcp-gate-check") ? "WARNING" : "HIGH";
         failed.push({ id: "uc7ks_pipeline_not_completed", desc: `[UC7KS] Pipeline for "${currentTaskId}" has not completed.`, severity });
       } else if (pipelineInsufficient && !sa.kc_dispatched) {
-        const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+        const severity = !shouldBlock("mcp-gate-check") ? "WARNING" : "HIGH";
         failed.push({ id: "uc7ks_cache_insufficient_no_kc", desc: `[UC7KS] Cache is insufficient for task "${currentTaskId}" and @Knowledge-Curator has not been dispatched.`, severity });
       }
 
@@ -397,7 +390,7 @@ export function checkGateCompliance(
         if (!suff.files_read) evidenceMissing.push("files_read");
         if (!suff.content_summary) evidenceMissing.push("content_summary");
         if (evidenceMissing.length > 0) {
-          failed.push({ id: "uc7ks_sufficiency_evidence_incomplete", desc: `[UC7KS] Cache sufficiency evidence incomplete: missing ${evidenceMissing.join(", ")}.`, severity: enforcementMode === "advisory" ? "WARNING" : "HIGH" });
+          failed.push({ id: "uc7ks_sufficiency_evidence_incomplete", desc: `[UC7KS] Cache sufficiency evidence incomplete: missing ${evidenceMissing.join(", ")}.`, severity: !shouldBlock("mcp-gate-check") ? "WARNING" : "HIGH" });
         }
       }
     } else if (!currentTaskId) {
@@ -415,7 +408,7 @@ export function checkGateCompliance(
         }
       }
       if (!anyDone) {
-        const severity = enforcementMode === "advisory" ? "WARNING" : "HIGH";
+        const severity = !shouldBlock("mcp-gate-check") ? "WARNING" : "HIGH";
         failed.push({ id: "uc7ks_no_pipeline_ever", desc: `[UC7KS] No agent has ever completed the knowledge pipeline.`, severity });
       }
     }
@@ -423,11 +416,11 @@ export function checkGateCompliance(
 
   // ── Create gate session ──
   store.sessions[gateSessionId] = {
-    gate_session_id: gateSessionId,
+    session_id: gateSessionId,
     created_at: new Date().toISOString(),
     task_description: taskDescription || "",
     task_id: effectiveTaskId,
-    enforcement_mode: enforcementMode,
+    enforcement_mode: GATE_POLICY_COMPAT,
     gate_status: "checked",
     last_check_passed: !hasHighSeverityItems,
     last_check_failed_items: failed,
@@ -440,5 +433,5 @@ export function checkGateCompliance(
   store.last_updated = new Date().toISOString();
   saveGateStore(store);
 
-  return { passed, gate_session_id: gateSessionId, enforcement_mode: enforcementMode, failed_items: failed, rule_status: ruleStatus };
+  return { passed, session_id: gateSessionId, enforcement_mode: GATE_POLICY_COMPAT, failed_items: failed, rule_status: ruleStatus };
 }

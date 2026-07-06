@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // install-hooks.ts — P6-002
 // Ensures git config core.hooksPath = .opencode/hooks.
 // Validates hook scripts exist and are executable.

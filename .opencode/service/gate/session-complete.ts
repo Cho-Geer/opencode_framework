@@ -12,7 +12,7 @@ import {
   logGateStatusTransition,
   type GateCompleteResult,
 } from "./store";
-import { getEnforcementMode } from "./enforcement";
+import { shouldBlock } from "../enforcement/rule-disposition";
 
 const SRC = "service-gate-complete";
 
@@ -111,8 +111,6 @@ export function completeGateSession(
     };
   }
 
-  const mode = getEnforcementMode(root);
-
   let eslintFailed = false;
   let dirtyModules: string[] = [];
 
@@ -126,7 +124,7 @@ export function completeGateSession(
     // Non-blocking
   }
 
-  if (eslintFailed && mode !== "advisory") {
+  if (eslintFailed && shouldBlock("session-complete-check")) {
     const now = new Date().toISOString();
     logGateStatusTransition(gateSessionId, session.gate_status, "failed", {
       source: "completeGateSession",
@@ -156,7 +154,7 @@ export function completeGateSession(
     root,
     gateSessionId,
   );
-  if (missing.length > 0 && mode !== "advisory") {
+  if (missing.length > 0 && shouldBlock("session-complete-check")) {
     const now = new Date().toISOString();
     logGateStatusTransition(gateSessionId, session.gate_status, "failed", {
       source: "completeGateSession",

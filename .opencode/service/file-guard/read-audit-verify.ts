@@ -1,8 +1,10 @@
 // service/file-guard/read-audit-verify.ts — Read audit verification
 // Source: read-audit.ts verify functions
+// Enhanced 2026-07-01: full-read ratio check + file hash comparison
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as crypto from "node:crypto";
 import { writeLog } from "../../lib/log-manager";
 import { getDb } from "../../lib/db-manager";
 import { STATE_PATHS } from "../../lib/state-utils";
@@ -12,9 +14,13 @@ export interface ReadVerifyResult {
   verified: boolean;
   reason: string;
   matchedEntry?: ReadAuditEntry;
+  readRatio?: number;       // NEW: content_length / file_size
+  hashMatch?: boolean;      // NEW: whether file hash matches
+  currentHash?: string;     // NEW: current file hash (for diagnostics)
 }
 
 const READ_MAX_AGE_MS_DEFAULT = 5 * 60 * 1000;
+const REQUIRED_READ_RATIO_DEFAULT = 0.8;
 
 function getReadMaxAgeMs(): number {
   try {
@@ -27,12 +33,43 @@ function getReadMaxAgeMs(): number {
   return READ_MAX_AGE_MS_DEFAULT;
 }
 
+/** Get required read ratio from config (default 0.8 = 80%) */
+export function getRequiredReadRatio(): number {
+  try {
+    const configPath = path.resolve(process.env.OPENCODE_ROOT || ".", ".opencode/project.config.json");
+    const raw = fs.readFileSync(configPath, "utf8");
+    const config = JSON.parse(raw);
+    const configured = config?.template_resolution?.required_read_ratio;
+    if (typeof configured === "number" && configured > 0 && configured <= 1) return configured;
+  } catch { /* fallback */ }
+  return REQUIRED_READ_RATIO_DEFAULT;
+}
+
+/** Compute SHA-256 hash of a file */
+export function computeFileHash(filePath: string): string {
+  const root = process.env.OPENCODE_ROOT || ".";
+  const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(root, filePath);
+  const content = fs.readFileSync(absolutePath, "utf8");
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
+/** Get file size in chars */
+export function getFileSize(filePath: string): number {
+  const root = process.env.OPENCODE_ROOT || ".";
+  const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(root, filePath);
+  const content = fs.readFileSync(absolutePath, "utf8");
+  return content.length;
+}
+
 function dbEntryToReadAuditEntry(row: any): ReadAuditEntry {
   return {
     timestamp: row.timestamp, agent: row.raw_agent || row.agent,
     filePath: row.raw_file_path || row.file_path,
     sessionId: row.opencode_session_id || undefined,
     taskId: row.task_id || undefined, callId: row.call_id || undefined,
+    contentLength: row.content_length || 0,
+    fileHash: row.file_hash || "",
+    fileSize: row.file_size || 0,
   };
 }
 
@@ -47,16 +84,74 @@ export function verifyRead(agent: string, filePath: string, sessionId?: string):
     const db = getDb();
     let row: any = null;
     if (sessionId) {
-      row = db.query(`SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id FROM read_audit WHERE agent = ? AND file_path = ? AND opencode_session_id = ? AND timestamp >= ? ORDER BY timestamp DESC LIMIT 1`).get(normalizedAgent, normalizedPath, sessionId, cutoffIso);
+      row = db.query(`SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id, content_length, file_hash, file_size FROM read_audit WHERE agent = ? AND file_path = ? AND opencode_session_id = ? AND timestamp >= ? ORDER BY timestamp DESC LIMIT 1`).get(normalizedAgent, normalizedPath, sessionId, cutoffIso);
     } else {
-      row = db.query(`SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id FROM read_audit WHERE agent = ? AND file_path = ? AND timestamp >= ? ORDER BY timestamp DESC LIMIT 1`).get(normalizedAgent, normalizedPath, cutoffIso);
+      row = db.query(`SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id, content_length, file_hash, file_size FROM read_audit WHERE agent = ? AND file_path = ? AND timestamp >= ? ORDER BY timestamp DESC LIMIT 1`).get(normalizedAgent, normalizedPath, cutoffIso);
     }
     if (row) {
       const matchedEntry = dbEntryToReadAuditEntry(row);
-      return { verified: true, reason: `Agent "${matchedEntry.agent}" read "${matchedEntry.filePath}" at ${matchedEntry.timestamp}`, matchedEntry };
+
+      // ── NEW: Full-read ratio check ──
+      const contentLength = row.content_length || 0;
+      const fileSize = row.file_size || 0;
+      const readRatio = fileSize > 0 ? contentLength / fileSize : 1;
+      const requiredRatio = getRequiredReadRatio();
+
+      if (fileSize > 0 && readRatio < requiredRatio) {
+        writeLog("service-read-audit", "WARN", {
+          event: "VERIFY_READ_PARTIAL", agent, filePath,
+          readRatio: Math.round(readRatio * 100) + "%",
+          requiredRatio: Math.round(requiredRatio * 100) + "%",
+        });
+        return {
+          verified: false,
+          reason: `Partial read detected: only ${Math.round(readRatio * 100)}% of file was read (required: ${Math.round(requiredRatio * 100)}%). Please read the complete file using the read tool.`,
+          matchedEntry,
+          readRatio,
+          hashMatch: false,
+        };
+      }
+
+      // ── NEW: File hash comparison (change detection) ──
+      let hashMatch = true;
+      let currentHash = "";
+      const recordedHash = row.file_hash || "";
+      if (recordedHash) {
+        try {
+          currentHash = computeFileHash(filePath);
+          hashMatch = (recordedHash === currentHash);
+          if (!hashMatch) {
+            writeLog("service-read-audit", "WARN", {
+              event: "VERIFY_READ_STALE", agent, filePath,
+              recordedHash: recordedHash.slice(0, 16) + "...",
+              currentHash: currentHash.slice(0, 16) + "...",
+            });
+            return {
+              verified: false,
+              reason: `File "${filePath}" has been modified since you read it. Please re-read the file to get the latest content.`,
+              matchedEntry,
+              readRatio,
+              hashMatch: false,
+              currentHash,
+            };
+          }
+        } catch {
+          // File may not exist anymore — allow if hash was recorded
+          hashMatch = true;
+        }
+      }
+
+      return {
+        verified: true,
+        reason: `Agent "${matchedEntry.agent}" read "${matchedEntry.filePath}" at ${matchedEntry.timestamp} (${Math.round(readRatio * 100)}% coverage)`,
+        matchedEntry,
+        readRatio,
+        hashMatch,
+        currentHash,
+      };
     }
     const absPath = path.resolve(process.env.OPENCODE_ROOT || ".", filePath);
-    return { verified: false, reason: `Agent "@${normalizedAgent}" has NOT read "${filePath}" via the \`read\` tool within the last ${readMaxAgeMs / 60000} minutes. You MUST use the \`read\` tool to open and review HANDOVER.md before approving. Compute hash manually: sha256sum ${absPath}` };
+    return { verified: false, reason: `Agent "@${normalizedAgent}" has NOT read "${filePath}" via the \`read\` tool within the last ${readMaxAgeMs / 60000} minutes. You MUST use the \`read\` tool to open and review the file. Path: ${absPath}` };
   } catch (err: any) {
     writeLog("service-read-audit", "ERROR", { event: "VERIFY_READ_DB_FAILED", error: err.message });
     return { verified: false, reason: `Read audit DB query failed: ${err.message}.` };
@@ -85,7 +180,7 @@ export function getReadEventsForSession(agent: string, sessionId: string): ReadA
   const normalizedAgent = normalizeAgent(agent);
   try {
     const db = getDb();
-    const rows = db.query(`SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id FROM read_audit WHERE opencode_session_id = ? AND agent = ? ORDER BY timestamp DESC`).all(sessionId, normalizedAgent) as any[];
+    const rows = db.query(`SELECT timestamp, raw_agent, raw_file_path, opencode_session_id, task_id, call_id, content_length, file_hash, file_size FROM read_audit WHERE opencode_session_id = ? AND agent = ? ORDER BY timestamp DESC`).all(sessionId, normalizedAgent) as any[];
     if (rows.length > 0) return rows.map(dbEntryToReadAuditEntry);
     return [];
   } catch (err: any) {

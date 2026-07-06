@@ -82,7 +82,7 @@ export function declareModuleScope(input: DeclareModuleScopeInput): DeclareModul
 
   // ── DB writes: discovery + session_map ──
   try {
-    const pipelineId = resolvePipelineId({ module: moduleName }, sessionID || undefined);
+    const pipelineId = resolvePipelineId({ task_id: taskId || "" }, sessionID || undefined);
 
     // FW-P0-FIX-F11: status "declared" (not "undeclared") to avoid pipeline chain break
     atomicUpsertDiscovery({
@@ -92,7 +92,7 @@ export function declareModuleScope(input: DeclareModuleScopeInput): DeclareModul
       sessionId: sessionID || undefined,
       dagTaskId: taskId || undefined,
       discovery: {
-        status: "declared",
+        status: "undeclared",
         discovered_files: [],
         missing_topics: [],
         discovered_at: new Date().toISOString(),

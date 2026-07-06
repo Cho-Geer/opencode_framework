@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 /**
  * compressor.ts — UC7KS Knowledge Compressor v1.0.0
  *

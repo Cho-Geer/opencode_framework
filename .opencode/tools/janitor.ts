@@ -13,12 +13,16 @@ export default tool({
     max_ttl_days: tool.schema.number().default(30).describe("Maximum TTL in days before an entry is considered stale"),
   },
   async execute(args, context) {
-    return withInterruptGuard("janitor", async () => {
+    const result = await withInterruptGuard("janitor", async () => {
       return runJanitor({
         dryRun: args.dry_run || false,
         removeOrphans: args.remove_orphans || false,
         maxTtlDays: args.max_ttl_days || 30,
       });
     });
+    if (typeof result === "string") {
+      return { output: result };
+    }
+    return { output: JSON.stringify(result, null, 2) };
   },
 });

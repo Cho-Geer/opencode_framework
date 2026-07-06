@@ -60,57 +60,9 @@ export function retryConfirmGateSession(
     session.retry_count = (session.retry_count || 0) + 1;
     session.fail_history = session.fail_history || [];
     session.fail_history.push({
-      retry: session.retry_count,
-      confirmed_at: new Date().toISOString(),
-      plan_summary: planSummary.trim(),
-    });
-    session.confirmed_at = new Date().toISOString();
-    session.expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    if (!store.active_sessions.includes(gateSessionId)) {
-      store.active_sessions.push(gateSessionId);
-    }
-    store.last_updated = new Date().toISOString();
-    saveGateStore(store);
-
-    writeLog(SRC, "INFO", {
-      event: "RETRY-RECOVERABLE",
-      detail: `session=${gateSessionId} retry=${session.retry_count} agent=${resolvedAgent}`,
-    });
-
-    return {
-      status: "armed",
-      gate_session_id: gateSessionId,
-      retry_count: session.retry_count,
-    };
-  }
-
-  // ── Failed: supervisory retry — permission check required ──
-  if (session.gate_status === "failed") {
-    if (
-      resolvedAgent &&
-      !ALLOWED_RETRY_AGENTS.includes(resolvedAgent) &&
-      !ALLOWED_RETRY_AGENTS.includes("@" + resolvedAgent)
-    ) {
-      return {
-        status: "rejected",
-        reason: `compliance_gate_retry_confirm for 'failed' status is restricted to @Super-Admin/@Orchestrator. Current agent: ${resolvedAgent}. For 'recoverable' status, any agent can self-repair.`,
-      };
-    }
-    if (!session.fail_reason?.includes("Missing required task artifacts")) {
-      return {
-        status: "rejected",
-        reason: `Retry only allowed for missing artifacts. Failure: ${session.fail_reason || "unknown"}`,
-      };
-    }
-    session.gate_status = "armed";
-    session.plan_summary = planSummary.trim();
-    session.task_id = taskId || session.task_id;
-    session.retry_count = 0;
-    session.fail_history = session.fail_history || [];
-    session.fail_history.push({
-      retry: "parent",
-      confirmed_at: new Date().toISOString(),
-      plan_summary: planSummary.trim(),
+      retry: 0,
+      failed_at: new Date().toISOString(),
+      reason: "parent session: " + planSummary.trim().slice(0, 180),
     });
     session.confirmed_at = new Date().toISOString();
     session.expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();

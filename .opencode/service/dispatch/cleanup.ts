@@ -13,8 +13,6 @@ import { atomicWriteJson } from "../../lib/state-utils";
 import { dbAppendDispatchFailed } from "../../lib/db-state-manager";
 
 const SRC = "service-dispatch-cleanup";
-const PENDING_FILE = ".task_temp/_dispatch/.pending.json";
-const STALE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
  * Clean up dispatch state after Task() completes.
@@ -66,59 +64,6 @@ export function cleanupDispatch(params: {
     event: "TOOL-AFTER",
     detail: `dispatch-complete | agentType=${(params.args as any)?.subagent_type || "?"} | taskId=${taskId}`,
   });
-
-  // ── Clean up stale pending entries ──
-  const root = process.env.OPENCODE_ROOT || ".";
-  const pf = path.join(root, PENDING_FILE);
-
-  try {
-    if (!fs.existsSync(pf)) return;
-    let queue = JSON.parse(fs.readFileSync(pf, "utf8"));
-    if (!Array.isArray(queue) || queue.length === 0) return;
-
-    const now = Date.now();
-    const stale: number[] = [];
-    for (let i = 0; i < queue.length; i++) {
-      if (queue[i].createdAt) {
-        const age = now - new Date(queue[i].createdAt).getTime();
-        if (age > STALE_TIMEOUT_MS) stale.push(i);
-      }
-    }
-
-    if (stale.length > 0) {
-      for (let i = stale.length - 1; i >= 0; i--) {
-        const entry = queue[stale[i]];
-        dbAppendDispatchFailed({
-          dispatchId: entry.dispatchId || entry.filePath || "unknown",
-          promptHash: entry.promptHash,
-          filePath: entry.filePath,
-          agentType: entry.agentType || "unknown",
-          dagTaskId: entry.dagTaskId,
-          createdAt: new Date(entry.createdAt).getTime(),
-          failedAt: Date.now(),
-          reason: "stale-timeout",
-        });
-        queue.splice(stale[i], 1);
-      }
-      atomicWriteJson(pf, queue);
-      writeLog("dispatch-after", "runtime", {
-        sessionID: params.sessionID,
-        callID: params.callID,
-        agent,
-        event: "TOOL-AFTER",
-        detail: `stale-drain | removed=${stale.length} | remaining=${queue.length}`,
-      });
-    }
-  } catch (err: any) {
-    writeLog("dispatch-after", "runtime", {
-      sessionID: params.sessionID,
-      callID: params.callID,
-      agent,
-      level: "ERROR",
-      event: "TOOL-AFTER",
-      detail: "stale-drain failed: " + err.message,
-    });
-  }
 
   // ── Delivered state timeout warning ──
   try {

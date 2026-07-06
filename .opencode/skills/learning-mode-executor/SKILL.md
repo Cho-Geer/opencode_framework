@@ -26,4 +26,4 @@ Transforms single Q&A into structured learning cases with planning, logging, and
 
 **触发条件**: description: Transforms single Q&A into structured learning cases with planning, logging, and knowle
 
-> 完整文档: 调用 read_skill("learning-mode-executor") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/learning-mode-executor/FULL.md

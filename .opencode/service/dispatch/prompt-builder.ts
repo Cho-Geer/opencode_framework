@@ -22,11 +22,11 @@ import {
   type TechStackEntry,
 } from "./prompt-sections";
 import { loadCodingStandardsForAgent } from "./coding-standards-loader";
+import { resolveDispatchTarget } from "./agent-target";
 
 const SRC = "service-dispatch-prompt-builder";
 
-const AGENTS_DIR = path.join(process.env.OPENCODE_ROOT || process.cwd(), ".opencode", "agents");
-const PREAMBLE_FILE = path.join(process.env.OPENCODE_ROOT || process.cwd(), ".opencode", "subagent-preamble.md");
+// PREAMBLE_FILE removed in T1.7 — content migrated to Skills
 const PROJECT_CONFIG = path.join(process.env.OPENCODE_ROOT || process.cwd(), ".opencode", "project.config.json");
 
 export interface PromptBuildInput {
@@ -113,20 +113,11 @@ function readProjectConfig(): ProjectConfig {
 }
 
 /**
- * Find agent config file (case-insensitive).
- */
-function findAgentFile(agentType: string): { file: string; entry: string } | null {
-  const agentFiles = fs.readdirSync(AGENTS_DIR);
-  const entry = agentFiles.find((f) => f.toLowerCase() === `${agentType.toLowerCase()}.md`);
-  if (!entry) return null;
-  return { file: path.join(AGENTS_DIR, entry), entry };
-}
-
-/**
  * Build the complete dispatch prompt.
  */
 export function buildDispatchPrompt(input: PromptBuildInput): PromptBuildResult {
   const { agentType, taskDescription, taskId, dagTaskId, openCodeRoot } = input;
+  const target = resolveDispatchTarget(agentType, openCodeRoot);
 
   // Read project config
   const projectConfig = readProjectConfig();
@@ -138,53 +129,54 @@ export function buildDispatchPrompt(input: PromptBuildInput): PromptBuildResult 
   const relevantStacks: TechStackEntry[] = isFramework ? [] : findRelevantStacks(taskDescription, taskMapping, techStack);
 
   // Read agent config
-  const agentFileResult = findAgentFile(agentType);
-  if (!agentFileResult) {
-    throw new Error(`Agent config not found for "${agentType}".`);
+  const profileRelativePath = target.profileRelativePath;
+  const profileAbsolutePath = target.profileAbsolutePath;
+  let agentContent = "";
+  let agentConfig: Record<string, any> = {};
+  let agentFileEntry = profileRelativePath || `(native:${target.nativeExecutor})`;
+  if (profileAbsolutePath) {
+    agentContent = fs.readFileSync(profileAbsolutePath, "utf8");
+    agentConfig = parseFrontmatter(agentContent);
   }
-  const agentContent = fs.readFileSync(agentFileResult.file, "utf8");
-  const agentConfig = parseFrontmatter(agentContent);
-  const agentName = agentConfig.name || agentType;
+  const agentName = agentConfig.name || target.displayName || agentType;
 
   // M16: Filter dispatch_subagent from KC's MCP tools
   let mcpTools = agentConfig.mcp_tools || [];
-  if (agentType.toLowerCase() === "knowledge-curator") {
+  if (target.requestedAgent.toLowerCase() === "knowledge-curator") {
     mcpTools = mcpTools.filter((t: string) => t !== "dispatch_subagent");
   }
 
-  // Read preamble
-  let preamble = "";
-  if (fs.existsSync(PREAMBLE_FILE)) {
-    preamble = fs.readFileSync(PREAMBLE_FILE, "utf8").replace(/^---[\s\S]*?---\n*/, "");
-  }
+  // Preamble removed in T1.7 — content migrated to Skills
 
-  // Inject dag_task_id into preamble
-  if (dagTaskId) {
-    preamble += `\n> **Your dispatch-assigned dag_task_id**: \`${dagTaskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.\n`;
-  }
+  // dag_task_id is now injected directly into the task payload section (T1.7)
+  const dagTaskIdNote = dagTaskId
+    ? `> **dispatch-assigned dag_task_id**: \`${dagTaskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.`
+    : "";
 
   // Build template resolution map
   const templateMap = buildTemplateResolutionMap(projectConfig);
 
   // Resolve template variables in task description and agent content
   const resolvedTaskDescription = resolveTemplateVariables(taskDescription, templateMap, "CLI task_description");
-  const resolvedAgentContent = resolveTemplateVariables(agentContent, templateMap, agentFileResult.entry);
-  preamble = resolveTemplateVariables(preamble, templateMap, "subagent-preamble.md");
+  const resolvedAgentContent = agentContent
+    ? resolveTemplateVariables(agentContent, templateMap, agentFileEntry)
+    : "";
+  // Preamble template resolution removed in T1.7
 
   // Build sections
   const context7Section = buildContext7Section(relevantStacks);
   const projectContext = buildProjectContextSection(projectConfig, openCodeRoot);
-  const scopeLine = buildScopeLine(agentType);
+  const scopeLine = buildScopeLine(target.requestedAgent);
   const context7Block = relevantStacks.length > 0 ? `\n\n---\n\n### Context7 Technology Lookup Requirements\n\n${context7Section}` : "";
 
   // Build deliverables template
-  const deliverablesSection = deliverablesTemplateMarkdown(agentType);
+  const deliverablesSection = deliverablesTemplateMarkdown(target.requestedAgent);
 
   // A-5: Role-based coding standards injection
-  const codingStandardsSection = loadCodingStandardsForAgent(agentType);
+  const codingStandardsSection = loadCodingStandardsForAgent(target.requestedAgent);
 
   // KC-specific gate flow section
-  const kcSection = agentType.toLowerCase() === "knowledge-curator" ? buildKCGateFlowSection() : "";
+  const kcSection = target.requestedAgent.toLowerCase() === "knowledge-curator" ? buildKCGateFlowSection() : "";
 
   // Assemble wrapped prompt
   const wrappedPrompt = `## 🔒 SUBAGENT: ${agentName}
@@ -192,6 +184,7 @@ export function buildDispatchPrompt(input: PromptBuildInput): PromptBuildResult 
 ### Task Payload
 
 - **Agent**: ${agentName}
+- **Native executor**: ${target.nativeExecutor}
 - **Task**: ${resolvedTaskDescription}
 - **payload_sha256**: ${crypto.createHash("sha256").update(resolvedTaskDescription, "utf8").digest("hex").substring(0, 16)}
 - **task_id**: ${taskId || "(none)"}
@@ -200,9 +193,17 @@ export function buildDispatchPrompt(input: PromptBuildInput): PromptBuildResult 
 ### 🚨 Your Scope — Framework-Enforced
 ${scopeLine}
 
-### P0 Protocol — Read and execute FIRST
+### Dispatch Protocol
 
-${preamble}
+${dagTaskIdNote}
+
+- Load \`preflight-lite\` Skill for task classification and execution skill selection.
+- For investigation/debug tasks, also load \`brainstorming\` and \`codegraph-first\`.
+- For deliverable tasks, also load \`deliverable-contract\`.
+- Prefer native \`Task\` for child work; use \`dispatch_subagent\` only when legacy wrapper behavior is explicitly required.
+- Use TodoWrite as external working memory (one in_progress at a time).
+- On tool failure, update todo with recovery intent before retrying.
+- Comply with active hooks for scope/codegraph/permission; do not bypass blocks.
 
 ${deliverablesSection}${kcSection}
 
@@ -210,13 +211,13 @@ ${codingStandardsSection}
 
 ---
 
-### Agent Configuration (from .opencode/agents/${agentFileResult.entry})
+### Agent Configuration (from ${agentFileEntry})
 
 **Agent Name**: ${agentName}
 
-**IMPORTANT — R1 SLIM (2026-06-19)**: Your skills and MCP tools are defined in your
-agent config file. Read \`.opencode/agents/${agentFileResult.entry}\` via the \`read\` tool
-as part of P0 Step 0e to see the full list. This saves ~194 lines per dispatch.
+**IMPORTANT — R1 SLIM (2026-06-19)**: Your role profile defines your skills and MCP expectations.
+Read \`${agentFileEntry}\` via the \`read\` tool before framework-specific execution if you need
+the full list. This saves ~194 lines per dispatch.
 
 ---
 
@@ -232,9 +233,17 @@ ${projectContext}${context7Block}
   // Final template resolution pass
   const resolvedPrompt = resolveTemplateVariables(wrappedPrompt, templateMap, "wrappedPrompt");
 
-  // Generate dispatch token and hash
-  const dispatchToken = crypto.createHash("sha256").update(resolvedPrompt, "utf8").digest("hex");
-  const tokenizedPrompt = resolvedPrompt + `\n//DISPATCH_TOKEN:${dispatchToken}`;
+  // Generate dispatch token and hash. Metadata markers are included in the
+  // integrity envelope so task-before can safely rewrite subagent_type.
+  const promptWithMetadata =
+    resolvedPrompt +
+    `\n//REQUESTED_AGENT:${target.requestedAgent}` +
+    `\n//NATIVE_EXECUTOR:${target.nativeExecutor}`;
+  const dispatchToken = crypto
+    .createHash("sha256")
+    .update(promptWithMetadata, "utf8")
+    .digest("hex");
+  const tokenizedPrompt = promptWithMetadata + `\n//DISPATCH_TOKEN:${dispatchToken}`;
   const promptHash = crypto.createHash("sha256").update(tokenizedPrompt, "utf8").digest("hex");
 
   writeLog(SRC, "INFO", {
@@ -249,7 +258,7 @@ ${projectContext}${context7Block}
     promptHash,
     dispatchToken,
     agentName,
-    agentFile: agentFileResult.entry,
+    agentFile: agentFileEntry,
     resolvedTaskDescription,
   };
 }

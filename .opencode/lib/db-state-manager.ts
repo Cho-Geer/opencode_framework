@@ -1725,6 +1725,7 @@ export function dbWriteSessionMap(
   agent: string,
   dagTaskId?: string,
   domainId?: string,
+  parentId?: string,
 ): boolean {
   try {
     const db = getDb();
@@ -1733,46 +1734,54 @@ export function dbWriteSessionMap(
     if (dagTaskId !== undefined && domainId !== undefined) {
       // Path 1: Both provided — explicit write
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, ?, ?, COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, dagTaskId, domainId, sessionId, now, now],
+        [sessionId, agent, dagTaskId, domainId, sessionId, parentId ?? null, sessionId, now, now],
       );
     } else if (dagTaskId !== undefined) {
-      // Path 2: Only dagTaskId — COALESCE preserve domainId
+      // Path 2: Only dagTaskId — COALESCE preserve domainId + parentId
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, ?, COALESCE(
            (SELECT domain_id FROM session_map WHERE session_id = ?), NULL
          ), COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, dagTaskId, sessionId, sessionId, now, now],
+        [sessionId, agent, dagTaskId, sessionId, sessionId, parentId ?? null, sessionId, now, now],
       );
     } else if (domainId !== undefined) {
-      // Path 3: Only domainId — COALESCE preserve dagTaskId
+      // Path 3: Only domainId — COALESCE preserve dagTaskId + parentId
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, COALESCE(
            (SELECT dag_task_id FROM session_map WHERE session_id = ?), NULL
          ), ?, COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, sessionId, domainId, sessionId, now, now],
+        [sessionId, agent, sessionId, domainId, sessionId, parentId ?? null, sessionId, now, now],
       );
     } else {
-      // Path 4: Neither — COALESCE preserve both
+      // Path 4: Neither — COALESCE preserve all
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, COALESCE(
            (SELECT dag_task_id FROM session_map WHERE session_id = ?), NULL
          ), COALESCE(
            (SELECT domain_id FROM session_map WHERE session_id = ?), NULL
          ), COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, sessionId, sessionId, sessionId, now, now],
+        [sessionId, agent, sessionId, sessionId, sessionId, parentId ?? null, sessionId, now, now],
       );
     }
     return true;

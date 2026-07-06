@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * janitor.ts — UC7KS Knowledge Janitor v2.0.0 (KC-11 DB-canonical)

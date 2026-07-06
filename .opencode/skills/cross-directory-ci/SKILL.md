@@ -9,4 +9,4 @@ description: "Systematic guidance for avoiding and debugging CI/CD failures from
 
 **触发条件**: description: "Systematic guidance for avoiding and debugging CI/CD failures from incorrect CWD. Invo
 
-> 完整文档: 调用 read_skill(""cross-directory-ci"") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/cross-directory-ci/FULL.md

@@ -9,4 +9,4 @@ description: "Provides validated solutions for executing database seed scripts i
 
 **触发条件**: description: "Provides validated solutions for executing database seed scripts in CI/CD environments
 
-> 完整文档: 调用 read_skill(""cicd-database-seeding"") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/cicd-database-seeding/FULL.md

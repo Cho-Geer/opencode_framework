@@ -1,24 +1,24 @@
 // enforcement.ts — UC7KS write-time compliance enforcement (checkUC7KSWrite)
 // Phase 1f: Split from uc7ks-utils.ts
 
-import * as fs from "node:fs";
-import * as path from "node:path";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { writeLog } from "../../lib/log-manager";
 import { getDb } from "../../lib/db-manager";
 import { readSubState } from "../../lib/substate-manager";
 import { normalize } from "../../lib/agent-identity";
-import { isLocalCacheAvailable, readCachedSessionAccess, buildUC7KSError } from "./cache-check";
-import { queryAttestationForWriteGate, queryAllAgentPipelineDomains } from "./pipeline-db";
+import { isLocalCacheAvailable, readCachedSessionAccess } from "./cache-check";
+import { queryAttestationForWriteGate, queryAllAgentPipelineDomains, resolvePipelineId } from "./pipeline-db";
+
+const SRC = "service-knowledge-enforcement";
 
 export function checkUC7KSWrite(
   agent: string,
-  mode: string,
   sessionId?: string,
   taskId?: string,
   domainId?: string,
 ): string | null {
-  // Advisory mode: no blocking
-  if (mode === "advisory") return null;
+  // Audit-only policy: no blocking
+  if (!shouldBlock("knowledge-cache-miss")) return null;
 
   // KC exempt — writes to docs/official_docs/ are cache population
   const agentNorm = (agent || "").toLowerCase().replace(/^@/, "");
@@ -57,7 +57,8 @@ export function checkUC7KSWrite(
         .map(function (l) {
           return "  " + l.substring(0, 100);
         })
-        .join("\n")}`
+        .join("\n")}` +
+      `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`
     );
   }
 
@@ -103,7 +104,7 @@ export function checkUC7KSWrite(
             "[FW-ENFORCE][UC7-001] " +
             `pipeline_id=${pipelineId} agent=${agent} domain=${domainId} ` +
             `attestation_status=${gateResult.attestation_status}. ` +
-            "Call knowledge_cache_search + knowledge_cache_attest first.";
+            "Call knowledge_cache_search + knowledge_cache_attest first." + "\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.";
         } else {
           // No DB row for this pipeline+agent+domain — fall through to Path C
           writeLog(SRC, "INFO", {
@@ -135,8 +136,8 @@ export function checkUC7KSWrite(
   // Replaces legacy global uc7_001_compliant check.
   // Iterates ALL session domains for this agent/task — every domain
   // MUST have attestation.status === "attested" for writes to pass.
-  // Strict/Locked: BLOCK on first non-attested domain.
-  // Advisory: WARN (log) but PASS (non-blocking).
+  // hard_block policy: BLOCK on first non-attested domain.
+  // audit_only policy: WARN (log) but PASS (non-blocking).
   // Design: docs/review/framework-refactor/uc7ks-write-block-gap-analysis-and-repair-plan.md §M3
 
   // A3 F1: Resolve missing taskId from session_map → gate_sessions
@@ -185,8 +186,8 @@ export function checkUC7KSWrite(
     }
   }
 
-  // If taskId remains unresolved in strict/locked mode → BLOCK
-  if (!resolvedTaskId && (mode === "strict" || mode === "locked")) {
+  // If taskId remains unresolved under blocking policy → BLOCK
+  if (!resolvedTaskId && (shouldBlock("knowledge-cache-miss"))) {
     writeLog(SRC, "ERROR", {
       event: "UC7KS-WRITE-BLOCK-NO-TASKID",
       agent,
@@ -198,9 +199,9 @@ export function checkUC7KSWrite(
       agent,
       `No taskId available for per-domain attestation check. ` +
         `sessionId=${sessionId || "none"}`,
-      `1. Ensure dispatch went through dispatch_subagent\n` +
+      `1. Ensure child work went through native Task or the legacy dispatch_subagent wrapper\n` +
         `2. Or provide task_id explicitly to compliance_gate_check\n` +
-        `3. Or use advisory mode for emergency bypass`,
+        `3. Or downgrade this rule to audit_only if this path should stay non-blocking`,
     );
   }
 
@@ -208,7 +209,6 @@ export function checkUC7KSWrite(
     sa,
     agentKey,
     resolvedTaskId,
-    mode,
     sessionId,
     agent,
   );
@@ -224,16 +224,16 @@ export function checkUC7KSWrite(
     return null;
   }
   if (typeof allDomainsAttested === "string") {
-    // Returned a block message (strict/locked mode, domain not attested)
+    // Returned a block message (blocking policy, domain not attested)
     return allDomainsAttested;
   }
-  // allDomainsAttested === null → advisory mode: warn but pass
+  // allDomainsAttested === null → audit-only policy: warn but pass
   writeLog(SRC, "WARN", {
     event: "UC7KS-WRITE-WARN-NOT-ALL-ATTESTED",
     agent,
     sessionID: sessionId,
     taskId,
-    detail: `advisory mode: domains not fully attested — WARN only`,
+    detail: `audit-only policy: domains not fully attested — WARN only`,
   });
   return null;
 
@@ -244,14 +244,13 @@ export function checkUC7KSWrite(
    * M3: Checks all domains for the given agent/task.
    * Returns:
    *   true  — all domains attested (PASS)
-   *   "" (string) — block message (BLOCK in strict/locked)
-   *   null — advisory mode: not all attested but non-blocking (WARN)
+   *   "" (string) — block message (BLOCK under hard policy)
+   *   null — audit-only policy: not all attested but non-blocking (WARN)
    */
   function checkAllDomainsAttested(
     sa: any,
     agentKey: string,
     taskId: string | undefined,
-    mode: string,
     sessionId: string | undefined,
     agent: string,
   ): true | string | null {
@@ -296,14 +295,14 @@ export function checkUC7KSWrite(
     // Path 2: No uc7ks_pipeline_state data — DB-canonical (v19 Phase 3)
     // JSON blob fallback removed. DB is the sole enforcement source.
     if (!dbUsed) {
-      if (mode === "advisory") {
+      if (!shouldBlock("knowledge-cache-miss")) {
         writeLog(SRC, "WARN", {
           event: "UC7KS-WRITE-WARN-NO-PIPELINE-DATA",
           agent,
           sessionID: sessionId,
           taskId,
           detail:
-            "advisory mode: no uc7ks_pipeline_state data — WARN only (DB-canonical, JSON blob fallback removed)",
+            "audit-only policy: no uc7ks_pipeline_state data — WARN only (DB-canonical, JSON blob fallback removed)",
         });
         return null;
       }
@@ -328,18 +327,18 @@ export function checkUC7KSWrite(
     }
 
     // Domain(s) not attested
-    if (mode === "advisory") {
+    if (!shouldBlock("knowledge-cache-miss")) {
       writeLog(SRC, "WARN", {
         event: "UC7KS-WRITE-WARN-UNATTESTED-DOMAINS",
         agent,
         sessionID: sessionId,
         taskId,
-        detail: `advisory mode: ${unattestedDomains.length} domains not attested: ${unattestedDomains.join(", ")}`,
+        detail: `audit-only policy: ${unattestedDomains.length} domains not attested: ${unattestedDomains.join(", ")}`,
       });
       return null;
     }
 
-    // Strict/Locked: BLOCK
+    // hard_block: BLOCK
     writeLog(SRC, "ERROR", {
       event: "UC7KS-WRITE-BLOCK-UNATTESTED-DOMAINS",
       agent,

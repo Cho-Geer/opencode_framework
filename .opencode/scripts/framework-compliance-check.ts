@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // framework-compliance-check.ts — P4-001
 // Validates: DAG coverage, gate lifecycle, and state consistency across
 // Task.DAG.json, gate-state.json, and machine.json.

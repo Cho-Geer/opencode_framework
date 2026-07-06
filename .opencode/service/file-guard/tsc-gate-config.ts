@@ -18,7 +18,7 @@ import * as path from "node:path";
 const SRC = "tsc-gate-config";
 
 export interface TscGateConfig {
-  /** Gate mode: "zero-tolerance" (v2) or "baseline-diff" (v1 compat) */
+  /** Gate strategy: "zero-tolerance" (v2) or "baseline-diff" (v1 compat) */
   mode: string;
   /** tsc --noEmit timeout (ms) */
   timeout_ms: number;
@@ -53,7 +53,10 @@ export function getTscGateConfig(): TscGateConfig {
     const cfg = JSON.parse(raw);
     const tr = cfg?.template_resolution || {};
     return {
-      mode: (tr.tsc_gate_mode as string) || DEFAULT_CONFIG.mode,
+      mode:
+        (tr.tsc_gate_strategy as string) ||
+        (tr.tsc_gate_mode as string) ||
+        DEFAULT_CONFIG.mode,
       timeout_ms:
         (tr.tsc_gate_timeout_ms as number) || DEFAULT_CONFIG.timeout_ms,
       lock_timeout_ms:

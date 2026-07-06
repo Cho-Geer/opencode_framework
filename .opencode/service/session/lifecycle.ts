@@ -218,31 +218,6 @@ export function runStartupCleanup(sessionID: string, agent: string): void {
     writeLog(SRC, "ERROR", { sessionID, agent, event: "INTERRUPT-SENTINEL-CLEAR-FAILED", detail: e.message });
   }
 
-  // Step 9: Clean stale .pending.json entries (>1h)
-  try {
-    const pendingFile = path.join(PROJECT_ROOT, ".task_temp", "_dispatch", ".pending.json");
-    if (fs.existsSync(pendingFile)) {
-      const raw = fs.readFileSync(pendingFile, "utf8");
-      let queue: any[] = [];
-      try {
-        queue = JSON.parse(raw);
-        if (!Array.isArray(queue)) queue = [];
-      } catch { queue = []; }
-      const staleThreshold = Date.now() - 3600000;
-      const before = queue.length;
-      queue = queue.filter((e: any) => {
-        const created = e.createdAt ? new Date(e.createdAt).getTime() : 0;
-        return created > staleThreshold;
-      });
-      if (queue.length < before) {
-        atomicWriteJson(pendingFile, queue);
-        writeLog(SRC, "INFO", { sessionID, agent, event: "PENDING-QUEUE-CLEANUP",
-          detail: `${before - queue.length} stale .pending.json entries removed (>1h)` });
-      }
-    }
-  } catch (e: any) {
-    writeLog(SRC, "ERROR", { sessionID, agent, event: "PENDING-QUEUE-CLEANUP-FAILED", detail: e.message });
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -256,29 +231,44 @@ export function writeSessionMapWithConstraint(
   const taskIdResult = resolveTaskIdWithSource(sessionID);
   const domainResult = resolveDomainIdWithSource(sessionID);
 
+  // FW-SESSION-TRUSTED-SOURCES: child_slot 来自 dispatch router 直接写入，可信
+  const TRUSTED_DAG_SOURCES = ["session_map", "child_slot"];
+  const TRUSTED_DOMAIN_SOURCES = ["session_map", "child_slot"];
+
   const dagTaskId =
-    taskIdResult.resolved_from === "session_map"
+    TRUSTED_DAG_SOURCES.includes(taskIdResult.resolved_from)
       ? taskIdResult.value || undefined
       : undefined;
   const domainId =
-    domainResult.resolved_from === "session_map"
+    TRUSTED_DOMAIN_SOURCES.includes(domainResult.resolved_from)
       ? domainResult.value || undefined
       : undefined;
 
-  if (taskIdResult.resolved_from !== "session_map" && taskIdResult.value) {
+  if (!TRUSTED_DAG_SOURCES.includes(taskIdResult.resolved_from) && taskIdResult.value) {
     writeLog(SRC, "runtime", {
       sessionID, agent, level: "WARN", event: "CHAT-HOOK",
-      detail: `dagTaskId skipped: resolved_from=${taskIdResult.resolved_from} — only session_map source accepted`,
+      detail: `dagTaskId skipped: resolved_from=${taskIdResult.resolved_from} — trusted sources: ${TRUSTED_DAG_SOURCES.join(", ")}`,
     });
   }
-  if (domainResult.resolved_from !== "session_map" && domainResult.value) {
+  if (!TRUSTED_DOMAIN_SOURCES.includes(domainResult.resolved_from) && domainResult.value) {
     writeLog(SRC, "runtime", {
       sessionID, agent, level: "WARN", event: "CHAT-HOOK",
-      detail: `domainId skipped: resolved_from=${domainResult.resolved_from} — only session_map source accepted`,
+      detail: `domainId skipped: resolved_from=${domainResult.resolved_from} — trusted sources: ${TRUSTED_DOMAIN_SOURCES.join(", ")}`,
     });
   }
 
-  upsertSessionMap(sessionID, agent, dagTaskId, domainId);
+  // FW-SESSION-PARENT-ID: 从 SDK session 表读取 parent_id 并传递
+  let parentId: string | undefined;
+  try {
+    const { Database } = require("bun:sqlite");
+    const sdkDbPath = process.env.OPENCODE_DB || (process.env.HOME + "/.local/share/opencode/opencode.db");
+    const sdkDb = new Database(sdkDbPath, { readonly: true });
+    const row = sdkDb.query("SELECT parent_id FROM session WHERE id = ?").get(sessionID) as any;
+    parentId = row?.parent_id || undefined;
+    sdkDb.close();
+  } catch { /* SDK DB 不可用时静默跳过 */ }
+
+  upsertSessionMap(sessionID, agent, dagTaskId, domainId, parentId);
 }
 
 // ═══════════════════════════════════════════════════════════════════

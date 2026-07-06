@@ -83,11 +83,10 @@ function inheritDispatchPayloadItems(
       `SELECT run_id
        FROM execution_checklist_runs
        WHERE opencode_session_id = ? AND task_id = ?
-         AND lower(replace(agent, '@', '')) = ?
        ORDER BY created_at DESC
        LIMIT 1`,
     )
-    .get(parentSessionId, taskId, agentNorm) as { run_id: string } | null;
+    .get(parentSessionId, taskId) as { run_id: string } | null;
 
   if (!parentRun) {
     writeLog(SRC, "runtime", {
@@ -177,18 +176,15 @@ export function createChecklistRun(input: CreateChecklistRunInput): {
       input.agent === "Orchestrator" ||
       input.agent === "@Orchestrator");
 
+  // First try to find ANY existing run for this session (ignore task_id)
+  // This prevents creating duplicate runs when resolveTaskId() returns different values
   const existing = db
     .query(
       `SELECT run_id, phase FROM execution_checklist_runs
-       WHERE opencode_session_id = ? AND (task_id = ? OR (task_id IS NULL AND ? IS NULL))
-       AND status != 'interrupted'
+       WHERE opencode_session_id = ?
        ORDER BY created_at DESC LIMIT 1`,
     )
-    .get(
-      input.opencode_session_id,
-      input.task_id ?? null,
-      input.task_id ?? null,
-    ) as { run_id: string; phase: string } | null;
+    .get(input.opencode_session_id) as { run_id: string; phase: string } | null;
 
   if (existing) {
     writeLog(SRC, "runtime", {
@@ -200,7 +196,7 @@ export function createChecklistRun(input: CreateChecklistRunInput): {
 
   const run_id = generateRunId();
   const ts = now();
-  const initPhase = isDispatchPayloadExempt ? "preflight" : "dispatch_payload";
+  const initPhase = "initial_read"; // Phase 0: ALL agents start at initial_read (was: exempt→preflight, others→dispatch_payload)
 
   const create = db.transaction(() => {
     db.run(
@@ -558,5 +554,26 @@ export function resetChecklistItemToPending(
       detail: `run_id=${runId} item_key=${itemKey} err=${e.message}`,
     });
     return false;
+  }
+}
+
+/**
+ * Get the latest checklist run for a session.
+ * Returns run_id, phase, and status — or null if no run exists.
+ * MVC: service layer is the ONLY module that queries execution_checklist_runs.
+ */
+export function getLatestChecklistRun(sessionId: string): {
+  run_id: string;
+  phase: string;
+  status: string;
+} | null {
+  try {
+    const db = getDb();
+    const run = db.query(
+      "SELECT run_id, phase, status FROM execution_checklist_runs WHERE opencode_session_id = ? ORDER BY created_at DESC LIMIT 1"
+    ).get(sessionId) as { run_id: string; phase: string; status: string } | null;
+    return run;
+  } catch {
+    return null;
   }
 }

@@ -6,7 +6,7 @@ import { getDb } from "../../lib/db-manager";
 import { writeLog } from "../../lib/log-manager";
 import { isSuperAdmin } from "../../lib/agent-identity";
 import { readSubState } from "../../lib/substate-manager";
-import { getEnforcementMode } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 
 const SRC = "service-session-compliance";
 
@@ -19,10 +19,8 @@ const SRC = "service-session-compliance";
  *   2. Knowledge cache attested (knowledge_cache_state.status='attested')
  */
 export function runComplianceAudit(sessionID: string, agent: string): void {
-  const mode = getEnforcementMode();
   const isSA = isSuperAdmin(agent);
-
-  if ((mode !== "strict" && mode !== "locked") || isSA || !sessionID) return;
+  if ((!shouldBlock("compliance-audit")) || isSA || !sessionID) return;
 
   // Check 1: Gate session armed
   try {

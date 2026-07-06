@@ -13,8 +13,9 @@ import {
   loadGateStore,
   saveGateStore,
 } from "./store-crud";
-import { getEnforcementMode } from "./enforcement";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { checklistWirePassed } from "./checklist-hooks";
+import { dbReadSessionMap } from "../../lib/db-state-manager";
 
 const SRC = "service-gate-mcp-confirm";
 
@@ -81,17 +82,28 @@ export function confirmGateSession(
   }
 
   // ── F1 Fix: Block if gate check failed ──
-  const enforcementMode = getEnforcementMode();
-  if (session.last_check_passed === false && enforcementMode !== "advisory") {
+  if (session.last_check_passed === false && shouldBlock("mcp-confirm-block")) {
     return {
       status: "rejected",
-      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${gateSessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${enforcementMode} enforcement mode.`,
+      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${gateSessionId} has ${session.last_check_failed_items?.length || 0} check failures under the active gate policy.`,
     };
   }
 
   // ── Resolve agent identity ──
-  let resolvedAgent = agent || session.agent || "unknown";
-  const isExempt = EXEMPT_AGENTS.some((exempt) => resolvedAgent === exempt || `@${resolvedAgent}` === exempt);
+  // P1 fix: resolve agent from session_map if not provided and not in gate store
+  let resolvedAgent = agent || session.agent;
+  if (!resolvedAgent && gateSessionId) {
+    // Look up agent from session_map DB (registered by before-hook lifecycle)
+    const smEntry = dbReadSessionMap(gateSessionId);
+    if (smEntry?.agent) {
+      resolvedAgent = smEntry.agent;
+      writeLog(SRC, "runtime", { gateSessionId, event: "AGENT-RESOLVED-FROM-SESSION-MAP", detail: `agent=${resolvedAgent}` });
+    }
+  }
+  resolvedAgent = resolvedAgent || "unknown";
+  // v0.2: normalize agent identity for exempt check (strip @, trim, lowercase)
+  const normalizedAgent = (resolvedAgent || "").replace(/^@/, "").trim().toLowerCase();
+  const isExempt = normalizedAgent === "orchestrator" || normalizedAgent === "super-admin";
 
   // ── Deliverables validation ──
   let parsedDeliverables: DeliverableEntry[] | null = null;

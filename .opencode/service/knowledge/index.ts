@@ -3,88 +3,20 @@
 
 // ── Knowledge Store (manifest CRUD + search + materialization) ────────
 export type {
-  KnowledgeFile,
-  KnowledgeEntry,
-  KnowledgeManifest,
-  ManifestStats,
-  AddEntryResult,
-  SearchOptions,
-  AddEntryParams,
-  MaterializationJob,
-} from "./types-paths";
-
-export { getIndexPath, getDocsDir } from "./types-paths";
-
-export {
-  readManifest,
-  writeManifest,
-  getStats,
-} from "./search-add";
-
-export { materializeManifestFromDb } from "./manifest";
-
-export {
-  searchManifest,
-  addEntry,
-  searchByDomain,
-  searchByTags,
-  getEntryByLibraryId,
-  searchByKeyword,
-  materializeToFile,
-} from "./search-add";
-
-export {
-  getPendingMaterializationJobs,
-  retryFailedJobs,
-  getIndexJsonPath,
-  importManifestFileToDb,
-} from "./jobs";
-
-// ── Knowledge Audit ───────────────────────────────────────────────────
-export {
-  AGGREGATE_KEYS,
-  getDefaultAuditState,
-  readAuditState,
-  writeAuditState,
-  atomicUpdateKnowledgeAudit,
-  incrementAuditCounter,
-  pushAuditEvent,
-  touchCacheCheck,
-  touchKnowledgeAcquisition,
-} from "./audit";
-export type { AggregateKey } from "./audit";
-
-// ── UC7KS Pipeline DB ─────────────────────────────────────────────────
-export type {
-  CacheDiscovery as PipelineCacheDiscovery,
-  CacheAttestation as PipelineCacheAttestation,
-  PipelineStateRow,
-  PipelineDomainSummary,
-} from "./pipeline-db";
-
-export {
-  resolvePipelineId,
-  atomicUpsertDiscovery,
-  readDiscoveryForAttest,
-  atomicUpsertAttestation,
-  queryAttestationForWriteGate,
-  readPipelineState,
-  queryAllAgentPipelineDomains,
-} from "./pipeline-db";
-
-// ── UC7KS Schema ──────────────────────────────────────────────────────
-export type {
   CacheSufficiency,
-  CacheDiscovery as SchemaCacheDiscovery,
-  CacheAttestation as SchemaCacheAttestation,
+  CacheDiscovery,
+  CacheAttestation,
   DomainEntry,
   TaskEntry,
   LegacyAgentEntry,
   AgentEntry,
   SessionAccess,
+} from "./schema";
+
+export type {
   PruneOptions,
   PruneResult,
-} from "./schema";
+} from "./prune-attest";
 
 export {
   CONFIG_KEYS,

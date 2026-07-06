@@ -110,7 +110,7 @@ export function isModifyShell(args: Record<string, unknown>): boolean {
   if (/>>|>\s*[^\s&|]/.test(normalized)) return true;
   const subCmds = splitShellCommand(normalized);
   const modifyRe =
-    /^(cp|mv|rm|python3|node|bun|npx|tee|cat|sed|dd|sh|bash|touch|mkdir)\b/;
+    /^(cp|mv|rm|python3|node|bun|npx|tee|cat|sed|dd|sh|bash|touch|mkdir)\b|^git\s+(add|commit|push|merge|rebase|reset)\b/;
   return subCmds.some((s) => modifyRe.test(s));
 }
 

@@ -1,0 +1,1 @@
+/home/zhaoge/workspace/opencode/work-one/.opencode/rules/common/common-project.md

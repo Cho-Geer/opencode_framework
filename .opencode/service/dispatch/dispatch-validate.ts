@@ -9,7 +9,7 @@ import {
   resolveDomainId,
   resolveTaskId,
 } from "../../lib/agent-resolver";
-import { getEnforcementMode } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { isDagExempt, readDispatchPolicy } from "../../lib/dag-policy";
 import {
   isPrivileged,
@@ -45,7 +45,6 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
   if (input.tool !== "dispatch_subagent") return { blocked: false };
 
   const caller = resolveCallerIdentity(input.sessionID) || "";
-  const mode = getEnforcementMode();
   const policy = readDispatchPolicy();
   const target = output?.args?.agent_type || "";
   const dagTaskId = output?.args?.dag_task_id || "";
@@ -54,7 +53,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
   writeLog(SRC, "runtime", {
     sessionID: input.sessionID, callID: input.callID, agent: caller,
     event: "DISPATCH-BEFORE",
-    detail: `enter | caller=${caller} | target=${target} | dag_task_id=${dagTaskId || ""} | auto_plan=${autoPlanRequested} | mode=${mode} | policy.require_dag_entry=${policy.require_dag_entry} | policy.auto_plan_enabled=${policy.auto_plan_enabled}`,
+    detail: `enter | caller=${caller} | target=${target} | dag_task_id=${dagTaskId || ""} | auto_plan=${autoPlanRequested} | policy.require_dag_entry=${policy.require_dag_entry} | policy.auto_plan_enabled=${policy.auto_plan_enabled}`,
   });
 
   // PHASE 0 AUDIT: Hard-warning for unresolved caller identity
@@ -77,10 +76,10 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
         level: "ERROR", event: "DISPATCH-TARGET-RESTRICTED",
         detail: `M14 BLOCKED | caller=${caller} is a sub-agent, only target=Knowledge-Curator is allowed. Attempted target=${target}.`,
       });
-      if (mode === "strict" || mode === "locked") {
+      if (shouldBlock("dispatch-dag-missing")) {
         return {
           blocked: true,
-          message: `[FW-ENFORCE][M14] Sub-agents may only dispatch to @Knowledge-Curator. Caller "${caller}" attempted to target "${target}". To dispatch to @"${target}", route through @Orchestrator.`,
+          message: `[FW-ENFORCE][M14] Sub-agents may only dispatch to @Knowledge-Curator. Caller "${caller}" attempted to target "${target}". To dispatch to @"${target}", route through @Orchestrator.` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
         };
       }
     }
@@ -179,16 +178,26 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
             detail: `DAG-OVERRIDE-ROUTE | task="${taskDesc.substring(0, 120)}" | dag_task_id=${dagTaskId} | target=${fmtAgent(target)} | keyword_selected=${fmtAgent(finalAgent)} | DAG authoritative — allowing dispatch`,
           });
         } else if (finalAgent && fmtAgent(target) !== finalAgent) {
-          writeLog(SRC, "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent: caller,
-            level: "ERROR", event: "DISPATCH-BEFORE",
-            detail: `ROUTE-MISMATCH | task="${taskDesc.substring(0, 120)}" | dispatched_to=${fmtAgent(target)} | expected=${fmtAgent(finalAgent)} | L1=[${l1InputCandidates.join(",")}] L2=[${l2Candidates.join(",")}] L3=[${l3Candidates.join(",")}]`,
-          });
-          if (mode === "strict" || mode === "locked") {
-            return {
-              blocked: true,
-              message: `[FW-ENFORCE][ROUTE-MISMATCH] dispatch_subagent to ${fmtAgent(target)} is incorrect. Four-layer route: L1(verb) [${l1InputCandidates.join(",")}] → L2(scope) [${l2Candidates.join(",")}] → L3(permission) [${l3Candidates.join(",")}] → Selected: ${fmtAgent(finalAgent)}. Task: "${taskDesc.substring(0, 100)}..."`,
-            };
+          // No-DAG bypass: DAG-exempt targets (Super-Admin) are always allowed
+          const targetIsDagExempt = isDagExempt(target);
+          if (targetIsDagExempt) {
+            writeLog(SRC, "runtime", {
+              sessionID: input.sessionID, callID: input.callID, agent: caller,
+              event: "DISPATCH-NO-DAG-EXEMPT",
+              detail: `No-DAG bypass | target=${fmtAgent(target)} is DAG-exempt | route_selected=${fmtAgent(finalAgent)} | allowing dispatch`,
+            });
+          } else {
+            writeLog(SRC, "runtime", {
+              sessionID: input.sessionID, callID: input.callID, agent: caller,
+              level: "ERROR", event: "DISPATCH-BEFORE",
+              detail: `ROUTE-MISMATCH | task="${taskDesc.substring(0, 120)}" | dispatched_to=${fmtAgent(target)} | expected=${fmtAgent(finalAgent)} | L1=[${l1InputCandidates.join(",")}] L2=[${l2Candidates.join(",")}] L3=[${l3Candidates.join(",")}]`,
+            });
+            if (shouldBlock("dispatch-dag-missing")) {
+              return {
+                blocked: true,
+                message: `[FW-ENFORCE][ROUTE-MISMATCH] Child dispatch to ${fmtAgent(target)} is incorrect. Four-layer route: L1(verb) [${l1InputCandidates.join(",")}] → L2(scope) [${l2Candidates.join(",")}] → L3(permission) [${l3Candidates.join(",")}] → Selected: ${fmtAgent(finalAgent)}. Task: "${taskDesc.substring(0, 100)}..."` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
+              };
+            }
           }
         }
       }
@@ -259,13 +268,13 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
         `[FW-ENFORCE][GATE-APPROVAL-LOCK-v2] Cannot dispatch — ` +
         `${blockingSessions.length} related session(s) awaiting approval: ` +
         `${blockingSessions.join(", ")}. ` +
-        `Call compliance_gate_approve_deliverables or compliance_gate_bulk_review_deliverables.`;
+        `Call compliance_gate_approve_deliverables or compliance_gate_bulk_review_deliverables.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`;
       writeLog(SRC, "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent: caller,
         level: "ERROR", event: "GATE-APPROVAL-LOCK",
         detail: `BLOCKED-v2 | scope=related | ${blockingSessions.length} related sessions: ${blockingSessions.join(", ")}`,
       });
-      if (mode === "strict" || mode === "locked") {
+      if (shouldBlock("dispatch-dag-missing")) {
         return { blocked: true, message: msg };
       }
     }
@@ -290,12 +299,12 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
     return { blocked: false };
   }
 
-  if (mode === "advisory") {
+  if (!shouldBlock("dispatch-dag-missing")) {
     if (!dagTaskId) {
       writeLog(SRC, "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent: caller,
         level: "WARN", event: "DISPATCH-BEFORE",
-        detail: `exit (pass, advisory) | dag_task_id empty but target @${target} is non-exempt`,
+        detail: `exit (pass, audit-only) | dag_task_id empty but target @${target} is non-exempt`,
       });
     } else {
       const tc = findTaskInDag(dagTaskId);
@@ -303,7 +312,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
         writeLog(SRC, "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent: caller,
           level: "WARN", event: "DISPATCH-BEFORE",
-          detail: `exit (pass, advisory) | dag_task_id=${dagTaskId} NOT in DAG (would block in strict/locked)`,
+          detail: `exit (pass, audit-only) | dag_task_id=${dagTaskId} NOT in DAG while dispatch-dag-missing is non-blocking`,
         });
       }
     }
@@ -319,7 +328,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
     });
     return {
       blocked: true,
-      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dispatch_subagent to ${target} requires a dag_task_id that exists in Task.DAG.json (dispatch_policy.require_dag_entry=true, mode=${mode}). Either provide a planned DAG ID, or set auto_plan=true to let the framework plan automatically (requires dispatch_policy.auto_plan_enabled=true), or dispatch @Meta-Planner first to plan the task.`,
+      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] Child dispatch to ${target} requires a dag_task_id that exists in Task.DAG.json (dispatch_policy.require_dag_entry=true). Either provide a planned DAG ID, or set auto_plan=true to let the framework plan automatically (requires dispatch_policy.auto_plan_enabled=true), or dispatch @Meta-Planner first to plan the task.` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
     };
   }
 
@@ -333,7 +342,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
       });
       return {
         blocked: true,
-        message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] auto_plan=true was set but dispatch_policy.auto_plan_enabled=false in project.config.json. Self-healing is blocked during rollout. ACTION: dispatch @Meta-Planner to add "${dagTaskId}" to Task.DAG.json, then re-dispatch with the same dag_task_id.`,
+        message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] auto_plan=true was set but dispatch_policy.auto_plan_enabled=false in project.config.json. Self-healing is blocked during rollout. ACTION: dispatch @Meta-Planner to add "${dagTaskId}" to Task.DAG.json, then re-dispatch with the same dag_task_id.` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
       };
     }
     if (autoPlanRequested && policy.auto_plan_enabled) {
@@ -351,7 +360,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
     });
     return {
       blocked: true,
-      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order). Dispatch @Meta-Planner first to plan the task, or set auto_plan=true (requires dispatch_policy.auto_plan_enabled=true).`,
+      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order). Dispatch @Meta-Planner first to plan the task, or set auto_plan=true (requires dispatch_policy.auto_plan_enabled=true).` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
     };
   }
 
@@ -363,7 +372,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
     });
     return {
       blocked: true,
-      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" has status "${tc.status}"; expected "pending" or "in_progress".`,
+      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" has status "${tc.status}"; expected "pending" or "in_progress".` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
     };
   }
 

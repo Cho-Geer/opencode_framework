@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // state-integrity-scan.ts — P4-002
 // Scans gate-state.json, machine.json, project.config.json, rule_registry.json,
 // and Task.DAG.json for JSON validity, required fields, and orphaned references.

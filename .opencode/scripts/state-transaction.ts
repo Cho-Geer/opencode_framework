@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 /**
  * state-transaction.ts — Unified State Transaction Engine
  * =======================================================
@@ -111,7 +112,7 @@ function writeLog(src, level, fields) {
 
 // ─── SHA-256 Hash ─────────────────────────────────────────
 function sha256(content) {
-  return "sha256-" + crypto.createHash("sha256").update(content).digest("hex");
+  return "sha256-" + require("node:crypto").createHash("sha256").update(content).digest("hex");
 }
 
 // ─── Ensure State Directory ──────────────────────────────

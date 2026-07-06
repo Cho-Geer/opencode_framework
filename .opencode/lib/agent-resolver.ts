@@ -20,6 +20,5 @@ export {
 export type { ResolvedWithSource } from "../service/session";
 
 export {
-  writeDispatchCtx,
   sessionLastDispatched,
 } from "../service/session";

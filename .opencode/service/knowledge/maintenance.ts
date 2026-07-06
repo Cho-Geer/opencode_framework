@@ -8,7 +8,7 @@ import * as path from "node:path";
 import { tolerantParse } from "../../lib/tolerant-json";
 import { writeLog } from "../../lib/log-manager";
 import { readSubState, writeSubState } from "../../lib/substate-manager";
-import { type PruneOptions } from "./schema";
+import { type PruneOptions, type PruneResult } from "./prune-attest";
 import { pruneSessionAccess } from "./prune-attest";
 import {
   incrementAuditCounter,
@@ -287,35 +287,29 @@ export function nightlyCompaction(options: NightlyCompactionOptions): Compaction
       try { kcs = readSubState("knowledge_cache_state"); } catch {}
       const sa = kcs?.session_access || {};
 
+      const ttlDays = config?.template_resolution?.["knowledge.session_access_ttl_days"] || maxSessionAgeDays;
       const pruneOpts: PruneOptions = {
-        session_access_ttl_days:
-          config?.template_resolution?.["knowledge.session_access_ttl_days"] || maxSessionAgeDays,
-        session_access_max_tasks_per_agent:
-          config?.template_resolution?.["knowledge.session_access_max_tasks_per_agent"] || 50,
-        session_access_max_domains_per_task:
-          config?.template_resolution?.["knowledge.session_access_max_domains_per_task"] || 8,
-        session_access_preserve_attested_days:
-          config?.template_resolution?.["knowledge.session_access_preserve_attested_days"] || 90,
+        cutoff_ms: Date.now() - (ttlDays * 24 * 60 * 60 * 1000),
       };
 
       const pruneResult = pruneSessionAccess(sa, pruneOpts);
       if (
-        pruneResult.removedTaskEntries > 0 ||
-        pruneResult.removedDomainEntries > 0 ||
-        pruneResult.removedStaleAgents > 0
+        pruneResult.pruned_tasks > 0 ||
+        pruneResult.pruned_domains > 0 ||
+        pruneResult.pruned_agents > 0
       ) {
         try { writeSubState("knowledge_cache_state", kcs); } catch {}
         report.sessions_pruned = true;
         report.prune_stats = {
-          removed_agent_entries: pruneResult.removedTaskEntries,
-          removed_task_entries: pruneResult.removedTaskEntries,
-          removed_domain_entries: pruneResult.removedDomainEntries,
-          removed_stale_agents: pruneResult.removedStaleAgents,
+          removed_agent_entries: pruneResult.pruned_tasks,
+          removed_task_entries: pruneResult.pruned_tasks,
+          removed_domain_entries: pruneResult.pruned_domains,
+          removed_stale_agents: pruneResult.pruned_agents,
         };
         const totalRemoved =
-          (pruneResult.removedTaskEntries || 0) +
-          (pruneResult.removedDomainEntries || 0) +
-          (pruneResult.removedStaleAgents || 0);
+          (pruneResult.pruned_tasks || 0) +
+          (pruneResult.pruned_domains || 0) +
+          (pruneResult.pruned_agents || 0);
         if (totalRemoved > 0) {
           try { incrementAuditCounter("last_cleanup_removed_session_entries", totalRemoved); } catch {}
         }

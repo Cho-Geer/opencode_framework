@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 /**
  * state-reset.ts — Idempotent state machine bootstrap/reset script
  *

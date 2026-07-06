@@ -11,11 +11,12 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "../../lib/log-manager";
 import { checklistWirePassed } from "../../service/gate/checklist-hooks";
+const { generatePayloadId } = require("../../service/gate/checklist-phase");
+const { recordDispatchPayloadIntegrity } = require("../../service/gate/checklist-payload");
 import { buildDispatchPrompt } from "../../service/dispatch/prompt-builder";
 
 const OPENCODE_ROOT = process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", "..", "..");
 const OUTPUT_DIR = path.join(OPENCODE_ROOT, ".task_temp", "_dispatch");
-const PENDING_FILE = path.join(OUTPUT_DIR, ".pending.json");
 
 // ── CLI argument parsing ──
 let sessionNamespace = process.env.DISPATCH_NAMESPACE || null;
@@ -83,39 +84,44 @@ try {
   writeLog("dispatch-subagent", "WARN", { event: "CHECKLIST_WIRE_FAILED", detail: e.message });
 }
 
-// ── .pending.json queue management ──
-let queue: any[] = [];
+// ── Record dispatch payload integrity for child inheritance ──
 try {
-  if (fs.existsSync(PENDING_FILE)) {
-    queue = JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
-    if (!Array.isArray(queue)) queue = [];
-  }
-} catch { queue = []; }
-
-// Dedup by agentType + dagTaskId
-queue = queue.filter((e) => !(e.agentType === agentType && e.taskId === dagTaskId));
-queue.push({
-  dispatchId: outputFile,
-  promptHash: result.promptHash,
-  filePath: outputFile,
-  createdAt: new Date().toISOString(),
-  agentType,
-  taskId: dagTaskId || null,
-});
-
-try {
-  fs.writeFileSync(PENDING_FILE, JSON.stringify(queue, null, 2), "utf8");
+  recordDispatchPayloadIntegrity({
+    payload_id: generatePayloadId(),
+    parent_session_id: sessionId || null,
+    agent_type: agentType,
+    dag_task_id: dagTaskId,
+    task_description: taskDescription,
+    normalized_payload: result.prompt,
+    sha256: result.promptHash || "",
+    completeness_status: (result.prompt && result.prompt.length > 20) ? "complete" : "incomplete",
+    prompt_path: outputFile,
+  });
 } catch (e: any) {
-  writeLog("dispatch-subagent", "ERROR", { event: "PENDING_WRITE_FAILED", detail: e.message });
-  console.error("FATAL: Cannot write .pending.json");
-  process.exit(1);
+  writeLog("dispatch-subagent", "WARN", { event: "DISPATCH-PAYLOAD-INTEGRITY-FAILED", detail: e.message });
 }
 
-// ── DB enqueue (non-fatal) ──
+// ── DB dedup check ──
+try {
+  const { dbCheckDuplicateDispatch } = require("../../lib/dispatch-db");
+  if (dbCheckDuplicateDispatch(agentType, dagTaskId || "(no-task-id)")) {
+    writeLog("dispatch-subagent", "WARN", { event: "DISPATCH-DEDUP-BLOCKED", detail: `Duplicate dispatch for ${agentType}:${dagTaskId}` });
+    console.error("FATAL: Duplicate dispatch detected");
+    process.exit(1);
+  }
+} catch { /* DB unavailable */ }
+
+// ── DB enqueue (fatal) ──
 try {
   const { dbEnqueueDispatch } = require("../../lib/dispatch-db");
-  dbEnqueueDispatch(agentType, taskId || "(no-task-id)", outputFile, result.promptHash, Buffer.byteLength(result.prompt, "utf8"));
-} catch { /* DB unavailable, file-based fallback intact */ }
-
+  const queueId = dbEnqueueDispatch(agentType, taskId || "(no-task-id)", outputFile, result.promptHash, Buffer.byteLength(result.prompt, "utf8"));
+  if (!queueId) {
+    console.error("FATAL: DB enqueue failed");
+    process.exit(1);
+  }
+} catch (e: any) {
+  console.error("FATAL: DB enqueue failed: " + e.message);
+  process.exit(1);
+}
 // ── Output file path to stdout ──
 console.log(outputFile);

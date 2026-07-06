@@ -21,6 +21,8 @@ import {
 import {
   dbWriteSessionMap, dbReadSessionMap, dbQuerySessionByDagTaskId,
 } from "../../lib/db-state-manager";
+import { getRuleDisposition, shouldBlock } from "../enforcement/rule-disposition";
+import { resolveDispatchTarget } from "./agent-target";
 
 const SRC = "dispatch-router-svc";
 
@@ -58,7 +60,7 @@ function loadSARepairPatterns(worktree: string): string[] {
 
 function logOrchestratorSADispatch(opts: {
   caller: string; target: string; task_description: string;
-  dag_task_id: string; patterns_matched: string[]; mode: string;
+  dag_task_id: string; patterns_matched: string[]; policy: string;
 }): void {
   try {
     writeAuditLogEntry({
@@ -67,7 +69,7 @@ function logOrchestratorSADispatch(opts: {
       caller: opts.caller, target: opts.target,
       task_description_hash: opts.task_description.slice(0, 80),
       dag_task_id: opts.dag_task_id,
-      patterns_matched: opts.patterns_matched, mode: opts.mode,
+      patterns_matched: opts.patterns_matched, policy: opts.policy,
     });
     if (existsSync(path.join(process.env.OPENCODE_ROOT || process.cwd(), ".opencode", "state", "machine.json"))) {
       atomicWriteSubState("compliance_records", (cr) => {
@@ -75,7 +77,7 @@ function logOrchestratorSADispatch(opts: {
         cr.orchestrator_sa_dispatches.push({
           timestamp: new Date().toISOString(), caller: opts.caller,
           target: opts.target, dag_task_id: opts.dag_task_id,
-          patterns_matched: opts.patterns_matched, mode: opts.mode,
+          patterns_matched: opts.patterns_matched, policy: opts.policy,
         });
         if (cr.orchestrator_sa_dispatches.length > 100)
           cr.orchestrator_sa_dispatches = cr.orchestrator_sa_dispatches.slice(-100);
@@ -146,6 +148,7 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
     autoPlan: autoPlanFlag, resumeSessionId,
     callerAgent, sessionId, worktree,
   } = input;
+  const target = resolveDispatchTarget(agentType, worktree);
 
   process.env.FRAMEWORK_DISPATCH_CONTEXT = "orchestrated";
 
@@ -153,7 +156,7 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   const callerNorm = normalize(callerAgent);
   const isOrchestrator = callerNorm === "orchestrator";
   const isSuperAdmin = callerNorm === "super-admin";
-  const isKCTarget = isKC(agentType);
+  const isKCTarget = isKC(target.requestedAgent);
 
   // ── Auto-generate tracking UUID if dag_task_id missing ──
   let effectiveDagTaskId = dagTaskId || "";
@@ -161,16 +164,17 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
     effectiveDagTaskId = require("node:crypto").randomUUID();
     writeLog(SRC, "INFO", {
       event: "DAGTASK-ID-AUTO-GENERATED",
-      detail: `dispatch to ${agentType} (caller=${callerAgent}) — auto-generated tracking UUID: ${effectiveDagTaskId}`,
+      detail: `dispatch to ${target.requestedAgent} via ${target.nativeExecutor} (caller=${callerAgent}) — auto-generated tracking UUID: ${effectiveDagTaskId}`,
     });
   }
 
-  // ── PLAN-FIRST Layer 2: Pre-flight DAG check ──
+  // ── PLAN-FIRST Layer 2: Pre-flight DAG check (Phase 2: audit_only, ROUTE-SUGGESTION) ──
   const policy = readDispatchPolicy();
-  if (!isDagExempt(agentType) && policy.require_dag_entry) {
+  try {
+  if (!isDagExempt(target.requestedAgent) && policy.require_dag_entry) {
     if (!dagTaskId) {
       throw new Error(
-        `[FW-ENFORCE][PLAN-FIRST][LAYER-2] dispatch_subagent to ${agentType} requires a dag_task_id. ` +
+        `[FW-ENFORCE][PLAN-FIRST][LAYER-2] Child dispatch to ${target.requestedAgent} requires a dag_task_id. ` +
         `Either provide a planned DAG ID, or set auto_plan=true.`
       );
     }
@@ -178,13 +182,13 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
     if (!tc.found) {
       if (autoPlanFlag === true && policy.auto_plan_enabled) {
         const planned = await autoPlan({
-          dagTaskId, targetAgent: agentType,
+          dagTaskId, targetAgent: target.requestedAgent,
           taskDescription: taskDescription || "",
           timeoutMs: policy.auto_plan_timeout_ms,
           callerSession: sessionId, callerAgent,
           dispatchMetaPlanner: async (planningPrompt, planningDagId) => {
             const scriptPath = path.join(worktree, ".opencode", "scripts", "command-tools", "dispatch-subagent.ts");
-            execFileSync("bun", ["--no-cache", scriptPath, "Meta-Planner", planningDagId, planningPrompt], {
+            execFileSync("/home/zhaoge/.bun/bin/bun", ["--no-cache", scriptPath, "Meta-Planner", planningDagId, planningPrompt], {
               encoding: "utf8", timeout: policy.auto_plan_timeout_ms,
               stdio: ["pipe", "pipe", "pipe"],
               env: { ...process.env, DISPATCH_TASK_DESC: planningPrompt },
@@ -208,6 +212,13 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
       throw new Error(`[FW-ENFORCE][PLAN-FIRST][LAYER-2] dag_task_id "${dagTaskId}" has status "${tc.status}".`);
     }
   }
+  } catch (dagErr: any) {
+    writeLog(SRC, "WARN", {
+      event: "ROUTE-SUGGESTION",
+      detail: dagErr.message?.slice(0, 200),
+      agentType: target.requestedAgent, dagTaskId,
+    });
+  }
 
   // ── Security: caller authorization ──
   if (!isOrchestrator) {
@@ -218,45 +229,42 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
       const patterns = loadUC7KSDispatchPatterns(worktree);
       const matched = patterns.filter(p => taskDesc.includes(p.toLowerCase()));
       if (matched.length === 0) {
-        throw new Error(`[FW-ENFORCE][LOCKED] Super-Admin dispatch DENIED: task doesn't match UC7KS patterns.`);
+        throw new Error(`[FW-ENFORCE][DISPATCH-AUTH] Super-Admin dispatch denied: task does not match UC7KS patterns.`);
       }
       logSuperAdminDispatchBypass({
-        caller: callerAgent, target: agentType,
+        caller: callerAgent, target: target.requestedAgent,
         task_description: taskDescription, dag_task_id: dagTaskId || "",
         patterns_matched: matched,
       });
     } else if (isSuperAdmin) {
-      throw new Error(`[FW-ENFORCE][LOCKED] Super-Admin may only target @Knowledge-Curator. Got: "${agentType}".`);
+      throw new Error(`[FW-ENFORCE][DISPATCH-AUTH] Super-Admin may only target @Knowledge-Curator. Got: "${target.requestedAgent}".`);
     } else {
-      throw new Error(`[FW-ENFORCE][LOCKED] dispatch_subagent restricted to @Orchestrator. Caller '${callerAgent}' denied.`);
+      throw new Error(`[FW-ENFORCE][DISPATCH-AUTH] Child dispatch is restricted to @Orchestrator. Caller '${callerAgent}' denied.`);
     }
   }
 
   // ── Super-Admin target: repair-pattern validation ──
-  const isSATarget = isKC(agentType) ? false : normalize(agentType) === "super-admin";
+  const isSATarget = isKC(target.requestedAgent)
+    ? false
+    : normalize(target.requestedAgent) === "super-admin";
   if (isSATarget) {
     const repairPatterns = loadSARepairPatterns(worktree);
     const taskDesc = (taskDescription || "").toLowerCase();
     const matched = repairPatterns.filter(p => taskDesc.includes(p.toLowerCase()));
 
-    const mode = (() => {
-      try {
-        const cp = path.join(worktree, ".opencode", "project.config.json");
-        if (existsSync(cp)) {
-          const c = JSON.parse(readFileSync(cp, "utf8"));
-          return c?.template_resolution?.develop_enforcement_mode || "advisory";
-        }
-      } catch {}
-      return "advisory";
-    })();
+    const saRepairBlocked = shouldBlock("dispatch-sa-repair");
 
-    if (mode === "locked") throw new Error(`[FW-ENFORCE][LOCKED] Super-Admin dispatch DENIED in locked mode.`);
-    if (mode === "strict" && matched.length === 0)
-      throw new Error(`[FW-ENFORCE][STRICT] Super-Admin dispatch DENIED: task doesn't match repair patterns.`);
+    if (saRepairBlocked) {
+      throw new Error(`[FW-ENFORCE][DISPATCH-AUTH] Super-Admin dispatch denied by dispatch-sa-repair policy.`);
+    }
+    if (matched.length === 0) {
+      throw new Error(`[FW-ENFORCE][DISPATCH-AUTH] Super-Admin dispatch denied: task does not match repair patterns.`);
+    }
 
     logOrchestratorSADispatch({
-      caller: callerAgent, target: agentType, task_description: taskDescription,
-      dag_task_id: dagTaskId || "", patterns_matched: matched, mode,
+      caller: callerAgent, target: target.requestedAgent, task_description: taskDescription,
+      dag_task_id: dagTaskId || "", patterns_matched: matched,
+      policy: saRepairBlocked ? "dispatch-sa-repair:block" : "dispatch-sa-repair:audit",
     });
   }
 
@@ -269,7 +277,7 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
 
   let outputFilePath: string;
   try {
-    const stdout = execFileSync("bun", ["--no-cache", scriptPath, ...scriptArgs], {
+    const stdout = execFileSync("/home/zhaoge/.bun/bin/bun", ["--no-cache", scriptPath, ...scriptArgs], {
       encoding: "utf8", timeout: 60000, stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
@@ -287,13 +295,8 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
 
   const wrappedPrompt = await readFile(outputFilePath, "utf8");
 
-  // ── Auto-dispatch queue (FIFO) ──
-  writeAutoDispatchQueue(outputFilePath, agentType, ns || "", sessionId);
 
-  // ── Per-dispatch ctx file ──
-  const inferredDomainId = inferDomainId(agentType);
-  writeDispatchCtx(effectiveDagTaskId, dagTaskId || "", agentType, inferredDomainId, sessionId);
-
+  const inferredDomainId = inferDomainId(target.requestedAgent);
   // ── Session map DB writes ──
   if (effectiveDagTaskId && sessionId) {
     try {
@@ -310,99 +313,39 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   }
   if (dagTaskId) {
     try {
-      dbWriteSessionMap("dispatch:child:" + dagTaskId, agentType, dagTaskId, inferredDomainId || undefined);
+      dbWriteSessionMap(
+        "dispatch:child:" + dagTaskId,
+        target.requestedAgent,
+        dagTaskId,
+        inferredDomainId || undefined,
+      );
     } catch {}
   }
 
-  // ── Final: run CLI and return wrapped prompt ──
+  // Phase 4 dual-write: session_events (v33 table)
   try {
-    const dp = path.join(process.cwd(), ".opencode", "scripts", "command-tools", "dispatch-subagent.ts");
-    const wrapped = execFileSync("bun", ["--no-cache", dp, agentType, effectiveDagTaskId || "(none)", taskDescription || ""], {
-      encoding: "utf8", timeout: 30000, stdio: ["pipe", "pipe", "pipe"],
-    });
-    return { prompt: wrapped, outputFilePath, effectiveDagTaskId };
-  } catch (e: any) {
-    return {
-      prompt: [
-        `/// DISPATCH RESULT (fallback — CLI failed: ${e?.message || e})`,
-        `/// agent_type: ${agentType}`,
-        `/// dag_task_id: ${effectiveDagTaskId || "(none)"}`,
-        `///    Retry with dispatch_subagent() manually.`,
-      ].join("\n"),
-      outputFilePath, effectiveDagTaskId,
-    };
-  }
-}
-
-// ── Private helpers (extracted for readability) ──────────────────────
-
-function writeAutoDispatchQueue(
-  outputFilePath: string, agentType: string, taskId: string, sessionId: string,
-): void {
-  if (!outputFilePath) return;
-  try {
-    const root = process.env.OPENCODE_ROOT || process.cwd();
-    const dispatchDir = path.join(root, ".task_temp", "_dispatch");
-    const autoMarkerPath = path.join(dispatchDir, ".auto-dispatch.json");
-    const legacyPath = path.join(dispatchDir, ".auto-dispatch");
-
-    interface Entry { sessionId: string; agentType: string; taskId: string; filePath: string; createdAt: number; }
-    let queue: Entry[] = [];
-
-    if (existsSync(autoMarkerPath)) {
-      try {
-        const raw = readFileSync(autoMarkerPath, "utf8");
-        queue = JSON.parse(raw);
-        if (!Array.isArray(queue)) queue = [queue];
-      } catch { queue = []; }
-    } else if (existsSync(legacyPath)) {
-      try {
-        const raw = readFileSync(legacyPath, "utf8");
-        const legacy = JSON.parse(raw);
-        if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
-          queue = [legacy];
-          writeLog(SRC, "runtime", { event: "AUTO-DISPATCH-LEGACY-MIGRATED", detail: `Migrated legacy entry` });
-        }
-        try { unlinkSync(legacyPath); } catch {}
-      } catch { queue = []; }
-    }
-
-    if (queue.length > 0) {
-      writeLog(SRC, "runtime", {
-        event: "AUTO-DISPATCH-QUEUE-APPEND",
-        detail: `Appending to queue (${queue.length} existing). New: ${agentType}:${taskId || "?"}`,
-      });
-    }
-
-    queue.push({ sessionId, agentType, taskId, filePath: outputFilePath, createdAt: Date.now() });
-    if (queue.length > 50) {
-      const removed = queue.splice(0, queue.length - 50);
-      writeLog(SRC, "runtime", { event: "AUTO-DISPATCH-QUEUE-TRUNCATED", detail: `Trimmed ${removed.length} oldest` });
-    }
-
-    atomicWriteJson(autoMarkerPath, queue);
-  } catch {}
-}
-
-function writeDispatchCtx(
-  effectiveDagTaskId: string, dagTaskId: string,
-  agentType: string, inferredDomainId: string | null, sessionId: string,
-): void {
-  if (!effectiveDagTaskId) return;
-  try {
-    const root = process.env.OPENCODE_ROOT || process.cwd();
-    const ctxDir = path.join(root, ".task_temp", "_dispatch", "ctx");
-    if (!existsSync(ctxDir)) mkdirSync(ctxDir, { recursive: true });
-    writeFileSync(
-      path.join(ctxDir, effectiveDagTaskId + ".json"),
-      JSON.stringify({
-        pipeline_id: effectiveDagTaskId, dagTaskId, agentType,
-        domainId: inferredDomainId, parentSessionId: sessionId, createdAt: Date.now(),
-      }), "utf8",
+    const { getDb } = require("../../lib/db-manager");
+    const db = getDb();
+    db.run(
+      `INSERT INTO session_events
+       (session_id, parent_session_id, event_type, dag_task_id, agent_type, agent_alias, native_executor, loaded_skills, run_id, payload, created_at)
+       VALUES (?, ?, 'dispatched', ?, ?, NULL, ?, NULL, ?, NULL, ?)`,
+      [
+        "dispatch:child:" + (dagTaskId || effectiveDagTaskId),
+        sessionId,
+        dagTaskId || effectiveDagTaskId,
+        target.requestedAgent,
+        target.nativeExecutor,
+        effectiveDagTaskId,
+        Date.now(),
+      ]
     );
-    writeLog(SRC, "INFO", {
-      event: "DISPATCH-CTX-WRITTEN",
-      detail: `ctx/${dagTaskId}.json written`,
-    });
-  } catch {}
+  } catch (e: any) {
+    writeLog(SRC, "WARN", { event: "SESSION-EVENTS-DUAL-WRITE-FAILED", detail: e.message });
+  }
+
+  // ── Return the prompt from the first (successful) execution ──
+  // Fix: Removed redundant second CLI execution that returned a bare file path
+  // instead of the full prompt content, causing Orchestrator to default subagent_type to "general".
+  return { prompt: wrappedPrompt, outputFilePath, effectiveDagTaskId };
 }

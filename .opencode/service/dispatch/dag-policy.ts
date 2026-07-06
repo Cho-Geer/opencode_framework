@@ -72,10 +72,6 @@ export function readDispatchPolicy(): DispatchPolicy {
         : DEFAULT_DISPATCH_POLICY.auto_plan_timeout_ms,
   };
 
-  if (isLockedMode()) {
-    merged.auto_plan_enabled = false;
-  }
-
   _policyCache = merged;
   return merged;
 }
@@ -83,23 +79,6 @@ export function readDispatchPolicy(): DispatchPolicy {
 export function resetDispatchPolicyCache(): void {
   _policyCache = null;
   _policyCacheLoaded = false;
-}
-
-function isLockedMode(): boolean {
-  try {
-    const root = process.env.OPENCODE_ROOT || process.cwd();
-    const cfg = JSON.parse(
-      fs.readFileSync(
-        path.join(root, ".opencode", "project.config.json"),
-        "utf8",
-      ),
-    );
-    const tr = cfg?.template_resolution || {};
-    const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode;
-    return mode === "locked";
-  } catch {
-    return false;
-  }
 }
 
 // ───────────────────────────────────────────────────────────────────────────

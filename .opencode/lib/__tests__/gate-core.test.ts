@@ -13,6 +13,8 @@ const {
   fileExists,
   computeSHA256,
   getEnforcementMode,
+  getRuleDisposition,
+  shouldBlock,
   getGateStatePath,
   getMachinePath,
   createFreshStore,
@@ -87,9 +89,33 @@ describe("gate-core", () => {
   });
 
   describe("getEnforcementMode", () => {
-    it("should return a valid enforcement mode string", () => {
+    it("should return 'strict' (compat shim after P1 migration)", () => {
       const mode = getEnforcementMode();
-      expect(["advisory", "strict", "locked"]).toContain(mode);
+      expect(mode).toBe("strict");
+    });
+  });
+
+  describe("getRuleDisposition (P1 rule-disposition API)", () => {
+    it("should return 'hard_block' for dangerous-shell-command", () => {
+      expect(getRuleDisposition("dangerous-shell-command")).toBe("hard_block");
+    });
+
+    it("should return 'audit_only' for checklist-incomplete", () => {
+      expect(getRuleDisposition("checklist-incomplete")).toBe("audit_only");
+    });
+
+    it("should return 'warn_continue' for recommended-skill-missing", () => {
+      expect(getRuleDisposition("recommended-skill-missing")).toBe("warn_continue");
+    });
+
+    it("should return 'audit_only' for unknown rules (safe default)", () => {
+      expect(getRuleDisposition("nonexistent-rule-xyz")).toBe("audit_only");
+    });
+
+    it("shouldBlock returns true only for hard_block rules", () => {
+      expect(shouldBlock("dangerous-shell-command")).toBe(true);
+      expect(shouldBlock("checklist-incomplete")).toBe(false);
+      expect(shouldBlock("recommended-skill-missing")).toBe(false);
     });
   });
 

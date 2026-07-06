@@ -9,8 +9,8 @@
  * SEMANTIC PRESERVATION: This module MUST NOT change permission semantics —
  * only the data source. Glob matching uses pathMatchesGlob() (identical to
  * gate-checks.ts matchGlob). Shell "allow" means permissive (all commands).
- * Shell "ask" requires confirmation (NOT auto-allowed). Config failure is
- * fail-closed in strict/locked mode.
+ * Shell "ask" requires confirmation (NOT auto-allowed). Config failure
+ * follows per-rule disposition rather than a global runtime mode.
  *
  * NOTE on rule ordering: OpenCode global semantics use "last matching wins",
  * but this project preserves the original deny-first priority (matching
@@ -24,12 +24,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
-  getEnforcementMode,
   pathMatchesGlob,
   resolveFrameworkPaths,
 } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { writeLog } from "../../lib/log-manager";
 import { toDisplayName } from "../../lib/agent-identity";
+import { LEGACY_AGENT_PERMISSIONS } from "./legacy-agent-permissions";
 
 // ── Types ──
 
@@ -50,6 +51,7 @@ export interface AgentPermission {
   safe_mkdir?: PermissionMap | "allow" | "deny";
   safe_shell?: PermissionMap | "allow" | "deny";
   safe_test?: "allow" | "deny";
+  [key: string]: any;
 }
 
 export interface ShellAllowlistResult {
@@ -71,10 +73,6 @@ function getFrameworkRoot(): string {
   return resolveFrameworkPaths().root;
 }
 
-function getPermissionEnforcementMode(): "advisory" | "strict" | "locked" {
-  return getEnforcementMode(getFrameworkRoot());
-}
-
 // ── Config reader ──
 
 let _opencodeConfig: any = null;
@@ -94,15 +92,13 @@ export function readOpencodeConfig(): any {
     writeLog("permission-reader", "ERROR", {
       level: "ERROR",
       event: "CONFIG-LOAD-FAILED",
-      detail: `opencode.json unreadable: ${msg} mode=${getPermissionEnforcementMode()}`,
+      detail: `opencode.json unreadable: ${msg}`,
     });
-    // Fail-closed in strict/locked; fail-open in advisory
-    const mode = getPermissionEnforcementMode();
-    if (mode === "strict" || mode === "locked") {
+    if (shouldBlock("permission-config-unreadable")) {
       writeLog("permission-reader", "ERROR", {
         level: "ERROR",
         event: "FAIL-CLOSED",
-        detail: `Config unreadable in ${mode} mode — all permissions denied`,
+        detail: "Config unreadable under active permission policy — all permissions denied",
       });
     }
     _opencodeConfig = null;
@@ -119,9 +115,7 @@ export function resetOpencodeConfigCache(): void {
 export function getAgentPermission(agentName: string): AgentPermission | null {
   const cfg = readOpencodeConfig();
   if (!cfg) {
-    // Config unreadable: fail-closed in strict/locked, fail-open in advisory
-    const mode = getPermissionEnforcementMode();
-    if (mode === "strict" || mode === "locked") {
+    if (shouldBlock("permission-config-unreadable")) {
       return {
         safe_edit: "deny",
         safe_delete: "deny",
@@ -130,18 +124,27 @@ export function getAgentPermission(agentName: string): AgentPermission | null {
         safe_test: "deny",
       };
     }
-    return null; // advisory: no permission block = no restrictions (fail-open)
+    return null;
   }
   // FW-AGENT-IDENTITY: toDisplayName normalizes case + @ prefix for opencode.json lookup
   const agentKey = toDisplayName(agentName);
   const perms = cfg?.agent?.[agentKey]?.permission;
   if (!perms) {
+    const legacyPerms = LEGACY_AGENT_PERMISSIONS[agentKey];
+    if (legacyPerms) {
+      writeLog("permission-reader", "runtime", {
+        level: "INFO",
+        event: "AGENT-PERMS-LEGACY-FALLBACK",
+        detail: `Using legacy permission fallback for agent "${agentKey}"`,
+      });
+      return legacyPerms;
+    }
     writeLog("permission-reader", "runtime", {
       level: "WARN",
       event: "AGENT-PERMS-MISSING",
-      detail: `No permission block for agent "${agentName}" in opencode.json`,
+      detail: `No permission block for agent "${agentName}" in opencode.json; using neutral legacy profile`,
     });
-    return null;
+    return {};
   }
   return perms;
 }
@@ -177,9 +180,7 @@ export function isPathAllowedForAgent(
 ): boolean {
   const perms = getAgentPermission(agentName);
   if (!perms) {
-    // null from advisory mode = no restrictions; deny-all from strict/locked
-    const mode = getPermissionEnforcementMode();
-    if (mode === "strict" || mode === "locked") return false;
+    if (shouldBlock("permission-config-unreadable")) return false;
     return true;
   }
 
@@ -243,10 +244,7 @@ export function getAgentShellAllowlist(
   };
 
   if (!perms) {
-    // null from advisory = no additional permissions beyond default_allowlist
-    // deny-all from strict/locked = tool denied
-    const mode = getPermissionEnforcementMode();
-    if (mode === "strict" || mode === "locked") {
+    if (shouldBlock("permission-config-unreadable")) {
       return {
         allowed: [],
         denied: [],

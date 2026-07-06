@@ -1,5 +1,6 @@
 // service/gate/checklist-phase.ts — Checklist types, phase definitions, and helpers
 // Source: execution-checklist.ts (types, PHASE_ITEMS, helpers)
+// Enhanced 2026-07-01: added initial_read phase (Phase 0) for agent-read-enforcement
 
 import { isDagExempt } from "../../lib/agent-identity";
 
@@ -99,6 +100,31 @@ export const PHASE_ITEMS: Record<
   string,
   Array<{ key: string; verifier: string; remediation: string }>
 > = {
+  // ── Phase 0: initial_read (NEW 2026-07-01) ──
+  // Agent MUST read all config/skill/rule documents before ANY other tool usage.
+  initial_read: [
+    {
+      key: "config_read_attested",
+      verifier: "config_read_attest",
+      remediation:
+        "Read .opencode/agents/<Agent>.md using the read tool, " +
+        "then call config_read_attest(task_id).",
+    },
+    {
+      key: "skill_read_attested",
+      verifier: "skill_read_attest",
+      remediation:
+        "Read all required skill files (configured in project.config.json template_resolution.required_skill_reads) " +
+        "using the read tool, then call skill_read_attest(task_id).",
+    },
+    {
+      key: "rule_read_attested",
+      verifier: "rule_read_attest",
+      remediation:
+        "Read all required rule files (configured in project.config.json template_resolution.required_rule_reads) " +
+        "using the read tool, then call rule_read_attest(task_id).",
+    },
+  ],
   dispatch_payload: [
     {
       key: "payload_complete",
@@ -111,7 +137,7 @@ export const PHASE_ITEMS: Record<
       key: "dispatch_token_created",
       verifier: "dispatch-subagent.ts",
       remediation:
-        "Call dispatch_subagent() to generate DISPATCH_TOKEN and prompt.",
+        "Use native Task dispatch to establish child execution context.",
     },
     {
       key: "session_context_bound",
@@ -145,14 +171,6 @@ export const PHASE_ITEMS: Record<
       remediation:
         "Call module_scope_declare(module, task_id) with the resolved domain.",
     },
-    {
-      key: "config_read_attested",
-      verifier: "config_read_attest",
-      remediation:
-        "Read .opencode/agents/<Agent>.md, opencode.json, .opencode/project.config.json, " +
-        "then call config_read_attest(task_id). This is reset every conversation round " +
-        "in strict/locked mode — agents must re-read config files before each round.",
-    },
   ],
   read_attest: [
     {
@@ -172,7 +190,7 @@ export const PHASE_ITEMS: Record<
       key: "mistake_precautions_read",
       verifier: "knowledge_cache_attest",
       remediation:
-        "In strict/locked mode, read ALL files under " +
+        "Read ALL required files under " +
         "docs/official_docs/framework/mistake_precautions/ (错题集) " +
         "via 'read' tool before knowledge_cache_attest. " +
         "Include them in files_read list.",
@@ -229,7 +247,7 @@ export const PHASE_ITEMS: Record<
       key: "deliverables_submitted",
       verifier: "compliance_gate_submit_deliverables",
       remediation:
-        "Call compliance_gate_submit_deliverables(session_id, deliverables_evidence).",
+        "Call compliance_gate.submit_deliverables(session_id, deliverables_evidence).",
     },
     {
       key: "handover_hash_bound",

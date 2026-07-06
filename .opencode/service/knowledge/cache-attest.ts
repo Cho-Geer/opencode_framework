@@ -6,6 +6,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "../../lib/log-manager";
+import { getRuleDisposition } from "../enforcement/rule-disposition";
 import { normalizeAgentKey } from "./schema";
 import {
   checklistWirePassed,
@@ -133,7 +134,7 @@ export function attestCache(input: AttestCacheInput): AttestCacheResult {
     const domainEntries = searchByDomain(domainId);
     for (const entry of domainEntries) {
       for (const f of (entry.files || [])) {
-        if (entry.path) manifestPaths.add(entry.path.toLowerCase());
+        if (entry.library_id) manifestPaths.add(entry.library_id.toLowerCase());
       }
     }
     writeLog(SRC, "INFO", {
@@ -256,13 +257,9 @@ export function attestCache(input: AttestCacheInput): AttestCacheResult {
           }
         }
         if (mandatoryForDomain.length > 0) {
-          const enabledModes = mk.enabled_in_modes || ["strict", "locked"];
-          const currentMode = (
-            process.env.ENFORCEMENT_MODE ||
-            pc.template_resolution?.develop_enforcement_mode ||
-            "advisory"
-          ).toLowerCase();
-          if (enabledModes.indexOf(currentMode) >= 0) {
+          const mandatoryEnabled = mk.enabled !== false;
+          const enforcedByRule = mk.enforced_by_rule || "knowledge-cache-miss";
+          if (mandatoryEnabled) {
             const missingFiles: string[] = [];
             for (const mf of mandatoryForDomain) {
               if (!filesRead.some(f => f.indexOf(mf) >= 0 || f === mf)) {
@@ -286,14 +283,14 @@ export function attestCache(input: AttestCacheInput): AttestCacheResult {
                 error: "MANDATORY_KNOWLEDGE_MISSING",
                 missing_files: missingFiles,
                 mandatory_total: mandatoryForDomain.length,
-                mode: currentMode,
-                remediation: `In ${currentMode} mode, read these files first:\n  - ${missingFiles.join("\n  - ")}`,
+                enforcement_rule: enforcedByRule,
+                remediation: `Read these files first:\n  - ${missingFiles.join("\n  - ")}`,
               };
             }
             try {
               checklistWirePassed(sessionId, agent, taskId,
                 "mistake_precautions_read",
-                JSON.stringify({ files: mandatoryForDomain.length, mode: currentMode }));
+                JSON.stringify({ files: mandatoryForDomain.length, enforcement_rule: enforcedByRule }));
             } catch {}
           }
         }

@@ -1,12 +1,13 @@
 // service/gate/checklist-validate.ts — Checklist before-hook validation logic
 // Source: checklist-before.ts plugin (423L → service extraction)
 // P0 checklist enforcement + parent-run fallback + auto-advance + phase block.
+// Enhanced 2026-07-01: Phase 0 (initial_read) hard constraint — only read + attest tools allowed
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { writeLog } from "../../lib/log-manager";
 import { resolveAgent, resolveTaskId } from "../../lib/agent-resolver";
-import { getEnforcementMode } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import {
   createChecklistRun,
   markChecklistPassed,
@@ -14,6 +15,8 @@ import {
   advanceChecklistPhase,
   getChecklistSummary,
 } from "../../lib/execution-checklist";
+import { getAwaitingPhase } from "../enforcement/tool-tracker";
+import { isEnforcementPassthrough } from "../enforcement/exemptions.ts";
 
 const SRC = "service-checklist-validate";
 
@@ -28,12 +31,15 @@ const CORE_PASSTHROUGH_TOOLS = new Set([
   "resolve_domain_id",
   "knowledge_cache_search",
   "config_read_attest",
+  "skill_read_attest",       // NEW: Phase 0 attest
+  "rule_read_attest",        // NEW: Phase 0 attest
   "module_scope_declare",
   "todowrite",
   "question",
   "skill",
   "dispatch_subagent",
 ]);
+
 
 function getPassthroughTools(): Set<string> {
   const merged = new Set(CORE_PASSTHROUGH_TOOLS);
@@ -71,6 +77,20 @@ function getChecklistAgentBypass(): string[] {
 
 function resolveRun(sessionID: string, agent: string, taskId: string | null) {
   try {
+    // First try to find ANY existing run for this session (ignore task_id)
+    // This prevents creating duplicate runs when task_id varies between calls
+    const db = require("../../lib/db-manager").getDb();
+    const existing = db.query(
+      `SELECT run_id, phase FROM execution_checklist_runs
+       WHERE opencode_session_id = ?
+       ORDER BY created_at DESC LIMIT 1`
+    ).get(sessionID) as { run_id: string; phase: string } | undefined | null;
+    
+    if (existing) {
+      return { run_id: existing.run_id, phase: existing.phase, items_created: 0 };
+    }
+    
+    // No existing run — create one
     return createChecklistRun({ opencode_session_id: sessionID, agent, task_id: taskId });
   } catch (e: any) {
     writeLog(SRC, "WARN", { event: "CHECKLIST-RUN-RESOLVE-FAILED", detail: `session=${sessionID} error=${e.message}` });
@@ -80,15 +100,14 @@ function resolveRun(sessionID: string, agent: string, taskId: string | null) {
 
 function resolveParentSession(taskId: string): string | null {
   try {
-    const fs = require("node:fs");
-    const path = require("node:path");
-    const root = process.env.OPENCODE_ROOT || ".";
-    const ctxPath = path.join(root, ".task_temp", "_dispatch", "ctx", taskId + ".json");
-    if (fs.existsSync(ctxPath)) {
-      const ctx = JSON.parse(fs.readFileSync(ctxPath, "utf8"));
-      if (ctx.parentSessionId) return ctx.parentSessionId;
-    }
-    return null;
+    const { getDb } = require("../../lib/db-manager");
+    const db = getDb();
+    const row = db.query(
+      `SELECT parent_session_id FROM dispatch_payload_integrity
+       WHERE dag_task_id = ? AND parent_session_id IS NOT NULL
+       ORDER BY created_at DESC LIMIT 1`
+    ).get(taskId) as { parent_session_id: string } | null;
+    return row?.parent_session_id ?? null;
   } catch { return null; }
 }
 
@@ -132,7 +151,8 @@ function tryParentRunFallback(
   return false;
 }
 
-const PHASE_ORDER = ["dispatch_payload", "preflight", "read_attest", "gate_armed", "execute", "deliver", "close"];
+// ── Phase order: initial_read is FIRST (Phase 0) ──
+const PHASE_ORDER = ["initial_read", "dispatch_payload", "preflight", "read_attest", "gate_armed", "execute", "deliver", "close"];
 
 function tryAutoAdvance(run: any): boolean {
   const idx = PHASE_ORDER.indexOf(run.phase);
@@ -165,6 +185,21 @@ export function validateChecklistBefore(input: any, output: any): { blocked: boo
         return { blocked: false };
       }
     } catch { /* agent resolution failure → fall through */ }
+
+
+    // Guidance gate bypass: when awaiting_guidance=1, allow clear_guidance and question (via isEnforcementPassthrough)
+    // This prevents deadlock between anti-bypass gate and P0 checklist
+    try {
+      const phase = getAwaitingPhase(sessionID);
+      if (phase === 1) {
+        const isClearGuidance = toolName === "clear_guidance" || toolName.endsWith("_clear_guidance");
+        if (isClearGuidance || isEnforcementPassthrough(toolName)) {
+          writeLog(SRC, "INFO", { event: "GUIDANCE-GATE-BYPASS", detail: `tool=${toolName} allowed through checklist (guidance gate active)` });
+          return { blocked: false };
+        }
+      }
+    } catch { /* tool-tracker unavailable → fall through */ }
+
 
     // Passthrough: always allow diagnostic/read-only tools
     if (getPassthroughTools().has(toolName)) return { blocked: false };
@@ -199,15 +234,14 @@ export function validateChecklistBefore(input: any, output: any): { blocked: boo
     tryAutoAdvance(run);
 
     // Check blocking items for current phase
-    const mode = getEnforcementMode();
     const result = requireChecklistPassed({ run_id: run.run_id, phase: run.phase });
 
     if (!result.passed) {
       const blockers = result.blockers || [];
-      if (mode === "advisory") {
+      if (!shouldBlock("checklist-incomplete")) {
         writeLog(SRC, "WARN", {
-          event: "P0-CHECKLIST-BLOCKED-ADVISORY", sessionID, agent,
-          detail: `phase=${run.phase} tool=${toolName} blockers=[${blockers.join(",")}] — advisory, allowed`,
+          event: "P0-CHECKLIST-AUDIT-ONLY", sessionID, agent,
+          detail: `phase=${run.phase} tool=${toolName} blockers=[${blockers.join(",")}] — audit only, allowed`,
         });
         return { blocked: false };
       }
@@ -217,14 +251,15 @@ export function validateChecklistBefore(input: any, output: any): { blocked: boo
         detail: `phase=${run.phase} tool=${toolName} blockers=[${blockers.join(",")}]`,
       });
 
-      const summary = getChecklistSummary({ run_id: run.run_id });
+      const summary = getChecklistSummary(run.run_id);
       return {
         blocked: true,
         message:
           `[FW-ENFORCE][P0-CHECKLIST] Tool "${toolName}" blocked. ` +
           `Checklist phase "${run.phase}" has ${blockers.length} unresolved items: ` +
           `${blockers.slice(0, 5).join(", ")}. ` +
-          (summary?.next_action || "Clear all blockers before proceeding."),
+          (summary?.next_action || "Clear all blockers before proceeding.") +
+          `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
       };
     }
   } catch (e: any) {

@@ -25,7 +25,6 @@ export type { ResolvedWithSource } from "./resolver";
 
 // Dispatch 上下文
 export {
-  writeDispatchCtx,
   sessionLastDispatched,
 } from "./dispatch-context";
 
@@ -43,6 +42,10 @@ export {
 
 // 配置认证
 export { resetConfigReadPerRound, attestConfigRead } from "./config-attest";
+export { attestSkillRead } from "./skill-attest";
+export type { AttestSkillReadInput, AttestSkillReadResult } from "./skill-attest";
+export { attestRuleRead } from "./rule-attest";
+export type { AttestRuleReadInput, AttestRuleReadResult } from "./rule-attest";
 export type { AttestConfigReadInput, AttestConfigReadResult } from "./config-attest";
 
 // Round summary

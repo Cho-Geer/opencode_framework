@@ -9,13 +9,19 @@
     "strict": false,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "types": ["node", "bun-types", "jest"]
+    "types": [
+      "node",
+      "bun-types",
+      "jest"
+    ]
   },
   "include": [
     ".opencode/lib/**/*.ts",
     ".opencode/tools/**/*.ts",
     ".opencode/plugins/**/*.ts",
-    ".opencode/scripts/**/*.ts"
+    ".opencode/scripts/**/*.ts",
+    ".opencode/service/**/*.ts",
+    ".opencode/plugin-handlers/**/*.ts"
   ],
   "exclude": [
     "node_modules",

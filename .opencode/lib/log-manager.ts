@@ -21,7 +21,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
-import { getEnforcementMode } from "./gate-core";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -273,27 +272,6 @@ export function ensureLogDir(): void {
 function resolveLogLevel(explicitLevel?: LogLevel): LogLevel {
   if (explicitLevel) return explicitLevel;
   return config.logLevel;
-}
-
-/**
- * Resolve minimum log level from enforcement mode (fallback when config missing).
- * Kept for backward compatibility — config.logLevel is preferred.
- */
-function resolveLogLevelFromMode(): LogLevel {
-  try {
-    const mode = getEnforcementMode();
-    switch (mode) {
-      case "locked":
-        return "WARN";
-      case "strict":
-        return "INFO";
-      case "advisory":
-      default:
-        return "DEBUG";
-    }
-  } catch {
-    return "INFO";
-  }
 }
 
 /**

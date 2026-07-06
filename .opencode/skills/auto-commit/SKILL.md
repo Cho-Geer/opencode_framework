@@ -36,4 +36,4 @@ added_by: system
 
 **触发条件**: trigger_keywords:
 
-> 完整文档: 调用 read_skill("auto-commit") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/auto-commit/FULL.md

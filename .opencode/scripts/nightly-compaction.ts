@@ -193,10 +193,10 @@ async function cleanupStaleSessionAccessStep() {
     }
 
     let invalidRemoved = 0;
-    let pruneResult = {
-      removedTaskEntries: 0,
-      removedDomainEntries: 0,
-      removedStaleAgents: 0,
+    let pruneResult: any = {
+      pruned_tasks: 0,
+      pruned_domains: 0,
+      pruned_agents: 0,
     };
 
     const ok = atomicWriteSubState("knowledge_cache_state", (kcs) => {
@@ -223,26 +223,7 @@ async function cleanupStaleSessionAccessStep() {
       }
 
       const pruneOpts: PruneOptions = {
-        session_access_ttl_days:
-          config?.template_resolution?.["knowledge.session_access_ttl_days"] ||
-          30,
-        session_access_max_tasks_per_agent:
-          config?.template_resolution?.[
-            "knowledge.session_access_max_tasks_per_agent"
-          ] || 50,
-        session_access_max_domains_per_task:
-          config?.template_resolution?.[
-            "knowledge.session_access_max_domains_per_task"
-          ] || 8,
-        session_access_preserve_attested_days:
-          config?.template_resolution?.[
-            "knowledge.session_access_preserve_attested_days"
-          ] || 90,
-        // KC-14: Archive pruned DB rows before deletion
-        archive_enabled:
-          config?.template_resolution?.[
-            "knowledge.session_access_archive_enabled"
-          ] !== false,
+        cutoff_ms: Date.now() - ((config?.template_resolution?.["knowledge.session_access_ttl_days"] || 30) * 24 * 60 * 60 * 1000),
       };
 
       // Step 3: KC-03 — Nested pruning via shared helper (in-memory SessionAccess)
@@ -251,16 +232,16 @@ async function cleanupStaleSessionAccessStep() {
       // Step 3b: KC-14 — DB-level pruning with optional archiving
       try {
         const dbPruneResult = pruneSessionAccessFromDB(pruneOpts);
-        if (dbPruneResult.archivedRows && dbPruneResult.archivedRows > 0) {
+        if ((dbPruneResult as any).archivedRows && (dbPruneResult as any).archivedRows > 0) {
           writeLog(NC_SRC, "INFO", {
             event: "KC-SESSION-ACCESS-ARCHIVED-NIGHTLY",
-            detail: `rows=${dbPruneResult.archivedRows} archived to knowledge_session_access_archive`,
+            detail: `rows=${(dbPruneResult as any).archivedRows} archived to knowledge_session_access_archive`,
           });
         }
-        if (dbPruneResult.removedTaskEntries > 0) {
+        if (dbPruneResult.pruned_tasks > 0) {
           writeLog(NC_SRC, "INFO", {
             event: "KC-SESSION-ACCESS-DB-PRUNED-NIGHTLY",
-            detail: `rows=${dbPruneResult.removedTaskEntries} pruned from knowledge_session_access`,
+            detail: `rows=${dbPruneResult.pruned_tasks} pruned from knowledge_session_access`,
           });
         }
       } catch (dbPruneErr) {
@@ -277,16 +258,16 @@ async function cleanupStaleSessionAccessStep() {
       );
     }
     const totalPruned =
-      pruneResult.removedTaskEntries +
-      pruneResult.removedDomainEntries +
-      pruneResult.removedStaleAgents;
+      pruneResult.pruned_tasks +
+      pruneResult.pruned_domains +
+      pruneResult.pruned_agents;
     if (totalPruned > 0 && ok) {
       log(
-        `[${stepName}] KC-03 pruneSessionAccess: tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
+        `[${stepName}] KC-03 pruneSessionAccess: tasks=${pruneResult.pruned_tasks} domains=${pruneResult.pruned_domains} agents=${pruneResult.pruned_agents}`,
       );
       writeLog(NC_SRC, "INFO", {
         event: "KC-SESSION-ACCESS-PRUNED-NIGHTLY",
-        detail: `tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
+        detail: `tasks=${pruneResult.pruned_tasks} domains=${pruneResult.pruned_domains} agents=${pruneResult.pruned_agents}`,
         source: "nightly-compaction",
       });
     } else if (ok) {

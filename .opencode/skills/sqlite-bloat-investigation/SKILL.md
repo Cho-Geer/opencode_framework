@@ -10,4 +10,4 @@ Investigate SQLite database bloat — locate which tables consume the most space
 
 **触发条件**: description: Investigate SQLite database bloat — locate which tables consume the most space, trace w
 
-> 完整文档: 调用 read_skill("sqlite-bloat-investigation") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/sqlite-bloat-investigation/FULL.md

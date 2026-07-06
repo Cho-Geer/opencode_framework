@@ -7,7 +7,7 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..');
 
 /**
  * @deprecated CodeGraph MCP 已替代 Scout 层的代码结构分析功能。
- * 保留此脚本仅用于历史兼容。新任务应使用 codegraph_impact / codegraph_callers。
+ * 保留此脚本仅用于历史兼容。新任务应使用 codegraph_explore / codegraph_callers。
  * 退役日期: 2026-06-27
  */
 /**

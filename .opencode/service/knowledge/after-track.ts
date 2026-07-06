@@ -14,7 +14,7 @@ import { getModifyPath } from "../../lib/tool-scope";
 import { normalizeAgentKey } from "../../lib/uc7ks-schema";
 import { atomicWriteSubState } from "../../lib/state-utils";
 import { incrementAuditCounter } from "../../lib/knowledge-audit";
-import { getEnforcementMode } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 
 const SRC = "service-knowledge-after-track";
 
@@ -158,8 +158,6 @@ export function trackKnowledgeAfter(params: {
 
   const root = process.env.OPENCODE_ROOT || process.cwd();
   const absPath = path.resolve(root, targetPath);
-  const mode = getEnforcementMode();
-
   try {
     if (fs.existsSync(absPath)) {
       const stat = fs.statSync(absPath);
@@ -204,12 +202,12 @@ export function trackKnowledgeAfter(params: {
       writeLog("uc7ks-after", "runtime", {
         sessionID: params.sessionID, callID: params.callID, agent,
         level: "ERROR", event: "UC7-003-MISSING",
-        detail: `post-write MISSING | file=${targetPath} | mode=${mode}`,
+        detail: `post-write MISSING | file=${targetPath} | policy=uc7ks-tracking`,
       });
 
-      if (mode === "strict" || mode === "locked") {
+      if (shouldBlock("uc7ks-tracking")) {
         throw new Error(
-          `\n  UC7-003 POST-WRITE SAVE-OR-FAIL -- ${mode.toUpperCase()} MODE\n` +
+          `\n  UC7-003 POST-WRITE SAVE-OR-FAIL -- ACTIVE POLICY\n` +
           `  File:    ${targetPath}\n  Agent:   ${agent}\n` +
           `  Status:  WRITE REPORTED SUCCESS, FILE NOT FOUND ON DISK\n` +
           `  REMEDIATION: Retry the write. Verify disk space and permissions.\n`,

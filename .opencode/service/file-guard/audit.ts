@@ -1,7 +1,7 @@
 // service/file-guard/audit.ts — Write audit check + audit log
 // Source: write-audit-lib.ts + audit-log.ts
 
-import { getEnforcementMode } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { atomicWriteSubState } from "../../lib/state-utils";
 import { isWriteAllowed } from "../../lib/gate-checks";
 import { writeLog } from "../../lib/log-manager";
@@ -36,7 +36,6 @@ export function flushAuditTrail(sessionID: string): void {
 // ── Write Audit Check (from write-audit-lib.ts) ────────────────
 
 export function executeWriteAuditCheck(files: string[], agent: string, taskId: string): void {
-  const mode = getEnforcementMode();
   let hasScopeViolation = false;
   let violationMessage = "";
 
@@ -64,13 +63,13 @@ export function executeWriteAuditCheck(files: string[], agent: string, taskId: s
       sessionData.checks_failed++;
       sessionData.violations_found++;
       const msg = `[FW-ENFORCE] Write-Audit: Agent "${agent}" scope violation writing to "${file}"`;
-      if (mode === "strict" || mode === "locked") {
-        logAuditEntry({ event: "write_audit_scope_blocked", agent, file, mode });
+      if (shouldBlock("file-audit-write")) {
+        logAuditEntry({ event: "write_audit_scope_blocked", agent, file, policy: "file-audit-write" });
         hasScopeViolation = true;
         violationMessage = msg;
         break;
       }
-      logAuditEntry({ event: "write_audit_scope_warning", agent, file, mode });
+      logAuditEntry({ event: "write_audit_scope_warning", agent, file, policy: "file-audit-write" });
     } else {
       sessionData.checks_passed++;
     }
@@ -85,7 +84,7 @@ export function executeWriteAuditCheck(files: string[], agent: string, taskId: s
   }
 
   if (hasScopeViolation) {
-    throw new Error(`${violationMessage} (mode: ${mode}). Revert the change.`);
+    throw new Error(`${violationMessage} Revert the change.`);
   }
 
   // Write 5 sub-states sequentially

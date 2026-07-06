@@ -22,7 +22,7 @@ version: 1.1.0
 在调用任何代码修改工具之前，必须完成以下步骤：
 
 1. 使用 codegraph_search 定位目标符号（函数名、类名、变量名）
-2. 使用 codegraph_impact 评估修改影响范围
+2. 使用 codegraph_explore 评估修改影响范围
 3. 阅读影响范围内的关键关联文件
 4. 如果影响范围超过 3 个文件，在修改前向用户确认
 
@@ -38,7 +38,7 @@ version: 1.1.0
 
 修改完成后：
 
-1. 再次使用 codegraph_impact 确认影响范围未超出预期
+1. 再次使用 codegraph_explore 确认影响范围未超出预期
 2. 检查是否有遗漏的关联更新
 
 ## 与 UC7KS 的关系
@@ -60,7 +60,7 @@ version: 1.1.0
 ## 硬约束机制
 
 codegraph-enforce.ts 插件会在 tool.execute.before 阶段拦截上述 4 个工具。
-如果当前 session 中未调用过 codegraph_impact，工具调用将被阻断并抛出错误。
+如果当前 session 中未调用过 codegraph_explore，工具调用将被阻断并抛出错误。
 状态记录在 .task_temp/.codegraph-impact-sessions.json 中。
 
 ## 注意

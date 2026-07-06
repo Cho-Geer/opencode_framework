@@ -15,9 +15,12 @@ export type {
   LegacyAgentEntry,
   AgentEntry,
   SessionAccess,
+} from "../service/knowledge/schema";
+
+export type {
   PruneOptions,
   PruneResult,
-} from "../service/knowledge/schema";
+} from "../service/knowledge/prune-attest";
 
 // ── Schema helpers (from schema.ts) ───────────────────────────────────
 export {

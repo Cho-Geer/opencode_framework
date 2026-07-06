@@ -336,20 +336,17 @@ export function readDispatchAllowedTools(agent: string): string[] | "*" {
     "task",
     "read",
     "todowrite",
-    "write",
-    "edit",
+
     "compliance_gate_check",
     "compliance_gate_confirm",
     "compliance_gate_complete",
     "compliance_gate_submit_deliverables",
     "compliance_gate_approve_deliverables",
     "dispatch_subagent",
-    "safe_edit",
-    "safe_shell",
-    "safe_delete",
+
     "safe_mkdir",
     "safe_diff",
-    "safe_restore",
+
     "knowledge_cache_search",
     "knowledge_cache_attest",
     "module_scope_declare",

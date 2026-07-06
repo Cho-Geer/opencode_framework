@@ -62,6 +62,15 @@ export {
   FrameworkEnforcementError,
 } from "../service/gate/enforcement";
 
+// ── P1: Rule disposition API (replaces global enforcement mode) ──
+export {
+  getRuleDisposition,
+  shouldBlock,
+  isAuditOnly,
+  getAllRules,
+  getRulesByDisposition,
+} from "../service/enforcement/rule-disposition";
+
 // ── From session-crud (split into 3 modules) ──
 export { createGateSession, armGateSession } from "../service/gate/session-mgmt";
 export { completeGateSession, validateTaskArtifacts } from "../service/gate/session-complete";

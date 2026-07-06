@@ -13,7 +13,7 @@
 |------|------|
 | 框架源码 | 30 个 lib 模块（新增 `deliverables-templates.ts`、`substate-types.ts`） + 13 个 MCP 暴露工具（新增 `compliance_gate_submit_deliverables`、`compliance_gate_approve_deliverables`） + 16 个插件（`withPluginLifecycle` HOF） + 38 个脚本（含 6 MCP + 8 知识） + 3 个 git hook TS 文件 |
 | 配置文件 | opencode.json (916行) + project.config.json (1255行) + AGENTS.md (248行) |
-| 状态管理 | machine.json (307B, 仅 meta+contracts) + SQLite DB (16 张表, schema **v7**, 12 substate_kv 行) + gate-state.json + rule_registry.json (167行) |
+| 状态管理 | machine.json (307B, 仅 meta+contracts) + SQLite DB (42 张表, schema **v32**, Phase 0 基线实测) + gate-state.json + rule_registry.json (167行) |
 | Agent 定义 | 10 个角色，分属 4 层 |
 | 测试覆盖 | 框架测试文件 + 集成测试 + 自验证检查（framework-self-test.ts） + framework-doctor 12 项诊断 |
 | Git 提交 | 230+ 次（当前分支） |
@@ -130,8 +130,8 @@
 | 指标 | 实际值 |
 |------|--------|
 | DB 文件 | `.opencode/state/framework-state.db` (1.2MB + 4.2MB WAL + 32KB SHM) |
-| Schema 版本 | **v7** (initial + substate_kv + eslint_state.last_full_scan + file_baseline_kv + deliverables columns + session/dispatch tables + drop 13 unused typed tables) |
-| 表数量 | **16 张** (12 active typed + 4 auxiliary + sqlite_sequence，v7 清理 13 张未使用 typed 表) |
+| Schema 版本 | **v32**（Phase 0 基线修正；原 v7 记录: initial + substate_kv + eslint_state.last_full_scan + file_baseline_kv + deliverables columns + session/dispatch tables + drop 13 unused typed tables) |
+| 表数量 | **42 张**（Phase 0 基线实测，schema v32） |
 | 新增表（v4-v6） | `file_baseline_kv`（v4）、`session_log`/`dispatch_failed_log`/`session_map`（v6） |
 | 清理表（v7） | DROP 13 张未使用 typed 子状态表 — `substate_kv` 为子状态唯一存储层 |
 | gate_sessions 扩展（v5） | 6 列 deliverables 硬约束（`declared_deliverables`、`submitted_deliverables`、`deliverables_approved_by`/`_at`/`_note`、`approval_required`） |
@@ -623,7 +623,7 @@ DAG-exempt agents（无需 DAG 条目）：Meta-Planner、Orchestrator、Super-A
 ### 13. Framework DB Management System
 
 **评价：**
-SQLite (bun:sqlite, WAL 模式) 作为框架唯一状态存储后端，替代了原 JSON 文件方案。Schema 演进至 v7（16 张表），所有读写路径已切换为 DB-only。
+SQLite (bun:sqlite, WAL 模式) 作为框架唯一状态存储后端，替代了原 JSON 文件方案。Schema 演进至 v32（42 张表，Phase 0 基线修正），所有读写路径已切换为 DB-only。
 
 **DB 架构：**
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * size-reporter.ts — UC7KS Knowledge Size Reporter v2.0.0 (KC-11 DB-canonical)

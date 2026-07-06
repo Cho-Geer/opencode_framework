@@ -3,7 +3,7 @@
  * ======================================
  *
  * Computes SHA-256 hash of a file. Read-only, zero side-effects.
- * Designed specifically for strict-mode deadlock recovery:
+ * Designed specifically for guidance/checklist recovery:
  * enables READ-BEFORE-APPROVE hash verification without safe_shell.
  *
  * Pattern: follows safe_diff.ts — minimal wrapper, no lib dependency.
@@ -21,7 +21,7 @@ export default tool({
   description:
     "Compute SHA-256 hash of a file. Read-only, zero side-effects. " +
     "Useful for verifying file integrity and for READ-BEFORE-APPROVE hash computation " +
-    "when safe_shell is blocked by the P0 checklist in strict/locked mode.",
+    "when safe_shell is temporarily unavailable due to active governance hooks.",
   args: {
     filePath: tool.schema
       .string()

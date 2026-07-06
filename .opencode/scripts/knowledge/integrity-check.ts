@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * integrity-check.ts — Reverse Orphan Detection & Manifest Integrity v1.1.0
@@ -380,7 +381,7 @@ function autoIndexOrphans(docsRoot) {
     try {
       // Read file and compute metadata
       const content = fs.readFileSync(absPath, "utf-8");
-      const hash = crypto.createHash("sha256").update(content).digest("hex");
+      const hash = require("node:crypto").createHash("sha256").update(content).digest("hex");
       const sha256 = `sha256:${hash}`;
       const size_bytes = Buffer.byteLength(content, "utf-8");
 

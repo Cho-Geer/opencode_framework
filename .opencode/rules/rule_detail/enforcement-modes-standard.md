@@ -1,11 +1,23 @@
 ---
 trigger: always_on
-alwaysApply: true
-version: 1.0.0
-status: active
+alwaysApply: false
+version: 1.0.0-deprecated
+status: deprecated
 ---
 
-# Enforcement Modes Standard v1.0
+> **⚠️ DEPRECATED (2026-07-06)**
+>
+> This document describes the legacy three-tier enforcement mode model (advisory/strict/locked)
+> which has been **replaced by single-policy per-rule disposition** (`rule-disposition.ts`).
+>
+> - `getEnforcementMode()` is a compat shim that always returns `"strict"`
+> - New code uses `getRuleDisposition(ruleId)` → `hard_block | audit_only | warn_continue`
+> - Each rule independently declares its enforcement level; no global mode switching
+>
+> This file is kept as **legacy reference only**. It is NOT loaded into active agent context
+> (`alwaysApply: false`). Do not base new enforcement logic on this document.
+
+# Enforcement Modes Standard v1.0 (DEPRECATED)
 
 ## 一、概述
 

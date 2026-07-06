@@ -13,6 +13,8 @@ export {
 } from "./store";
 
 export { getEnforcementMode, getEnforcementModeWithSource } from "./enforcement";
+// Phase 3 T3.1: Per-rule disposition
+export { getRuleDisposition, shouldBlock } from "../enforcement/rule-disposition";
 export { readGateStaleThresholds, readGateStaleThreshold } from "./stale";
 export { getChecklistSummary } from "./checklist-query";
 export { getApprovalContext } from "./approval-context";

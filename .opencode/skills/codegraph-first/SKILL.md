@@ -10,4 +10,4 @@ version: 1.1.0
 
 **触发条件**: description: "在修改代码前强制使用 CodeGraph 进行影响分析。适用于所有涉及代码修改的任务——编码、调试、重构、架构变更、删除文件、恢复备份、shell 命令修改。触发关键词：修
 
-> 完整文档: 调用 read_skill(""codegraph-first"") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/codegraph-first/FULL.md

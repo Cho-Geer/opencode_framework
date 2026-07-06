@@ -835,6 +835,23 @@
           "status": "active"
         }
       ]
+    },
+    {
+      "library_id": "backend",
+      "query_topic": "prisma",
+      "domain": "persistence",
+      "tags": ["backend", "prisma", "jsonb", "schema-analysis"],
+      "files": [
+        {
+          "path": "backend/prisma/prisma-jsonb-field-analysis.md",
+          "source": "local",
+          "sha256": "b2956f6592bd46997b0aee1f22f90919c45f4e3ebec5443cdb7359246f7af9d7",
+          "size_bytes": 1673,
+          "created_at": "2026-07-04T04:45:00.000000+00:00",
+          "ttl_days": 30,
+          "status": "active"
+        }
+      ]
     }
   ]
 }

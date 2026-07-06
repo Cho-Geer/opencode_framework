@@ -13,12 +13,16 @@ export default tool({
     max_session_age_days: tool.schema.number().default(30).describe("Maximum age of session_access entries before pruning"),
   },
   async execute(args, context) {
-    return withInterruptGuard("nightly-compaction", async () => {
+    const result = await withInterruptGuard("nightly-compaction", async () => {
       return nightlyCompaction({
         compactIndex: args.compact_index !== false,
         pruneSessions: args.prune_sessions !== false,
         maxSessionAgeDays: args.max_session_age_days || 30,
       });
     });
+    if (typeof result === "string") {
+      return { output: result };
+    }
+    return { output: JSON.stringify(result, null, 2) };
   },
 });

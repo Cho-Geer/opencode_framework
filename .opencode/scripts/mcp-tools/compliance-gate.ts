@@ -52,14 +52,14 @@ gateServer.registerTool("compliance_gate_check", {
 }, (args) => {
   const result = checkGateCompliance(args.task_description || "", args.task_id);
   const planSummary = args.plan_summary;
-  if (planSummary && result.passed && result.gate_session_id) {
+  if (planSummary && result.passed && result.session_id) {
     if (planSummary.trim().length < 10) {
       return { content: [{ type: "text" as const, text: JSON.stringify({ ...result, combined: true, combined_status: "rejected_plan_too_short" }, null, 2) }], isError: true };
     }
-    const armResult = confirmGateSession(result.gate_session_id, planSummary, args.agent, args.task_id, (args as any).declared_deliverables);
+    const armResult = confirmGateSession(result.session_id, planSummary, args.agent, args.task_id, (args as any).declared_deliverables);
     if (armResult.status === "armed") {
       const merged = { ...result, combined: true, combined_status: "armed", confirmed_at: armResult.confirmed_at, expires_at: armResult.expires_at };
-      return { content: [{ type: "text" as const, text: JSON.stringify(merged, null, 2) + buildReminderText(result.gate_session_id, armResult.plan_summary, armResult.expires_at) }], isError: false };
+      return { content: [{ type: "text" as const, text: JSON.stringify(merged, null, 2) + buildReminderText(result.session_id, armResult.plan_summary, armResult.expires_at) }], isError: false };
     }
     return { content: [{ type: "text" as const, text: JSON.stringify({ ...result, combined: true, combined_status: "arm_failed", combined_reason: armResult.reason }, null, 2) }], isError: true };
   }
@@ -79,7 +79,7 @@ gateServer.registerTool("compliance_gate_confirm", {
 }, (args) => {
   const result = confirmGateSession(args.session_id, args.plan_summary, args.agent, args.task_id, args.declared_deliverables);
   if (result.status === "armed") {
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) + buildReminderText(result.gate_session_id!, result.plan_summary, result.expires_at!) }], isError: false };
+    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) + buildReminderText((result as any).session_id!, result.plan_summary, result.expires_at!) }], isError: false };
   }
   return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }], isError: result.status !== "armed" };
 });

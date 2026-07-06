@@ -6,11 +6,11 @@
 import { writeLog } from "../../lib/log-manager";
 import { resolveAgent, resolveTaskId } from "../../lib/agent-resolver";
 import {
-  getEnforcementMode,
   findArmedSession,
   createGateSession,
   armGateSession,
 } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { findTaskInDag } from "../../lib/gate-checks";
 import { isDagExempt, readDispatchPolicy } from "../../lib/dag-policy";
 import { isPrivileged } from "../../lib/agent-identity";
@@ -30,7 +30,7 @@ const SRC = "service-gate-validate";
 /**
  * Auto-arm gate session on OpenCode startup.
  * WHY: pre-commit hook (hook-layers.ts Layer 0) requires an armed gate
- * session in strict/locked mode. When OpenCode starts and triggers internal
+ * session before modify-tool flows run. When OpenCode starts and triggers internal
  * git operations, no session exists yet.
  * Called once by gate-before.ts plugin at import time.
  */
@@ -38,12 +38,10 @@ export function autoArmGateSession(): void {
   try {
     const existing = findArmedSession();
     if (!existing.found) {
-      const mode = getEnforcementMode();
       const { session } = createGateSession(
         "Auto-armed on OpenCode startup",
         [],
         {},
-        mode,
       );
       armGateSession(
         session.session_id,
@@ -62,31 +60,24 @@ export function autoArmGateSession(): void {
 
 export function validateGateBefore(input: any, output: any): { blocked: boolean; message?: string } {
   const agent = resolveAgent(input.sessionID);
-  const mode = getEnforcementMode();
 
   writeLog(SRC, "runtime", {
     sessionID: input.sessionID, callID: input.callID, agent,
-    event: "TOOL-BEFORE", detail: `enter | tool=${input.tool} | mode=${mode}`,
+    event: "TOOL-BEFORE", detail: `enter | tool=${input.tool}`,
   });
 
-  if (mode === "advisory") {
-    writeLog(SRC, "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent,
-      event: "TOOL-BEFORE", detail: "exit (skip) advisory mode",
-    });
-    return { blocked: false };
-  }
+
 
   // ── Gate armed check for modify tools ──
   if (isModifyTool(input.tool)) {
     const session = findArmedSession();
     if (!session) {
-      const msg = `[FW-ENFORCE][GATE] No armed compliance gate session. Call compliance_gate_check + compliance_gate_confirm first.`;
+      const msg = `[FW-ENFORCE][GATE] No armed compliance gate session. Call compliance_gate_check + compliance_gate_confirm first.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`;
       writeLog(SRC, "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent,
         level: "ERROR", event: "TOOL-BEFORE", detail: `BLOCKED | no armed gate`,
       });
-      if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
+      if (shouldBlock("gate-check-block")) return { blocked: true, message: msg };
       return { blocked: false };
     }
     writeLog(SRC, "runtime", {
@@ -141,7 +132,7 @@ export function validateGateBefore(input: any, output: any): { blocked: boolean;
               `  2. If this is a pure dispatch-session ID (not a real DAG task), re-dispatch without setting dag_task_id, ` +
               `or choose a value that does not collide with a non-existent DAG task.\n` +
               `  3. Use a DAG-exempt agent (@Orchestrator / @Meta-Planner / @Super-Admin) for this dispatch.\n` +
-              `See docs/review/cicd-dag-block/diagnosis.md for the full analysis.`,
+              `See docs/review/cicd-dag-block/diagnosis.md for the full analysis.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
           };
         }
       } else if (tc.status !== "pending" && tc.status !== "in_progress") {
@@ -155,7 +146,7 @@ export function validateGateBefore(input: any, output: any): { blocked: boolean;
         if (dPolicy2.require_dag_entry) {
           return {
             blocked: true,
-            message: `[FW-ENFORCE][DAG] Task "${taskId}" status is "${tc.status}". Expected "pending" or "in_progress".`,
+            message: `[FW-ENFORCE][DAG] Task "${taskId}" status is "${tc.status}". Expected "pending" or "in_progress".` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
           };
         }
       } else {
@@ -203,10 +194,10 @@ export function validateGateBefore(input: any, output: any): { blocked: boolean;
                   level: "ERROR", event: "GATE-BEFORE",
                   detail: `ROUTE-MISMATCH | DAG task "${task.id}" | assigned=${v.assigned} | file=${v.file} | expected=${v.expected}`,
                 });
-                if (mode === "strict" || mode === "locked") {
+                if (shouldBlock("gate-check-block")) {
                   return {
                     blocked: true,
-                    message: `[FW-ENFORCE][ROUTE-MISMATCH] Task "${task.id}" assigns @${v.assigned} but target_file "${v.file}" → should be @${v.expected}. Fix the DAG entry before committing.`,
+                    message: `[FW-ENFORCE][ROUTE-MISMATCH] Task "${task.id}" assigns @${v.assigned} but target_file "${v.file}" → should be @${v.expected}. Fix the DAG entry before committing.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
                   };
                 }
               }

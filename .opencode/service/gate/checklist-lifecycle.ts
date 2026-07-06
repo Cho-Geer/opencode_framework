@@ -7,6 +7,7 @@ export {
   markChecklistFailed,
   markChecklistRunInterrupted,
   resetChecklistItemToPending,
+  getLatestChecklistRun,
 } from "./checklist-lifecycle-crud";
 
 export { advanceChecklistPhase } from "./checklist-lifecycle-advance";

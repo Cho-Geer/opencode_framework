@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * FW-REPAIR-13: safe_bash allow-write granted — this is a framework state repair tool
@@ -1786,7 +1787,7 @@ function checkSessionAccessIntegrity(projectRoot) {
         continue;
       }
       // Check staleness
-      const lastRead = state?.last_read_at || state?.declared_at;
+      const lastRead = (state as any)?.last_read_at || (state as any)?.declared_at;
       if (lastRead) {
         const age = now - new Date(lastRead).getTime();
         if (age > staleThreshold) {

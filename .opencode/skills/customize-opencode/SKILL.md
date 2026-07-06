@@ -31,4 +31,4 @@ OpenCode 框架配置定制——编辑 opencode.json、agent .md 配置、rules
 
 **触发条件**: description: OpenCode 框架配置定制——编辑 opencode.json、agent .md 配置、rules 目录结构、plugin 注册。当用户提到"修改 Agent 配置"、
 
-> 完整文档: 调用 read_skill("customize-opencode") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/customize-opencode/FULL.md

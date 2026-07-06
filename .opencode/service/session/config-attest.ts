@@ -1,38 +1,34 @@
 // service/session/config-attest.ts — Config read attestation
 // Per-round reset + attestation logic for P0 checklist
-// Source: session.ts Step 10 + tools/config_read_attest.ts
+// Optimized 2026-07-01: reduced from 3 files to 1 (Agent.md only)
+// opencode.json and project.config.json removed — too large for agent context, not needed for core workflow
 
+import * as fs from "node:fs";
 import * as path from "node:path";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { writeLog } from "../../lib/log-manager";
 import { verifyRead } from "../file-guard/read-audit-verify";
 import { normalizeReadAuditPath } from "../file-guard/read-audit-write";
 import { dbAtomicWriteSubState } from "../../lib/db-state-manager";
 import { checklistWirePassed } from "../../lib/checklist-hooks";
+import { resolveAgentProfilePaths } from "../dispatch/agent-target";
 
 const SRC = "service-config-attest";
-
-/** 3 config files that MUST be read before write permission is granted */
-const MANDATORY_CONFIG_FILES = [
-  "opencode.json",
-  ".opencode/project.config.json",
-];
 
 /**
  * Compute agent config path from agent type.
  */
 function resolveAgentConfigPath(agent: string, worktree: string): string {
-  return path.join(worktree, ".opencode", "agents", `${agent}.md`);
+  const candidates = resolveAgentProfilePaths(agent, worktree);
+  return candidates[0] || path.join(worktree, ".opencode", "agents", `${agent}.md`);
 }
 
 /**
- * Resolve all 3 config file paths for the given agent.
+ * Resolve config file paths for the given agent.
+ * Only Agent.md — opencode.json and project.config.json removed (too large, agent doesn't need them).
  */
 function resolveConfigPaths(agent: string, worktree: string): string[] {
-  return [
-    resolveAgentConfigPath(agent, worktree),
-    path.join(worktree, MANDATORY_CONFIG_FILES[0]),
-    path.join(worktree, MANDATORY_CONFIG_FILES[1]),
-  ];
+  return [resolveAgentConfigPath(agent, worktree)];
 }
 
 // ════════════════════════════════════════════════
@@ -54,12 +50,13 @@ export interface AttestConfigReadResult {
   state_written?: boolean;
   error?: string;
   unread_files?: string[];
+  unread_details?: Array<{ path: string; reason: string }>;
   hint?: string;
 }
 
 /**
- * Verify agent has read all 3 mandatory config files, write attestation to DB.
- * Migrated from tools/config_read_attest.ts — Service layer DB write entry.
+ * Verify agent has read mandatory config file (Agent.md), write attestation to DB.
+ * Reduced from 3 files to 1 — opencode.json/project.config.json too large for agent context.
  */
 export function attestConfigRead(input: AttestConfigReadInput): AttestConfigReadResult {
   const { agent, sessionID, worktree, taskId } = input;
@@ -67,26 +64,44 @@ export function attestConfigRead(input: AttestConfigReadInput): AttestConfigRead
   if (!agent) {
     const msg =
       "config_read_attest: agent identity not available. " +
-      "Ensure dispatch_subagent() is used to spawn sub-agents.";
+      "Ensure child work was spawned through native Task or the legacy dispatch_subagent wrapper.";
     writeLog(SRC, "ERROR", { event: "CONFIG-READ-ATTEST-FAIL", detail: msg });
     return { verified: false, error: msg };
   }
 
   const configPaths = resolveConfigPaths(agent, worktree);
+  const existingConfigPaths = configPaths.filter((filePath) => fs.existsSync(filePath));
 
   writeLog(SRC, "INFO", {
     event: "CONFIG-READ-ATTEST",
     session_id: sessionID,
     agent,
     configPaths,
+    existingConfigPaths,
     taskId,
   });
 
-  const unreadFiles: string[] = [];
+  if (existingConfigPaths.length === 0) {
+    writeLog(SRC, "WARN", {
+      event: "CONFIG-READ-ATTEST-NO-CONFIG-FILE",
+      session_id: sessionID,
+      agent,
+      detail: `No agent config file found for ${agent}; treating attestation as audit-only`,
+    });
+    return {
+      verified: true,
+      session_id: sessionID,
+      attested_at: new Date().toISOString(),
+      files_verified: [],
+      state_written: false,
+    };
+  }
+
+  const unreadFiles: Array<{ path: string; reason: string }> = [];
   const readVerifications: Array<{ file: string; timestamp: string | null }> = [];
 
-  for (const filePath of configPaths) {
-    const normalized = normalizeReadAuditPath(filePath, worktree);
+  for (const filePath of existingConfigPaths) {
+    const normalized = normalizeReadAuditPath(filePath);
     const result = verifyRead(agent, filePath);
 
     if (result.verified && result.matchedEntry) {
@@ -95,7 +110,7 @@ export function attestConfigRead(input: AttestConfigReadInput): AttestConfigRead
         timestamp: result.matchedEntry.timestamp,
       });
     } else {
-      unreadFiles.push(normalized);
+      unreadFiles.push({ path: normalized, reason: result.reason || "No read audit record found" });
     }
   }
 
@@ -106,7 +121,7 @@ export function attestConfigRead(input: AttestConfigReadInput): AttestConfigRead
       session_id: sessionID,
       agent,
       attested_at: new Date().toISOString(),
-      files: configPaths.map((f) => normalizeReadAuditPath(f, worktree)),
+      files: existingConfigPaths.map((f) => normalizeReadAuditPath(f)),
       verified: true,
     };
 
@@ -143,16 +158,17 @@ export function attestConfigRead(input: AttestConfigReadInput): AttestConfigRead
     event: "CONFIG-READ-ATTEST",
     session_id: sessionID,
     status: "failed",
-    unread_files: unreadFiles,
+    unread_files: unreadFiles.map((f) => f.path),
+    unread_reasons: unreadFiles.map((f) => f.reason),
   });
 
   return {
     verified: false,
-    error: `Missing read audit records for ${unreadFiles.length} config file(s)`,
-    unread_files: unreadFiles,
+    error: `Config read attest failed for ${unreadFiles.length} file(s): ${unreadFiles.map((f) => `${f.path} — ${f.reason}`).join("; ")}`,
+    unread_files: unreadFiles.map((f) => f.path),
+    unread_details: unreadFiles,
     hint:
-      "Run P0 Step 0e: read all 3 config files (agent config, opencode.json, " +
-      "project.config.json) using the read tool, then re-run config_read_attest.",
+      "Use the read tool to read your role profile completely (.opencode/agents/Orchestrator.md or .opencode/legacy/agent-profiles/<agent>.md), without a limit parameter. Then re-run config_read_attest.",
   };
 }
 
@@ -161,14 +177,11 @@ export function attestConfigRead(input: AttestConfigReadInput): AttestConfigRead
 // ════════════════════════════════════════════════
 
 /**
- * Reset config_read_attested per-round (strict/locked mode only).
+ * Reset config_read_attested per-round when config-attest-required is blocking.
  * Forces agents to re-read config files every conversation round.
  */
 export function resetConfigReadPerRound(sessionID: string, agent: string): void {
-  const { getEnforcementMode } = require("../../lib/gate-core");
-  const mode = getEnforcementMode();
-
-  if (mode !== "strict" && mode !== "locked") return;
+  if (!shouldBlock("config-attest-required")) return;
   if (!sessionID) return;
 
   // 10a: Reset config_read_attested in checklist DB
@@ -188,7 +201,7 @@ export function resetConfigReadPerRound(sessionID: string, agent: string): void 
         run_id: run.run_id,
         item_key: "config_read_attested",
         reason:
-          "per-round re-attestation required (strict/locked mode)",
+          "per-round re-attestation required by active config-attest policy",
         actor: "service/session/config-attest.ts",
       });
 

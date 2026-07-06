@@ -22,6 +22,9 @@ export interface DispatchQueueEntry {
   prompt_ref_id: number | null;
   lease_owner: string | null;
   lease_expiry: number | null;
+  dispatch_key: string | null;
+  parent_session_id: string | null;
+  call_id: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -112,10 +115,10 @@ export function dbDequeueWithLease(
 
       if (!row) return;
 
-      db.run(
+      const result = db.run(
         `UPDATE dispatch_queue
          SET status = 'running', lease_owner = ?, lease_expiry = ?, updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ? AND status = 'pending'`,
         [opencodeSessionId, expiry, now, row.id as number],
       );
 
@@ -147,6 +150,78 @@ export function dbDequeueWithLease(
     writeLog(SRC, "ERROR", {
       event: "DISPATCH-QUEUE-DEQUEUE-FAILED",
       detail: `agentType=${agentType} opencodeSessionId=${opencodeSessionId} err=${e.message}`,
+    });
+    return null;
+  }
+}
+
+// ════════════════════════════════════════════════
+// DEQUEUE WITH EXACT DISPATCH KEY
+// ════════════════════════════════════════════════
+
+export function dbDequeueWithExactKey(
+  dispatchKey: string,
+  opencodeSessionId: string,
+  leaseTtlMs: number = DEFAULT_LEASE_TTL_MS,
+): DispatchQueueEntry | null {
+  try {
+    const db = getDb();
+    const now = Date.now();
+    const expiry = now + leaseTtlMs;
+    let entry: DispatchQueueEntry | null = null;
+
+    const dequeue = db.transaction(() => {
+      const row = db
+        .query(
+          `SELECT id, status, agent_type, dag_task_id, session_id,
+                  prompt_ref_id, lease_owner, lease_expiry, dispatch_key,
+                  parent_session_id, call_id, created_at, updated_at
+           FROM dispatch_queue
+           WHERE status = 'pending' AND dispatch_key = ?
+           LIMIT 1`,
+        )
+        .get(dispatchKey) as Record<string, unknown> | null;
+
+      if (!row) return;
+
+      db.run(
+        `UPDATE dispatch_queue
+         SET status = 'running', lease_owner = ?, lease_expiry = ?, updated_at = ?
+         WHERE id = ? AND status = 'pending'`,
+        [opencodeSessionId, expiry, now, row.id as number],
+      );
+
+      entry = {
+        id: row.id as number,
+        status: "running",
+        agent_type: row.agent_type as string,
+        dag_task_id: row.dag_task_id as string,
+        session_id: (row.session_id as string) || null,
+        prompt_ref_id: (row.prompt_ref_id as number) || null,
+        lease_owner: opencodeSessionId,
+        lease_expiry: expiry,
+        dispatch_key: (row.dispatch_key as string) || null,
+        parent_session_id: (row.parent_session_id as string) || null,
+        call_id: (row.call_id as string) || null,
+        created_at: row.created_at as number,
+        updated_at: now,
+      };
+    });
+
+    dequeue();
+
+    if (entry) {
+      writeLog(SRC, "INFO", {
+        event: "DISPATCH-QUEUE-DEQUEUE-EXACT",
+        detail: `queueId=${entry.id} dispatchKey=${dispatchKey} opencodeSessionId=${opencodeSessionId} leaseExpiry=${entry.lease_expiry}`,
+      });
+    }
+
+    return entry;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DISPATCH-QUEUE-DEQUEUE-EXACT-FAILED",
+      detail: `dispatchKey=${dispatchKey} opencodeSessionId=${opencodeSessionId} err=${e.message}`,
     });
     return null;
   }
@@ -256,5 +331,152 @@ export function dbCleanStaleLeases(): number {
       detail: e.message,
     });
     return 0;
+  }
+}
+
+
+// ════════════════════════════════════════════════
+// FIND PENDING DISPATCH (DB-canonical)
+// ════════════════════════════════════════════════
+
+export function dbFindPendingDispatch(
+  agentType: string,
+  sessionId?: string
+): { queueId: number; filePath: string; sha256?: string } | null {
+  try {
+    const db = getDb();
+
+    const row = db.query(`
+      SELECT dq.id, pr.file_path, pr.sha256, dq.agent_type, dq.dag_task_id
+      FROM dispatch_queue dq
+      JOIN dispatch_prompt_refs pr ON dq.prompt_ref_id = pr.id
+      WHERE dq.status = 'pending' AND dq.agent_type = ?
+      ORDER BY dq.created_at ASC
+      LIMIT 1
+    `).get(agentType) as any;
+
+    return row ? { queueId: row.id, filePath: row.file_path, sha256: row.sha256 } : null;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-FIND-PENDING-FAILED",
+      detail: `agentType=${agentType} err=${e.message}`,
+    });
+    return null;
+  }
+}
+
+export function dbFindPendingDispatchByHash(
+  promptHash: string,
+): { queueId: number; filePath: string; sha256?: string; agentType: string } | null {
+  try {
+    const db = getDb();
+
+    const row = db.query(`
+      SELECT dq.id, pr.file_path, pr.sha256, dq.agent_type, dq.dag_task_id
+      FROM dispatch_queue dq
+      JOIN dispatch_prompt_refs pr ON dq.prompt_ref_id = pr.id
+      WHERE dq.status = 'pending' AND pr.sha256 = ?
+      ORDER BY dq.created_at ASC
+      LIMIT 1
+    `).get(promptHash) as any;
+
+    return row
+      ? {
+          queueId: row.id,
+          filePath: row.file_path,
+          sha256: row.sha256,
+          agentType: row.agent_type,
+        }
+      : null;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-FIND-PENDING-BY-HASH-FAILED",
+      detail: `promptHash=${promptHash.slice(0, 12)} err=${e.message}`,
+    });
+    return null;
+  }
+}
+
+export function dbDequeueWithHash(
+  promptHash: string,
+  opencodeSessionId: string,
+  leaseTtlMs: number = DEFAULT_LEASE_TTL_MS,
+): DispatchQueueEntry | null {
+  try {
+    const db = getDb();
+    const now = Date.now();
+    const expiry = now + leaseTtlMs;
+    let entry: DispatchQueueEntry | null = null;
+
+    const dequeue = db.transaction(() => {
+      const row = db
+        .query(
+          `SELECT dq.id, dq.status, dq.agent_type, dq.dag_task_id, dq.session_id,
+                  dq.prompt_ref_id, dq.lease_owner, dq.lease_expiry, dq.created_at, dq.updated_at
+           FROM dispatch_queue dq
+           JOIN dispatch_prompt_refs pr ON dq.prompt_ref_id = pr.id
+           WHERE dq.status = 'pending' AND pr.sha256 = ?
+           ORDER BY dq.created_at ASC
+           LIMIT 1`,
+        )
+        .get(promptHash) as Record<string, unknown> | null;
+
+      if (!row) return;
+
+      const result = db.run(
+        `UPDATE dispatch_queue
+         SET status = 'running', lease_owner = ?, lease_expiry = ?, updated_at = ?
+         WHERE id = ? AND status = 'pending'`,
+        [opencodeSessionId, expiry, now, row.id as number],
+      );
+      if (result.changes <= 0) return;
+
+      entry = {
+        id: row.id as number,
+        status: "running",
+        agent_type: row.agent_type as string,
+        dag_task_id: row.dag_task_id as string,
+        session_id: (row.session_id as string) || null,
+        prompt_ref_id: (row.prompt_ref_id as number) || null,
+        lease_owner: opencodeSessionId,
+        lease_expiry: expiry,
+        created_at: row.created_at as number,
+        updated_at: now,
+      };
+    });
+
+    dequeue();
+    return entry;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DISPATCH-QUEUE-DEQUEUE-BY-HASH-FAILED",
+      detail: `promptHash=${promptHash.slice(0, 12)} opencodeSessionId=${opencodeSessionId} err=${e.message}`,
+    });
+    return null;
+  }
+}
+
+// ════════════════════════════════════════════════
+// CHECK DUPLICATE DISPATCH
+// ════════════════════════════════════════════════
+
+export function dbCheckDuplicateDispatch(
+  agentType: string,
+  dagTaskId: string
+): boolean {
+  try {
+    const db = getDb();
+    const row = db.query(`
+      SELECT 1 FROM dispatch_queue
+      WHERE agent_type = ? AND dag_task_id = ? AND status IN ('pending', 'running')
+      LIMIT 1
+    `).get(agentType, dagTaskId);
+    return !!row;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-CHECK-DUPLICATE-FAILED",
+      detail: `agentType=${agentType} dagTaskId=${dagTaskId} err=${e.message}`,
+    });
+    return false;
   }
 }

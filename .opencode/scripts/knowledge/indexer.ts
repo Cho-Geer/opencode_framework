@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * indexer.ts — UC7KS Knowledge Indexer v3.0.0 (Phase 2 CLI Ops)

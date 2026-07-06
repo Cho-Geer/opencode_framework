@@ -8,7 +8,7 @@ import {
   isBusinessSourceFile,
   atomicWriteSubState,
 } from "../../lib/state-utils";
-import { getEnforcementMode } from "../../lib/gate-core";
+import { shouldBlock } from "../enforcement/rule-disposition";
 
 const SRC = "service/tdd/enforcement";
 
@@ -66,7 +66,6 @@ export function checkTddEnforcement(
     return { allowed: true };
   }
 
-  const mode = getEnforcementMode();
   const msg = '[FW-ENFORCE][TDD] TDD violation: writing to "' + filePath + '" without prior test changes. Write a .spec.ts/.test.ts file first.';
 
   writeLog(SRC, "runtime", {
@@ -75,7 +74,7 @@ export function checkTddEnforcement(
     detail: "BLOCKED | " + msg,
   });
 
-  if (mode === "strict" || mode === "locked") {
+  if (shouldBlock("tdd-enforcement")) {
     return { allowed: false, message: msg };
   }
 

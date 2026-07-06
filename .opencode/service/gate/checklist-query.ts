@@ -13,7 +13,6 @@ import {
 } from "./checklist-phase";
 import {
   createChecklistRun,
-  getChecklistSummary,
   advanceChecklistPhase,
 } from "./checklist-lifecycle";
 

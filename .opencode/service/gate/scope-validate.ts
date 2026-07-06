@@ -13,21 +13,17 @@ import {
 import {
   isModifyTool,
   getModifyPath,
-  readDispatchAllowedTools,
-  isToolAllowed,
   getEffectivePathScopePaths,
   isUC7KSWriteTarget,
   classifyShellCommand,
 } from "../../lib/tool-scope";
-import { getEnforcementMode } from "../../lib/gate-core";
-import { isWriteAllowed } from "../../lib/gate-checks";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import { checkUC7KSWrite } from "../../lib/uc7ks-utils";
 import { readSubState } from "../../lib/substate-manager";
 import {
   readRouteConfig,
   findRouteAgentForFile,
 } from "../../lib/route-validator";
-import { isKnowledgeCurator } from "../../lib/agent-identity";
 
 const SRC = "service-scope-validate";
 
@@ -37,12 +33,11 @@ const INLINE_INTERPRETER = /(?:^|\s)(node|python|python3|ruby|perl)\s+(-e|-c)(?:
 
 export function validateWriteScope(input: any, output: any): { blocked: boolean; message?: string } {
   const agent = resolveAgent(input.sessionID);
-  const mode = getEnforcementMode();
   const agentNorm = (agent || "").toLowerCase().replace(/^@/, "");
 
   writeLog(SRC, "runtime", {
     sessionID: input.sessionID, callID: input.callID, agent,
-    event: "TOOL-BEFORE", detail: `enter | tool=${input.tool} | mode=${mode}`,
+    event: "TOOL-BEFORE", detail: `enter | tool=${input.tool}`,
   });
 
   // Only enforce scope for modify tools
@@ -60,18 +55,6 @@ export function validateWriteScope(input: any, output: any): { blocked: boolean;
       sessionID: input.sessionID, callID: input.callID, agent,
       event: "TOOL-BEFORE", detail: "exit (pass) no file path",
     });
-    return { blocked: false };
-  }
-
-  // ── Agent tool allowed check ──
-  const allowedTools = readDispatchAllowedTools(agent);
-  if (!isToolAllowed(allowedTools, input.tool)) {
-    const msg = `[FW-ENFORCE] Agent "${agent}" not allowed to use tool "${input.tool}"`;
-    writeLog(SRC, "runtime", {
-      sessionID: input.sessionID, callID: input.callID, agent,
-      level: "ERROR", event: "TOOL-BEFORE", detail: `BLOCKED | ${msg}`,
-    });
-    if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
     return { blocked: false };
   }
 
@@ -107,13 +90,14 @@ export function validateWriteScope(input: any, output: any): { blocked: boolean;
       const msg =
         `[FW-ENFORCE][BACKUP-BYPASS] safe_shell write command could not be parsed ` +
         `for write target paths. Use safe_edit/safe_mkdir instead of shell commands. ` +
-        `Command: "${cmdStr.substring(0, 80)}".`;
+        `Command: "${cmdStr.substring(0, 80)}".` +
+        `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`;
       writeLog(SRC, "runtime", {
         sessionID: input.sessionID, callID: input.callID, agent,
         level: "ERROR", event: "TOOL-BEFORE",
         detail: `BLOCKED | UNPARSEABLE-MODIFY-SHELL | kind=${classification.kind}`,
       });
-      if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
+      if (shouldBlock("backup-bypass")) return { blocked: true, message: msg };
     }
   }
 
@@ -126,15 +110,16 @@ export function validateWriteScope(input: any, output: any): { blocked: boolean;
   ) {
     const cmdPreview = (output.args?.command || "").toString().substring(0, 100);
     const msg =
-      `[FW-ENFORCE][BACKUP-BYPASS] ${input.tool} file modification blocked in ${mode} mode. ` +
+      `[FW-ENFORCE][BACKUP-BYPASS] ${input.tool} file modification blocked. ` +
       `Use safe_edit or safe_delete instead — they create backups via createGitBackup(). ` +
-      `Command: "${cmdPreview}". Write targets: ${scopeResult.paths.join(", ")}`;
+      `Command: "${cmdPreview}". Write targets: ${scopeResult.paths.join(", ")}` +
+        `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`;
     writeLog(SRC, "runtime", {
       sessionID: input.sessionID, callID: input.callID, agent,
       level: "ERROR", event: "TOOL-BEFORE",
       detail: `BLOCKED | BACKUP-BYPASS-SAFE-SHELL-WRITE | targets=${scopeResult.paths.length}`,
     });
-    if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
+    if (shouldBlock("backup-bypass")) return { blocked: true, message: msg };
   }
 
   // ── Per-path checks ──
@@ -151,66 +136,22 @@ export function validateWriteScope(input: any, output: any): { blocked: boolean;
         if (expectedAgent) {
           const expectedNorm = expectedAgent.replace(/^@/, "").toLowerCase();
           if (expectedNorm !== agentNorm) {
-            const msg =
-              `[FW-ENFORCE][ROUTE-MISMATCH] ${agent} has no authority to modify ` +
-              `"${scopePath}". This file should be handled by ${expectedAgent}. ` +
-              `Route rules defined in project.config.json route_rules.scope_to_agent.`;
             writeLog(SRC, "runtime", {
               sessionID: input.sessionID, callID: input.callID, agent,
-              level: "ERROR", event: "TOOL-BEFORE",
-              detail: `BLOCKED | ROUTE-MISMATCH | file=${scopePath} expected=${expectedAgent}`,
+              level: "WARN", event: "TOOL-BEFORE",
+              detail: `ROUTE-MISMATCH-AUDIT | file=${scopePath} expected=${expectedAgent}`,
             });
-            if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
-            return { blocked: false };
           }
         }
       }
 
-      // P1-2: UC7-008 Knowledge-Curator Scope Isolation
-      if (isKnowledgeCurator(agent)) {
-        const kcAllowed =
-          scopePath.includes("docs/official_docs/") ||
-          scopePath.includes(".metadata/") ||
-          scopePath.includes(".task_temp/");
-        if (!kcAllowed) {
-          const msg =
-            `[FW-ENFORCE][UC7-008] Knowledge-Curator scope violation: ` +
-            `cannot write to "${scopePath}". ` +
-            `Allowed: docs/official_docs/**, .metadata/**, .task_temp/**.`;
-          writeLog(SRC, "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent,
-            level: "ERROR", event: "TOOL-BEFORE", detail: `BLOCKED | UC7-008 | file=${scopePath}`,
-          });
-          if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
-          return { blocked: false };
-        }
-      }
-
-      // P0-5: Write PATH Scope Check
+      // Identity resolution remains observable, but no longer blocks writes by itself.
       if (!agent || agent === "1" || agent === "human") {
-        const msg =
-          `[FW-ENFORCE] Agent identity unresolved — write to "${scopePath}" BLOCKED. ` +
-          `Use human dispatch (@Super-Admin) to repair.`;
         writeLog(SRC, "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent,
-          level: "ERROR", event: "TOOL-BEFORE",
-          detail: `BLOCKED | UNRESOLVED-AGENT | file=${scopePath}`,
+          level: "WARN", event: "TOOL-BEFORE",
+          detail: `AGENT-UNRESOLVED-AUDIT | file=${scopePath}`,
         });
-        if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
-        return { blocked: false };
-      }
-
-      if (!isWriteAllowed(agent, scopePath)) {
-        const msg =
-          `[FW-ENFORCE][WRITE-SCOPE] Agent "${agent}" write to "${scopePath}" ` +
-          `blocked by permission.safe_edit in opencode.json (P2-D: authoritative source).`;
-        writeLog(SRC, "runtime", {
-          sessionID: input.sessionID, callID: input.callID, agent,
-          level: "ERROR", event: "TOOL-BEFORE",
-          detail: `BLOCKED | WRITE-SCOPE | file=${scopePath}`,
-        });
-        if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
-        return { blocked: false };
       }
 
       // R4: Config Read Attestation Pre-Gate
@@ -225,32 +166,17 @@ export function validateWriteScope(input: any, output: any): { blocked: boolean;
           detail: `config_read_state verified (sessions map) — attestation complete`,
         });
       } else {
-        if (mode === "strict" || mode === "locked") {
-          const msg =
-            `[FW-ENFORCE][CONFIG-READ-ATTEST] Config read attestation ` +
-            `has not been completed. ` +
-            `Run P0 Step 0e BEFORE writing: read your agent config ` +
-            `(.opencode/agents/{Type}.md), opencode.json, and ` +
-            `project.config.json using the 'read' tool, then call ` +
-            `config_read_attest() to unlock writes.`;
-          writeLog(SRC, "runtime", {
-            sessionID: input.sessionID, callID: input.callID, agent,
-            level: "ERROR", event: "TOOL-BEFORE",
-            detail: `BLOCKED | CONFIG-READ-ATTEST-MISSING | session=${input.sessionID}`,
-          });
-          return { blocked: true, message: msg };
-        }
         writeLog(SRC, "runtime", {
           sessionID: input.sessionID, callID: input.callID, agent,
-          event: "TOOL-BEFORE",
-          detail: `config_read_state not yet attested — advisory mode, allowing writes`,
+          level: "WARN", event: "TOOL-BEFORE",
+          detail: `CONFIG-READ-ATTEST-MISSING | session=${input.sessionID} | audit only`,
         });
       }
 
       // P1-1: UC7-001 Knowledge Cache Search Before Write
       if (isUC7KSWriteTarget(scopePath)) {
         const uc7Block = checkUC7KSWrite(
-          agent, mode, input.sessionID, taskId, domainId || undefined,
+          agent, input.sessionID, taskId, domainId || undefined,
         );
         if (uc7Block) {
           writeLog(SRC, "runtime", {
@@ -258,7 +184,7 @@ export function validateWriteScope(input: any, output: any): { blocked: boolean;
             level: "ERROR", event: "TOOL-BEFORE",
             detail: `BLOCKED | UC7-001-WRITE | file=${scopePath} | ${uc7Block.substring(0, 120)}`,
           });
-          if (mode === "strict" || mode === "locked") return { blocked: true, message: uc7Block };
+          if (shouldBlock("uc7ks-tracking")) return { blocked: true, message: uc7Block + "\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path." };
           return { blocked: false };
         }
       }
@@ -270,13 +196,13 @@ export function validateWriteScope(input: any, output: any): { blocked: boolean;
           const msg =
             `[FW-ENFORCE][UC7-005] Knowledge cache file exceeds 500KB limit: ` +
             `"${scopePath}" (${content.length} bytes > 524288). ` +
-            `Split into smaller chunks or compress.`;
+            `Split into smaller chunks or compress.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`;
           writeLog(SRC, "runtime", {
             sessionID: input.sessionID, callID: input.callID, agent,
             level: "ERROR", event: "TOOL-BEFORE",
             detail: `BLOCKED | UC7-005 | size=${content.length} | file=${scopePath}`,
           });
-          if (mode === "strict" || mode === "locked") return { blocked: true, message: msg };
+          if (shouldBlock("write-scope-violation")) return { blocked: true, message: msg };
           return { blocked: false };
         }
       }

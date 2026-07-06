@@ -9,4 +9,4 @@ Trigger and orchestrate the three-layer eight-role multi-agent system for comple
 
 **触发条件**: description: Trigger and orchestrate the three-layer eight-role multi-agent system for complex devel
 
-> 完整文档: 调用 read_skill("multi-agent-orchestration") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/multi-agent-orchestration/FULL.md

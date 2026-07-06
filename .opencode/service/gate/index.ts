@@ -60,6 +60,9 @@ export {
   FrameworkEnforcementError,
 } from "./enforcement";
 
+// Phase 3 T3.1: Per-rule disposition
+export { getRuleDisposition, shouldBlock, isAuditOnly, getAllRules } from "../enforcement/rule-disposition";
+
 // ── Session Management (split from session-crud) ──
 export { createGateSession, armGateSession } from "./session-mgmt";
 export { completeGateSession, validateTaskArtifacts } from "./session-complete";
@@ -135,6 +138,7 @@ export {
   advanceChecklistPhase,
   markChecklistRunInterrupted,
   resetChecklistItemToPending,
+  getLatestChecklistRun,
 } from "./checklist-lifecycle";
 
 export {
@@ -209,14 +213,12 @@ export {
 
 export {
   checkGateCompliance,
-  type GateCheckResult,
   type GateCheckFailedItem,
 } from "./mcp-check";
 
 export {
   confirmGateSession,
-  type ConfirmResult,
-  type DeliverableEntry,
+  type ConfirmResult
 } from "./mcp-confirm";
 
 export {

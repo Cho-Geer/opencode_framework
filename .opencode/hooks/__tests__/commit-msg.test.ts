@@ -102,7 +102,10 @@ describe('commit-msg hook — TDD marker enforcement', () => {
     expect(result.exitCode).toBe(0);
   });
 
-  // ── Test 5: Advisory mode warns but does not block ──
+  // ── Test 5: Advisory mode warns but does not block (deprecated after P1) ──
+  // P1 NOTE: Global ENFORCEMENT_MODE is deprecated. Per-rule disposition
+  // (getRuleDisposition) replaces mode-based logic. This test verifies the
+  // shell hook's backward-compat behavior for the advisory env var.
   it('should warn but not block in advisory mode when TDD tag is missing', () => {
     const result = runHook(tmpDir, 'feat(scope): normal commit in advisory mode', {
       ENFORCEMENT_MODE: 'advisory',

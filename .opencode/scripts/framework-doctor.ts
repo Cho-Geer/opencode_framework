@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 "use strict";
 
@@ -1210,10 +1211,8 @@ function checkFrameworkCompliance() {
 
 // ─── Check 12: Dispatch-policy consistency (FW-PLAN-FIRST) ─────────
 // Verifies that project.config.json.dispatch_policy is internally
-// consistent and aligned with the current enforcement mode:
+// consistent under the current single-policy runtime:
 //   - required fields present and well-typed
-//   - auto_plan_enabled=false when enforcement mode is locked
-//     (locked = human-in-the-loop, auto-plan forbidden)
 //   - auto_plan_max_per_session > 0 when auto_plan_enabled=true
 //   - auto_plan_timeout_ms > 0 when auto_plan_enabled=true
 function checkDispatchPolicy() {
@@ -1253,14 +1252,12 @@ function checkDispatchPolicy() {
     )
       issues.push("auto_plan_timeout_ms must be positive number");
 
-    // Locked-mode consistency: auto_plan must be disabled.
-    const tr = pc.template_resolution || {};
-    const mode = tr.develop_enforcement_mode || tr.runtime_enforcement_mode;
-    if (mode === "locked" && dp.auto_plan_enabled === true) {
-      issues.push(
-        "auto_plan_enabled=true is forbidden when enforcement mode is locked",
-      );
-    }
+    const singlePolicy = !!pc.enforcement_policy;
+    const compatMode = singlePolicy
+      ? "strict"
+      : (pc.template_resolution?.develop_enforcement_mode ||
+        pc.template_resolution?.runtime_enforcement_mode ||
+        "strict");
     // If auto_plan_enabled, rate-limit and timeout must be reasonable.
     if (dp.auto_plan_enabled === true) {
       if (dp.auto_plan_max_per_session === 0)
@@ -1279,8 +1276,8 @@ function checkDispatchPolicy() {
       status: issues.length === 0 ? PASS : FAIL,
       detail:
         issues.length === 0
-          ? "dispatch_policy consistent with enforcement mode (" +
-            (mode || "unknown") +
+          ? "dispatch_policy consistent with runtime policy (" +
+            compatMode +
             ")"
           : issues.join("; "),
     };
@@ -1414,6 +1411,30 @@ function checkSchemaValidation() {
 }
 
 // ─── Check Registry ───────────────────────────────────────────
+
+function checkTypeScript() {
+  const { execSync } = require("child_process");
+  try {
+    execSync("bunx tsc --noEmit", {
+      cwd: PROJECT_ROOT,
+      timeout: 60000,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    return { id: 14, name: "TypeScript type check", status: PASS, detail: "tsc --noEmit: 0 errors" };
+  } catch (e: any) {
+    const output = ((e.stdout || Buffer.from("")).toString() + (e.stderr || Buffer.from("")).toString());
+    const errorLines = output.split("\n").filter((l: string) => l.includes("error TS"));
+    const count = errorLines.length;
+    const samples = errorLines.slice(0, 5).map((l: string) => l.trim()).join("\n");
+    return {
+      id: 14,
+      name: "TypeScript type check",
+      status: FAIL,
+      detail: "tsc --noEmit: " + count + " error(s)\n" + samples,
+    };
+  }
+}
+
 const CHECKS = [
   checkOpenCodeJson,
   checkDagValidation,
@@ -1428,6 +1449,7 @@ const CHECKS = [
   checkFrameworkCompliance,
   checkDispatchPolicy,
   checkSchemaValidation,
+  checkTypeScript,
 ];
 
 // ─── Run Checks ───────────────────────────────────────────────
@@ -1681,4 +1703,3 @@ function main() {
 }
 
 main();
-

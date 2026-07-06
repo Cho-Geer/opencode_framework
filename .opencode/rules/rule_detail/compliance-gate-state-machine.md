@@ -226,7 +226,7 @@ Where `{task_id}` is the DAG task ID (or gate session ID if no DAG task ID was a
 | Document                                                    | Relationship                                               |
 | ----------------------------------------------------------- | ---------------------------------------------------------- |
 | `.opencode/scripts/mcp-tools/compliance-gate.ts`            | Implementation (single source of truth)                    |
-| `.opencode/subagent-preamble.md`                            | Contains the compliance gate protocol summary              |
+| `.opencode/legacy/subagent-preamble.md (deprecated → Skills)`                            | Contains the compliance gate protocol summary              |
 | `.opencode/rules/rule_detail/enforcement-modes-standard.md` | Defines advisory/strict/locked behavior                    |
 | `.opencode/rules/rule_detail/state-machine-standard.md`     | General state machine standard (contracts, task lifecycle) |
 

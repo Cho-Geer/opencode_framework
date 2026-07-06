@@ -12,7 +12,7 @@ export default tool({
     task_id: tool.schema.string().describe("DAG task ID for session tracking"),
   },
   async execute(args, context) {
-    return withInterruptGuard("knowledge_cache_search", async () => {
+    const result = await withInterruptGuard("knowledge_cache_search", async () => {
       const agent = (context && context.agent) || "unknown";
       const sessionId = (context as any)?.sessionID;
       return searchCache({
@@ -22,5 +22,9 @@ export default tool({
         sessionId,
       });
     });
+    if (typeof result === "string") {
+      return { output: result };
+    }
+    return { output: JSON.stringify(result, null, 2) };
   },
 });

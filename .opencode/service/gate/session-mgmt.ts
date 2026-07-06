@@ -15,9 +15,8 @@ import {
   type GateCheckItem,
   type GateConfirmResult,
   type DeliverableEntry,
-  type EnforcementMode,
 } from "./store";
-import { getEnforcementMode } from "./enforcement";
+import { shouldBlock } from "../enforcement/rule-disposition";
 
 const SRC = "service-gate-session-mgmt";
 
@@ -29,7 +28,7 @@ export function createGateSession(
   taskDescription: string,
   failedItems: GateCheckItem[],
   ruleStatus: Record<string, string>,
-  mode: EnforcementMode,
+  mode: string = "rule-disposition-compat",
   root?: string,
 ): { session: GateSession; store: GateStore } {
   const store = loadGateStore(root);
@@ -178,11 +177,10 @@ export function armGateSession(
     };
   }
 
-  const mode = getEnforcementMode(root);
-  if (session.last_check_passed === false && mode !== "advisory") {
+  if (session.last_check_passed === false && shouldBlock("session-mgmt-block")) {
     return {
       status: "rejected",
-      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${gateSessionId} has ${session.last_check_failed_items?.length || 0} check failures in ${mode} enforcement mode.`,
+      reason: `Gate check failed — resolve HIGH severity violations before arming. Session ${gateSessionId} has ${session.last_check_failed_items?.length || 0} check failures under the active session policy.`,
     };
   }
 
@@ -194,9 +192,9 @@ export function armGateSession(
     "Super-Admin",
   ];
   const resolvedAgent = agent || session.agent || "unknown";
-  const isExempt = EXEMPT_AGENTS.some(
-    (exempt) => resolvedAgent === exempt || `@${resolvedAgent}` === exempt,
-  );
+  // v0.2: normalize agent identity for exempt check (strip @, trim, lowercase)
+  const normalizedAgent = (resolvedAgent || "").replace(/^@/, "").trim().toLowerCase();
+  const isExempt = normalizedAgent === "orchestrator" || normalizedAgent === "super-admin";
 
   if (
     !isExempt &&

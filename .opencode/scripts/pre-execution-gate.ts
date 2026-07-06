@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 "use strict";
 
 /**
@@ -84,7 +85,7 @@ function getIsDagExempt() {
  *   Check 4 — Role Violations: no unresolved role violations in machine.json
  *   Check 5 — Rule Registry: no HIGH severity mismatches (or all mismatches waived)
  *   Check 6 — Knowledge Pipeline (NEW): when Knowledge-Curator is dispatched,
- *             verifies DISPATCH_TOKEN presence and UC7KS cache-first compliance
+ *             verifies dispatch integrity metadata and UC7KS cache-first compliance
  */
 
 const fs = require("node:fs");
@@ -187,23 +188,21 @@ function readJSON(filePath) {
  * (canonical single source of truth). Matches existing lazy-load pattern
  * used by getWriteLog(), getIsDagExempt().
  *
- * Determine enforcement mode from project.config.json or ENFORCEMENT_MODE env var.
- * Returns "advisory", "strict", or "locked".
+ * Determine the single-policy compatibility label used in operator-facing logs.
+ * Single-policy runtime no longer honors ENFORCEMENT_MODE overrides here.
  */
-let _getEnforcementMode = null as ((root?: string) => string) | null;
-function getEnforcementMode(): string {
-  if (!_getEnforcementMode) {
+let _getCompatPolicyLabel = null as (() => string) | null;
+function getCompatPolicyLabel(): string {
+  if (!_getCompatPolicyLabel) {
     try {
-      _getEnforcementMode = require("../lib/gate-core").getEnforcementMode;
+      _getCompatPolicyLabel =
+        require("../service/enforcement/rule-disposition").getEnforcementModeCompat;
     } catch {
-      /* gate-core unavailable — use env var fallback */
+      /* compatibility helper unavailable — use static fallback */
     }
   }
-  if (_getEnforcementMode) return _getEnforcementMode();
-  // Fallback: env var or default to strict
-  const envMode = process.env.ENFORCEMENT_MODE || "";
-  if (["advisory", "strict", "locked"].includes(envMode)) return envMode;
-  return "strict";
+  if (_getCompatPolicyLabel) return _getCompatPolicyLabel();
+  return "rule-disposition-compat";
 }
 
 /**
@@ -234,24 +233,23 @@ const REMEDIATION_MAP = {
 
 /**
  * Emit structured error to stderr.
- * In strict/locked mode, always exits non-zero.
- * In advisory mode, prints warning but returns (allows execution).
- * Enhanced output includes specific violation, enforcement mode, and remediation.
+ * Legacy compatibility helper.
+ * Enhanced output includes specific violation, compatibility policy label, and remediation.
  */
 function emitError(checkName, message, details) {
-  const mode = getEnforcementMode();
+  const policy = getCompatPolicyLabel();
   const violation =
     details && typeof details === "object"
       ? details.violation || details.issue || details.reason || null
       : null;
   const remediation =
     REMEDIATION_MAP[checkName] ||
-    "  🔧 Run: node .opencode/scripts/framework-doctor.ts --strict";
+    "  🔧 Run: node .opencode/scripts/framework-doctor.ts";
 
   const output = {
     check: checkName,
-    status: mode === "advisory" ? "WARNING" : "FAILED",
-    enforcement_mode: mode,
+    status: "FAILED",
+    enforcement_policy: policy,
     message: message,
     violation: violation,
     remediation: remediation.trim(),
@@ -266,21 +264,16 @@ function emitError(checkName, message, details) {
    * enforcement gate failures to log-manager via lazy-load gateLog().
    * These messages were previously DISCARDED on every dispatch.
    */
-  gateLog("gate_check_failed", mode !== "advisory" ? "ERROR" : "WARN", {
+  gateLog("gate_check_failed", "ERROR", {
     check: checkName,
-    mode,
+    policy,
     message,
     violation,
     details: details || null,
   });
 
-  if (mode === "advisory") {
-    (console as any).error(`⚠️  [ADVISORY] ${jsonErr}`);
-    return false; // non-blocking in advisory
-  } else {
-    (console as any).error(`❌ [${mode.toUpperCase()}] ${jsonErr}`);
-    return true; // blocking in strict/locked
-  }
+  (console as any).error(`❌ [${policy.toUpperCase()}] ${jsonErr}`);
+  return true;
 }
 
 /**
@@ -369,7 +362,7 @@ function checkDagCoverage(taskId) {
       (dag as any).error,
     );
     if (blocked) process.exit(2);
-    return true; // advisory: pass through
+    return true; // audit-only compat: pass through
   }
 
   let task = dag.data.tasks.find((t) => t.id === taskId);
@@ -560,7 +553,7 @@ function checkRoleViolations() {
 /**
  * Check 4 — Critical Infrastructure Files: detect uncommitted changes
  * to critical framework files using git diff HEAD (replaces SHA-256 digest check).
- * advisory → warn, strict → warn+log, locked → block dispatch.
+ * In Phase 3 this is an audit signal, not a dispatch blocker.
  */
 function checkRuleRegistry() {
   const { getModifiedCriticalFiles } = require("../lib/critical-files");
@@ -570,47 +563,23 @@ function checkRuleRegistry() {
     return true; // no critical files changed
   }
 
-  const mode = getEnforcementMode();
   const fileList = modified.join(", ");
-
-  if (mode === "locked") {
-    const blocked = emitError(
-      "Critical Files",
-      `${modified.length} critical infrastructure file(s) modified since HEAD: ${fileList}`,
-      { modified_files: modified, enforcement_mode: mode },
-    );
-    if (blocked) process.exit(1);
-    return false;
-  }
-
-  if (mode === "strict") {
-    (console as any).error(
-      `  ⚠️  [STRICT] Critical infrastructure files modified: ${fileList}`,
-    );
-    (console as any).error(
-      `     Ensure commit message includes [INFRA] marker when committing.`,
-    );
-    gateLog("critical_files_modified", "WARN", {
-      modified_files: modified,
-      enforcement_mode: mode,
-    });
-    return true;
-  }
-
-  // advisory
   (console as any).error(
-    `  ⚠️  [ADVISORY] Critical infrastructure files modified: ${fileList}`,
+    `  ⚠️  Critical infrastructure files modified: ${fileList}`,
   );
-  gateLog("critical_files_modified", "INFO", {
+  (console as any).error(
+    `     Ensure commit message includes [INFRA] marker when committing.`,
+  );
+  gateLog("critical_files_modified", "WARN", {
     modified_files: modified,
-    enforcement_mode: mode,
+    enforcement_policy: "audit_only",
   });
   return true;
 }
 
 /**
  * Check 5 — Config Validity: required config files are readable.
- * Fail-closed in strict/locked mode.
+ * Fail-closed when the active compatibility policy blocks execution.
  */
 function checkConfigValidity() {
   const requiredFiles = [
@@ -628,11 +597,10 @@ function checkConfigValidity() {
   }
 
   if (missing.length > 0) {
-    const mode = getEnforcementMode();
     const blocked = emitError(
       "Config Validity",
       `${missing.length} required config file(s) missing: ${missing.join(", ")}`,
-      { missing_files: missing, enforcement_mode: mode },
+      { missing_files: missing, enforcement_policy: getCompatPolicyLabel() },
     );
     if (blocked) process.exit(2);
     return false;
@@ -643,12 +611,13 @@ function checkConfigValidity() {
 
 /**
  * Check 6 — Knowledge Pipeline Gate (UC7KS):
- * When Knowledge-Curator is dispatched, verify DISPATCH_TOKEN is present.
+ * When Knowledge-Curator is dispatched, verify dispatch integrity metadata
+ * is present when available, but keep native Task dispatch compatible.
  * When any agent is dispatched, verify UC7KS cache-first compliance
  * (index.json exists and has been checked).
  *
  * CAT-KNOW-01: Missing knowledge cache check before task execution.
- * CAT-KNOW-02: Knowledge-Curator dispatch without DISPATCH_TOKEN.
+ * CAT-KNOW-02: Knowledge-Curator dispatch without dispatch integrity metadata.
  */
 function checkKnowledgeGate(taskId) {
   const KNOWLEDGE_KEYWORDS = [
@@ -693,7 +662,9 @@ function checkKnowledgeGate(taskId) {
       return false;
     }
 
-    // For Knowledge-Curator dispatches, DISPATCH_TOKEN must be present
+    // For Knowledge-Curator dispatches, legacy wrapper prompts include
+    // DISPATCH_TOKEN. Native Task dispatches may omit it and should
+    // fall back to audit-only handling.
     if (isKnowledgeDispatch) {
       let tokenFound = false;
       for (const f of dispatchFiles) {
@@ -712,13 +683,27 @@ function checkKnowledgeGate(taskId) {
       }
 
       if (!tokenFound) {
-        const blocked = emitError(
-          "Knowledge Pipeline",
-          "Knowledge-Curator dispatch missing DISPATCH_TOKEN",
-          "All @Knowledge-Curator dispatches must go through @Orchestrator (or @Super-Admin for UC7KS — FW-DISPATCH-BYPASS) using the dispatch_subagent tool, which generates a cryptographic DISPATCH_TOKEN. Direct dispatch without this token violates the UC7KS pipeline.",
+        const { shouldBlock } = require("../service/enforcement/rule-disposition");
+        if (shouldBlock("dispatch-marker-consume")) {
+          const blocked = emitError(
+            "Knowledge Pipeline",
+            "Knowledge-Curator dispatch missing DISPATCH_TOKEN",
+            "Legacy dispatch wrapper prompts must include DISPATCH_TOKEN. If this is a native Task dispatch, keep dispatch integrity metadata in audit logs instead of routing through the legacy wrapper.",
+          );
+          if (blocked) process.exit(1);
+          return false;
+        }
+
+        gateLog("knowledge_dispatch_token_missing", "WARN", {
+          task_id: taskId,
+          dispatch_files: dispatchFiles,
+          enforcement_policy: "dispatch-marker-consume:audit",
+          detail:
+            "Knowledge-Curator dispatch prompt missing DISPATCH_TOKEN; allowing native Task compatibility path.",
+        });
+        (console as any).error(
+          "    ⚠️  Knowledge-Curator dispatch prompt missing DISPATCH_TOKEN — allowing native Task compatibility path (audit only).",
         );
-        if (blocked) process.exit(1);
-        return false;
       }
     }
   }
@@ -749,12 +734,12 @@ function checkKnowledgeGate(taskId) {
             `Total system bypasses: ${bypassAttempts}.`,
         );
 
-        const mode = getEnforcementMode();
-        if (mode === "locked" && agentCount >= 1) {
+        const { shouldBlock } = require("../service/enforcement/rule-disposition");
+        if (agentCount >= 1 && shouldBlock("knowledge-external-query")) {
           const blocked = emitError(
             "Knowledge Pipeline",
-            `Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) in LOCKED mode`,
-            "In LOCKED mode, all external documentation queries must go through @Knowledge-Curator. Bypass attempts are not tolerated. Remediation: clear bypass attempts via state-reconciliation --reset-knowledge-audit after verifying all cached docs are up to date.",
+            `Agent "${agent}" has ${agentCount} UC7KS bypass attempt(s) recorded`,
+            "All external documentation queries must go through @Knowledge-Curator or the approved local-cache workflow. Bypass attempts are not tolerated. Remediation: clear bypass attempts via state-reconciliation --reset-knowledge-audit after verifying all cached docs are up to date.",
           );
           if (blocked) process.exit(1);
           return false;
@@ -846,27 +831,27 @@ function main() {
       );
       gateLog("uc7ks_cache_healthy", "INFO", { agent, taskId });
       if (!checkKnowledgeGate(taskId)) {
-        const mode = getEnforcementMode();
-        if (mode === "locked" || mode === "strict") {
+        const { shouldBlock } = require("../service/enforcement/rule-disposition");
+        if (shouldBlock("knowledge-external-query")) {
           const blocked = emitError(
             "Knowledge Pipeline",
-            "Knowledge pipeline check FAILED for Super-Admin — blocked in locked/strict mode.",
+            "Knowledge pipeline check FAILED for Super-Admin — blocked by active policy.",
             {
               agent: "Super-Admin",
               task_id: taskId,
               cache_health: "healthy",
-              enforcement_mode: mode,
+              enforcement_policy: "knowledge-external-query",
             },
           );
           if (blocked) process.exit(1);
         }
         (console as any).error(
-          "[GATE][ADVISORY] Knowledge pipeline warnings for Super-Admin (non-blocking in advisory mode).",
+          "[GATE] Knowledge pipeline warnings for Super-Admin.",
         );
         gateLog("uc7ks_pipeline_warn", "WARN", {
           agent,
           taskId,
-          mode: getEnforcementMode(),
+          enforcement_policy: "knowledge-external-query",
         });
       }
     } else {
@@ -881,7 +866,7 @@ function main() {
         reason: "knowledge_cache_unhealthy",
         cache_path: path.relative(OPENCODE_ROOT, KNOWLEDGE_INDEX_FILE),
         timestamp: new Date().toISOString(),
-        enforcement_mode: getEnforcementMode(),
+        enforcement_policy: "health-bypass",
       };
       (console as any).error(`[GATE][UC7-009] ${JSON.stringify(auditEntry)}`);
       gateLog("uc7ks_emergency_bypass", "WARN", auditEntry);
@@ -899,10 +884,10 @@ function main() {
     process.exit(1);
   }
 
-  const mode = getEnforcementMode();
+  const policy = getCompatPolicyLabel();
 
   // ── Header ──
-  (console as any).error(`🔍 [Pre-Exec Gate] Enforcement mode: ${mode.toUpperCase()}`);
+  (console as any).error(`🔍 [Pre-Exec Gate] Enforcement policy: ${policy.toUpperCase()}`);
   (console as any).error(`   Project root: ${OPENCODE_ROOT}`);
   (console as any).error(`   Task ID: ${taskId}`);
   if (isDispatchSession) {
@@ -990,9 +975,9 @@ function main() {
     process.exit(0);
   } else {
     (console as any).error(
-      `❌ [Pre-Exec Gate] ${mode === "advisory" ? "Warnings found (non-blocking in advisory mode)" : "Validation FAILED — task execution blocked."}`,
+      `❌ [Pre-Exec Gate] Validation FAILED — task execution blocked.`,
     );
-    process.exit(mode === "advisory" ? 0 : 1);
+    process.exit(1);
   }
 }
 
@@ -1005,10 +990,12 @@ if (typeof require === "undefined" || typeof process === "undefined") {
   process.exit(2);
 }
 
+const HAS_COMMONJS_MODULE = typeof module !== "undefined";
+
 // Execute main
-if (require.main === module) {
+if (HAS_COMMONJS_MODULE && require.main === module) {
   main();
-} else {
+} else if (HAS_COMMONJS_MODULE) {
   // When required as a module (for testing), export for testability
   module.exports = {
     OPENCODE_ROOT,
@@ -1024,4 +1011,3 @@ if (require.main === module) {
     checkKnowledgeGate,
   };
 }
-

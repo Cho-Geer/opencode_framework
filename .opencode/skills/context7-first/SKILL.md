@@ -9,4 +9,4 @@ description: "Forces the model to use the UC7KS knowledge acquisition pipeline (
 
 **触发条件**: description: "Forces the model to use the UC7KS knowledge acquisition pipeline (local-first → @Knowl
 
-> 完整文档: 调用 read_skill(""context7-first"") 获取
+> 完整文档: 使用 read 工具读取 .opencode/skills/context7-first/FULL.md

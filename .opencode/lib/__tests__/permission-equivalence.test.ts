@@ -83,15 +83,17 @@ describe("P2-D Permission Equivalence Matrix", () => {
       expect(result.denied).toBeDefined();
     });
 
-    it("@Meta-Planner: safe_shell='allow' → allAllowed=true (permissive)", () => {
+    it("@Meta-Planner: legacy fallback keeps explicit shell rules", () => {
       const result = getAgentShellAllowlist("@Meta-Planner");
-      expect(result.allAllowed).toBe(true);
+      expect(result.allAllowed).toBe(false);
       expect(result.toolDenied).toBe(false);
+      expect(result.allowed).toContain("*");
     });
 
-    it("@CI-CD-Agent: safe_shell='allow' → allAllowed=true (permissive)", () => {
+    it("@CI-CD-Agent: legacy fallback keeps explicit shell rules", () => {
       const result = getAgentShellAllowlist("@CI-CD-Agent");
-      expect(result.allAllowed).toBe(true);
+      expect(result.allAllowed).toBe(false);
+      expect(result.allowed).toContain("*");
     });
 
     it("@Arbiter: should have restrictive permission", () => {
@@ -175,19 +177,14 @@ describe("P2-D Permission Equivalence Matrix", () => {
   });
 
   describe("Agent coverage (opencode.json)", () => {
-    it("all 10 agents should be defined in opencode.json", () => {
+    it("active config should expose Orchestrator plus native overrides", () => {
       const cfg = readOpencodeConfig();
       const expectedAgents = [
-        "Meta-Planner",
         "Orchestrator",
-        "Architect",
-        "Coder-BE",
-        "Coder-FE",
-        "Guardian",
-        "Arbiter",
-        "CI-CD-Agent",
-        "Super-Admin",
-        "Knowledge-Curator",
+        "build",
+        "general",
+        "plan",
+        "explore",
       ];
       for (const agent of expectedAgents) {
         expect(cfg.agent[agent]).toBeDefined();
@@ -195,10 +192,28 @@ describe("P2-D Permission Equivalence Matrix", () => {
       }
     });
 
-    it("all agents should have safe_edit permission", () => {
+    it("all active agents should have safe_edit permission defined", () => {
       const cfg = readOpencodeConfig();
       for (const agentName of Object.keys(cfg.agent)) {
         expect(cfg.agent[agentName].permission.safe_edit).toBeDefined();
+      }
+    });
+
+    it("legacy role identities should still resolve permission profiles", () => {
+      const legacyAgents = [
+        "@Meta-Planner",
+        "@Architect",
+        "@Coder-BE",
+        "@Coder-FE",
+        "@Guardian",
+        "@Arbiter",
+        "@CI-CD-Agent",
+        "@Super-Admin",
+        "@Knowledge-Curator",
+      ];
+      for (const agent of legacyAgents) {
+        expect(getAgentShellAllowlist(agent)).toBeDefined();
+        expect(isPathAllowedForAgent(agent, ".task_temp/compat.txt")).toBeDefined();
       }
     });
   });

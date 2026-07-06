@@ -1148,16 +1148,19 @@ export function initializeSchema(db: Database): void {
     // ── dispatch_queue: FIFO dispatch entry queue ──────────────
     db.run(`
       CREATE TABLE IF NOT EXISTS dispatch_queue (
-        id            INTEGER PRIMARY KEY AUTOINCREMENT,
-        status        TEXT NOT NULL DEFAULT 'pending',
-        agent_type    TEXT NOT NULL,
-        dag_task_id   TEXT NOT NULL,
-        session_id    TEXT,
-        prompt_ref_id INTEGER REFERENCES dispatch_prompt_refs(id),
-        lease_owner   TEXT,
-        lease_expiry  INTEGER,
-        created_at    INTEGER NOT NULL,
-        updated_at    INTEGER NOT NULL
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        status            TEXT NOT NULL DEFAULT 'pending',
+        agent_type        TEXT NOT NULL,
+        dag_task_id       TEXT NOT NULL,
+        session_id        TEXT,
+        prompt_ref_id     INTEGER REFERENCES dispatch_prompt_refs(id),
+        lease_owner       TEXT,
+        lease_expiry      INTEGER,
+        dispatch_key      TEXT,
+        parent_session_id TEXT,
+        call_id           TEXT,
+        created_at        INTEGER NOT NULL,
+        updated_at        INTEGER NOT NULL
       )
     `);
     db.run(`CREATE INDEX IF NOT EXISTS idx_dq_status_agent_created
@@ -1168,6 +1171,8 @@ export function initializeSchema(db: Database): void {
       ON dispatch_queue(lease_expiry)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_dq_dag_task
       ON dispatch_queue(dag_task_id)`);
+    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_dq_dispatch_key
+      ON dispatch_queue(dispatch_key) WHERE dispatch_key IS NOT NULL`);
 
     // ── dispatch_context: per-dispatch session context ─────────
     // Replaces per-dispatch ctx/{dagTaskId}.json files.
@@ -1895,6 +1900,229 @@ export function initializeSchema(db: Database): void {
     writeLog(SRC, "WARN", {
       event: "DB-SCHEMA-MIGRATION-SKIPPED",
       detail: `v26: ${e.message}`,
+    });
+  }
+
+  // ── v27: session_map parent_id ──
+  try {
+    db.run(`ALTER TABLE session_map ADD COLUMN parent_id TEXT DEFAULT ''`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (27, ?, 'v27: parent_id column added to session_map — FW-SESSION-PARENT-ID')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v27: session_map parent_id added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v27: ${e.message}`,
+    });
+  }
+
+  // ── v28: notifications + notification_readers ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS notifications (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      agent TEXT NOT NULL DEFAULT '',
+      dag_task_id TEXT DEFAULT '',
+      event_type TEXT NOT NULL,
+      data TEXT DEFAULT '{}',
+      created_at INTEGER NOT NULL
+    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS notification_readers (
+      reader_id TEXT NOT NULL,
+      last_seq INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (reader_id)
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_notif_session ON notifications(session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications(created_at)`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (28, ?, 'v28: notifications + notification_readers tables')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v28: notifications + notification_readers tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v28: ${e.message}`,
+    });
+  }
+
+  // ── v29: tool_enforcement table — anti-bypass v2 ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS tool_enforcement (
+      session_id TEXT PRIMARY KEY,
+      agent TEXT NOT NULL DEFAULT '',
+      consecutive_failures INTEGER NOT NULL DEFAULT 0,
+      total_failures INTEGER NOT NULL DEFAULT 0,
+      last_failure_tool TEXT DEFAULT '',
+      last_failure_type TEXT DEFAULT '',
+      last_failure_error TEXT DEFAULT '',
+      last_failure_at INTEGER NOT NULL DEFAULT 0,
+      last_before_at INTEGER NOT NULL DEFAULT 0,
+      last_after_at INTEGER NOT NULL DEFAULT 0,
+      stop_injected INTEGER NOT NULL DEFAULT 0,
+      total_blocks INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_te_agent ON tool_enforcement(agent)`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (29, ?, 'v29: tool_enforcement table — anti-bypass v2 全工具覆盖')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v29: tool_enforcement table created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v29: ${e.message}`,
+    });
+  }
+
+  // ── v30: compliance tracking — orphan before-hook detection ──
+  try {
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN compliance_blocks INTEGER NOT NULL DEFAULT 0`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN last_before_at INTEGER NOT NULL DEFAULT 0`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN last_after_at INTEGER NOT NULL DEFAULT 0`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (30, ?, 'v30: compliance tracking — orphan before-hook detection')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v30: compliance_blocks + last_before_at + last_after_at added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v30: ${e.message}`,
+    });
+  }
+
+  // ── v31: two-phase guidance gate ──
+  try {
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN awaiting_guidance INTEGER NOT NULL DEFAULT 0`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN guidance_token TEXT DEFAULT ''`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN guidance_requested_at INTEGER NOT NULL DEFAULT 0`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (31, ?, 'v31: two-phase guidance gate (awaiting_guidance + token + requested_at)')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v31: awaiting_guidance + guidance_token + guidance_requested_at added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v31: ${e.message}`,
+    });
+  }
+
+  // ── v32: soft_rejections table — per-tool rejection tracking ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS soft_rejections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      tool_name TEXT NOT NULL,
+      rejection_count INTEGER NOT NULL DEFAULT 1,
+      first_rejection_at INTEGER NOT NULL,
+      last_rejection_at INTEGER NOT NULL,
+      last_error TEXT DEFAULT '',
+      created_at INTEGER NOT NULL,
+      UNIQUE(session_id, tool_name)
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sr_session ON soft_rejections(session_id)`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (32, ?, 'v32: soft_rejections table for tool rejection tracking')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v32: soft_rejections table added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v32: ${e.message}`,
+    });
+  }
+
+  // ── v33: Phase 4 Minimal State — session_registry + session_events + tool_guidance_state ──
+  try {
+    // session_registry: merges session_map state + parent session tracking + Phase 5 alias metadata
+    db.run(`CREATE TABLE IF NOT EXISTS session_registry (
+      session_id        TEXT PRIMARY KEY,
+      parent_session_id TEXT DEFAULT NULL,
+      agent             TEXT NOT NULL DEFAULT 'pending',
+      agent_alias       TEXT DEFAULT NULL,
+      native_executor   TEXT DEFAULT NULL,
+      dag_task_id       TEXT DEFAULT NULL,
+      domain_id         TEXT DEFAULT NULL,
+      model_id          TEXT DEFAULT NULL,
+      status            TEXT DEFAULT 'active',
+      created_at        INTEGER NOT NULL,
+      updated_at        INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sreg_agent ON session_registry(agent)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sreg_parent ON session_registry(parent_session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sreg_status ON session_registry(status)`);
+
+    // session_events: append-only event log (merges session_log + dispatch trace)
+    db.run(`CREATE TABLE IF NOT EXISTS session_events (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id        TEXT NOT NULL,
+      parent_session_id TEXT DEFAULT NULL,
+      event_type        TEXT NOT NULL,
+      dag_task_id       TEXT DEFAULT NULL,
+      agent_type        TEXT NOT NULL DEFAULT '',
+      agent_alias       TEXT DEFAULT NULL,
+      native_executor   TEXT DEFAULT NULL,
+      loaded_skills     TEXT DEFAULT NULL,
+      run_id            TEXT DEFAULT NULL,
+      payload           TEXT DEFAULT NULL,
+      created_at        INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sevt_session ON session_events(session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sevt_dag ON session_events(dag_task_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sevt_type ON session_events(event_type)`);
+
+    // tool_guidance_state: merges tool_enforcement runtime fields + soft_rejections
+    // (Phase 3 added failure_count/guidance_required/tool_rejections columns to tool_enforcement;
+    //  this table provides a clean consolidated schema for future use)
+    db.run(`CREATE TABLE IF NOT EXISTS tool_guidance_state (
+      session_id            TEXT PRIMARY KEY,
+      agent                 TEXT NOT NULL DEFAULT '',
+      failure_count         INTEGER NOT NULL DEFAULT 0,
+      last_failure          TEXT DEFAULT '',
+      guidance_required     INTEGER NOT NULL DEFAULT 0,
+      tool_rejections       TEXT DEFAULT '',
+      last_failure_at       INTEGER NOT NULL DEFAULT 0,
+      stop_injected         INTEGER NOT NULL DEFAULT 0,
+      awaiting_guidance     INTEGER NOT NULL DEFAULT 0,
+      guidance_token        TEXT DEFAULT '',
+      guidance_text         TEXT DEFAULT '',
+      guidance_requested_at INTEGER NOT NULL DEFAULT 0,
+      created_at            INTEGER NOT NULL,
+      updated_at            INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_tgs_agent ON tool_guidance_state(agent)`);
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (33, ?, 'v33: Phase 4 Minimal State — session_registry + session_events + tool_guidance_state')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v33: session_registry + session_events + tool_guidance_state tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v33: ${e.message}`,
     });
   }
 }

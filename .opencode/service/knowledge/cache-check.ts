@@ -2,6 +2,7 @@
 // BUN-CACHE-VERSION: 2026-06-24-SA-FIX-v2 — verified fix
 // Phase 3 (v19 DB-Canonical): enforcement sources unified to uc7ks_pipeline_state
 import * as fs from "node:fs";
+import { shouldBlock } from "../enforcement/rule-disposition";
 import * as path from "node:path";
 // readCachedSessionAccess moved to uc7ks-schema
 // import { readCachedSessionAccess } from "./uc7ks-schema";
@@ -218,19 +219,18 @@ function tryBuildEnforcementFromDb(
 export function buildUC7KSError(
   agent: string,
   tool: string,
-  mode: string,
   cacheAvail: boolean,
   reason: string,
 ): string {
   return [
     `╔══════════════════════════════════════════════════════════════╗`,
-    `║  UC7KS PIPELINE ENFORCEMENT — ${mode.toUpperCase()} MODE                      ║`,
+    `║  UC7KS PIPELINE ENFORCEMENT — POLICY CHECK                  ║`,
     `║  Tool: ${tool.padEnd(48)}║`,
     `║  Agent: ${(agent || "unknown").padEnd(48)}║`,
     `║  Reason: ${reason.padEnd(48)}║`,
     `║  Cache: ${(cacheAvail ? "AVAILABLE" : "NOT INITIALIZED").padEnd(48)}║`,
     `║  REMEDIATION: 1) read docs/official_docs/index.json         ║`,
-    `║  2) If insufficient: dispatch @Knowledge-Curator            ║`,
+    `║  2) If insufficient: Task or dispatch @Knowledge-Curator    ║`,
     `║  3) Re-read cached docs → proceed with task                 ║`,
     `╚══════════════════════════════════════════════════════════════╝`,
   ].join("\n");
@@ -260,11 +260,11 @@ const CORE_EXTERNAL_TOOLS = new Set([
  * Added 2026-06-27 as part of CodeGraph MCP integration.
  */
 const CODEGRAPH_TOOLS = new Set([
-  "codegraph_search",
+  "codegraph_query",
   "codegraph_explore",
   "codegraph_callers",
   "codegraph_callees",
-  "codegraph_impact",
+  "codegraph_explore",
   "codegraph_node",
   "codegraph_status",
   "codegraph_files",
@@ -295,7 +295,6 @@ function getExternalTools(): Set<string> {
 export function checkUC7KS(
   tool: string,
   agent: string,
-  mode: string,
 ): string | null {
   // CodeGraph tools query local code structure — exempt from UC7KS pipeline
   if (CODEGRAPH_TOOLS.has(tool)) return null;
@@ -322,7 +321,6 @@ export function checkUC7KS(
     return buildUC7KSError(
       agent,
       tool,
-      mode,
       true,
       "UC7-001: Agent has not read local knowledge cache before external query.",
     );
@@ -397,9 +395,8 @@ export function checkUC7KS(
             return buildUC7KSError(
               agent,
               tool,
-              mode,
               true,
-              `UC7-001b: Cache sufficiency not declared (status: ${flat.cache_sufficiency?.status || "undeclared"}). See subagent-preamble.md Step 0c.`,
+              `UC7-001b: Cache sufficiency not declared (status: ${flat.cache_sufficiency?.status || "undeclared"}). See investigation-evidence Skill for evidence requirements.`,
             );
           }
         }
@@ -422,10 +419,9 @@ export function checkUC7KS(
           return buildUC7KSError(
             agent,
             tool,
-            mode,
             true,
             `UC7-001c: Cache sufficiency evidence incomplete. Missing: ${missing.join(", ")}. ` +
-              `Must provide reason, files_read, and content_summary. See preamble Step 0.`,
+              `Must provide reason, files_read, and content_summary. See preflight-lite Skill for execution steps.`,
           );
         }
       }
@@ -437,14 +433,13 @@ export function checkUC7KS(
     }
   }
 
-  if (mode === "advisory" || mode === "strict") {
+  if (shouldBlock("knowledge-external-query")) {
     if (cacheAvailable) {
       return buildUC7KSError(
         agent,
         tool,
-        mode,
         true,
-        `Local cache exists. Agent must search cached docs before external queries (${mode} mode).`,
+        `Local cache exists. Agent must search cached docs before external queries.`,
       );
     }
     return null;
@@ -453,9 +448,8 @@ export function checkUC7KS(
   return buildUC7KSError(
     agent,
     tool,
-    "locked",
     cacheAvailable,
-    "LOCKED mode: ALL direct external queries blocked. Must use @Knowledge-Curator.",
+    "Direct external queries must use @Knowledge-Curator or the local cache workflow.",
   );
 }
 
@@ -465,6 +459,5 @@ export function checkUC7KS(
  * writing a source file. SA has emergency bypass when cache is unhealthy.
  *
  * @param agent  Resolved agent name (e.g., "@Coder-BE")
- * @param mode   Enforcement mode ("advisory" | "strict" | "locked")
  * @returns Error string if blocked, null if allowed
  */

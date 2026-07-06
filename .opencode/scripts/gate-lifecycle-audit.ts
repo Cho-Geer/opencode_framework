@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // gate-lifecycle-audit.ts — P4-003
 // Audits gate sessions for lifecycle compliance via DB (Post-Step-8 migration).
 // --auto-drain flag moves stale sessions (>24h armed) to drained_sessions.

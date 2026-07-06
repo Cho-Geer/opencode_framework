@@ -66,43 +66,29 @@ if [ "$_AGENT_NORM" = "Super-Admin" ]; then
   exit 0
 fi
 
-# ── Resolve Enforcement Mode ─────────────────────────────────────────
-# Priority: ENFORCEMENT_MODE env var > project.config.json > default "advisory"
-ENF_MODE="advisory"
+# ── Resolve Compatibility Mode ───────────────────────────────────────
+# Single-policy runtime: if enforcement_policy exists, use strict compat.
+# Legacy dual-key mode fields are fallback only. ENFORCEMENT_MODE override removed.
+ENF_MODE="strict"
 if [ -f "${PROJECT_ROOT}/.opencode/project.config.json" ] && { command -v bun &>/dev/null || command -v bun &>/dev/null; }; then
-  # CRIT-2a FIX: PATH-resolved bun (was /home/zhaoge/.bun/bin/bun)
-  # CRIT-2b FIX: JSON.parse(fs.readFileSync) replaces require() for safe JSON loading
-  # CRIT-2c FIX: Dual-key enforcement mode (develop_enforcement_mode || runtime_enforcement_mode)
   ENF_MODE=$(bun -e "
     try {
       const cfg = JSON.parse(require('fs').readFileSync('${PROJECT_ROOT}/.opencode/project.config.json', 'utf8'));
-      const mode = cfg.template_resolution?.develop_enforcement_mode || cfg.template_resolution?.runtime_enforcement_mode;
-      console.log(mode && ['advisory','strict','locked'].includes(mode) ? mode : 'advisory');
-    } catch(e) { console.log('advisory'); }
-  " 2>/dev/null || echo "advisory")
+      if (cfg.enforcement_policy) {
+        console.log('strict');
+      } else {
+        const mode = cfg.template_resolution?.develop_enforcement_mode || cfg.template_resolution?.runtime_enforcement_mode;
+        console.log(mode && ['advisory','strict','locked'].includes(mode) ? mode : 'strict');
+      }
+    } catch(e) { console.log('strict'); }
+  " 2>/dev/null || echo "strict")
 fi
 
-if [ -n "${ENFORCEMENT_MODE:-}" ]; then
-  local_env="${ENFORCEMENT_MODE}"
-  case "$local_env" in
-    advisory|strict|locked)
-      if [ "$ENF_MODE" != "locked" ]; then
-        ENF_MODE="$local_env"
-      fi
-      ;;
-  esac
-fi
-
-# Helper: emit warning or error based on enforcement mode
+# Helper: emit compatibility-mode failure
 enf_exit() {
   local msg="$1"
-  if [ "$ENF_MODE" = "advisory" ]; then
-    echo "⚠️  [ADVISORY] ${msg} (non-blocking in advisory mode)"
-    return 0
-  else
-    echo "❌ [${ENF_MODE}] ${msg}"
-    exit 1
-  fi
+  echo "❌ [${ENF_MODE}] ${msg}"
+  exit 1
 }
 
 # ══════════════════════════════════════════════════════════════════════
@@ -119,12 +105,8 @@ if [ -f "$PRE_EXEC_GATE" ] && command -v bun &>/dev/null; then
     echo ""
   else
     GATE_EXIT=$?
-    if [ "$ENF_MODE" = "advisory" ]; then
-      echo "  ⚠️  [ADVISORY] Stage 1 pre-execution gate had warnings (non-blocking)."
-    else
-      echo "  ❌ [${ENF_MODE}] Stage 1 pre-execution gate FAILED — dispatch blocked."
-      exit $GATE_EXIT
-    fi
+    echo "  ❌ [${ENF_MODE}] Stage 1 pre-execution gate FAILED — dispatch blocked."
+    exit $GATE_EXIT
   fi
 else
   echo "  ℹ️  pre-execution-gate.ts not found or bun unavailable — skipping Stage 1."
@@ -251,16 +233,16 @@ CRITICAL_MODIFIED=$(git diff HEAD --name-only -- \
   ".opencode/rules/common-project.md" \
   ".opencode/rules/mcp-compliance-guide.md" \
   ".opencode/rules/skill-compliance-guide.md" \
-  ".opencode/agents/Meta-Planner.md" \
   ".opencode/agents/Orchestrator.md" \
-  ".opencode/agents/Coder-BE.md" \
-  ".opencode/agents/Coder-FE.md" \
-  ".opencode/agents/Guardian.md" \
-  ".opencode/agents/Arbiter.md" \
-  ".opencode/agents/CI-CD-Agent.md" \
-  ".opencode/agents/Super-Admin.md" \
-  ".opencode/agents/Knowledge-Curator.md" \
-  ".opencode/agents/Architect.md" \
+  ".opencode/legacy/agent-profiles/Meta-Planner.md" \
+  ".opencode/legacy/agent-profiles/Coder-BE.md" \
+  ".opencode/legacy/agent-profiles/Coder-FE.md" \
+  ".opencode/legacy/agent-profiles/Guardian.md" \
+  ".opencode/legacy/agent-profiles/Arbiter.md" \
+  ".opencode/legacy/agent-profiles/CI-CD-Agent.md" \
+  ".opencode/legacy/agent-profiles/Super-Admin.md" \
+  ".opencode/legacy/agent-profiles/Knowledge-Curator.md" \
+  ".opencode/legacy/agent-profiles/Architect.md" \
   ".opencode/project.config.json" \
   ".opencode/lib/gate-core.ts" \
   ".opencode/lib/dag-policy.ts" \

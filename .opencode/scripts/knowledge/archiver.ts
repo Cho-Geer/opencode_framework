@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 /**
  * archiver.js — UC7KS Knowledge Archiver v1.0.0
  *

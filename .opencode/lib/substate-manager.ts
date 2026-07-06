@@ -35,7 +35,9 @@ export const SUBSTATE_FILES: Record<SubStateKey, string> = {
   knowledge_state: "knowledge-state.json",
   config_read_state: "config-read-state.json",
   diagnostic_baseline: "diagnostic-baseline.json",
-  tool_audit_state: "tool-audit-state.json",
+  skill_read_state: "skill_read_state",
+    rule_read_state: "rule_read_state",
+    tool_audit_state: "tool-audit-state.json",
 };
 
 const SRC = "lib-substate-manager";

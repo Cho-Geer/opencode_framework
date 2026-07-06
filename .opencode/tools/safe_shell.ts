@@ -1,6 +1,8 @@
 import { tool } from "@opencode-ai/plugin";
 import { safeBashTool } from "../service/file-guard";
 import { withInterruptGuard } from "../lib";
+import { writeLog } from "../lib/log-manager";
+import { writeJsonl } from "../lib/jsonl-writer";
 
 export default tool({
   description:
@@ -16,9 +18,25 @@ export default tool({
       .boolean()
       .optional()
       .describe("Validate without executing"),
+    breakGlass: tool.schema
+      .boolean()
+      .optional()
+      .describe("Emergency override: skip path restrictions, log audit trail."),
   },
   async execute(args, context) {
     return withInterruptGuard("safe_shell", async () => {
+      // breakGlass audit logging (actual bypass is handled by behavioral-path-guard plugin)
+      if (args.breakGlass) {
+        writeLog("safe-shell", "WARN", {
+          event: "BREAK-GLASS-SAFE-SHELL",
+          command: args.command?.slice(0, 200),
+          agent: context.agent ?? "unknown",
+        });
+        writeJsonl("break-glass", {
+          event: "safe_shell_break_glass",
+          command: args.command?.slice(0, 200),
+        }, { tool: "safe_shell" });
+      }
       const agent = context.agent ?? "unknown";
       const result = safeBashTool({
         command: args.command,

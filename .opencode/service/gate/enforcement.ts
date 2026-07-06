@@ -1,5 +1,5 @@
-// service/gate/enforcement.ts — Enforcement mode resolution + framework paths
-// Source: gate-core.ts (enforcement mode, framework paths, DAG validation, error class)
+// service/gate/enforcement.ts — Compatibility bridge + framework paths
+// Source: gate-core.ts (framework paths, DAG validation, error class)
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -16,20 +16,8 @@ import {
   type DagProgressResult,
 } from "./store";
 
-const VALID_MODES: ReadonlySet<string> = new Set([
-  "advisory",
-  "strict",
-  "locked",
-]);
-
-const STRICTNESS_ORDER: Readonly<Record<EnforcementMode, number>> = {
-  advisory: 0,
-  strict: 1,
-  locked: 2,
-};
-
 // ════════════════════════════════════════════════
-// ENFORCEMENT MODE
+// COMPAT MODE SHIMS
 // ════════════════════════════════════════════════
 
 function isEnforcementDebugEnabled(root?: string): boolean {
@@ -56,93 +44,22 @@ function isEnforcementDebugEnabled(root?: string): boolean {
   return false;
 }
 
-export function getEnforcementMode(root?: string): EnforcementMode {
-  const envMode = process.env.ENFORCEMENT_MODE;
-  const projectRoot = root || getProjectRoot();
-
-  const cfgPath = path.join(projectRoot, ".opencode", "project.config.json");
-  let configMode: EnforcementMode = "advisory";
-
-  try {
-    if (fs.existsSync(cfgPath)) {
-      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
-      const tr = cfg.template_resolution;
-      const mode = tr?.develop_enforcement_mode || tr?.runtime_enforcement_mode;
-      if (mode && VALID_MODES.has(mode)) {
-        configMode = mode;
-      }
-    }
-  } catch {
-    // use default
-  }
-
-  if (isEnforcementDebugEnabled(projectRoot)) {
-    try {
-      // Diagnostic logging available when DEBUG contains "enforcement"/"gate-core"
-    } catch (_diagErr) {
-      // Diagnostic failure is non-blocking
-    }
-  }
-
-  if (envMode && VALID_MODES.has(envMode)) {
-    if (configMode === "locked") return "locked";
-    return envMode as EnforcementMode;
-  }
-
-  return configMode;
+/**
+ * @deprecated Use getRuleDisposition(ruleId) from service/enforcement/rule-disposition.ts instead.
+ * Legacy compat shim: always returns "strict". Will be removed after all callers migrate.
+ */
+export function getEnforcementMode(_root?: string): EnforcementMode {
+  // Phase 3 T3.1: Legacy compatibility shim only.
+  // New runtime code should use getRuleDisposition(ruleId) instead.
+  return "strict";
 }
 
-export function getEnforcementModeWithSource(
-  root?: string,
-): EnforcementModeWithSource {
-  const envModeRaw = process.env.ENFORCEMENT_MODE;
-  const projectRoot = root || getProjectRoot();
-
-  let configMode: EnforcementMode = "advisory";
-  const cfgPath = path.join(projectRoot, ".opencode", "project.config.json");
-  try {
-    if (fs.existsSync(cfgPath)) {
-      const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf-8"));
-      const tr = cfg.template_resolution;
-      const mode = tr?.develop_enforcement_mode || tr?.runtime_enforcement_mode;
-      if (mode && VALID_MODES.has(mode)) {
-        configMode = mode as EnforcementMode;
-      }
-    }
-  } catch {
-    // use default
-  }
-
-  const envMode: EnforcementMode | null =
-    envModeRaw && VALID_MODES.has(envModeRaw)
-      ? (envModeRaw as EnforcementMode)
-      : null;
-
-  let finalMode = configMode;
-  let downgraded = false;
-  let downgradeReason: string | null = null;
-
-  if (envMode) {
-    if (configMode === "locked") {
-      finalMode = "locked";
-    } else {
-      finalMode = envMode;
-    }
-  }
-
-  if (envMode && configMode !== "locked") {
-    const envStrictness = STRICTNESS_ORDER[envMode];
-    const cfgStrictness = STRICTNESS_ORDER[configMode];
-    if (envStrictness < cfgStrictness) {
-      downgraded = true;
-      downgradeReason =
-        `ENFORCEMENT_MODE env var (${envMode}) is less strict than ` +
-        `project.config.json develop_enforcement_mode (${configMode}). ` +
-        `Expected at least "${configMode}" but got "${envMode}".`;
-    }
-  }
-
-  return { configMode, envMode, finalMode, downgraded, downgradeReason };
+/**
+ * @deprecated Use getRuleDisposition(ruleId) instead. Compat shim.
+ */
+export function getEnforcementModeWithSource(_root?: string): EnforcementModeWithSource {
+  // Phase 3 T3.1: Compat shim
+  return { mode: "strict", source: "rule-disposition-compat", envOverride: false };
 }
 
 // ════════════════════════════════════════════════

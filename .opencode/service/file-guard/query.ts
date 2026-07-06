@@ -4,7 +4,8 @@
 
 import { resolveBaseline, captureStat, type StatSnapshot } from "./baseline";
 import { getBackup, findLatestBackup as findLatestGitBackup, type BackupRecord } from "./backup";
-import { getReadEventsForSession, verifyRead, type ReadAuditEntry, type ReadVerifyResult } from "./read-audit-verify";
+import { getReadEventsForSession, verifyRead, type ReadVerifyResult } from "./read-audit-verify";
+import { type ReadAuditEntry } from "./read-audit-write";
 
 export {
   // Baseline queries

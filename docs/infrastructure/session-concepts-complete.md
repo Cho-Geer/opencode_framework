@@ -1,8 +1,9 @@
 # OpenCode 框架 Session 概念完整体系
 
-**版本**: v1.0.0  
+**版本**: v1.1.0  
 **创建日期**: 2026-06-28  
-**状态**: 完整调查报告  
+**更新日期**: 2026-07-01  
+**状态**: 完整调查报告 
 **数据库**: `.opencode/state/framework-state.db`（Bun SQLite，WAL 模式）  
 **参考**: [session-task-dag-agent-tracking.md](./session-task-dag-agent-tracking.md)（更详细的追踪架构）
 
@@ -198,6 +199,7 @@ CREATE TABLE gate_sessions (
     session_id        TEXT PRIMARY KEY,    -- "cg_ses_{timestamp}"
     task_desc         TEXT NOT NULL,
     status            TEXT NOT NULL,       -- checked/armed/delivered/approved/completed/failed/drained
+    version           INTEGER NOT NULL DEFAULT 1,  -- F2 迁移: 乐观锁版本号
     agent             TEXT,
     task_id           TEXT,                -- DAG task ID
     plan_summary      TEXT,
@@ -257,7 +259,7 @@ CREATE TABLE dispatch_queue (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     status          TEXT NOT NULL DEFAULT 'pending',
     agent_type      TEXT NOT NULL,
-    dag_task_id     TEXT,
+    dag_task_id     TEXT NOT NULL,
     session_id      TEXT,
     prompt_ref_id   INTEGER REFERENCES dispatch_prompt_refs(id),
     lease_owner     TEXT,
@@ -305,16 +307,16 @@ CREATE TABLE session_log (
 
 | 文件 | 角色 |
 |------|------|
-| `.opencode/lib/db-manager.ts` | SQLite 连接单例；完整 schema 初始化（25 次迁移） |
+| `.opencode/lib/db-manager.ts` | SQLite 连接单例；完整 schema 初始化（26 次迁移） |
 | `.opencode/lib/db-state-manager.ts` | CRUD API：session_map、session_log、gate_store、dispatch_queue 等 |
 | `.opencode/lib/agent-resolver.ts` | 多优先级 agent/dag_task/domain 解析 |
-| `.opencode/lib/gate-core.ts` | 门会话生命周期：创建、武装、排空；执行模式解析 |
+| `.opencode/lib/gate-core.ts` | **桥接文件**（1.9KB）— re-export 自 `service/gate/`；实际逻辑在 store.ts + session-crud.ts |
 | `.opencode/service/gate/store.ts` | GateSession 类型定义、GateStore I/O、ID 生成 |
 | `.opencode/service/gate/session-crud.ts` | 门会话 CRUD：create、arm、complete、deliverables |
 | `.opencode/plugins/session.ts` | 会话生命周期钩子；启动清理；轮次汇总生成 |
-| `.opencode/plugins/gate-before.ts` | 启动时自动武装门；修改类工具的门武装检查 |
-| `.opencode/plugins/task-before.ts` | DISPATCH-INTEGRITY 哈希校验；dispatch_queue 租用 |
-| `.opencode/plugins/task-after.ts` | session_log 持久化；dispatch_queue 消费 |
+| `.opencode/plugin-handlers/before/gate.ts` | 启动时自动武装门；修改类工具的门武装检查 |
+| `.opencode/plugin-handlers/before/dispatch.ts` | DISPATCH-INTEGRITY 哈希校验；dispatch_queue 租用 |
+| `.opencode/plugin-handlers/after/dispatch.ts` | session_log 持久化；dispatch_queue 消费 |
 | `.opencode/tools/dispatch_subagent.ts` | 主导派发工具；PLAN-FIRST 第 2 层；子槽位 + ctx 写入 |
 | `.opencode/scripts/command-tools/dispatch-subagent.ts` | CLI 脚本：Agent 配置读取、提示词生成、DISPATCH_TOKEN 嵌入 |
 | `.opencode/state/framework-state.db` | Bun SQLite 数据库（WAL 模式）— 所有 Session 数据的唯一规范来源 |
@@ -328,7 +330,7 @@ CREATE TABLE session_log (
 | 1 | **OpenCode Session** | `ses_*` | OpenCode 上游 | `session_map` DB | 会话级 Agent 身份绑定 + 对话历史 |
 | 2 | **Gate Session** | `cg_ses_{ts}` | `store.ts:519` | `gate_sessions` DB | 合规门生命周期管控 |
 | 3a | **Dispatch Queue** | 自增整数 | `dispatch_subagent.ts` | `dispatch_queue` DB | 派发 FIFO 队列 + 租约管理 |
-| 3b | **Session Log** | 子 Agent 的 `ses_*` | `task-after.ts` | `session_log` DB | 子 Agent 会话恢复 + 追踪 |
+| 3b | **Session Log** | 子 Agent 的 `ses_*` | `plugin-handlers/after/dispatch.ts` | `session_log` DB | 子 Agent 会话恢复 + 追踪 |
 | 4 | **Session Namespace** | 字符串 | `dispatch_subagent` 参数 | `.task_temp/{ns}/` | 任务产物目录隔离 |
 | 5 | **Session Map** | `ses_*` 为 PK | `session.ts` + 工具 | `session_map` DB | Agent/DAG/Domain 关联枢纽 |
 

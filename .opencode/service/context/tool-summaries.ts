@@ -18,10 +18,9 @@ export const TOOL_SUMMARIES: Record<string, string> = {
 
   // ── codegraph (9 tools) ──
   "codegraph_query": "搜索代码符号",
-  "codegraph_impact": "分析修改某符号的影响范围",
+  "codegraph_explore": "分析修改某符号的影响范围",
   "codegraph_callers": "查找调用某符号的所有函数",
   "codegraph_callees": "查找某函数调用的所有函数",
-  "codegraph_explore": "探索代码区域的相关符号",
   "codegraph_node": "查看单个符号的源码和调用链",
   "codegraph_files": "查看项目文件结构",
   "codegraph_status": "查看索引状态",

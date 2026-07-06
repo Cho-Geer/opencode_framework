@@ -25,7 +25,7 @@ export interface ProjectConfig {
 // ── Framework task keywords (avoid business-stack injection) ──
 const FRAMEWORK_TASK_KEYWORDS = [
   "framework-self-test", "checklist", "db-canonical", "p0-checklist",
-  "dispatch-subagent", "subagent-preamble", "scope-before", "checklist-before",
+  "dispatch-subagent", "dispatch-protocol", "scope-before", "checklist-before",
   "execution-checklist", "framework-doctor", "e2e-final", "e2e-test",
   "framework-state.db",
 ];
