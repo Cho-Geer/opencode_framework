@@ -5,11 +5,12 @@ import { resolveAgent } from "../../lib/agent-resolver";
 import { isCodeGraphExemptAgent, getCodeGraphExemptPatterns } from "../../service/enforcement/exemptions";
 import { shouldBlock } from "../../service/enforcement/rule-disposition";
 import { readImpactState } from "../../service/file-guard/codegraph-state";
+import { classifyRepoShellCommand, isRepoReadOperation } from "../../service/repo/classify";
 
 export const name = "codegraph";
-export const tools = ["safe_edit", "safe_delete", "safe_restore", "safe_shell", "bash"];
+export const tools = ["safe_edit", "safe_delete", "safe_restore", "safe_shell", "bash", "safe_framework_edit"];
 
-const INTERCEPTED_TOOLS = new Set(["safe_edit", "safe_delete", "safe_restore", "safe_shell", "bash"]);
+const INTERCEPTED_TOOLS = new Set(["safe_edit", "safe_delete", "safe_restore", "safe_shell", "bash", "safe_framework_edit"]);
 
 function toRelative(filePath: string): string {
   const root = process.env.OPENCODE_ROOT || process.cwd();
@@ -61,6 +62,7 @@ function extractFilePath(tool: string, args: any): string {
   if (!args) return "";
   switch (tool) {
     case "safe_edit":
+    case "safe_framework_edit":
       return (args.filePath || args.file_path || args.path || "").toString();
     case "safe_delete":
     case "safe_restore":
@@ -94,6 +96,34 @@ export async function handle(input: any, output: any): Promise<void> {
   const sessionId = input.sessionID || "unknown";
   const agent = resolveAgent(sessionId);
 
+  // Repo operation detection for safe_shell/bash commands
+  if (tool === "safe_shell" || tool === "bash") {
+    const command = (input.args?.command || output.args?.command || "").toString();
+    if (command) {
+      const repoOp = classifyRepoShellCommand(command);
+      if (repoOp.provider === "git" || repoOp.provider === "gh") {
+        if (isRepoReadOperation(repoOp)) {
+          writeLog("plugin-codegraph-enforce", "INFO", {
+            event: "CODEGRAPH-ENFORCE-SKIP-REPO-READ", agent, sessionId, tool,
+            detail: `Repo read operation (${repoOp.kind}): ${command.slice(0, 80)}`,
+          });
+          return;
+        }
+        writeLog("plugin-codegraph-enforce", "WARN", {
+          event: "CODEGRAPH-ENFORCE-BLOCK-REPO-WRITE", agent, sessionId, tool,
+          detail: `Repo ${repoOp.kind} via safe_shell blocked: ${command.slice(0, 80)}`,
+        });
+        throw new Error(
+          `[FW-ENFORCE][REPO-OP] Direct git/gh ${repoOp.kind} operations through safe_shell are blocked.\n` +
+          `Use safe_repo_* first-class tools instead. Operation: ${repoOp.kind}\n` +
+          `Command: ${command.slice(0, 120)}\n\n` +
+          `Read tools: safe_repo_status, safe_repo_diff, safe_repo_log, safe_repo_show, safe_repo_branch\n` +
+          `Write tools: safe_repo_stage, safe_repo_unstage, safe_repo_commit (require repo_maintenance grant)\n`
+        );
+      }
+    }
+  }
+
   // Config-driven: reads from enforcement_exemptions.codegraph.exempt_agents
   if (isCodeGraphExemptAgent(agent)) return;
   if (!shouldBlock("source-edit-without-codegraph")) return;
@@ -125,7 +155,7 @@ export async function handle(input: any, output: any): Promise<void> {
     "  2. codegraph_explore(\"<target_symbol>\") — assess change impact\n" +
     "  3. Review affected files\n" +
     "  4. Then retry " + tool + "\n\n" +
-    "Exemptions: .task_temp/**, docs/**, .opencode/agents/*.md, @Super-Admin" +
+    "Exemptions: configured path exemptions only. Repo writes require safe_repo_* grant." +
     "\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path."
   );
 }

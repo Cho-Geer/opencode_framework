@@ -1,3 +1,7 @@
+// ────────────────────────────────────────────────────────────────────
+// LEGACY HANDLER — NOT in active execution_order
+// Kept as delegate dependency or for rollback only.
+// ────────────────────────────────────────────────────────────────────
 // plugin-handlers/before/config-guard.ts — Hook config bypass prevention + plugin parts guard
 // Migrated from plugins/hook-config-guard.ts
 import { writeLog } from "../../lib/log-manager";

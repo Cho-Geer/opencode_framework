@@ -119,6 +119,13 @@ export function bindGrant(dispatchKey: string, childSessionId: string): Privileg
   const db = getDb();
   const now = Date.now();
 
+  writeLog(SRC, "INFO", {
+    event: "GRANT-BIND-QUERY",
+    dispatchKey,
+    childSessionId,
+    detail: `Querying pending grants for dispatch_key=${dispatchKey.slice(0, 16)}...`,
+  });
+
   const row = db.query(
     `SELECT * FROM dispatch_privilege_grants
      WHERE dispatch_key = ? AND status = 'pending' AND expires_at > ?
@@ -130,6 +137,7 @@ export function bindGrant(dispatchKey: string, childSessionId: string): Privileg
       event: "GRANT-BIND-NO-MATCH",
       dispatchKey,
       childSessionId,
+      detail: `No pending grant found (dispatch_key=${dispatchKey.slice(0, 16)}... expired or already bound)`,
     });
     return null;
   }
@@ -146,6 +154,10 @@ export function bindGrant(dispatchKey: string, childSessionId: string): Privileg
     grantId: row.id,
     childSessionId,
     dispatchKey,
+    privilege: row.privilege,
+    agentType: row.agent_type,
+    dagTaskId: row.dag_task_id || "none",
+    detail: `Grant bound successfully | grant=${row.id} child=${childSessionId}`,
   });
 
   return { ...row, child_session_id: childSessionId, status: "bound", bound_at: now };

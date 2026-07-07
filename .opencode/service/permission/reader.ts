@@ -111,7 +111,11 @@ export function resetOpencodeConfigCache(): void {
 }
 
 // ── Per-agent permission lookup ──
+// DEPRECATED (2026-07-07): Per-agent permission reading is being replaced by
+// behavior-based enforcement. Callers: isPathAllowedForAgent(), getAgentShellAllowlist().
+// Migration: convert callers to check tool + path + operation, not agent identity.
 
+/** @deprecated Per-agent permission reader — migrate to behavior-based enforcement. */
 export function getAgentPermission(agentName: string): AgentPermission | null {
   const cfg = readOpencodeConfig();
   if (!cfg) {

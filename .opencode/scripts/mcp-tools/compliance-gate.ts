@@ -48,6 +48,13 @@ gateServer.registerTool("compliance_gate_check", {
     task_id: z.string().optional(),
     plan_summary: z.string().optional().describe("OPTIONAL combined check+confirm flow. If provided AND check passes, gate is armed in single call."),
     agent: z.string().optional(),
+    declared_deliverables: z.array(z.object({
+      name: z.string().min(1).describe("File name or deliverable identifier (e.g. 'HANDOVER.md')"),
+      description: z.string().min(5).describe("What this deliverable contains, at least 5 characters"),
+    })).optional().describe(
+      "Used in combined check+confirm flow. Array of deliverable objects with {name, description (≥5 chars)}. " +
+      "Example: [{\"name\": \"HANDOVER.md\", \"description\": \"Handover document for next agent\"}]."
+    ),
   },
 }, (args) => {
   const result = checkGateCompliance(args.task_description || "", args.task_id);
@@ -56,10 +63,10 @@ gateServer.registerTool("compliance_gate_check", {
     if (planSummary.trim().length < 10) {
       return { content: [{ type: "text" as const, text: JSON.stringify({ ...result, combined: true, combined_status: "rejected_plan_too_short" }, null, 2) }], isError: true };
     }
-    const armResult = confirmGateSession(result.session_id, planSummary, args.agent, args.task_id, (args as any).declared_deliverables);
+    const armResult = confirmGateSession(result.session_id, planSummary, args.agent, args.task_id, args.declared_deliverables);
     if (armResult.status === "armed") {
       const merged = { ...result, combined: true, combined_status: "armed", confirmed_at: armResult.confirmed_at, expires_at: armResult.expires_at };
-      return { content: [{ type: "text" as const, text: JSON.stringify(merged, null, 2) + buildReminderText(result.session_id, armResult.plan_summary, armResult.expires_at) }], isError: false };
+      return { content: [{ type: "text" as const, text: JSON.stringify(merged, null, 2) + buildReminderText(result.session_id!, armResult.plan_summary!, armResult.expires_at!) }], isError: false };
     }
     return { content: [{ type: "text" as const, text: JSON.stringify({ ...result, combined: true, combined_status: "arm_failed", combined_reason: armResult.reason }, null, 2) }], isError: true };
   }
@@ -72,14 +79,21 @@ gateServer.registerTool("compliance_gate_confirm", {
   inputSchema: {
     session_id: z.string(),
     plan_summary: z.string(),
-    declared_deliverables: z.string().optional(),
+    declared_deliverables: z.array(z.object({
+      name: z.string().min(1).describe("File name or deliverable identifier (e.g. 'HANDOVER.md')"),
+      description: z.string().min(5).describe("What this deliverable contains, at least 5 characters"),
+    })).optional().describe(
+      "Array of deliverable objects. Each MUST have {name: string, description: string (≥5 chars)}. " +
+      "Example: [{\"name\": \"HANDOVER.md\", \"description\": \"Handover document for next agent\"}]. " +
+      "Do NOT pass bare string arrays like [\"HANDOVER.md\"]."
+    ),
     task_id: z.string().optional(),
     agent: z.string().optional(),
   },
 }, (args) => {
   const result = confirmGateSession(args.session_id, args.plan_summary, args.agent, args.task_id, args.declared_deliverables);
   if (result.status === "armed") {
-    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) + buildReminderText((result as any).session_id!, result.plan_summary, result.expires_at!) }], isError: false };
+    return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) + buildReminderText((result as any).session_id!, result.plan_summary!, result.expires_at!) }], isError: false };
   }
   return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }], isError: result.status !== "armed" };
 });

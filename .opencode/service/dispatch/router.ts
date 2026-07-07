@@ -134,7 +134,9 @@ export interface DispatchInput {
   worktree: string;
   dispatch_privilege?: string;
   allowed_paths?: string[];
+  allowed_remotes?: string[];
   privilege_reason?: string;
+  callId?: string;
 }
 
 export interface DispatchResult {
@@ -149,7 +151,7 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   const {
     agentType, taskDescription, dagTaskId, sessionNamespace,
     autoPlan: autoPlanFlag, resumeSessionId,
-    callerAgent, sessionId, worktree,
+    callerAgent, sessionId, worktree, callId,
   } = input;
   const target = resolveDispatchTarget(agentType, worktree);
 
@@ -162,7 +164,8 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   const isKCTarget = isKC(target.requestedAgent);
 
   // ── P1: Privilege grant validation ──
-  const { dispatch_privilege, allowed_paths, privilege_reason } = input;
+  const { dispatch_privilege, allowed_paths, allowed_remotes, privilege_reason } = input;
+  let dispatchKey: string | null = null;
   if (dispatch_privilege) {
     if (!isOrchestrator) {
       writeLog(SRC, "ERROR", {
@@ -174,6 +177,13 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
         `[FW-ENFORCE][PRIVILEGE] Only Orchestrator can create privilege grants. Caller: ${callerAgent}`
       );
     }
+    dispatchKey = require("node:crypto").randomUUID();
+    writeLog(SRC, "INFO", {
+      event: "DISPATCH-KEY-GENERATED",
+      dispatchKey,
+      privilege: dispatch_privilege,
+      callerAgent,
+    });
   }
 
   // ── Auto-generate tracking UUID if dag_task_id missing ──
@@ -294,6 +304,7 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   scriptArgs.push(taskDescription);
 
   let outputFilePath: string;
+  let parsedQueueId: string | null = null;
   try {
     const stdout = execFileSync("/home/zhaoge/.bun/bin/bun", ["--no-cache", scriptPath, ...scriptArgs], {
       encoding: "utf8", timeout: 60000, stdio: ["pipe", "pipe", "pipe"],
@@ -304,14 +315,28 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
         ...(ns ? { DISPATCH_NAMESPACE: ns } : {}),
         ...(effectiveDagTaskId ? { DISPATCH_DAG_TASK_ID: effectiveDagTaskId } : {}),
         ...(resumeSessionId ? { DISPATCH_RESUME_SESSION_ID: resumeSessionId } : {}),
+        ...(dispatchKey ? { DISPATCH_KEY: dispatchKey } : {}),
+        ...(dispatch_privilege ? { DISPATCH_PRIVILEGE: dispatch_privilege } : {}),
+        ...(allowed_paths?.length ? { DISPATCH_ALLOWED_PATHS: allowed_paths.join(",") } : {}),
+        ...(allowed_remotes?.length ? { DISPATCH_ALLOWED_REMOTES: allowed_remotes.join(",") } : {}),
+        ...(privilege_reason ? { DISPATCH_PRIVILEGE_REASON: privilege_reason } : {}),
+        ...(callId ? { DISPATCH_CALL_ID: callId } : {}),
       },
     });
-    outputFilePath = stdout.trim();
+    const stdoutLines = stdout.trim().split("\n").map((l: string) => l.trim()).filter(Boolean);
+    outputFilePath = stdoutLines[0] || "";
+    const queueIdLine = stdoutLines.find((l: string) => l.startsWith("QUEUE_ID:"));
+    parsedQueueId = queueIdLine ? queueIdLine.replace("QUEUE_ID:", "") : null;
   } catch (error: any) {
     throw new Error(`dispatch_subagent: dispatch-subagent.ts failed (exit ${error.status || 1}): ${error.stderr?.toString() || error.message}`);
   }
 
-  const wrappedPrompt = await readFile(outputFilePath, "utf8");
+  let wrappedPrompt = await readFile(outputFilePath, "utf8");
+
+  // Append QUEUE_ID reference marker for canonical prompt lookup in task handler
+  if (parsedQueueId) {
+    wrappedPrompt += `\n//QUEUE_ID:${parsedQueueId}`;
+  }
 
 
   const inferredDomainId = inferDomainId(target.requestedAgent);
@@ -320,25 +345,25 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
     try {
       const existing = dbReadSessionMap(sessionId);
       const agentForWrite = existing?.agent || "pending";
-      dbWriteSessionMap(sessionId, agentForWrite, dagTaskId || "", inferredDomainId || undefined);
+      const canonicalDagId = dagTaskId || effectiveDagTaskId;
+      dbWriteSessionMap(sessionId, agentForWrite, canonicalDagId, inferredDomainId || undefined);
       writeLog(SRC, "INFO", {
         event: "SESSION-MAP-DAGTASK-WRITE",
-        detail: `session=${sessionId} dagTaskId=${dagTaskId} agent=${agentForWrite}`,
+        detail: `session=${sessionId} dagTaskId=${canonicalDagId} agent=${agentForWrite}`,
       });
     } catch (err: any) {
       writeLog(SRC, "WARN", { event: "SESSION-MAP-DAGTASK-WRITE-FAILED", detail: err.message });
     }
   }
-  if (dagTaskId) {
-    try {
-      dbWriteSessionMap(
-        "dispatch:child:" + dagTaskId,
-        target.requestedAgent,
-        dagTaskId,
-        inferredDomainId || undefined,
-      );
-    } catch {}
-  }
+  // Synthetic child session_map entry — always use effectiveDagTaskId (canonical tracking ID)
+  try {
+    dbWriteSessionMap(
+      "dispatch:child:" + effectiveDagTaskId,
+      target.requestedAgent,
+      effectiveDagTaskId,
+      inferredDomainId || undefined,
+    );
+  } catch {}
 
   // Phase 4 dual-write: session_events (v33 table)
   try {

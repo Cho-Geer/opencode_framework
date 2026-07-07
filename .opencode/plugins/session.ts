@@ -103,6 +103,84 @@ function onSessionCreated(input: any): void {
       event: "SESSION-CREATED-MAP-WRITE",
       detail: `session_map written on session.created (parent=${parentId || "root"})`,
     });
+
+    // ── Grant binding for child sessions ──
+    if (parentId) {
+      try {
+        writeLog("session", "INFO", {
+          sessionID: sid, agent,
+          event: "GRANT-BIND-LOOKUP-START",
+          detail: `Looking up pending dispatch_queue for parentId=${parentId}`,
+        });
+
+        const { getDb } = require("../lib/db-manager");
+        const db = getDb();
+        const now = Date.now();
+        const queueEntry = db.query(
+          `SELECT dispatch_key FROM dispatch_queue
+           WHERE parent_session_id = ? AND dispatch_key IS NOT NULL AND status IN ('pending', 'running')
+           ORDER BY created_at DESC LIMIT 1`
+        ).get(parentId) as any;
+
+        if (queueEntry?.dispatch_key) {
+          writeLog("session", "INFO", {
+            sessionID: sid, agent,
+            event: "GRANT-BIND-QUEUE-HIT",
+            dispatchKey: queueEntry.dispatch_key,
+            parentId,
+            detail: `Found pending queue entry, attempting bindGrant`,
+          });
+
+          const { bindGrant } = require("../service/dispatch/privilege");
+          const bound = bindGrant(queueEntry.dispatch_key, sid);
+          if (bound) {
+            writeLog("session", "INFO", {
+              sessionID: sid, agent,
+              event: "GRANT-BOUND-ON-SESSION-CREATED",
+              grantId: bound.id,
+              dispatchKey: queueEntry.dispatch_key,
+              parentSession: parentId,
+            });
+          } else {
+            writeLog("session", "WARN", {
+              sessionID: sid, agent,
+              event: "GRANT-BIND-NO-MATCH",
+              dispatchKey: queueEntry.dispatch_key,
+              parentId,
+              detail: `bindGrant returned null — no pending grant found for dispatch_key`,
+            });
+          }
+
+          // Repo grant binding (parallel to framework grant)
+          try {
+            const { bindRepoGrant } = require("../service/repo/grants");
+            const repoBound = bindRepoGrant(queueEntry.dispatch_key, sid);
+            if (repoBound) {
+              writeLog("session", "INFO", {
+                sessionID: sid, agent,
+                event: "REPO-GRANT-BOUND-ON-SESSION-CREATED",
+                grantId: repoBound.id,
+                dispatchKey: queueEntry.dispatch_key,
+                privilege: repoBound.privilege,
+              });
+            }
+          } catch { /* non-blocking: repo grant binding is best-effort */ }
+        } else {
+          writeLog("session", "INFO", {
+            sessionID: sid, agent,
+            event: "GRANT-BIND-QUEUE-MISS",
+            parentId,
+            detail: `No pending dispatch_queue entry for parent session`,
+          });
+        }
+      } catch (e: any) {
+        writeLog("session", "WARN", {
+          sessionID: sid, agent,
+          event: "GRANT-BIND-ON-CREATE-FAILED",
+          detail: `Non-blocking: ${e.message}`,
+        });
+      }
+    }
   } catch (e: any) {
     writeLog("session", "WARN", {
       sessionID: sid, agent,
@@ -193,6 +271,54 @@ async function chatMessageHook(input: any, _output: any) {
   try { runStartupCleanup(sid, agent); } catch { /* never block */ }
   try { resetConfigReadPerRound(sid, agent); } catch { /* never block */ }
   try { runComplianceAudit(sid, agent); } catch { /* never block */ }
+
+  // ── Grant binding for child sessions (via chat.message, since session.created hook may not fire) ──
+  try {
+    const { Database } = require("bun:sqlite");
+    const sdkDbPath = process.env.OPENCODE_DB || `${process.env.HOME}/.local/share/opencode/opencode.db`;
+    const sdkDb = new Database(sdkDbPath, { readonly: true });
+    const sessionRow = sdkDb.query("SELECT parent_id FROM session WHERE id = ?").get(sid) as any;
+    const parentId = sessionRow?.parent_id || undefined;
+    sdkDb.close();
+
+    if (parentId) {
+      const db = getDb();
+      const queueEntry = db.query(
+        `SELECT dispatch_key FROM dispatch_queue
+         WHERE parent_session_id = ? AND dispatch_key IS NOT NULL AND status IN ('pending', 'running')
+         ORDER BY created_at DESC LIMIT 1`
+      ).get(parentId) as any;
+
+      if (queueEntry?.dispatch_key) {
+        const { bindGrant } = require("../service/dispatch/privilege");
+        const bound = bindGrant(queueEntry.dispatch_key, sid);
+        if (bound) {
+          writeLog("session", "INFO", {
+            sessionID: sid, agent,
+            event: "GRANT-BOUND-ON-CHAT-MESSAGE",
+            grantId: bound.id,
+            dispatchKey: queueEntry.dispatch_key,
+            parentSession: parentId,
+          });
+        }
+
+        // Repo grant binding on chat.message
+        try {
+          const { bindRepoGrant } = require("../service/repo/grants");
+          const repoBound = bindRepoGrant(queueEntry.dispatch_key, sid);
+          if (repoBound) {
+            writeLog("session", "INFO", {
+              sessionID: sid, agent,
+              event: "REPO-GRANT-BOUND-ON-CHAT-MESSAGE",
+              grantId: repoBound.id,
+              dispatchKey: queueEntry.dispatch_key,
+              privilege: repoBound.privilege,
+            });
+          }
+        } catch { /* non-blocking: repo grant binding is best-effort */ }
+      }
+    }
+  } catch { /* non-blocking: grant binding is best-effort */ }
 
   try {
     writeSessionMapWithConstraint(sid, agent);

@@ -64,7 +64,7 @@ const DEFAULT_CONFIG: ExemptionConfig = {
     ],
   },
   codegraph: {
-    exempt_agents: ["super-admin"],
+    exempt_agents: [],
     exempt_path_patterns: [
       "^\\.task_temp/", "^docs/", "^\\.opencode/agents/.*\\.md$",
       "^\\.opencode/legacy/agent-profiles/.*\\.md$",

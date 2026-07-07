@@ -1,3 +1,8 @@
+// ────────────────────────────────────────────────────────────────────
+// LEGACY HANDLER — NOT in active execution_order
+// The active anti-bypass is in the SYSTEM chain (system-dispatcher.ts).
+// This before/ version is kept for rollback only.
+// ────────────────────────────────────────────────────────────────────
 // plugin-handlers/before/anti-bypass.ts — Guidance gate + threshold enforcement
 // Migrated from plugins/anti-bypass.ts (tool.execute.before portion)
 import { writeLog } from "../../lib/log-manager";

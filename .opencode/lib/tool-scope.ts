@@ -9,5 +9,4 @@ export {
 
 export {
   type ScopePathResult, parseShellWriteTargets, getEffectivePathScopePaths,
-  readDispatchAllowedTools, isToolAllowed,
 } from "../service/dispatch/tool-scope-paths";

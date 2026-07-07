@@ -57,6 +57,11 @@ export interface AttestConfigReadResult {
 /**
  * Verify agent has read mandatory config file (Agent.md), write attestation to DB.
  * Reduced from 3 files to 1 — opencode.json/project.config.json too large for agent context.
+ *
+ * DEPRECATED (2026-07-07): Per-agent config read attestation is invalid for native
+ * agents (build/general/explore don't have individual .opencode/agents/*.md files).
+ * Phase 3 replaces this with risk-based skill_read_attest, not per-agent .md gating.
+ * Callers: tools/config_read_attest.ts (MCP tool), scope-validate.ts (audit-only).
  */
 export function attestConfigRead(input: AttestConfigReadInput): AttestConfigReadResult {
   const { agent, sessionID, worktree, taskId } = input;

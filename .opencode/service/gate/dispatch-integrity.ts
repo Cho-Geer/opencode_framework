@@ -52,23 +52,50 @@ export function validateDispatchTaskIntegrity(
         result.hasDispatchContext = true;
         result.dispatchAssignedTaskIds = [taskId];
       } else {
-        // taskId not found — check if ANY dispatch context exists
+        // Fallback: check session_events and dispatch_queue for the task_id
+        // This handles cases where session_map wasn't written with the canonical dag_task_id
+        let foundInFallback = false;
         try {
           const { getDb } = require("../../lib/db-manager");
           const db = getDb();
-          const anyRegistered = db
-            .query(
-              `SELECT DISTINCT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL`,
-            )
-            .all() as { dag_task_id: string }[];
-          if (anyRegistered.length > 0) {
+          const inEvents = db
+            .query(`SELECT dag_task_id FROM session_events WHERE dag_task_id = ? LIMIT 1`)
+            .get(taskId) as any;
+          const inQueue = db
+            .query(`SELECT dag_task_id FROM dispatch_queue WHERE dag_task_id = ? LIMIT 1`)
+            .get(taskId) as any;
+          if (inEvents || inQueue) {
+            foundInFallback = true;
             result.hasDispatchContext = true;
-            result.dispatchAssignedTaskIds = anyRegistered.map(
-              (r) => r.dag_task_id,
-            );
+            result.dispatchAssignedTaskIds = [taskId];
+            writeLog(SRC, "INFO", {
+              event: "DISPATCH-TASKID-FALLBACK-HIT",
+              taskId,
+              source: inEvents ? "session_events" : "dispatch_queue",
+              detail: `task_id found via fallback table (session_map missing entry)`,
+            });
           }
-        } catch {
-          // DB query failure — fall through to no dispatch context
+        } catch { /* fallback query failure — continue to primary check */ }
+
+        if (!foundInFallback) {
+          // taskId not found anywhere — check if ANY dispatch context exists
+          try {
+            const { getDb } = require("../../lib/db-manager");
+            const db = getDb();
+            const anyRegistered = db
+              .query(
+                `SELECT DISTINCT dag_task_id FROM session_map WHERE dag_task_id IS NOT NULL`,
+              )
+              .all() as { dag_task_id: string }[];
+            if (anyRegistered.length > 0) {
+              result.hasDispatchContext = true;
+              result.dispatchAssignedTaskIds = anyRegistered.map(
+                (r) => r.dag_task_id,
+              );
+            }
+          } catch {
+            // DB query failure — fall through to no dispatch context
+          }
         }
       }
     } else {

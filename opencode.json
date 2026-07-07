@@ -107,7 +107,12 @@
         "acp_notify": "allow",
         "config_read_attest": "allow",
         "skill_read_attest": "allow",
-        "rule_read_attest": "allow"
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow"
       }
     },
     "build": {
@@ -159,6 +164,7 @@
           "mkdir -p *": "allow"
         },
         "safe_test": "allow",
+        "safe_framework_edit": "allow",
         "safe_diff": "allow",
         "safe_hash": "allow",
         "safe_delete": {
@@ -184,7 +190,19 @@
         "acp_notify": "allow",
         "config_read_attest": "allow",
         "skill_read_attest": "allow",
-        "rule_read_attest": "allow"
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow",
+        "safe_repo_stage": "allow",
+        "safe_repo_unstage": "allow",
+        "safe_repo_commit": "allow",
+        "safe_repo_push": "allow",
+        "safe_gh_pr_create": "allow",
+        "safe_gh_pr_comment": "allow",
+        "safe_gh_issue_comment": "allow"
       }
     },
     "general": {
@@ -264,13 +282,18 @@
         "acp_notify": "allow",
         "config_read_attest": "allow",
         "skill_read_attest": "allow",
-        "rule_read_attest": "allow"
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow"
       }
     },
     "plan": {
       "native": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-pro",
+      "model": "volcengine-plan/glm-5.2",
       "variant": "max",
       "permission": {
         "edit": "deny",
@@ -302,13 +325,15 @@
         "acp_notify": "allow",
         "config_read_attest": "allow",
         "skill_read_attest": "allow",
-        "rule_read_attest": "allow"
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow"
       }
     },
     "explore": {
       "native": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-pro",
+      "model": "opencode-go/glm-5.2",
       "variant": "max",
       "permission": {
         "edit": "deny",
@@ -341,7 +366,12 @@
         "acp_notify": "allow",
         "config_read_attest": "allow",
         "skill_read_attest": "allow",
-        "rule_read_attest": "allow"
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow"
       }
     }
   },

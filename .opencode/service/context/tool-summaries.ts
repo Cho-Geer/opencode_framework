@@ -86,6 +86,18 @@ export const TOOL_SUMMARIES: Record<string, string> = {
   "excel_write_to_sheet": "写入工作表",
   "excel_create_table": "创建表格",
   "excel_format_range": "格式化单元格",
+  "safe_repo_status": "Git 仓库状态查询（只读，无需 grant）",
+  "safe_repo_diff": "Git diff 输出（只读，支持 --cached/--stat）",
+  "safe_repo_log": "Git commit 日志（只读，最多50条）",
+  "safe_repo_show": "查看 Git 对象内容（commit/tree/blob，只读）",
+  "safe_repo_branch": "查询当前分支或列出分支（只读）",
+  "safe_repo_stage": "暂存文件（需 repo_maintenance grant）",
+  "safe_repo_unstage": "取消暂存文件（需 repo_maintenance grant）",
+  "safe_repo_commit": "创建 commit（需 grant，成功后消费）",
+  "safe_repo_push": "推送到远端（需 remote_repo_write grant + 人工确认）",
+  "safe_gh_pr_create": "创建 GitHub PR（需 remote_repo_write + 人工确认）",
+  "safe_gh_pr_comment": "给 PR 添加评论（需 remote_repo_write + 人工确认）",
+  "safe_gh_issue_comment": "给 Issue 添加评论（需 remote_repo_write + 人工确认）",
 };
 
 // ── Tools that MUST keep full schema (critical for all agents) ──

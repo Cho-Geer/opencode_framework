@@ -47,11 +47,16 @@ export function dbEnqueueDispatch(
   filePath: string,
   sha256: string,
   sizeBytes: number,
+  dispatchKey?: string,
+  parentSessionId?: string,
+  callId?: string,
 ): number | null {
   try {
     const db = getDb();
     const now = Date.now();
     let queueId: number | null = null;
+
+    const effectiveKey = dispatchKey || (parentSessionId ? require("node:crypto").randomUUID() : null);
 
     const txn = db.transaction(() => {
       const refResult = db.run(
@@ -62,9 +67,9 @@ export function dbEnqueueDispatch(
       const promptRefId = Number(refResult.lastInsertRowid);
 
       const queueResult = db.run(
-        `INSERT INTO dispatch_queue (status, agent_type, dag_task_id, prompt_ref_id, created_at, updated_at)
-         VALUES ('pending', ?, ?, ?, ?, ?)`,
-        [agentType, dagTaskId, promptRefId, now, now],
+        `INSERT INTO dispatch_queue (status, agent_type, dag_task_id, prompt_ref_id, dispatch_key, parent_session_id, call_id, created_at, updated_at)
+         VALUES ('pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [agentType, dagTaskId, promptRefId, effectiveKey, parentSessionId || null, callId || null, now, now],
       );
       queueId = Number(queueResult.lastInsertRowid);
     });
@@ -105,7 +110,8 @@ export function dbDequeueWithLease(
       const row = db
         .query(
           `SELECT id, status, agent_type, dag_task_id, session_id,
-                  prompt_ref_id, lease_owner, lease_expiry, created_at, updated_at
+                  prompt_ref_id, lease_owner, lease_expiry, dispatch_key,
+                  parent_session_id, call_id, created_at, updated_at
            FROM dispatch_queue
            WHERE status = 'pending' AND agent_type = ?
            ORDER BY created_at ASC
@@ -131,6 +137,9 @@ export function dbDequeueWithLease(
         prompt_ref_id: (row.prompt_ref_id as number) || null,
         lease_owner: opencodeSessionId,
         lease_expiry: expiry,
+        dispatch_key: (row.dispatch_key as string) || null,
+        parent_session_id: (row.parent_session_id as string) || null,
+        call_id: (row.call_id as string) || null,
         created_at: row.created_at as number,
         updated_at: now,
       };
@@ -141,7 +150,7 @@ export function dbDequeueWithLease(
     if (entry) {
       writeLog(SRC, "INFO", {
         event: "DISPATCH-QUEUE-DEQUEUE",
-        detail: `queueId=${entry.id} agentType=${agentType} opencodeSessionId=${opencodeSessionId} leaseExpiry=${entry.lease_expiry}`,
+        detail: `queueId=${entry.id} agentType=${agentType} opencodeSessionId=${opencodeSessionId} leaseExpiry=${entry.lease_expiry} dispatchKey=${entry.dispatch_key || "(none)"}`,
       });
     }
 
@@ -412,7 +421,8 @@ export function dbDequeueWithHash(
       const row = db
         .query(
           `SELECT dq.id, dq.status, dq.agent_type, dq.dag_task_id, dq.session_id,
-                  dq.prompt_ref_id, dq.lease_owner, dq.lease_expiry, dq.created_at, dq.updated_at
+                  dq.prompt_ref_id, dq.lease_owner, dq.lease_expiry, dq.dispatch_key,
+                  dq.parent_session_id, dq.call_id, dq.created_at, dq.updated_at
            FROM dispatch_queue dq
            JOIN dispatch_prompt_refs pr ON dq.prompt_ref_id = pr.id
            WHERE dq.status = 'pending' AND pr.sha256 = ?
@@ -440,6 +450,9 @@ export function dbDequeueWithHash(
         prompt_ref_id: (row.prompt_ref_id as number) || null,
         lease_owner: opencodeSessionId,
         lease_expiry: expiry,
+        dispatch_key: (row.dispatch_key as string) || null,
+        parent_session_id: (row.parent_session_id as string) || null,
+        call_id: (row.call_id as string) || null,
         created_at: row.created_at as number,
         updated_at: now,
       };

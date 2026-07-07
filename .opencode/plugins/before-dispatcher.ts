@@ -2,6 +2,7 @@
 // Reads execution order from project.config.json, runs handlers serially.
 // First throw = early termination (framework semantics preserved).
 // Phase 3 (2026-07-05): Slimmed from 14 to 7 handlers.
+// Phase 4 (2026-07-07): Re-added task handler for dispatch marker consumption (8 handlers).
 
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
 import { writeLog } from "../lib/log-manager";
@@ -18,6 +19,7 @@ import * as permissionSafety from "../plugin-handlers/before/permission-safety";
 import * as dispatchSignal from "../plugin-handlers/before/dispatch-signal";
 import * as skillPolicy from "../plugin-handlers/before/skill-policy";
 import * as behavioralPathGuard from "../plugin-handlers/before/behavioral-path-guard";
+import * as task from "../plugin-handlers/before/task";
 
 // ── Handler registry ──
 type BeforeFn = (input: any, output: any) => Promise<void>;
@@ -30,6 +32,7 @@ const HANDLER_MAP: Record<string, BeforeFn> = {
   "dispatch-signal": dispatchSignal.handle,
   "skill-policy": skillPolicy.handle,
   "behavioral-path-guard": behavioralPathGuard.handle,
+  "task": task.handle,
 };
 
 // Removed from active order: uc7ks (audit_only, not in execution_order)
@@ -42,6 +45,7 @@ const TOOL_FILTER: Record<string, string[]> = {
   "dispatch-signal": ["*"],
   "skill-policy": ["*"],
   "behavioral-path-guard": ["safe_edit", "safe_delete", "safe_restore", "safe_shell", "safe_mkdir"],
+  "task": ["task", "Task"],
 };
 
 // ── Default execution order (Phase 3 slimmed) ──
@@ -50,6 +54,7 @@ let _hotPathBeforeCount = 0;
 
 const DEFAULT_ORDER = [
   "guidance-bridge",
+  "task",
   "permission-safety",
   "behavioral-path-guard",
   "scope",

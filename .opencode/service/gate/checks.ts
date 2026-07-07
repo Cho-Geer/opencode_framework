@@ -130,8 +130,11 @@ export function findTaskInDag(taskId: string): {
 
 // ════════════════════════════════════════════════
 // WRITE PERMISSION (from gate-checks.ts)
+// DEPRECATED (2026-07-07): Per-agent write check — 1 runtime caller (file-guard/audit.ts).
+// Phase 3: replace with behavior-based path check, independent of agent identity.
 // ════════════════════════════════════════════════
 
+/** @deprecated Per-agent write permission — migrate to behavior-based path check. */
 export function isWriteAllowed(agentType: string, filePath: string): boolean {
   return isPathAllowedForAgent(agentType, filePath, "safe_edit");
 }

@@ -2,6 +2,12 @@
  * permission-isolation-core.ts — Shared Permission Isolation Logic
  * ================================================================
  *
+ * DEPRECATED (2026-07-07): PermissionIsolation class with hardcoded per-agent
+ * profiles has 0 runtime callers in production code. Phase 3 enforcement
+ * slimming replaces per-agent permission profiles with behavior-based checks
+ * (tool + path + operation type, independent of agent identity).
+ * All runtime permission enforcement flows through service/permission/reader.ts.
+ *
  * Extracted from .opencode/tools/permission-isolation.ts.
  * Core permission check logic, scope validation, and audit logging.
  *

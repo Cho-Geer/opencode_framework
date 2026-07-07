@@ -112,9 +112,18 @@ try {
 } catch { /* DB unavailable */ }
 
 // ── DB enqueue (fatal) ──
+const dispatchKey = process.env.DISPATCH_KEY || result.dispatchToken || null;
+const parentSessionId = process.env.OPENCODE_SESSION_ID || null;
+const callId = process.env.DISPATCH_CALL_ID || null;
+let queueId: number | null = null;
 try {
   const { dbEnqueueDispatch } = require("../../lib/dispatch-db");
-  const queueId = dbEnqueueDispatch(agentType, taskId || "(no-task-id)", outputFile, result.promptHash, Buffer.byteLength(result.prompt, "utf8"));
+  queueId = dbEnqueueDispatch(
+    agentType, dagTaskId || taskId || "(no-task-id)", outputFile, result.promptHash,
+    Buffer.byteLength(result.prompt, "utf8"),
+    dispatchKey || undefined, parentSessionId || undefined,
+    callId || undefined,
+  );
   if (!queueId) {
     console.error("FATAL: DB enqueue failed");
     process.exit(1);
@@ -128,32 +137,72 @@ try {
 const dispatchPrivilege = process.env.DISPATCH_PRIVILEGE || "";
 if (dispatchPrivilege) {
   try {
-    const { createGrant } = require("../../service/dispatch/privilege");
     const allowedPathsStr = process.env.DISPATCH_ALLOWED_PATHS || "";
     const allowedPaths = allowedPathsStr ? allowedPathsStr.split(",").map((p: string) => p.trim()) : [];
-    const dispatchKey = result.dispatchToken || require("node:crypto").randomUUID();
-    const grant = createGrant({
-      dispatch_key: dispatchKey,
-      parent_session_id: sessionId || "unknown",
-      agent_type: agentType,
-      privilege: dispatchPrivilege,
-      allowed_tools: ["safe_framework_edit"],
-      allowed_paths: allowedPaths,
-      reason: process.env.DISPATCH_PRIVILEGE_REASON || "Framework maintenance dispatch",
-      dag_task_id: dagTaskId || undefined,
-    });
-    if (grant) {
-      writeLog("dispatch-subagent", "INFO", {
-        event: "PRIVILEGE-GRANT-CREATED",
-        grantId: grant.id,
-        privilege: grant.privilege,
-        dispatchKey: grant.dispatch_key,
+    const allowedRemotesStr = process.env.DISPATCH_ALLOWED_REMOTES || "";
+    const allowedRemotes = allowedRemotesStr ? allowedRemotesStr.split(",").map((p: string) => p.trim()) : [];
+    const grantDispatchKey = dispatchKey || require("node:crypto").randomUUID();
+    const reason = process.env.DISPATCH_PRIVILEGE_REASON || "Dispatch privilege";
+
+    const REPO_PRIVILEGES = new Set(["repo_maintenance", "remote_repo_write", "repo_destructive_emergency"]);
+
+    if (REPO_PRIVILEGES.has(dispatchPrivilege)) {
+      const { createRepoGrant } = require("../../service/repo/grants");
+      const repoTools = dispatchPrivilege === "repo_maintenance"
+        ? ["safe_repo_stage", "safe_repo_unstage", "safe_repo_commit"]
+        : dispatchPrivilege === "remote_repo_write"
+          ? ["safe_repo_push", "safe_gh_pr_create", "safe_gh_pr_comment", "safe_gh_issue_comment"]
+          : [];
+      const grant = createRepoGrant({
+        dispatch_key: grantDispatchKey,
+        parent_session_id: sessionId || "unknown",
+        agent_type: agentType,
+        privilege: dispatchPrivilege as any,
+        allowed_tools: repoTools,
+        allowed_paths: allowedPaths,
+        allowed_remotes: allowedRemotes,
+        reason,
+        dag_task_id: dagTaskId || undefined,
+        requires_human_confirmation: dispatchPrivilege !== "repo_maintenance",
       });
+      if (grant) {
+        writeLog("dispatch-subagent", "INFO", {
+          event: "REPO-GRANT-CREATED",
+          grantId: grant.id,
+          privilege: grant.privilege,
+          dispatchKey: grant.dispatch_key,
+        });
+      } else {
+        writeLog("dispatch-subagent", "WARN", {
+          event: "REPO-GRANT-CREATION-FAILED",
+          privilege: dispatchPrivilege,
+        });
+      }
     } else {
-      writeLog("dispatch-subagent", "WARN", {
-        event: "PRIVILEGE-GRANT-CREATION-FAILED",
+      const { createGrant } = require("../../service/dispatch/privilege");
+      const grant = createGrant({
+        dispatch_key: grantDispatchKey,
+        parent_session_id: sessionId || "unknown",
+        agent_type: agentType,
         privilege: dispatchPrivilege,
+        allowed_tools: ["safe_framework_edit"],
+        allowed_paths: allowedPaths,
+        reason,
+        dag_task_id: dagTaskId || undefined,
       });
+      if (grant) {
+        writeLog("dispatch-subagent", "INFO", {
+          event: "PRIVILEGE-GRANT-CREATED",
+          grantId: grant.id,
+          privilege: grant.privilege,
+          dispatchKey: grant.dispatch_key,
+        });
+      } else {
+        writeLog("dispatch-subagent", "WARN", {
+          event: "PRIVILEGE-GRANT-CREATION-FAILED",
+          privilege: dispatchPrivilege,
+        });
+      }
     }
   } catch (e: any) {
     writeLog("dispatch-subagent", "WARN", {
@@ -162,5 +211,6 @@ if (dispatchPrivilege) {
     });
   }
 }
-// ── Output file path to stdout ──
+// ── Output file path + queue_id to stdout (two lines) ──
 console.log(outputFile);
+console.log(`QUEUE_ID:${queueId}`);

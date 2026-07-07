@@ -2156,6 +2156,93 @@ export function initializeSchema(db: Database): void {
       detail: `v33: ${e.message}`,
     });
   }
+
+  // ── v34: notifications schema drift fix — add parent_id + resolved columns ──
+  try {
+    const notifCols = new Set(
+      (db.query("PRAGMA table_info(notifications)").all() as { name: string }[])
+        .map((c) => c.name),
+    );
+    if (!notifCols.has("parent_id")) {
+      db.run(`ALTER TABLE notifications ADD COLUMN parent_id TEXT DEFAULT ''`);
+    }
+    if (!notifCols.has("resolved")) {
+      db.run(`ALTER TABLE notifications ADD COLUMN resolved INTEGER DEFAULT 0`);
+    }
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (34, ?, 'v34: notifications schema drift fix — add parent_id + resolved columns for mcp-notify compatibility')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v34: notifications table extended with parent_id + resolved columns",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v34: ${e.message}`,
+    });
+  }
+
+  // ── v35: repo_operation_grants + repo_operation_events tables ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS repo_operation_grants (
+      id TEXT PRIMARY KEY,
+      dispatch_key TEXT NOT NULL,
+      parent_session_id TEXT NOT NULL,
+      child_session_id TEXT,
+      dag_task_id TEXT,
+      agent_type TEXT NOT NULL,
+      privilege TEXT NOT NULL,
+      allowed_tools TEXT NOT NULL,
+      allowed_paths TEXT NOT NULL,
+      allowed_remotes TEXT NOT NULL DEFAULT '[]',
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL,
+      requires_human_confirmation INTEGER NOT NULL DEFAULT 0,
+      human_confirmed_at INTEGER,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      bound_at INTEGER,
+      consumed_at INTEGER,
+      revoked_at INTEGER
+    )`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_repo_grants_dispatch_key
+      ON repo_operation_grants(dispatch_key, status)`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_repo_grants_child
+      ON repo_operation_grants(child_session_id, privilege, status, expires_at)`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS repo_operation_events (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      agent TEXT NOT NULL,
+      tool TEXT NOT NULL,
+      operation_kind TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      command_summary TEXT NOT NULL,
+      paths TEXT NOT NULL,
+      grant_id TEXT,
+      result TEXT NOT NULL,
+      commit_sha TEXT,
+      error TEXT,
+      created_at INTEGER NOT NULL
+    )`);
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (35, ?, 'v35: repo_operation_grants + repo_operation_events for git write grant system')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v35: repo_operation_grants + repo_operation_events tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v35: ${e.message}`,
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════

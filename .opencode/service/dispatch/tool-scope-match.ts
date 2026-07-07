@@ -15,6 +15,7 @@
 import * as path from "node:path";
 import { isSourceFile } from "../../lib/state-utils";
 import { parseShellWriteTargets } from "./tool-scope-paths";
+import { classifyRepoShellCommand } from "../repo/classify";
 
 // ============================================================================
 // Tool Classification
@@ -174,6 +175,21 @@ export function classifyShellCommand(command: string): ShellClassification {
   ) {
     // Only allow cat if no write redirect (already handled above)
     return { kind: "read_only", reason: `command=${cmd}` };
+  }
+
+  // Repo operation classification: reuse repo classifier for git/gh commands
+  if (cmd === "git" || cmd === "gh") {
+    const repoOp = classifyRepoShellCommand(normalized);
+    if (repoOp.kind === "read") {
+      return { kind: "read_only", reason: `repo read: ${repoOp.subcommand}` };
+    }
+    if (repoOp.paths.length > 0) {
+      return { kind: "write", paths: repoOp.paths };
+    }
+    return {
+      kind: "unparseable_write",
+      reason: `repo ${repoOp.kind}: ${repoOp.subcommand}`,
+    };
   }
 
   // npx/bun/node with read-only flags

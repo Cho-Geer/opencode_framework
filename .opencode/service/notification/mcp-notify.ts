@@ -101,7 +101,7 @@ export function writeNotification(params: WriteNotificationParams): WriteNotific
       const seq = (maxRow?.m || 0) + 1;
 
       db.run(
-        `INSERT INTO notifications (seq, created_at, agent, task_id, session_id, parent_id, event_type, data, resolved)
+        `INSERT INTO notifications (seq, created_at, agent, dag_task_id, session_id, parent_id, event_type, data, resolved)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           seq,
@@ -165,7 +165,7 @@ export function readNotifications(params: ReadNotificationsParams): ReadNotifica
 
   // Read new events
   const events = db.query(
-    "SELECT seq, created_at, agent, task_id, session_id, parent_id, event_type, data, resolved FROM notifications WHERE seq > ? ORDER BY seq ASC LIMIT ?"
+    "SELECT seq, created_at, agent, dag_task_id, session_id, parent_id, event_type, data, resolved FROM notifications WHERE seq > ? ORDER BY seq ASC LIMIT ?"
   ).all(lastSeq, limit) as any[];
 
   // Update cursor

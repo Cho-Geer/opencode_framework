@@ -304,6 +304,9 @@ export function deliverablesTemplateMarkdown(agentType: string): string {
         (t.required ? " (required)" : " (optional)"),
     ),
     "",
+    "",
+    "**JSON format**: `declared_deliverables` must be an array of objects, each with `name` (string ≥1 char) and `description` (string ≥5 chars).",
+    'Example: `[{name: "HANDOVER.md", description: "Handover summary for next agent"}, {name: "TASK_LOG.md", description: "Working memory log"}]` — do NOT pass bare strings like `["HANDOVER.md"]`.',
     "After writing ALL deliverables, call `compliance_gate_submit_deliverables(session_id, evidence)`.",
     "Then wait for Orchestrator approval before the gate can be closed.",
   ];

@@ -1,3 +1,7 @@
+// ────────────────────────────────────────────────────────────────────
+// LEGACY HANDLER — NOT in active execution_order
+// Kept as delegate dependency or for rollback only.
+// ────────────────────────────────────────────────────────────────────
 // plugin-handlers/before/git-guard.ts — git hook bypass prevention
 // Migrated from plugins/git-guard-before.ts
 import { writeLog } from "../../lib/log-manager";
@@ -57,7 +61,6 @@ export async function handle(input: any, output: any): Promise<void> {
     `[FW-ENFORCE][GIT-GUARD] Git hook bypass command blocked: ` +
     `${matchedPattern.name} — ${matchedPattern.description}. ` +
     `Pre-commit/commit-msg hooks must not be circumvented. ` +
-    `If this is an emergency framework repair by @Super-Admin, ` +
-    `include [BYPASS <incident_id>] in your commit message and retry.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`
+    `Hook bypass is permanently forbidden. Use safe_repo_commit with a valid grant.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`
   );
 }

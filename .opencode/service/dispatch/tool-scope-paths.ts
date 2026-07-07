@@ -2,7 +2,7 @@
  * Tool Scope — Path Resolution (tool-scope-paths)
  *
  * Shell write target parsing, effective path scope resolution,
- * dispatch tool allowlist management, and tool permission checking.
+ * and tool permission checking.
  *
  * Split from lib/tool-scope.ts for modularity.
  * Cross-imports matching functions from ./tool-scope-match.
@@ -10,9 +10,6 @@
  * @module tool-scope-paths
  */
 
-import * as fs from "node:fs";
-import { STATE_PATHS } from "../../lib/state-utils";
-import { normalize, toDisplayName } from "../../lib/agent-identity";
 import {
   isModifyTool,
   getModifyPath,
@@ -320,83 +317,4 @@ export function getEffectivePathScopePaths(
   }
 
   return parseShellWriteTargets(cmd);
-}
-
-// ============================================================================
-// Dispatch Tool Allowlist Management
-// ============================================================================
-
-export function readDispatchAllowedTools(agent: string): string[] | "*" {
-  // V6.2 FIX (2026-06-23, @Super-Admin): Expanded FALLBACK from 7 to 20 tools.
-  // The old FALLBACK only had 7 tools: task, read, todowrite, 3 gate tools, dispatch_subagent.
-  // This caused agents without explicit agent_dispatch_allowed_tools config to be unable
-  // to use safe_edit, safe_shell, knowledge tools, glob/grep, question, write, etc.
-  // New FALLBACK covers all commonly needed agent operations.
-  const FALLBACK = [
-    "task",
-    "read",
-    "todowrite",
-
-    "compliance_gate_check",
-    "compliance_gate_confirm",
-    "compliance_gate_complete",
-    "compliance_gate_submit_deliverables",
-    "compliance_gate_approve_deliverables",
-    "dispatch_subagent",
-
-    "safe_mkdir",
-    "safe_diff",
-
-    "knowledge_cache_search",
-    "knowledge_cache_attest",
-    "module_scope_declare",
-    "config_read_attest",
-    "question",
-    "glob",
-    "grep",
-  ];
-  try {
-    let cfg: any = null;
-    try {
-      cfg = JSON.parse(fs.readFileSync(STATE_PATHS.projectConfig(), "utf8"));
-    } catch {}
-    // OPT-08 (2026-06-23): FALLBACK dynamic — override from project.config.json.dispatch_policy.fallback_tools
-    const configFallback = cfg?.dispatch_policy?.fallback_tools;
-    const effectiveFallback =
-      Array.isArray(configFallback) && configFallback.length > 0
-        ? configFallback
-        : FALLBACK;
-    const tools = cfg?.agent_dispatch_allowed_tools;
-    if (!tools || typeof tools !== "object") return effectiveFallback;
-    const displayName = toDisplayName(agent);
-    const atForm = "@" + displayName;
-    const plainForm = displayName;
-    const entry =
-      tools[atForm] ||
-      tools[plainForm] ||
-      tools[normalize(agent)] ||
-      tools[agent.replace(/^@/, "")];
-    if (!entry) return FALLBACK;
-    if (
-      entry === "*" ||
-      (Array.isArray(entry) && entry.length === 1 && entry[0] === "*")
-    )
-      return "*";
-    if (Array.isArray(entry)) return entry;
-    return FALLBACK;
-  } catch {
-    return FALLBACK;
-  }
-}
-
-export function isToolAllowed(
-  allowedList: string[] | "*",
-  tool: string,
-): boolean {
-  if (allowedList === "*") return true;
-  if (!Array.isArray(allowedList)) return false;
-  if (allowedList.includes(tool)) return true;
-  const shortName = tool.replace(/^[a-zA-Z0-9-]+_/, "");
-  if (shortName !== tool && allowedList.includes(shortName)) return true;
-  return false;
 }

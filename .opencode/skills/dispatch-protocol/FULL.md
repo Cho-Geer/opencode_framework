@@ -80,3 +80,22 @@ dispatch_subagent(
 - Do not require `subagent-preamble`.
 - Do not add wrapper-only language to generic execution skills.
 - Keep wrapper knowledge as compatibility guidance, not as the default mental model.
+
+## 7. Declared Deliverables Format
+
+When calling `compliance_gate_confirm`, the `declared_deliverables` parameter
+MUST be an array of objects, each with `name` (string ≥1 char) and
+`description` (string ≥5 chars):
+
+```
+declared_deliverables: [
+  {name: "HANDOVER.md", description: "Handover summary for next agent"},
+  {name: "TASK_LOG.md", description: "Working memory log with implementation details"}
+]
+```
+
+- **Correct format**: Array of `{name: string, description: string}` objects.
+- **Wrong format** (rejected at MCP layer with error -32602): Bare string array like `["HANDOVER.md"]`.
+
+Authoritative schema source: `.opencode/scripts/mcp-tools/compliance-gate.ts` lines 82–89
+(Zod schema with `.describe()` containing the exact format and counter-example).

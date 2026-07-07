@@ -1906,6 +1906,7 @@
   "plugin_execution_order": {
     "before": [
       "guidance-bridge",
+      "task",
       "permission-safety",
       "behavioral-path-guard",
       "scope",
@@ -1981,9 +1982,7 @@
       ]
     },
     "codegraph": {
-      "exempt_agents": [
-        "super-admin"
-      ],
+      "exempt_agents": [],
       "exempt_path_patterns": [
         "^\\.task_temp/",
         "^docs/",
