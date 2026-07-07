@@ -333,7 +333,7 @@
     "explore": {
       "native": true,
       "mode": "subagent",
-      "model": "opencode-go/glm-5.2",
+      "model": "opencode-go/deepseek-v4-pro",
       "variant": "max",
       "permission": {
         "edit": "deny",
