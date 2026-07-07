@@ -120,6 +120,8 @@ docs/handover/
 .opencode/state/framework-state.db
 .opencode/state/framework-state.db-wal
 .opencode/state/framework-state.db-shm
+.opencode/state.db
+.opencode/_test_framework/
 
 # Plugin refactor backups (stale backup directory from 2026-06-10)
 .opencode/_plugins_backups/
