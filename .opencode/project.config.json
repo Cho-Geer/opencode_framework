@@ -260,7 +260,7 @@
     "knowledge.default_ttl": 30,
     "knowledge.fallback_ttl": 14,
     "knowledge.opencode_ttl": 7,
-    "knowledge.scout_ttl": 14,
+    "knowledge.source_analysis_ttl": 14,
     "backup.ttl_days": 7,
     "backup.max_per_dir": 20,
     "knowledge.janitor_interval_hours": 24,
@@ -793,14 +793,14 @@
     }
   },
   "agent_tool_scopes": {
-    "$description": "UC7KS knowledge pipeline tool permissions per agent. Controls which agents may use external documentation tools (webfetch, websearch, context7_*). Values: 'allow' (direct access), 'via_curator' (prefer @Knowledge-Curator / Scout / cached knowledge path first), 'deny' (never allowed).",
+    "$description": "UC7KS knowledge pipeline tool permissions per agent. Controls which agents may use external documentation tools (webfetch, websearch, context7_*). Values: 'allow' (direct access), 'via_curator' (prefer @Knowledge-Curator / cached knowledge path first), 'deny' (never allowed).",
     "knowledge-curator": {
       "doc_tools": "allow",
       "reason": "Designated knowledge curator — must fetch external docs to populate local cache"
     },
     "super-admin": {
       "doc_tools": "via_curator",
-      "reason": "Emergency framework admin — should still prefer @Knowledge-Curator / Scout / cached knowledge before any direct external lookup"
+      "reason": "Emergency framework admin — should still prefer @Knowledge-Curator / cached knowledge before any direct external lookup"
     },
     "coder-be": {
       "doc_tools": "via_curator",
@@ -1905,16 +1905,20 @@
   },
   "plugin_execution_order": {
     "before": [
+      "gate-call-context",
       "guidance-bridge",
       "task",
       "permission-safety",
       "behavioral-path-guard",
       "scope",
+      "path-validate",
       "codegraph",
       "skill-policy",
-      "dispatch-signal"
+      "dispatch-signal",
+      "tool-governance"
     ],
     "after": [
+      "gate-call-context",
       "unified-audit",
       "skill-audit",
       "quality-contract",
@@ -2043,5 +2047,28 @@
       "enforcement",
       "database"
     ]
+  },
+  "dispatch_privilege": {
+    "$description": "Framework maintenance grant policy. Controls default allowed/blocked paths, write budget, and whether plan/CodeGraph are required.",
+    "framework_maintenance": {
+      "ttl_minutes": 45,
+      "default_max_writes": 8,
+      "hard_max_writes": 20,
+      "default_allowed_paths": [
+        ".opencode/**",
+        "opencode.json",
+        "AGENTS.md"
+      ],
+      "blocked_paths": [
+        ".opencode/state/**",
+        ".opencode/state.db",
+        ".opencode/_test_framework/**",
+        ".task_temp/**",
+        "node_modules/**",
+        ".git/**"
+      ],
+      "require_plan": true,
+      "require_codegraph": true
+    }
   }
 }
