@@ -13,7 +13,6 @@ import { getExecutionOrder } from "../plugin-handlers/shared/config-loader";
 // ── Handler imports (Phase 3 slimmed) ──
 import * as codegraph from "../plugin-handlers/before/codegraph";
 import * as scope from "../plugin-handlers/before/scope";
-import * as uc7ks from "../plugin-handlers/before/uc7ks";
 import * as guidanceBridge from "../plugin-handlers/before/guidance-bridge";
 import * as permissionSafety from "../plugin-handlers/before/permission-safety";
 import * as dispatchSignal from "../plugin-handlers/before/dispatch-signal";

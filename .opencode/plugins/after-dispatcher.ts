@@ -10,7 +10,6 @@ import { resolveAgent } from "../lib/agent-resolver";
 import { getExecutionOrder } from "../plugin-handlers/shared/config-loader";
 
 // ── Handler imports (Phase 3 slimmed) ──
-import * as auditHandler from "../plugin-handlers/after/audit";
 import * as dbHealthHandler from "../plugin-handlers/after/db-health";
 import * as unifiedAuditHandler from "../plugin-handlers/after/unified-audit";
 import * as skillAuditHandler from "../plugin-handlers/after/skill-audit";

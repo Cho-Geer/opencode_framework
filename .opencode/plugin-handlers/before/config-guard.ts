@@ -1,5 +1,5 @@
 // ────────────────────────────────────────────────────────────────────
-// LEGACY HANDLER — NOT in active execution_order
+// DELEGATE HANDLER — reached via delegate require() from permission-safety (active)
 // Kept as delegate dependency or for rollback only.
 // ────────────────────────────────────────────────────────────────────
 // plugin-handlers/before/config-guard.ts — Hook config bypass prevention + plugin parts guard

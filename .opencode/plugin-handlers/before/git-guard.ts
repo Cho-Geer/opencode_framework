@@ -1,5 +1,5 @@
 // ────────────────────────────────────────────────────────────────────
-// LEGACY HANDLER — NOT in active execution_order
+// DELEGATE HANDLER — reached via delegate require() from permission-safety (active)
 // Kept as delegate dependency or for rollback only.
 // ────────────────────────────────────────────────────────────────────
 // plugin-handlers/before/git-guard.ts — git hook bypass prevention
