@@ -22,7 +22,6 @@ import { existsSync, readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 
 import {
-  getEnforcementModeWithSource,
   getProjectRoot,
 } from "../../lib/gate-core";
 import {
@@ -58,22 +57,22 @@ if (!commitMsgFile || !existsSync(commitMsgFile)) {
 const msg = readFileSync(commitMsgFile, "utf8").trim();
 const root = getProjectRoot();
 
-// ═══ Phase 3 compat: ignore legacy env downgrade attempts ═══
-const modeSource = getEnforcementModeWithSource(root);
-if (modeSource.envOverride) {
+// ═══ Phase 3 cleanup: legacy ENFORCEMENT_MODE env override is ignored ═══
+// Single-policy runtime enforces per-rule disposition only; the deprecated
+// getEnforcementModeWithSource() compat shim is no longer consulted here.
+const legacyEnvMode = process.env.ENFORCEMENT_MODE;
+if (legacyEnvMode) {
   console.log("═══════════════════════════════════════════════════════");
   console.log("  ⚠️  COMMIT-MSG NOTICE — Legacy env override ignored");
   console.log("═══════════════════════════════════════════════════════");
-  console.log(`  Compat policy: ${modeSource.mode}`);
-  console.log(`  Source: ${modeSource.source}`);
-  console.log("  Single-policy runtime ignores ENFORCEMENT_MODE overrides here.");
+  console.log(`  Legacy ENFORCEMENT_MODE=${legacyEnvMode} is ignored`);
+  console.log("  Single-policy runtime enforces per-rule disposition only.");
   console.log("═══════════════════════════════════════════════════════");
   writeLog("hook-commit-msg", "hooks", {
     level: "WARN",
     event: "ENFORCEMENT-MODE-DOWNGRADE-IGNORED",
     detail: JSON.stringify({
-      compatPolicy: modeSource.mode,
-      source: modeSource.source,
+      legacyEnvMode,
       hook: "commit-msg",
     }),
   });

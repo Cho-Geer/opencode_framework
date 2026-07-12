@@ -24,7 +24,7 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 
-import { getEnforcementModeWithSource, getProjectRoot } from "../../lib/gate-core";
+import { getProjectRoot } from "../../lib/gate-core";
 /**
  * FIX-011 (Phase 2): Git hooks now emit structured high-severity events
  * through Log Central (log-manager.ts) in addition to the existing
@@ -61,23 +61,22 @@ const INNER = (() => {
   }
 })();
 
-// ═══ Phase 3 compat: ignore legacy env downgrade attempts ═══
-// Single-policy runtime does not honor ENFORCEMENT_MODE overrides here.
-const modeSource = getEnforcementModeWithSource(ROOT);
-const compatMode = modeSource.mode;
-if (modeSource.envOverride) {
+// ═══ Phase 3 cleanup: legacy ENFORCEMENT_MODE env override is ignored ═══
+// Single-policy runtime enforces per-rule disposition only; the deprecated
+// getEnforcementModeWithSource() compat shim is no longer consulted here.
+const legacyEnvMode = process.env.ENFORCEMENT_MODE;
+if (legacyEnvMode) {
   console.log("═══════════════════════════════════════════════════════");
   console.log("  ⚠️  PRE-COMMIT NOTICE — Legacy env override ignored");
   console.log("═══════════════════════════════════════════════════════");
-  console.log(`  Compat mode: ${modeSource.mode}`);
-  console.log("  Single-policy runtime ignores ENFORCEMENT_MODE overrides here.");
+  console.log(`  Legacy ENFORCEMENT_MODE=${legacyEnvMode} is ignored`);
+  console.log("  Single-policy runtime enforces per-rule disposition only.");
   console.log("═══════════════════════════════════════════════════════");
   writeLog("hook-layers", "hooks", {
     level: "WARN",
     event: "ENFORCEMENT-MODE-DOWNGRADE-IGNORED",
     detail: JSON.stringify({
-      compatMode: modeSource.mode,
-      source: modeSource.source,
+      legacyEnvMode,
       hook: "pre-commit",
     }),
   });
@@ -85,7 +84,7 @@ if (modeSource.envOverride) {
 
 console.log("═══════════════════════════════════════════════════════");
 console.log("  🔍 OpenCode v3.3 Pre-Commit Hook — TypeScript + Bun");
-console.log(`  Policy: single-policy (compat=${compatMode})`);
+console.log("  Policy: single-policy (rule-disposition)");
 console.log("═══════════════════════════════════════════════════════");
 
 // ── Layer 0: Compliance Gate Armed Check ──

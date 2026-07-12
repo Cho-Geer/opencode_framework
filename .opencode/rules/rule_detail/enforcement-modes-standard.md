@@ -1,3 +1,8 @@
+<!-- ARCHIVED / HISTORICAL — 2026-07-12 -->
+> **⚠️ HISTORICAL / ARCHIVED.** The framework runtime no longer uses a global `ENFORCEMENT_MODE`. Enforcement is per-rule disposition via `getRuleDisposition(ruleId)` (see `service/enforcement/rule-disposition.ts`). This document is retained only as migration history; do not implement new behavior from it.
+>
+> Current model: `plugin-handlers/HANDLER_MANIFEST.md` and `service/enforcement/rule-disposition.ts`.
+
 ---
 trigger: always_on
 alwaysApply: false
