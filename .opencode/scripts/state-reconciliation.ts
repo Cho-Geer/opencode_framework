@@ -23,7 +23,7 @@ export {};
  *     --dry-run        Show what would be fixed without modifying state
  *     --quick          Skip Check #1 (completed_task_no_gate_session — the
  *                      write-audit deep scan). Checks #2, #3, #4 only.
- *                      Used by pre-execution-hook.sh for fast gate validation.
+ *                      Used by legacy/scripts/pre-execution-hook.sh for fast gate validation (retired DAG gate, 2026-07-12).
  *     --force-drain    Drain orphaned armed sessions regardless of age if they
  *                      have no DAG task reference or are test artifacts
  *                      (descriptions like "test for arming", "test for double arm")
@@ -277,7 +277,7 @@ function checkArmedSessionDagReference(dag, gate) {
 
     // SA-FIX-RECONCILER-EXEMPT (@Super-Admin): DAG-exempt agents bypass DAG reference check.
     // Super-Admin (emergency framework repairs), Meta-Planner and Orchestrator (DAG creators)
-    // operate outside DAG coverage per pre-execution-gate.ts lines 303-314 and 793-814.
+    // operate outside DAG coverage per legacy/scripts/pre-execution-gate.ts lines 303-314 and 793-814 (retired DAG gate, 2026-07-12).
     // Without this exemption, reconciler Check 2 falsely reports HIGH inconsistencies
     // for armed gate sessions that legitimately reference non-DAG task_ids.
     const DAG_EXEMPT_AGENTS = [

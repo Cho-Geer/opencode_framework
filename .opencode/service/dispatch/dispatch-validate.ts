@@ -328,7 +328,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
     });
     return {
       blocked: true,
-      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] Child dispatch to ${target} requires a dag_task_id that exists in Task.DAG.json (dispatch_policy.require_dag_entry=true). Either provide a planned DAG ID, or set auto_plan=true to let the framework plan automatically (requires dispatch_policy.auto_plan_enabled=true), or dispatch @Meta-Planner first to plan the task.` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
+      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] Child dispatch to ${target} requires a dag_task_id that exists in Task.DAG.json (dispatch_policy.require_dag_entry=true). Either provide a planned DAG ID, or set auto_plan=true to let the framework plan automatically (requires dispatch_policy.auto_plan_enabled=true), or dispatch @plan first to plan the task.` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
     };
   }
 
@@ -342,7 +342,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
       });
       return {
         blocked: true,
-        message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] auto_plan=true was set but dispatch_policy.auto_plan_enabled=false in project.config.json. Self-healing is blocked during rollout. ACTION: dispatch @Meta-Planner to add "${dagTaskId}" to Task.DAG.json, then re-dispatch with the same dag_task_id.` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
+        message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] auto_plan=true was set but dispatch_policy.auto_plan_enabled=false in project.config.json. Self-healing is blocked during rollout. ACTION: dispatch @plan to add "${dagTaskId}" to Task.DAG.json, then re-dispatch with the same dag_task_id.` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
       };
     }
     if (autoPlanRequested && policy.auto_plan_enabled) {
@@ -360,7 +360,7 @@ export function validateDispatchBefore(input: any, output: any): { blocked: bool
     });
     return {
       blocked: true,
-      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order). Dispatch @Meta-Planner first to plan the task, or set auto_plan=true (requires dispatch_policy.auto_plan_enabled=true).` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
+      message: `[FW-ENFORCE][PLAN-FIRST][LAYER-1] dag_task_id "${dagTaskId}" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order). Dispatch @plan first to plan the task, or set auto_plan=true (requires dispatch_policy.auto_plan_enabled=true).` + `\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
     };
   }
 

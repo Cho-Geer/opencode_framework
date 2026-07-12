@@ -1076,6 +1076,7 @@ function checkReconciliationInfra() {
   const preExecPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
+    "legacy",
     "scripts",
     "pre-execution-hook.sh",
   );
@@ -1718,6 +1719,7 @@ function checkPreExecGate() {
   const gatePath = path.join(
     OPENCODE_ROOT,
     ".opencode",
+    "legacy",
     "scripts",
     "pre-execution-gate.ts",
   );
@@ -1759,6 +1761,7 @@ function checkPreExecGate() {
   const preExecHookPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
+    "legacy",
     "scripts",
     "pre-execution-hook.sh",
   );

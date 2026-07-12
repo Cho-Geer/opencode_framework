@@ -20,11 +20,8 @@ const REQUIRED_HOOKS = ['pre-commit', 'commit-msg'];
 const OPTIONAL_HOOKS = ['pre-push', 'post-commit', 'post-merge'];
 // FW-REPAIR-14: Framework scripts that MUST be executable (shebang scripts invoked directly)
 // These are NOT in .opencode/hooks/ but are critical for framework operation.
-// Previously pre-execution-gate.ts was tracked as 100644 in Git, causing recurring
-// framework-self-test failures. Now tracked as 100755 + repaired here as safety net.
+// NOTE: pre-execution-gate.ts / pre-execution-hook.sh retired to .opencode/legacy/scripts/ on 2026-07-12 (audit).
 const REQUIRED_EXECUTABLE_SCRIPTS = [
-  '.opencode/scripts/pre-execution-gate.ts',
-  '.opencode/scripts/pre-execution-hook.sh',
   '.opencode/scripts/enforcement-mode-check.sh',
   '.opencode/scripts/framework-health-check.sh',
   '.opencode/scripts/state-machine-reset.sh',
