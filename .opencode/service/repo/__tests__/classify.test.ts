@@ -362,6 +362,39 @@ describe("classifyGithubMcpTool", () => {
     expect(op.kind).toBe("unknown");
     expect(op.decision).toBe("block");
   });
+
+  // Live OpenCode MCP naming: mcp_<Server>_<action> must normalize to github_* form.
+  test("mcp_GitHub_list_issues => read/allow (live MCP naming)", () => {
+    const op = classifyGithubMcpTool("mcp_GitHub_list_issues");
+    expect(op.kind).toBe("read");
+    expect(op.decision).toBe("allow");
+    expect(op.provider).toBe("github_mcp");
+  });
+
+  test("mcp_GitHub_get_pull_request => read/allow (live MCP naming)", () => {
+    const op = classifyGithubMcpTool("mcp_GitHub_get_pull_request");
+    expect(op.kind).toBe("read");
+    expect(op.decision).toBe("allow");
+  });
+
+  test("mcp_GitHub_create_issue => remote_write (live MCP naming)", () => {
+    const op = classifyGithubMcpTool("mcp_GitHub_create_issue");
+    expect(op.kind).toBe("remote_write");
+    expect(op.requiresHumanConfirmation).toBe(true);
+  });
+
+  test("mcp__GitHub__create_issue (double-underscore) => remote_write", () => {
+    const op = classifyGithubMcpTool("mcp__GitHub__create_issue");
+    expect(op.kind).toBe("remote_write");
+    expect(op.decision).toBe("human_confirmation_required");
+  });
+
+  test("non-github mcp tool is not classified as read/write repo op", () => {
+    const op = classifyGithubMcpTool("mcp_context7_resolve_library_id");
+    expect(op.kind).toBe("unknown");
+    expect(isRepoReadOperation(op)).toBe(false);
+    expect(isRepoWriteOperation(op)).toBe(false);
+  });
 });
 
 describe("classifyRepoShellCommand", () => {
@@ -395,10 +428,21 @@ describe("classifyRepoShellCommand", () => {
     expect(op.decision).toBe("allow");
   });
 
-  test("not a git/gh command => unknown/block", () => {
+  test("not a git/gh command => provider=none, not a repo operation", () => {
     const op = classifyRepoShellCommand("ls -la");
+    expect(op.provider).toBe("none");
     expect(op.kind).toBe("unknown");
     expect(op.decision).toBe("block");
+  });
+
+  test("cat command => provider=none", () => {
+    const op = classifyRepoShellCommand("cat foo.txt");
+    expect(op.provider).toBe("none");
+  });
+
+  test("sha256sum command => provider=none", () => {
+    const op = classifyRepoShellCommand("sha256sum foo.txt");
+    expect(op.provider).toBe("none");
   });
 });
 

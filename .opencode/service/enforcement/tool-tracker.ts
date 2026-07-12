@@ -206,6 +206,8 @@ export interface ThresholdCheck {
   shouldInject: boolean;
   directive: string;
   count: number;
+  tracker_error?: boolean;
+  tracker_error_message?: string;
 }
 
 export interface FailureSummary {
@@ -488,7 +490,13 @@ export function checkThreshold(sessionId: string): ThresholdCheck {
     return { shouldInject: true, directive, count: row.failure_count };
   } catch (e: any) {
     writeLog(SRC, "ERROR", { event: "CHECK-THRESHOLD-ERR", sessionId, error: e.message });
-    return { shouldInject: false, directive: "", count: 0 };
+    return {
+      shouldInject: false,
+      directive: "",
+      count: 0,
+      tracker_error: true,
+      tracker_error_message: e.message,
+    };
   }
 }
 

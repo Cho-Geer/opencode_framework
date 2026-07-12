@@ -1,5 +1,6 @@
 import type { RepoOperation } from "./types";
 import { writeLog } from "../../lib/log-manager";
+import type { LogFields } from "../../lib/log-manager";
 
 const SRC = "repo-operation-runtime";
 
@@ -9,7 +10,7 @@ function getLogDir(): string {
   return `.task_temp/_logs/${date}`;
 }
 
-export interface RepoAuditEvent {
+export interface RepoAuditEvent extends LogFields {
   event: string;
   session_id?: string;
   agent?: string;
@@ -180,21 +181,6 @@ export function auditRepoHookBypassBlocked(
     tool,
     operation_kind: "hook_bypass",
     command_summary,
-    result: "blocked",
-    created_at: Date.now(),
-  });
-}
-
-export function auditRepoScoutWriteBlocked(
-  session_id: string,
-  agent: string,
-  tool: string,
-): void {
-  writeRepoAuditEvent({
-    event: "REPO-SCOUT-WRITE-BLOCKED",
-    session_id,
-    agent,
-    tool,
     result: "blocked",
     created_at: Date.now(),
   });

@@ -1,4 +1,4 @@
-export type RepoProvider = "git" | "gh" | "github_mcp";
+export type RepoProvider = "git" | "gh" | "github_mcp" | "none";
 
 export type RepoOperationKind =
   | "read"

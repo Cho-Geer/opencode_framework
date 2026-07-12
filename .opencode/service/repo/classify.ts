@@ -470,11 +470,24 @@ export function classifyGhArgv(argv: string[]): RepoOperation {
   }
 }
 
+/**
+ * OpenCode registers MCP tools as `mcp_<Server>_<action>` (e.g. `mcp_GitHub_create_issue`,
+ * or double-underscore `mcp__GitHub__create_issue`). Normalize any such name back to the
+ * `github_<action>` form the classification rules below expect, so live GitHub MCP tools
+ * are governed identically to the synthetic `github_*` names used by unit tests.
+ */
+function normalizeGithubMcpToolName(toolName: string): string {
+  const n = toolName.toLowerCase();
+  const m = n.match(/^mcp_+github_+(.+)$/);
+  if (m) return "github_" + m[1];
+  return n;
+}
+
 export function classifyGithubMcpTool(
   toolName: string,
   args?: Record<string, unknown>,
 ): RepoOperation {
-  const name = toolName.toLowerCase();
+  const name = normalizeGithubMcpToolName(toolName);
 
   if (name.startsWith("github_search_") ||
       name.startsWith("github_get_") ||
@@ -561,12 +574,12 @@ export function splitRepoShellCommand(command: string): string[] | null {
 export function classifyRepoShellCommand(command: string): RepoOperation {
   const argv = splitRepoShellCommand(command);
   if (argv === null) {
-    return makeOperation("git", command, [], "", "unknown", [], [],
+    return makeOperation("none", command, [], "", "unknown", [], [],
       "multi-command or shell operators detected");
   }
 
   if (argv.length === 0) {
-    return makeOperation("git", command, argv, "", "unknown", [], [], "empty command");
+    return makeOperation("none", command, argv, "", "unknown", [], [], "empty command");
   }
 
   const cmd = argv[0].toLowerCase();
@@ -577,7 +590,7 @@ export function classifyRepoShellCommand(command: string): RepoOperation {
     return classifyGhArgv(argv);
   }
 
-  return makeOperation("git", command, argv, "", "unknown", [], [],
+  return makeOperation("none", command, argv, "", "unknown", [], [],
     `not a git or gh command: ${cmd}`);
 }
 
@@ -597,7 +610,7 @@ export function classifyRepoOperation(input: RepoClassificationInput): RepoOpera
   }
 
   return makeOperation(
-    input.provider || "git",
+    input.provider || "none",
     input.command || "",
     input.argv || [],
     "",
