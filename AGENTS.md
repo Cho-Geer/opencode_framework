@@ -66,15 +66,17 @@
 
 ## 三、Agent 清单与职责（实际 5）
 
-| Agent | 类型 | 模型 | 职责 |
+| Agent | 类型 | 模型（配置位置） | 职责 |
 | --- | --- | --- | --- |
-| **Orchestrator** | 自定义（`mode: primary`，`prompt: .opencode/agents/Orchestrator.md`） | `volcengine-plan/deepseek-v4-flash` | 专职调度、状态追踪、产物合并；持有 broad 权限集（含 `dispatch_subagent` / `compliance_gate_*` / 框架维护写入口） |
-| **build** | native（平台内置，无 .md） | `volcengine-plan/deepseek-v4-flash` | 构建 / 实现类任务 |
-| **general** | native | `volcengine-plan/deepseek-v4-flash` | 通用任务 |
-| **plan** | native | `volcengine-plan/deepseek-v4-flash` | 规划类任务 |
-| **explore** | native | `opencode-go/deepseek-v4-pro` | 调研 / 探索类任务 |
+| **Orchestrator** | 自定义（`mode: primary`，`prompt: .opencode/agents/Orchestrator.md`） | `opencode.json` 中配置，可随 credits/环境自由更换 | 专职调度、状态追踪、产物合并；持有 broad 权限集（含 `dispatch_subagent` / `compliance_gate_*` / 框架维护写入口） |
+| **build** | native（平台内置，无 .md） | 同上 | 构建 / 实现类任务 |
+| **general** | native | 同上 | 通用任务 |
+| **plan** | native | 同上 | 规划类任务 |
+| **explore** | native | 同上 | 调研 / 探索类任务 |
 
 `default_agent` = `Orchestrator`。4 个 native agent 为平台内置，无独立 `.md` prompt。
+
+> ⚠️ **模型不在本文档定死**：各 agent 的 `model` 在 `opencode.json` 的 `agents` 对象中配置，可因 credits 用尽 / 环境切换随时更换（例如 `opencode-go` → `deepseek`）。本表不记录具体模型字符串，避免与运行态 drift。以 `opencode.json` 当前值为准。
 
 ---
 

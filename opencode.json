@@ -335,7 +335,7 @@
     "explore": {
       "native": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-pro",
+      "model": "deepseek/deepseek-v4-pro",
       "variant": "max",
       "permission": {
         "edit": "deny",
