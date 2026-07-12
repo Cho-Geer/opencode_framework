@@ -299,7 +299,7 @@ export function resolveLatestDispatchAgent(taskId?: string): string {
           "SELECT agent FROM session_map WHERE dag_task_id = ? ORDER BY updated_at DESC LIMIT 1",
         )
         .get(taskId) as { agent: string } | null;
-      if (row?.agent) return normalizeAgent(row.agent);
+      if (row?.agent) return "@" + toDisplayName(row.agent);
     }
     // Priority 2: latest session (fallback)
     const row = db
@@ -307,7 +307,7 @@ export function resolveLatestDispatchAgent(taskId?: string): string {
         "SELECT agent FROM session_map ORDER BY updated_at DESC LIMIT 1",
       )
       .get() as { agent: string } | null;
-    if (row?.agent) return normalizeAgent(row.agent);
+    if (row?.agent) return "@" + toDisplayName(row.agent);
   } catch (e: any) {
     writeLog(SRC, "ERROR", {
       event: "SESSION-MAP-READ-FAILED",

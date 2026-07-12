@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
-export {};
+// Type-only import to keep TypeScript treating this file as a module
+// (prevents global fs/crypto redeclaration errors) while remaining CJS at runtime.
+import type { Stats } from "node:fs";
 /**
  * state-transaction.ts — Unified State Transaction Engine
  * =======================================================
@@ -332,22 +334,9 @@ class StateTransaction {
       }
     } else {
       this.newRevision = getCurrentRevision() + 1;
-      // Non-machine files: increment the machine revision to record this mutation
-      // P1-B split: meta lives in machine.json, transaction_state in transaction-state.json
-      try {
-        const machineObj = readMachineMeta();
-        machineObj.meta.revision = this.newRevision;
-        machineObj.meta.lastUpdated = timestamp;
-        writeMachineMeta(machineObj);
-
-        // Update transaction_state in its dedicated sub-state file
-        const ts = readSubState("transaction_state") || {};
-        ts.last_operation_id = this.operationId;
-        ts.last_transaction_at = timestamp;
-        writeSubState("transaction_state", ts);
-      } catch {
-        // If state files can't be read, just use the counter
-      }
+      // NOTE: For DB-first state (P2-A), the canonical meta.revision is
+      // persisted at COMMIT time, not during PREPARE. This keeps the
+      // two-phase protocol symmetric and avoids false CAS retries.
     }
 
     // ═══ Write BEGIN to WAL ═══
@@ -496,6 +485,36 @@ class StateTransaction {
 
     // ═══ Atomic rename (POSIX guarantee: rename is atomic on same filesystem) ═══
     fs.renameSync(this.tmpPath, this.filePath);
+
+    // ═══ Persist canonical machine meta + transaction_state to DB ═══
+    // P2-A DB-first: the DB is the source of truth for meta.revision and
+    // transaction_state. Update it after the atomic file rename.
+    try {
+      const isMachineJson = path.basename(this.filePath) === "machine.json";
+      if (isMachineJson) {
+        // Sync DB from the committed machine.json content, preserving any
+        // contracts already stored in the DB.
+        const committedContent = fs.readFileSync(this.filePath, "utf-8");
+        const parsed = JSON.parse(committedContent);
+        const dbMeta = readMachineMeta();
+        dbMeta.meta = { ...dbMeta.meta, ...parsed.meta };
+        if (parsed.contracts) dbMeta.contracts = parsed.contracts;
+        writeMachineMeta(dbMeta);
+      } else {
+        const machineObj = readMachineMeta();
+        machineObj.meta.revision = this.newRevision;
+        machineObj.meta.lastUpdated = timestamp;
+        writeMachineMeta(machineObj);
+      }
+
+      // Update transaction_state in its dedicated sub-state file
+      const ts = readSubState("transaction_state") || {};
+      ts.last_operation_id = this.operationId;
+      ts.last_transaction_at = timestamp;
+      writeSubState("transaction_state", ts);
+    } catch {
+      // DB persistence is best-effort; file + WAL are authoritative
+    }
 
     // ═══ Write COMMIT to WAL ═══
     const durationMs = Date.now() - this.startTime;

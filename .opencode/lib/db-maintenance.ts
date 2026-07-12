@@ -287,6 +287,7 @@ export function runAuditCleanup(
   maxAuditRows: number = 10000,
 ): number {
   const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  const now = Date.now();
   let totalDeleted = 0;
 
   try {
@@ -320,7 +321,37 @@ export function runAuditCleanup(
       }
     } catch { /* skip */ }
 
-    // 3. Clean other audit tables
+    // 3. Revoke expired repo grants before deleting long-lived terminal rows.
+    try {
+      const res = db.run(
+        `UPDATE repo_operation_grants
+         SET status = 'revoked', revoked_at = COALESCE(revoked_at, ?)
+         WHERE status IN ('pending', 'bound') AND expires_at < ?`,
+        [now, now],
+      );
+      totalDeleted += res.changes;
+    } catch { /* skip */ }
+
+    // 4. Delete old terminal repo grants and repo audit events.
+    try {
+      const res = db.run(
+        `DELETE FROM repo_operation_grants
+         WHERE status IN ('consumed', 'revoked')
+           AND COALESCE(consumed_at, revoked_at, created_at) < ?`,
+        [cutoff],
+      );
+      totalDeleted += res.changes;
+    } catch { /* skip */ }
+
+    try {
+      const res = db.run(
+        "DELETE FROM repo_operation_events WHERE created_at < ?",
+        [cutoff],
+      );
+      totalDeleted += res.changes;
+    } catch { /* skip */ }
+
+    // 5. Clean other audit tables
     const cleanupTargets: Array<[string, string]> = [
       ["audit_log", "timestamp"],
       ["read_audit", "created_at"],

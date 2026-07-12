@@ -473,10 +473,13 @@ export function dbSaveGateStore(store: any): boolean {
           created_at, consumed_at, expires_at, enforcement_mode, last_check_passed,
           failed_items, missing_artifacts, fail_reason, worktree, audit, updated_at,
           declared_deliverables, submitted_deliverables, deliverables_approved_by,
-          deliverables_approved_at, deliverables_approval_note, approval_required
+          deliverables_approved_at, deliverables_approval_note, approval_required,
+          opencode_session_id, parent_opencode_session_id, child_opencode_session_id,
+          last_submit_session_id, last_approve_session_id, interrupted_at, interruption_source
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?
         )
         ON CONFLICT(session_id) DO UPDATE SET
           task_desc              = excluded.task_desc,
@@ -504,7 +507,14 @@ export function dbSaveGateStore(store: any): boolean {
           deliverables_approved_by  = excluded.deliverables_approved_by,
           deliverables_approved_at  = excluded.deliverables_approved_at,
           deliverables_approval_note = excluded.deliverables_approval_note,
-          approval_required      = excluded.approval_required
+          approval_required      = excluded.approval_required,
+          opencode_session_id    = COALESCE(excluded.opencode_session_id, gate_sessions.opencode_session_id),
+          parent_opencode_session_id = COALESCE(excluded.parent_opencode_session_id, gate_sessions.parent_opencode_session_id),
+          child_opencode_session_id  = COALESCE(excluded.child_opencode_session_id, gate_sessions.child_opencode_session_id),
+          last_submit_session_id = COALESCE(excluded.last_submit_session_id, gate_sessions.last_submit_session_id),
+          last_approve_session_id = COALESCE(excluded.last_approve_session_id, gate_sessions.last_approve_session_id),
+          interrupted_at         = COALESCE(excluded.interrupted_at, gate_sessions.interrupted_at),
+          interruption_source    = COALESCE(excluded.interruption_source, gate_sessions.interruption_source)
       `);
       for (const [sid, ses] of Object.entries(sessions) as Array<
         [string, any]
@@ -543,6 +553,13 @@ export function dbSaveGateStore(store: any): boolean {
           parseTs(ses.deliverables_approved_at),
           ses.deliverables_approval_note || null,
           ses.approval_required ? 1 : 0,
+          ses.opencode_session_id || null,
+          ses.parent_opencode_session_id || null,
+          ses.child_opencode_session_id || null,
+          ses.last_submit_session_id || null,
+          ses.last_approve_session_id || null,
+          ses.interrupted_at ? parseTs(ses.interrupted_at) : null,
+          ses.interruption_source || null,
         );
       }
 

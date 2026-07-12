@@ -18,6 +18,7 @@ import {
 } from "./resolver";
 import { upsertSessionMap, cleanOrphanSessionMaps } from "./session-map";
 import { resetConfigReadPerRound } from "./config-attest";
+import { handleGateSessionInterrupted } from "../gate/session-context-service";
 
 const SRC = "service-lifecycle";
 const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
@@ -369,6 +370,8 @@ export function handleSessionError(input: any): void {
       kind: detection.kind,
       raw: errorStr.slice(0, 500),
     });
+    // v37: Interrupt all pending gate call contexts for this session
+    handleGateSessionInterrupted(sid, detection.reason || "session_interrupt");
   }
 }
 

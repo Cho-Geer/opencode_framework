@@ -2243,6 +2243,146 @@ export function initializeSchema(db: Database): void {
       detail: `v35: ${e.message}`,
     });
   }
+
+  // ── v36: framework maintenance multi-write grants + plans ──
+  try {
+    const grantCols = new Set(
+      (db.query("PRAGMA table_info(dispatch_privilege_grants)").all() as { name: string }[])
+        .map((c) => c.name),
+    );
+
+    if (!grantCols.has("max_writes")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN max_writes INTEGER DEFAULT 1`);
+    }
+    if (!grantCols.has("writes_used")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN writes_used INTEGER DEFAULT 0`);
+    }
+    if (!grantCols.has("policy_version")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN policy_version TEXT DEFAULT 'framework-maintenance-v1'`);
+    }
+    if (!grantCols.has("completed_at")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN completed_at INTEGER`);
+    }
+
+    db.run(`CREATE TABLE IF NOT EXISTS framework_maintenance_plans (
+      id TEXT PRIMARY KEY,
+      grant_id TEXT NOT NULL,
+      child_session_id TEXT NOT NULL,
+      dag_task_id TEXT,
+      planned_paths TEXT NOT NULL,
+      codegraph_targets TEXT NOT NULL,
+      rationale TEXT NOT NULL,
+      risk_level TEXT NOT NULL DEFAULT 'medium',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      FOREIGN KEY(grant_id) REFERENCES dispatch_privilege_grants(id)
+    )`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_framework_plans_grant_status
+      ON framework_maintenance_plans(grant_id, status)`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_framework_plans_session_status
+      ON framework_maintenance_plans(child_session_id, status)`);
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (36, ?, 'v36: framework maintenance multi-write grants + plans')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v36: dispatch_privilege_grants extended + framework_maintenance_plans created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v36: ${e.message}`,
+    });
+  }
+
+  // ── v37: MCP session propagation — gate_call_context + gate_sessions session binding ──
+  // Blueprint: plans/mcp-session-propagation/blueprint-mcp-session-propagation.md
+  // Purpose: Replace process.env.OPENCODE_SESSION_ID with DB-backed context bridge
+  try {
+    // 1. Create gate_call_context table for universal MCP gate call tracking
+    db.run(`
+      CREATE TABLE IF NOT EXISTS gate_call_context (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tool_name TEXT NOT NULL,
+        gate_session_id TEXT,
+        opencode_session_id TEXT NOT NULL,
+        parent_session_id TEXT,
+        call_id TEXT,
+        agent TEXT,
+        args_hash TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        interrupted_at INTEGER,
+        consumed_at INTEGER
+      )
+    `);
+
+    // Indexes for gate_call_context
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_call_context_lookup
+      ON gate_call_context(tool_name, gate_session_id, args_hash, status, consumed_at, created_at DESC)
+    `);
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_call_context_callid
+      ON gate_call_context(call_id)
+    `);
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_call_context_session
+      ON gate_call_context(opencode_session_id, created_at DESC)
+    `);
+
+    // 2. Add 6 session binding columns to gate_sessions
+    const gateSessionCols = new Set(
+      (db.query("PRAGMA table_info(gate_sessions)").all() as { name: string }[])
+        .map((c) => c.name),
+    );
+
+    const newGateSessionCols: Array<[string, string]> = [
+      ["parent_opencode_session_id", "TEXT DEFAULT NULL"],
+      ["child_opencode_session_id", "TEXT DEFAULT NULL"],
+      ["last_submit_session_id", "TEXT DEFAULT NULL"],
+      ["last_approve_session_id", "TEXT DEFAULT NULL"],
+      ["interrupted_at", "INTEGER DEFAULT NULL"],
+      ["interruption_source", "TEXT DEFAULT NULL"],
+    ];
+
+    for (const [col, type] of newGateSessionCols) {
+      if (!gateSessionCols.has(col)) {
+        db.run(`ALTER TABLE gate_sessions ADD COLUMN ${col} ${type}`);
+      }
+    }
+
+    // Indexes for new gate_sessions columns
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_sessions_parent_session
+      ON gate_sessions(parent_opencode_session_id)
+    `);
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_sessions_child_session
+      ON gate_sessions(child_opencode_session_id)
+    `);
+
+    db.run(`
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (37, ?, 'v37: MCP session propagation — gate_call_context + gate_sessions session binding')
+    `, [Date.now()]);
+
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v37: gate_call_context table created + gate_sessions session binding columns added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v37: ${e.message}`,
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-export {};
+
 // state-integrity-scan.ts — P4-002
 // Scans gate-state.json, machine.json, project.config.json, rule_registry.json,
 // and Task.DAG.json for JSON validity, required fields, and orphaned references.
@@ -32,11 +32,19 @@ function main() {
     "Task.DAG.json": (paths as any).dag,
   };
 
+  // Optional files are not required on a new project and should only emit INFO
+  // when missing. Required files still emit HIGH.
+  const optionalFiles = new Set([
+    "gate-state.json",
+    "rule_registry.json",
+    "Task.DAG.json",
+  ]);
+
   // ── JSON validity check ──
   for (const [name, filepath] of Object.entries(files)) {
     if (!fileExists(filepath)) {
       inconsistencies.push({
-        severity: "HIGH",
+        severity: optionalFiles.has(name) ? "INFO" : "HIGH",
         file: name,
         issue: "file_missing",
         detail: "File not found",
@@ -128,6 +136,15 @@ function main() {
   // machine.json required sub-state fields check (P1-B: split architecture)
   // Sub-states now live in dedicated files; readSubState() returns {} for
   // missing/unreadable files, which we flag as structural problems.
+  // Fallback: read sub-states directly from machine.json when the DB split
+  // sub-states are not yet populated (e.g. new project or legacy JSON-only
+  // state). This keeps DB as the primary source while avoiding false HIGH
+  // violations on existing machine.json content.
+  let machineJsonFallback: any = null;
+  if (fileExists(files["machine.json"])) {
+    machineJsonFallback = readJsonFile(files["machine.json"]);
+  }
+
   if (fileExists(files["machine.json"])) {
     const machineMeta = readMachineMeta();
     const requiredSubStates = [
@@ -142,7 +159,10 @@ function main() {
     ];
     for (const key of requiredSubStates) {
       const subState = readSubState(key);
-      if (!subState || Object.keys(subState).length === 0) {
+      const hasDbSubState = subState && Object.keys(subState).length > 0;
+      const hasJsonSubState =
+        machineJsonFallback && Object.prototype.hasOwnProperty.call(machineJsonFallback, key);
+      if (!hasDbSubState && !hasJsonSubState) {
         inconsistencies.push({
           severity: "HIGH",
           file: "machine.json",
@@ -151,8 +171,18 @@ function main() {
         });
       }
     }
-    // meta and contracts reside in machine.json itself (not split files)
-    if (!machineMeta.meta || Object.keys(machineMeta.meta).length === 0) {
+    // meta and contracts reside in machine.json itself (not split files).
+    // Use machine.json as fallback when the DB meta table is not yet populated.
+    const effectiveMeta =
+      machineMeta.meta && Object.keys(machineMeta.meta).length > 0
+        ? machineMeta.meta
+        : machineJsonFallback && machineJsonFallback.meta;
+    const effectiveContracts =
+      machineMeta.contracts && machineMeta.contracts.length > 0
+        ? machineMeta.contracts
+        : machineJsonFallback && machineJsonFallback.contracts;
+
+    if (!effectiveMeta || Object.keys(effectiveMeta).length === 0) {
       inconsistencies.push({
         severity: "HIGH",
         file: "machine.json",
@@ -160,7 +190,7 @@ function main() {
         detail: `Required sub-state 'meta' missing or empty`,
       });
     }
-    if (!machineMeta.contracts) {
+    if (!effectiveContracts) {
       inconsistencies.push({
         severity: "HIGH",
         file: "machine.json",
@@ -168,7 +198,7 @@ function main() {
         detail: `Required sub-state 'contracts' missing`,
       });
     }
-    if (!machineMeta.meta || !machineMeta.meta.revision) {
+    if (!effectiveMeta || effectiveMeta.revision === undefined || effectiveMeta.revision === null) {
       inconsistencies.push({
         severity: "WARNING",
         file: "machine.json",
