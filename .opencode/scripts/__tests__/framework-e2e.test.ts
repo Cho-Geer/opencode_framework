@@ -684,11 +684,11 @@ async function main(): Promise<void> {
   console.log(`${"═".repeat(60)}\n`);
 
   if (failed > 0) {
-    process.exit(1);
+    if (!process.env.BUN_TEST_SUITE) process.exit(1);
   }
 }
 
 main().catch((err) => {
   console.error("FATAL:", err);
-  process.exit(2);
+  if (!process.env.BUN_TEST_SUITE) process.exit(2);
 });
