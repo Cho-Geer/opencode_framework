@@ -16,11 +16,13 @@ import * as skillAuditHandler from "../plugin-handlers/after/skill-audit";
 import * as qualityContractHandler from "../plugin-handlers/after/quality-contract";
 import * as dispatchTraceHandler from "../plugin-handlers/after/dispatch-trace";
 import * as guidanceRecoveryHandler from "../plugin-handlers/after/guidance-recovery";
+import * as gateCallContextHandler from "../plugin-handlers/after/gate-call-context";
 
 // ── Handler registry ──
 type AfterFn = (input: any, output: any) => Promise<void>;
 
 const HANDLER_MAP: Record<string, AfterFn> = {
+  "gate-call-context": gateCallContextHandler.handle,
   "db-health": dbHealthHandler.handle,
   "unified-audit": unifiedAuditHandler.handle,
   "skill-audit": skillAuditHandler.handle,
@@ -32,6 +34,7 @@ const HANDLER_MAP: Record<string, AfterFn> = {
 // Removed from active order: audit (merged into unified-audit, not in execution_order)
 // ── Tool filter metadata ──
 const TOOL_FILTER: Record<string, string[]> = {
+  "gate-call-context": ["compliance-gate_compliance_gate_check", "compliance-gate_compliance_gate_confirm", "compliance-gate_compliance_gate_submit_deliverables", "compliance-gate_compliance_gate_approve_deliverables", "compliance-gate_compliance_gate_complete"],
   "db-health": ["*"],
   "unified-audit": ["*"],
   "skill-audit": ["skill", "skill_read_attest"],
@@ -43,6 +46,7 @@ const TOOL_FILTER: Record<string, string[]> = {
 let _hotPathAfterCount = 0;
 
 const DEFAULT_ORDER = [
+  "gate-call-context",
   "unified-audit",
   "skill-audit",
   "quality-contract",

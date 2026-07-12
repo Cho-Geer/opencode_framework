@@ -7,7 +7,6 @@ export type NativeExecutor =
   | "build"
   | "general"
   | "explore"
-  | "scout"
   | "orchestrator";
 
 interface LegacyRoleDefinition {
@@ -69,7 +68,6 @@ const NATIVE_EXECUTOR_SET = new Set<string>([
   "build",
   "general",
   "explore",
-  "scout",
 ]);
 
 export interface DispatchTarget {
@@ -96,6 +94,9 @@ export function resolveDispatchTarget(
   root: string = process.env.OPENCODE_ROOT || process.cwd(),
 ): DispatchTarget {
   const normalized = normalize(agentType);
+  if (normalized === "scout") {
+    throw new Error(`Agent "${agentType}" is retired. Use "explore" for read-only investigation.`);
+  }
   if (normalized === "orchestrator") {
     const profileRelativePath = ".opencode/agents/Orchestrator.md";
     return {

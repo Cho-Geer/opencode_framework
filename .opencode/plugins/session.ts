@@ -75,6 +75,66 @@ export default withPluginLifecycle("session", {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// Child dispatch-key resolver (fail-closed on ambiguity)
+// ═══════════════════════════════════════════════════════════════
+
+function resolveChildDispatchKey(
+  parentId: string,
+  sid: string,
+  agent: string
+): string | undefined {
+  try {
+    const db = getDb();
+    const rows = db
+      .query(
+        `SELECT dispatch_key FROM dispatch_queue
+         WHERE parent_session_id = ? AND dispatch_key IS NOT NULL AND status IN ('pending', 'running')
+         ORDER BY created_at DESC`
+      )
+      .all(parentId) as { dispatch_key: string }[];
+
+    if (rows.length === 0) {
+      writeLog("session", "INFO", {
+        sessionID: sid, agent,
+        event: "GRANT-BIND-QUEUE-MISS",
+        parentId,
+        detail: "No pending dispatch_queue entry for parent session",
+      });
+      return undefined;
+    }
+
+    if (rows.length > 1) {
+      const keys = rows.map((r) => r.dispatch_key).join(", ");
+      writeLog("session", "WARN", {
+        sessionID: sid, agent,
+        event: "GRANT-BIND-AMBIGUOUS",
+        parentId,
+        dispatchKeys: keys,
+        detail: `Multiple pending/running dispatch_queue entries for parent session; fail-closed, no grant bound`,
+      });
+      return undefined;
+    }
+
+    writeLog("session", "INFO", {
+      sessionID: sid, agent,
+      event: "GRANT-BIND-QUEUE-HIT",
+      dispatchKey: rows[0].dispatch_key,
+      parentId,
+      detail: "Found single pending queue entry, attempting bindGrant",
+    });
+    return rows[0].dispatch_key;
+  } catch (e: any) {
+    writeLog("session", "WARN", {
+      sessionID: sid, agent,
+      event: "GRANT-BIND-RESOLVE-FAILED",
+      parentId,
+      detail: `Non-blocking: ${e.message}`,
+    });
+    return undefined;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // session.created — session_map write + db health startup check
 // ═══════════════════════════════════════════════════════════════
 
@@ -106,46 +166,24 @@ function onSessionCreated(input: any): void {
 
     // ── Grant binding for child sessions ──
     if (parentId) {
-      try {
-        writeLog("session", "INFO", {
-          sessionID: sid, agent,
-          event: "GRANT-BIND-LOOKUP-START",
-          detail: `Looking up pending dispatch_queue for parentId=${parentId}`,
-        });
-
-        const { getDb } = require("../lib/db-manager");
-        const db = getDb();
-        const now = Date.now();
-        const queueEntry = db.query(
-          `SELECT dispatch_key FROM dispatch_queue
-           WHERE parent_session_id = ? AND dispatch_key IS NOT NULL AND status IN ('pending', 'running')
-           ORDER BY created_at DESC LIMIT 1`
-        ).get(parentId) as any;
-
-        if (queueEntry?.dispatch_key) {
-          writeLog("session", "INFO", {
-            sessionID: sid, agent,
-            event: "GRANT-BIND-QUEUE-HIT",
-            dispatchKey: queueEntry.dispatch_key,
-            parentId,
-            detail: `Found pending queue entry, attempting bindGrant`,
-          });
-
+      const dispatchKey = resolveChildDispatchKey(parentId, sid, agent);
+      if (dispatchKey) {
+        try {
           const { bindGrant } = require("../service/dispatch/privilege");
-          const bound = bindGrant(queueEntry.dispatch_key, sid);
+          const bound = bindGrant(dispatchKey, sid);
           if (bound) {
             writeLog("session", "INFO", {
               sessionID: sid, agent,
               event: "GRANT-BOUND-ON-SESSION-CREATED",
               grantId: bound.id,
-              dispatchKey: queueEntry.dispatch_key,
+              dispatchKey,
               parentSession: parentId,
             });
           } else {
             writeLog("session", "WARN", {
               sessionID: sid, agent,
               event: "GRANT-BIND-NO-MATCH",
-              dispatchKey: queueEntry.dispatch_key,
+              dispatchKey,
               parentId,
               detail: `bindGrant returned null — no pending grant found for dispatch_key`,
             });
@@ -154,31 +192,24 @@ function onSessionCreated(input: any): void {
           // Repo grant binding (parallel to framework grant)
           try {
             const { bindRepoGrant } = require("../service/repo/grants");
-            const repoBound = bindRepoGrant(queueEntry.dispatch_key, sid);
+            const repoBound = bindRepoGrant(dispatchKey, sid);
             if (repoBound) {
               writeLog("session", "INFO", {
                 sessionID: sid, agent,
                 event: "REPO-GRANT-BOUND-ON-SESSION-CREATED",
                 grantId: repoBound.id,
-                dispatchKey: queueEntry.dispatch_key,
+                dispatchKey,
                 privilege: repoBound.privilege,
               });
             }
           } catch { /* non-blocking: repo grant binding is best-effort */ }
-        } else {
-          writeLog("session", "INFO", {
+        } catch (e: any) {
+          writeLog("session", "WARN", {
             sessionID: sid, agent,
-            event: "GRANT-BIND-QUEUE-MISS",
-            parentId,
-            detail: `No pending dispatch_queue entry for parent session`,
+            event: "GRANT-BIND-ON-CREATE-FAILED",
+            detail: `Non-blocking: ${e.message}`,
           });
         }
-      } catch (e: any) {
-        writeLog("session", "WARN", {
-          sessionID: sid, agent,
-          event: "GRANT-BIND-ON-CREATE-FAILED",
-          detail: `Non-blocking: ${e.message}`,
-        });
       }
     }
   } catch (e: any) {
@@ -251,13 +282,28 @@ async function chatMessageHook(input: any, _output: any) {
   const agent = input.agent || "";
   const sid = input.sessionID || "";
 
-  
   writeLog("session", "runtime", {
     sessionID: sid, agent, event: "CHAT-HOOK", detail: "enter",
   });
 
+  // ── skill-summary user-message bridge ──
+  // Capture user text even when SDK has not populated input.agent yet. Keep the
+  // rest of chat.message work behind the sid+agent guard below.
+  if (sid) {
+    try {
+      const parts = Array.isArray(_output?.parts) ? _output.parts : [];
+      const text = parts
+        .filter((p: any) => p && (p.type === "text" || typeof p.text === "string"))
+        .map((p: any) => typeof p.text === "string" ? p.text : "")
+        .filter(Boolean)
+        .join("\n")
+        .slice(0, 4000);
+      if (text) captureUserMessage(sid, text);
+    } catch { /* bridge is best-effort */ }
+  }
+
   if (!sid || !agent) {
-        writeLog("session", "runtime", {
+    writeLog("session", "runtime", {
       sessionID: sid, agent, event: "CHAT-HOOK", detail: "exit (no sid/agent)",
     });
     return;
@@ -282,22 +328,16 @@ async function chatMessageHook(input: any, _output: any) {
     sdkDb.close();
 
     if (parentId) {
-      const db = getDb();
-      const queueEntry = db.query(
-        `SELECT dispatch_key FROM dispatch_queue
-         WHERE parent_session_id = ? AND dispatch_key IS NOT NULL AND status IN ('pending', 'running')
-         ORDER BY created_at DESC LIMIT 1`
-      ).get(parentId) as any;
-
-      if (queueEntry?.dispatch_key) {
+      const dispatchKey = resolveChildDispatchKey(parentId, sid, agent);
+      if (dispatchKey) {
         const { bindGrant } = require("../service/dispatch/privilege");
-        const bound = bindGrant(queueEntry.dispatch_key, sid);
+        const bound = bindGrant(dispatchKey, sid);
         if (bound) {
           writeLog("session", "INFO", {
             sessionID: sid, agent,
             event: "GRANT-BOUND-ON-CHAT-MESSAGE",
             grantId: bound.id,
-            dispatchKey: queueEntry.dispatch_key,
+            dispatchKey,
             parentSession: parentId,
           });
         }
@@ -305,13 +345,13 @@ async function chatMessageHook(input: any, _output: any) {
         // Repo grant binding on chat.message
         try {
           const { bindRepoGrant } = require("../service/repo/grants");
-          const repoBound = bindRepoGrant(queueEntry.dispatch_key, sid);
+          const repoBound = bindRepoGrant(dispatchKey, sid);
           if (repoBound) {
             writeLog("session", "INFO", {
               sessionID: sid, agent,
               event: "REPO-GRANT-BOUND-ON-CHAT-MESSAGE",
               grantId: repoBound.id,
-              dispatchKey: queueEntry.dispatch_key,
+              dispatchKey,
               privilege: repoBound.privilege,
             });
           }
@@ -324,20 +364,6 @@ async function chatMessageHook(input: any, _output: any) {
     writeSessionMapWithConstraint(sid, agent);
     runPreflightAutoMark(sid, agent);
     updateMemorySessionMap(sid, agent);
-
-    // ── skill-summary user-message bridge (v2.2) ──
-    // Extract text parts from output.parts (Part[] shape per @opencode-ai/plugin SDK)
-    // and store in cross-hook Map keyed by sessionID. Cap at 4KB to bound memory.
-    try {
-      const parts = Array.isArray(_output?.parts) ? _output.parts : [];
-      const text = parts
-        .filter((p: any) => p && (p.type === "text" || typeof p.text === "string"))
-        .map((p: any) => typeof p.text === "string" ? p.text : "")
-        .filter(Boolean)
-        .join("\n")
-        .slice(0, 4000);
-      if (text) captureUserMessage(sid, text);
-    } catch { /* bridge is best-effort */ }
 
     writeLog("session", "runtime", {
       sessionID: sid, agent, event: "CHAT-HOOK",

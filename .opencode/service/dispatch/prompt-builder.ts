@@ -150,7 +150,7 @@ export function buildDispatchPrompt(input: PromptBuildInput): PromptBuildResult 
 
   // dag_task_id is now injected directly into the task payload section (T1.7)
   const dagTaskIdNote = dagTaskId
-    ? `> **dispatch-assigned dag_task_id**: \`${dagTaskId}\` — use this exact value when calling compliance_gate_check(task_id=...). Do NOT fabricate a different task_id.`
+    ? `> **dispatch-assigned dag_task_id**: \`${dagTaskId}\` — In dispatch-backed flows, do not pass task_id unless explicitly required for a non-dispatch scenario. Do NOT fabricate a different task_id.`
     : "";
 
   // Build template resolution map
@@ -187,7 +187,6 @@ export function buildDispatchPrompt(input: PromptBuildInput): PromptBuildResult 
 - **Native executor**: ${target.nativeExecutor}
 - **Task**: ${resolvedTaskDescription}
 - **payload_sha256**: ${crypto.createHash("sha256").update(resolvedTaskDescription, "utf8").digest("hex").substring(0, 16)}
-- **task_id**: ${taskId || "(none)"}
 - **Invocation Summary**: append \`## 📊 Invocation Summary\` to output and \`.task_temp/_dispatch/INVOCATION_SUMMARY.md\`
 
 ### 🚨 Your Scope — Framework-Enforced

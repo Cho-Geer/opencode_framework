@@ -30,6 +30,7 @@ export function isModifyTool(tool: string): boolean {
     tool === "write" ||
     tool === "edit" ||
     tool === "safe_edit" ||
+    tool === "safe_framework_edit" ||
     tool === "safe_mkdir" ||
     tool === "safe_delete" ||
     tool === "safe_shell" ||
