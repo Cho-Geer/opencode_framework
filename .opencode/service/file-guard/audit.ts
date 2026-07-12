@@ -3,7 +3,7 @@
 
 import { shouldBlock } from "../enforcement/rule-disposition";
 import { atomicWriteSubState } from "../../lib/state-utils";
-import { isWriteAllowed } from "../../lib/gate-checks";
+import { isPathAllowedForAgent } from "../permission/reader";
 import { writeLog } from "../../lib/log-manager";
 import { dbWriteAuditLogEntry, dbFlushAuditTrail } from "../../lib/db-state-manager";
 
@@ -57,7 +57,7 @@ export function executeWriteAuditCheck(files: string[], agent: string, taskId: s
     sessionData.files_written.push(file);
     sessionData.checks_run++;
 
-    const scopeAllowed = isWriteAllowed(agent, file);
+    const scopeAllowed = isPathAllowedForAgent(agent, file);
     if (!scopeAllowed) {
       sessionData.scope_violations_attempted++;
       sessionData.checks_failed++;

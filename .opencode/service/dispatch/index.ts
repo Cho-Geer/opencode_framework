@@ -33,7 +33,6 @@ export {
 
 // ── Session Log & Diagnostics ──
 export {
-  dbInsertDispatchContext,
   dbInsertDispatchAttempt,
   dbGetDispatchQueue,
   dbGetPendingCount,

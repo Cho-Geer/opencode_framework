@@ -27,7 +27,6 @@ export {
 
 // ── Logging + diagnostics (from session-log) ──────────────────────────
 export {
-  dbInsertDispatchContext,
   dbInsertDispatchAttempt,
   dbGetDispatchQueue,
   dbGetPendingCount,
