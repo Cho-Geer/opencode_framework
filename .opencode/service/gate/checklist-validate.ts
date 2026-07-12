@@ -1,7 +1,15 @@
-// service/gate/checklist-validate.ts — Checklist before-hook validation logic
+// ────────────────────────────────────────────────────────────────────
+// LEGACY HANDLER — NOT in active execution_order
+// Kept as delegate dependency or for rollback only.
+// Do NOT call directly from dispatcher. See project.config.json
+// plugin_execution_order for the active handler chain.
+// ────────────────────────────────────────────────────────────────────
+// service/gate/checklist-validate.ts — Checklist validation logic (extracted)
 // Source: checklist-before.ts plugin (423L → service extraction)
-// P0 checklist enforcement + parent-run fallback + auto-advance + phase block.
-// Enhanced 2026-07-01: Phase 0 (initial_read) hard constraint — only read + attest tools allowed
+// Retained for legacy checklist compat + delegate callers only.
+// NOTE: old "Phase 0 (initial_read) hard constraint" narrative removed —
+// active checklist gating is now rule-disposition driven (see rule-disposition.ts).
+
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

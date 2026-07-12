@@ -19,6 +19,7 @@ import { submitDeliverablesWithCrossCheck, approveDeliverablesWithAudit } from "
 import { retryConfirmGateSession } from "../../service/gate/mcp-retry";
 import { bulkReviewDeliverables } from "../../service/gate/mcp-bulk";
 import { purgeStaleSessions, drainStaleSessions } from "../../service/gate/drain";
+import { writeLog } from "../../lib/log-manager";
 
 // ── Reminder text builder ──
 function buildReminderText(gateSessionId: string, planSummary: string, expiresAt: string): string {
@@ -42,12 +43,16 @@ const gateServer = new McpServer({ name: "compliance-gate", version: "1.0.0" }, 
 
 // ── Tool 1: compliance_gate_check ──
 gateServer.registerTool("compliance_gate_check", {
-  description: "MANDATORY runtime compliance gate v2. Must be called BEFORE any task execution. Verifies skill exists, rules present, rule_registry digest compatibility. Returns passed=true when all checks clear.",
+  description: "Runtime compliance gate for governed tasks. Use for high-risk changes, formal deliverables, cross-agent handoff, or explicit audit trails. Verifies skill exists, rules present, and rule_registry digest compatibility. Returns passed=true when all checks clear.",
   inputSchema: {
     task_description: z.string(),
-    task_id: z.string().optional(),
     plan_summary: z.string().optional().describe("OPTIONAL combined check+confirm flow. If provided AND check passes, gate is armed in single call."),
-    agent: z.string().optional(),
+    call_id: z.string().optional().describe("Internal: auto-propagated by the gate-call-context before-hook for exact-match resolution. Do not set manually."),
+    agent: z.string().optional().describe(
+      "REQUIRED: Agent identity (e.g. 'build', 'Orchestrator'). " +
+      "Used for deliverables validation and approval routing. " +
+      "If omitted, defaults to 'unknown' which blocks approval."
+    ),
     declared_deliverables: z.array(z.object({
       name: z.string().min(1).describe("File name or deliverable identifier (e.g. 'HANDOVER.md')"),
       description: z.string().min(5).describe("What this deliverable contains, at least 5 characters"),
@@ -55,15 +60,17 @@ gateServer.registerTool("compliance_gate_check", {
       "Used in combined check+confirm flow. Array of deliverable objects with {name, description (≥5 chars)}. " +
       "Example: [{\"name\": \"HANDOVER.md\", \"description\": \"Handover document for next agent\"}]."
     ),
+    tool_name: z.string(),
+    opencode_session_id: z.string(),
   },
 }, (args) => {
-  const result = checkGateCompliance(args.task_description || "", args.task_id);
+  const result = checkGateCompliance(args.task_description || "");
   const planSummary = args.plan_summary;
   if (planSummary && result.passed && result.session_id) {
     if (planSummary.trim().length < 10) {
       return { content: [{ type: "text" as const, text: JSON.stringify({ ...result, combined: true, combined_status: "rejected_plan_too_short" }, null, 2) }], isError: true };
     }
-    const armResult = confirmGateSession(result.session_id, planSummary, args.agent, args.task_id, args.declared_deliverables);
+    const armResult = confirmGateSession(result.session_id, planSummary, args.agent, "", args.declared_deliverables, { call_id: args.call_id, opencode_session_id: args.opencode_session_id}, args as Record<string, unknown>);
     if (armResult.status === "armed") {
       const merged = { ...result, combined: true, combined_status: "armed", confirmed_at: armResult.confirmed_at, expires_at: armResult.expires_at };
       return { content: [{ type: "text" as const, text: JSON.stringify(merged, null, 2) + buildReminderText(result.session_id!, armResult.plan_summary!, armResult.expires_at!) }], isError: false };
@@ -78,6 +85,7 @@ gateServer.registerTool("compliance_gate_confirm", {
   description: "Mark gate as armed after plan review. HARD CONSTRAINT: declared_deliverables required for non-exempt agents.",
   inputSchema: {
     session_id: z.string(),
+    call_id: z.string().optional().describe("Internal: auto-propagated by the gate-call-context before-hook for exact-match resolution. Do not set manually."),
     plan_summary: z.string(),
     declared_deliverables: z.array(z.object({
       name: z.string().min(1).describe("File name or deliverable identifier (e.g. 'HANDOVER.md')"),
@@ -88,10 +96,15 @@ gateServer.registerTool("compliance_gate_confirm", {
       "Do NOT pass bare string arrays like [\"HANDOVER.md\"]."
     ),
     task_id: z.string().optional(),
-    agent: z.string().optional(),
+    agent: z.string().optional().describe(
+      "REQUIRED: Agent identity (e.g. 'build', 'Orchestrator'). " +
+      "Used for deliverables validation and approval routing. " +
+      "If omitted, defaults to 'unknown' which blocks approval."
+    ),
+    tool_name: z.string(),
   },
 }, (args) => {
-  const result = confirmGateSession(args.session_id, args.plan_summary, args.agent, args.task_id, args.declared_deliverables);
+  const result = confirmGateSession(args.session_id, args.plan_summary, args.agent, args.task_id, args.declared_deliverables, { call_id: args.call_id }, args as Record<string, unknown>);
   if (result.status === "armed") {
     return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) + buildReminderText((result as any).session_id!, result.plan_summary!, result.expires_at!) }], isError: false };
   }
@@ -106,7 +119,14 @@ gateServer.registerTool("compliance_gate_complete", {
     execution_summary: z.string(),
   },
 }, (args) => {
-  const result = completeGateWithRetry(args.session_id, args.execution_summary);
+  const result = completeGateWithRetry(args.session_id, args.execution_summary, args as Record<string, unknown>);
+  if (result.status === "rejected") {
+    writeLog("compliance-gate", "ERROR", {
+      sessionId: args.session_id,
+      event: "COMPLIANCE_GATE_COMPLETE_REJECTED",
+      reason: result.reason,
+    });
+  }
   return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }], isError: result.status !== "completed" };
 });
 
@@ -118,7 +138,13 @@ gateServer.registerTool("compliance_gate_submit_deliverables", {
     deliverables_evidence: z.string(),
   },
 }, (args) => {
-  const result = submitDeliverablesWithCrossCheck(args.session_id, args.deliverables_evidence);
+  const result = submitDeliverablesWithCrossCheck(args.session_id, args.deliverables_evidence, args as Record<string, unknown>);
+  if (result.status === "rejected") {
+    writeLog("compliance-gate", "ERROR", {
+      event: "SUBMIT_DELIVERABLES_REJECTED",
+      reason: result.reason,
+    });
+  }
   return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }], isError: result.status !== "delivered" };
 });
 
@@ -130,12 +156,16 @@ gateServer.registerTool("compliance_gate_approve_deliverables", {
     approval_decision: z.enum(["approve", "reject"]),
     approval_note: z.string().optional(),
     execution_summary: z.string().optional(),
-    agent_id: z.string().optional(),
+    agent_id: z.string().optional().describe(
+      "REQUIRED: Agent identity (e.g. 'build', 'Orchestrator'). " +
+      "Used for deliverables validation and approval routing. " +
+      "If omitted, defaults to 'unknown' which blocks approval."
+    ),
     handover_sha256: z.string(),
     findings_reported: z.string().optional(),
   },
 }, (args) => {
-  const result = approveDeliverablesWithAudit(args.session_id, args.approval_decision, args.approval_note, args.execution_summary, args.agent_id, args.handover_sha256, args.findings_reported);
+  const result = approveDeliverablesWithAudit(args.session_id, args.approval_decision, args.approval_note, args.execution_summary, args.agent_id, args.handover_sha256, args.findings_reported, args as Record<string, unknown>);
   return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }], isError: result.status === "rejected" };
 });
 

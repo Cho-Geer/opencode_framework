@@ -10,25 +10,18 @@ import {
   dbSaveGateStore,
 } from "../../lib/db-state-manager";
 import type { GateStore, GateSession } from "./store-types";
+import type { LogCategory, LogFields } from "../../lib/log-manager";
 
 const SRC = "service-gate-store";
 
-let _writeLog:
-  | ((src: string, level: string, payload: Record<string, unknown>) => void)
-  | null = null;
+import { writeLog } from "../../lib/log-manager";
+
 function writeLogSafe(
   src: string,
-  level: string,
-  payload: Record<string, unknown>,
+  level: LogCategory,
+  payload: LogFields,
 ): void {
-  try {
-    if (!_writeLog) {
-      _writeLog = require("../../lib/log-manager").writeLog;
-    }
-    _writeLog!(src, level, payload);
-  } catch {
-    // Circular dependency or module unavailable — swallow silently
-  }
+  writeLog(src, level, payload);
 }
 
 // ════════════════════════════════════════════════
@@ -228,24 +221,46 @@ export function loadGateStore(root?: string): GateStore {
   return store;
 }
 
-export function saveGateStore(store: GateStore, root?: string): boolean {
+export interface GateStoreSaveResult {
+  ok: boolean;
+  storage: "db";
+  error_code?: "DB_SAVE_FAILED" | "DB_EXCEPTION";
+  error_message?: string;
+}
+
+export function saveGateStore(store: GateStore, root?: string): GateStoreSaveResult {
   try {
     const ok = dbSaveGateStore(store);
     if (!ok) {
+      const result = {
+        ok: false,
+        storage: "db" as const,
+        error_code: "DB_SAVE_FAILED" as const,
+        error_message: "dbSaveGateStore returned false",
+      };
       writeLogSafe(SRC, "ERROR", {
         event: "DB-SAVE-GATE-FAILED",
         level: "ERROR" as any,
-        detail: "dbSaveGateStore returned false",
+        detail: result.error_message,
+        error_code: result.error_code,
       });
+      return result;
     }
-    return ok;
+    return { ok: true, storage: "db" };
   } catch (e: any) {
+    const result = {
+      ok: false,
+      storage: "db" as const,
+      error_code: "DB_EXCEPTION" as const,
+      error_message: e.message,
+    };
     writeLogSafe(SRC, "ERROR", {
       event: "DB-SAVE-GATE-FAILED",
       level: "ERROR" as any,
-      detail: e.message,
+      detail: result.error_message,
+      error_code: result.error_code,
     });
-    return false;
+    return result;
   }
 }
 

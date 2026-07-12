@@ -17,6 +17,11 @@ import {
 } from "./store-crud";
 import { shouldBlock } from "../enforcement/rule-disposition";
 import { checklistWirePassed } from "./checklist-hooks";
+import {
+  resolveGateCallContextStrict,
+  assertCompleteCallerMatchesChild,
+  computeGateArgsHash,
+} from "./session-context-service";
 
 const SRC = "service-gate-mcp-complete";
 const ARTIFACT_RETRY_LIMIT = 3;
@@ -58,11 +63,35 @@ function validateTaskArtifacts(taskId: string | null, gateSessionId: string): st
 export function completeGateWithRetry(
   gateSessionId: string,
   executionSummary?: string,
+  rawArgs?: Record<string, unknown>,
 ): CompleteResult {
   const store = loadGateStore();
   const session = gateSessionId ? store.sessions[gateSessionId] : null;
   if (!session) {
     return { status: "rejected", reason: `session not found: ${gateSessionId || "(missing)"}. Must call compliance_gate_check and compliance_gate_confirm first.` };
+  }
+
+  // ── v37: Complete caller exact match validation ──
+  const completeArgsHash = rawArgs ? computeGateArgsHash(rawArgs) : "";
+  const completeCtx = resolveGateCallContextStrict({
+    tool_name: "compliance_gate_complete",
+    gate_session_id: gateSessionId,
+    args_hash: completeArgsHash,
+  });
+  if (completeCtx) {
+    const matchResult = assertCompleteCallerMatchesChild({
+      gate_session_id: gateSessionId,
+      caller_opencode_session_id: completeCtx.opencode_session_id,
+    });
+    if (!matchResult.valid) {
+      writeLog(SRC, "WARN", {
+        event: "COMPLETE-CALLER-MISMATCH",
+        gateSessionId,
+        callerSession: completeCtx.opencode_session_id,
+        reason: matchResult.reason,
+      });
+      return { status: "rejected", reason: `Complete caller mismatch: ${matchResult.reason}` };
+    }
   }
 
   // ── State gate: approval_required vs exempt ──

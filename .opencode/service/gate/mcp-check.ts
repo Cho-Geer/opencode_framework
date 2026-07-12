@@ -15,6 +15,7 @@ import {
   saveGateStore,
   generateGateSessionId,
   fileExists,
+  writeLogSafe,
 } from "./store-crud";
 import { shouldBlock } from "../enforcement/rule-disposition";
 import { drainStaleSessions } from "./drain";
@@ -428,10 +429,34 @@ export function checkGateCompliance(
     confirmed_at: null,
     consumed_at: null,
     audit: null,
-    opencode_session_id: process.env.OPENCODE_SESSION_ID || null,
+    opencode_session_id: null,
   };
   store.last_updated = new Date().toISOString();
-  saveGateStore(store);
+  const saveResult = saveGateStore(store);
+
+  // Fail-fast on gate store persistence failure
+  if (!saveResult.ok) {
+    writeLogSafe(SRC, "ERROR", {
+      event: "GATE-CHECK-PERSIST-FAILED",
+      error_code: saveResult.error_code,
+      detail: saveResult.error_message,
+      gateSessionId,
+    });
+
+    failed.push({
+      id: "gate_store_persist_failed",
+      desc: `Gate session persistence failed: ${saveResult.error_message || saveResult.error_code || "unknown"}`,
+      severity: "HIGH",
+    });
+
+    return {
+      passed: false,
+      session_id: "",
+      enforcement_mode: GATE_POLICY_COMPAT,
+      failed_items: failed,
+      rule_status: ruleStatus,
+    };
+  }
 
   return { passed, session_id: gateSessionId, enforcement_mode: GATE_POLICY_COMPAT, failed_items: failed, rule_status: ruleStatus };
 }

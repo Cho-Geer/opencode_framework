@@ -1,9 +1,15 @@
 // service/gate/approval-context.ts — Session-bound approval context bridge
+// v37: Refactored as compatibility bridge to session-context-service
 // Source: approval-read-context.ts (imports updated for service/gate/ location)
 
 import * as crypto from "node:crypto";
 import { getDb } from "../../lib/db-manager";
 import { writeLog } from "../../lib/log-manager";
+import {
+  recordGateCallContext,
+  resolveGateCallContextStrict,
+  computeGateArgsHash,
+} from "./session-context-service";
 
 const SRC = "service-approval-read-context";
 
@@ -46,11 +52,12 @@ export interface ApprovalReadContext {
 // ── Args Hash (stable JSON serialization) ─────────────────────
 
 export function computeApprovalArgsHash(args: Record<string, unknown>): string {
-  const stable = JSON.stringify(args, Object.keys(args).sort());
-  return crypto.createHash("sha256").update(stable).digest("hex");
+  // Delegate to new service
+  return computeGateArgsHash(args);
 }
 
 // ── recordApprovalContext ──────────────────────────────────────
+// v37: Now writes to both approval_read_context (legacy) and gate_call_context (new)
 
 export function recordApprovalContext(
   gate_session_id: string,
@@ -61,7 +68,9 @@ export function recordApprovalContext(
 ): boolean {
   try {
     const db = getDb();
-    const result = db.run(
+    
+    // 1. Write to legacy approval_read_context for backward compatibility
+    const legacyResult = db.run(
       `INSERT OR IGNORE INTO approval_read_context
        (gate_session_id, opencode_session_id, call_id, agent, tool_name, args_hash, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -76,7 +85,17 @@ export function recordApprovalContext(
       ],
     );
 
-    if (result.changes > 0) {
+    // 2. Write to new gate_call_context
+    const newContextId = recordGateCallContext({
+      tool_name: "compliance_gate_approve_deliverables",
+      gate_session_id,
+      opencode_session_id,
+      call_id,
+      agent,
+      args_hash,
+    });
+
+    if (legacyResult.changes > 0 || newContextId) {
       writeLog(SRC, "INFO", {
         event: "APPROVAL_READ_CONTEXT_RECORDED",
         gate_session_id,
@@ -84,7 +103,8 @@ export function recordApprovalContext(
         call_id: call_id || "—",
         agent: agent || "—",
         args_hash,
-        detail: "Approval read context recorded in DB",
+        new_context_id: newContextId,
+        detail: "Approval read context recorded in both legacy and new tables",
       });
       return true;
     }
@@ -109,11 +129,34 @@ export function recordApprovalContext(
 }
 
 // ── getApprovalContext ────────────────────────────────────────
+// v37: Now reads from gate_call_context first, falls back to approval_read_context
 
 export function getApprovalContext(
   gate_session_id: string,
   args_hash: string,
 ): ApprovalReadContext | null {
+  // 1. Try new gate_call_context first
+  const newContext = resolveGateCallContextStrict({
+    tool_name: "compliance_gate_approve_deliverables",
+    gate_session_id,
+    args_hash,
+  });
+
+  if (newContext) {
+    return {
+      id: newContext.id,
+      gate_session_id: newContext.gate_session_id || gate_session_id,
+      opencode_session_id: newContext.opencode_session_id,
+      call_id: newContext.call_id,
+      agent: newContext.agent,
+      tool_name: newContext.tool_name,
+      args_hash: newContext.args_hash,
+      created_at: newContext.created_at,
+      consumed_at: newContext.consumed_at,
+    };
+  }
+
+  // 2. Fall back to legacy approval_read_context
   try {
     const db = getDb();
     const row = db
@@ -131,7 +174,7 @@ export function getApprovalContext(
         event: "APPROVAL_READ_CONTEXT_MISSING",
         gate_session_id,
         args_hash,
-        detail: "No approval context found for this gate session + args hash",
+        detail: "No approval context found in either table",
       });
       return null;
     }
@@ -170,6 +213,7 @@ export function getApprovalContext(
 }
 
 // ── markApprovalContextConsumed ─────────────────────────────────
+// v37: Now marks consumed in both tables
 
 export function markApprovalContextConsumed(
   gate_session_id: string,
@@ -177,19 +221,31 @@ export function markApprovalContextConsumed(
 ): boolean {
   try {
     const db = getDb();
-    const result = db.run(
+    
+    // 1. Mark consumed in legacy table
+    const legacyResult = db.run(
       `UPDATE approval_read_context
        SET consumed_at = ?
        WHERE gate_session_id = ? AND args_hash = ? AND consumed_at IS NULL`,
       [Date.now(), gate_session_id, args_hash],
     );
 
-    if (result.changes > 0) {
+    // 2. Mark consumed in new table
+    const newResult = db.run(
+      `UPDATE gate_call_context
+       SET status = 'consumed', consumed_at = ?
+       WHERE gate_session_id = ? AND args_hash = ? AND status = 'completed' AND consumed_at IS NULL`,
+      [Date.now(), gate_session_id, args_hash],
+    );
+
+    if (legacyResult.changes > 0 || newResult.changes > 0) {
       writeLog(SRC, "INFO", {
         event: "APPROVAL_READ_CONTEXT_CONSUMED",
         gate_session_id,
         args_hash,
-        detail: "Approval context marked as consumed",
+        legacy_changes: legacyResult.changes,
+        new_changes: newResult.changes,
+        detail: "Approval context marked as consumed in both tables",
       });
       return true;
     }
@@ -198,7 +254,7 @@ export function markApprovalContextConsumed(
       event: "APPROVAL_READ_CONTEXT_CONSUME_SKIPPED",
       gate_session_id,
       args_hash,
-      detail: "Context not found or already consumed",
+      detail: "Context not found or already consumed in both tables",
     });
     return false;
   } catch (err: any) {

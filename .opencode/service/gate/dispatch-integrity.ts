@@ -145,7 +145,7 @@ export function validateDispatchTaskIntegrity(
       `Registered task_ids: ${result.dispatchAssignedTaskIds.join(", ")}. ` +
       `The dispatch-assigned task_id is immutable — you cannot fabricate a different one. ` +
       `If the gate is stuck (existing armed session for a registered task_id), call compliance_gate_drain_stale ` +
-      `to drain the stale session, then retry with the correct task_id.`;
+      `to drain the stale session, then retry without task_id so the framework resolves the canonical dispatch value automatically.`;
 
     writeLog(SRC, "ERROR", {
       event: "DISPATCH_TASKID_TAMPER",

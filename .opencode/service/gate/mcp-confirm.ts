@@ -16,6 +16,13 @@ import {
 import { shouldBlock } from "../enforcement/rule-disposition";
 import { checklistWirePassed } from "./checklist-hooks";
 import { dbReadSessionMap } from "../../lib/db-state-manager";
+import {
+  resolveGateCallContextStrict,
+  bindGateParentChildSessions,
+  completeGateCallContextBySession,
+  computeGateArgsHash,
+  recordGateCallContext
+} from "./session-context-service";
 
 const SRC = "service-gate-mcp-confirm";
 
@@ -65,11 +72,117 @@ export function confirmGateSession(
   agent?: string,
   taskId?: string | null,
   declaredDeliverables?: unknown,
+  callContext?: { call_id?: string | null; opencode_session_id?: string; parent_session_id?: string | null; agent?: string | null; args_hash?: string } | null,
+  rawArgs?: Record<string, unknown>,
 ): ConfirmResult {
+  let resolvedContext = callContext;
+  let tmpStore = null;
+  // Resolve call context.
+  // Preferred path (Fix A): caller passes call_id (globally unique) → exact single-row
+  // match by call_id. No "ORDER BY ... DESC LIMIT 1" guess, no ambiguity.
+  // Legacy path: only when caller did not pass call_id, fall back to args_hash lookup
+  // (still fail-closed — resolveGateCallContextStrict returns null on 0 or >1 rows).
+  if (resolvedContext?.call_id) {
+    // combined flow
+    if(rawArgs.tool_name === 'compliance_gate_check' && resolvedContext?.opencode_session_id){
+      tmpStore = resolveGateCallContextStrict({
+        tool_name: rawArgs.tool_name,
+        gate_session_id: undefined,
+        args_hash: undefined,
+        opencode_session_id: resolvedContext.opencode_session_id,
+        call_id: resolvedContext.call_id
+      });
+        
+      // ── Create gate session ──
+      try {
+        let contextId = recordGateCallContext({
+            tool_name: "compliance_gate_confirm",
+            gate_session_id: gateSessionId,
+            opencode_session_id: tmpStore.opencode_session_id,
+            parent_session_id: tmpStore.parent_session_id,
+            call_id: tmpStore.call_id,
+            agent,
+            args_hash: tmpStore.args_hash,
+          });
+        
+        if (contextId) {
+          resolvedContext = resolveGateCallContextStrict({
+            tool_name: "compliance_gate_confirm",
+            gate_session_id: gateSessionId,
+            args_hash: undefined,
+            call_id: resolvedContext.call_id
+          });
+        }
+      } catch (error) {
+        // Enhanced diagnostics for combined flow
+        writeLog("service-gate-mcp-combined-flow", "ERROR", {
+          event: "GATE-COMBINED-FLOW-FAILED",
+          opencodeSessionId: tmpStore.opencode_session_id,
+          gateSessionId,
+          error: error.message,
+        });
+        return {
+          status: "rejected",
+          reason: `combined flow failed: ${error.message}`,
+        };
+      }
+    } else resolvedContext = resolveGateCallContextStrict({
+      tool_name: "compliance_gate_confirm",
+      gate_session_id: gateSessionId,
+      args_hash: undefined,
+      call_id: resolvedContext.call_id
+    });
+  } else if (!resolvedContext) {
+    const argsHash = rawArgs
+      ? computeGateArgsHash(rawArgs)
+      : computeGateArgsHash({
+          session_id: gateSessionId,
+          plan_summary: planSummary,
+          agent: agent || "",
+          task_id: taskId || "",
+        });
+    resolvedContext = resolveGateCallContextStrict({
+      tool_name: "compliance_gate_confirm",
+      gate_session_id: gateSessionId,
+      args_hash: argsHash,
+    });
+
+    // Also try compliance_gate_check combined flow
+    if (!resolvedContext) {
+      resolvedContext = resolveGateCallContextStrict({
+        tool_name: "compliance_gate_check",
+        gate_session_id: gateSessionId,
+        args_hash: argsHash,
+      });
+    }
+
+    writeLog(SRC, "INFO", {
+      event: "GATE-CONFIRM-CONTEXT-AUTO-LOOKUP",
+      gateSessionId,
+      argsHash,
+      found: !!resolvedContext,
+      opencodeSessionId: resolvedContext?.opencode_session_id || "—",
+      parentSessionId: resolvedContext?.parent_session_id || "—",
+    });
+  }
+
   const store = loadGateStore();
   const session = gateSessionId ? store.sessions[gateSessionId] : null;
   if (!session) {
-    return { status: "rejected", reason: `session not found: ${gateSessionId || "(missing)"}. Must call compliance_gate_check first.` };
+    // Enhanced diagnostics for session not found
+    const sessionCount = Object.keys(store.sessions).length;
+    const activeSessionCount = store.active_sessions?.length || 0;
+    writeLog(SRC, "ERROR", {
+      event: "GATE-CONFIRM-SESSION-NOT-FOUND",
+      gateSessionId,
+      sessionCount,
+      activeSessionCount,
+      availableSessions: Object.keys(store.sessions),
+    });
+    return {
+      status: "rejected",
+      reason: `session not found: ${gateSessionId || "(missing)"}. Must call compliance_gate_check first. (Total sessions: ${sessionCount}, Active: ${activeSessionCount})`,
+    };
   }
   if (session.gate_status === "armed") {
     return { status: "rejected", reason: `session ${gateSessionId} is already armed. Cannot re-arm.` };
@@ -92,12 +205,16 @@ export function confirmGateSession(
   // ── Resolve agent identity ──
   // P1 fix: resolve agent from session_map if not provided and not in gate store
   let resolvedAgent = agent || session.agent;
-  if (!resolvedAgent && gateSessionId) {
-    // Look up agent from session_map DB (registered by before-hook lifecycle)
-    const smEntry = dbReadSessionMap(gateSessionId);
-    if (smEntry?.agent) {
-      resolvedAgent = smEntry.agent;
-      writeLog(SRC, "runtime", { gateSessionId, event: "AGENT-RESOLVED-FROM-SESSION-MAP", detail: `agent=${resolvedAgent}` });
+  // v37: Use call context instead of process.env.OPENCODE_SESSION_ID
+  const opencodeSid = resolvedContext?.opencode_session_id || "";
+  if (!resolvedAgent) {
+    // Look up agent from session_map DB using opencode session ID
+    if (opencodeSid) {
+      const smEntry = dbReadSessionMap(opencodeSid);
+      if (smEntry?.agent) {
+        resolvedAgent = smEntry.agent;
+        writeLog(SRC, "INFO", { gateSessionId, opencodeSid, event: "AGENT-RESOLVED-FROM-SESSION-MAP", detail: `agent=${resolvedAgent}` });
+      }
     }
   }
   resolvedAgent = resolvedAgent || "unknown";
@@ -155,13 +272,56 @@ export function confirmGateSession(
   session.gate_status = "armed";
   session.plan_summary = planSummary.trim();
 
-  // V7.2 FIX: Resolve OpenCode session ID
-  let opencodeSessionId = process.env.OPENCODE_SESSION_ID || "";
+  // v37: Use call context instead of process.env.OPENCODE_SESSION_ID
+  let opencodeSessionId = resolvedContext?.opencode_session_id || "";
   if (opencodeSessionId) {
     session.opencode_session_id = opencodeSessionId;
     writeLog(SRC, "INFO", { event: "GATE-V7.2-FIX", detail: `Resolved opencode_session_id=${opencodeSessionId} for gate=${gateSessionId}` });
   } else {
     writeLog(SRC, "WARN", { event: "GATE-V7.2-FALLBACK", detail: `Cannot resolve opencode_session_id for gate=${gateSessionId} — falling back to gateSessionId` });
+  }
+
+  // ── v37: Establish parent/child session binding ──
+  if (resolvedContext?.opencode_session_id) {
+    const childSessionId = resolvedContext.opencode_session_id;
+    const parentSessionId = resolvedContext.parent_session_id || null;
+    
+    if (parentSessionId) {
+      bindGateParentChildSessions({
+        gate_session_id: gateSessionId,
+        parent_opencode_session_id: parentSessionId,
+        child_opencode_session_id: childSessionId,
+        agent: resolvedAgent,
+      });
+      writeLog(SRC, "INFO", {
+        event: "GATE-PARENT-CHILD-BINDING",
+        gateSessionId,
+        parentSessionId,
+        childSessionId,
+        agent: resolvedAgent,
+      });
+    }else if(rawArgs.tool_name === 'compliance_gate_check'){
+      bindGateParentChildSessions({
+        gate_session_id: gateSessionId,
+        parent_opencode_session_id: resolvedContext.opencode_session_id,
+        child_opencode_session_id: resolvedContext.opencode_session_id,
+        agent: resolvedAgent,
+      });
+      writeLog(SRC, "INFO", {
+        event: "GATE-PARENT-CHILD-BINDING-FOR-COMBINED-FLOW",
+        gateSessionId,
+        parentSessionId,
+        childSessionId,
+        agent: resolvedAgent,
+      });
+    }else {
+      writeLog(SRC, "WARN", {
+        event: "GATE-NO-PARENT-SESSION",
+        gateSessionId,
+        childSessionId,
+        detail: "Cannot establish parent/child binding: no parent session found",
+      });
+    }
   }
 
   // ── Checklist wiring ──
@@ -198,6 +358,11 @@ export function confirmGateSession(
   }
   store.last_updated = new Date().toISOString();
   saveGateStore(store);
+
+  // v37: Mark gate_call_context as completed via service (MVC compliance)
+  if (resolvedContext?.opencode_session_id) {
+    completeGateCallContextBySession(resolvedContext.opencode_session_id);
+  }
 
   // ── Artifact reminder ──
   const reminderTaskId = session.task_id || gateSessionId;

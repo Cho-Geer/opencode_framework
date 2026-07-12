@@ -31,6 +31,7 @@ import { atomicWriteJson } from "../../lib/state-utils";
 import {
   dbSyncCompactorHot,
   dbMarkSessionArchived,
+  dbMarkSessionDrained,
 } from "../../lib/db-state-manager";
 
 import { StateCompactorBase, COMPACTION_CONFIG, SRC } from "./compactor-core";
@@ -164,6 +165,12 @@ export class StateCompactor extends StateCompactorBase {
         // Archive the session
         await this.archiveSession(gateSessionId, session);
         delete hotState.active_sessions[gateSessionId];
+        // A8: mark the session as drained in the canonical DB.
+        try {
+          dbMarkSessionDrained(gateSessionId);
+        } catch {
+          /* best-effort */
+        }
         drainedCount++;
       }
     }
@@ -172,7 +179,7 @@ export class StateCompactor extends StateCompactorBase {
       // OPT-01: writeHotState is no-op (DB-canonical)
       this.updateMeta();
 
-      // P3/S63-3: Sync drained sessions to DB
+      // P3/S63-3: Sync drained sessions to DB (now reflects drained removals)
       try {
         dbSyncCompactorHot(this.readHotState());
       } catch {

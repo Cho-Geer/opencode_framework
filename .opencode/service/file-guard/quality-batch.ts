@@ -12,6 +12,7 @@
  *
  * @since 2026-06-29 (B-4C extraction)
  */
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { execSync } from "node:child_process";
 import {
@@ -54,6 +55,28 @@ export interface RunAllChecksResult {
 export interface FullScanResult {
   overall: "pass" | "fail";
   violations: CheckViolation[];
+}
+
+function buildPrettierTargets(
+  projectRoot: string,
+  backendDir: string,
+  frontendDir: string,
+): string[] {
+  const targets: string[] = [];
+  const backendExts = "{ts,js,json}";
+  const frontendExts = "{ts,tsx,js,jsx,html,scss,css,json}";
+
+  if (backendDir && fs.existsSync(backendDir)) {
+    const relBackend = path.relative(projectRoot, backendDir) || ".";
+    targets.push(`${relBackend}/**/*.${backendExts}`);
+  }
+
+  if (frontendDir && fs.existsSync(frontendDir)) {
+    const relFrontend = path.relative(projectRoot, frontendDir) || ".";
+    targets.push(`${relFrontend}/**/*.${frontendExts}`);
+  }
+
+  return targets;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -181,8 +204,8 @@ export function runAllChecks(
  */
 export function runFullScan(
   projectRoot: string,
-  _backendDir: string,
-  _frontendDir: string,
+  backendDir: string,
+  frontendDir: string,
 ): FullScanResult {
   const results: FullScanResult = { overall: "pass", violations: [] };
 
@@ -213,14 +236,31 @@ export function runFullScan(
   }
 
   // Prettier full check
+  const prettierTargets = buildPrettierTargets(projectRoot, backendDir, frontendDir);
+  if (prettierTargets.length === 0) {
+    return results;
+  }
+
   try {
-    execSync('npx prettier --check "src/**/*.{ts,html,scss,css,json}"', {
+    execSync(
+      `npx prettier --check ${prettierTargets.map((target) => `"${target}"`).join(" ")}`,
+      {
       cwd: projectRoot,
       encoding: "utf8",
       timeout: 15000,
       stdio: ["pipe", "pipe", "pipe"],
-    });
-  } catch {
+      },
+    );
+  } catch (e: any) {
+    const stdout = e.stdout?.toString() || "";
+    const stderr = e.stderr?.toString() || "";
+    const noMatch = stdout.includes("No files matching the pattern were found") ||
+      stderr.includes("No files matching the pattern were found");
+
+    if (noMatch) {
+      return results;
+    }
+
     results.overall = "fail";
     results.violations.push({
       check: "format_full",

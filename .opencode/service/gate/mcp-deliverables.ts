@@ -25,6 +25,15 @@ import { writeLog } from "../../lib/log-manager";
 import { loadGateStore, saveGateStore, getProjectRoot } from "./store-crud";
 import { checklistWirePassed } from "./checklist-hooks";
 import { shouldBlock } from "../enforcement/rule-disposition";
+import { dbReadSessionMap } from "../../lib/db-state-manager";
+import {
+  resolveGateCallContextStrict,
+  assertSubmitCallerMatchesChild,
+  assertApproveCallerMatchesParent,
+  updateLastSubmitSessionId,
+  updateLastApproveSessionId,
+  computeGateArgsHash,
+} from "./session-context-service";
 
 const SRC = "service-gate-mcp-deliverables";
 
@@ -170,6 +179,7 @@ function enforceMultiSourceAudit(
 export function submitDeliverablesWithCrossCheck(
   gateSessionId: string,
   deliverablesEvidence: unknown,
+  rawArgs?: Record<string, unknown>,
 ): SubmitResult {
   const store = loadGateStore();
   const session = gateSessionId ? store.sessions[gateSessionId] : null;
@@ -178,6 +188,34 @@ export function submitDeliverablesWithCrossCheck(
   }
   if (session.gate_status !== "armed") {
     return { status: "rejected", reason: `session ${gateSessionId} is not armed (status: ${session.gate_status}). Must call compliance_gate_confirm first.` };
+  }
+
+  // ── v37: Submit caller exact match validation ──
+  const submitArgsHash = rawArgs ? computeGateArgsHash(rawArgs) : "";
+  const submitCtx = resolveGateCallContextStrict({
+    tool_name: "compliance_gate_submit_deliverables",
+    gate_session_id: gateSessionId,
+    args_hash: submitArgsHash,
+  });
+  if (submitCtx) {
+    const matchResult = assertSubmitCallerMatchesChild({
+      gate_session_id: gateSessionId,
+      caller_opencode_session_id: submitCtx.opencode_session_id,
+    });
+    if (!matchResult.valid) {
+      writeLog(SRC, "WARN", {
+        event: "SUBMIT-CALLER-MISMATCH",
+        gateSessionId,
+        callerSession: submitCtx.opencode_session_id,
+        reason: matchResult.reason,
+      });
+      return { status: "rejected", reason: `Submit caller mismatch: ${matchResult.reason}` };
+    }
+    // Update last_submit_session_id on success path
+    updateLastSubmitSessionId({
+      gate_session_id: gateSessionId,
+      submit_session_id: submitCtx.opencode_session_id,
+    });
   }
 
   // ── Parse evidence ──
@@ -298,6 +336,7 @@ export function approveDeliverablesWithAudit(
   agentId?: string,
   handoverSha256?: string,
   findingsReported?: string,
+  rawArgs?: Record<string, unknown>,
 ): ApproveResult {
   const store = loadGateStore();
   const session = gateSessionId ? store.sessions[gateSessionId] : null;
@@ -306,7 +345,52 @@ export function approveDeliverablesWithAudit(
   }
 
   // ── Caller identity enforcement ──
-  const resolvedAgent = (agentId || session.agent || "").replace(/^@/, "");
+  // v37: Use gate_call_context instead of process.env.OPENCODE_SESSION_ID
+  let resolvedAgent = agentId || "";
+  let opencodeSid = "";
+  
+  // Look up call context from gate_call_context
+  const approveArgsHash = rawArgs ? computeGateArgsHash(rawArgs) : "";
+  const approveCtx = resolveGateCallContextStrict({
+    tool_name: "compliance_gate_approve_deliverables",
+    gate_session_id: gateSessionId,
+    args_hash: approveArgsHash,
+  });
+  if (approveCtx) {
+    opencodeSid = approveCtx.opencode_session_id;
+    // v37: Approve caller exact match validation
+    const approveMatchResult = assertApproveCallerMatchesParent({
+      gate_session_id: gateSessionId,
+      caller_opencode_session_id: approveCtx.opencode_session_id,
+      caller_agent: approveCtx.agent,
+    });
+    if (!approveMatchResult.valid) {
+      writeLog(SRC, "WARN", {
+        event: "APPROVE-CALLER-MISMATCH",
+        gateSessionId,
+        callerSession: approveCtx.opencode_session_id,
+        callerAgent: approveCtx.agent || "—",
+        reason: approveMatchResult.reason,
+      });
+      return {
+        status: "rejected",
+        reason: `Approve caller mismatch: ${approveMatchResult.reason}`,
+      };
+    }
+    // Update last_approve_session_id
+    updateLastApproveSessionId({
+      gate_session_id: gateSessionId,
+      approve_session_id: approveCtx.opencode_session_id,
+    });
+  }
+  
+  if (!resolvedAgent) {
+    if (opencodeSid) {
+      const smEntry = dbReadSessionMap(opencodeSid);
+      if (smEntry?.agent) resolvedAgent = smEntry.agent;
+    }
+  }
+  resolvedAgent = (resolvedAgent || "unknown").replace(/^@/, "");
   writeLog(SRC, "INFO", {
     sessionID: gateSessionId,
     event: "RESOLVED_FROM",

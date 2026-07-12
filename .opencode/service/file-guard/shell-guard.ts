@@ -31,7 +31,6 @@ import {
   _getConfigMap,
   resetSafeShellConfigCache,
 } from "./shell-config";
-import { classifyRepoShellCommand } from "../repo/classify";
 
 // ════════════════════════════════════════════════════════════
 // TYPES
@@ -211,24 +210,8 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
     return result;
   }
 
-  // Repo operation classification: block git/gh writes through safe_shell
-  const repoOp = classifyRepoShellCommand(command);
-  if (repoOp.provider === "git" || repoOp.provider === "gh") {
-    if (repoOp.kind !== "read") {
-      const result: SafeBashResult = {
-        command, agent, allowed: false, executed: false, exitCode: null,
-        stdout: "", stderr: "",
-        blockedReason: `REPO_WRITE_VIA_SAFE_SHELL_BLOCKED: ${repoOp.kind} operation blocked. Use safe_repo_* first-class tools.`,
-        timestamp: new Date().toISOString(),
-      };
-      writeLog("safe-bash", "WARN", {
-        event: "REPO-WRITE-VIA-SHELL-BLOCKED",
-        agent, command: command.slice(0, 120), kind: repoOp.kind, provider: repoOp.provider,
-      });
-      logAction(result);
-      return result;
-    }
-  }
+  // Repo operation classification has been moved to service/tool-governance/policies/repo-policy.ts
+  // (Phase 3: safe_shell scope reduction - removed duplicate repo classification block)
 
   // 1. Check for dangerous patterns (skip if agent has explicit bypass)
   if (!hasBypass && isDangerous(command)) {

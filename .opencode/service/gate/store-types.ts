@@ -54,6 +54,30 @@ export interface GateSession {
   deliverables_approved_at?: string;
   deliverables_approval_note?: string;
   approval_required?: boolean;
+  // v37: MCP session propagation — session binding fields
+  parent_opencode_session_id?: string | null;
+  child_opencode_session_id?: string | null;
+  last_submit_session_id?: string | null;
+  last_approve_session_id?: string | null;
+  interrupted_at?: number | null;
+  interruption_source?: string | null;
+}
+
+// v37: MCP session propagation — universal gate call context
+export interface GateCallContext {
+  id: number;
+  tool_name: string;
+  gate_session_id: string | null;
+  opencode_session_id: string;
+  parent_session_id: string | null;
+  call_id: string | null;
+  agent: string | null;
+  args_hash: string;
+  status: "pending" | "completed" | "interrupted" | "consumed";
+  created_at: number;
+  completed_at: number | null;
+  interrupted_at: number | null;
+  consumed_at: number | null;
 }
 
 export interface GateFailHistoryEntry {

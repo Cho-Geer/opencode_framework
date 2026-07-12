@@ -2,6 +2,8 @@
 declare const require: any;
 // service/context/mcp-role-filter.ts
 // ═══════════════════════════════════════════════════════════════
+// LEGACY / FUTURE CODE — NOT currently wired (no active caller).
+// Do not count this as an active capability. See plans/02-phase1-skill-first.md Step 6.
 // Per-agent MCP server visibility map.
 // Maps agent name → set of MCP server prefixes they can see.
 // Tools not in the allowed set are completely hidden from the agent.
