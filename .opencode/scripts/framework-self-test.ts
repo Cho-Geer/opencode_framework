@@ -1712,7 +1712,7 @@ function checkOpenCodeJsonAdapter() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 23: pre-execution-gate.ts exists, valid JS, wired into hook
+// Check 23: pre-execution-gate.ts archived in legacy/ (retired DAG gate), valid JS
 
 // ═══════════════════════════════════════════════════════════════
 function checkPreExecGate() {
@@ -1832,7 +1832,7 @@ function checkPreExecGate() {
   return check(
     23,
     true,
-    "pre-execution-gate.ts exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate) + required patches verified",
+    "pre-execution-gate.ts archived in legacy/, valid JS, executable, referenced by legacy pre-execution-hook.sh Stage 1 (retired DAG gate)",
   );
 }
 
