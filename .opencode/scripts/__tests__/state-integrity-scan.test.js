@@ -22,6 +22,13 @@ const originalLog = console.log;
 const originalExit = process.exit;
 const originalCwd = process.cwd;
 
+// bun test does not provide jest.resetModules, so we clear require.cache manually.
+function resetModules() {
+  Object.keys(require.cache).forEach((key) => {
+    delete require.cache[key];
+  });
+}
+
 beforeAll(() => {
   // Create minimal required files (simulating a new project)
   fs.mkdirSync(path.join(TMPDIR, ".opencode", "state"), { recursive: true });
@@ -93,20 +100,20 @@ afterAll(() => {
 beforeEach(() => {
   capturedLogs = [];
   // Mock process.exit to prevent test runner from crashing
-  process.exit = jest.fn();
+  process.exit = () => {};
   // Mock process.cwd to return temp dir
-  process.cwd = jest.fn(() => TMPDIR);
+  process.cwd = () => TMPDIR;
   // Mock console.log to capture output
-  console.log = jest.fn((...args) => {
+  console.log = (...args) => {
     capturedLogs.push(args.join(" "));
-  });
+  };
 });
 
 afterEach(() => {
   process.exit = originalExit;
   process.cwd = originalCwd;
   console.log = originalLog;
-  jest.resetModules();
+  resetModules();
 });
 
 describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () => {
@@ -148,7 +155,7 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
     let result;
     try {
       // Reset modules to clear any cached require
-      jest.resetModules();
+      resetModules();
       const sis = require("../../state-integrity-scan");
       sis.main();
     } catch (e) {
@@ -181,7 +188,7 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
     // are present and no HIGH is emitted for them.
     let result;
     try {
-      jest.resetModules();
+      resetModules();
       const sis = require("../../state-integrity-scan");
       sis.main();
     } catch (e) {
@@ -206,7 +213,7 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
   test("gate-state.json missing on new project should produce INFO (optional file) (RED: currently HIGH)", () => {
     let result;
     try {
-      jest.resetModules();
+      resetModules();
       const sis = require("../../state-integrity-scan");
       sis.main();
     } catch (e) {

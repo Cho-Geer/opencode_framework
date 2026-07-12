@@ -118,16 +118,25 @@ describe('safe-bash-core', () => {
       expect(result.allowed).toContain('echo *');
     });
 
-    it('should return ALL_ALLOWED for @Meta-Planner (permissive)', () => {
-      const result = getAgentShellAllowlist('@Meta-Planner');
-      // @Meta-Planner has safe_shell: "allow" (string) → allAllowed
+    it('should return ALL_ALLOWED for @explore (permissive, safe_shell:"allow")', () => {
+      // Phase 3 5-agent boundary: explore is the registered agent whose
+      // opencode.json safe_shell === "allow" (string) → allAllowed.
+      const result = getAgentShellAllowlist('@explore');
       expect(result.allAllowed).toBe(true);
       expect(result.toolDenied).toBe(false);
     });
 
-    it('should return ALL_ALLOWED for @CI-CD-Agent (permissive)', () => {
-      const result = getAgentShellAllowlist('@CI-CD-Agent');
-      expect(result.allAllowed).toBe(true);
+    it('should NOT return ALL_ALLOWED for @plan (safe_shell:"deny")', () => {
+      // plan has safe_shell: "deny" → not permissive.
+      const result = getAgentShellAllowlist('@plan');
+      expect(result.allAllowed).toBe(false);
+    });
+
+    it('should NOT grant ALL_ALLOWED to removed legacy roles (@Meta-Planner/@CI-CD-Agent)', () => {
+      // Phase 3 5-agent boundary: @Meta-Planner and @CI-CD-Agent are no longer
+      // registered in opencode.json, so they no longer receive ALL_ALLOWED.
+      expect(getAgentShellAllowlist('@Meta-Planner').allAllowed).toBe(false);
+      expect(getAgentShellAllowlist('@CI-CD-Agent').allAllowed).toBe(false);
     });
 
     it('should return merged list (default + opencode) for @Coder-BE', () => {

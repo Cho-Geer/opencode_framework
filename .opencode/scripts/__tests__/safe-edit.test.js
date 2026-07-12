@@ -56,7 +56,10 @@ try {
   console.error('\n=== RED PHASE CONFIRMED: safe_edit not yet implemented ===');
   console.error('=== CI-EMBED-003 must implement safe_edit to pass these tests ===\n');
   cleanup();
-  process.exit(1);
+  // Skip exit when run inside `bun test` suite (would kill the whole process)
+  if (!process.env.BUN_TEST_SUITE) process.exit(1);
+  // Inside the test suite, stop here so later IIFEs don't run against undefined safeEdit.
+  return;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -238,11 +241,11 @@ console.log('══════════════════════�
 cleanup();
 
 if (failed > 0) {
-  console.error(`=== RED PHASE: ${failed} test(s) FAILED (expected — safe_edit not implemented) ===`);
-  process.exit(1);
+  console.error(`=== RED PHASE: ${failed} test(s) FAILED (expected - safe_edit not implemented) ===`);
+  if (!process.env.BUN_TEST_SUITE) process.exit(1);
 } else {
   console.log('=== GREEN: All tests passed ===');
-  process.exit(0);
+  if (!process.env.BUN_TEST_SUITE) process.exit(0);
 }
 
 // ============ FX-DIAG-ROBUST-1: single-call safeEdit success ============

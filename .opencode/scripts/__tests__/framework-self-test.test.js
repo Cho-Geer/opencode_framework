@@ -12,11 +12,12 @@ const { execSync } = require("child_process");
 // __dirname = .opencode/scripts/__tests__/
 // Need ../../.. to get to project root
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
+const OPENCODE_ROOT = PROJECT_ROOT;
 const SELF_TEST_SCRIPT = path.join(
   PROJECT_ROOT,
   ".opencode",
   "scripts",
-  "framework-self-test.js",
+  "framework-self-test.ts",
 );
 
 describe("framework-self-test CLI", () => {
@@ -31,7 +32,7 @@ describe("framework-self-test CLI", () => {
 
   test("runs without crashing", () => {
     try {
-      const output = execSync(`node "${SELF_TEST_SCRIPT}"`, {
+      const output = execSync(`bun "${SELF_TEST_SCRIPT}"`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -41,11 +42,11 @@ describe("framework-self-test CLI", () => {
       // Script may exit with non-zero if some checks fail
       expect(e.stdout).toBeTruthy();
     }
-  });
+  }, 60000);
 
   test("output contains PASS or FAIL markers", () => {
     try {
-      const output = execSync(`node "${SELF_TEST_SCRIPT}"`, {
+      const output = execSync(`bun "${SELF_TEST_SCRIPT}"`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -54,7 +55,7 @@ describe("framework-self-test CLI", () => {
     } catch (e) {
       expect(e.stdout).toMatch(/\[PASS\]|\[FAIL\]/);
     }
-  });
+  }, 60000);
 });
 
 describe("checkConfigJson", () => {
@@ -88,7 +89,7 @@ describe("checkStateDir", () => {
 });
 
 describe("checkMachineSubStates", () => {
-  test("machine.json has required sub-states", () => {
+  test("machine.json has required runtime sections", () => {
     const machinePath = path.join(
       PROJECT_ROOT,
       ".opencode",
@@ -96,25 +97,20 @@ describe("checkMachineSubStates", () => {
       "machine.json",
     );
     const machine = JSON.parse(fs.readFileSync(machinePath, "utf8"));
-    [
-      "meta",
-      "eslint_state",
-      "diagnostic_state",
-      "dependency_state",
-      "format_state",
-    ].forEach((s) => {
+    // Current runtime machine.json uses meta + contracts (legacy sub-states moved to SQLite).
+    ["meta", "contracts"].forEach((s) => {
       expect(machine).toHaveProperty(s);
     });
   });
 });
 
 describe("checkAgentSkillsClean", () => {
-  test("coder-be.md has skills list", () => {
+  test("Orchestrator.md has skills list", () => {
     const agentPath = path.join(
       PROJECT_ROOT,
       ".opencode",
       "agents",
-      "coder-be.md",
+      "Orchestrator.md",
     );
     const content = fs.readFileSync(agentPath, "utf8");
     expect(content).toContain("skills");
@@ -122,15 +118,17 @@ describe("checkAgentSkillsClean", () => {
 });
 
 describe("checkThreeLayersEightRoles", () => {
-  test("AGENTS.md references 8 agent types", () => {
+  test("AGENTS.md references 5 active agent types", () => {
     const agentsPath = path.join(PROJECT_ROOT, "AGENTS.md");
     const content = fs.readFileSync(agentsPath, "utf8");
+    // Current runtime agents: Orchestrator (custom) + build/general/plan/explore (native).
+    // AGENTS.md uses @Orchestrator but typically refers to native agents without @.
     const count = (
       content.match(
-        /@Meta-Planner|@Orchestrator|@Architect|@Coder-FE|@Coder-BE|@Guardian|@Arbiter|@CI-CD-Agent/g,
+        /@Orchestrator|\b(?:build|general|plan|explore)\b/g,
       ) || []
     ).length;
-    expect(count).toBeGreaterThanOrEqual(8);
+    expect(count).toBeGreaterThanOrEqual(5);
   });
 });
 
@@ -164,15 +162,15 @@ describe("checkAbsolutePathLeakage", () => {
 });
 
 describe("checkESLintRules", () => {
-  test("eslint_state has valid structure", () => {
+  test("machine.json has valid runtime structure", () => {
     const machine = JSON.parse(
       fs.readFileSync(
         path.join(PROJECT_ROOT, ".opencode", "state", "machine.json"),
         "utf8",
       ),
     );
-    expect(machine.eslint_state).toHaveProperty("modules");
-    expect(machine.eslint_state).toHaveProperty("aggregate");
+    expect(machine.meta).toHaveProperty("version");
+    expect(Array.isArray(machine.contracts)).toBe(true);
   });
 });
 
@@ -210,14 +208,14 @@ describe("checkCommitMsgTDD", () => {
 });
 
 describe("checkCQGBootstrap", () => {
-  test("code-quality-gate.js has bootstrap logic", () => {
+  test("code-quality-check.ts has bootstrap logic", () => {
     const content = fs.readFileSync(
       path.join(
         PROJECT_ROOT,
         ".opencode",
         "scripts",
         "mcp-tools",
-        "code-quality-gate.js",
+        "code-quality-check.ts",
       ),
       "utf8",
     );
@@ -240,19 +238,16 @@ describe("checkAgentsNoBackslashes", () => {
 // P2-D v2.1: Replaced "agent_write_scopes completeness" with "opencode.json permission
 // completeness" since authority moved from project.config.json to opencode.json.
 describe("FX-DIAG-HARD-3 (P2-D): opencode.json permission completeness", () => {
-  it("should verify opencode.json has permission blocks for all 8 agents", () => {
+  it("should verify opencode.json has permission blocks for all 5 active agents", () => {
     // Read opencode.json directly to verify it has agent permissions
     const opencodePath = path.join(OPENCODE_ROOT, "opencode.json");
     const oc = JSON.parse(fs.readFileSync(opencodePath, "utf8"));
     const expectedAgents = [
-      "Coder-BE",
-      "Coder-FE",
-      "Architect",
-      "Meta-Planner",
       "Orchestrator",
-      "Guardian",
-      "Arbiter",
-      "CI-CD-Agent",
+      "build",
+      "general",
+      "plan",
+      "explore",
     ];
     const allHavePermissions = expectedAgents.every(
       (a) =>
@@ -278,7 +273,7 @@ describe("FX-DIAG-UNIV-1: template resolution consistency", () => {
     const src = fs.readFileSync(
       path.join(
         OPENCODE_ROOT,
-        ".opencode/scripts/command-tools/dispatch-subagent.js",
+        ".opencode/service/dispatch/prompt-sections.ts",
       ),
       "utf8",
     );

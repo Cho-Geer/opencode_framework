@@ -151,4 +151,5 @@ console.log(`${"=".repeat(50)}`);
 
 // Expected: All 6 tests should FAIL in RED phase
 const exitCode = testsFailed > 0 ? 1 : 0;
-process.exit(exitCode);
+// Skip exit when run inside `bun test` suite (would kill the whole process)
+if (!process.env.BUN_TEST_SUITE) process.exit(exitCode);

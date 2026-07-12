@@ -122,12 +122,12 @@ describe('FW-UC7KS-DOMAIN-001', () => {
       });
 
       const result = checkUC7KSWrite(
-        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+        testAgent, 'sess-1', 'TASK-001', 'backend_api'
       );
       expect(result).toBeNull(); // Should pass per-domain
     });
 
-    it('should block when per-domain cache_sufficiency is insufficient', () => {
+    it('should not block under audit-only when per-domain cache_sufficiency is insufficient', () => {
       atomicWriteSubState('knowledge_cache_state', (state) => {
         state.session_access = state.session_access || {};
         const ak = testAgent.replace(/^@/, '');
@@ -154,15 +154,13 @@ describe('FW-UC7KS-DOMAIN-001', () => {
       });
 
       const result = checkUC7KSWrite(
-        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+        testAgent, 'sess-1', 'TASK-001', 'backend_api'
       );
-      expect(result).not.toBeNull(); // Should block
-      expect(result).toContain('UC7-001');
-      expect(result).toContain('缓存不足');
-      expect(result).toContain('authentication');
+      // knowledge-cache-miss is audit_only: returns null without blocking
+      expect(result).toBeNull();
     });
 
-    it('should fallback to global check when no taskId/domainId provided', () => {
+    it('should not block under audit-only when no taskId/domainId provided', () => {
       atomicWriteSubState('knowledge_cache_state', (state) => {
         state.session_access = state.session_access || {};
         const ak = testAgent.replace(/^@/, '');
@@ -171,13 +169,13 @@ describe('FW-UC7KS-DOMAIN-001', () => {
         };
       });
 
-      // No taskId/domainId — should use global flag
-      const result = checkUC7KSWrite(testAgent, 'strict');
-      // Global flag true with no taskId/domainId — falls through path C
-      expect(result).toBeUndefined();
+      // No taskId/domainId — would use global flag under strict policy
+      const result = checkUC7KSWrite(testAgent);
+      // knowledge-cache-miss is audit_only: returns null without blocking
+      expect(result).toBeNull();
     });
 
-    it('should block via Path B when taskId+domainId present but per-task data missing', () => {
+    it('should not block under audit-only when taskId+domainId present but per-task data missing', () => {
       atomicWriteSubState('knowledge_cache_state', (state) => {
         state.session_access = state.session_access || {};
         const ak = testAgent.replace(/^@/, '');
@@ -186,19 +184,18 @@ describe('FW-UC7KS-DOMAIN-001', () => {
         };
       });
 
-      // taskId/domainId provided but no matching nested entry → Path B block
+      // taskId/domainId provided but no matching nested entry → would block under strict policy
       const result = checkUC7KSWrite(
-        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+        testAgent, 'sess-1', 'TASK-001', 'backend_api'
       );
-      expect(result).not.toBeNull();
-      expect(result).toContain('UC7-001');
-      expect(result).toContain('not searched');
+      // knowledge-cache-miss is audit_only: returns null without blocking
+      expect(result).toBeNull();
     });
 
-    it('should block via Path B even when global uc7_001_compliant is true (Appendix A gap fix)', () => {
+    it('should not block under audit-only even when global uc7_001_compliant is true (Appendix A gap fix)', () => {
       // This is the critical test: agent has global flag set from a previous
-      // session but never searched cache for THIS task/domain. Path B should
-      // block regardless of the global flag.
+      // session but never searched cache for THIS task/domain. Under a strict
+      // policy Path B would block regardless of the global flag.
       atomicWriteSubState('knowledge_cache_state', (state) => {
         state.session_access = state.session_access || {};
         const ak = testAgent.replace(/^@/, '');
@@ -209,24 +206,22 @@ describe('FW-UC7KS-DOMAIN-001', () => {
       });
 
       const result = checkUC7KSWrite(
-        testAgent, 'strict', 'sess-1', 'TASK-001', 'backend_api'
+        testAgent, 'sess-1', 'TASK-001', 'backend_api'
       );
-      expect(result).not.toBeNull(); // Should block via Path B
-      expect(result).toContain('UC7-001');
-      expect(result).toContain('无任何域已证明已读');
-      // TASK-001 truncated in buildBlockMessage (54 char limit)
+      // knowledge-cache-miss is audit_only: returns null without blocking
+      expect(result).toBeNull();
     });
 
-    it('should pass in advisory mode regardless of domain state', () => {
+    it('should pass regardless of domain state', () => {
       const result = checkUC7KSWrite(
-        testAgent, 'advisory', 'sess-1', 'TASK-001', 'backend_api'
+        testAgent, 'sess-1', 'TASK-001', 'backend_api'
       );
       expect(result).toBeNull();
     });
 
     it('should bypass for Knowledge-Curator regardless of domain', () => {
       const result = checkUC7KSWrite(
-        'Knowledge-Curator', 'strict', 'sess-1', 'TASK-001', 'backend_api'
+        'Knowledge-Curator', 'sess-1', 'TASK-001', 'backend_api'
       );
       expect(result).toBeNull();
     });
