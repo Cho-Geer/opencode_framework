@@ -21,7 +21,8 @@
     ".opencode/plugins/**/*.ts",
     ".opencode/scripts/**/*.ts",
     ".opencode/service/**/*.ts",
-    ".opencode/plugin-handlers/**/*.ts"
+    ".opencode/plugin-handlers/**/*.ts",
+    ".opencode/hooks/**/*.ts"
   ],
   "exclude": [
     "node_modules",
