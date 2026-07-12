@@ -645,9 +645,8 @@ function run() {
 
       if (age > ttl * 2) {
         // Double TTL: permanent deletion
-        const isScout = file.source === "scout";
         console.log(
-          `[Janitor] PURGE${isScout ? " [Scout]" : ""}: ${file.path} (age: ${age.toFixed(0)}d, TTL: ${ttl}d, double-TTL: ${ttl * 2}d${isScout ? ", source: scout" : ""})`,
+          `[Janitor] PURGE: ${file.path} (age: ${age.toFixed(0)}d, TTL: ${ttl}d, double-TTL: ${ttl * 2}d)`,
         );
         srcLog("INFO", "file_purged", {
           path: file.path,
@@ -856,4 +855,3 @@ job records are written for every purge/archive/evict action.`);
 }
 
 module.exports = { run, cleanPreHardenEvidence };
-

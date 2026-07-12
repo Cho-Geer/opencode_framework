@@ -31,7 +31,7 @@ const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs", "official_docs");
 const INDEX_PATH = path.join(DOCS_DIR, "index.json");
 const KNOWN_NON_DOC_FILES = new Set([".gitkeep", "index.schema.json"]);
-const IGNORE_PREFIXES = [".metadata", "scout-extracts", ".opencode_backups"];
+const IGNORE_PREFIXES = [".metadata", ".opencode_backups"];
 
 /**
  * KC-15: Lazy-load knowledge-store (ESM) via createRequire for CJS interop.
@@ -115,7 +115,6 @@ function checkForOrphans(docsRoot) {
   const orphanedFiles = [];
   const diskFiles = walkDir(docsDir, docsDir, [
     ".metadata",
-    "scout-extracts",
     ".opencode_backups",
   ]);
 
@@ -182,7 +181,6 @@ function generateIntegrityReport(docsRoot) {
   const diskPaths = new Set(
     walkDir(docsDir, docsDir, [
       ".metadata",
-      "scout-extracts",
       ".opencode_backups",
     ]).filter(
       (p) => p !== "index.json" && !KNOWN_NON_DOC_FILES.has(path.basename(p)),
@@ -529,4 +527,3 @@ module.exports = {
   logOrphanReport,
   autoIndexOrphans,
 };
-

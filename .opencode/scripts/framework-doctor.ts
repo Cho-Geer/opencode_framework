@@ -1266,7 +1266,7 @@ function checkDispatchPolicy() {
         );
       if (dp.auto_plan_timeout_ms < 1000)
         issues.push(
-          "auto_plan_timeout_ms<1000ms is too short for @Meta-Planner planning",
+          "auto_plan_timeout_ms<1000ms is too short for @plan planning",
         );
     }
 

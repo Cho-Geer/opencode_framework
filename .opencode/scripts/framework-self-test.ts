@@ -1076,7 +1076,6 @@ function checkReconciliationInfra() {
   const preExecPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
-    "legacy",
     "scripts",
     "pre-execution-hook.sh",
   );
@@ -1329,7 +1328,6 @@ function checkDocsManifestIntegrity() {
           if (entry.isDirectory()) {
             if (
               !rel.startsWith(".metadata") &&
-              !rel.startsWith("scout-extracts") &&
               !rel.includes(".opencode_backups")
             ) {
               walkDir(full);
@@ -1712,14 +1710,13 @@ function checkOpenCodeJsonAdapter() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Check 23: pre-execution-gate.ts archived in legacy/ (retired DAG gate), valid JS
+// Check 23: pre-execution-gate.ts exists, valid JS, wired into hook
 
 // ═══════════════════════════════════════════════════════════════
 function checkPreExecGate() {
   const gatePath = path.join(
     OPENCODE_ROOT,
     ".opencode",
-    "legacy",
     "scripts",
     "pre-execution-gate.ts",
   );
@@ -1761,7 +1758,6 @@ function checkPreExecGate() {
   const preExecHookPath = path.join(
     OPENCODE_ROOT,
     ".opencode",
-    "legacy",
     "scripts",
     "pre-execution-hook.sh",
   );
@@ -1832,7 +1828,7 @@ function checkPreExecGate() {
   return check(
     23,
     true,
-    "pre-execution-gate.ts archived in legacy/, valid JS, executable, referenced by legacy pre-execution-hook.sh Stage 1 (retired DAG gate)",
+    "pre-execution-gate.ts exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate) + required patches verified",
   );
 }
 

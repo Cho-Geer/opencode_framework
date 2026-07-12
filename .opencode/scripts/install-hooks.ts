@@ -20,8 +20,11 @@ const REQUIRED_HOOKS = ['pre-commit', 'commit-msg'];
 const OPTIONAL_HOOKS = ['pre-push', 'post-commit', 'post-merge'];
 // FW-REPAIR-14: Framework scripts that MUST be executable (shebang scripts invoked directly)
 // These are NOT in .opencode/hooks/ but are critical for framework operation.
-// NOTE: pre-execution-gate.ts / pre-execution-hook.sh retired to .opencode/legacy/scripts/ on 2026-07-12 (audit).
+// Previously pre-execution-gate.ts was tracked as 100644 in Git, causing recurring
+// framework-self-test failures. Now tracked as 100755 + repaired here as safety net.
 const REQUIRED_EXECUTABLE_SCRIPTS = [
+  '.opencode/scripts/pre-execution-gate.ts',
+  '.opencode/scripts/pre-execution-hook.sh',
   '.opencode/scripts/enforcement-mode-check.sh',
   '.opencode/scripts/framework-health-check.sh',
   '.opencode/scripts/state-machine-reset.sh',
@@ -41,6 +44,19 @@ function runGit(args) {
     return { success: result.status === 0, stdout: result.stdout?.trim() || '', stderr: result.stderr?.trim() || '' };
   } catch (e) {
     return { success: false, stdout: '', stderr: e.message };
+  }
+}
+
+function checkJq() {
+  try {
+    const result = spawnSync('which', ['jq'], {
+      cwd: PROJECT_ROOT,
+      encoding: 'utf8',
+      timeout: 10000
+    });
+    return { available: result.status === 0, path: result.stdout?.trim() || '' };
+  } catch (e) {
+    return { available: false, path: '' };
   }
 }
 
@@ -76,6 +92,15 @@ function main() {
 
   const results = [];
   let needsRepair = false;
+
+  // ── Step 0: Verify jq is available ──
+  // state-machine-reset.sh depends on jq; warn if it is not on PATH.
+  const jqCheck = checkJq();
+  if (!jqCheck.available) {
+    results.push({ check: 'jq_available', status: 'warn', detail: `jq is required by state-machine-reset.sh but was not found on PATH` });
+  } else {
+    results.push({ check: 'jq_available', status: 'pass', detail: `jq available at ${jqCheck.path}` });
+  }
 
   // ── Step 1: Set hooksPath ──
   const currentPath = runGit(['config', '--local', 'core.hooksPath']);
