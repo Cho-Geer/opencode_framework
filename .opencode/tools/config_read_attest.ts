@@ -6,6 +6,7 @@
 
 import { tool } from "@opencode-ai/plugin";
 import { attestConfigRead } from "../service/session/";
+import type { FrameworkToolContext } from "./tool-context";
 
 export default tool({
   description:
@@ -19,7 +20,7 @@ export default tool({
     task_id: tool.schema.string().describe("DAG task ID for session tracking"),
   },
 
-  async execute(args: { task_id?: string }, context: any) {
+  async execute(args: { task_id?: string }, context: FrameworkToolContext) {
     let agent = context.agent;
     const { sessionID, worktree } = context;
 

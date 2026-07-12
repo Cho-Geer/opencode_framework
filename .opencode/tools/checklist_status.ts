@@ -9,6 +9,7 @@ import {
   createChecklistRun,
   getChecklistSummary,
 } from "../service/gate/";
+import type { FrameworkToolContext } from "./tool-context";
 
 export default tool({
   description:
@@ -23,7 +24,7 @@ export default tool({
       .describe("DAG task ID for checklist run lookup"),
   },
 
-  async execute(args: { task_id?: string }, context: any) {
+  async execute(args: { task_id?: string }, context: FrameworkToolContext) {
     const { agent, sessionID } = context;
     const taskId = args.task_id || "";
 

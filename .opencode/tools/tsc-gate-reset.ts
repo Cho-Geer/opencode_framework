@@ -6,6 +6,7 @@
 
 import { tool } from "@opencode-ai/plugin";
 import { resetAllTscGateLocks } from "../service/file-guard/";
+import type { FrameworkToolContext } from "./tool-context";
 
 export default tool({
   description:
@@ -22,9 +23,7 @@ export default tool({
       .describe("Must be true to confirm the reset operation"),
   },
 
-  async execute(args: { force?: boolean }, context: any) {
-    const { agent, sessionID } = context;
-
+  async execute(args: { force?: boolean }, _context: FrameworkToolContext) {
     if (!args.force) {
       return JSON.stringify({
         success: false,

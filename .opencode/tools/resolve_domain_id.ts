@@ -4,6 +4,8 @@
 import { tool } from "@opencode-ai/plugin";
 import { resolveDomainIdForTool } from "../service/session/";
 import { checklistWirePassed } from "../service/gate/checklist-hooks";
+import { writeLog } from "../lib/log-manager";
+import type { FrameworkToolContext } from "./tool-context";
 
 export default tool({
   description:
@@ -28,11 +30,10 @@ export default tool({
           "look up the sessionId from session_map DB by dag_task_id before resolving the domain.",
       ),
   },
-  async execute(args, context) {
-    const sessionId =
-      args.sessionId || ((context as any)?.sessionID as string) || "";
-    const dagTaskId = (args.dag_task_id as string) || "";
-    const agentKey = (context as any)?.agent || "";
+  async execute(args, context: FrameworkToolContext) {
+    const sessionId = args.sessionId || context.sessionID || "";
+    const dagTaskId = args.dag_task_id || "";
+    const agentKey = context.agent || "";
 
     const result = resolveDomainIdForTool(sessionId, dagTaskId, agentKey);
 
@@ -46,7 +47,15 @@ export default tool({
           "domain_resolved",
           `domain=${result.domain_id}`,
         );
-      } catch {}
+      } catch (error: unknown) {
+        writeLog("tool-resolve-domain-id", "WARN", {
+          event: "CHECKLIST-WIRE-PASSED-FAILED",
+          sessionId,
+          agent: agentKey,
+          dagTaskId,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     return JSON.stringify({

@@ -3,6 +3,7 @@
 import { tool } from "@opencode-ai/plugin";
 import { withInterruptGuard } from "../lib";
 import { searchCache } from "../service/knowledge/cache-search";
+import type { FrameworkToolContext } from "./tool-context";
 
 export default tool({
   description:
@@ -11,10 +12,10 @@ export default tool({
     domain: tool.schema.string().describe("Domain ID to search for (e.g., backend_api, persistence)"),
     task_id: tool.schema.string().describe("DAG task ID for session tracking"),
   },
-  async execute(args, context) {
+  async execute(args, context: FrameworkToolContext) {
     const result = await withInterruptGuard("knowledge_cache_search", async () => {
-      const agent = (context && context.agent) || "unknown";
-      const sessionId = (context as any)?.sessionID;
+      const agent = context.agent || "unknown";
+      const sessionId = context.sessionID;
       return searchCache({
         domain: args.domain,
         taskId: args.task_id,
