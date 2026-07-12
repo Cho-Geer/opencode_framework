@@ -45,7 +45,7 @@ If local cache is insufficient:
 3. @Knowledge-Curator handles the entire acquisition pipeline:
    - User confirmation (UC7-002)
    - Context7 MCP → webfetch → websearch (Layers 1-2)
-   - Scout source-code analysis (Layer 3, when docs insufficient)
+   - `explore` plus CodeGraph-backed source analysis (when docs are insufficient)
    - Save to docs/official_docs/ (UC7-003)
    - Update index.json (UC7-007)
 4. Receive artifact paths from @Knowledge-Curator

@@ -134,7 +134,7 @@ Resolved from `project.config.json.template_resolution` using keys with `knowled
 | 33  | `{knowledge.default_ttl}`           | Default doc TTL (days)             | `template_resolution.knowledge.default_ttl`    | `30` |
 | 34  | `{knowledge.fallback_ttl}`          | Web fallback TTL (days)            | `template_resolution.knowledge.fallback_ttl`   | `14` |
 | 35  | `{knowledge.opencode_ttl}`          | OpenCode docs TTL (days)           | `template_resolution.knowledge.opencode_ttl`   | `7` |
-| 36  | `{knowledge.scout_ttl}`             | Scout findings TTL (days)          | `template_resolution.knowledge.scout_ttl`      | `14` |
+| 36  | `{knowledge.source_analysis_ttl}`   | Source analysis TTL (days)         | `template_resolution.knowledge.source_analysis_ttl` | `14` |
 | 37  | `{knowledge.janitor_interval_hours}` | Janitor run interval (hours)      | `template_resolution.knowledge.janitor_interval_hours` | `24` |
 | 38  | `{knowledge.compression_threshold_kb}` | Compression threshold (KB)      | `template_resolution.knowledge.compression_threshold_kb` | `200` |
 

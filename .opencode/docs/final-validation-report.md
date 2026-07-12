@@ -1,3 +1,5 @@
+> **Legacy reference, not active policy.** This report documents a historical validation phase. The `subagent-preamble` / P0 hard-gate semantics it references are no longer active in the current runtime. See `plans/02-phase1-skill-first.md` Step 4.
+
 # Final Validation Report (Phase 5)
 
 > **⚠️ Evidence Level Notice (2026-07-06)**
@@ -71,7 +73,7 @@
 | S1-001 | skill-summary 注入 | `keywordGroups=source-edit,architecture,database` 非空 |
 | S1-002 | recent-message bridge | v2.2 `recentMessageBridge` 已接线 `chat.message` → `system.transform` |
 | S5-002 | risk/freshness 判定 | `knowledge_freshness_decision` 逻辑已存在于 skill-summary.ts |
-| S5-004 | scout 升级建议 | `scout_escalation_suggested` 出现在 runtime log |
+| S5-004 | research 升级建议 | `research_escalation_suggested` 出现在 runtime log |
 | S5-005 | TodoWrite 策略 | `todo_policy_decision` 逻辑已存在于 skill-summary.ts |
 
 Orchestrator 首轮冷启动问题由 v2.3 `coldStartDbFallback(sessionID)` 修复。

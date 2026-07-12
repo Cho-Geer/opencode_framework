@@ -11,9 +11,9 @@ alwaysApply: true
 - [ ] 已识别任务类型和关键词，匹配触发关键词
 - [ ] 已创建"计划调用的MCP工具清单"并向用户展示确认
 - [ ] 按优先级顺序调用工具（P0→P1→P2）
-- [ ] 已调用 `compliance_gate_check(task_description)` 执行合规门禁检查（P0阻塞）
-- [ ] 已向用户展示计划并获确认
-- [ ] 已调用 `compliance_gate_confirm(plan_summary)` 武装合规门禁
+- [ ] 若任务属于高风险修改、正式交付、跨 Agent 协作或需审计治理，已调用 `compliance_gate_check(task_description)` 执行合规门禁检查
+- [ ] 若已升级到 gate 路径，已向用户展示计划并获确认
+- [ ] 若已升级到 gate 路径，已调用 `compliance_gate_confirm(plan_summary)` 武装合规门禁
 
 ## MCP调用运行时检查
 

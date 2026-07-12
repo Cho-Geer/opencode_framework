@@ -418,9 +418,9 @@ wsl -d Ubuntu-24.04 bash -c "cp /mnt/c/Users/USER/.qoderworkcn/workspace/xxx/scr
 - **Step 5**: 7 个 Agent .md 的 `mcp_tools:` 列表追加 8 个 codegraph 工具名
 - **Step 5.5**: 创建 `codegraph-first` Skill（v1.1.0），注册到全部 10 个 Agent 的 `skills:` 列表（以 `context7-first` 为锚点插入）。注意：初次创建时遗漏了此步骤，后续发现后补齐
 - **Step 6**: `uc7ks-utils.ts` 添加 `CODEGRAPH_TOOLS` 豁免集合（8 个工具），在 `checkUC7KS()` 中早期返回
-- **Step 7**: 6 个 Agent prompt 追加专属 CodeGraph 使用指南（Coder-BE/FE 通用、Guardian 变更审查、Meta-Planner DAG 规划、Super-Admin 全景、Knowledge-Curator Scout 替代）
+- **Step 7**: 6 个 Agent prompt 追加专属 CodeGraph 使用指南（Coder-BE/FE 通用、Guardian 变更审查、Meta-Planner DAG 规划、Super-Admin 全景、Knowledge-Curator research fallback）
 - **Step 8**: `codegraph-enforce.ts` plugin 实现硬约束——拦截 safe_edit/safe_delete/safe_restore/safe_shell 4 个工具，要求先执行 `codegraph_explore` 分析。`INTERCEPTED_TOOLS` Set + session 级状态追踪 + `extractFilePath()` 按工具类型提取目标路径。Plugin 注册到 `opencode.json` 的 `plugin` 数组
-- **附加**: Scout 层退役（`scout-trigger.ts` 和 `scout-extractor.ts` 标记 `@deprecated`）
+- **附加**: 旧第三层 source-analysis 流程退役，改由 `explore` + CodeGraph 路径承接
 - **验证**: `codegraph impact 'dbSaveGateStore'` 返回 21 个受影响符号，跨 4 个文件
 
 ## Pitfalls

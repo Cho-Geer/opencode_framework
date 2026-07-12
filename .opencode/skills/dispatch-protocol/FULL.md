@@ -76,7 +76,7 @@ dispatch_subagent(
 
 ## 6. Do Not Re-Centralize on dispatch_subagent
 
-- For Scout/research help, use native `Task` directly.
+- For `explore` or research help, use native `Task` directly.
 - Do not require `subagent-preamble`.
 - Do not add wrapper-only language to generic execution skills.
 - Keep wrapper knowledge as compatibility guidance, not as the default mental model.

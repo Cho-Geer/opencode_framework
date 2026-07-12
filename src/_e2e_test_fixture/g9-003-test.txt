@@ -1,1 +1,0 @@
-G9-003 E2E test fixture for git write grant lifecycle

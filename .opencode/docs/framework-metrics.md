@@ -1,3 +1,5 @@
+> **Legacy reference, not active policy.** This metrics snapshot references legacy agent roles / P0 protocol semantics that are no longer active in the current runtime. See `plans/02-phase1-skill-first.md` Step 4.
+
 # OpenCode Framework Metrics — Live Baseline
 
 **Last updated**: 2026-07-06 (post-E2E audit + serve-api v1.3.0 sync)
@@ -136,7 +138,7 @@
 ### skill-summary 运行级证据 (v2.3, 2026-07-06)
 
 - `keywordGroups` 非空：`source-edit, architecture, database` 等组合已命中
-- `scout_escalation_suggested` 已出现
+- `research_escalation_suggested` 已出现
 - `coldStartDbFallback(sessionID)` 已修复 Orchestrator 首轮 bridge 为空问题
 - S1-001/S1-002/S5-002/S5-004/S5-005 已提升为 Runtime PASS
 
@@ -153,7 +155,7 @@
 | **P0** | rule-disposition 迁移 + mode 残留清理 | compat strict/旧测试/旧规则仍引用 ENFORCEMENT_MODE |
 | **P0** | 隔离 legacy handler 与 active order | legacy 文件存在，需防误启用 |
 | P1 | TodoWrite 重塑为轻量执行状态机 | 旧文案仍等同于强制 checklist |
-| P1 | Scout 升级侦察路径验证 | 缺 dedicated profile / dispatch path |
+| P1 | Explore / research 升级路径验证 | 缺最终 smoke 和 prompt 收口证明 |
 | P1 | QoderWork ACP 主动干预 smoke test | 缺可重复测试结果 |
 | P1 | DB 热路径实测 | 普通任务 DB touch 统计待补 |
 | P1 | enforcement mode removal (30+ refs) | rule-disposition.ts 已存在，mode 残留待清 |

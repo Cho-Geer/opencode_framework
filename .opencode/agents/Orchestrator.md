@@ -68,7 +68,7 @@ Does NOT write business code. Does NOT analyze requirements.
 2. **Documentation** → dispatch `general` with deliverable-contract Skill
 3. **Investigation** → dispatch `explore` with investigation-evidence Skill
 4. **Architecture** → dispatch `plan` with brainstorming Skill
-5. **Complex/uncertain** → dispatch `explore` first for Scout-like investigation, then `build`
+5. **Complex/uncertain** → dispatch `explore` first for read-only investigation, then `build`
 6. **所有 native Task prompt 必须包含**："先 load preflight-lite 技能，执行任务分类，再选择执行 skill。" 确保子 agent 收到 preflight-lite 要求，无论走 dispatch_subagent 还是原生 Task 路径。
 7. **dispatch_subagent 的返回值必须透传给 Task()**：`dispatch_subagent` 返回的字符串是已包装好的完整 child prompt（含 `//NATIVE_EXECUTOR:<type>` + `//DISPATCH_TOKEN:<sha256>` 标记）。**必须**立即调用 `Task(prompt=<dispatch_subagent 返回值>, subagent_type=<对应的 agent>)` 来真正创建 child session。不要编辑、截断或重新包装返回值。如果不调用 `Task()`，`dispatch_queue` 行会停留在 `pending` 状态，child session 永远不会创建。
 8. **Task() 返回值必须解析（Result Gate）**：`Task()` 返回后，必须检查返回值内容判定 child 是否成功。如果返回值包含 `blocked`、`failed`、`not written`、`error`、`PRIVILEGE` 拒绝信号、或缺少预期成功标志，Orchestrator **不得**返回 `privilege-dispatched` 或任何成功哨兵。必须将 child 失败摘要传播到自身输出，并通过 `acp_notify`(event_type="task_failed") 汇报。
@@ -80,6 +80,21 @@ Does NOT write business code. Does NOT analyze requirements.
 - Use `question` tool to ask the user directly for clarification.
 - Do NOT attempt to work around permission blocks.
 
+### Non-Recoverable Errors (Must Report Immediately)
+
+The following errors are **not recoverable** and **MUST** be reported immediately using `acp_notify` followed by `question` (if needed), **NO** autonomous recovery attempts:
+- `session not found` from `compliance_gate_confirm`
+- `EROFS` or read-only filesystem errors
+- `gate_store_persist_failed` or any persistence-related failures
+- `PERSISTENCE-FAILURE` or `[FW-ENFORCE][PERSISTENCE-FAILURE]` directives
+- `DB_SAVE_FAILED` or `DB_EXCEPTION` errors
+- Any tool failure that repeats 3+ times
+
+For these errors:
+1. First call `acp_notify(event_type="task_failed" or "task_blocked")` with full error details
+2. If `acp_notify` fails, immediately call `question` tool to report to user
+3. **DO NOT** attempt any further actions or recovery
+
 ### Permission Summary
 
 - `edit`/`bash`: **deny** (all writes go through safe_* tools via dispatched agents)
@@ -90,4 +105,4 @@ Does NOT write business code. Does NOT analyze requirements.
 ## UC7KS Knowledge Acquisition
 
 - Orchestrator should not directly synthesize stale external knowledge into execution plans.
-- When freshness matters, dispatch Knowledge-Curator / Scout-style research first, then route execution with the resulting evidence.
+- When freshness matters, dispatch Knowledge-Curator first. When the open question is read-only investigation or local code reconnaissance, dispatch `explore` first, then route execution with the resulting evidence.

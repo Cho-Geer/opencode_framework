@@ -1,6 +1,6 @@
 ---
 name: "preflight-lite"
-description: "Comprehensive reference for the preflight-lite lightweight execution protocol. Contains task classification, skill selection guide, knowledge freshness policy, Scout escalation criteria, and TodoWrite working memory protocol. This is a REFERENCE document — the active entry point is SKILL.md."
+description: "Comprehensive reference for the preflight-lite lightweight execution protocol. Contains task classification, skill selection guide, knowledge freshness policy, research escalation criteria, and TodoWrite working memory protocol. This is a REFERENCE document — the active entry point is SKILL.md."
 version: "3.0.0"
 ---
 
@@ -43,7 +43,7 @@ version: "3.0.0"
 | CI / deploy / container | `ci-cd-guardrails` | `cross-directory-ci` |
 | DB schema / seed / migration | `cicd-database-seeding` | — |
 | 外部 API / framework / library | `context7-first` | local authoritative docs |
-| 复杂调研 / 冲突证据 / stuck | Scout (via native Task) | `investigation-evidence` |
+| 复杂调研 / 冲突证据 / stuck | `explore` (via native Task) | `investigation-evidence` |
 | Spreadsheet / Excel | `spreadsheet-processor` | — |
 | SQLite 膨胀 / 性能 | `sqlite-bloat-investigation` | — |
 
@@ -127,11 +127,11 @@ Before planning or editing code that depends on external frameworks, APIs, or li
 
 ---
 
-## 5. Scout Escalation
+## 5. Research Escalation
 
 For complex, uncertain tasks where the current agent is stuck or evidence conflicts:
 
-**Trigger conditions** (escalate to Scout via native Task):
+**Trigger conditions** (escalate via native Task):
 - Complex bug with unclear root cause after multiple failed attempts
 - Need multi-source official documentation or third-party repository investigation
 - Technology selection, migration planning, framework upgrade design
@@ -139,8 +139,12 @@ For complex, uncertain tasks where the current agent is stuck or evidence confli
 
 **NOT a trigger**: Simple tasks, straightforward edits, or tasks where local evidence is sufficient.
 
-**Scout output contract**: When dispatching Scout, expect:
-- `question`: What Scout was asked to investigate
+**Routing**:
+- Use `explore` for read-only investigation, local code reconnaissance, and evidence collection.
+- Use `Knowledge-Curator` when external-doc freshness, acquisition, or cache population is the primary need.
+
+**Research child output contract**: When dispatching investigation support, expect:
+- `question`: What the child was asked to investigate
 - `sources_checked`: Documents, repositories, files examined
 - `evidence_summary`: Key findings relevant to the conclusion
 - `options`: Possible approaches with trade-offs
@@ -161,7 +165,7 @@ TodoWrite is the weak model's short-term execution state machine, NOT a user-fac
 
 **Execution discipline**:
 - Exactly one `in_progress` todo at a time.
-- Every write/validation/Scout action must map to the current `in_progress` todo.
+- Every write/validation/research action must map to the current `in_progress` todo.
 - On tool failure: update the todo with recovery intent BEFORE retrying.
 - Before final answer: all incomplete todos must be `completed`, `canceled`, or explained.
 
@@ -234,7 +238,7 @@ Invoke complete `brainstorming` Skill when:
 | Version | Date | Key Changes |
 |---------|------|-------------|
 | v1.0 | pre-2026-07 | Mandatory DAG + compliance gate + MCP全成功 + 4 rule files + TodoWrite 5 mandatory sections |
-| v2.0 | 2026-07-05 | Added Quick Preflight Mode, Knowledge Freshness, Scout, TodoWrite working memory |
+| v2.0 | 2026-07-05 | Added Quick Preflight Mode, Knowledge Freshness, research escalation, TodoWrite working memory |
 | v3.0.0 | 2026-07-06 | Removed DAG/compliance gate/MCP硬门禁; aligned with `require_dag_entry=false`, `checklist=optional`, single-policy enforcement; restructured as reference document |
 
 ## Appendix B: Deprecated Constructs (DO NOT USE)
