@@ -47,6 +47,8 @@ function isEnforcementDebugEnabled(root?: string): boolean {
 /**
  * @deprecated Use getRuleDisposition(ruleId) from service/enforcement/rule-disposition.ts instead.
  * Legacy compat shim: always returns "strict". Will be removed after all callers migrate.
+ * RETENTION: still called by protected files (hook-layers.ts,
+ * legacy/scripts/pre-execution-gate.ts). Do NOT remove until those migrate.
  */
 export function getEnforcementMode(_root?: string): EnforcementMode {
   // Phase 3 T3.1: Legacy compatibility shim only.

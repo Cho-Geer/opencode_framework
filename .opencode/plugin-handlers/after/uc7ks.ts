@@ -1,5 +1,5 @@
 // ────────────────────────────────────────────────────────────────────
-// LEGACY HANDLER — NOT in active execution_order
+// RETIRED-ROLLBACK — NOT in active execution_order; kept for rollback only
 // Kept as delegate dependency or for rollback only.
 // Do NOT call directly from dispatcher. See project.config.json
 // plugin_execution_order for the active handler chain.

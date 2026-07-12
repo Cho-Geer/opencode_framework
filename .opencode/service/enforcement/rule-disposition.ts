@@ -88,9 +88,9 @@ export function getRuleDisposition(ruleId: string): RuleDisposition {
     writeLog(SRC, "WARN", {
       event: "UNKNOWN-RULE-ID",
       ruleId,
-      detail: `Rule "${ruleId}" not in RULE_TABLE, defaulting to warn_continue`,
+      detail: `Rule "${ruleId}" not in RULE_TABLE, defaulting to audit_only`,
     });
-    return "warn_continue";
+    return "audit_only";
   }
   return disposition;
 }
@@ -133,3 +133,28 @@ export function getRulesByDisposition(): Record<RuleDisposition, string[]> {
   return result;
 }
 
+// ── Migration helpers ──────────────────────────────────────────────
+// These functions bridge the old API during migration.
+// Once all consumers are migrated, these can be removed.
+// RETENTION NOTE: getEnforcementModeCompat()/isStrictOrLockedCompat() are STILL
+// CALLED by protected files (hook-layers.ts, legacy/scripts/pre-execution-gate.ts).
+// Compatibility-only; always return the current 'strict' policy. Do NOT remove
+// until those callers migrate off the mode-compat API.
+
+/**
+ * @deprecated Use getRuleDisposition(ruleId) instead.
+ * Compatibility shim: returns "strict" if any relevant rule is hard_block.
+ */
+export function getEnforcementModeCompat(): "advisory" | "strict" | "locked" {
+  // Since all safety rules are hard_block, this always returns "strict"
+  // which matches the current configured behavior.
+  return "strict";
+}
+
+/**
+ * @deprecated Use shouldBlock(ruleId) instead.
+ * Compatibility shim: returns true if mode was "strict" or "locked".
+ */
+export function isStrictOrLockedCompat(): boolean {
+  return true; // Current mode is "strict"
+}

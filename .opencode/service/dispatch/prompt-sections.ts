@@ -120,7 +120,7 @@ export function buildScopeLine(agentType: string): string {
     Orchestrator: "Write: Task.DAG.json, .task_temp/ | Deny: .opencode/ framework files | Route: @Super-Admin",
     "Super-Admin": "Write: .opencode/**, opencode.json, AGENTS.md | Deny: booking-*/src/ (business code)",
     Guardian: "Write: .task_temp/**, .opencode/state/ | Deny: business code, contract.yaml | Route: @Arbiter",
-    Arbiter: "Write: WAIVE.md, TECH_DEBT_REGISTRY.md | Deny: business code | Route: @Meta-Planner",
+    Arbiter: "Write: WAIVE.md, TECH_DEBT_REGISTRY.md | Deny: business code | Route: @plan",
     "CI-CD-Agent": "Write: .github/, Dockerfile*, docker-compose* | Deny: business code (src/), .opencode/agents/ | Route: @Orchestrator",
     "Knowledge-Curator": "Write: docs/official_docs/**, .task_temp/** | Deny: .opencode/**, business code",
     "Meta-Planner": "Write: docs/, Task.DAG.json | Deny: .opencode/ framework files, business code",
@@ -141,8 +141,7 @@ export function buildKCGateFlowSection(): string {
 \`\`\`
 compliance_gate_check(
   task_description="Knowledge acquisition: <topic>",
-  plan_summary="<your knowledge acquisition plan>",
-  task_id="<your-task-id>"
+  plan_summary="<your knowledge acquisition plan>"
 )  → session_id (gate is ARMED in this single call)
 \`\`\`
 
@@ -232,6 +231,6 @@ export function resolveTemplateVariables(
   if (!content || Object.keys(templateMap).length === 0) return content;
   return content.replace(/\{([a-z_]+\.[a-z_.]+)\}/g, (match, key) => {
     if (templateMap.hasOwnProperty(key)) return templateMap[key];
-    return `UNRESOLVED${match}`;
+    return match;
   });
 }

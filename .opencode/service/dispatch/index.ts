@@ -56,6 +56,9 @@ export { consumeDispatchMarker } from "./marker-consume";
 export type { MarkerConsumeResult } from "./marker-consume";
 
 // ── Phase 3E-4: Dispatch Before-Hook Validation (from dispatch-before plugin) ──
+// LEGACY: validateDispatchBefore is the deprecated PLAN-FIRST L0-L4 dispatch validator.
+// Only reachable via the unwired before/dispatch handler. Kept as re-export for that
+// handler's delegate import; not part of the active dispatch path.
 export { validateDispatchBefore } from "./dispatch-validate";
 
 // ── Phase 4B: Prompt Builder (extracted from dispatch-subagent.ts) ──

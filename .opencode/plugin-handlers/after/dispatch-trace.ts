@@ -13,5 +13,12 @@ export async function handle(input: any, output: any): Promise<void> {
   try {
     const mod = require("./dispatch");
     if (mod && mod.handle) await mod.handle(input, output);
-  } catch {}
+  } catch (error: unknown) {
+    writeLog("dispatch-trace", "WARN", {
+      event: "DELEGATE-HANDLER-FAILED",
+      handler: "dispatch",
+      tool: input.tool,
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
 }

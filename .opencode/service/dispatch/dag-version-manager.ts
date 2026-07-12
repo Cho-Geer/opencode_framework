@@ -14,7 +14,7 @@
  * Only tasks completed >2 weeks ago are moved to version snapshots.
  *
  * INTEGRATION POINTS:
- * - @Meta-Planner: Call createVersionSnapshot() after version bump
+ * - @plan: Call createVersionSnapshot() after version bump
  * - @Orchestrator: Reads hot DAG (with recent completed) for scheduling
  * - @Guardian: Reads hot DAG for audit trail verification
  *
@@ -140,7 +140,7 @@ export class DAGVersionManager {
 
   /**
    * Create a version snapshot before the DAG is updated to a new version.
-   * This should be called by @Meta-Planner after bumping the version number.
+   * This should be called by @plan after bumping the version number.
    *
    * Process:
    * 1. Read current DAG

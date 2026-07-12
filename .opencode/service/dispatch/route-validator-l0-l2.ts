@@ -41,7 +41,7 @@ export function l1_verbCandidates(
 
   if (agents.size === 0) {
     return [
-      "@Meta-Planner",
+      "@plan",
       "@Orchestrator",
       "@Architect",
       "@Coder-BE",

@@ -16,7 +16,7 @@
 | 维度 | 运行态数量 / 位置 |
 | --- | --- |
 | Agent | **5**：Orchestrator（自定义）+ 4 native（build / general / plan / explore） |
-| Plugin 入口 | 5（`.opencode/plugins/*.ts`） |
+| Plugin 入口 | 5（均为 **active plugin entrypoint**，由 `opencode.json` 注册：before-dispatcher.ts / after-dispatcher.ts / system-dispatcher.ts / session.ts / tool-def-trimmer.ts，位于 `.opencode/plugins/*.ts`） |
 | Plugin Handler 源文件 | 43（`.opencode/plugin-handlers/**/*.ts`，排除 `__tests__`） |
 | active handler 链 | before 11 / after 7 / system 2 = 20（见第四节） |
 | 自定义 Tool | 37（`.opencode/tools/*.ts`） |
@@ -49,6 +49,8 @@
 3. 需要 explore / research / evidence gathering 时，优先 native Task，而非依赖旧 preamble 包装。
 `dispatch_subagent` 仅保留为 legacy 兼容入口，不再是默认派遣方式。
 
+> ℹ️ **Scout 已退休（retired）**：只读调查请使用原生 `explore`，不要围绕原生 `Scout` 规划或派遣子任务。
+
 ### 🚨 合规门禁升级条件（按风险触发，非全任务前置）
 仅下列任务默认升级到 `compliance_gate_check / confirm / complete`：
 1. 高风险修改；2. 需要审批或正式交付物；3. 跨 Agent 协作链路；4. 调查/审计类需可追溯 deliverables。
@@ -66,11 +68,11 @@
 
 | Agent | 类型 | 模型 | 职责 |
 | --- | --- | --- | --- |
-| **Orchestrator** | 自定义（`mode: primary`，`prompt: .opencode/agents/Orchestrator.md`） | `deepseek/deepseek-v4-flash` | 专职调度、状态追踪、产物合并；持有 broad 权限集（含 `dispatch_subagent` / `compliance_gate_*` / 框架维护写入口） |
-| **build** | native（平台内置，无 .md） | `deepseek/deepseek-v4-flash` | 构建 / 实现类任务 |
-| **general** | native | `deepseek/deepseek-v4-flash` | 通用任务 |
-| **plan** | native | `deepseek/deepseek-v4-flash` | 规划类任务 |
-| **explore** | native | `deepseek/deepseek-v4-flash` | 调研 / 探索类任务 |
+| **Orchestrator** | 自定义（`mode: primary`，`prompt: .opencode/agents/Orchestrator.md`） | `volcengine-plan/deepseek-v4-flash` | 专职调度、状态追踪、产物合并；持有 broad 权限集（含 `dispatch_subagent` / `compliance_gate_*` / 框架维护写入口） |
+| **build** | native（平台内置，无 .md） | `volcengine-plan/deepseek-v4-flash` | 构建 / 实现类任务 |
+| **general** | native | `volcengine-plan/deepseek-v4-flash` | 通用任务 |
+| **plan** | native | `volcengine-plan/deepseek-v4-flash` | 规划类任务 |
+| **explore** | native | `opencode-go/deepseek-v4-pro` | 调研 / 探索类任务 |
 
 `default_agent` = `Orchestrator`。4 个 native agent 为平台内置，无独立 `.md` prompt。
 
@@ -80,6 +82,7 @@
 
 > ⚠️ 历史上的 `framework-enforcer.ts`（曾负责 Super-Admin 路由 / `ROUTE-MISMATCH` / `DISPATCH-POLICY-TAMPER`）**当前不存在**（全 `.opencode/*.ts` 无此文件，仅遗留描述字符串引用）。
 > 当前约束由下列 **active handler** 在物理层强制执行；`before-dispatcher.ts` 即当前 active 的 `tool.execute.before` 调度器，其 `HANDLER_MAP` 与下方 `plugin_execution_order` 完全一致。
+> ⚠️ **Plugin 入口均为 active**：5 个入口（before-dispatcher.ts / after-dispatcher.ts / system-dispatcher.ts / session.ts / tool-def-trimmer.ts）全部由 `opencode.json` 注册为 active plugin entrypoint，并非历史/未连接状态；其 active handler 执行顺序由 `project.config.json` 的 `plugin_execution_order` 定义（见下文）。
 
 **before（串行，首个 throw 阻断后续；共 11）**：
 `gate-call-context` → `guidance-bridge` → `task` → `permission-safety` → `behavioral-path-guard` → `scope` → `path-validate` → `codegraph` → `skill-policy` → `dispatch-signal` → `tool-governance`

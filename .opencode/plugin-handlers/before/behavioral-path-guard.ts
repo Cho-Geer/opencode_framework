@@ -18,7 +18,7 @@ export const tools = ["*"];
 
 // Write tools that modify files
 const WRITE_TOOLS = new Set([
-  "safe_edit", "safe_delete", "safe_restore", "safe_shell", "safe_mkdir",
+  "safe_edit", "safe_delete", "safe_restore", "safe_shell", "safe_mkdir", "safe_framework_edit",
 ]);
 
 // Protected framework paths — regex patterns with reasons.
@@ -45,6 +45,9 @@ export async function handle(input: any, _output: any): Promise<void> {
   const sessionID = input.sessionID || "unknown";
   // For safe_shell, check if command targets a protected path
   if (!filePath && toolName === "safe_shell" && command) {
+    // Exempt read-only commands from protected-path blocking
+    const readOnlyPattern = /^(cat|head|tail|ls|wc|grep|find|sha256sum|md5sum|file|stat|diff|tree)\b/;
+    if (readOnlyPattern.test(command.trim())) return;
     for (const { pattern, reason } of PROTECTED_PATHS) {
       if (pattern.test(command)) {
         if (args.breakGlass === true) {
@@ -96,6 +99,18 @@ export async function handle(input: any, _output: any): Promise<void> {
       tool: toolName,
       path: filePath,
     }, { sessionID, tool: toolName });
+    return;
+  }
+
+  // safe_framework_edit is grant-aware and has its own policy + plan checks.
+  // Delegate to that tool rather than treating it like a normal safe_edit.
+  if (toolName === "safe_framework_edit") {
+    writeLog(SRC, "INFO", {
+      event: "BEHAVIORAL-PATH-GUARD-DELEGATED-FRAMEWORK-GRANT",
+      tool: toolName,
+      path: filePath,
+      sessionID,
+    });
     return;
   }
 

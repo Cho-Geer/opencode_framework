@@ -1,6 +1,6 @@
 // ────────────────────────────────────────────────────────────────────
-// DELEGATE HANDLER — NOT in active execution_order
-// Reached as delegate from guidance-bridge (before); not directly in execution_order (system-dispatcher.ts).
+// DELEGATE HANDLER — reached via delegate require() from guidance-bridge (active)
+// The active anti-bypass is in the SYSTEM chain (system-dispatcher.ts).
 // This before/ version is kept for rollback only.
 // ────────────────────────────────────────────────────────────────────
 // plugin-handlers/before/anti-bypass.ts — Guidance gate + threshold enforcement

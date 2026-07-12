@@ -27,6 +27,9 @@ import {
 import {
   getStagedCriticalFiles,
   getStagedInfraFiles,
+  getStagedChangedFiles,
+  hasMixedBusinessAndInfra,
+  isInfrastructureFile,
   BUSINESS_CODE_PREFIX,
   isInfraOnlyCommit,
 } from "./hook-critical-files";
@@ -57,26 +60,8 @@ if (!commitMsgFile || !existsSync(commitMsgFile)) {
 const msg = readFileSync(commitMsgFile, "utf8").trim();
 const root = getProjectRoot();
 
-// ═══ Phase 3 cleanup: legacy ENFORCEMENT_MODE env override is ignored ═══
-// Single-policy runtime enforces per-rule disposition only; the deprecated
-// getEnforcementModeWithSource() compat shim is no longer consulted here.
-const legacyEnvMode = process.env.ENFORCEMENT_MODE;
-if (legacyEnvMode) {
-  console.log("═══════════════════════════════════════════════════════");
-  console.log("  ⚠️  COMMIT-MSG NOTICE — Legacy env override ignored");
-  console.log("═══════════════════════════════════════════════════════");
-  console.log(`  Legacy ENFORCEMENT_MODE=${legacyEnvMode} is ignored`);
-  console.log("  Single-policy runtime enforces per-rule disposition only.");
-  console.log("═══════════════════════════════════════════════════════");
-  writeLog("hook-commit-msg", "hooks", {
-    level: "WARN",
-    event: "ENFORCEMENT-MODE-DOWNGRADE-IGNORED",
-    detail: JSON.stringify({
-      legacyEnvMode,
-      hook: "commit-msg",
-    }),
-  });
-}
+// ═══ Phase 3 compat: ignore legacy env downgrade attempts ═══
+const modeSource = { mode: "single-policy", source: "runtime", envOverride: false } as const;
 
 // ── Skip merge commits ──
 if (/^Merge /i.test(msg)) {
@@ -198,11 +183,6 @@ if (infraOnlyCommit) {
 // A single commit MUST NOT contain both business code files
 // (under booking_system_refactor/) AND infrastructure files (everything else).
 // They must be committed separately for clean audit trails.
-import {
-  hasMixedBusinessAndInfra,
-  getStagedChangedFiles,
-} from "./hook-critical-files";
-
 const allStagedFiles = getStagedChangedFiles();
 const isMixed = hasMixedBusinessAndInfra(allStagedFiles);
 

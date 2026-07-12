@@ -50,6 +50,9 @@ export {
 } from "./store";
 
 // ── Enforcement ──
+// DEPRECATED-COMPAT: getEnforcementMode / getEnforcementModeWithSource are legacy
+// mode-compat shims retained ONLY for protected files (hook-layers.ts,
+// legacy/scripts/pre-execution-gate.ts). New code must use getRuleDisposition().
 export {
   getEnforcementMode,
   getEnforcementModeWithSource,

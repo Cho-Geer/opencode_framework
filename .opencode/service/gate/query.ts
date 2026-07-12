@@ -12,6 +12,8 @@ export {
   computeSHA256,
 } from "./store";
 
+// DEPRECATED-COMPAT: legacy mode-compat shims retained ONLY for protected files
+// (hook-layers.ts, legacy/scripts/pre-execution-gate.ts). Do not add new callers.
 export { getEnforcementMode, getEnforcementModeWithSource } from "./enforcement";
 // Phase 3 T3.1: Per-rule disposition
 export { getRuleDisposition, shouldBlock } from "../enforcement/rule-disposition";

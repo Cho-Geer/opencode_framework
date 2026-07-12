@@ -151,7 +151,7 @@ export const PHASE_ITEMS: Record<
       key: "dag_entry_verified",
       verifier: "dispatch-before.ts",
       remediation:
-        "Ensure the DAG task exists in Task.DAG.json, or dispatch @Meta-Planner to plan it.",
+        "Ensure the DAG task exists in Task.DAG.json, or dispatch @plan to plan it.",
     },
     {
       key: "agent_scope_resolved",
@@ -200,7 +200,7 @@ export const PHASE_ITEMS: Record<
     {
       key: "compliance_gate_checked",
       verifier: "compliance_gate_check",
-      remediation: "Call compliance_gate_check(task_description, task_id).",
+      remediation: "Call compliance_gate_check(task_description).",
     },
     {
       key: "compliance_gate_armed",

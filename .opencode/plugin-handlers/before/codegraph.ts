@@ -1,16 +1,40 @@
 // plugin-handlers/before/codegraph.ts — CodeGraph impact analysis enforcement
 // Migrated from plugins/codegraph-enforce.ts (tool.execute.before portion)
+import * as fs from "node:fs";
 import { writeLog } from "../../lib/log-manager";
 import { resolveAgent } from "../../lib/agent-resolver";
 import { isCodeGraphExemptAgent, getCodeGraphExemptPatterns } from "../../service/enforcement/exemptions";
 import { shouldBlock } from "../../service/enforcement/rule-disposition";
 import { readImpactState } from "../../service/file-guard/codegraph-state";
-import { classifyRepoShellCommand, isRepoReadOperation } from "../../service/repo/classify";
+// repo-op / GitHub MCP write adjudication moved to service/tool-governance
+// (tool-governance-handler → repo-policy). codegraph is now a pure evidence adapter.
 
 export const name = "codegraph";
-export const tools = ["safe_edit", "safe_delete", "safe_restore", "safe_shell", "bash", "safe_framework_edit"];
+export const tools = [
+  "safe_edit",
+  "safe_delete",
+  "safe_restore",
+  "safe_shell",
+  "bash",
+  "safe_framework_edit",
+];
 
-const INTERCEPTED_TOOLS = new Set(["safe_edit", "safe_delete", "safe_restore", "safe_shell", "bash", "safe_framework_edit"]);
+const INTERCEPTED_TOOLS = new Set([
+  "safe_edit",
+  "safe_delete",
+  "safe_restore",
+  "safe_shell",
+  "bash",
+  "safe_framework_edit",
+]);
+
+/**
+ * Keep the active hook fail-closed for direct GitHub MCP writes while still
+ * allowing read-only MCP investigation tools.
+ */
+function isInterceptedTool(tool: string): boolean {
+  return INTERCEPTED_TOOLS.has(tool);
+}
 
 function toRelative(filePath: string): string {
   const root = process.env.OPENCODE_ROOT || process.cwd();
@@ -20,15 +44,17 @@ function toRelative(filePath: string): string {
   }
   // Fix: try realpath resolution for symlink mismatches
   try {
-    const real = require('fs').realpathSync(filePath);
-    if (real.startsWith(normalizedRoot + '/')) {
+    const real = fs.realpathSync(filePath);
+    if (real.startsWith(normalizedRoot + "/")) {
       return real.slice(normalizedRoot.length + 1);
     }
-  } catch {}
+  } catch {
+    // The target may not exist yet or may be shell-derived; fall through to string heuristics.
+  }
   // Fix: extract path after project root name as fallback
-  const rootName = normalizedRoot.split('/').pop();
-  if (rootName && filePath.includes('/' + rootName + '/')) {
-    const idx = filePath.indexOf('/' + rootName + '/');
+  const rootName = normalizedRoot.split("/").pop();
+  if (rootName && filePath.includes("/" + rootName + "/")) {
+    const idx = filePath.indexOf("/" + rootName + "/");
     return filePath.slice(idx + rootName.length + 2);
   }
   return filePath;
@@ -91,45 +117,51 @@ function extractShellTarget(command: string): string {
 
 export async function handle(input: any, output: any): Promise<void> {
   const tool = input.tool;
-  if (!INTERCEPTED_TOOLS.has(tool)) return;
+  writeLog("plugin-codegraph-enforce", "INFO", {
+    event: "CODEGRAPH-HANDLE",
+    tool: input.tool,
+    sessionId: input.sessionID || "unknown",
+  });
+  writeLog("plugin-codegraph-enforce", "INFO", {
+    event: "CODEGRAPH-HANDLER-ENTER",
+    tool: tool,
+    sessionId: input.sessionID || "unknown",
+    detail: `codegraph handler entered for tool=${tool}`,
+  });
+  if (!isInterceptedTool(tool)) return;
 
   const sessionId = input.sessionID || "unknown";
   const agent = resolveAgent(sessionId);
 
-  // Repo operation detection for safe_shell/bash commands
-  if (tool === "safe_shell" || tool === "bash") {
-    const command = (input.args?.command || output.args?.command || "").toString();
-    if (command) {
-      const repoOp = classifyRepoShellCommand(command);
-      if (repoOp.provider === "git" || repoOp.provider === "gh") {
-        if (isRepoReadOperation(repoOp)) {
-          writeLog("plugin-codegraph-enforce", "INFO", {
-            event: "CODEGRAPH-ENFORCE-SKIP-REPO-READ", agent, sessionId, tool,
-            detail: `Repo read operation (${repoOp.kind}): ${command.slice(0, 80)}`,
-          });
-          return;
-        }
-        writeLog("plugin-codegraph-enforce", "WARN", {
-          event: "CODEGRAPH-ENFORCE-BLOCK-REPO-WRITE", agent, sessionId, tool,
-          detail: `Repo ${repoOp.kind} via safe_shell blocked: ${command.slice(0, 80)}`,
-        });
-        throw new Error(
-          `[FW-ENFORCE][REPO-OP] Direct git/gh ${repoOp.kind} operations through safe_shell are blocked.\n` +
-          `Use safe_repo_* first-class tools instead. Operation: ${repoOp.kind}\n` +
-          `Command: ${command.slice(0, 120)}\n\n` +
-          `Read tools: safe_repo_status, safe_repo_diff, safe_repo_log, safe_repo_show, safe_repo_branch\n` +
-          `Write tools: safe_repo_stage, safe_repo_unstage, safe_repo_commit (require repo_maintenance grant)\n`
-        );
-      }
-    }
-  }
+  writeLog("plugin-codegraph-enforce", "INFO", {
+    event: "CODEGRAPH-AGENT-RESOLVED",
+    agent, sessionId, tool,
+    detail: `resolved agent=${agent} for session=${sessionId}`,
+  });
+
+  writeLog("plugin-codegraph-enforce", "INFO", {
+    event: "CODEGRAPH-CHECK", agent, sessionId, tool,
+    detail: `codegraph intercept for ${tool}`,
+  });
+
+  // Repo-op / GitHub MCP write adjudication moved to service/tool-governance
+  // (tool-governance-handler → repo-policy). codegraph is now a pure evidence adapter.
 
   // Config-driven: reads from enforcement_exemptions.codegraph.exempt_agents
   if (isCodeGraphExemptAgent(agent)) return;
   if (!shouldBlock("source-edit-without-codegraph")) return;
 
   const filePath = extractFilePath(tool, input.args || output.args || {});
+  writeLog("plugin-codegraph-enforce", "INFO", {
+    event: "CODEGRAPH-EXEMPT-PATH", agent, sessionId, tool, filePath,
+    detail: `codegraph exempt path check for ${filePath}`,
+  });
   if (isExemptPath(filePath)) return;
+
+  writeLog("plugin-codegraph-enforce", "INFO", {
+    event: "CODEGRAPH-ENFORCE-CHECK", agent, sessionId, tool, filePath,
+    detail: `proceeding to impact state check for non-exempt path`,
+  });
 
   const state = readImpactState();
   const sessionRecord = state.sessions[sessionId];

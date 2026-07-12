@@ -5,7 +5,7 @@
 **Status vocabulary:**
 - `active-direct` — registered in a dispatcher `HANDLER_MAP` and executed directly.
 - `active-delegate` — not in a top-level `HANDLER_MAP`, but reached via `require()` from an `active-direct` handler.
-- `retired-rollback` — labelled `LEGACY HANDLER`, not in any active `HANDLER_MAP`, not a delegate target. Kept for rollback only.
+- `retired-rollback` — labelled `RETIRED-ROLLBACK`, not in any active `HANDLER_MAP`, not a delegate target. Kept for rollback only.
 - `deleted` — removed from the tree (archive / cleanup).
 
 ## Before chain (dispatcher: before-dispatcher.ts, 11 active)
@@ -71,6 +71,6 @@
 - `after-dispatcher.ts`: removed `import * as auditHandler` (excluded from HANDLER_MAP).
 
 ## Validation
-- `rg -n "LEGACY HANDLER" .opencode/plugin-handlers` → only retired-rollback files remain labelled LEGACY.
+- All handler `.ts` files carry `DELEGATE HANDLER` or `RETIRED-ROLLBACK`; none retain the legacy label (the `rg` validation against this directory now returns zero).
 - `bun test .opencode/plugin-handlers` → green.
 - Every handler in `plugin_execution_order` exists in `HANDLER_MAP`; every dynamic delegate is documented above.

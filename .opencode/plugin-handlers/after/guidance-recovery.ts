@@ -7,5 +7,12 @@ export async function handle(input: any, output: any): Promise<void> {
   try {
     const mod = require("./anti-bypass");
     if (mod && mod.handle) await mod.handle(input, output);
-  } catch {}
+  } catch (error: unknown) {
+    writeLog("guidance-recovery", "WARN", {
+      event: "DELEGATE-HANDLER-FAILED",
+      handler: "anti-bypass",
+      tool: input.tool,
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
 }

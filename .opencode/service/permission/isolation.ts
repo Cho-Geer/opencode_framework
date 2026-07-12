@@ -81,10 +81,6 @@ export const PERMISSION_PROFILES: Record<string, AgentPermissions> = {
     agentType: '@CI-CD-Agent',
     tools: { edit: 'allow', bash: 'allow', task: 'allow' },
   },
-  '@Meta-Planner': {
-    agentType: '@Meta-Planner',
-    tools: { edit: 'deny', bash: 'deny', task: 'allow' },
-  },
   '@Orchestrator': {
     agentType: '@Orchestrator',
     tools: { edit: 'deny', bash: 'deny', task: 'allow' },

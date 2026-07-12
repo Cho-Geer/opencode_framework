@@ -19,8 +19,27 @@ import {
 export const name = "anti-bypass";
 export const tools = ["*"];
 
+type ToolOutput = {
+  isError?: boolean;
+  output?: unknown;
+  status?: unknown;
+  reason?: unknown;
+};
+
+function tryParseOutputJson(text: string): Record<string, unknown> | null {
+  if (!text.trim()) return null;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Detect soft rejection: tool executed but returned rejection/error */
-function detectSoftRejection(output: any): { rejected: boolean; reason: string } {
+function detectSoftRejection(output: ToolOutput | null | undefined): { rejected: boolean; reason: string } {
   if (!output) return { rejected: false, reason: "" };
 
   // MCP standard error format
@@ -28,17 +47,22 @@ function detectSoftRejection(output: any): { rejected: boolean; reason: string }
 
   // Parse nested output (output.output is a JSON string)
   const innerText = typeof output.output === "string" ? output.output : "";
-  let inner: any = null;
-  try { inner = JSON.parse(innerText); } catch {}
+  const inner = tryParseOutputJson(innerText);
 
   // Check top-level status
-  if (output.status === "rejected") return { rejected: true, reason: output.reason || "rejected" };
-  if (inner?.status === "rejected") return { rejected: true, reason: inner.reason || "rejected" };
+  if (output.status === "rejected") {
+    return { rejected: true, reason: String(output.reason || "rejected") };
+  }
+  if (inner?.status === "rejected") {
+    return { rejected: true, reason: String(inner.reason || "rejected") };
+  }
 
   // Check for error patterns
   if (innerText.includes('"session not found"')) return { rejected: true, reason: "session not found" };
   if (inner?.error) return { rejected: true, reason: String(inner.error).slice(0, 200) };
-  if (inner?.verified === false && inner?.error) return { rejected: true, reason: "verified=false: " + String(inner.error).slice(0, 150) };
+  if (inner?.verified === false && inner?.error) {
+    return { rejected: true, reason: "verified=false: " + String(inner.error).slice(0, 150) };
+  }
 
   return { rejected: false, reason: "" };
 }

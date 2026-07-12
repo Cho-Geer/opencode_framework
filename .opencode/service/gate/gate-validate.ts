@@ -62,7 +62,9 @@ export function validateGateBefore(input: any, output: any): { blocked: boolean;
   const agent = resolveAgent(input.sessionID);
 
   writeLog(SRC, "runtime", {
-    sessionID: input.sessionID, callID: input.callID, agent,
+    sessionID: input.sessionID, 
+    callID: input.callID, 
+    agent,
     event: "TOOL-BEFORE", detail: `enter | tool=${input.tool}`,
   });
 
@@ -128,10 +130,10 @@ export function validateGateBefore(input: any, output: any): { blocked: boolean;
               `(checked both dag.tasks[] and dag.execution_order — neither contains this ID). ` +
               `The FRAMEWORK_TASK_ID passed to dispatch_subagent is treated as a DAG task ID by this audit. ` +
               `Remediation — pick ONE:\n` +
-              `  1. Have @Meta-Planner add "${taskId}" to Task.DAG.json (tasks[] or execution_order group).\n` +
+              `  1. Have @plan add "${taskId}" to Task.DAG.json (tasks[] or execution_order group).\n` +
               `  2. If this is a pure dispatch-session ID (not a real DAG task), re-dispatch without setting dag_task_id, ` +
               `or choose a value that does not collide with a non-existent DAG task.\n` +
-              `  3. Use a DAG-exempt agent (@Orchestrator / @Meta-Planner / @Super-Admin) for this dispatch.\n` +
+              `  3. Use a DAG-exempt agent (@Orchestrator / @plan / @Super-Admin) for this dispatch.\n` +
               `See docs/review/cicd-dag-block/diagnosis.md for the full analysis.\n[STOP] Do NOT attempt alternative tools, different commands, or workarounds to bypass this rule. This is a HARD CONSTRAINT violation.\n[REPORT] Immediately inform the user that this action was blocked. Do not continue the current task path.`,
           };
         }

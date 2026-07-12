@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-export {};
 "use strict";
 
 /**
@@ -95,6 +94,11 @@ const { readSubState } = require("../lib/substate-manager");
 
 // ─── Path Resolution (Node path APIs ONLY — no shell path manipulation) ───
 const OPENCODE_ROOT = (function () {
+  // Allow test/override via OPENCODE_ROOT env var (must be absolute for safety)
+  const envRoot = process.env.OPENCODE_ROOT;
+  if (envRoot && path.isAbsolute(envRoot) && fs.existsSync(envRoot)) {
+    return envRoot;
+  }
   // Windows/WSL cross-platform: resolve from script location
   // __dirname is always an absolute path on all platforms
   const scriptDir = __dirname;
@@ -203,6 +207,20 @@ function getCompatPolicyLabel(): string {
   }
   if (_getCompatPolicyLabel) return _getCompatPolicyLabel();
   return "rule-disposition-compat";
+}
+
+let _getEnforcementMode = null as (() => "advisory" | "strict" | "locked") | null;
+function getEnforcementMode(): "advisory" | "strict" | "locked" {
+  if (!_getEnforcementMode) {
+    try {
+      _getEnforcementMode =
+        require("../service/gate/enforcement").getEnforcementMode;
+    } catch {
+      /* canonical helper unavailable — use static fallback */
+    }
+  }
+  if (_getEnforcementMode) return _getEnforcementMode();
+  return "strict";
 }
 
 /**
@@ -959,6 +977,7 @@ function main() {
    * FW-LOG-UNIFY-P3-C2 (2026-06-12): Persist gate check results to log-manager.
    * Previously ALL (console as any).error output from this script was DISCARDED on dispatch.
    */
+  const mode = getEnforcementMode();
   gateLog("gate_result", allPassed ? "INFO" : "ERROR", {
     mode,
     taskId,
@@ -992,11 +1011,14 @@ if (typeof require === "undefined" || typeof process === "undefined") {
 
 const HAS_COMMONJS_MODULE = typeof module !== "undefined";
 
-// Execute main
-if (HAS_COMMONJS_MODULE && require.main === module) {
+// Execute main when run directly.
+// Bun ESM: import.meta.main is true for the entry script.
+// CJS (ts-jest/node): require.main === module.
+const IS_ENTRY = import.meta.main || (HAS_COMMONJS_MODULE && require.main === module);
+if (IS_ENTRY) {
   main();
 } else if (HAS_COMMONJS_MODULE) {
-  // When required as a module (for testing), export for testability
+  // CJS testability exports (ts-jest / node)
   module.exports = {
     OPENCODE_ROOT,
     readJSON,
@@ -1011,3 +1033,18 @@ if (HAS_COMMONJS_MODULE && require.main === module) {
     checkKnowledgeGate,
   };
 }
+
+// ESM named exports (bun test / bun runtime require)
+export {
+  OPENCODE_ROOT,
+  readJSON,
+  getEnforcementMode,
+  emitError,
+  isKnowledgeCacheHealthy,
+  checkDagCoverage,
+  checkGateLifecycle,
+  checkRoleViolations,
+  checkRuleRegistry,
+  checkConfigValidity,
+  checkKnowledgeGate,
+};

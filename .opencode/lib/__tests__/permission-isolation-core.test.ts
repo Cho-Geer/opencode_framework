@@ -24,7 +24,6 @@ describe('permission-isolation-core', () => {
       expect(PERMISSION_PROFILES['@Guardian']).toBeDefined();
       expect(PERMISSION_PROFILES['@Arbiter']).toBeDefined();
       expect(PERMISSION_PROFILES['@CI-CD-Agent']).toBeDefined();
-      expect(PERMISSION_PROFILES['@Meta-Planner']).toBeDefined();
       expect(PERMISSION_PROFILES['@Orchestrator']).toBeDefined();
     });
 

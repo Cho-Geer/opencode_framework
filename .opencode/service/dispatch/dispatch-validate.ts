@@ -1,3 +1,9 @@
+// ────────────────────────────────────────────────────────────────────
+// LEGACY VALIDATOR — NOT in active execution_order
+// Reachable only via the deprecated before/dispatch handler (plugin-handlers/before/dispatch.ts),
+// which is NOT wired into before-dispatcher.ts HANDLER_MAP (see .opencode/project.config.json
+// plugin_execution_order.before). Do not invoke directly.
+// ────────────────────────────────────────────────────────────────────
 // service/dispatch/dispatch-validate.ts — Dispatch before-hook validation logic
 // Source: dispatch-before.ts plugin (583L → service extraction)
 // PLAN-FIRST Layer 1: policy-driven dispatch validation with L0-L4 route chain.

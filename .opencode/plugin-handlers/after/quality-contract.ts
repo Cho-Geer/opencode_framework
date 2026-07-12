@@ -200,6 +200,15 @@ export async function handle(input: any, output: any): Promise<void> {
     try {
       const mod = require("./" + handler);
       if (mod && mod.handle) await mod.handle(input, output);
-    } catch {}
+    } catch (error: unknown) {
+      writeLog("quality-contract", "WARN", {
+        event: "DELEGATE-HANDLER-FAILED",
+        handler,
+        sessionID,
+        agent,
+        tool,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 }
