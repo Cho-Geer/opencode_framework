@@ -38,7 +38,7 @@ added_by: system
 
 ## 核心工作流
 
-### 步骤 1：检测工作区状态
+### 步骤 1：检测工作区状态 `[ANALYSIS]`
 
 ```bash
 git status --porcelain
@@ -46,7 +46,7 @@ git status --porcelain
 
 分析修改的文件列表和类型，生成变更摘要。
 
-### 步骤 2：读取 machine.json 状态
+### 步骤 2：读取 machine.json 状态 `[ANALYSIS]`
 
 ```bash
 jq '.currentTask' .opencode/state/machine.json
@@ -57,7 +57,7 @@ jq '.currentTask' .opencode/state/machine.json
 - `currentTask.status`：当前 TDD 阶段（Red/Green/Refactor/Testing/Review）
 - `currentTask.owner`：负责 Agent
 
-### 步骤 3：生成 Commit Message
+### 步骤 3：生成 Commit Message `[ANALYSIS]`
 
 根据 TDD 阶段生成符合 pre-commit hook 阶段 3 要求的 commit message：
 
@@ -87,7 +87,11 @@ Changed files:
 2. 使用 `git diff --no-color` 提取关键变更摘要
 3. 结合修改内容，生成 1-2 句描述性摘要
 
-### 步骤 4：前置证据链校验（模拟 pre-commit hook 阶段 2）
+### 步骤 4：前置证据链校验（模拟 pre-commit hook 阶段 2） `[ANALYSIS]`
+
+> **重要区分**：本步骤是「模拟」hook 的校验逻辑，属于 `[ANALYSIS]`，不是 `[VERIFICATION]`。
+> 读取证据文件并判断其内容，不等于真实 hook 的运行态校验。只有步骤 7 的真实 `git commit` + hook 执行才是 `[VERIFICATION]`。
+> **合理化检测**：如果你发现自己在想「模拟校验通过了，提交肯定没问题」--停下来，模拟通过 ≠ 真实 hook 通过。
 
 **关键**：在提交前验证证据文件，避免提交被 hook 拒绝。
 
@@ -127,7 +131,9 @@ IF 状态转换 == "Review→Done":
 - 显示详细错误信息
 - 提示用户如何修复
 
-### 步骤 5：Red 阶段文件类型校验（模拟 pre-commit hook 阶段 3）
+### 步骤 5：Red 阶段文件类型校验（模拟 pre-commit hook 阶段 3） `[ANALYSIS]`
+
+> 同步骤 4，本步骤是模拟校验，属于 `[ANALYSIS]`。
 
 ```
 IF 当前状态 == "Red" OR 目标状态 == "Red":
@@ -166,7 +172,11 @@ IF 当前状态 == "Red" OR 目标状态 == "Red":
 是否立即提交？ [Y/n]
 ```
 
-### 步骤 7：执行提交（用户确认后）
+### 步骤 7：执行提交（用户确认后） `[VERIFICATION]`
+
+> **本步骤是唯一的 `[VERIFICATION]`**--真实 `git commit` + pre-commit hook 执行。
+> 模拟校验（步骤 4-5）通过不保证本步骤通过。hook 可能有模拟未覆盖的校验规则。
+> 执行后必须记录 `Verified-by: git commit 输出 + hook 执行结果（通过/拒绝）`。
 
 ```bash
 git add {files}

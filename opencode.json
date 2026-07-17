@@ -16,7 +16,7 @@
   "agent": {
     "Orchestrator": {
       "mode": "primary",
-      "model": "volcengine-plan/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "prompt": ".opencode/agents/Orchestrator.md",
       "variant": "max",
       "permission": {
@@ -35,6 +35,7 @@
         "compliance_gate_purge": "allow",
         "compliance_gate_retry_confirm": "allow",
         "dispatch_subagent": "allow",
+        "confirm_repo_grant": "allow",
         "safe_diff": "allow",
         "safe_edit": {
           ".task_temp/**": "allow",
@@ -62,9 +63,9 @@
         "glob": "deny",
         "grep": "deny",
         "safe_shell": {
-          "node *.js *": "allow",
-          "node *.ts *": "allow",
-          "node -e *": "allow",
+          "node -e *": "deny",
+          "node *.ts *": "deny",
+          "node *.js *": "deny",
           "echo *": "allow",
           "cat *": "allow",
           "ls *": "allow",
@@ -118,7 +119,7 @@
     "build": {
       "native": true,
       "mode": "subagent",
-      "model": "volcengine-plan/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "variant": "max",
       "permission": {
         "edit": "deny",
@@ -210,7 +211,7 @@
     "general": {
       "native": true,
       "mode": "subagent",
-      "model": "volcengine-plan/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "variant": "max",
       "permission": {
         "edit": "deny",
@@ -295,7 +296,7 @@
     "plan": {
       "native": true,
       "mode": "subagent",
-      "model": "volcengine-plan/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-flash",
       "variant": "max",
       "permission": {
         "edit": "deny",

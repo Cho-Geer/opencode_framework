@@ -10,7 +10,6 @@
  *   - safe-edit-core: validateEdit, generateDiff, writeSafe
  *   - safe-bash-core: ALLOWED_COMMANDS, isAllowed, isDangerous, getAllowlist
  *   - safe-test-core: validateTestReport, SafeTestResult, SafeTestPhase
- *   - permission-isolation-core: PermissionIsolation, PermissionResult, ScopeResult
  *
  * @author @Architect
  * @version 1.0.0
@@ -19,7 +18,6 @@
 export * from "./safe-edit-core";
 export * from "./safe-bash-core";
 export * from "./safe-test-core";
-export * from "./permission-isolation-core";
 export * from "./critical-files";
 export {
   createBackup,

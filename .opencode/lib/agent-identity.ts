@@ -59,8 +59,6 @@ const DISPLAY_NAMES: Record<string, string> = {
   [AGENTS.CI_CD_AGENT]: "CI-CD-Agent",
   [AGENTS.KNOWLEDGE_CURATOR]: "Knowledge-Curator",
   [AGENTS.SUPER_ADMIN]: "Super-Admin",
-  // Legacy key (pre-P1-B rename):
-  plan: "Meta-Planner",
 };
 
 // ═══════════════════════════════════════════════════════════════

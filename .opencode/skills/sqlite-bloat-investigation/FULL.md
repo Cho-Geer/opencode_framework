@@ -200,7 +200,9 @@ If all rows have `cleanup_marker = NULL` despite a compactor existing in code, t
 2. Is the trigger condition ever met? (threshold too high? flag never set?)
 3. Was the migration applied but the runtime logic never wired up?
 
-## Verification
+## Verification `[VERIFICATION]`
+
+> **本步骤是 `[VERIFICATION]`**--根因结论必须基于实际 sqlite3 查询输出，不是推测。记录 `Verified-by: 实际查询输出`。「schema 看起来对」不是验证。
 
 Confirm root cause is located when:
 - Top table accounts for > 70% of DB size

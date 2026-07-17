@@ -10,12 +10,12 @@
  * @version 1.0.0
  */
 
-import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { writeLog } from "../../lib/log-manager";
 import { getAgentShellAllowlist } from "../../lib/permission-reader";
-import { normalize } from "../../lib/agent-identity";
+import { executeVerifiedCommandPlan } from "./command-executor";
+import { buildVerifiedCommandPlan, isVerifiedCommandPlan, type VerifiedCommandPlan } from "./shell-plan";
 import {
   matchGlob,
   DEFAULT_ALLOWLIST,
@@ -48,6 +48,10 @@ export interface SafeBashResult {
   timestamp: string;
   success?: boolean;
   duration?: number;
+  signal?: NodeJS.Signals | null;
+  timedOut?: boolean;
+  aborted?: boolean;
+  truncated?: boolean;
 }
 
 export interface SafeBashOptions {
@@ -55,6 +59,7 @@ export interface SafeBashOptions {
   timeout?: number;
   dryRun?: boolean;
   agent?: string;
+  verifiedPlan?: VerifiedCommandPlan;
   /** FW-INTERRUPT-GUARD: AbortSignal forwarded from execution context. */
   signal?: AbortSignal;
 }
@@ -95,20 +100,6 @@ export function _scriptContainsFileWrite(scriptPath: string): {
     return { blocked: false, reason: null };
   }
 
-  // FW-REPAIR-14: Skip shebang lines, check first non-shebang line for opt-in header
-  const lines = content.split("\n");
-  let firstNonShebangLine = "";
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith("#!")) {
-      firstNonShebangLine = trimmed;
-      break;
-    }
-  }
-  if (firstNonShebangLine === "// safe_bash: allow-write") {
-    return { blocked: false, reason: null };
-  }
-
   // Scan for file-write patterns — config-aware (FW-UNIFY-TS-P3)
   const writePatterns = _getConfigList("write_patterns", []).map(
     (p: string) => new RegExp(p, "i"),
@@ -118,7 +109,7 @@ export function _scriptContainsFileWrite(scriptPath: string): {
     if (pattern.test(content)) {
       return {
         blocked: true,
-        reason: `SCRIPT_FILE_WRITE: Script "${scriptPath}" contains file-write operations. Blocked by content scan. Add '// safe_bash: allow-write' as first line to override.`,
+        reason: `SCRIPT_FILE_WRITE: Script "${scriptPath}" contains file-write operations. Blocked by content scan.`,
       };
     }
   }
@@ -160,12 +151,15 @@ function logAction(result: SafeBashResult): void {
 // ════════════════════════════════════════════════════════════
 
 /** @public — Core safe bash execution. Entry point for safe_shell tool. */
-export function safeBashTool(options: SafeBashOptions): SafeBashResult {
+export async function safeBashTool(
+  options: SafeBashOptions,
+): Promise<SafeBashResult> {
   const {
     command,
     timeout = 300000,
     dryRun = false,
     agent = "unknown",
+    verifiedPlan,
     signal,
   } = options;
 
@@ -212,6 +206,26 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
 
   // Repo operation classification has been moved to service/tool-governance/policies/repo-policy.ts
   // (Phase 3: safe_shell scope reduction - removed duplicate repo classification block)
+
+  const planned = verifiedPlan
+    ? (isVerifiedCommandPlan(verifiedPlan)
+      ? { ok: true as const, plan: verifiedPlan }
+      : {
+          ok: false as const,
+          ruleId: "SHELL-PLAN-INVALID",
+          message: "Injected verified command plan is structurally invalid.",
+        })
+    : buildVerifiedCommandPlan(command, { timeoutMs: timeout });
+  if (!planned.ok) {
+    const result: SafeBashResult = {
+      command, agent, allowed: false, executed: false, exitCode: null,
+      stdout: "", stderr: "",
+      blockedReason: `${planned.ruleId}: ${planned.message}`,
+      timestamp: new Date().toISOString(),
+    };
+    logAction(result);
+    return result;
+  }
 
   // 1. Check for dangerous patterns (skip if agent has explicit bypass)
   if (!hasBypass && isDangerous(command)) {
@@ -279,27 +293,9 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
       /.rmdirSync\s*\(/,
     ];
 
-    // FW-PERM-AUDIT-EXEC T4: Orchestrator path-aware eval constraints
-    const isOrchestrator = normalize(agent) === "orchestrator";
-
     for (const pattern of evalPatterns) {
       if (pattern.test(evalArg)) {
-        // Orchestrator path-aware bypass (FW-PERM-FIX-ORCH-DOCS-REPAIR)
-        if (isOrchestrator) {
-          if (/\.task_temp\//.test(evalArg) || /docs\/review\//.test(evalArg)) {
-            break; // writes within Orchestrator's scope
-          }
-          const blockedResult: SafeBashResult = {
-            command, agent, allowed: false, executed: false, exitCode: null,
-            stdout: "", stderr: "",
-            blockedReason: `EVAL_FILE_WRITE_SCOPE: Command "${command}" contains file-write/delete operations outside of Orchestrator's allowed scope (.task_temp/**, docs/review/**). Blocked by eval content scan.`,
-            timestamp: new Date().toISOString(),
-          };
-          logAction(blockedResult);
-          return blockedResult;
-        }
-
-        // Non-Orchestrator: block all write/delete
+        // Phase 9: block all write/delete for all agents (Orchestrator path-aware bypass removed)
         const isDelete = /unlinkSync|rmSync|rmdirSync/.test(pattern.source);
         const reason = isDelete
           ? `EVAL_FILE_DELETE: Command "${command}" contains file-delete operations (unlinkSync/rmSync/rmdirSync) in -e argument. Blocked by eval content scan.`
@@ -338,33 +334,22 @@ export function safeBashTool(options: SafeBashOptions): SafeBashResult {
     return interrupted;
   }
 
-  try {
-    const execOptions: Parameters<typeof execSync>[1] = {
-      timeout, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"],
-    };
-    if (signal) {
-      (execOptions as any).signal = signal;
-    }
-    const stdout = execSync(command, execOptions);
-    const result: SafeBashResult = {
-      command, agent, allowed: true, executed: true, exitCode: 0,
-      stdout: (stdout as string).trim(), stderr: "", blockedReason: null,
-      timestamp: new Date().toISOString(),
-    };
-    logAction(result);
-    return result;
-  } catch (error: unknown) {
-    const err = error as Error & {
-      status?: number; stdout?: Buffer; stderr?: Buffer;
-    };
-    const result: SafeBashResult = {
-      command, agent, allowed: true, executed: true,
-      exitCode: err.status || 1,
-      stdout: err.stdout?.toString() || "",
-      stderr: err.stderr?.toString() || err.message,
-      blockedReason: null, timestamp: new Date().toISOString(),
-    };
-    logAction(result);
-    return result;
-  }
+  const execution = await executeVerifiedCommandPlan(planned.plan, signal);
+  const result: SafeBashResult = {
+    command,
+    agent,
+    allowed: true,
+    executed: true,
+    exitCode: execution.exitCode,
+    stdout: execution.stdout.trim(),
+    stderr: execution.stderr,
+    blockedReason: null,
+    timestamp: new Date().toISOString(),
+    signal: execution.signal,
+    timedOut: execution.timedOut,
+    aborted: execution.aborted,
+    truncated: execution.truncated,
+  };
+  logAction(result);
+  return result;
 }

@@ -35,21 +35,28 @@ export default tool({
     allowed_paths: tool.schema.array(tool.schema.string()).optional().describe(
       "Optional glob patterns that further narrow the privilege grant (e.g., ['.opencode/**']). " +
       "If omitted, framework_maintenance uses the default policy. Relative to worktree."),
+    allowed_remotes: tool.schema.array(tool.schema.string()).optional().describe(
+      "Optional remote names allowed for repo remote-write grants (e.g., ['origin'])."),
     privilege_reason: tool.schema.string().optional().describe(
       "Human-readable reason for the privilege grant (audit log)."),
     _frameworkMaintenance: tool.schema.boolean().optional().describe(
       "Internal compatibility flag for legacy framework-maintenance callers."),
   },
   async execute(args, context: FrameworkToolContext) {
-    // Phase 2: ordinary path retirement - only framework maintenance compat allowed
-    const isFrameworkMaintenance = process.env.DISPATCH_PRIVILEGE === "framework_maintenance"
+    // Phase 2: ordinary path retirement - only explicit privilege dispatch remains on the wrapper
+    const requestedPrivilege = (args.dispatch_privilege || process.env.DISPATCH_PRIVILEGE || "").trim();
+    const isFrameworkMaintenance = requestedPrivilege === "framework_maintenance"
       || process.env.DISPATCH_PRIVILEGE_REASON?.includes("framework_maintenance")
       || args._frameworkMaintenance === true;
-    if (!isFrameworkMaintenance) {
+    const isRepoPrivilege = requestedPrivilege === "repo_maintenance"
+      || requestedPrivilege === "remote_repo_write"
+      || requestedPrivilege === "repo_destructive_emergency";
+    if (!isFrameworkMaintenance && !isRepoPrivilege) {
       return JSON.stringify({
         output: "dispatch_subagent is retired for ordinary paths. Use native Task tool instead. "
-          + "This tool is only available for framework maintenance with dispatch_privilege.",
-        metadata: { retired: true, alternative: "Task" },
+          + "Privilege-bearing child work (framework_maintenance / repo_maintenance / "
+          + "remote_repo_write / repo_destructive_emergency) may still use this wrapper.",
+        metadata: { retired: true, alternative: "Task", requiresPrivilege: true },
       });
     }
     return withInterruptGuard("dispatch_subagent", async () => {
@@ -70,6 +77,7 @@ export default tool({
         callId: context.callID || undefined,
         dispatch_privilege: args.dispatch_privilege,
         allowed_paths: args.allowed_paths,
+        allowed_remotes: args.allowed_remotes,
         privilege_reason: args.privilege_reason,
       });
       return result.prompt;

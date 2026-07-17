@@ -98,6 +98,7 @@ export const TOOL_SUMMARIES: Record<string, string> = {
   "safe_gh_pr_create": "创建 GitHub PR（需 remote_repo_write + 人工确认）",
   "safe_gh_pr_comment": "给 PR 添加评论（需 remote_repo_write + 人工确认）",
   "safe_gh_issue_comment": "给 Issue 添加评论（需 remote_repo_write + 人工确认）",
+  "confirm_repo_grant": "确认当前 Orchestrator 会话创建的 repo grant（用于 remote/local repo 特权子任务）",
 };
 
 // ── Tools that MUST keep full schema (critical for all agents) ──

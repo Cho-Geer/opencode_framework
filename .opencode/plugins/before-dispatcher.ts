@@ -65,13 +65,13 @@ const DEFAULT_ORDER = [
   "guidance-bridge",
   "task",
   "permission-safety",
+  "skill-policy", // PT-WM-00R: skill hard gate runs BEFORE governance decisions to block unauthenticated writes early
+  "tool-governance",
   "behavioral-path-guard",
   "scope",
   "path-validate",
   "codegraph",
-  "skill-policy",
   "dispatch-signal",
-  "tool-governance",
 ];
 
 function shouldRun(handlerName: string, toolName: string): boolean {

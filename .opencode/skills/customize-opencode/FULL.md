@@ -52,7 +52,7 @@ added_by: system
 
 1. **修改前**: 读取当前配置，确认变更范围
 2. **变更中**: 保持 JSON 格式合法（trailing comma 容忍但避免）
-3. **变更后**: 运行 `bun .opencode/scripts/framework-self-test.ts` 验证完整性
+3. **变更后** `[VERIFICATION]`: 运行 `bun .opencode/scripts/framework-self-test.ts` 验证完整性。记录 `Verified-by: self-test 输出`。「配置已经改了」不等于生效--必须重启 serve 并运行 self-test 验证。
 4. **Agent 新增**: 需同步更新 opencode.json permission + agent .md + rules（如需要）
 5. **Agent 退役**: 需同步清理 opencode.json + agent .md + plugin 引用 + dispatch 路由
 

@@ -62,7 +62,7 @@ export {
 } from "./shell-config";
 
 // 审计
-export { executeWriteAuditCheck, writeAuditLogEntry, logAuditEntry, flushAuditTrail } from "./audit";
+export { writeAuditLogEntry } from "./audit";
 
 // 读审计
 export { recordRead, normalizeReadAuditPath, makeEventKey } from "./read-audit-write";

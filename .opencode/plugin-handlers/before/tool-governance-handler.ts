@@ -15,7 +15,8 @@ export async function handle(input: any, output: any): Promise<void> {
   const toolName = input.tool ?? "unknown";
   const sessionID = input.sessionID ?? "unknown";
   const agent = resolveAgent(sessionID) ?? "unknown";
-  const args = input.args || output.args || {};
+  output.args = output.args || { ...(input.args || {}) };
+  const args = output.args;
   const command = (args.command || "").toString();
 
   // Build targetPaths from tool args
@@ -61,6 +62,9 @@ export async function handle(input: any, output: any): Promise<void> {
 
   try {
     evaluate(ctx);
+    if (ctx.verifiedCommandPlan && (toolName === "safe_shell" || toolName === "bash")) {
+      (output.args as Record<string, unknown>).__verified_command_plan = ctx.verifiedCommandPlan;
+    }
   } catch (e: any) {
     writeLog("tool-governance-handler", "runtime", {
       sessionID,

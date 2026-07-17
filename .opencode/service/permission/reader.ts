@@ -112,7 +112,7 @@ export function resetOpencodeConfigCache(): void {
 
 // ── Per-agent permission lookup ──
 // DEPRECATED (2026-07-07): Per-agent permission reading is being replaced by
-// behavior-based enforcement. Callers: isPathAllowedForAgent(), getAgentShellAllowlist().
+// behavior-based enforcement. Callers: getAgentShellAllowlist().
 // Migration: convert callers to check tool + path + operation, not agent identity.
 
 /** @deprecated Per-agent permission reader — migrate to behavior-based enforcement. */
@@ -173,62 +173,6 @@ export function permissionMapToBifurcated(
     }
   }
   return { allowed, denied };
-}
-
-// ── Write scope check (replaces isWriteAllowed from gate-checks.ts) ──
-
-export function isPathAllowedForAgent(
-  agentName: string,
-  filePath: string,
-  tool: "safe_edit" | "safe_delete" | "safe_mkdir" = "safe_edit",
-): boolean {
-  const perms = getAgentPermission(agentName);
-  if (!perms) {
-    if (shouldBlock("permission-config-unreadable")) return false;
-    return true;
-  }
-
-  const permBlock = perms[tool];
-  if (!permBlock) return true; // No scope definition = no restrictions
-
-  // Simple string: "allow" → all allowed, "deny" → all denied
-  if (typeof permBlock === "string") return permBlock === "allow";
-
-  // Normalize filePath to relative path (same logic as gate-checks.ts)
-  const root = getFrameworkRoot();
-  const relPath = filePath.startsWith(root + "/")
-    ? filePath.slice(root.length + 1)
-    : filePath;
-
-  // Flat map: deny-first priority, then allow (same as gate-checks.ts).
-  // Uses pathMatchesGlob() — identical algorithm to gate-checks.ts matchGlob().
-  // Project-specific decision: deny-first (NOT OpenCode global "last matching wins").
-  const entries = Object.entries(permBlock);
-  for (const [pattern, action] of entries) {
-    if (action === "deny" && pathMatchesGlob(relPath, pattern)) {
-      writeLog("permission-reader", "runtime", {
-        agent: agentName,
-        level: "DEBUG",
-        event: "WRITE-DENIED",
-        detail: `agent="${agentName}" path="${relPath}" denied_by="${pattern}" tool="${tool}"`,
-      });
-      return false;
-    }
-  }
-  for (const [pattern, action] of entries) {
-    if (action === "allow" && pathMatchesGlob(relPath, pattern)) {
-      return true;
-    }
-  }
-
-  // No match when scopes exist → default deny
-  writeLog("permission-reader", "runtime", {
-    agent: agentName,
-    level: "WARN",
-    event: "WRITE-NO-MATCH",
-    detail: `agent="${agentName}" path="${relPath}" no_scope_match (default deny) tool="${tool}"`,
-  });
-  return false;
 }
 
 // ── Shell allowlist extraction (v2.1: structured result) ──

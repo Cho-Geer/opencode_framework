@@ -46,6 +46,13 @@ export interface CreateRepoGrantInput {
   requires_human_confirmation?: boolean;
 }
 
+export interface ConfirmLatestRepoGrantInput {
+  parent_session_id: string;
+  privilege: RepoPrivilege;
+  agent_type?: string;
+  allowed_remote?: string;
+}
+
 const DEFAULT_TTL_MS: Record<RepoPrivilege, number> = {
   repo_maintenance: 30 * 60 * 1000,
   remote_repo_write: 10 * 60 * 1000,
@@ -221,7 +228,11 @@ export function bindRepoGrant(dispatchKey: string, childSessionId: string): Repo
   }
 }
 
-export function confirmRepoGrant(grantId: string, confirmerSessionId: string): RepoGrant | null {
+export function confirmRepoGrant(
+  grantId: string,
+  confirmerSessionId: string,
+  confirmationNote?: string,
+): RepoGrant | null {
   try {
     const db = getDb();
     const now = Date.now();
@@ -247,6 +258,7 @@ export function confirmRepoGrant(grantId: string, confirmerSessionId: string): R
       event: "REPO-GRANT-CONFIRMED",
       grant_id: grantId,
       confirmer_session_id: confirmerSessionId,
+      note: confirmationNote || undefined,
     });
 
     return { ...row, human_confirmed_at: now } as RepoGrant;
@@ -254,6 +266,60 @@ export function confirmRepoGrant(grantId: string, confirmerSessionId: string): R
     writeLog(SRC, "ERROR", {
       event: "REPO-GRANT-CONFIRM-FAILED",
       error: e.message,
+    });
+    return null;
+  }
+}
+
+export function confirmLatestRepoGrantForParent(
+  input: ConfirmLatestRepoGrantInput,
+  confirmerSessionId: string,
+  confirmationNote?: string,
+): RepoGrant | null {
+  try {
+    const db = getDb();
+    const now = Date.now();
+
+    const rows = db.query(
+      `SELECT * FROM repo_operation_grants
+       WHERE parent_session_id = ? AND privilege = ? AND status IN ('pending', 'bound') AND expires_at > ?
+       ORDER BY created_at DESC`,
+    ).all(input.parent_session_id, input.privilege, now) as any[];
+
+    const row = rows.find((candidate) => {
+      if (input.agent_type && candidate.agent_type !== input.agent_type) return false;
+      if (!input.allowed_remote) return true;
+      const allowedRemotes: string[] = JSON.parse(candidate.allowed_remotes || "[]");
+      return allowedRemotes.length === 0 || allowedRemotes.includes(input.allowed_remote);
+    });
+
+    if (!row) {
+      writeLog(SRC, "WARN", {
+        event: "REPO-GRANT-CONFIRM-NO-PARENT-MATCH",
+        parent_session_id: input.parent_session_id,
+        privilege: input.privilege,
+        agent_type: input.agent_type,
+        allowed_remote: input.allowed_remote,
+      });
+      return null;
+    }
+
+    if (row.human_confirmed_at) {
+      writeLog(SRC, "INFO", {
+        event: "REPO-GRANT-CONFIRM-ALREADY-CONFIRMED",
+        grant_id: row.id,
+        confirmer_session_id: confirmerSessionId,
+      });
+      return row as RepoGrant;
+    }
+
+    return confirmRepoGrant(row.id, confirmerSessionId, confirmationNote);
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "REPO-GRANT-CONFIRM-PARENT-LOOKUP-FAILED",
+      error: e.message,
+      parent_session_id: input.parent_session_id,
+      privilege: input.privilege,
     });
     return null;
   }

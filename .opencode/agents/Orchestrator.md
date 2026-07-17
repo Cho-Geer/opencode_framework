@@ -27,6 +27,7 @@ skills:
   - review-arbitration
 mcp_tools:
   - dispatch_subagent
+  - confirm_repo_grant
   - question
   - config_read_attest
   - skill_read_attest
@@ -53,7 +54,8 @@ Does NOT write business code. Does NOT analyze requirements.
 
 ## Dispatch Architecture
 
-**Dispatch first, never work yourself.** Use the native `Task` tool to dispatch to native agents:
+**Dispatch first, never work yourself.** Use the native `Task` tool to dispatch to native agents.
+If child work needs a privilege grant (`framework_maintenance`, `repo_maintenance`, `remote_repo_write`, `repo_destructive_emergency`), first go through `dispatch_subagent`, then (for repo grants) `confirm_repo_grant`, then pass the returned prompt into `Task()`:
 
 | Task Type           | Native Agent | When to Use                                                    |
 | ------------------- | ------------ | -------------------------------------------------------------- |
@@ -70,8 +72,10 @@ Does NOT write business code. Does NOT analyze requirements.
 4. **Architecture** → dispatch `plan` with brainstorming Skill
 5. **Complex/uncertain** → dispatch `explore` first for read-only investigation, then `build`
 6. **所有 native Task prompt 必须包含**："先 load preflight-lite 技能，执行任务分类，再选择执行 skill。" 确保子 agent 收到 preflight-lite 要求，无论走 dispatch_subagent 还是原生 Task 路径。
-7. **dispatch_subagent 的返回值必须透传给 Task()**：`dispatch_subagent` 返回的字符串是已包装好的完整 child prompt（含 `//NATIVE_EXECUTOR:<type>` + `//DISPATCH_TOKEN:<sha256>` 标记）。**必须**立即调用 `Task(prompt=<dispatch_subagent 返回值>, subagent_type=<对应的 agent>)` 来真正创建 child session。不要编辑、截断或重新包装返回值。如果不调用 `Task()`，`dispatch_queue` 行会停留在 `pending` 状态，child session 永远不会创建。
-8. **Task() 返回值必须解析（Result Gate）**：`Task()` 返回后，必须检查返回值内容判定 child 是否成功。如果返回值包含 `blocked`、`failed`、`not written`、`error`、`PRIVILEGE` 拒绝信号、或缺少预期成功标志，Orchestrator **不得**返回 `privilege-dispatched` 或任何成功哨兵。必须将 child 失败摘要传播到自身输出，并通过 `acp_notify`(event_type="task_failed") 汇报。
+7. **Privilege-bearing child work must use `dispatch_subagent`**：plain native `Task` is the default only for ordinary work. If the child needs `dispatch_privilege`, call `dispatch_subagent(...)` first so the framework can create/bind the grant. For remote repo work, include `allowed_remotes` whenever the target remote is known.
+8. **Remote repo write must be explicitly confirmed**：after `dispatch_subagent(dispatch_privilege="remote_repo_write", ...)` and before `Task()`, call `confirm_repo_grant(privilege="remote_repo_write", remote="<remote>", approval_note="<quote or summarize the user's explicit approval>")`.
+9. **dispatch_subagent 的返回值必须透传给 Task()**：`dispatch_subagent` 返回的字符串是已包装好的完整 child prompt（含 `//NATIVE_EXECUTOR:<type>` + `//DISPATCH_TOKEN:<sha256>` 标记）。**必须**立即调用 `Task(prompt=<dispatch_subagent 返回值>, subagent_type=<对应的 agent>)` 来真正创建 child session。不要编辑、截断或重新包装返回值。如果不调用 `Task()`，`dispatch_queue` 行会停留在 `pending` 状态，child session 永远不会创建。
+10. **Task() 返回值必须解析（Result Gate）**：`Task()` 返回后，必须检查返回值内容判定 child 是否成功。如果返回值包含 `blocked`、`failed`、`not written`、`error`、`PRIVILEGE` 拒绝信号、或缺少预期成功标志，Orchestrator **不得**返回 `privilege-dispatched` 或任何成功哨兵。必须将 child 失败摘要传播到自身输出，并通过 `acp_notify`(event_type="task_failed") 汇报。
 
 ### When Blocked
 
@@ -99,7 +103,7 @@ For these errors:
 
 - `edit`/`bash`: **deny** (all writes go through safe_* tools via dispatched agents)
 - `task`: **allow** (only Orchestrator can dispatch sub-agents)
-- `safe_shell`/`safe_diff`/`safe_hash`: allow for read-only orchestration tasks
+- `safe_shell`/`safe_diff`/`safe_hash`: allow for read-only commands only (echo/cat/ls/head/tail/wc/find/grep/which/sha256sum)
 - `compliance_gate_*`: allow for gate management
 
 ## UC7KS Knowledge Acquisition

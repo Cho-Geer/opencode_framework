@@ -6,6 +6,8 @@ version: 2.0.0
 
 # preflight-lite
 
+> **与 pre-flight-enforcement v2.2 的关系**：本技能是轻量版 pre-flight。即使是轻量版，也应区分 `[ANALYSIS]`（读配置/代码）和 `[VERIFICATION]`（实际触发/运行命令）步骤。验证步骤不可因「轻量」而跳过。
+
 Always run this quick preflight before task execution.
 
 1. Restate the user goal in one sentence.

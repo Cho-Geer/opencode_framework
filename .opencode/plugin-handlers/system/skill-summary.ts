@@ -361,20 +361,17 @@ export async function handle(input: any, output: any): Promise<void> {
     writeLog("plugin-skill-summary", "INFO", {
       event: "knowledge_freshness_decision",
       sessionId, agent,
-      level: policy.freshness,
       risk: policy.risk,
       reasons: policy.reasons.join(","),
     });
     writeLog("plugin-skill-summary", "INFO", {
       event: "todo_policy_decision",
       sessionId, agent,
-      level: policy.todo,
       risk: policy.risk,
     });
     writeLog("plugin-skill-summary", "INFO", {
       event: "preflight_policy_decision",
       sessionId, agent,
-      level: policy.risk === "trivial" ? "optional" : "required",
       risk: policy.risk,
     });
     if (policy.scoutSuggested) {

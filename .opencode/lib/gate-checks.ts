@@ -5,7 +5,6 @@ export {
   setPluginHooksCount,
   checkPluginIntegrity,
   findTaskInDag,
-  isWriteAllowed,
   checkStaleSessions,
   autoDrainStaleSessions,
   checkRuleRegistryIntegrity,

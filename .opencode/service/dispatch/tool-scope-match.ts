@@ -14,8 +14,8 @@
 
 import * as path from "node:path";
 import { isSourceFile } from "../../lib/state-utils";
-import { parseShellWriteTargets } from "./tool-scope-paths";
 import { classifyRepoShellCommand } from "../repo/classify";
+import { parseShellWriteTargets } from "../tool-governance/shell-targets";
 
 // ============================================================================
 // Tool Classification
@@ -221,7 +221,7 @@ export function classifyShellCommand(command: string): ShellClassification {
       (cmd === "python3" && normalized.includes(" -c "))
     ) {
       const writeApis =
-        /writeFile|appendFile|fs\.write|fs\.append|fs\.rm|fs\.unlink|fs\.rename|fs\.mkdir|createWriteStream|child_process|exec\(|spawn\(|open\(/;
+        /writeFile|appendFile|fs\.write|fs\.append|fs\.rm|fs\.unlink|fs\.rename|fs\.mkdir|createWriteStream|child_process|exec\(|spawn\(|open\(|\[\s*['"]write['"]?\s*\+\s*['"]?File|\[\s*['"]writeFile['"]\s*\]|\[\s*['"]appendFile['"]\s*\]/;
       if (writeApis.test(normalized)) {
         return {
           kind: "unparseable_write",

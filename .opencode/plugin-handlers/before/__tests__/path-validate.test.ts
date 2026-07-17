@@ -115,7 +115,7 @@ describe("path-validate handler", () => {
         { tool: "safe_shell", sessionID: "pv-sid", args: { command: "cat ../../../etc/passwd" } },
         {},
       ),
-    ).rejects.toThrow(/PATH_TRAVERSAL/);
+    ).rejects.toThrow(/PATH_TRAVERSAL|WORKTREE_BOUNDARY/);
   });
 
   test("safe_shell command with no path => resolves", async () => {
@@ -145,11 +145,138 @@ describe("path-validate handler", () => {
     ).rejects.toThrow(/WORKTREE_BOUNDARY/);
   });
 
+  test("safe_shell gh issue create with --repo slug does not misclassify repo as file path", async () => {
+    await expect(
+      handle(
+        {
+          tool: "safe_shell",
+          sessionID: "pv-sid",
+          args: {
+            command:
+              "gh issue create --repo microsoft/vscode --title 'Regression: autocomplete broken' --body 'After upgrading autocomplete no longer works.'",
+          },
+        },
+        {},
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("safe_shell gh issue list with -R slug does not misclassify repo as file path", async () => {
+    await expect(
+      handle(
+        {
+          tool: "safe_shell",
+          sessionID: "pv-sid",
+          args: { command: "gh issue list -R microsoft/vscode --limit 1 2>&1" },
+        },
+        {},
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("safe_shell gh api repos/owner/name route does not misclassify API route as file path", async () => {
+    await expect(
+      handle(
+        {
+          tool: "safe_shell",
+          sessionID: "pv-sid",
+          args: {
+            command:
+              "gh api repos/microsoft/vscode/issues --field title='Regression' --field body='Autocomplete broken'",
+          },
+        },
+        {},
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("safe_shell quoted JSON body piped to gh api does not misclassify slash inside strings as file path", async () => {
+    await expect(
+      handle(
+        {
+          tool: "safe_shell",
+          sessionID: "pv-sid",
+          args: {
+            command:
+              "echo '{\"repo\":\"microsoft/vscode\",\"title\":\"Regression\"}' | gh api repos/microsoft/vscode/issues --input -",
+          },
+        },
+        {},
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("safe_shell benign redirect to /dev/null is ignored", async () => {
+    await expect(
+      handle(
+        { tool: "safe_shell", sessionID: "pv-sid", args: { command: "git status > /dev/null" } },
+        {},
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("safe_shell redirection to external file is still blocked", async () => {
+    await expect(
+      handle(
+        { tool: "safe_shell", sessionID: "pv-sid", args: { command: "echo hi > /etc/passwd" } },
+        {},
+      ),
+    ).rejects.toThrow(/WORKTREE_BOUNDARY/);
+  });
+
+  test("safe_shell cd outside root is tolerated when no later file path is referenced", async () => {
+    await expect(
+      handle(
+        { tool: "safe_shell", sessionID: "pv-sid", args: { command: "cd /tmp && gh auth status 2>&1" } },
+        {},
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("safe_shell cd outside root still blocks later relative file access", async () => {
+    await expect(
+      handle(
+        { tool: "safe_shell", sessionID: "pv-sid", args: { command: "cd /tmp && cat ../etc/passwd" } },
+        {},
+      ),
+    ).rejects.toThrow(/WORKTREE_BOUNDARY|PATH_TRAVERSAL/);
+  });
+
+  test("safe_shell node -e string with slash is not treated as a file path", async () => {
+    await expect(
+      handle(
+        {
+          tool: "safe_shell",
+          sessionID: "pv-sid",
+          args: { command: "node -e \"console.log('repos/microsoft/vscode/issues')\"" },
+        },
+        {},
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("safe_shell git add keeps local repo path validation", async () => {
+    await expect(
+      handle(
+        {
+          tool: "safe_shell",
+          sessionID: "pv-sid",
+          args: { command: "git add ../../../etc/passwd" },
+        },
+        {},
+      ),
+    ).rejects.toThrow(/PATH_TRAVERSAL|WORKTREE_BOUNDARY/);
+  });
+
   // --- ENHANCEMENT 2: symlink escape ---
   test("symlink escape detection via realpathSync", async () => {
     await expect(
       handle(
-        { tool: "safe_edit", sessionID: "pv-sid", args: { filePath: "/nonexistent/symlink/target" } },
+        {
+          tool: "safe_edit",
+          sessionID: "pv-sid",
+          args: { filePath: process.env.OPENCODE_ROOT + "/nonexistent/symlink/target" },
+        },
         {},
       ),
     ).resolves.toBeUndefined();

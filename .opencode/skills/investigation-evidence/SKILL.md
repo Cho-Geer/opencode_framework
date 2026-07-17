@@ -10,8 +10,10 @@ For all investigation/debug/audit/root-cause tasks, you MUST gather multi-source
 
 ## Required Evidence Sources
 
-1. **Code evidence**: Read the relevant source files, search for patterns, trace call chains.
-2. **Log evidence** (minimum 2 sources):
+> **步骤类型区分**：Code evidence 是 `[ANALYSIS]`（读源码、搜索模式、追踪调用链），Log evidence 是 `[VERIFICATION]`（运行态日志、DB 记录、状态文件）。根因结论必须基于至少一项 `[VERIFICATION]` 证据，不能仅凭 Code evidence 下结论。
+
+1. **Code evidence** `[ANALYSIS]`: Read the relevant source files, search for patterns, trace call chains.
+2. **Log evidence** `[VERIFICATION]` (minimum 2 sources):
    - `.task_temp/_logs/` — plugin runtime logs, JSONL audit trails
    - `gate-state.json` / `gate-state.history/` — compliance gate state transitions
    - `.opencode/state/framework-state.db` — DB records (via bun:sqlite)

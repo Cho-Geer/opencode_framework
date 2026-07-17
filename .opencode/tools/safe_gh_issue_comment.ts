@@ -27,7 +27,8 @@ export default tool({
         auditRepoRemoteWriteBlocked(context.sessionID, context.agent || "unknown", "safe_gh_issue_comment",
           "No active remote_repo_write grant with human confirmation");
         throw new Error(
-          "[REPO-REMOTE-WRITE-BLOCKED] No active remote_repo_write grant."
+          "[REPO-REMOTE-WRITE-BLOCKED] No active remote_repo_write grant.\n" +
+          "Request Orchestrator to dispatch with dispatch_privilege=remote_repo_write, then call confirm_repo_grant."
         );
       }
 

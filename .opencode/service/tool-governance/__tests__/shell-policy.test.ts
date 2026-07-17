@@ -23,11 +23,27 @@ describe("shell-policy", () => {
     expect(evaluate(makeCtx("safe_shell", "ls -la", "unknown"))).toBeNull();
   });
 
-  test("safe_shell unknown command => deny (NOT-IN-ALLOWLIST)", () => {
+  test("safe_shell unknown executable => deny (SHELL-EXECUTABLE-DENY)", () => {
     const d = evaluate(makeCtx("safe_shell", "rmmod kernel", "unknown"));
     expect(d).not.toBeNull();
     expect(d!.outcome).toBe("deny");
-    expect(d!.ruleId).toBe("NOT-IN-ALLOWLIST");
+    expect(d!.ruleId).toBe("SHELL-EXECUTABLE-DENY");
+    expect(d!.layer).toBe("tool-final-guard");
+  });
+
+  test("safe_shell composed command => deny (SHELL-COMPOSITION-DENY)", () => {
+    const d = evaluate(makeCtx("safe_shell", "pwd && whoami", "@Orchestrator"));
+    expect(d).not.toBeNull();
+    expect(d!.outcome).toBe("deny");
+    expect(d!.ruleId).toBe("SHELL-COMPOSITION-DENY");
+    expect(d!.layer).toBe("tool-final-guard");
+  });
+
+  test("safe_shell wildcard expansion => deny (SHELL-GLOB-DENY)", () => {
+    const d = evaluate(makeCtx("safe_shell", "ls *", "@Orchestrator"));
+    expect(d).not.toBeNull();
+    expect(d!.outcome).toBe("deny");
+    expect(d!.ruleId).toBe("SHELL-GLOB-DENY");
     expect(d!.layer).toBe("tool-final-guard");
   });
 });

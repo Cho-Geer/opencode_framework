@@ -31,8 +31,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 ```
 
-### Rule 2: Mandatory Pre-Merge Quality Gates
+### Rule 2: Mandatory Pre-Merge Quality Gates `[VERIFICATION]`
 Every pipeline MUST run lint + type-check + unit-test before merge. Zero `continue-on-error` flags allowed in quality gate steps.
+> **本规则是 `[VERIFICATION]`**--CI 必须实际运行 lint + type-check + unit-test 并引用输出。「代码看起来没问题」不是验证。
 
 ### Rule 3: Toolchain Consolidation
 No more than 2 orchestration platforms without documented justification comment in CI config.

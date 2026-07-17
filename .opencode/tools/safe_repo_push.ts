@@ -32,7 +32,7 @@ export default tool({
         throw new Error(
           "[REPO-REMOTE-WRITE-BLOCKED] No active remote_repo_write grant for this session.\n" +
           "safe_repo_push requires a remote_repo_write grant WITH human confirmation.\n" +
-          "Request Orchestrator to dispatch with dispatch_privilege=remote_repo_write."
+          "Request Orchestrator to dispatch with dispatch_privilege=remote_repo_write, then call confirm_repo_grant."
         );
       }
 

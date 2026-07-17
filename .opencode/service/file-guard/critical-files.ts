@@ -141,7 +141,6 @@ export const CRITICAL_FILES = [
   ".opencode/lib/critical-files.ts",
   ".opencode/lib/gate-core.ts",
   ".opencode/lib/dag-policy.ts",
-  ".opencode/lib/permission-isolation-core.ts",
   ".opencode/tools/dispatch_subagent.ts",
   ".opencode/hooks/pre-commit",
   ".opencode/hooks/commit-msg",

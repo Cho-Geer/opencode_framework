@@ -291,13 +291,38 @@ export interface ToolAuditState {
 // Maps each substate key (string literal) to its interface type.
 // Used by readSubState<K>() / writeSubState<K>() for compile-time key + value type checking.
 
-/** Skill read attestation state */
+/** Skill read attestation state - DB-canonical hard gate contract (PT-WM-00R) */
+export interface SkillReadSessionFileEntry {
+  path: string;
+  file_hash: string;
+  read_at: string | null;
+}
+
+export interface SkillReadSessionState {
+  session_id: string;
+  agent: string;
+  task_scope_id: string;           // Canonical identity: "session:<sessionID>" or "task:<dag_task_id>"
+  requested_task_id: string | null; // Caller-supplied task_id (audit only, not for authorization)
+  required_set_hash: string;
+  files: Array<SkillReadSessionFileEntry>;
+  verified: true;
+  attested_at: string;
+}
+
+// Legacy state format (for migration detection)
+export interface LegacySkillReadSessionState {
+  session_id: string;
+  agent: string;
+  task_id?: string;  // Old field - if present without task_scope_id, state is invalid
+  task_scope_id?: string;
+  required_set_hash: string;
+  files: Array<SkillReadSessionFileEntry>;
+  verified: boolean;
+  attested_at: string;
+}
+
 export interface SkillReadState {
-  sessions?: Record<string, {
-    files?: string[];
-    verified?: boolean;
-    attested_at?: string;
-  }>;
+  sessions?: Record<string, SkillReadSessionState>;
 }
 
 /** Rule read attestation state */

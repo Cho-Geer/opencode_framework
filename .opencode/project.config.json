@@ -345,7 +345,9 @@
     },
     "required_skill_reads": [
       "preflight-lite",
-      "codegraph-first"
+      "codegraph-first",
+      "requirements-to-test-specification",
+      "test-specification-execution"
     ],
     "required_rule_reads": [
       ".opencode/rules/common/common-project.md",
@@ -1909,13 +1911,13 @@
       "guidance-bridge",
       "task",
       "permission-safety",
+      "skill-policy",
+      "tool-governance",
       "behavioral-path-guard",
       "scope",
       "path-validate",
       "codegraph",
-      "skill-policy",
-      "dispatch-signal",
-      "tool-governance"
+      "dispatch-signal"
     ],
     "after": [
       "gate-call-context",
@@ -1993,7 +1995,21 @@
         "^\\.opencode/agents/.*\\.md$",
         "^\\.understand-anything/",
         "^\\.codegraph/",
-        "^\\.opencode/state/"
+        "^\\.opencode/state/",
+        "^\\.gitignore$",
+        "^\\.gitattributes$",
+        "^\\.env\\.example$",
+        "^\\.env\\.template$",
+        "^package\\.json$",
+        "^package-lock\\.json$",
+        "^bun\\.lock$",
+        "^bun\\.lockb$",
+        "^README\\.md$",
+        "^LICENSE$",
+        "^CHANGELOG\\.md$",
+        "^tsconfig\\.json$",
+        "^\\.editorconfig$",
+        "^\\.opencode/project\\.config\\.json$"
       ],
       "$note": "exempt_agents should be subset of agent_identity.privileged_agents"
     },

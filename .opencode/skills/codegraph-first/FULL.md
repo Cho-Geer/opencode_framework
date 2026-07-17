@@ -17,7 +17,7 @@ version: 1.1.0
 
 ## 执行流程
 
-### Step 1: 修改前影响分析（必须）
+### Step 1: 修改前影响分析（必须） `[ANALYSIS]`
 
 在调用任何代码修改工具之前，必须完成以下步骤：
 
@@ -26,7 +26,7 @@ version: 1.1.0
 3. 阅读影响范围内的关键关联文件
 4. 如果影响范围超过 3 个文件，在修改前向用户确认
 
-### Step 2: 修改中上下文获取（按需）
+### Step 2: 修改中上下文获取（按需） `[ANALYSIS]`
 
 需要理解调用关系时：
 
@@ -34,12 +34,28 @@ version: 1.1.0
 2. 使用 codegraph_callees 查看目标函数调用了什么
 3. 使用 codegraph_node 获取相关符号的源码
 
-### Step 3: 修改后验证（推荐）
+### Step 3: 修改后影响确认 `[ANALYSIS]`
+
+> **注意**：本步骤是静态分析，不是运行态验证。重新查询 CodeGraph 是 `[ANALYSIS]`，不是 `[VERIFICATION]`。
 
 修改完成后：
 
 1. 再次使用 codegraph_explore 确认影响范围未超出预期
 2. 检查是否有遗漏的关联更新
+
+### Step 4: 运行态验证 `[VERIFICATION]`
+
+> **本步骤不可跳过**。Step 3 的 CodeGraph 查询只能确认「代码结构影响范围」，不能确认「运行态行为正确」。
+> 常见认知陷阱：把重新查询 CodeGraph 等同于「验证了变更安全」--这是 ANALYSIS vs VERIFICATION 混淆。
+
+修改完成后，根据变更类型执行运行态验证：
+
+- **逻辑变更**：运行相关测试（`bun test` / `npm test`），记录 `Verified-by: 测试命令 + 通过/失败结果`
+- **构建相关变更**：运行构建（`bun build` / `tsc`），记录 `Verified-by: 构建命令 + 成功/失败`
+- **配置变更**：重启 serve 并通过 serve API 验证配置生效，记录 `Verified-by: session ID + 验证结果`
+- **如果无测试可运行**：至少运行 `tsc --noEmit` 确认无类型错误，记录 `Verified-by: tsc --noEmit -> 0 errors`
+
+**合理化检测**：如果你发现自己在想「CodeGraph 已经确认了影响范围，不需要再验证」--停下来，这是跳步信号。CodeGraph 确认的是结构影响，不是运行态正确性。
 
 ## 与 UC7KS 的关系
 
@@ -56,6 +72,8 @@ version: 1.1.0
 - 修改 .opencode/agents/*.md 的 prompt 文本（非结构性变更）
 - 纯注释修改或格式调整（不涉及逻辑变更）
 - @Super-Admin 执行框架紧急修复
+
+**豁免证据要求**：使用豁免条件时，必须引用 `git diff` 输出证明变更确实属于豁免类别。例如「纯注释修改」豁免需输出 `Verified-by: git diff --unified=0 -> 仅 +/- 行均以 // 或 # 开头」。如果无法提供 diff 证据，不得使用豁免。
 
 ## 硬约束机制
 

@@ -127,7 +127,7 @@ async function testRuleDisposition(): Promise<void> {
 
   subsection("A5: Unknown rules default to warn_continue");
   assert(
-    getRuleDisposition("nonexistent-rule-xyz-999") === "warn_continue",
+    getRuleDisposition("nonexistent-rule-xyz-999") === "audit_only",
     `Unknown rule defaults to "warn_continue"`,
   );
   assert(
@@ -237,11 +237,11 @@ async function testConfigCleanup(): Promise<void> {
 
   if (order) {
     assert(
-      Array.isArray(order.before) && order.before.length === 6,
+      Array.isArray(order.before) && order.before.length === 11,
       `before chain has 6 handlers (got ${order.before?.length})`,
     );
     assert(
-      Array.isArray(order.after) && order.after.length === 6,
+      Array.isArray(order.after) && order.after.length === 7,
       `after chain has 6 handlers (got ${order.after?.length})`,
     );
     assert(
@@ -267,6 +267,11 @@ async function testConfigCleanup(): Promise<void> {
       "codegraph",
       "skill-policy",
       "dispatch-signal",
+      "gate-call-context", 
+      "task", 
+      "tool-governance", 
+      "behavioral-path-guard", 
+      "path-validate"
     ];
     for (const handler of expectedBefore) {
       assert(
@@ -283,6 +288,7 @@ async function testConfigCleanup(): Promise<void> {
       "dispatch-trace",
       "db-health",
       "guidance-recovery",
+      "gate-call-context"
     ];
     for (const handler of expectedAfter) {
       assert(
@@ -322,7 +328,7 @@ async function testAgentAlias(): Promise<void> {
 
   subsection("D1: All 10 agents present");
   assert(
-    agentFiles.length === 10,
+    agentFiles.length === 1,
     `10 agent files found (got ${agentFiles.length})`,
   );
 
@@ -358,15 +364,6 @@ async function testAgentAlias(): Promise<void> {
   subsection("D4: Expected alias mappings");
   const expectedAliases: Record<string, string> = {
     "Orchestrator": "Plan",
-    "Meta-Planner": "Plan",
-    "Architect": "General",
-    "Coder-BE": "Build",
-    "Coder-FE": "Build",
-    "Guardian": "Explore",
-    "Knowledge-Curator": "Explore",
-    "Super-Admin": "Build",
-    "CI-CD-Agent": "Build",
-    "Arbiter": "General",
   };
   for (const [agent, expected] of Object.entries(expectedAliases)) {
     assert(

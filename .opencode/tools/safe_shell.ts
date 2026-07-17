@@ -22,6 +22,15 @@ export default tool({
       .boolean()
       .optional()
       .describe("Emergency override: skip path restrictions, log audit trail."),
+    __verified_command_plan: tool.schema.object({
+      executable: tool.schema.string(),
+      args: tool.schema.array(tool.schema.string()),
+      cwd: tool.schema.string(),
+      env: tool.schema.record(tool.schema.string(), tool.schema.string()),
+      outputMode: tool.schema.enum(["buffered", "stream"]),
+      timeoutMs: tool.schema.number(),
+      maxOutputBytes: tool.schema.number(),
+    }).optional().describe("Internal: auto-propagated by tool-governance before-hook. Do not set manually."),
   },
   async execute(args, context) {
     return withInterruptGuard("safe_shell", async () => {
@@ -38,11 +47,13 @@ export default tool({
         }, { tool: "safe_shell" });
       }
       const agent = context.agent ?? "unknown";
-      const result = safeBashTool({
+      const result = await safeBashTool({
         command: args.command,
         timeout: args.timeout,
         dryRun: args.dryRun,
         agent,
+        verifiedPlan: args.__verified_command_plan,
+        signal: context.abort,
       });
 
       if (!result.allowed) {
@@ -63,6 +74,10 @@ export default tool({
             stderr: result.stderr,
             executed: result.executed,
             agent: result.agent,
+            signal: result.signal,
+            timedOut: result.timedOut,
+            aborted: result.aborted,
+            truncated: result.truncated,
           },
         },
         null,

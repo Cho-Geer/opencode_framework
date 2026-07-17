@@ -15,9 +15,11 @@ CI/CD pipelines often operate in a workspace containing multiple codebases (e.g.
 
 A command like `npm run build`, `python scripts/seed.py`, `go run ./cmd/server`, or `mvn compile` is executed in a CI step. The command itself or the tool it invokes relies on **relative paths** that are resolved against the **current working directory**. If the CI step's CWD is not the directory where those relative paths are valid (e.g., the root of the respective sub-project), the command fails with a "file not found" or "module not found" error.
 
-## Universal Pre-Execution Checklist
+## Universal Pre-Execution Checklist `[VERIFICATION]`
 
 Before writing any CI step that runs a command inside a subdirectory of the workspace, verify:
+
+> **本清单是 `[VERIFICATION]`**--必须实际运行 CI 并引用输出验证。「CI 配置看起来对」不是验证。
 
 | Checkpoint | Why It Matters | Implementation |
 | :--- | :--- | :--- |

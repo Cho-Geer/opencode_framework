@@ -42,8 +42,8 @@ export {
 
 // 配置认证
 export { resetConfigReadPerRound, attestConfigRead } from "./config-attest";
-export { attestSkillRead } from "./skill-attest";
-export type { AttestSkillReadInput, AttestSkillReadResult } from "./skill-attest";
+export { attestSkillRead, validateSkillAttestation } from "./skill-attest";
+export type { AttestSkillReadInput, AttestSkillReadResult, ValidateSkillAttestationInput, ValidateSkillAttestationResult } from "./skill-attest";
 export { attestRuleRead } from "./rule-attest";
 export type { AttestRuleReadInput, AttestRuleReadResult } from "./rule-attest";
 export type { AttestConfigReadInput, AttestConfigReadResult } from "./config-attest";

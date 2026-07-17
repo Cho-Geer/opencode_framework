@@ -22,9 +22,11 @@ description: "Provides validated solutions for executing database seed scripts i
 3. **环境变量隔离**：数据库连接字符串（`DATABASE_URL`、`DB_HOST`）必须存储在 CI Secrets 中，不得硬编码于工作流文件或种子脚本中。
 4. **幂等性设计**：种子脚本应支持重复执行，通过 `UPSERT`、`ON CONFLICT DO NOTHING` 等机制避免重复插入数据。
 
-### 1.2 通用检查清单
+### 1.2 通用检查清单 `[VERIFICATION]`
 
 在 CI/CD 中配置数据库种子步骤时，请验证：
+
+> **本清单是 `[VERIFICATION]`**--每项检查必须实际运行命令并引用输出。「SQL 语句看起来对」不是验证。
 
 | 检查项 | 验证方法 |
 | :--- | :--- |

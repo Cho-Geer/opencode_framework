@@ -86,4 +86,37 @@ describe("before/codegraph github MCP enforcement", () => {
       }
     });
 
+    test("safe_shell gh issue create => deferred by codegraph", async () => {
+      await expect(
+        handle(
+          {
+            tool: "safe_shell",
+            args: {
+              command: "gh issue create --repo microsoft/vscode --title test --body body",
+            },
+            sessionID: "test-sid",
+          },
+          { args: { command: "gh issue create --repo microsoft/vscode --title test --body body" } },
+        ),
+      ).resolves.toBeUndefined();
+    });
+
+    test("safe_edit .gitignore => exempt from CODEGRAPH-ENFORCE", async () => {
+      const input = { tool: "safe_edit", args: { filePath: ".gitignore" }, sessionID: "test-sid" };
+      const output = { args: { filePath: ".gitignore" } };
+      await expect(handle(input, output)).resolves.toBeUndefined();
+    });
+
+    test("safe_edit package.json => exempt from CODEGRAPH-ENFORCE", async () => {
+      const input = { tool: "safe_edit", args: { filePath: "package.json" }, sessionID: "test-sid" };
+      const output = { args: { filePath: "package.json" } };
+      await expect(handle(input, output)).resolves.toBeUndefined();
+    });
+
+    test("safe_edit tsconfig.json => exempt from CODEGRAPH-ENFORCE", async () => {
+      const input = { tool: "safe_edit", args: { filePath: "tsconfig.json" }, sessionID: "test-sid" };
+      const output = { args: { filePath: "tsconfig.json" } };
+      await expect(handle(input, output)).resolves.toBeUndefined();
+    });
+
 });

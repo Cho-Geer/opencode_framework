@@ -6,6 +6,7 @@ import { resolveAgent } from "../../lib/agent-resolver";
 import { isCodeGraphExemptAgent, getCodeGraphExemptPatterns } from "../../service/enforcement/exemptions";
 import { shouldBlock } from "../../service/enforcement/rule-disposition";
 import { readImpactState } from "../../service/file-guard/codegraph-state";
+import { extractShellEvidenceTarget } from "../../service/tool-governance/shell-targets";
 // repo-op / GitHub MCP write adjudication moved to service/tool-governance
 // (tool-governance-handler → repo-policy). codegraph is now a pure evidence adapter.
 
@@ -72,6 +73,13 @@ function isExemptPath(filePath: string): boolean {
   const exempt = [
     /^\.task_temp\//, /^docs\//, /^\.opencode\/agents\/.*\.md$/,
     /^\.understand-anything\//, /^\.codegraph\//,
+    // Phase 8: 非源码配置文件豁免 --codegraph 只校验源码文件
+    /^\.gitignore$/, /^\.gitattributes$/,
+    /^\.env\.example$/, /^\.env\.template$/,
+    /^package\.json$/, /^package-lock\.json$/, /^bun\.lock$/, /^bun\.lockb$/,
+    /^README\.md$/, /^LICENSE$/, /^CHANGELOG\.md$/,
+    /^tsconfig\.json$/, /^\.editorconfig$/,
+    /^\.opencode\/project\.config\.json$/,
   ];
   return exempt.some((re) => {
     if (re.test(relPath)) return true;
@@ -94,25 +102,11 @@ function extractFilePath(tool: string, args: any): string {
     case "safe_restore":
       return (args.filePath || args.file_path || args.path || args.target || "").toString();
     case "safe_shell":
-      return extractShellTarget(args.command || "").toString();
+    case "bash":
+      return extractShellEvidenceTarget((args.command || "").toString());
     default:
       return "";
   }
-}
-
-function extractShellTarget(command: string): string {
-  if (!command) return "";
-  const patterns = [
-    /(?:cp|mv)\s+\S+\s+(\S+)/,
-    /(?:sed|cat|tee)\s+.*?(\S+\.(?:ts|js|tsx|jsx|mjs|cjs|vue|svelte|astro|md|json|yaml|yml))/,
-    /(?:node|bun|npx)\s+(\S+\.(?:ts|js|tsx|jsx|mjs|cjs|md))/,
-    /(?:chmod|chown)\s+\S+\s+(\S+)/,
-  ];
-  for (const re of patterns) {
-    const m = command.match(re);
-    if (m?.[1]) return m[1];
-  }
-  return command.length > 120 ? command.slice(0, 120) + "..." : command;
 }
 
 export async function handle(input: any, output: any): Promise<void> {
@@ -152,6 +146,9 @@ export async function handle(input: any, output: any): Promise<void> {
   if (!shouldBlock("source-edit-without-codegraph")) return;
 
   const filePath = extractFilePath(tool, input.args || output.args || {});
+  if ((tool === "safe_shell" || tool === "bash") && !filePath) {
+    return;
+  }
   writeLog("plugin-codegraph-enforce", "INFO", {
     event: "CODEGRAPH-EXEMPT-PATH", agent, sessionId, tool, filePath,
     detail: `codegraph exempt path check for ${filePath}`,

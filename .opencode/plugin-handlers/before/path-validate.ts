@@ -13,6 +13,7 @@ import { writeLog } from "../../lib/log-manager";
 import { writeJsonl } from "../../lib/jsonl-writer";
 import * as path from "path";
 import * as fs from "fs";
+import { extractShellLocalPaths } from "../../service/tool-governance/shell-targets";
 
 const SRC = "plugin-path-validate";
 const MAX_PATH_LENGTH = 4096;
@@ -49,13 +50,7 @@ function extractFilePaths(tool: string, args: any): string[] {
     case "safe_shell": {
       const cmd = (args.command || "").toString();
       if (!cmd) return [];
-      const paths: string[] = [];
-      const PATH_RE = /(\/[^\s"'`|;&]+|\.\.?\/[^\s"'`|;&]+)/g;
-      let match;
-      while ((match = PATH_RE.exec(cmd)) !== null) {
-        paths.push(match[1]);
-      }
-      return paths;
+      return extractShellLocalPaths(cmd);
     }
     default:
       return [];

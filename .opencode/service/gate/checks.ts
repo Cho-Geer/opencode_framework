@@ -5,7 +5,6 @@ import * as fs from "node:fs";
 import * as crypto from "node:crypto";
 import { readSubState } from "../../lib/substate-manager";
 import { writeLog } from "../../lib/log-manager";
-import { isPathAllowedForAgent } from "../../lib/permission-reader";
 import {
   STATE_PATHS,
   isStaleSession,
@@ -127,18 +126,6 @@ export function findTaskInDag(taskId: string): {
 
   return { found: false, status: "unknown", source: "unknown" };
 }
-
-// ════════════════════════════════════════════════
-// WRITE PERMISSION (from gate-checks.ts)
-// DEPRECATED (2026-07-07): Per-agent write check — 1 runtime caller (file-guard/audit.ts).
-// Phase 3: replace with behavior-based path check, independent of agent identity.
-// ════════════════════════════════════════════════
-
-/** @deprecated Per-agent write permission — migrate to behavior-based path check. */
-export function isWriteAllowed(agentType: string, filePath: string): boolean {
-  return isPathAllowedForAgent(agentType, filePath, "safe_edit");
-}
-
 // ════════════════════════════════════════════════
 // STALE SESSIONS (from gate-checks.ts)
 // ════════════════════════════════════════════════

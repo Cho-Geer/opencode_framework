@@ -188,7 +188,13 @@ describe('safe-bash-core', () => {
     it('should have Orchestrator extensions for node (from opencode.json)', () => {
       const result = getAgentShellAllowlist('@Orchestrator');
       // @Orchestrator opencode.json safe_shell includes node *.js *
-      expect(result.allowed).toContain('node *.js *');
+      // Phase 9 step 9.1: node -e/node *.ts/node *.js moved from allow to deny
+      expect(result.denied).toContain('node *.js *');
+      expect(result.denied).toContain('node -e *');
+      expect(result.denied).toContain('node *.ts *');
+      // Read-only commands remain allowed
+      expect(result.allowed).toContain('cat *');
+      expect(result.allowed).toContain('ls *');
     });
   });
 });

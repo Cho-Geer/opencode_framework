@@ -317,6 +317,10 @@ export const WRITE_PATTERNS: RegExp[] = [
   /.renameSync\s*\(/,
   /.copyFileSync\s*\(/,
   /.mkdirSync\s*\(/,
+  // Phase 9: bracket notation + string concatenation bypass
+  /\[\s*['"]write['"]?\s*\+\s*['"]?File/i,
+  /\[\s*['"]writeFile['"]\s*\]/i,
+  /\[\s*['"]appendFile['"]\s*\]/i,
 ];
 
 // ════════════════════════════════════════════════════════════

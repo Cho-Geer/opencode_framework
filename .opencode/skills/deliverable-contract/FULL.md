@@ -14,8 +14,9 @@ When a sub-agent submits deliverables (`compliance_gate_submit_deliverables`), s
 ### Step 1: READ HANDOVER.md
 Use `read` tool (NOT `safe_hash` — read audit only tracks `read` calls). Must happen within 5 minutes before approval.
 
-### Step 2: Compute SHA-256
+### Step 2: Compute SHA-256 `[VERIFICATION]`
 Use `safe_hash` tool to compute HANDOVER.md hash.
+> **本步骤是 `[VERIFICATION]`**--必须实际调用 `safe_hash` 工具，记录 `Verified-by: safe_hash 返回的哈希值`。「文件内容看起来没变」不是验证。
 
 ### Step 3: Call approval
 ```

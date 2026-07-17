@@ -31,7 +31,8 @@ export default tool({
           "No active remote_repo_write grant with human confirmation");
         throw new Error(
           "[REPO-REMOTE-WRITE-BLOCKED] No active remote_repo_write grant.\n" +
-          "safe_gh_pr_create requires human confirmation before creating a PR."
+          "safe_gh_pr_create requires human confirmation before creating a PR.\n" +
+          "Request Orchestrator to dispatch with dispatch_privilege=remote_repo_write, then call confirm_repo_grant."
         );
       }
 

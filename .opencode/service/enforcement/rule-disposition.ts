@@ -71,6 +71,7 @@ const RULE_TABLE: Record<string, RuleDisposition> = {
   "dispatch-marker-consume":       "hard_block",   // dispatch/marker-consume
   "dag-access":                     "audit_only",  // dispatch/dag-policy
   "log-level-selection":            "warn_continue",  // lib/log-manager
+  "skill-read-attest-required":     "hard_block",  // skill-policy/PT-WM-00R: hard gate for unauthenticated writes
 };
 
 // ── Core API ───────────────────────────────────────────────────────
