@@ -81,7 +81,7 @@ export function attestRuleRead(input: AttestRuleReadInput): AttestRuleReadResult
     agent,
     requiredRules,
     rulePaths,
-    taskId,
+    taskId: taskId ?? undefined,
   });
 
   const unreadFiles: string[] = [];

@@ -52,7 +52,7 @@ export function checkPluginIntegrity(): { valid: boolean; detail: string } {
   const pluginPath = STATE_PATHS.pluginSelf();
   const currentHash = computeFileHash(pluginPath);
   if (!_pluginHash) {
-    _pluginHash = currentHash;
+    _pluginHash = currentHash ?? "";
     return { valid: true, detail: "Plugin initialized" };
   }
   if (currentHash !== _pluginHash)
@@ -138,7 +138,8 @@ export function checkStaleSessions(paths: typeof STATE_PATHS): {
     const store = dbLoadGateStore();
     if (!store?.sessions) return { count: 0 };
     return {
-      count: Object.values(store.sessions).filter(isStaleSession).length,
+      count: Object.values(store.sessions).filter((s) => isStaleSession(s as any))
+        .length,
     };
   } catch {
     return { count: 0 };
@@ -212,7 +213,7 @@ export function checkMachineCleanliness(
 
   try {
     const eslintAgg = readSubState("eslint_state")?.aggregate;
-    if (eslintAgg?.dirty_modules?.length > 0) {
+    if (eslintAgg?.dirty_modules && eslintAgg.dirty_modules.length > 0) {
       dirty.push(
         `eslint_state: ${eslintAgg.dirty_modules.length} dirty module(s) — ${eslintAgg.dirty_modules.join(", ")}`,
       );

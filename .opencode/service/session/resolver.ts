@@ -251,7 +251,7 @@ export function resolveDomainIdWithSource(
     const domain = entries[0].domainId || null;
     writeLog(SRC, "INFO", {
       event: "DISPATCH-CTX-READ-DOMAIN",
-      domain_id: domain,
+      domain_id: domain ?? undefined,
       detail: `resolveDomainIdWithSource: ctx/ single file -> ${domain}`,
     });
     return { value: domain, resolved_from: "ctx_single" };

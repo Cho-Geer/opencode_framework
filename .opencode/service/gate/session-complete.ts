@@ -116,7 +116,7 @@ export function completeGateSession(
 
   try {
     const eslintState = readSubState("eslint_state");
-    if (eslintState?.aggregate?.dirty_modules?.length > 0) {
+    if (eslintState?.aggregate?.dirty_modules && eslintState.aggregate.dirty_modules.length > 0) {
       dirtyModules = eslintState.aggregate.dirty_modules;
       eslintFailed = true;
     }

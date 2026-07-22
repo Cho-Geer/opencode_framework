@@ -56,7 +56,7 @@ function splitShellStatements(command: string): string[] {
     if (ch === "\n" || ch === ";" || ch === "|") {
       if (current.trim()) statements.push(current.trim());
       current = "";
-      if ((ch === "|" || ch === "&") && command[i + 1] === ch) i++;
+      if (ch === "|" && command[i + 1] === ch) i++;
       continue;
     }
     if (ch === "&" && command[i + 1] === "&") {

@@ -417,7 +417,7 @@ export function approveDeliverablesWithAudit(
   if (approvalDecision === "reject") {
     session.gate_status = "armed";
     session.deliverables_approval_note = approvalNote || "rejected";
-    session.submitted_deliverables = null;
+    session.submitted_deliverables = undefined;
     store.last_updated = now;
     saveGateStore(store);
     return { status: "rejected", gate_session_id: gateSessionId, reason: approvalNote || "Deliverables rejected." };
@@ -433,8 +433,8 @@ export function approveDeliverablesWithAudit(
   // Step 0d: Multi-source investigation audit
   const step0d = enforceMultiSourceAudit(
     session.plan_summary || session.task_description,
-    taskId,
-    session.declared_deliverables,
+    taskId ?? null,
+    session.declared_deliverables ?? [],
   );
   if (step0d) {
     writeLog(SRC, "ERROR", { sessionID: gateSessionId, event: "STEP_0D_LOG_EVIDENCE_MISSING", detail: step0d.desc });
@@ -515,6 +515,10 @@ export function approveDeliverablesWithAudit(
       readResult = verifyRead(resolvedAgent, resolvedHandoverPath);
     }
 
+    if (!readResult) {
+      return { status: "rejected", reason: "[READ-BEFORE-APPROVE] read verification result unavailable." };
+    }
+
     if (!readResult.verified) {
       writeLog(SRC, "ERROR", { sessionID: gateSessionId, event: "READ_BEFORE_APPROVE_FAILED", detail: readResult.reason });
       return {
@@ -541,7 +545,7 @@ export function approveDeliverablesWithAudit(
   // ── Apply approval ──
   session.deliverables_approved_by = "Orchestrator";
   session.deliverables_approved_at = now;
-  session.deliverables_approval_note = approvalNote || null;
+  session.deliverables_approval_note = approvalNote || undefined;
   session.gate_status = "approved";
   session.consumed_at = now;
 

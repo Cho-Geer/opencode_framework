@@ -83,7 +83,7 @@ export function attestConfigRead(input: AttestConfigReadInput): AttestConfigRead
     agent,
     configPaths,
     existingConfigPaths,
-    taskId,
+    taskId: taskId ?? undefined,
   });
 
   if (existingConfigPaths.length === 0) {

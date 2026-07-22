@@ -91,7 +91,7 @@ export function submitDeliverables(
   for (const f of taskFiles) {
     const absPath = path.isAbsolute(f) ? f : path.join(getProjectRoot(), f);
     const diag = diagnosticState?.files?.[absPath];
-    if (diag?.errors?.length > 0) {
+    if ((diag?.errors?.length ?? 0) > 0) {
       filesWithErrors.push(absPath);
     }
   }
@@ -165,7 +165,7 @@ export function approveDeliverables(
   if (decision === "approve") {
     session.deliverables_approved_by = "Orchestrator";
     session.deliverables_approved_at = now;
-    session.deliverables_approval_note = approvalNote || null;
+    session.deliverables_approval_note = approvalNote || undefined;
     session.gate_status = "approved";
 
     if (executionSummary) {

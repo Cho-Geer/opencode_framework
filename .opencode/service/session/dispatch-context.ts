@@ -43,7 +43,7 @@ export function writeDispatchCtx(
       event: "DISPATCH-CTX-WRITE",
       dag_task_id: dagTaskId,
       agentType,
-      domainId: domainId || null,
+      domainId: domainId || undefined,
       detail: `Per-dispatch context written: ctx/${dagTaskId}.json`,
     });
   } catch (e: any) {

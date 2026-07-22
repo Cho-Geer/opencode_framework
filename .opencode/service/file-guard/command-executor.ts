@@ -3,6 +3,7 @@ import {
   spawn,
   type ChildProcess,
   type ChildProcessByStdio,
+  type ExecFileOptionsWithStringEncoding,
 } from "node:child_process";
 import type { Readable } from "node:stream";
 import type { VerifiedCommandPlan } from "./shell-plan";
@@ -78,8 +79,8 @@ function executeBuffered(
         timeout: plan.timeoutMs,
         windowsHide: true,
         detached: true,
-      },
-      (error, stdout, stderr) => {
+      } as ExecFileOptionsWithStringEncoding,
+      (error: Error | null, stdout: string, stderr: string) => {
         if (settled) return;
         settled = true;
         cleanup();
