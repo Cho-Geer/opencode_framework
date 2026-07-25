@@ -1624,18 +1624,23 @@ function checkFrameworkDoctorExists() {
     return check(24, false, "framework-doctor.ts not found");
   }
 
-  // 24b: Is valid JavaScript (syntax check)
+  // 24b: Is valid JavaScript/TypeScript (syntax check)
+  // FIX (2026-07-25): framework-doctor.ts is an ESM TypeScript file invoked via
+  // bun. Using `node -c` parses it as CommonJS and fails on ESM syntax under
+  // newer Node. Use the project's TypeScript runner (bun) for an accurate syntax
+  // check via a no-bundle build, matching how the script is actually executed.
   try {
     const { execSync } = require("node:child_process");
-    execSync(`"${process.execPath}" -c "${doctorPath}"`, {
-      stdio: "pipe",
-      timeout: 5000,
-    });
+    const runner = resolveTsRunner();
+    execSync(
+      `"${runner}" build --no-bundle --outfile /dev/null "${doctorPath}"`,
+      { stdio: "pipe", timeout: 20000 },
+    );
   } catch (e) {
     return check(
       24,
       false,
-      `framework-doctor.ts has JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
+      `framework-doctor.ts has syntax errors: ${(e.stderr || e.stdout || e.message).toString().substring(0, 200)}`,
     );
   }
 
