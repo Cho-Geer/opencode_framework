@@ -27,7 +27,7 @@ const SRC = "dispatch-router-svc";
 
 // ── Helper Functions ─────────────────────────────────────────────────
 
-function loadUC7KSDispatchPatterns(worktree: string): string[] {
+export function loadUC7KSDispatchPatterns(worktree: string): string[] {
   const DEFAULTS = [
     "knowledge", "cache", "docs", "official", "context7", "uc7ks",
     "fetch", "curator", "index", "explore", "source code", "repository",
@@ -42,7 +42,7 @@ function loadUC7KSDispatchPatterns(worktree: string): string[] {
   } catch { return DEFAULTS; }
 }
 
-function loadSARepairPatterns(worktree: string): string[] {
+export function loadSARepairPatterns(worktree: string): string[] {
   const DEFAULTS = [
     "repair", "fix", "restore", "corrupt", "broken", "emergency",
     "reset", "drain", "purge", "reconcile", "inconsistency", "state",
@@ -57,7 +57,7 @@ function loadSARepairPatterns(worktree: string): string[] {
   } catch { return DEFAULTS; }
 }
 
-function logOrchestratorSADispatch(opts: {
+export function logOrchestratorSADispatch(opts: {
   caller: string; target: string; task_description: string;
   dag_task_id: string; patterns_matched: string[]; policy: string;
 }): void {
@@ -85,7 +85,7 @@ function logOrchestratorSADispatch(opts: {
   } catch {}
 }
 
-function logSuperAdminDispatchBypass(opts: {
+export function logSuperAdminDispatchBypass(opts: {
   caller: string; target: string; task_description: string;
   dag_task_id: string; patterns_matched: string[];
 }): void {
@@ -100,7 +100,7 @@ function logSuperAdminDispatchBypass(opts: {
   } catch {}
 }
 
-function inferDomainId(agentType: string): string | null {
+export function inferDomainId(agentType: string): string | null {
   try {
     const root = process.env.OPENCODE_ROOT || process.cwd();
     const configPath = path.join(root, ".opencode", "project.config.json");

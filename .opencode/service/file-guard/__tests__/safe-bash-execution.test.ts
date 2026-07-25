@@ -15,14 +15,14 @@ describe("safe shell execution planning", () => {
   test("rejects shell composition", () => {
     const result = buildVerifiedCommandPlan("pwd && whoami");
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok === true) return;
     expect(result.ruleId).toBe("SHELL-COMPOSITION-DENY");
   });
 
   test("rejects wildcard expansion", () => {
     const result = buildVerifiedCommandPlan("ls *");
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok === true) return;
     expect(result.ruleId).toBe("SHELL-GLOB-DENY");
   });
 });

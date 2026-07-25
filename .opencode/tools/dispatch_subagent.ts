@@ -1,9 +1,25 @@
 // tools/dispatch_subagent.ts — Thin Controller
 // Phase 2: Delegates to DispatchService.dispatch()
 import { tool } from "@opencode-ai/plugin";
+import * as path from "node:path";
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { withInterruptGuard } from "../lib";
 import { resolveCallerIdentity } from "../service/session";
-import { dispatch } from "../service/dispatch/router";
+import {
+  dispatch,
+  loadUC7KSDispatchPatterns,
+  loadSARepairPatterns,
+  logOrchestratorSADispatch,
+  logSuperAdminDispatchBypass,
+  inferDomainId,
+} from "../service/dispatch/router";
+import { isDagExempt, readDispatchPolicy, autoPlan } from "../lib/dag-policy";
+import { findTaskInDag } from "../lib/gate-checks";
+import { atomicWriteJson } from "../lib/state-utils";
+import { writeLog } from "../lib/log-manager";
+import { dbReadSessionMap, dbWriteSessionMap } from "../lib/db-state-manager";
 import type { FrameworkToolContext } from "./tool-context";
 
 export default tool({
@@ -288,7 +304,7 @@ export default tool({
             task_description: args.task_description,
             dag_task_id: args.dag_task_id || "",
             patterns_matched: matched,
-            mode,
+            policy: mode,
           });
         }
 
@@ -477,8 +493,8 @@ export default tool({
         // FW-UC7KS-DOMAIN-001: domainId included for uc7ks-after.ts fallback.
         const inferredDomainId = inferDomainId(args.agent_type);
         if (dagTaskId) {
+          const root = process.env.OPENCODE_ROOT || process.cwd();
           try {
-            const root = process.env.OPENCODE_ROOT || process.cwd();
             const dispatchCtxDir = path.join(root, ".task_temp", "_dispatch");
             const dispatchCtxPath = path.join(dispatchCtxDir, ".dispatch_ctx");
             if (!existsSync(dispatchCtxDir)) {

@@ -39,7 +39,7 @@ export interface CompleteResult {
 /**
  * Validate HANDOVER.md and TASK_LOG.md exist.
  */
-function validateTaskArtifacts(taskId: string | null, gateSessionId: string): string[] {
+export function validateTaskArtifacts(taskId: string | null, gateSessionId: string): string[] {
   const resolvedId = taskId || gateSessionId;
   const taskDir = path.join(getProjectRoot(), ".task_temp", resolvedId);
   const missing: string[] = [];

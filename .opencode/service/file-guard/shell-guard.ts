@@ -216,7 +216,7 @@ export async function safeBashTool(
           message: "Injected verified command plan is structurally invalid.",
         })
     : buildVerifiedCommandPlan(command, { timeoutMs: timeout });
-  if (!planned.ok) {
+  if (planned.ok === false) {
     const result: SafeBashResult = {
       command, agent, allowed: false, executed: false, exitCode: null,
       stdout: "", stderr: "",

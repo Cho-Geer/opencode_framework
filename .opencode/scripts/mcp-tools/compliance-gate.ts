@@ -14,11 +14,11 @@ import { z } from "zod";
 // ── Service layer imports ──
 import { checkGateCompliance } from "../../service/gate/mcp-check";
 import { confirmGateSession } from "../../service/gate/mcp-confirm";
-import { completeGateWithRetry } from "../../service/gate/mcp-complete";
+import { completeGateWithRetry, validateTaskArtifacts } from "../../service/gate/mcp-complete";
 import { submitDeliverablesWithCrossCheck, approveDeliverablesWithAudit } from "../../service/gate/mcp-deliverables";
 import { retryConfirmGateSession } from "../../service/gate/mcp-retry";
 import { bulkReviewDeliverables } from "../../service/gate/mcp-bulk";
-import { purgeStaleSessions, drainStaleSessions } from "../../service/gate/drain";
+import { drainStaleSessions } from "../../service/gate/drain";
 import { writeLog } from "../../lib/log-manager";
 
 // IMPLEMENT-DISPATCH-CTX-FIX: Self-registration imports
@@ -36,6 +36,20 @@ const path2 = require("path");
  */
 const { atomicWriteSubState } = require("../../lib/state-utils");
 const { readSubState } = require("../../lib/substate-manager");
+const _gateCore = require("../../lib/gate-core");
+
+// Layer C caller-identity fallback: read _dispatch_target.json directly
+// (set by dispatch-before.ts at dispatch time).
+function resolveDispatchTargetAgentDirect(): string {
+  try {
+    const p = path2.join(OPENCODE_ROOT, ".task_temp", "_dispatch_target.json");
+    if (fs2.existsSync(p)) {
+      const d = JSON.parse(fs2.readFileSync(p, "utf8"));
+      if (d?.agent) return d.agent;
+    }
+  } catch {}
+  return "";
+}
 
 // ── Enforcement-mode debug helper ──
 // Mirrors lib/gate-core.ts isEnforcementDebugEnabled() so the fallback
@@ -158,7 +172,7 @@ const {
 // ── Adapter: v3 GateStateHot → GateStore shape (for dbSaveGateStore) ──
 function hotToGateStore(hot, filePath) {
   const sessions = {};
-  for (const [sid, s] of Object.entries(hot.active_sessions || {})) {
+  for (const [sid, s] of Object.entries<any>(hot.active_sessions || {})) {
     sessions[sid] = {
       session_id: s.session_id || sid,
       task_description: s.task_description || "",
@@ -171,7 +185,7 @@ function hotToGateStore(hot, filePath) {
       consumed_at: s.consumed_at,
     };
   }
-  for (const [sid, s] of Object.entries(hot.recent_sessions || {})) {
+  for (const [sid, s] of Object.entries<any>(hot.recent_sessions || {})) {
     sessions[sid] = {
       session_id: s.session_id || sid,
       task_description: s.task_description || "",
@@ -276,8 +290,6 @@ function writeJsonWithContext(p, data, agent, taskId) {
      */
     writeLog("mcp-compliance-gate", "INFO", {
       event: "txn_committed_with_context",
-      operationId: txn.operationId,
-      newRevision: txn.newRevision,
       agent,
       taskId,
       file: path.relative(OPENCODE_ROOT, p),
@@ -488,7 +500,7 @@ function loadStore() {
 
     // Merge active_sessions (object) into sessions dict
     if (s.active_sessions && typeof s.active_sessions === "object") {
-      for (const [sid, ses] of Object.entries(s.active_sessions)) {
+      for (const [sid, ses] of Object.entries<any>(s.active_sessions)) {
         sessions[sid] = { ...ses, session_id: sid };
         activeSessions.push(sid);
       }
@@ -496,7 +508,7 @@ function loadStore() {
 
     // Merge recent_sessions into sessions dict
     if (s.recent_sessions && typeof s.recent_sessions === "object") {
-      for (const [sid, ses] of Object.entries(s.recent_sessions)) {
+      for (const [sid, ses] of Object.entries<any>(s.recent_sessions)) {
         sessions[sid] = { ...ses, session_id: sid };
       }
     }
@@ -548,7 +560,7 @@ function loadStore() {
       }
       return true;
     });
-    for (const [sid, ses] of Object.entries(s.sessions)) {
+    for (const [sid, ses] of Object.entries<any>(s.sessions)) {
       if (
         ses.gate_status === "armed" &&
         !ses.consumed_at &&
@@ -607,7 +619,7 @@ function saveStore(store) {
 
     // Identify recent completed sessions
     const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    for (const [sid, ses] of Object.entries(store.sessions || {})) {
+    for (const [sid, ses] of Object.entries<any>(store.sessions || {})) {
       if (store.active_sessions?.includes(sid)) continue;
       if (ses.gate_status === "completed" && ses.consumed_at) {
         const consumedMs = new Date(ses.consumed_at).getTime();
@@ -739,11 +751,11 @@ function buildReminderText(sessionId, planSummary, expiresAt) {
   const summarySnippet = (planSummary || "").trim().substring(0, 120);
   return (
     "\n\n══════════════════════════════════════════════════════════════\n" +
-    "✅ GATE ARMED [session: " + gateSessionId + "]\n" +
+    "✅ GATE ARMED [session: " + sessionId + "]\n" +
     "══════════════════════════════════════════════════════════════\n" +
     "⚠️  REMINDER — YOU MUST DO THIS WHEN THE TASK FINISHES:\n" +
     "    Call:  compliance_gate_complete\n" +
-    "    With:  { \"session_id\": \"" + gateSessionId + "\", \"execution_summary\": \"<what you actually accomplished>\" }\n\n" +
+    "    With:  { \"session_id\": \"" + sessionId + "\", \"execution_summary\": \"<what you actually accomplished>\" }\n\n" +
     "Plan (anchored): " + (summarySnippet || "(no summary provided)") + "\n" +
     "Expires at: " + (expiresAt || "(unknown)") + "\n\n" +
     "Failure to call compliance_gate_complete will leave the gate in armed state.\n" +
@@ -879,7 +891,7 @@ function runGateCheck(taskDescription, taskId) {
     dispatchAssignedTaskIds.includes(taskId)
   ) {
     try {
-      const contextSessionId = context?.sessionID || "";
+      const contextSessionId = process.env.OPENCODE_SESSION_ID || "";
       if (contextSessionId) {
         const existing = dbReadSessionMap(contextSessionId);
         if (!existing?.dag_task_id || existing.dag_task_id !== taskId) {
@@ -1599,7 +1611,7 @@ function runGateConfirm(
     store.active_sessions.push(sessionId);
   }
   // Ensure no checked sessions are in active_sessions
-  for (const [sid, s] of Object.entries(store.sessions)) {
+  for (const [sid, s] of Object.entries<any>(store.sessions)) {
     if (s.gate_status === "checked" && store.active_sessions.includes(sid)) {
       store.active_sessions = store.active_sessions.filter((a) => a !== sid);
     }
@@ -2666,10 +2678,31 @@ function runGateApproveDeliverables(
 }
 
 // 创建 MCP Server
-const server = new Server(
+const gateServer = new McpServer(
   {
     name: "compliance-gate",
     version: "1.0.0",
+  },
+  { capabilities: { tools: {} } },
+);
+
+// ── Tool 1: compliance_gate_check ──
+gateServer.registerTool("compliance_gate_check", {
+  description: "MANDATORY runtime compliance gate v2. Must be called BEFORE any task execution. Verifies skill exists, rules present, rule_registry digest compatibility. Returns passed=true when all checks clear.",
+  inputSchema: {
+    task_description: z.string(),
+    task_id: z.string().optional(),
+    plan_summary: z.string().optional().describe("OPTIONAL combined check+confirm flow. If provided AND check passes, gate is armed in single call."),
+    agent: z.string().optional(),
+    call_id: z.string().optional().describe("Internal: auto-propagated by the gate-call-context before-hook for exact-match resolution. Do not set manually."),
+    opencode_session_id: z.string().optional().describe("Internal: caller OpenCode session ID propagated by the gate-call-context before-hook."),
+    declared_deliverables: z.array(z.object({
+      name: z.string().min(1).describe("File name or deliverable identifier (e.g. 'HANDOVER.md')"),
+      description: z.string().min(5).describe("What this deliverable contains, at least 5 characters"),
+    })).optional().describe(
+      "Used in combined check+confirm flow. Array of deliverable objects with {name, description (≥5 chars)}. " +
+      "Example: [{\"name\": \"HANDOVER.md\", \"description\": \"Handover document for next agent\"}]."
+    ),
   },
 }, (args) => {
   const result = checkGateCompliance(args.task_description || "");

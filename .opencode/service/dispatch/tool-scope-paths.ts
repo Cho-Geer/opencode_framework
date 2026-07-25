@@ -14,6 +14,7 @@ import { isModifyTool, getModifyPath, isModifyShell } from "./tool-scope-match";
 import { parseShellWriteTargets, type ScopePathResult } from "../tool-governance/shell-targets";
 
 export { parseShellWriteTargets };
+export type { ScopePathResult };
 
 // ============================================================================
 // PHASE 2 (2026-06-18): Multi-path scope + UC7KS write targets

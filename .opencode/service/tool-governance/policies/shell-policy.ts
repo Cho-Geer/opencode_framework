@@ -12,7 +12,7 @@ export function evaluate(ctx: ToolGovernanceContext): ToolGovernanceDecision | n
   const hasBypass = _hasAgentDangerousBypass(ctx.agent, ctx.command);
 
   const planned = buildVerifiedCommandPlan(ctx.command);
-  if (!planned.ok) {
+  if (planned.ok === false) {
     return {
       outcome: "deny",
       ruleId: planned.ruleId,
