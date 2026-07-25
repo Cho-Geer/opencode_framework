@@ -9,17 +9,17 @@
   },
   "entries": {
     "rules/common-project.md": {
-      "path": ".opencode/rules/common-project.md",
+      "path": ".opencode/rules/common/common-project.md",
       "category": "rule",
       "description": "Core project rules – always-on, highest priority for all agents"
     },
     "rules/mcp-compliance-guide.md": {
-      "path": ".opencode/rules/mcp-compliance-guide.md",
+      "path": ".opencode/rules/common/mcp-compliance-guide.md",
       "category": "rule",
       "description": "MCP tool usage compliance requirements – always-on"
     },
     "rules/skill-compliance-guide.md": {
-      "path": ".opencode/rules/skill-compliance-guide.md",
+      "path": ".opencode/rules/common/skill-compliance-guide.md",
       "category": "rule",
       "description": "Skill invocation permissions and compliance requirements – always-on"
     },
@@ -83,8 +83,8 @@
       "category": "rule",
       "description": "Uppercase variant of template variable standard (legacy/unified)"
     },
-    "skills/execution-preflight-check/SKILL.md": {
-      "path": ".opencode/skills/execution-preflight-check/SKILL.md",
+    "skills/preflight-lite/SKILL.md": {
+      "path": ".opencode/skills/preflight-lite/SKILL.md",
       "category": "skill",
       "description": "MANDATORY pre-flight check skill – verifies rule compliance, MCP readiness, skill requirements"
     },

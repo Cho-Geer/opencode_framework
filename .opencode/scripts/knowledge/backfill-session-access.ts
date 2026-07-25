@@ -326,7 +326,7 @@ async function main() {
     // ── A) Process legacy flat entries ────────────────────────────
     if (hasLegacyFlat) {
       const taskId = agentEntry.pipeline_task_id || "unknown";
-      const domainName = agentEntry.declared_scope || "all";
+      const domainId = agentEntry.declared_scope || "all";
       const pipelineStatus = agentEntry.pipeline_status || "declared";
       const isLegacy = !agentEntry.tasks; // no nested tasks = legacy
 
@@ -344,14 +344,14 @@ async function main() {
           `SELECT COUNT(*) AS c FROM knowledge_session_access
            WHERE agent = ? AND task_id = ? AND domain_id = ?`,
         )
-        .get(agentKey, taskId, domainName) as { c: number } | null;
+        .get(agentKey, taskId, domainId) as { c: number } | null;
 
       if (!DRY_RUN && !STATS_ONLY) {
         try {
           upsertSession.run(
             agentKey,
             taskId,
-            domainName,
+            domainId,
             sessionStatus,
             null, // discovered_at — set for discovered+
             pipelineStatus === "declared" ? now : null, // declared_at
@@ -368,7 +368,7 @@ async function main() {
           stats.errors++;
           writeLog(SRC, "ERROR", {
             event: "A2-BACKFILL-UPSERT-FAIL",
-            detail: `agent=${agentKey} task=${taskId} domain=${domainName} err=${e.message}`,
+            detail: `agent=${agentKey} task=${taskId} domain=${domainId} err=${e.message}`,
           });
         }
       }
@@ -387,7 +387,7 @@ async function main() {
             upsertDiscovery.run(
               agentKey,
               taskId,
-              domainName,
+              domainId,
               discStatus,
               discFiles,
               discAt || now,
@@ -407,8 +407,8 @@ async function main() {
 
       stats.tasksScanned++;
 
-      for (const domainName of Object.keys(domains)) {
-        const domainEntry: BlobDomain = domains[domainName];
+      for (const domainId of Object.keys(domains)) {
+        const domainEntry: BlobDomain = domains[domainId];
         stats.domainsScanned++;
 
         const isLegacy = !domainEntry.discovery && !domainEntry.attestation;
@@ -422,14 +422,14 @@ async function main() {
             `SELECT COUNT(*) AS c FROM knowledge_session_access
              WHERE agent = ? AND task_id = ? AND domain_id = ?`,
           )
-          .get(agentKey, taskId, domainName) as { c: number } | null;
+          .get(agentKey, taskId, domainId) as { c: number } | null;
 
         if (!DRY_RUN && !STATS_ONLY) {
           try {
             upsertSession.run(
               agentKey,
               taskId,
-              domainName,
+              domainId,
               sessionStatus,
               // discovered_at from discovery timestamp
               parseDateOrNull(domainEntry.discovery?.discovered_at),
@@ -449,7 +449,7 @@ async function main() {
             stats.errors++;
             writeLog(SRC, "ERROR", {
               event: "A2-BACKFILL-UPSERT-FAIL",
-              detail: `agent=${agentKey} task=${taskId} domain=${domainName} err=${e.message}`,
+              detail: `agent=${agentKey} task=${taskId} domain=${domainId} err=${e.message}`,
             });
           }
         }
@@ -461,7 +461,7 @@ async function main() {
               upsertDiscovery.run(
                 agentKey,
                 taskId,
-                domainName,
+                domainId,
                 domainEntry.discovery.status || "sufficient",
                 domainEntry.discovery.discovered_files?.length || 0,
                 parseDateOrNull(domainEntry.discovery.discovered_at) || now,
@@ -478,7 +478,7 @@ async function main() {
               upsertDiscovery.run(
                 agentKey,
                 taskId,
-                domainName,
+                domainId,
                 cd.status || "sufficient",
                 cd.discovered_files?.length || 0,
                 parseDateOrNull(cd.discovered_at) || now,
@@ -498,7 +498,7 @@ async function main() {
               upsertAttestation.run(
                 agentKey,
                 taskId,
-                domainName,
+                domainId,
                 att.status || "attested",
                 att.cache_sufficient ? 1 : 0,
                 JSON.stringify(att.files_read || []),

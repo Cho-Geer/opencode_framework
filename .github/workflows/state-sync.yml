@@ -22,7 +22,7 @@
 name: State Sync — Project ↔ Repository
 
 on:
-  projects_v2_item:
+  project_v2_item:
     types:
       - edited
       - converted
@@ -59,7 +59,7 @@ permissions:
 # ═══════════════════════════════════════════════════════════════════════════
 env:
   # Identifies which direction triggered this run — used for loop prevention
-  SYNC_SOURCE: ${{ github.event_name == 'projects_v2_item' && 'project' || 'repository' }}
+  SYNC_SOURCE: ${{ github.event_name == 'project_v2_item' && 'project' || 'repository' }}
 
 jobs:
   # ═════════════════════════════════════════════════════════════════════════
@@ -69,12 +69,12 @@ jobs:
   # ═════════════════════════════════════════════════════════════════════════
   sync-project-to-repo:
     if: |
-      github.event_name == 'projects_v2_item' &&
+      github.event_name == 'project_v2_item' &&
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      ITEM_ID: ${{ github.event.projects_v2_item.node_id }}
+      ITEM_ID: ${{ github.event.project_v2_item.node_id }}
     steps:
       # ── Step 1: Query the Project Item's content to find linked Issue/PR ──
       - name: Query Item Content
@@ -188,7 +188,7 @@ jobs:
   # ═════════════════════════════════════════════════════════════════════════
   sync-repo-to-project:
     if: |
-      github.event_name != 'projects_v2_item' &&
+      github.event_name != 'project_v2_item' &&
       github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     env:

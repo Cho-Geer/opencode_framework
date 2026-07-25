@@ -21,7 +21,8 @@ import type { SubStateMap, SubStateKey } from "./substate-types";
 // Sub-state file mapping: key → filename (used for SUBSTATE_FILES type)
 export const SUBSTATE_FILES: Record<SubStateKey, string> = {
   eslint_state: "eslint-state.json",
-  type_check_state: "type-check-state.json",
+  // type_check_state: "type-check-state.json",  ← deprecated (replaced by diagnostic_state, 2026-06-26)
+  diagnostic_state: "diagnostic-state.json",
   dependency_state: "dependency-state.json",
   format_state: "format-state.json",
   write_audit_state: "write-audit-state.json",
@@ -33,6 +34,10 @@ export const SUBSTATE_FILES: Record<SubStateKey, string> = {
   transaction_state: "transaction-state.json",
   knowledge_state: "knowledge-state.json",
   config_read_state: "config-read-state.json",
+  diagnostic_baseline: "diagnostic-baseline.json",
+  skill_read_state: "skill_read_state",
+    rule_read_state: "rule_read_state",
+    tool_audit_state: "tool-audit-state.json",
 };
 
 const SRC = "lib-substate-manager";
@@ -40,9 +45,7 @@ const SRC = "lib-substate-manager";
 /**
  * Read a specific sub-state (DB-only).
  */
-export function readSubState<K extends SubStateKey>(
-  key: K,
-): SubStateMap[K] {
+export function readSubState<K extends SubStateKey>(key: K): SubStateMap[K] {
   try {
     const dbResult = dbReadSubState(key);
     if (dbResult !== null && dbResult !== undefined) return dbResult;
@@ -52,18 +55,22 @@ export function readSubState<K extends SubStateKey>(
       detail: `key=${key} err=${e.message}`,
     });
   }
-  return {};
+  return {} as SubStateMap[K];
 }
 
 /**
  * Write a specific sub-state (DB-only).
+ *
+ * G3 FIX (2026-06-23): Supports expectedUpdatedAt for optimistic concurrency.
+ * When provided, write fails if concurrent write detected (changes === 0).
  */
 export function writeSubState<K extends SubStateKey>(
   key: K,
   value: SubStateMap[K],
+  expectedUpdatedAt?: number,
 ): boolean {
   try {
-    return dbWriteSubState(key, value);
+    return dbWriteSubState(key, value, expectedUpdatedAt);
   } catch (e: any) {
     writeLog(SRC, "ERROR", {
       event: "DB-WRITE-SUBSTATE-FAILED",

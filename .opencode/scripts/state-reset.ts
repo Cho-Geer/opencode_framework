@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 /**
  * state-reset.ts — Idempotent state machine bootstrap/reset script
  *
@@ -15,11 +16,12 @@
  *   5. Logs after-state diff
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
-const OPENCODE_ROOT =
-  process.env.OPENCODE_ROOT ? path.resolve(process.env.OPENCODE_ROOT) : path.resolve(__dirname, "..", "..");
+const OPENCODE_ROOT = process.env.OPENCODE_ROOT
+  ? path.resolve(process.env.OPENCODE_ROOT)
+  : path.resolve(__dirname, "..", "..");
 const STATE_DIR = path.join(OPENCODE_ROOT, ".opencode", "state");
 const MACHINE_FILE = path.join(STATE_DIR, "machine.json");
 
@@ -32,10 +34,10 @@ const DRY_RUN = process.argv.includes("--dry-run");
 function buildCleanBaseline(meta) {
   return {
     meta: {
-      version: meta.version || "1.0.0",
+      version: (meta as any).version || "1.0.0",
       createdAt: meta.createdAt || new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
-      project: meta.project || "",
+      project: (meta as any).project || "",
       framework: meta.framework || "opencode-v3",
     },
     eslint_state: {
@@ -47,10 +49,10 @@ function buildCleanBaseline(meta) {
         waived_modules: [],
       },
     },
-    type_check_state: {
-      status: "clean",
-      dirty_files: [],
-      incremental_errors: 0,
+    // diagnostic_state (replaces type_check_state, 2026-06-26)
+    diagnostic_state: {
+      files: {},
+      last_updated: new Date().toISOString(),
     },
     dependency_state: {
       last_check: null,
@@ -107,12 +109,12 @@ function diffStates(before, after) {
 // 3. Main
 // ──────────────────────────────────────────────
 function main() {
-  console.error("[state-reset] OPENCODE_ROOT:", OPENCODE_ROOT);
-  console.error("[state-reset] Target:", MACHINE_FILE);
+  (console as any).error("[state-reset] OPENCODE_ROOT:", OPENCODE_ROOT);
+  (console as any).error("[state-reset] Target:", MACHINE_FILE);
 
   // Check if machine.json exists
   if (!fs.existsSync(MACHINE_FILE)) {
-    console.error(
+    (console as any).error(
       "[state-reset] machine.json not found. Creating fresh baseline...",
     );
     const fresh = buildCleanBaseline({});
@@ -122,9 +124,9 @@ function main() {
         JSON.stringify(fresh, null, 2) + "\n",
         "utf8",
       );
-      console.error("[state-reset] Created fresh machine.json");
+      (console as any).error("[state-reset] Created fresh machine.json");
     } else {
-      console.error("[state-reset] [DRY RUN] Would create fresh machine.json");
+      (console as any).error("[state-reset] [DRY RUN] Would create fresh machine.json");
       console.log(JSON.stringify(fresh, null, 2));
     }
     return;
@@ -135,7 +137,7 @@ function main() {
   try {
     current = JSON.parse(fs.readFileSync(MACHINE_FILE, "utf8"));
   } catch (err) {
-    console.error(
+    (console as any).error(
       `[state-reset] ERROR: Cannot parse machine.json: ${err.message}`,
     );
     process.exit(1);
@@ -144,21 +146,21 @@ function main() {
   const original = JSON.parse(JSON.stringify(current)); // deep clone for diff
 
   // Show before state
-  console.error("[state-reset] === BEFORE STATE ===");
+  (console as any).error("[state-reset] === BEFORE STATE ===");
   for (const [key, val] of Object.entries(current)) {
     if (key === "meta") {
-      console.error(
-        `  ${key}: version=${val.version}, project=${val.project}, lastUpdated=${val.lastUpdated}`,
+      (console as any).error(
+        `  ${key}: version=${(val as any).version}, project=${(val as any).project}, lastUpdated=${(val as any).lastUpdated}`,
       );
     } else if (typeof val === "object" && val !== null) {
       const status =
-        val.status ||
-        (val.aggregate
-          ? `modules=${Object.keys(val.modules || {}).length}, violations=${val.aggregate?.total_violations || 0}`
+        (val as any).status ||
+        ((val as any).aggregate
+          ? `modules=${Object.keys((val as any).modules || {}).length}, violations=${(val as any).aggregate?.total_violations || 0}`
           : "N/A");
-      console.error(`  ${key}: ${status}`);
+      (console as any).error(`  ${key}: ${status}`);
     } else {
-      console.error(`  ${key}: ${JSON.stringify(val)}`);
+      (console as any).error(`  ${key}: ${JSON.stringify(val)}`);
     }
   }
 
@@ -167,13 +169,13 @@ function main() {
 
   // Compute diff
   const changed = diffStates(current, clean);
-  console.error("[state-reset] === CHANGES ===");
+  (console as any).error("[state-reset] === CHANGES ===");
   if (changed.length === 0) {
-    console.error("  No changes needed — state is already clean.");
+    (console as any).error("  No changes needed — state is already clean.");
     return;
   }
   for (const key of changed) {
-    console.error(`  ${key}: RESET`);
+    (console as any).error(`  ${key}: RESET`);
   }
 
   // Confirmation (skip if --force)
@@ -186,7 +188,7 @@ function main() {
     rl.question("[state-reset] Proceed with reset? [y/N]: ", (answer) => {
       rl.close();
       if (answer.toLowerCase() !== "y") {
-        console.error("[state-reset] Aborted by user.");
+        (console as any).error("[state-reset] Aborted by user.");
         return;
       }
       applyReset(clean, changed);
@@ -199,20 +201,20 @@ function main() {
 
 function applyReset(clean, changed) {
   if (DRY_RUN) {
-    console.error(
+    (console as any).error(
       "[state-reset] [DRY RUN] Would reset the following sections:",
       changed.join(", "),
     );
-    console.error("[state-reset] [DRY RUN] Proposed state:");
+    (console as any).error("[state-reset] [DRY RUN] Proposed state:");
     console.log(JSON.stringify(clean, null, 2));
     return;
   }
 
   fs.writeFileSync(MACHINE_FILE, JSON.stringify(clean, null, 2) + "\n", "utf8");
-  console.error("[state-reset] === RESULT ===");
-  console.error(`  Sections reset: ${changed.join(", ")}`);
-  console.error("  machine.json reset to clean baseline.");
-  console.error(
+  (console as any).error("[state-reset] === RESULT ===");
+  (console as any).error(`  Sections reset: ${changed.join(", ")}`);
+  (console as any).error("  machine.json reset to clean baseline.");
+  (console as any).error(
     "  Keystone hashes preserved as empty — run keystone-validate to populate.",
   );
 }
@@ -221,3 +223,4 @@ function applyReset(clean, changed) {
 // 4. Run
 // ──────────────────────────────────────────────
 main();
+

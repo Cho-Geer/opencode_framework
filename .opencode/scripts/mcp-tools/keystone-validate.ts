@@ -1,17 +1,14 @@
 #!/usr/bin/env bun
 "use strict";
 
-const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
-const {
-  StdioServerTransport,
-} = require("@modelcontextprotocol/sdk/server/stdio.js");
-const {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} = require("@modelcontextprotocol/sdk/types.js");
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 
-const path = require("path");
-const { execSync } = require("child_process");
+import path from "node:path";
+import fs from "node:fs";
+import { execSync } from "node:child_process";
+import crypto from "node:crypto";
 
 const OPENCODE_ROOT =
   process.env.OPENCODE_ROOT || path.resolve(__dirname, "..", "..", "..");
@@ -24,7 +21,7 @@ function readProjectConfig() {
   );
   let cfg;
   try {
-    cfg = JSON.parse(require("fs").readFileSync(configPath, "utf8"));
+    cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
   } catch (readErr) {
     throw new Error(
       `[keystone-validate] Cannot read or parse project.config.json at ${configPath}: ${readErr.message}`,
@@ -44,16 +41,22 @@ function findStateDir() {
   const pr = cfg.project_root;
   const innerRepo = path.resolve(OPENCODE_ROOT, pr);
   const stateDir = path.join(innerRepo, ".opencode", "state");
-  if (require("fs").existsSync(stateDir)) return stateDir;
+  if (fs.existsSync(stateDir)) return stateDir;
   return path.join(OPENCODE_ROOT, ".opencode", "state");
 }
 
-function runValidate(mode) {
+function runValidate(mode: string) {
   const stateDir = findStateDir();
   const innerRepo = path.resolve(stateDir, "..", "..");
-  const script = path.join(innerRepo, ".opencode", "scripts", "mcp-tools", "keystone-validate.ts");
+  const script = path.join(
+    innerRepo,
+    ".opencode",
+    "scripts",
+    "mcp-tools",
+    "keystone-validate.ts",
+  );
 
-  if (!require("fs").existsSync(script)) {
+  if (!fs.existsSync(script)) {
     return {
       overall: "ERROR",
       detail: `keystone-validate.js not found at ${script}`,
@@ -71,7 +74,7 @@ function runValidate(mode) {
     } catch {
       return { overall: "PASS", detail: out.trim(), raw: true };
     }
-  } catch (e) {
+  } catch (e: any) {
     const stderr = e.stderr || "";
     try {
       return JSON.parse(stderr);
@@ -81,37 +84,21 @@ function runValidate(mode) {
   }
 }
 
-const server = new Server(
+const server = new McpServer(
   { name: "keystone-validate", version: "1.0.0" },
   { capabilities: { tools: {} } },
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: "keystone_validate",
-      description:
-        "Run Keystone validation checks (contract hash, task lifecycle, TDD, compliance gate)",
-      inputSchema: {
-        type: "object",
-        properties: {
-          mode: {
-            type: "string",
-            enum: ["audit", "pre-commit", "ci"],
-            description:
-              "audit: working tree (default), pre-commit: staged changes, ci: hash-only fast check",
-          },
-        },
-      },
-    },
-  ],
-}));
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const mode = request.params.arguments?.mode || "audit";
+server.registerTool("keystone_validate", {
+  description: "Run Keystone validation checks (contract hash, task lifecycle, TDD, compliance gate)",
+  inputSchema: {
+    mode: z.enum(["audit", "pre-commit", "ci"]).optional().describe("audit: working tree (default), pre-commit: staged changes, ci: hash-only fast check"),
+  },
+}, (args) => {
+  const mode = args.mode || "audit";
   const result = runValidate(mode);
   return {
-    content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
   };
 });
 
@@ -123,16 +110,17 @@ async function main() {
 // ──────────────────────────────────────────────
 // CLI mode: --hash <file>  (compute keystone hash)
 // ──────────────────────────────────────────────
-function computeKeystoneHash(filePath) {
-  const crypto = require("crypto");
+function computeKeystoneHash(filePath: string) {
   const resolvedPath = path.resolve(OPENCODE_ROOT, filePath);
-  if (!require("fs").existsSync(resolvedPath)) {
+  if (!fs.existsSync(resolvedPath)) {
     process.stderr.write(
       `[keystone-validate] File not found: ${resolvedPath}\n`,
     );
     process.exit(1);
   }
-  const lines = require("fs").readFileSync(resolvedPath, "utf8").split("\n");
+  const lines = fs
+    .readFileSync(resolvedPath, "utf8")
+    .split("\n");
   // Strip x-keystone-state-hash header line (must be line 0) if present
   const contentLines =
     lines.length > 0 && /^#\s*x-keystone-state-hash:/.test(lines[0])
@@ -155,18 +143,18 @@ function cliMain() {
    * process.stderr.write — console.error writes to stdout in some Bun contexts,
    * potentially polluting MCP protocol. process.stderr.write is the safe channel.
    */
-  main().catch((err) => process.stderr.write(`[keystone-validate] Fatal error: ${err.message}\n`));
+  main().catch((err) =>
+    process.stderr.write(`[keystone-validate] Fatal error: ${err.message}\n`),
+  );
 }
 
 // Start (when run directly, not when require()d by tests)
-if (require.main === module) {
+if (import.meta.main) {
   cliMain();
 }
 
 // Export internals for testing
-module.exports = {
-  readProjectConfig,
-  findStateDir,
-  runValidate,
-  computeKeystoneHash,
-};
+export { readProjectConfig };
+export { findStateDir };
+export { runValidate };
+export { computeKeystoneHash };

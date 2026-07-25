@@ -1,2383 +1,700 @@
 {
   "formatVersion": "2.0",
-  "generated_at": "2026-06-04T09:04:52.631Z",
-  "total_tasks": 264,
+  "generated_at": "2026-06-29T09:52:24.178Z",
+  "total_tasks": 77,
   "task_index": {
-    "VERIFY-DIAG-BUG-1": {
-      "id": "VERIFY-DIAG-BUG-1",
-      "title": "Verify Bug #1: safe-edit first-call TOCTOU failure",
-      "status": "pending",
+    "PLUGIN-VFY-LOAD": {
+      "id": "PLUGIN-VFY-LOAD",
+      "title": "Plugin Load Verification — framework-self-test",
+      "status": "skipped",
       "completed_at": null,
-      "agent": "explore",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-BUG-1"
-    },
-    "VERIFY-DIAG-BUG-2": {
-      "id": "VERIFY-DIAG-BUG-2",
-      "title": "Verify Bug #2: self-test Check 25 expects 10, doctor has 11 checks",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-BUG-2"
-    },
-    "VERIFY-DIAG-BUG-3": {
-      "id": "VERIFY-DIAG-BUG-3",
-      "title": "Verify Bug #3: DAG validation field name conflict",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
+      "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-BUG-3"
+      "archive_ref": "Task.DAG.json#tasks.PLUGIN-VFY-LOAD"
     },
-    "VERIFY-DIAG-BUG-4": {
-      "id": "VERIFY-DIAG-BUG-4",
-      "title": "Verify Bug #4: Gate staleness time base inconsistency",
-      "status": "pending",
+    "PLUGIN-VFY-ISBUSINESS": {
+      "id": "PLUGIN-VFY-ISBUSINESS",
+      "title": "isBusinessSourceFile Behavior Consistency Verification",
+      "status": "skipped",
       "completed_at": null,
-      "agent": "explore",
+      "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-BUG-4"
+      "archive_ref": "Task.DAG.json#tasks.PLUGIN-VFY-ISBUSINESS"
     },
-    "VERIFY-DIAG-BUG-5": {
-      "id": "VERIFY-DIAG-BUG-5",
-      "title": "Verify Bug #5: Hook integrity threshold too loose",
-      "status": "pending",
+    "PLUGIN-VFY-ATOMIC": {
+      "id": "PLUGIN-VFY-ATOMIC",
+      "title": "atomicWriteMachine Integrity Verification",
+      "status": "skipped",
       "completed_at": null,
-      "agent": "explore",
+      "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-BUG-5"
+      "archive_ref": "Task.DAG.json#tasks.PLUGIN-VFY-ATOMIC"
     },
-    "VERIFY-DIAG-CNTR-1": {
-      "id": "VERIFY-DIAG-CNTR-1",
-      "title": "Verify Contradiction #1: drained_sessions object vs array conflict",
-      "status": "pending",
+    "PLUGIN-VFY-SHELL": {
+      "id": "PLUGIN-VFY-SHELL",
+      "title": "safe_shell Strategy Unification Verification",
+      "status": "skipped",
       "completed_at": null,
-      "agent": "explore",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-CNTR-1"
-    },
-    "VERIFY-DIAG-CNTR-2": {
-      "id": "VERIFY-DIAG-CNTR-2",
-      "title": "Verify Contradiction #2: compliance-check machine.json clean check incomplete",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
+      "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-CNTR-2"
-    },
-    "VERIFY-DIAG-CNTR-3": {
-      "id": "VERIFY-DIAG-CNTR-3",
-      "title": "Verify Contradiction #3: pre-execution-hook.sh stage numbering mismatch",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-CNTR-3"
-    },
-    "VERIFY-DIAG-CNTR-4": {
-      "id": "VERIFY-DIAG-CNTR-4",
-      "title": "Verify Contradiction #4: health-check.sh missing key components",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-CNTR-4"
-    },
-    "VERIFY-DIAG-OMIS-1": {
-      "id": "VERIFY-DIAG-OMIS-1",
-      "title": "Verify Omission #1: safe-bash only RED tests, implementation missing",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-1"
-    },
-    "VERIFY-DIAG-OMIS-2": {
-      "id": "VERIFY-DIAG-OMIS-2",
-      "title": "Verify Omission #2: No unified test runner for framework tests",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-2"
-    },
-    "VERIFY-DIAG-OMIS-3": {
-      "id": "VERIFY-DIAG-OMIS-3",
-      "title": "Verify Omission #3: write_audit_state verification missing",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-3"
-    },
-    "VERIFY-DIAG-OMIS-4": {
-      "id": "VERIFY-DIAG-OMIS-4",
-      "title": "Verify Omission #4: DAG cycle detection missing",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-4"
-    },
-    "VERIFY-DIAG-OMIS-5": {
-      "id": "VERIFY-DIAG-OMIS-5",
-      "title": "Verify Omission #5: agent_write_scopes completeness unverified",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-5"
-    },
-    "VERIFY-DIAG-OMIS-6": {
-      "id": "VERIFY-DIAG-OMIS-6",
-      "title": "Verify Omission #6: safe-edit not integrated with framework-enforcer",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-6"
-    },
-    "VERIFY-DIAG-OMIS-7": {
-      "id": "VERIFY-DIAG-OMIS-7",
-      "title": "Verify Omission #7: state-integrity-scan missing file handling",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-7"
-    },
-    "VERIFY-DIAG-OMIS-8": {
-      "id": "VERIFY-DIAG-OMIS-8",
-      "title": "Verify Omission #8: Health check results not CI-reportable",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-OMIS-8"
-    },
-    "VERIFY-DIAG-ARCH-1": {
-      "id": "VERIFY-DIAG-ARCH-1",
-      "title": "Verify Architecture #1: Duplicate code patterns across files",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-ARCH-1"
-    },
-    "VERIFY-DIAG-ARCH-2": {
-      "id": "VERIFY-DIAG-ARCH-2",
-      "title": "Verify Architecture #2: TS ESM→CJS compilation artifact mix",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-ARCH-2"
-    },
-    "VERIFY-DIAG-ARCH-3": {
-      "id": "VERIFY-DIAG-ARCH-3",
-      "title": "Verify Architecture #3: jq dependency not verified in install-hooks",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-ARCH-3"
-    },
-    "VERIFY-DIAG-ARCH-4": {
-      "id": "VERIFY-DIAG-ARCH-4",
-      "title": "Verify Architecture #4: Mixed stderr/stdout output in tools",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-ARCH-4"
-    },
-    "VERIFY-DIAG-ARCH-5": {
-      "id": "VERIFY-DIAG-ARCH-5",
-      "title": "Verify Architecture #5: Two staleness implementations in one file",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "explore",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-ARCH-5"
-    },
-    "VERIFY-DIAG-SUMMARY": {
-      "id": "VERIFY-DIAG-SUMMARY",
-      "title": "Synthesize all VERIFY-DIAG findings into Guardian audit summary",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Guardian",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.VERIFY-DIAG-SUMMARY"
-    },
-    "FX-DIAG-CONS-1-RED": {
-      "id": "FX-DIAG-CONS-1-RED",
-      "title": "[RED] DAG title/name field conflict test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-1-RED"
-    },
-    "FX-DIAG-CONS-1-GREEN": {
-      "id": "FX-DIAG-CONS-1-GREEN",
-      "title": "[GREEN] Fix DAG title/name field conflict",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-1-GREEN"
-    },
-    "FX-DIAG-CONS-2-RED": {
-      "id": "FX-DIAG-CONS-2-RED",
-      "title": "[RED] Time base inconsistency test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-2-RED"
-    },
-    "FX-DIAG-CONS-2-GREEN": {
-      "id": "FX-DIAG-CONS-2-GREEN",
-      "title": "[GREEN] Unify staleness time base to confirmed_at",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-2-GREEN"
-    },
-    "FX-DIAG-CONS-3-RED": {
-      "id": "FX-DIAG-CONS-3-RED",
-      "title": "[RED] drained_sessions type conflict test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-3-RED"
-    },
-    "FX-DIAG-CONS-3-GREEN": {
-      "id": "FX-DIAG-CONS-3-GREEN",
-      "title": "[GREEN] Standardize drained_sessions to object format",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-3-GREEN"
-    },
-    "FX-DIAG-CONS-4-RED": {
-      "id": "FX-DIAG-CONS-4-RED",
-      "title": "[RED] Merge staleness functions test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-4-RED"
-    },
-    "FX-DIAG-CONS-4-GREEN": {
-      "id": "FX-DIAG-CONS-4-GREEN",
-      "title": "[GREEN] Merge checkStaleSessions+autoDrainStaleSessions",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-4-GREEN"
-    },
-    "FX-DIAG-CONS-5-RED": {
-      "id": "FX-DIAG-CONS-5-RED",
-      "title": "[RED] stdout/stderr discipline test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-5-RED"
-    },
-    "FX-DIAG-CONS-5-GREEN": {
-      "id": "FX-DIAG-CONS-5-GREEN",
-      "title": "[GREEN] Fix stdout/stderr discipline in pre-execution-gate",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-CONS-5-GREEN"
-    },
-    "FX-DIAG-ROBUST-1-RED": {
-      "id": "FX-DIAG-ROBUST-1-RED",
-      "title": "[RED] safe-edit auto-retry test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-1-RED"
-    },
-    "FX-DIAG-ROBUST-1-GREEN": {
-      "id": "FX-DIAG-ROBUST-1-GREEN",
-      "title": "[GREEN] Fix safe-edit auto-retry on first call",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-1-GREEN"
-    },
-    "FX-DIAG-ROBUST-2-RED": {
-      "id": "FX-DIAG-ROBUST-2-RED",
-      "title": "[RED] compliance-check all 11 sub-states test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-2-RED"
-    },
-    "FX-DIAG-ROBUST-2-GREEN": {
-      "id": "FX-DIAG-ROBUST-2-GREEN",
-      "title": "[GREEN] Extend compliance-check to 11 sub-states",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-2-GREEN"
-    },
-    "FX-DIAG-ROBUST-3-RED": {
-      "id": "FX-DIAG-ROBUST-3-RED",
-      "title": "[RED] DAG cycle detection test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-3-RED"
-    },
-    "FX-DIAG-ROBUST-3-GREEN": {
-      "id": "FX-DIAG-ROBUST-3-GREEN",
-      "title": "[GREEN] Add DAG cycle detection",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-3-GREEN"
-    },
-    "FX-DIAG-ROBUST-4-RED": {
-      "id": "FX-DIAG-ROBUST-4-RED",
-      "title": "[RED] state-integrity new-project guard test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-4-RED"
-    },
-    "FX-DIAG-ROBUST-4-GREEN": {
-      "id": "FX-DIAG-ROBUST-4-GREEN",
-      "title": "[GREEN] Add new-project guard to state-integrity-scan",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-4-GREEN"
-    },
-    "FX-DIAG-ROBUST-5-RED": {
-      "id": "FX-DIAG-ROBUST-5-RED",
-      "title": "[RED] jq dependency check test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-5-RED"
-    },
-    "FX-DIAG-ROBUST-5-GREEN": {
-      "id": "FX-DIAG-ROBUST-5-GREEN",
-      "title": "[GREEN] Add jq dependency check to install-hooks",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ROBUST-5-GREEN"
-    },
-    "FX-DIAG-SKILL-1-RED": {
-      "id": "FX-DIAG-SKILL-1-RED",
-      "title": "[RED] safe-bash GREEN phase test update",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-SKILL-1-RED"
-    },
-    "FX-DIAG-SKILL-1-GREEN": {
-      "id": "FX-DIAG-SKILL-1-GREEN",
-      "title": "[GREEN] Finalize safe-bash tests GREEN",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-SKILL-1-GREEN"
-    },
-    "FX-DIAG-SKILL-2-RED": {
-      "id": "FX-DIAG-SKILL-2-RED",
-      "title": "[RED] Unified test runner test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-SKILL-2-RED"
-    },
-    "FX-DIAG-SKILL-2-GREEN": {
-      "id": "FX-DIAG-SKILL-2-GREEN",
-      "title": "[GREEN] Add unified test runner",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-SKILL-2-GREEN"
-    },
-    "FX-DIAG-SKILL-3-RED": {
-      "id": "FX-DIAG-SKILL-3-RED",
-      "title": "[RED] JUnit XML output test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-SKILL-3-RED"
-    },
-    "FX-DIAG-SKILL-3-GREEN": {
-      "id": "FX-DIAG-SKILL-3-GREEN",
-      "title": "[GREEN] Add JUnit XML output to doctor and health-check",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-SKILL-3-GREEN"
-    },
-    "FX-DIAG-ARCH-1-RED": {
-      "id": "FX-DIAG-ARCH-1-RED",
-      "title": "[RED] Shared lib refactor test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ARCH-1-RED"
-    },
-    "FX-DIAG-ARCH-1-GREEN": {
-      "id": "FX-DIAG-ARCH-1-GREEN",
-      "title": "[GREEN] Eliminate code duplication via shared lib",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ARCH-1-GREEN"
-    },
-    "FX-DIAG-ARCH-2-RED": {
-      "id": "FX-DIAG-ARCH-2-RED",
-      "title": "[RED] TS-CJS build staleness test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ARCH-2-RED"
-    },
-    "FX-DIAG-ARCH-2-GREEN": {
-      "id": "FX-DIAG-ARCH-2-GREEN",
-      "title": "[GREEN] Harden TS-CJS build pipeline",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-ARCH-2-GREEN"
-    },
-    "FX-DIAG-HARD-1-RED": {
-      "id": "FX-DIAG-HARD-1-RED",
-      "title": "[RED] Dynamic hook count test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-HARD-1-RED"
-    },
-    "FX-DIAG-HARD-1-GREEN": {
-      "id": "FX-DIAG-HARD-1-GREEN",
-      "title": "[GREEN] Replace hardcoded hook count with dynamic collection",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-HARD-1-GREEN"
-    },
-    "FX-DIAG-HARD-2-RED": {
-      "id": "FX-DIAG-HARD-2-RED",
-      "title": "[RED] pre-execution-hook docs test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-HARD-2-RED"
-    },
-    "FX-DIAG-HARD-2-GREEN": {
-      "id": "FX-DIAG-HARD-2-GREEN",
-      "title": "[GREEN] Document Stage 2.5 in pre-execution-hook.sh header",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-HARD-2-GREEN"
-    },
-    "FX-DIAG-HARD-3-RED": {
-      "id": "FX-DIAG-HARD-3-RED",
-      "title": "[RED] agent_write_scopes completeness test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-HARD-3-RED"
-    },
-    "FX-DIAG-HARD-3-GREEN": {
-      "id": "FX-DIAG-HARD-3-GREEN",
-      "title": "[GREEN] Add agent_write_scopes completeness check",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-HARD-3-GREEN"
-    },
-    "FX-DIAG-UNIV-1-RED": {
-      "id": "FX-DIAG-UNIV-1-RED",
-      "title": "[RED] Template resolution consistency test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-UNIV-1-RED"
-    },
-    "FX-DIAG-UNIV-1-GREEN": {
-      "id": "FX-DIAG-UNIV-1-GREEN",
-      "title": "[GREEN] Fix template resolution gaps",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-UNIV-1-GREEN"
-    },
-    "FX-DIAG-UNIV-2-RED": {
-      "id": "FX-DIAG-UNIV-2-RED",
-      "title": "[RED] Cross-platform path handling test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-UNIV-2-RED"
-    },
-    "FX-DIAG-UNIV-2-GREEN": {
-      "id": "FX-DIAG-UNIV-2-GREEN",
-      "title": "[GREEN] Standardize cross-platform paths",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-UNIV-2-GREEN"
-    },
-    "FX-DIAG-MULTI-1-RED": {
-      "id": "FX-DIAG-MULTI-1-RED",
-      "title": "[RED] safe-edit integration test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-MULTI-1-RED"
-    },
-    "FX-DIAG-MULTI-1-GREEN": {
-      "id": "FX-DIAG-MULTI-1-GREEN",
-      "title": "[GREEN] Integrate safe-edit into framework-enforcer",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-MULTI-1-GREEN"
-    },
-    "FX-DIAG-MULTI-2-RED": {
-      "id": "FX-DIAG-MULTI-2-RED",
-      "title": "[RED] write_audit_state validation test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-MULTI-2-RED"
-    },
-    "FX-DIAG-MULTI-2-GREEN": {
-      "id": "FX-DIAG-MULTI-2-GREEN",
-      "title": "[GREEN] Add write_audit_state integrity validation",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-MULTI-2-GREEN"
-    },
-    "FX-DIAG-STATE-1-RED": {
-      "id": "FX-DIAG-STATE-1-RED",
-      "title": "[RED] health-check aggregation test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-STATE-1-RED"
-    },
-    "FX-DIAG-STATE-1-GREEN": {
-      "id": "FX-DIAG-STATE-1-GREEN",
-      "title": "[GREEN] Add missing components to health-check",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-STATE-1-GREEN"
-    },
-    "FX-DIAG-STATE-2-RED": {
-      "id": "FX-DIAG-STATE-2-RED",
-      "title": "[RED] State machine schema sync test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-STATE-2-RED"
-    },
-    "FX-DIAG-STATE-2-GREEN": {
-      "id": "FX-DIAG-STATE-2-GREEN",
-      "title": "[GREEN] Verify and fix machine.schema.json completeness",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-STATE-2-GREEN"
-    },
-    "FX-DIAG-STATE-3-RED": {
-      "id": "FX-DIAG-STATE-3-RED",
-      "title": "[RED] Gate-state type consistency test",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-STATE-3-RED"
-    },
-    "FX-DIAG-STATE-3-GREEN": {
-      "id": "FX-DIAG-STATE-3-GREEN",
-      "title": "[GREEN] Add gate-state.json type migration logic",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-STATE-3-GREEN"
-    },
-    "FX-DIAG-TECHDEBT-001": {
-      "id": "FX-DIAG-TECHDEBT-001",
-      "title": "TECHDEBT: Mark TD-2026-011 and Verify TECH_DEBT_REGISTRY consistency",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Arbiter",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.json#tasks.FX-DIAG-TECHDEBT-001"
-    },
-    "TOOL-CONSOLIDATE-004": {
-      "id": "TOOL-CONSOLIDATE-004",
-      "title": "Update plugins/ imports to lib/",
-      "status": "pending",
-      "completed_at": null,
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.json#tasks.TOOL-CONSOLIDATE-004"
-    },
-    "B-MSG-CONTRACT": {
-      "id": "B-MSG-CONTRACT",
-      "title": "Update contract.yaml with MSG-001 endpoint definition",
+      "archive_ref": "Task.DAG.json#tasks.PLUGIN-VFY-SHELL"
+    },
+    "DB-VFY-L1-01": {
+      "id": "DB-VFY-L1-01",
+      "title": "DB Infrastructure — File Existence & WAL Mode",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-CONTRACT"
-    },
-    "B-MSG-RED-001": {
-      "id": "B-MSG-RED-001",
-      "title": "Backend RED: Write failing tests for AdminMessagesController (MSG-001 + MSG-004)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-RED-001"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L1-01"
     },
-    "B-MSG-GREEN-001": {
-      "id": "B-MSG-GREEN-001",
-      "title": "Backend GREEN: Implement AdminMessagesController + AdminMessagesService (MSG-001 + MSG-004)",
+    "DB-VFY-L1-02": {
+      "id": "DB-VFY-L1-02",
+      "title": "DB Infrastructure — 29 Tables Existence",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-GREEN-001"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L1-02"
     },
-    "B-MSG-RED-FE": {
-      "id": "B-MSG-RED-FE",
-      "title": "Frontend RED: Write failing tests for MessagesDropdown + AdminService + header wiring",
+    "DB-VFY-L1-03": {
+      "id": "DB-VFY-L1-03",
+      "title": "DB Infrastructure — PRAGMA integrity_check",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-FE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-RED-FE"
-    },
-    "B-MSG-GREEN-FE-COMPONENT": {
-      "id": "B-MSG-GREEN-FE-COMPONENT",
-      "title": "Frontend GREEN: Build MessagesDropdownComponent with dropdown panel",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-FE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-GREEN-FE-COMPONENT"
-    },
-    "B-MSG-GREEN-FE-SERVICE": {
-      "id": "B-MSG-GREEN-FE-SERVICE",
-      "title": "Frontend GREEN: Add getMessages() and getMessageUnreadCount() to AdminService + DTOs",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-FE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-GREEN-FE-SERVICE"
-    },
-    "B-MSG-GREEN-FE-HEADER": {
-      "id": "B-MSG-GREEN-FE-HEADER",
-      "title": "Frontend GREEN: Wire envelope icon in AppHeader + AppLayout to use MessagesDropdown",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-FE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-GREEN-FE-HEADER"
-    },
-    "B-MSG-GREEN-FE-STORE": {
-      "id": "B-MSG-GREEN-FE-STORE",
-      "title": "Frontend GREEN (optional): Add messages state to AdminStore",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-FE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-GREEN-FE-STORE"
-    },
-    "B-MSG-GUARDIAN": {
-      "id": "B-MSG-GUARDIAN",
-      "title": "Guardian Review: Validate all backend and frontend changes",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.B-MSG-GUARDIAN"
-    },
-    "BUG-SENDCODE-ANALYSIS": {
-      "id": "BUG-SENDCODE-ANALYSIS",
-      "title": "Root Cause Analysis: Trace ContactType validation error on Send Code endpoint",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.BUG-SENDCODE-ANALYSIS"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L1-03"
     },
-    "BUG-SENDCODE-RED": {
-      "id": "BUG-SENDCODE-RED",
-      "title": "RED: Write failing tests that reproduce the ContactType validation error",
+    "DB-VFY-L1-04": {
+      "id": "DB-VFY-L1-04",
+      "title": "DB Infrastructure — Schema Version = v6",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.BUG-SENDCODE-RED"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L1-04"
     },
-    "BUG-SENDCODE-GREEN": {
-      "id": "BUG-SENDCODE-GREEN",
-      "title": "GREEN: Fix ContactType validation error — align contract.yaml, backend DTO, and frontend template",
+    "DB-VFY-L1-05": {
+      "id": "DB-VFY-L1-05",
+      "title": "DB Infrastructure — Self-Test DB Checks Pass",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.BUG-SENDCODE-GREEN"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L1-05"
     },
-    "BUG-SENDCODE-REVIEW": {
-      "id": "BUG-SENDCODE-REVIEW",
-      "title": "Guardian Review: Validate ContactType fix — TDD evidence, contract consistency, ESLint audit",
+    "DB-VFY-L2-01": {
+      "id": "DB-VFY-L2-01",
+      "title": "Runtime R/W — 12 Substate DB-First Read",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.BUG-SENDCODE-REVIEW"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L2-01"
     },
-    "OPC-FW-ACL": {
-      "id": "OPC-FW-ACL",
-      "title": "Orchestrator Tool ACL: Add whitelist/blacklist to orchestrator.md frontmatter",
+    "DB-VFY-L2-02": {
+      "id": "DB-VFY-L2-02",
+      "title": "Runtime R/W — atomicWriteSubState DB Transaction",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.OPC-FW-ACL"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L2-02"
     },
-    "OPC-FW-DAG-GATE": {
-      "id": "OPC-FW-DAG-GATE",
-      "title": "DAG Gate Pre-Execution Hook: Create pre-execution-hook.sh",
+    "DB-VFY-L2-03": {
+      "id": "DB-VFY-L2-03",
+      "title": "Runtime R/W — DB Priority Read Correctness",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.OPC-FW-DAG-GATE"
-    },
-    "OPC-FW-SELFCHECK": {
-      "id": "OPC-FW-SELFCHECK",
-      "title": "Self-Check Prompt: Add MUST-RUN self-check to orchestrator.md body",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.OPC-FW-SELFCHECK"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L2-03"
     },
-    "OPC-FW-AUDIT": {
-      "id": "OPC-FW-AUDIT",
-      "title": "Role Compliance Audit: Extend compliance_gate_complete for Orchestrator",
+    "DB-VFY-L2-04": {
+      "id": "DB-VFY-L2-04",
+      "title": "Runtime R/W — JSON Fallback Path (DB Unavailable)",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.OPC-FW-AUDIT"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L2-04"
     },
-    "UNIV-P0-E": {
-      "id": "UNIV-P0-E",
-      "title": "Phase 0: Make coding-standard-common.md truly framework-agnostic",
+    "DB-VFY-L2-05": {
+      "id": "DB-VFY-L2-05",
+      "title": "Runtime R/W — Step 8 Cleanup Verification",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P0-E"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L2-05"
     },
-    "UNIV-P1-C": {
-      "id": "UNIV-P1-C",
-      "title": "Phase 1: Convert backend-coding-standard.md to tiered template",
+    "DB-VFY-L3-01": {
+      "id": "DB-VFY-L3-01",
+      "title": "Gate Operations — createSession DB Write",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P1-C"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L3-01"
     },
-    "UNIV-P1-D": {
-      "id": "UNIV-P1-D",
-      "title": "Phase 1: Convert frontend-coding-standard.md to tiered template",
+    "DB-VFY-L3-02": {
+      "id": "DB-VFY-L3-02",
+      "title": "Gate Operations — armSession with Deadline + Deliverables",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P1-D"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L3-02"
     },
-    "UNIV-P2-A": {
-      "id": "UNIV-P2-A",
-      "title": "Phase 2: Parameterize coder-be.md with placeholders",
+    "DB-VFY-L3-03": {
+      "id": "DB-VFY-L3-03",
+      "title": "Gate Operations — completeSession DB Update",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P2-A"
-    },
-    "UNIV-P2-B": {
-      "id": "UNIV-P2-B",
-      "title": "Phase 2: Parameterize coder-fe.md with placeholders",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P2-B"
-    },
-    "UNIV-P2-J": {
-      "id": "UNIV-P2-J",
-      "title": "Phase 2: Remove (含Salesforce) from AGENTS.md Coder-BE description",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P2-J"
-    },
-    "UNIV-P3-F": {
-      "id": "UNIV-P3-F",
-      "title": "Phase 3: Refactor guardian.md with conditional checklists",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P3-F"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L3-03"
     },
-    "UNIV-P3-G": {
-      "id": "UNIV-P3-G",
-      "title": "Phase 3: Parameterize architect.md references",
+    "DB-VFY-L3-04": {
+      "id": "DB-VFY-L3-04",
+      "title": "Gate Operations — drainStaleSessions DB Archive",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P3-G"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L3-04"
     },
-    "UNIV-P4-H": {
-      "id": "UNIV-P4-H",
-      "title": "Phase 4: Rename prisma-seed-cicd to cicd-database-seeding with generic layer",
+    "DB-VFY-L3-05": {
+      "id": "DB-VFY-L3-05",
+      "title": "Gate Operations — approveDeliverables 6-Column Hard Constraint",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L3-05"
+    },
+    "DB-VFY-L4-01": {
+      "id": "DB-VFY-L4-01",
+      "title": "Audit Log — writeAuditLogEntry DB INSERT",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L4-01"
+    },
+    "DB-VFY-L4-02": {
+      "id": "DB-VFY-L4-02",
+      "title": "Audit Log — flushAuditTrail DB Upsert",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L4-02"
+    },
+    "DB-VFY-L4-03": {
+      "id": "DB-VFY-L4-03",
+      "title": "Audit Log — JSONL Dual-Write Stopped (Step 8)",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L4-03"
+    },
+    "DB-VFY-L5-01": {
+      "id": "DB-VFY-L5-01",
+      "title": "E2E — framework-self-test.ts 39/40 PASS",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L5-01"
+    },
+    "DB-VFY-L5-02": {
+      "id": "DB-VFY-L5-02",
+      "title": "E2E — framework-doctor.ts --strict 12/13 PASS",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L5-02"
+    },
+    "DB-VFY-L5-03": {
+      "id": "DB-VFY-L5-03",
+      "title": "E2E — Complete Gate Lifecycle End-to-End",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L5-03"
+    },
+    "DB-VFY-L5-04": {
+      "id": "DB-VFY-L5-04",
+      "title": "E2E — G1-G13 Final State Verification",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L5-04"
+    },
+    "DB-VFY-L5-05": {
+      "id": "DB-VFY-L5-05",
+      "title": "E2E — Stale Dispatch Entries State Check",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
       "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P4-H"
+      "archive_ref": "Task.DAG.json#tasks.DB-VFY-L5-05"
     },
-    "UNIV-P4-I": {
-      "id": "UNIV-P4-I",
-      "title": "Phase 4: Deprecate nextjs-router-guardrails skill, extract principles",
+    "PHASE0-S0": {
+      "id": "PHASE0-S0",
+      "title": "Phase 0 Step 0: Freeze Baseline Window",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P4-I"
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Orchestrator",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.PHASE0-S0"
     },
-    "UNIV-P5-K": {
-      "id": "UNIV-P5-K",
-      "title": "Phase 5: Add placeholder compliance checks to framework-self-test.js",
+    "PHASE0-S1": {
+      "id": "PHASE0-S1",
+      "title": "Phase 0 Step 1: Define Schema + Create baseline-metrics.json",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P5-K"
-    },
-    "UNIV-P5-L": {
-      "id": "UNIV-P5-L",
-      "title": "Phase 5: Improve compliance-audit.sh pattern matching",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P5-L"
-    },
-    "UNIV-P5-M": {
-      "id": "UNIV-P5-M",
-      "title": "Phase 5: Add python3 fallback to pre-execution-hook.sh",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P5-M"
-    },
-    "UNIV-P5-N": {
-      "id": "UNIV-P5-N",
-      "title": "Phase 5: Support OPENCODE_ROOT env var in dispatch-subagent.js",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P5-N"
-    },
-    "UNIV-P6-O": {
-      "id": "UNIV-P6-O",
-      "title": "Phase 6: Update TECH_DEBT_REGISTRY.md and skill-invocation-standard.md",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.UNIV-P6-O"
-    },
-    "FW-REPAIR-01": {
-      "id": "FW-REPAIR-01",
-      "title": "P0: Add template_resolution to project.config.json",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Architect",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-01"
+      "archive_ref": "Task.DAG.json#tasks.PHASE0-S1"
     },
-    "FW-REPAIR-02": {
-      "id": "FW-REPAIR-02",
-      "title": "P0: Create contract.yaml at project root",
+    "PHASE0-S2-RED": {
+      "id": "PHASE0-S2-RED",
+      "title": "Phase 0 Step 2 RED: Collection Script Test Cases",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.PHASE0-S2-RED"
+    },
+    "PHASE0-S2-GREEN": {
+      "id": "PHASE0-S2-GREEN",
+      "title": "Phase 0 Step 2 GREEN: Implement Collection Script",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.PHASE0-S2-GREEN"
+    },
+    "PHASE0-S3": {
+      "id": "PHASE0-S3",
+      "title": "Phase 0 Step 3: Collect 5-10 Task Samples",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Orchestrator",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.PHASE0-S3"
+    },
+    "PHASE0-S4": {
+      "id": "PHASE0-S4",
+      "title": "Phase 0 Step 4: Aggregate Metrics + Generate Report",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Architect",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-02"
+      "archive_ref": "Task.DAG.json#tasks.PHASE0-S4"
     },
-    "FW-REPAIR-03": {
-      "id": "FW-REPAIR-03",
-      "title": "P0: Create machine.schema.json in .opencode/state/",
+    "PHASE0-S5": {
+      "id": "PHASE0-S5",
+      "title": "Phase 0 Step 5: Subsequent Phase Unlock Decision",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
+      "agent": "@Orchestrator",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.PHASE0-S5"
+    },
+    "T-TECHDEBT-WV011": {
+      "id": "T-TECHDEBT-WV011",
+      "title": "Tech-Debt Repayment: WV-2026-011 — @Coder-BE Write Scope Expansion",
+      "status": "completed",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Architect",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-03"
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-WV011"
     },
-    "FW-REPAIR-04": {
-      "id": "FW-REPAIR-04",
-      "title": "P0: Clean machine.json state contamination",
+    "T-TECHDEBT-WV012": {
+      "id": "T-TECHDEBT-WV012",
+      "title": "Tech-Debt Repayment: WV-2026-012 — @Coder-BE Hooks Write Scope",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Architect",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-04"
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-WV012"
     },
-    "FW-REPAIR-05": {
-      "id": "FW-REPAIR-05",
-      "title": "P1: Populate keystone_hashes in machine.json",
+    "REVIEW-READ-APPROVE-PLAN": {
+      "id": "REVIEW-READ-APPROVE-PLAN",
+      "title": "Architect 全面审核 read-before-approve-plan.md — READ-BEFORE-APPROVE 物理约束方案",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-18T14:44:26.000Z",
       "agent": "@Architect",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-05"
+      "archive_ref": "Task.DAG.json#tasks.REVIEW-READ-APPROVE-PLAN"
     },
-    "FW-REPAIR-06": {
-      "id": "FW-REPAIR-06",
-      "title": "P1: Implement template resolution engine in dispatch-subagent.js",
+    "COMMIT-UC7KS-FINAL": {
+      "id": "COMMIT-UC7KS-FINAL",
+      "title": "Commit UC7-001 Read-Before-Write Hardening + read_audit.jsonl→SQLite Migration",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-06"
-    },
-    "FW-REPAIR-07": {
-      "id": "FW-REPAIR-07",
-      "title": "P1: Create state machine reset script",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-07"
-    },
-    "FW-REPAIR-08": {
-      "id": "FW-REPAIR-08",
-      "title": "P1: Fix gate-state.json active_sessions synchronization",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-08"
-    },
-    "FW-REPAIR-09": {
-      "id": "FW-REPAIR-09",
-      "title": "P2: Add cross-workspace protection to code-quality-gate.js",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-09"
-    },
-    "FW-REPAIR-10": {
-      "id": "FW-REPAIR-10",
-      "title": "P2: Fix subagent-preamble.md path reference (prisma/schema.prisma → {backend.orm.schema})",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-10"
-    },
-    "FW-REPAIR-11": {
-      "id": "FW-REPAIR-11",
-      "title": "P2: Create TEMPLATE_VARIABLE_STANDARD.md documenting all placeholders",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-REPAIR-11"
-    },
-    "RVW-REVIEW-01": {
-      "id": "RVW-REVIEW-01",
-      "title": "P0: Implement Unified State Transaction Envelope (atomic commit: operation ID, monotonic revision, two-phase write + recovery marker)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-01"
-    },
-    "RVW-REVIEW-02": {
-      "id": "RVW-REVIEW-02",
-      "title": "P0: Implement Workspace-Root Canonicalization Runtime Enforcement (auto-scrub foreign paths at read/write boundary across all state sections)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-02"
-    },
-    "RVW-REVIEW-03": {
-      "id": "RVW-REVIEW-03",
-      "title": "P0: Add Semantic Version Checks to Gate Preflight (rule digest/version compatibility assertions replacing presence-only checks)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-03"
-    },
-    "RVW-REVIEW-04": {
-      "id": "RVW-REVIEW-04",
-      "title": "P1: Build Reconciliation Daemon/Check Command (validate DAG ↔ gate sessions ↔ machine.json consistency)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-04"
-    },
-    "RVW-REVIEW-05": {
-      "id": "RVW-REVIEW-05",
-      "title": "P1: Extend Integrity Chaining to All Critical Docs (hash bundle for rules + requirements + agent configs, verified in hook/toolchain)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-05"
-    },
-    "RVW-REVIEW-06": {
-      "id": "RVW-REVIEW-06",
-      "title": "P1: CI Linting for Absolute Path Leakage (normalize all docs/configs to repo-relative paths with automated CI enforcement)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-06"
-    },
-    "RVW-REVIEW-07": {
-      "id": "RVW-REVIEW-07",
-      "title": "P2: Implement Event-Sourced Audit Log Layer (append-only events → derived materialized states for gate/machine)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-07"
-    },
-    "RVW-REVIEW-08": {
-      "id": "RVW-REVIEW-08",
-      "title": "P2: Formalize Enforcement Modes (advisory/strict/locked for environment tiers)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-08"
-    },
-    "RVW-REVIEW-09": {
-      "id": "RVW-REVIEW-09",
-      "title": "P2: Create Universal Compatibility Profile for Non-Angular/Nest Stacks (React, Vue, Express, Django, etc.)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-09"
-    },
-    "RVW2-INSTALL-HOOKS": {
-      "id": "RVW2-INSTALL-HOOKS",
-      "title": "P0: Install Git hook enforcement — set core.hooksPath to .opencode/hooks",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-INSTALL-HOOKS"
-    },
-    "RVW2-ENFORCE-STRICT": {
-      "id": "RVW2-ENFORCE-STRICT",
-      "title": "P0: Switch project to strict enforcement mode in project.config.json",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-ENFORCE-STRICT"
-    },
-    "RVW2-PURGE-SESSIONS": {
-      "id": "RVW2-PURGE-SESSIONS",
-      "title": "P0: Purge stale completed/consumed sessions from gate-state.json.active_sessions",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-PURGE-SESSIONS"
-    },
-    "RVW2-FIX-CRLF": {
-      "id": "RVW2-FIX-CRLF",
-      "title": "P1: Normalize shell scripts to LF line endings and enforce via .gitattributes",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-FIX-CRLF"
-    },
-    "RVW2-REGEN-DIGESTS": {
-      "id": "RVW2-REGEN-DIGESTS",
-      "title": "P1: Regenerate rule_registry.json digests from actual file contents",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-REGEN-DIGESTS"
-    },
-    "RVW2-FIX-SELFTEST": {
-      "id": "RVW2-FIX-SELFTEST",
-      "title": "P1: Fix 3 failing framework-self-test.js checks (checks 18, 19, 20)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-FIX-SELFTEST"
-    },
-    "RVW2-INSTALL-MCP-DEPS": {
-      "id": "RVW2-INSTALL-MCP-DEPS",
-      "title": "P1: Install Node dependencies for MCP scripts and document bootstrap process",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-INSTALL-MCP-DEPS"
-    },
-    "RVW2-FIX-PATHS": {
-      "id": "RVW2-FIX-PATHS",
-      "title": "P1: Align project.config.json backend_src/frontend_src paths with actual booking_system_refactor layout",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-FIX-PATHS"
-    },
-    "RVW2-FIX-DAG-TRACE": {
-      "id": "RVW2-FIX-DAG-TRACE",
-      "title": "P2: Complete requirement_source field for 19 untraced DAG tasks",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Meta-Planner",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-FIX-DAG-TRACE"
-    },
-    "RVW2-CI-CHECKS": {
-      "id": "RVW2-CI-CHECKS",
-      "title": "P2: Add CI checks for hook path enforcement, LF line endings, digest freshness, and transaction log validity",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@CI-CD-Agent",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-CI-CHECKS"
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.COMMIT-UC7KS-FINAL"
     },
-    "RVW2-FIX-WAL-DUP": {
-      "id": "RVW2-FIX-WAL-DUP",
-      "title": "P1: Fix state-transaction.js WAL duplicate revision bug — record new_revision only on COMMIT or update verifier to group by operation_id",
+    "T-GH-WF-DESIGN-001": {
+      "id": "T-GH-WF-DESIGN-001",
+      "title": "GitHub Workflow Architecture Design",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@Architect",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW2-FIX-WAL-DUP"
+      "archive_ref": "Task.DAG.json#tasks.T-GH-WF-DESIGN-001"
     },
-    "TD-2026-010-REPAY": {
-      "id": "TD-2026-010-REPAY",
-      "title": "P0 [Tech-Debt]: Repay TD-2026-010 — Clean up Skill Registry Stale References (deadline 2026-05-30)",
+    "T-GH-WF-IMPL-002": {
+      "id": "T-GH-WF-IMPL-002",
+      "title": "Auto PR Creation Workflow Implementation",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TD-2026-010-REPAY"
-    },
-    "RVW-REVIEW-01-TXNFIX-RED": {
-      "id": "RVW-REVIEW-01-TXNFIX-RED",
-      "title": "RED: Write failing tests verifying eslint-audit.js updateMachineJson() bypasses transaction envelope",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-01-TXNFIX-RED"
-    },
-    "RVW-REVIEW-01-TXNFIX-GREEN": {
-      "id": "RVW-REVIEW-01-TXNFIX-GREEN",
-      "title": "GREEN: Convert eslint-audit.js updateMachineJson() to use beginTransaction()/prepare()/commit() from state-transaction.js",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-01-TXNFIX-GREEN"
-    },
-    "RVW-REVIEW-01-TXNFIX-REVIEW": {
-      "id": "RVW-REVIEW-01-TXNFIX-REVIEW",
-      "title": "REVIEW: Guardian validates transaction envelope fix — test evidence, WAL integrity, code quality",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.RVW-REVIEW-01-TXNFIX-REVIEW"
-    },
-    "T-TECHDEBT-013": {
-      "id": "T-TECHDEBT-013",
-      "title": "Repay TD-2026-013: Fix 7 Angular frontend TypeScript errors via TDD RED→GREEN",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-FE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.T-TECHDEBT-013"
-    },
-    "T-TECHDEBT-014": {
-      "id": "T-TECHDEBT-014",
-      "title": "Repay TD-2026-014: Format contract.yaml with Prettier",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.T-TECHDEBT-014"
-    },
-    "T-TECHDEBT-015": {
-      "id": "T-TECHDEBT-015",
-      "title": "Repay TD-2026-015: Write TDD-compliance test files for 4 framework tool files via RED→GREEN",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.T-TECHDEBT-015"
-    },
-    "FW-FIX-F1": {
-      "id": "FW-FIX-F1",
-      "title": "Fix compliance gate bypass: Block arming when check failed (F1)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-FIX-F1"
-    },
-    "FW-FIX-F2": {
-      "id": "FW-FIX-F2",
-      "title": "Regenerate rule registry digests to fix 19 HIGH mismatches (F2)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-FIX-F2"
-    },
-    "FW-FIX-F3": {
-      "id": "FW-FIX-F3",
-      "title": "Harden pre-execution-hook.sh for Windows/WSL cross-platform (F3)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-FIX-F3"
-    },
-    "FW-FIX-F4": {
-      "id": "FW-FIX-F4",
-      "title": "Verify git hooksPath enforcement + harden pre-commit paths (F4)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-FIX-F4"
-    },
-    "FW-FIX-F5": {
-      "id": "FW-FIX-F5",
-      "title": "Purge stale gate sessions + auto-reconciliation on check (F5)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-FIX-F5"
-    },
-    "FW-FIX-F6": {
-      "id": "FW-FIX-F6",
-      "title": "Fail-closed writes in strict/locked enforcement mode (F6)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-FIX-F6"
-    },
-    "FW-FIX-F7": {
-      "id": "FW-FIX-F7",
-      "title": "Fix Check 20 cross-platform bash path in framework-self-test.js (F7)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-FIX-F7"
-    },
-    "FW-HARDEN-F1-TEST": {
-      "id": "FW-HARDEN-F1-TEST",
-      "title": "Write compliance-gate unit tests to prevent F1 regression (gate bypass)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARDEN-F1-TEST"
-    },
-    "FW-HARDEN-F6-TEST": {
-      "id": "FW-HARDEN-F6-TEST",
-      "title": "Write transaction fail-closed tests for strict/locked enforcement mode",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARDEN-F6-TEST"
-    },
-    "FW-HARDEN-CROSS": {
-      "id": "FW-HARDEN-CROSS",
-      "title": "Run framework-self-test.js on Windows/WSL and fix all platform-specific issues",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@CI-CD-Agent",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARDEN-CROSS"
+      "archive_ref": "Task.DAG.json#tasks.T-GH-WF-IMPL-002"
     },
-    "FW-GOVERN-AUDIT": {
-      "id": "FW-GOVERN-AUDIT",
-      "title": "Guardian governance audit: verify all 7 F1-F7 fixes pass compliance gate lifecycle",
+    "T-GH-WF-IMPL-003": {
+      "id": "T-GH-WF-IMPL-003",
+      "title": "Document Decomposition Workflow Implementation",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-GOVERN-AUDIT"
-    },
-    "FW-SAFE-P1-001": {
-      "id": "FW-SAFE-P1-001",
-      "title": "P1.1: Create opencode.json with instructions, 8 agents, and plugin reference",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P1-001"
-    },
-    "FW-SAFE-P1-002": {
-      "id": "FW-SAFE-P1-002",
-      "title": "P1.2: Configure permission allow/deny rules in opencode.json per agent scope",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P1-002"
-    },
-    "FW-SAFE-P1-003": {
-      "id": "FW-SAFE-P1-003",
-      "title": "P1.3: Validate opencode.json adapter does not conflict with existing authorities",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P1-003"
-    },
-    "FW-SAFE-P2-001": {
-      "id": "FW-SAFE-P2-001",
-      "title": "P2.1: Create pre-execution-gate.js — Node-first DAG/gate validation with fail-closed semantics",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P2-001"
-    },
-    "FW-SAFE-P2-002": {
-      "id": "FW-SAFE-P2-002",
-      "title": "P2.2: Wire pre-execution-gate.js into pre-execution-hook.sh and orchestrator dispatch flow",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P2-002"
-    },
-    "FW-SAFE-P3-001": {
-      "id": "FW-SAFE-P3-001",
-      "title": "P3.1: Create .opencode/plugins/ directory and framework-enforcer.ts plugin skeleton",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P3-001"
-    },
-    "FW-SAFE-P3-002": {
-      "id": "FW-SAFE-P3-002",
-      "title": "P3.2: Implement tool.execute.before hook — DAG + gate + enforcement pre-validation",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P3-002"
-    },
-    "FW-SAFE-P3-003": {
-      "id": "FW-SAFE-P3-003",
-      "title": "P3.3: Implement shell.env hook — inject enforcement profile + DAG context into runtime",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P3-003"
-    },
-    "FW-SAFE-P4-001": {
-      "id": "FW-SAFE-P4-001",
-      "title": "P4.1: Create framework_compliance_check custom tool",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-21T09:00:41.963Z",
+      "agent": "@CI-CD-Agent",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P4-001"
+      "archive_ref": "Task.DAG.json#tasks.T-GH-WF-IMPL-003"
     },
-    "FW-SAFE-P4-002": {
-      "id": "FW-SAFE-P4-002",
-      "title": "P4.2: Create state_integrity_scan custom tool",
+    "T-GH-WF-IMPL-004": {
+      "id": "T-GH-WF-IMPL-004",
+      "title": "Auto Project Association Workflow Implementation",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-21T09:00:41.963Z",
+      "agent": "@CI-CD-Agent",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P4-002"
+      "archive_ref": "Task.DAG.json#tasks.T-GH-WF-IMPL-004"
     },
-    "FW-SAFE-P4-003": {
-      "id": "FW-SAFE-P4-003",
-      "title": "P4.3: Create gate_lifecycle_audit custom tool",
+    "T-GH-WF-IMPL-005": {
+      "id": "T-GH-WF-IMPL-005",
+      "title": "State Synchronization Workflow Implementation",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-21T09:00:41.963Z",
+      "agent": "@CI-CD-Agent",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P4-003"
+      "archive_ref": "Task.DAG.json#tasks.T-GH-WF-IMPL-005"
     },
-    "FW-SAFE-P5-001": {
-      "id": "FW-SAFE-P5-001",
-      "title": "P5.1: Implement gate lifecycle invariant enforcement — auto-drain stale sessions on check",
+    "T-GH-WF-CFG-006": {
+      "id": "T-GH-WF-CFG-006",
+      "title": "GitHub Secrets & Token Configuration",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P5-001"
-    },
-    "FW-SAFE-P5-002": {
-      "id": "FW-SAFE-P5-002",
-      "title": "P5.2: Fix transaction monotonicity — prevent non-monotonic revision in state-transaction.js",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P5-002"
-    },
-    "FW-SAFE-P5-003": {
-      "id": "FW-SAFE-P5-003",
-      "title": "P5.3: Implement gate-state ↔ machine.json consistency auto-repair on reconciliation failure",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P5-003"
-    },
-    "FW-SAFE-P5-004": {
-      "id": "FW-SAFE-P5-004",
-      "title": "P5.4: Drain all currently stale gate sessions and verify state consistency",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P5-004"
-    },
-    "FW-SAFE-P6-001": {
-      "id": "FW-SAFE-P6-001",
-      "title": "P6.1: Create rule-registry-verify.js — full registry integrity validation with auto-regen",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P6-001"
-    },
-    "FW-SAFE-P6-002": {
-      "id": "FW-SAFE-P6-002",
-      "title": "P6.2: Harden install-hooks.js — ensure hooksPath enforcement survives clone/init",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P6-002"
-    },
-    "FW-SAFE-P6-003": {
-      "id": "FW-SAFE-P6-003",
-      "title": "P6.3: Integrate rule-registry-verify.js and install-hooks.js into CI pipeline",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P6-003"
-    },
-    "FW-SAFE-P7-001": {
-      "id": "FW-SAFE-P7-001",
-      "title": "P7.1: Create framework-doctor.js — comprehensive project health check with --strict mode",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P7-001"
-    },
-    "FW-SAFE-P7-002": {
-      "id": "FW-SAFE-P7-002",
-      "title": "P7.2: Write comprehensive test suite for framework-doctor.js (TDD RED→GREEN)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P7-002"
-    },
-    "FW-SAFE-P7-003": {
-      "id": "FW-SAFE-P7-003",
-      "title": "P7.3: Universality audit — verify all 7 phases work with compatibility profiles",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-P7-003"
-    },
-    "T-TECHDEBT-016": {
-      "id": "T-TECHDEBT-016",
-      "title": "Repay TD-2026-016: Fix @Coder-BE agent_write_scopes to allow .opencode/scripts/__tests__/** framework test writes",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-21T09:00:41.963Z",
+      "agent": "@CI-CD-Agent",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.T-TECHDEBT-016"
+      "archive_ref": "Task.DAG.json#tasks.T-GH-WF-CFG-006"
     },
-    "FW-SAFE-AUDIT": {
-      "id": "FW-SAFE-AUDIT",
-      "title": "Guardian governance audit: validate all 7 framework optimization phases + tech-debt repayment",
+    "T-GH-WF-TEST-007": {
+      "id": "T-GH-WF-TEST-007",
+      "title": "GitHub Workflow Integration Test & Validation",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-SAFE-AUDIT"
-    },
-    "FW-CRASH-MITIGATE": {
-      "id": "FW-CRASH-MITIGATE",
-      "title": "P0: Temporarily remove framework-enforcer from opencode.json plugin list to restore opencode functionality",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-MITIGATE"
-    },
-    "FW-CRASH-ANALYSIS": {
-      "id": "FW-CRASH-ANALYSIS",
-      "title": "P0: Confirm root cause — verify plugin API mismatch and document crash mechanism",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Meta-Planner",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-ANALYSIS"
-    },
-    "FW-CRASH-FIX-PLUGIN": {
-      "id": "FW-CRASH-FIX-PLUGIN",
-      "title": "P0: Rewrite framework-enforcer.ts to export as Plugin function matching @opencode-ai/plugin v1.14.20 API",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-FIX-PLUGIN"
-    },
-    "FW-CRASH-RESTORE": {
-      "id": "FW-CRASH-RESTORE",
-      "title": "P1: Re-add fixed framework-enforcer plugin to opencode.json after fix verification",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+      "completed_at": "2026-06-21T09:00:41.963Z",
+      "agent": "@CI-CD-Agent",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-RESTORE"
+      "archive_ref": "Task.DAG.json#tasks.T-GH-WF-TEST-007"
     },
-    "FW-CRASH-VALIDATE": {
-      "id": "FW-CRASH-VALIDATE",
-      "title": "P1: Guardian validation — verify opencode boots, responds, and framework-enforcer enforces rules correctly",
+    "T-TECHDEBT-STRIKER": {
+      "id": "T-TECHDEBT-STRIKER",
+      "title": "Tech-Debt Repayment: WV-2026-002 — Stryker Mutation Testing CI Integration",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-VALIDATE"
-    },
-    "FW-CRASH-FIX2A": {
-      "id": "FW-CRASH-FIX2A",
-      "title": "P0: Add session-init grace period to framework-enforcer.ts — skip gate check when zero sessions exist (prevents plugin from blocking session creation itself)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-FIX2A"
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-STRIKER"
     },
-    "FW-CRASH-FIX2B": {
-      "id": "FW-CRASH-FIX2B",
-      "title": "P1: Fix develop branch opencode.json — change 'agents' (plural/invalid) to 'agent' (singular/valid) so framework enforcement boots in develop too",
+    "T-TECHDEBT-ANGULAR-TS": {
+      "id": "T-TECHDEBT-ANGULAR-TS",
+      "title": "Tech-Debt Repayment: WV-2026-007/TD-2026-013 — Angular Frontend TypeScript Errors",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
+      "agent": "@Coder-FE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-ANGULAR-TS"
+    },
+    "T-TECHDEBT-CONTRACT-FMT": {
+      "id": "T-TECHDEBT-CONTRACT-FMT",
+      "title": "Tech-Debt Repayment: WV-2026-008/TD-2026-014 — contract.yaml Formatting",
+      "status": "completed",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-FIX2B"
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-CONTRACT-FMT"
     },
-    "FW-CRASH-VALIDATE2": {
-      "id": "FW-CRASH-VALIDATE2",
-      "title": "P1: Guardian validation — verify both branches boot, create sessions, and framework-enforcer enforces correctly after FW-CRASH-FIX2",
+    "T-TECHDEBT-AGENT-CFG": {
+      "id": "T-TECHDEBT-AGENT-CFG",
+      "title": "Tech-Debt Repayment: TD-2026-008 — Agent Config Parameterization",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-CRASH-VALIDATE2"
-    },
-    "T-TECHDEBT-012": {
-      "id": "T-TECHDEBT-012",
-      "title": "P1: Repay TD-2026-011 — Deprecated Skill Cleanup: remove stale skill files from .opencode/skills/",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.T-TECHDEBT-012"
-    },
-    "FW-HARNESS-FILE-EDITED": {
-      "id": "FW-HARNESS-FILE-EDITED",
-      "title": "P0: Implement file.edited hook for plugin/hook/config tamper detection in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
       "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-FILE-EDITED"
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-AGENT-CFG"
     },
-    "FW-HARNESS-AFTER-AUDIT": {
-      "id": "FW-HARNESS-AFTER-AUDIT",
-      "title": "P0: Implement tool.execute.after hook with audit log, stale drain, auto-repair trigger in framework-enforcer.ts",
+    "T-TECHDEBT-RULE-TPL": {
+      "id": "T-TECHDEBT-RULE-TPL",
+      "title": "Tech-Debt Repayment: TD-2026-009 — Rule File Template Resolution",
       "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-AFTER-AUDIT"
-    },
-    "FW-HARNESS-BEFORE-TDD": {
-      "id": "FW-HARNESS-BEFORE-TDD",
-      "title": "P0: Add TDD enforcement (RED→GREEN→REFACTOR) to tool.execute.before in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-BEFORE-TDD"
-    },
-    "FW-HARNESS-PLUGIN-CHECK": {
-      "id": "FW-HARNESS-PLUGIN-CHECK",
-      "title": "P0: Add plugin integrity self-check to tool.execute.before (verify plugin hash, hooks registered) in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-PLUGIN-CHECK"
-    },
-    "FW-HARNESS-ENF-GUARD": {
-      "id": "FW-HARNESS-ENF-GUARD",
-      "title": "P0: Add enforcement_mode guard to tool.execute.before (fail-closed in locked, block downgrades) in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-ENF-GUARD"
-    },
-    "FW-HARNESS-CODE-QUALITY": {
-      "id": "FW-HARNESS-CODE-QUALITY",
-      "title": "P0: Add single-file ESLint(<100ms)+Prettier(<10ms)+tsc(<1s) checks to tool.execute.after in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-CODE-QUALITY"
-    },
-    "FW-HARNESS-SHARED-MODULE": {
-      "id": "FW-HARNESS-SHARED-MODULE",
-      "title": "P1: Create .opencode/plugins/lib/framework-validation.ts shared validation module with full API",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-SHARED-MODULE"
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-RULE-TPL"
     },
-    "FW-HARNESS-MOVE-SCRIPTS": {
-      "id": "FW-HARNESS-MOVE-SCRIPTS",
-      "title": "P1: Move P4-001/002/003 from .opencode/tools/ to .opencode/scripts/, merge P4-002 into state-reconciliation.js",
+    "T-TECHDEBT-WV011-FIX": {
+      "id": "T-TECHDEBT-WV011-FIX",
+      "title": "Tech-Debt Repayment: WV-2026-011 — Coder-BE Write Scope (Recheck)",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-MOVE-SCRIPTS"
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-WV011-FIX"
     },
-    "FW-HARNESS-UPDATE-PRECOMMIT": {
-      "id": "FW-HARNESS-UPDATE-PRECOMMIT",
-      "title": "P1: Update pre-commit hook path reference for gate-lifecycle-audit.js after move",
+    "T-TECHDEBT-WV012-FIX": {
+      "id": "T-TECHDEBT-WV012-FIX",
+      "title": "Tech-Debt Repayment: WV-2026-012 — Coder-BE Hooks Write Scope (Recheck)",
       "status": "completed",
-      "completed_at": "2026-05-20",
+      "completed_at": "2026-06-21T09:00:41.963Z",
       "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-UPDATE-PRECOMMIT"
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.T-TECHDEBT-WV012-FIX"
     },
-    "FW-HARNESS-SESSION-HOOKS": {
-      "id": "FW-HARNESS-SESSION-HOOKS",
-      "title": "P1: Implement session.created + session.error + session.idle hooks in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+    "E2E-PLUGIN-REGISTER": {
+      "id": "E2E-PLUGIN-REGISTER",
+      "title": "Register tsc-diag-track plugin in opencode.json",
+      "status": "pending",
+      "completed_at": null,
       "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-SESSION-HOOKS"
+      "archive_ref": "Task.DAG.json#tasks.E2E-PLUGIN-REGISTER"
     },
-    "FW-HARNESS-PERMISSION": {
-      "id": "FW-HARNESS-PERMISSION",
-      "title": "P1: Implement permission.asked + permission.replied hooks in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+    "E2E-TSC-PLUGIN-CREATE": {
+      "id": "E2E-TSC-PLUGIN-CREATE",
+      "title": "Create tsc-diag-track.ts plugin with after-hook tsc check and before-hook blocking",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.E2E-TSC-PLUGIN-CREATE"
+    },
+    "E2E-TSC-STATE-REGISTER": {
+      "id": "E2E-TSC-STATE-REGISTER",
+      "title": "Register diagnostic_state + remove type_check_state from substate-types and substate-manager",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.E2E-TSC-STATE-REGISTER"
+    },
+    "E2E-TSC-MIGRATE-CONSUMERS": {
+      "id": "E2E-TSC-MIGRATE-CONSUMERS",
+      "title": "Migrate all type_check_state consumers to diagnostic_state",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.E2E-TSC-MIGRATE-CONSUMERS"
+    },
+    "E2E-TSC-LIB-REFACTOR": {
+      "id": "E2E-TSC-LIB-REFACTOR",
+      "title": "Refactor runTscCheck → runTscDiagnostic in code-quality-lib.ts + remove run_tsc_check MCP tool",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.E2E-TSC-LIB-REFACTOR"
+    },
+    "E2E-TSC-GATE-LAYERS": {
+      "id": "E2E-TSC-GATE-LAYERS",
+      "title": "Add Layer 2 (submitDeliverables) and Layer 3 (compliance_gate_complete) diagnostic checks",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.E2E-TSC-GATE-LAYERS"
+    },
+    "E2E-HARNESS": {
+      "id": "E2E-HARNESS",
+      "title": "E2E: Create isolated DB E2E harness for tsc diagnostic gate",
+      "status": "pending",
+      "completed_at": null,
       "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-PERMISSION"
+      "archive_ref": "Task.DAG.json#tasks.E2E-HARNESS"
     },
-    "FW-HARNESS-CONTRACT-HASH": {
-      "id": "FW-HARNESS-CONTRACT-HASH",
-      "title": "P1: Add contract hash verification to tool.execute.before in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+    "E2E-SELFTEST-CHECKS": {
+      "id": "E2E-SELFTEST-CHECKS",
+      "title": "Add self-test checks 70-74 for LSP diagnostic gate verification",
+      "status": "pending",
+      "completed_at": null,
       "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-CONTRACT-HASH"
+      "archive_ref": "Task.DAG.json#tasks.E2E-SELFTEST-CHECKS"
     },
-    "FW-HARNESS-COMMAND-EXEC": {
-      "id": "FW-HARNESS-COMMAND-EXEC",
-      "title": "P1: Implement command.executed validation in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+    "E2E-BUN-TYPES-FIX": {
+      "id": "E2E-BUN-TYPES-FIX",
+      "title": "Fix bun-types root dependency for tsc baseline",
+      "status": "pending",
+      "completed_at": null,
       "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-COMMAND-EXEC"
+      "archive_ref": "Task.DAG.json#tasks.E2E-BUN-TYPES-FIX"
     },
-    "FW-HARNESS-AFTER-REPAIR": {
-      "id": "FW-HARNESS-AFTER-REPAIR",
-      "title": "P2: Implement auto-repair in tool.execute.after (state reconciliation, stale drain) in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+    "E2E-TSC-ESM-COMPLY": {
+      "id": "E2E-TSC-ESM-COMPLY",
+      "title": "ESM compliance: Extract runTscDiagnostic to .opencode/lib/tsc-diagnostic.ts",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.E2E-TSC-ESM-COMPLY"
+    },
+    "E2E-COMMENT-FIX": {
+      "id": "E2E-COMMENT-FIX",
+      "title": "Fix comment drift: Update DB-only semantics comments in gate-core.ts",
+      "status": "pending",
+      "completed_at": null,
       "agent": "@Coder-BE",
       "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-AFTER-REPAIR"
+      "archive_ref": "Task.DAG.json#tasks.E2E-COMMENT-FIX"
     },
-    "FW-HARNESS-BEFORE-REGISTRY": {
-      "id": "FW-HARNESS-BEFORE-REGISTRY",
-      "title": "P2: Add rule registry integrity check to tool.execute.before in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+    "E2E-ROUTE-DISPLAY": {
+      "id": "E2E-ROUTE-DISPLAY",
+      "title": "Fix @@Agent display bug in dispatch-before.ts",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.E2E-ROUTE-DISPLAY"
+    },
+    "E2E-ROUTE-PURPOSE": {
+      "id": "E2E-ROUTE-PURPOSE",
+      "title": "Add dispatch purpose dimension and framework read-only audit route",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.E2E-ROUTE-PURPOSE"
+    },
+    "E2E-SHELL-CLASSIFY": {
+      "id": "E2E-SHELL-CLASSIFY",
+      "title": "Implement shell command classifier with benign FD redirect stripping",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.E2E-SHELL-CLASSIFY"
+    },
+    "E2E-CHECKLIST-DOMAIN": {
+      "id": "E2E-CHECKLIST-DOMAIN",
+      "title": "Add main-session domain fallback and policy-ize checklist auto-pass",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Coder-BE",
+      "priority": "P1",
+      "archive_ref": "Task.DAG.json#tasks.E2E-CHECKLIST-DOMAIN"
+    },
+    "E2E-REPORT-TOOL": {
+      "id": "E2E-REPORT-TOOL",
+      "title": "Create safe_write_report tool for strict-mode report generation",
+      "status": "pending",
+      "completed_at": null,
       "agent": "@Coder-BE",
       "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-BEFORE-REGISTRY"
+      "archive_ref": "Task.DAG.json#tasks.E2E-REPORT-TOOL"
     },
-    "FW-HARNESS-BEFORE-DIRTY": {
-      "id": "FW-HARNESS-BEFORE-DIRTY",
-      "title": "P2: Add dirty machine state check to tool.execute.before in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-BEFORE-DIRTY"
-    },
-    "FW-HARNESS-SHELL-AUDIT": {
-      "id": "FW-HARNESS-SHELL-AUDIT",
-      "title": "P2: Add anti-tampering shell audit to tool.execute.before (block rm on critical files) in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-SHELL-AUDIT"
-    },
-    "FW-HARNESS-SCOPE-ESCALATION": {
-      "id": "FW-HARNESS-SCOPE-ESCALATION",
-      "title": "P2: Add cross-agent scope escalation detection to tool.execute.before in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-SCOPE-ESCALATION"
-    },
-    "FW-HARNESS-FULL-SCAN": {
-      "id": "FW-HARNESS-FULL-SCAN",
-      "title": "P2: Add deferred full-project ESLint/tsc scan after session to tool.execute.after in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-FULL-SCAN"
-    },
-    "FW-HARNESS-DOCTOR-INTEGRATION": {
-      "id": "FW-HARNESS-DOCTOR-INTEGRATION",
-      "title": "P2: Integrate P4-001 (framework_compliance_check) into framework-doctor.js as check 11 in .opencode/scripts/",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-DOCTOR-INTEGRATION"
-    },
-    "FW-HARNESS-SESSION-COMPACTED": {
-      "id": "FW-HARNESS-SESSION-COMPACTED",
-      "title": "P3: Implement session.compacted hook in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-SESSION-COMPACTED"
-    },
-    "FW-HARNESS-MESSAGE-UPDATED": {
-      "id": "FW-HARNESS-MESSAGE-UPDATED",
-      "title": "P3: Implement message.updated + todo.updated hooks in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-MESSAGE-UPDATED"
-    },
-    "FW-HARNESS-TUI-COMMAND": {
-      "id": "FW-HARNESS-TUI-COMMAND",
-      "title": "P3: Implement tui.command.execute validation in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-TUI-COMMAND"
-    },
-    "FW-HARNESS-SKILL-GATE": {
-      "id": "FW-HARNESS-SKILL-GATE",
-      "title": "P3: Add skill tool gate to tool.execute.before in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-SKILL-GATE"
-    },
-    "FW-HARNESS-SCOPE-LOG": {
-      "id": "FW-HARNESS-SCOPE-LOG",
-      "title": "P3: Add write-scope post-violation logging to tool.execute.after in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-SCOPE-LOG"
-    },
-    "FW-HARNESS-AUDIT-TRAIL": {
-      "id": "FW-HARNESS-AUDIT-TRAIL",
-      "title": "P3: Add comprehensive cross-hook audit trail in framework-enforcer.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P3",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-HARNESS-AUDIT-TRAIL"
-    },
-    "T-TECHDEBT-017": {
-      "id": "T-TECHDEBT-017",
-      "title": "P0 [Tech-Debt]: Verify and close TD-2026-015 — Confirm TDD-compliance for 4 framework tool files and close remaining CAT5.2 violations",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.T-TECHDEBT-017"
-    },
-    "FW-ENFORCER-REPAIR": {
-      "id": "FW-ENFORCER-REPAIR",
-      "title": "P0: Repair corrupted framework-enforcer.ts plugin - fix missing hooks, syntax errors, console output, template strings",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FW-ENFORCER-REPAIR"
-    },
-    "FIX-CONSOLE-1": {
-      "id": "FIX-CONSOLE-1",
-      "title": "P2: Replace console.log with process.stdout.write in pre-execution-hook.sh",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FIX-CONSOLE-1"
-    },
-    "FIX-CONSOLE-2": {
-      "id": "FIX-CONSOLE-2",
-      "title": "P2: Replace console.log with process.stdout.write in dispatch-subagent.js",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FIX-CONSOLE-2"
-    },
-    "FIX-CONSOLE-3": {
-      "id": "FIX-CONSOLE-3",
-      "title": "P2: Verify zero console.log across all framework scripts after fix",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FIX-CONSOLE-3"
-    },
-    "HARNESS-RESTRUCTURE": {
-      "id": "HARNESS-RESTRUCTURE",
-      "title": "P0: Restructure framework-enforcer plugin into proper subdirectory with build configuration",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.HARNESS-RESTRUCTURE"
-    },
-    "HARNESS-BUILD": {
-      "id": "HARNESS-BUILD",
-      "title": "P0: Compile framework-enforcer.ts to JavaScript using tsc",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.HARNESS-BUILD"
-    },
-    "HARNESS-VERIFY-LOAD": {
-      "id": "HARNESS-VERIFY-LOAD",
-      "title": "P0: Verify framework-enforcer plugin loads at OpenCode startup",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.HARNESS-VERIFY-LOAD"
-    },
-    "AGENT-MODE-FIX": {
-      "id": "AGENT-MODE-FIX",
-      "title": "P1: Fix opencode.json agent modes — only Orchestrator should be primary",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.AGENT-MODE-FIX"
-    },
-    "HARNESS-SMOKE": {
-      "id": "HARNESS-SMOKE",
-      "title": "P1: End-to-end smoke test — verify enforcement blocks unauthorized actions",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.HARNESS-SMOKE"
-    },
-    "HARNESS-EVAL-REPORT": {
-      "id": "HARNESS-EVAL-REPORT",
-      "title": "Multi-Agent Harness Evaluation Report",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.HARNESS-EVAL-REPORT"
-    },
-    "HARDEN-CONSTRAINT-DESIGN": {
-      "id": "HARDEN-CONSTRAINT-DESIGN",
-      "title": "Hardened Constraint System — Permission Model Investigation & Design",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.HARDEN-CONSTRAINT-DESIGN"
-    },
-    "BUG-5894-ENV-PROPAGATE": {
-      "id": "BUG-5894-ENV-PROPAGATE",
-      "title": "P0: Propagate FRAMEWORK_AGENT and FRAMEWORK_TASK_ID env vars from dispatch-subagent.js to subagents",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.BUG-5894-ENV-PROPAGATE"
-    },
-    "CI-EMBED-001": {
-      "id": "CI-EMBED-001",
-      "title": "P0 [B3]: Extract library module from code-quality-gate.js for programmatic import",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-EMBED-001"
-    },
-    "CI-EMBED-002": {
-      "id": "CI-EMBED-002",
-      "title": "P0 [B1]: RED — Write failing tests for safe_edit tool (TOCTOU race + rollback)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-EMBED-002"
-    },
-    "CI-EMBED-003": {
-      "id": "CI-EMBED-003",
-      "title": "P0 [B1]: GREEN — Implement safe_edit custom tool with atomic rollback",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-EMBED-003"
-    },
-    "CI-EMBED-004": {
-      "id": "CI-EMBED-004",
-      "title": "P0 [B2]: GREEN — Implement safe_bash tool with allowlist (not denylist)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-EMBED-004"
-    },
-    "CI-EMBED-005": {
-      "id": "CI-EMBED-005",
-      "title": "P0: RED+GREEN — Write and pass tests for safe_bash tool",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-EMBED-005"
-    },
-    "CI-EMBED-006": {
-      "id": "CI-EMBED-006",
-      "title": "P0: Add TDD Check 6 to safe_edit — spec file must exist before source file write",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-EMBED-006"
-    },
-    "CI-EMBED-007": {
-      "id": "CI-EMBED-007",
-      "title": "P0: Add RED-phase ESLint exemption handling to safe_edit + code-quality-lib",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-EMBED-007"
-    },
-    "CI-STRENGTHEN-001": {
-      "id": "CI-STRENGTHEN-001",
-      "title": "P1: Add edit:deny for subagents only in .opencode/agents/*.md permission frontmatter",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-STRENGTHEN-001"
-    },
-    "CI-STRENGTHEN-002": {
-      "id": "CI-STRENGTHEN-002",
-      "title": "P1: Retain framework-enforcer plugin while confirming safe_* tool coverage",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-STRENGTHEN-002"
-    },
-    "CI-STRENGTHEN-003": {
-      "id": "CI-STRENGTHEN-003",
-      "title": "P1: Implement concurrent-safe rollback with fs.realpathSync + atomic rename",
-      "status": "completed",
-      "completed_at": "2026-05-20",
+    "E2E-TECHDEBT-017": {
+      "id": "E2E-TECHDEBT-017",
+      "title": "[Tech-Debt] TD-2026-017: Externalize pre-execution-gate.js REMEDIATION_MAP",
+      "status": "pending",
+      "completed_at": null,
       "agent": "@Coder-BE",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-STRENGTHEN-003"
+      "archive_ref": "Task.DAG.json#tasks.E2E-TECHDEBT-017"
     },
-    "CI-STRENGTHEN-004": {
-      "id": "CI-STRENGTHEN-004",
-      "title": "P1: RED+GREEN — Integration tests for subagent permission isolation",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
+    "E2E-TECHDEBT-018": {
+      "id": "E2E-TECHDEBT-018",
+      "title": "[Tech-Debt] TD-2026-018: Integrate framework-health-check.sh into CI/CD",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@CI-CD-Agent",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-STRENGTHEN-004"
+      "archive_ref": "Task.DAG.json#tasks.E2E-TECHDEBT-018"
     },
-    "CI-UNIFY-001": {
-      "id": "CI-UNIFY-001",
-      "title": "P1: Create safe_test custom tool for test_report.json validation",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
+    "CALLER-ID-PHASE-0": {
+      "id": "CALLER-ID-PHASE-0",
+      "title": "Phase 0: Audit Instrumentation — resolver-source + cleanup + hard-warning logging",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Super-Admin",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.CALLER-ID-PHASE-0"
+    },
+    "CALLER-ID-PHASE-1": {
+      "id": "CALLER-ID-PHASE-1",
+      "title": "Phase 1: DB-Canonical Session Registry — new session_registry table",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Super-Admin",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.CALLER-ID-PHASE-1"
+    },
+    "CALLER-ID-PHASE-2": {
+      "id": "CALLER-ID-PHASE-2",
+      "title": "Phase 2: Replace Unsafe Caller Resolution — remove global fallback from enforcement",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Super-Admin",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.CALLER-ID-PHASE-2"
+    },
+    "CALLER-ID-PHASE-3": {
+      "id": "CALLER-ID-PHASE-3",
+      "title": "Phase 3: Redesign Session Cleanup — registry-aware TTL-based policy",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Super-Admin",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.CALLER-ID-PHASE-3"
+    },
+    "CALLER-ID-PHASE-4": {
+      "id": "CALLER-ID-PHASE-4",
+      "title": "Phase 4: Exact Session Ownership in dispatch-before — resolveCallerIdentityStrict",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Super-Admin",
+      "priority": "P0",
+      "archive_ref": "Task.DAG.json#tasks.CALLER-ID-PHASE-4"
+    },
+    "CALLER-ID-PHASE-5": {
+      "id": "CALLER-ID-PHASE-5",
+      "title": "Phase 5: Migration And Backfill — schema migration + data backfill",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Super-Admin",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-UNIFY-001"
+      "archive_ref": "Task.DAG.json#tasks.CALLER-ID-PHASE-5"
     },
-    "CI-UNIFY-002": {
-      "id": "CI-UNIFY-002",
-      "title": "P1: Add commit message validation hook (TDD markers enforced)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
+    "CALLER-ID-PHASE-6": {
+      "id": "CALLER-ID-PHASE-6",
+      "title": "Phase 6: Tests And Harness — e2e regression coverage for caller identity",
+      "status": "pending",
+      "completed_at": null,
+      "agent": "@Super-Admin",
       "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-UNIFY-002"
-    },
-    "CI-UNIFY-003": {
-      "id": "CI-UNIFY-003",
-      "title": "P1: Add HANDOVER.md/TASK_LOG.md validation to compliance_gate_complete",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-UNIFY-003"
-    },
-    "CI-UNIFY-004": {
-      "id": "CI-UNIFY-004",
-      "title": "P1: Deprecate standalone run_write_check in favor of safe_edit embedded audit",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-UNIFY-004"
-    },
-    "CI-HARDEN-001": {
-      "id": "CI-HARDEN-001",
-      "title": "P2: Add task:deny for all subagents — close recursive dispatch escape path",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-HARDEN-001"
-    },
-    "CI-HARDEN-002": {
-      "id": "CI-HARDEN-002",
-      "title": "P2: Empirical verification of BUG #5894 — plugin hook propagation to subagents",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-HARDEN-002"
-    },
-    "CI-HARDEN-003": {
-      "id": "CI-HARDEN-003",
-      "title": "P2: Empirical verification of BUG #1706 — subagent escape via nested dispatch",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-HARDEN-003"
-    },
-    "CI-HARDEN-004": {
-      "id": "CI-HARDEN-004",
-      "title": "P2: Simplify framework-enforcer — remove now-redundant hooks",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-HARDEN-004"
-    },
-    "CI-HARDEN-005": {
-      "id": "CI-HARDEN-005",
-      "title": "P2: Guardian End-to-End Constraint Validation — verify full hardened pipeline",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.CI-HARDEN-005"
-    },
-    "TOOL-CONSOLIDATE-001": {
-      "id": "TOOL-CONSOLIDATE-001",
-      "title": "Phase 0 — Baseline Audit",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Architect",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-001"
-    },
-    "TOOL-CONSOLIDATE-002": {
-      "id": "TOOL-CONSOLIDATE-002",
-      "title": "Phase 1a — Create .opencode/lib/ + Phase 0 hardening (safeBashTool pending)",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-002"
-    },
-    "TOOL-CONSOLIDATE-003": {
-      "id": "TOOL-CONSOLIDATE-003",
-      "title": "Extract compliance-gate core to lib/gate-core.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-003"
-    },
-    "TC-Phase-0.1": {
-      "id": "TC-Phase-0.1",
-      "title": "Phase 0: Add safeBashTool() to lib/safe-bash-core.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TC-Phase-0.1"
-    },
-    "TC-Phase-0.2": {
-      "id": "TC-Phase-0.2",
-      "title": "Phase 0: Harden DANGEROUS_PATTERNS in safe-bash-core.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TC-Phase-0.2"
-    },
-    "TC-Phase-0.3": {
-      "id": "TC-Phase-0.3",
-      "title": "Phase 0: Add safeEdit alias + writeSafeFull() to safe-edit-core.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TC-Phase-0.3"
-    },
-    "TC-Phase-0.4": {
-      "id": "TC-Phase-0.4",
-      "title": "Phase 0: Write-scope check integration in framework-enforcer",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TC-Phase-0.4"
-    },
-    "TC-Phase-0.5": {
-      "id": "TC-Phase-0.5",
-      "title": "Phase 0: Add script path validation to safe-bash-core.ts",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TC-Phase-0.5"
-    },
-    "TOOL-CONSOLIDATE-005": {
-      "id": "TOOL-CONSOLIDATE-005",
-      "title": "Update tools/ to use lib/",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-005"
-    },
-    "TOOL-CONSOLIDATE-006": {
-      "id": "TOOL-CONSOLIDATE-006",
-      "title": "Move and align test files",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-006"
-    },
-    "TOOL-CONSOLIDATE-007": {
-      "id": "TOOL-CONSOLIDATE-007",
-      "title": "File cleanup — .legacy.js stubs",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Coder-BE",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-007"
-    },
-    "TOOL-CONSOLIDATE-008": {
-      "id": "TOOL-CONSOLIDATE-008",
-      "title": "Full validation",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Guardian",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-008"
-    },
-    "TOOL-CONSOLIDATE-009": {
-      "id": "TOOL-CONSOLIDATE-009",
-      "title": "Multi-agent orchestration test",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Guardian",
-      "priority": "P1",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-009"
-    },
-    "TOOL-CONSOLIDATE-010": {
-      "id": "TOOL-CONSOLIDATE-010",
-      "title": "Documentation cleanup",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "Architect",
-      "priority": "P2",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.TOOL-CONSOLIDATE-010"
-    },
-    "FIX-SAFEBASH-ID-RED": {
-      "id": "FIX-SAFEBASH-ID-RED",
-      "title": "Add RED-phase tests for safe_bash agent identity resolution",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FIX-SAFEBASH-ID-RED"
-    },
-    "FIX-SAFEBASH-ID-GREEN": {
-      "id": "FIX-SAFEBASH-ID-GREEN",
-      "title": "Fix index.ts and combined-plugin.ts to use context.agent",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Coder-BE",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FIX-SAFEBASH-ID-GREEN"
-    },
-    "FIX-SAFEBASH-ID-REVIEW": {
-      "id": "FIX-SAFEBASH-ID-REVIEW",
-      "title": "Guardian review of safe_bash identity fix",
-      "status": "completed",
-      "completed_at": "2026-05-20",
-      "agent": "@Guardian",
-      "priority": "P0",
-      "archive_ref": "Task.DAG.versions/Task.DAG.v5.4.0.json#tasks.FIX-SAFEBASH-ID-REVIEW"
+      "archive_ref": "Task.DAG.json#tasks.CALLER-ID-PHASE-6"
     }
   }
 }

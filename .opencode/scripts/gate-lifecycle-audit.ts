@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // gate-lifecycle-audit.ts — P4-003
 // Audits gate sessions for lifecycle compliance via DB (Post-Step-8 migration).
 // --auto-drain flag moves stale sessions (>24h armed) to drained_sessions.
@@ -76,13 +77,13 @@ function main() {
       continue;
     }
 
-    const armed = session.gate_status === "armed";
-    const completed = session.gate_status === "completed";
+    const armed = (session as any).gate_status === "armed";
+    const completed = (session as any).gate_status === "completed";
 
     // ── Required fields for armed sessions ──
     if (armed) {
       activeCount++;
-      if (!session.task_id && !session.task_description) {
+      if (!(session as any).task_id && !(session as any).task_description) {
         violations.push({
           severity: "WARNING",
           session_id: sid,
@@ -90,7 +91,7 @@ function main() {
           detail: "Armed session missing both task_id and task_description",
         });
       }
-      if (!session.agent) {
+      if (!(session as any).agent) {
         violations.push({
           severity: "WARNING",
           session_id: sid,
@@ -98,7 +99,7 @@ function main() {
           detail: "Armed session missing agent field",
         });
       }
-      if (!session.created_at) {
+      if (!(session as any).created_at) {
         violations.push({
           severity: "WARNING",
           session_id: sid,
@@ -109,16 +110,16 @@ function main() {
     }
 
     // ── Stale session detection (armed > 24h without completion) ──
-    if (armed && (session.confirmed_at || session.created_at)) {
-      const created = new Date(session.confirmed_at || session.created_at);
+    if (armed && ((session as any).confirmed_at || (session as any).created_at)) {
+      const created = new Date((session as any).confirmed_at || (session as any).created_at);
       const ageMs = Date.now() - created.getTime();
       if (ageMs > HOURS_24_MS) {
         const ageHours = Math.round(ageMs / (1000 * 60 * 60));
         staleSessions.push({
           session_id: sid,
           age_hours: ageHours,
-          task_description: session.task_description || "unknown",
-          created_at: session.created_at,
+          task_description: (session as any).task_description || "unknown",
+          created_at: (session as any).created_at,
         });
         violations.push({
           severity: "HIGH",
@@ -131,25 +132,25 @@ function main() {
 
     // ── Also check sessions with gate_status 'checked' or 'failed' that are > 48h ──
     if (
-      (session.gate_status === "checked" || session.gate_status === "failed") &&
-      (session.confirmed_at || session.created_at)
+      ((session as any).gate_status === "checked" || (session as any).gate_status === "failed") &&
+      ((session as any).confirmed_at || (session as any).created_at)
     ) {
-      const created = new Date(session.confirmed_at || session.created_at);
+      const created = new Date((session as any).confirmed_at || (session as any).created_at);
       const ageMs = Date.now() - created.getTime();
       if (ageMs > 48 * 60 * 60 * 1000) {
         const ageHours = Math.round(ageMs / (1000 * 60 * 60));
         staleSessions.push({
           session_id: sid,
           age_hours: ageHours,
-          gate_status: session.gate_status,
-          task_description: session.task_description || "unknown",
-          created_at: session.created_at,
+          gate_status: (session as any).gate_status,
+          task_description: (session as any).task_description || "unknown",
+          created_at: (session as any).created_at,
         });
         violations.push({
           severity: "HIGH",
           session_id: sid,
           issue: "stale_unarmed",
-          detail: `Session in '${session.gate_status}' state for ${ageHours}h (>48h max) without resolution`,
+          detail: `Session in '${(session as any).gate_status}' state for ${ageHours}h (>48h max) without resolution`,
         });
       }
     }
@@ -161,7 +162,7 @@ function main() {
     (s) =>
       typeof s === "object" &&
       s !== null &&
-      activeStatuses.includes(s.gate_status),
+      activeStatuses.includes((s as any).gate_status),
   ).length;
 
   // ── Auto-drain if requested ──
@@ -174,7 +175,7 @@ function main() {
       const dbDrained = dbStore?.drained_sessions || {};
 
       for (const stale of staleSessions) {
-        const sid = stale.session_id;
+        const sid = (stale as any).session_id;
         const session = dbSessions[sid];
         if (session && typeof session === "object") {
           const drainedEntry = {
@@ -200,10 +201,10 @@ function main() {
         (s) =>
           typeof s === "object" &&
           s !== null &&
-          activeStatuses.includes(s.gate_status),
+          activeStatuses.includes((s as any).gate_status),
       ).length;
     } catch (e) {
-      console.error("DB auto-drain failed:", e.message);
+      (console as any).error("DB auto-drain failed:", e.message);
       // Fallback: skip auto-drain if DB unavailable
       drainedCount = 0;
     }
@@ -241,3 +242,4 @@ if (require.main === module) {
 }
 
 module.exports = { main };
+

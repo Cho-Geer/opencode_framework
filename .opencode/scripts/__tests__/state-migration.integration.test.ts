@@ -19,6 +19,9 @@ import { getDateKey, buildArchiveRef, parseArchiveRef, countJsonlLines, STATE_PA
 import { writeFileSync, readFileSync, existsSync, rmSync, mkdtempSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { closeDb } from '../../lib/db-manager';
+
+const ORIGINAL_OPENCODE_ROOT = process.env.OPENCODE_ROOT;
 
 function overrideCompactor(c: StateCompactor, d: string) {
   (c as any).hotFile = join(d, 'gate-state.json');
@@ -41,10 +44,19 @@ describe('State Migration — Integration Tests', () => {
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), 'integration-test-'));
+    // A8 DB-first: isolate each test in its own project root + fresh DB.
+    process.env.OPENCODE_ROOT = tmpDir;
+    closeDb();
   });
 
   afterEach(() => {
+    closeDb();
     try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    if (ORIGINAL_OPENCODE_ROOT === undefined) {
+      delete process.env.OPENCODE_ROOT;
+    } else {
+      process.env.OPENCODE_ROOT = ORIGINAL_OPENCODE_ROOT;
+    }
   });
 
   // ─── 1. Full Gate Workflow ───

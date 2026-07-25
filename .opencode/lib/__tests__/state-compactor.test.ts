@@ -18,6 +18,8 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { closeDb } from "../../lib/db-manager";
+import { dbSyncCompactorHot } from "../../lib/db-state-manager";
 
 /** Override instance paths for isolated testing */
 function overridePaths(c: StateCompactor, dir: string) {
@@ -61,17 +63,20 @@ describe("state-compactor", () => {
 
   beforeEach(() => {
     tmpDir = mkdtempSync(join(tmpdir(), "compactor-test-"));
+    // A8 DB-first: point OPENCODE_ROOT to the temp dir and reset the DB singleton.
+    process.env.OPENCODE_ROOT = tmpDir;
+    closeDb();
     compactor = new StateCompactor();
     overridePaths(compactor, tmpDir);
   });
 
   afterEach(() => {
+    closeDb();
     try {
       rmSync(tmpDir, { recursive: true, force: true });
     } catch {}
   });
 
-  // ─── onGateComplete ───
   describe("onGateComplete()", () => {
     beforeEach(() => {
       createHot(tmpDir, {
@@ -125,17 +130,25 @@ describe("state-compactor", () => {
     });
 
     it("drains stale sessions", async () => {
-      // Session was created ~now, threshold of 0 hours means drain everything checked
-      await compactor.drainStaleSessions(0);
-      // A8 DB-first: drainStaleSessions now operates on DB as authoritative.
-      // JSON file is an export cache — regenerate from DB to verify.
-      compactor.regenerateGateFiles();
+      // A8 DB-first: seed the DB so drainStaleSessions can see the session.
       const hot = JSON.parse(
         readFileSync(join(tmpDir, "gate-state.json"), "utf8"),
       );
+      dbSyncCompactorHot(hot);
+
+      // Session was created ~now, threshold of 0 hours means drain everything checked
+      await compactor.drainStaleSessions(0);
+
+      // JSON file is an export cache — regenerate from the canonical DB to verify.
+      compactor.regenerateGateFiles();
+      const hotAfter = JSON.parse(
+        readFileSync(
+          join(tmpDir, ".opencode", "state", "gate-state.json"),
+          "utf8",
+        ),
+      );
       // The test session should be drained (moved from active_sessions).
-      // Other real-DB sessions may remain — only verify the test session is gone.
-      expect(hot.active_sessions["cg_ses_1111111111111"]).toBeUndefined();
+      expect(hotAfter.active_sessions["cg_ses_1111111111111"]).toBeUndefined();
     });
 
     it("handles empty active_sessions gracefully", async () => {

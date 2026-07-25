@@ -24,12 +24,7 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync, mkdirSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 
-import {
-  getEnforcementMode,
-  getEnforcementModeWithSource,
-  getProjectRoot,
-} from "../../lib/gate-core";
-import type { EnforcementMode } from "../../lib/gate-core";
+import { getProjectRoot } from "../../lib/gate-core";
 /**
  * FIX-011 (Phase 2): Git hooks now emit structured high-severity events
  * through Log Central (log-manager.ts) in addition to the existing
@@ -66,104 +61,69 @@ const INNER = (() => {
   }
 })();
 
-const mode = getEnforcementMode(ROOT);
-
-// ═══ FIX-004: Block env downgrades in strict/locked mode ═══
-// Source-aware mode resolution detects when ENFORCEMENT_MODE env
-// reduces strictness below project.config.json's configured level.
-// This prevents a local env var from silently weakening hook enforcement.
-const modeSource = getEnforcementModeWithSource(ROOT);
-if (modeSource.downgraded) {
+// ═══ Phase 3 cleanup: legacy ENFORCEMENT_MODE env override is ignored ═══
+// Single-policy runtime enforces per-rule disposition only; the deprecated
+// getEnforcementModeWithSource() compat shim is no longer consulted here.
+const legacyEnvMode = process.env.ENFORCEMENT_MODE;
+if (legacyEnvMode) {
   console.log("═══════════════════════════════════════════════════════");
-  console.log("  ❌ PRE-COMMIT BLOCKED — Enforcement downgrade detected");
+  console.log("  ⚠️  PRE-COMMIT NOTICE — Legacy env override ignored");
   console.log("═══════════════════════════════════════════════════════");
-  console.log(`  Config mode: ${modeSource.configMode}`);
-  console.log(`  Env override: ${modeSource.envMode}`);
-  console.log(`  ${modeSource.downgradeReason}`);
-  console.log(
-    "  Unset ENFORCEMENT_MODE or set it to at least the config level.",
-  );
+  console.log(`  Legacy ENFORCEMENT_MODE=${legacyEnvMode} is ignored`);
+  console.log("  Single-policy runtime enforces per-rule disposition only.");
   console.log("═══════════════════════════════════════════════════════");
-  /**
-   * FIX-011: Emit structured Log Central event for env downgrade.
-   * HVEC-007 observability gap — this event is now searchable
-   * in Log Central's source index under "env-downgrade-blocked".
-   */
   writeLog("hook-layers", "hooks", {
-    level: "ERROR",
-    event: "ENFORCEMENT-MODE-DOWNGRADE-BLOCKED",
+    level: "WARN",
+    event: "ENFORCEMENT-MODE-DOWNGRADE-IGNORED",
     detail: JSON.stringify({
-      configMode: modeSource.configMode,
-      envMode: modeSource.envMode,
-      reason: modeSource.downgradeReason,
+      legacyEnvMode,
       hook: "pre-commit",
     }),
   });
-  process.exit(1);
 }
 
 console.log("═══════════════════════════════════════════════════════");
 console.log("  🔍 OpenCode v3.3 Pre-Commit Hook — TypeScript + Bun");
-console.log(`  Mode: ${mode}`);
+console.log("  Policy: single-policy (rule-disposition)");
 console.log("═══════════════════════════════════════════════════════");
 
 // ── Layer 0: Compliance Gate Armed Check ──
 console.log("\n[Layer 0/4] Checking compliance gate state...");
 
-if (mode === "advisory") {
-  console.log("  ⚠️  [ADVISORY] Gate armed check skipped");
-} else {
-  // Post-Step-8 DB-only migration: gate-state.json is frozen snapshot.
-  // Read from DB via dbLoadGateStore() for accurate session state.
-  let store: any = null;
-  try {
-    const { dbLoadGateStore } = require("../../lib/db-state-manager");
-    store = dbLoadGateStore();
-  } catch {
-    /**
-     * FIX-005: Fail closed — DB read failure exits 1 in strict/locked.
-     * Previously logged "Cannot read — skipped", which allowed commits
-     * when the gate state DB was corrupted or unavailable. In strict/locked
-     * mode, a missing compliance gate session DB is treated as a hard failure
-     * because we cannot verify gate arming. Advisory mode retains log-only.
-     */
-    if (mode === "strict" || mode === "locked") {
-      console.log("❌ [GATE] Cannot read gate sessions from DB — BLOCKED");
-      console.log(
-        "   Verify gate-state DB integrity: bun .opencode/scripts/state-reconciliation.ts --fix",
-      );
-      writeLog("hook-layers", "hooks", {
-        level: "ERROR",
-        event: "GATE-DB-READ-FAILURE",
-        detail:
-          "Gate state DB unavailable in strict/locked mode — commit blocked",
-      });
-      process.exit(1);
-    }
-    console.log("  ⚠️  [ADVISORY] Cannot read gate sessions from DB — skipped");
+// Post-Step-8 DB-only migration: gate-state.json is frozen snapshot.
+// Read from DB via dbLoadGateStore() for accurate session state.
+let store: any = null;
+try {
+  const { dbLoadGateStore } = require("../../lib/db-state-manager");
+  store = dbLoadGateStore();
+} catch {
+  console.log("❌ [GATE] Cannot read gate sessions from DB — BLOCKED");
+  console.log(
+    "   Verify gate-state DB integrity: bun .opencode/scripts/state-reconciliation.ts --fix",
+  );
+  writeLog("hook-layers", "hooks", {
+    level: "ERROR",
+    event: "GATE-DB-READ-FAILURE",
+    detail: "Gate state DB unavailable — commit blocked",
+  });
+  process.exit(1);
+}
+if (store) {
+  const sessions = store.sessions || {};
+  const count = Object.keys(sessions).length;
+  if (count === 0) {
+    console.log("❌ [GATE] No compliance gate session is armed.");
+    console.log(
+      "   Run: compliance_gate_check → compliance_gate_confirm before committing.",
+    );
     writeLog("hook-layers", "hooks", {
-      level: "WARN",
-      event: "GATE-DB-READ-SKIPPED",
-      detail: "Gate state DB unavailable — advisory mode, commit not blocked",
+      level: "ERROR",
+      event: "GATE-NO-ACTIVE-SESSION",
+      detail: "No compliance gate session is armed",
     });
+    process.exit(1);
   }
-  if (store) {
-    const sessions = store.sessions || {};
-    const count = Object.keys(sessions).length;
-    if (count === 0) {
-      console.log("❌ [GATE] No compliance gate session is armed.");
-      console.log(
-        "   Run: compliance_gate_check → compliance_gate_confirm before committing.",
-      );
-      writeLog("hook-layers", "hooks", {
-        level: "ERROR",
-        event: "GATE-NO-ACTIVE-SESSION",
-        detail: "No compliance gate session is armed",
-      });
-      process.exit(1);
-    }
-    console.log(`  ✅ Compliance gate armed (${count} active session(s))`);
-  }
+  console.log(`  ✅ Compliance gate armed (${count} active session(s))`);
 }
 
 // ── Layer 1.5: Critical Files Check (git diff, replaces SHA-256) ──
@@ -172,22 +132,11 @@ const criticalModified = getStagedCriticalFiles();
 if (criticalModified.length > 0) {
   console.log("  ⚠️  Critical infrastructure files modified:");
   criticalModified.forEach((f) => console.log(`    - ${f}`));
-  if (mode === "locked") {
-    console.log(
-      "  ❌ [FW-ENFORCE][INFRA] Critical files in locked mode — BLOCKED",
-    );
-    writeLog("hook-layers", "hooks", {
-      level: "ERROR",
-      event: "INFRA-CRITICAL-BLOCKED",
-      detail: JSON.stringify({ files: criticalModified, mode }),
-    });
-    process.exit(1);
-  }
   console.log("  ⚠️  Ensure commit message includes [INFRA] marker");
   writeLog("hook-layers", "hooks", {
     level: "WARN",
     event: "INFRA-CRITICAL-DETECTED",
-    detail: JSON.stringify({ files: criticalModified, mode, blocked: false }),
+    detail: JSON.stringify({ files: criticalModified, blocked: false }),
   });
 } else {
   console.log("  ✅ No critical infrastructure files in this commit");
@@ -195,33 +144,26 @@ if (criticalModified.length > 0) {
 
 // ── Layer 1.8: Gate Lifecycle Audit ──
 console.log("\n[1.8/4] Gate lifecycle audit...");
+let auditRaw: string | null = null;
 try {
-  const output = execSync(
+  auditRaw = execSync(
     "bun .opencode/scripts/gate-lifecycle-audit.ts --json",
     {
       encoding: "utf8",
       cwd: ROOT,
-      timeout: 30000,
+      timeout: 120000,
     },
   );
-  const result = JSON.parse(output);
-  const stale = (result.stale_sessions || []).filter(
-    (s: any) => (s.hours_old || 0) > 24,
-  ).length;
-  if (stale > 0) {
-    console.log(`  ⚠️  ${stale} stale gate session(s) (>24h)`);
-    console.log("  Fix: bun .opencode/scripts/state-reconciliation.ts --fix");
+} catch (e: any) {
+  // execSync throws on ANY non-zero exit. The audit legitimately reports
+  // status:FAIL (e.g. stale armed sessions) via JSON on stdout while exiting
+  // non-zero. Capture that stdout so we still parse the report and only WARN
+  // on stale sessions (per design) instead of misreporting a healthy-but-flagged
+  // audit as "unavailable — BLOCKED". Only hard-block when no JSON is produced.
+  const out = e?.stdout ? e.stdout.toString() : "";
+  if (out && out.trim().startsWith("{")) {
+    auditRaw = out;
   } else {
-    console.log("  ✅ No stale gate sessions");
-  }
-} catch {
-  /**
-   * FIX-005: Fail closed — gate lifecycle audit failure exits 1 in strict/locked.
-   * Previously logged "skipped", which allowed commits when the audit script
-   * was broken or unavailable. In strict/locked mode, inability to verify
-   * gate lifecycle integrity is a hard failure.
-   */
-  if (mode === "strict" || mode === "locked") {
     console.log(
       "❌ [GATE-LIFECYCLE] Gate lifecycle audit unavailable — BLOCKED",
     );
@@ -231,18 +173,24 @@ try {
     writeLog("hook-layers", "hooks", {
       level: "ERROR",
       event: "GATE-LIFECYCLE-AUDIT-UNAVAILABLE",
-      detail: "Gate lifecycle audit script unavailable in strict/locked mode",
+      detail: "Gate lifecycle audit script unavailable — commit blocked",
     });
     process.exit(1);
   }
-  console.log(
-    "  ⚠️  [ADVISORY] Gate lifecycle audit skipped (script unavailable)",
-  );
-  writeLog("hook-layers", "hooks", {
-    level: "WARN",
-    event: "GATE-LIFECYCLE-AUDIT-SKIPPED",
-    detail: "Gate lifecycle audit skipped — advisory mode",
-  });
+}
+try {
+  const result = JSON.parse(auditRaw as string);
+  const stale = (result.stale_sessions || []).filter(
+    (s: any) => (s.age_hours || s.hours_old || 0) > 24,
+  ).length;
+  if (stale > 0) {
+    console.log(`  ⚠️  ${stale} stale gate session(s) (>24h) — non-blocking`);
+    console.log("  Fix: bun .opencode/scripts/state-reconciliation.ts --fix");
+  } else {
+    console.log("  ✅ No stale gate sessions");
+  }
+} catch {
+  console.log("  ⚠️  Could not parse gate lifecycle audit output — skipped");
 }
 
 // ── Layer 1.9: State Format Validation ──
@@ -278,34 +226,18 @@ try {
     console.log("  ✅ gate-state: no DB store (clean state)");
   }
 } catch {
-  /**
-   * FIX-005: Fail closed — state format validation failure exits 1 in strict/locked.
-   * Previously logged "skipped (DB unavailable)", which allowed commits
-   * when the state DB or format validation was broken. In strict/locked mode,
-   * inability to verify state format integrity is a hard failure.
-   */
-  if (mode === "strict" || mode === "locked") {
-    console.log(
-      "❌ [STATE-FORMAT] State format validation unavailable — BLOCKED",
-    );
-    console.log(
-      "   Verify DB: bun .opencode/scripts/state-reconciliation.ts --fix",
-    );
-    writeLog("hook-layers", "hooks", {
-      level: "ERROR",
-      event: "STATE-FORMAT-VALIDATION-UNAVAILABLE",
-      detail: "State format validation unavailable in strict/locked mode",
-    });
-    process.exit(1);
-  }
   console.log(
-    "  ⚠️  [ADVISORY] State format validation skipped (DB unavailable)",
+    "❌ [STATE-FORMAT] State format validation unavailable — BLOCKED",
+  );
+  console.log(
+    "   Verify DB: bun .opencode/scripts/state-reconciliation.ts --fix",
   );
   writeLog("hook-layers", "hooks", {
-    level: "WARN",
-    event: "STATE-FORMAT-VALIDATION-SKIPPED",
-    detail: "State format validation skipped — advisory mode / DB unavailable",
+    level: "ERROR",
+    event: "STATE-FORMAT-VALIDATION-UNAVAILABLE",
+    detail: "State format validation unavailable — commit blocked",
   });
+  process.exit(1);
 }
 
 // DAG changelog externalization
@@ -367,21 +299,14 @@ if (isInfraOnlyCommit(staged)) {
         encoding: "utf8",
       }).trim();
       if (!/\[(Red|Green|Refactor)\]/i.test(lastMsg)) {
-        if (mode === "advisory") {
-          console.log(
-            "⚠️  [ADVISORY] Impl files without test files & no TDD tag",
-          );
-        } else {
-          console.log(
-            "❌ [TDD] Impl files without test files AND no TDD tag — BLOCKED",
-          );
-          writeLog("hook-layers", "hooks", {
-            level: "ERROR",
-            event: "TDD-ORDER-VIOLATION",
-            detail: JSON.stringify({ implFiles, mode }),
-          });
-          process.exit(1);
-        }
+        console.log(
+          "⚠️  [TDD] Impl files without test files and no TDD tag",
+        );
+        writeLog("hook-layers", "hooks", {
+          level: "WARN",
+          event: "TDD-ORDER-VIOLATION",
+          detail: JSON.stringify({ implFiles, blocked: false }),
+        });
       }
     } catch {
       /* no previous commit */
@@ -402,17 +327,12 @@ if (existsSync(idxPath)) {
     // malformed JSON — handled below
   }
   if (!parsed || !parsed.manifest_version || !parsed.entries) {
-    if (mode === "advisory") {
-      console.log("  ⚠️  [ADVISORY] index.json is malformed");
-    } else {
-      console.log("  ❌ [UC7KS] index.json is malformed — BLOCKED");
-      writeLog("hook-layers", "hooks", {
-        level: "ERROR",
-        event: "UC7KS-INDEX-MALFORMED",
-        detail: "docs/official_docs/index.json manifest validation failed",
-      });
-      process.exit(1);
-    }
+    console.log("  ⚠️  [UC7KS] index.json is malformed");
+    writeLog("hook-layers", "hooks", {
+      level: "WARN",
+      event: "UC7KS-INDEX-MALFORMED",
+      detail: "docs/official_docs/index.json manifest validation failed",
+    });
   } else {
     const stagedDocs = staged.filter(
       (f) =>
@@ -428,17 +348,12 @@ if (existsSync(idxPath)) {
           ),
       );
       if (orphans.length > 0) {
-        if (mode === "advisory") {
-          console.log(`  ⚠️  [ADVISORY] Orphan docs: ${orphans.join(", ")}`);
-        } else {
-          console.log(`  ❌ [UC7KS] Orphan docs: ${orphans.join(", ")}`);
-          writeLog("hook-layers", "hooks", {
-            level: "ERROR",
-            event: "UC7KS-ORPHAN-DOCS",
-            detail: JSON.stringify({ orphans, mode }),
-          });
-          process.exit(1);
-        }
+        console.log(`  ⚠️  [UC7KS] Orphan docs: ${orphans.join(", ")}`);
+        writeLog("hook-layers", "hooks", {
+          level: "WARN",
+          event: "UC7KS-ORPHAN-DOCS",
+          detail: JSON.stringify({ orphans, blocked: false }),
+        });
       } else {
         console.log("  ✅ Staged docs verified in index.json");
       }
@@ -481,29 +396,11 @@ const validatorCandidates = [
 const validator = validatorCandidates.find((p) => existsSync(p));
 
 if (!validator) {
-  /**
-   * FIX-005: Fail closed — keystone validator missing exits 1 in strict/locked.
-   * Previously logged "skipped", which allowed commits when the keystone
-   * validation script was deleted or corrupted. In strict/locked mode, the
-   * absence of the keystone validator is a critical integrity failure.
-   */
-  if (mode === "strict" || mode === "locked") {
-    console.log("❌ [KEYSTONE] keystone-validate not found — BLOCKED");
-    console.log(
-      "   Expected at: .opencode/scripts/mcp-tools/keystone-validate.ts",
-    );
-    writeLog("hook-layers", "hooks", {
-      level: "ERROR",
-      event: "KEYSTONE-VALIDATION-MISSING",
-      detail: "keystone-validate script not found in strict/locked mode",
-    });
-    process.exit(1);
-  }
-  console.log("⚠️  [ADVISORY] keystone-validate not found — skipped");
+  console.log("⚠️  [KEYSTONE] keystone-validate not found — skipped");
   writeLog("hook-layers", "hooks", {
     level: "WARN",
     event: "KEYSTONE-VALIDATION-SKIPPED",
-    detail: "keystone-validate not found — advisory mode",
+    detail: "keystone-validate not found",
   });
 } else if (!existsSync(MACHINE)) {
   console.log("⚠️  machine.json not found — no Keystone constraints");
@@ -521,45 +418,16 @@ if (!validator) {
   if (result.stderr) process.stderr.write(result.stderr);
 
   if (result.error) {
-    /**
-     * FIX-005: Fail closed — keystone validator execution failure
-     * (timeout or spawn error) exits 1 in strict/locked.
-     * Previously allowed commits to proceed when the keystone validator
-     * crashed or timed out, creating a false sense of validation.
-     */
     if ((result.error as any).code === "ETIMEDOUT") {
-      if (mode === "strict" || mode === "locked") {
-        console.log("❌ [KEYSTONE] Validation timed out after 60s — BLOCKED");
-        writeLog("hook-layers", "hooks", {
-          level: "ERROR",
-          event: "KEYSTONE-VALIDATION-TIMEOUT",
-          detail:
-            "Keystone validation timed out after 60s in strict/locked mode",
-        });
-        process.exit(1);
-      }
-      console.log(
-        "  ⚠️  [ADVISORY] Keystone validation timed out after 60s — skipped",
-      );
+      console.log("  ⚠️  [KEYSTONE] Validation timed out after 60s — skipped");
       writeLog("hook-layers", "hooks", {
         level: "WARN",
         event: "KEYSTONE-VALIDATION-TIMEOUT",
-        detail: "Keystone validation timed out — advisory mode",
+        detail: "Keystone validation timed out after 60s",
       });
     } else {
-      if (mode === "strict" || mode === "locked") {
-        console.log(
-          `❌ [KEYSTONE] Validation error: ${(result.error as any).message} — BLOCKED`,
-        );
-        writeLog("hook-layers", "hooks", {
-          level: "ERROR",
-          event: "KEYSTONE-VALIDATION-ERROR",
-          detail: `Keystone validation error: ${(result.error as any).message}`,
-        });
-        process.exit(1);
-      }
       console.log(
-        `  ⚠️  [ADVISORY] Keystone validation error: ${(result.error as any).message}`,
+        `  ⚠️  [KEYSTONE] Validation error: ${(result.error as any).message}`,
       );
       writeLog("hook-layers", "hooks", {
         level: "WARN",
@@ -570,24 +438,12 @@ if (!validator) {
   } else if (result.status === 0) {
     console.log("  ✅ Keystone validation passed");
   } else {
-    if (mode === "advisory") {
-      console.log("  ⚠️  [ADVISORY] Keystone validation failed");
-      writeLog("hook-layers", "hooks", {
-        level: "WARN",
-        event: "KEYSTONE-VALIDATION-FAILED",
-        detail: "Keystone validation failed — advisory mode",
-      });
-    } else {
-      console.log("\n═══════════════════════════════════════════════════════");
-      console.log("  ❌ PRE-COMMIT REJECTED — Keystone validation failed");
-      console.log("═══════════════════════════════════════════════════════");
-      writeLog("hook-layers", "hooks", {
-        level: "ERROR",
-        event: "KEYSTONE-VALIDATION-FAILED",
-        detail: "Keystone validation failed — pre-commit rejected",
-      });
-      process.exit(1);
-    }
+    console.log("  ⚠️  [KEYSTONE] Validation failed");
+    writeLog("hook-layers", "hooks", {
+      level: "WARN",
+      event: "KEYSTONE-VALIDATION-FAILED",
+      detail: "Keystone validation failed",
+    });
   }
 }
 

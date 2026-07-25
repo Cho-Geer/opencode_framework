@@ -58,7 +58,7 @@ function log(message) {
 
 function logError(message) {
   const prefix = DRY_RUN ? '[DRY-RUN] ' : '';
-  console.error(`${prefix}❌ ${message}`);
+  (console as any).error(`${prefix}❌ ${message}`);
 }
 
 // ============================================================================
@@ -189,31 +189,31 @@ function migrate() {
   for (const [sessionId, session] of Object.entries(allSessions)) {
     const s = session;
 
-    if (['active', 'checked', 'armed', 'pending'].includes(s.gate_status)) {
+    if (['active', 'checked', 'armed', 'pending'].includes((s as any).gate_status)) {
       // Active/pending → hot.active_sessions
       hot.active_sessions[sessionId] = {
-        session_id: s.session_id || sessionId,
-        created_at: s.created_at || '',
-        gate_status: s.gate_status,
-        confirmed_at: s.confirmed_at || undefined,
-        task_description: s.task_description || '',
-        plan_summary: s.plan_summary || '',
+        session_id: (s as any).session_id || sessionId,
+        created_at: (s as any).created_at || '',
+        gate_status: (s as any).gate_status,
+        confirmed_at: (s as any).confirmed_at || undefined,
+        task_description: (s as any).task_description || '',
+        plan_summary: (s as any).plan_summary || '',
       };
       activeCount++;
     } else {
       // Completed/drained → determine if recent or archive
-      const consumedAt = s.consumed_at ? new Date(s.consumed_at) : null;
+      const consumedAt = (s as any).consumed_at ? new Date((s as any).consumed_at) : null;
       const isRecent = consumedAt !== null && consumedAt > recentCutoff;
 
-      const auditData = s.audit || {};
+      const auditData = (s as any).audit || {};
 
       const historyEntry = {
-        session_id: s.session_id || sessionId,
-        task_description: s.task_description || '',
-        plan_summary: s.plan_summary || '',
+        session_id: (s as any).session_id || sessionId,
+        task_description: (s as any).task_description || '',
+        plan_summary: (s as any).plan_summary || '',
         execution_summary: auditData.execution_summary || '',
         audit: {
-          completed_at: auditData.completed_at || s.consumed_at || '',
+          completed_at: auditData.completed_at || (s as any).consumed_at || '',
           execution_summary: auditData.execution_summary || '',
         },
       };
@@ -222,26 +222,26 @@ function migrate() {
 
       if (isRecent) {
         hot.recent_sessions[sessionId] = {
-          session_id: s.session_id || sessionId,
-          created_at: s.created_at || '',
+          session_id: (s as any).session_id || sessionId,
+          created_at: (s as any).created_at || '',
           gate_status: 'completed',
-          consumed_at: s.consumed_at || '',
+          consumed_at: (s as any).consumed_at || '',
           archive_ref: historyRef,
         };
         recentCount++;
       } else {
         archive.sessions[sessionId] = {
-          session_id: s.session_id || sessionId,
+          session_id: (s as any).session_id || sessionId,
           archive_ref: historyRef,
         };
         archiveCount++;
       }
 
       index.sessions[sessionId] = {
-        session_id: s.session_id || sessionId,
-        created_at: s.created_at || '',
-        gate_status: s.gate_status === 'drained' ? 'drained' : 'completed',
-        consumed_at: s.consumed_at || undefined,
+        session_id: (s as any).session_id || sessionId,
+        created_at: (s as any).created_at || '',
+        gate_status: (s as any).gate_status === 'drained' ? 'drained' : 'completed',
+        consumed_at: (s as any).consumed_at || undefined,
         archive_ref: historyRef,
       };
     }

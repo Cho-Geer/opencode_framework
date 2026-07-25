@@ -2,9 +2,9 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
     "AGENTS.md",
-    "docs/official_docs/index.json",
-    ".opencode/rules/**/*.md",
-    ".opencode/rules/rule_detail/*.md"
+    ".opencode/rules/common/**/*.md",
+    ".opencode/rules/rule_detail/**/*.md",
+    ".opencode/rules/coding/**/*.md"
   ],
   "lsp": true,
   "compaction": {
@@ -14,82 +14,11 @@
   },
   "default_agent": "Orchestrator",
   "agent": {
-    "Meta-Planner": {
-      "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
-      "prompt": ".opencode/agents/Meta-Planner.md",
-      "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
-        },
-        "read": "allow",
-        "question": "deny",
-        "glob": "allow",
-        "grep": "allow",
-        "edit": "deny",
-        "bash": "deny",
-        "webfetch": "deny",
-        "websearch": "deny",
-        "resolve_domain_id": "allow",
-        "dispatch_subagent": "allow",
-        "safe_shell": {
-          "*": "allow",
-          "sha256sum *": "allow"
-        },
-        "context7": "deny",
-        "skill": "allow",
-        "pandoc": "allow",
-        "safe_diff": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "safe_edit": {
-          ".task_temp/**": "allow",
-          "Task.DAG.json": "allow",
-          "Project.graph": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "WAIVE.md": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/scripts/**": "deny",
-          ".opencode/state/**": "deny",
-          "contract.yaml": "deny"
-        },
-        "safe_delete": {
-          ".task_temp/**": "allow",
-          "Task.DAG.json": "allow",
-          "Project.graph": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "WAIVE.md": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/scripts/**": "deny",
-          ".opencode/state/**": "deny",
-          "contract.yaml": "deny"
-        },
-        "safe_mkdir": {
-          ".task_temp/**": "allow",
-          "Task.DAG.json": "allow",
-          "Project.graph": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "WAIVE.md": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/scripts/**": "deny",
-          ".opencode/state/**": "deny",
-          "contract.yaml": "deny"
-        },
-        "safe_test": "deny"
-      }
-    },
     "Orchestrator": {
       "mode": "primary",
       "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Orchestrator.md",
+      "variant": "max",
       "permission": {
         "task": "allow",
         "question": "allow",
@@ -97,6 +26,8 @@
         "context7": "deny",
         "skill": "allow",
         "resolve_domain_id": "allow",
+        "checklist_status": "allow",
+        "advance_checklist_phase": "allow",
         "compliance_gate_check": "allow",
         "compliance_gate_confirm": "allow",
         "compliance_gate_complete": "allow",
@@ -104,6 +35,7 @@
         "compliance_gate_purge": "allow",
         "compliance_gate_retry_confirm": "allow",
         "dispatch_subagent": "allow",
+        "confirm_repo_grant": "allow",
         "safe_diff": "allow",
         "safe_edit": {
           ".task_temp/**": "allow",
@@ -122,6 +54,7 @@
           "docs/review/**": "allow",
           "*": "deny"
         },
+        "safe_hash": "allow",
         "safe_test": "deny",
         "webfetch": "deny",
         "websearch": "deny",
@@ -130,9 +63,9 @@
         "glob": "deny",
         "grep": "deny",
         "safe_shell": {
-          "node *.js *": "allow",
-          "node *.ts *": "allow",
-          "node -e *": "allow",
+          "node -e *": "deny",
+          "node *.ts *": "deny",
+          "node *.js *": "deny",
           "echo *": "allow",
           "cat *": "allow",
           "ls *": "allow",
@@ -156,682 +89,292 @@
         },
         "read": {
           "Task.DAG.json": "allow",
-          ".opencode/agents/*.md": "allow",
           ".opencode/project.config.json": "allow",
           "opencode.json": "allow",
           ".opencode/state/*.json": "allow",
           ".task_temp/**": "allow",
           "docs/official_docs/**": "allow",
-          "docs/review/**": "allow"
-        }
-      }
-    },
-    "Architect": {
-      "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
-      "prompt": ".opencode/agents/Architect.md",
-      "hidden": true,
-      "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
+          "docs/review/**": "allow",
+          ".opencode/agents/Orchestrator.md": "allow",
+          ".opencode/legacy/agent-profiles/*.md": "allow"
         },
-        "read": "allow",
-        "question": "deny",
-        "glob": "allow",
-        "grep": "allow",
-        "bash": "deny",
-        "edit": "deny",
-        "webfetch": "deny",
-        "websearch": "deny",
-        "safe_test": "deny",
-        "context7": "deny",
-        "dispatch_subagent": "allow",
-        "skill": "allow",
-        "pandoc": "allow",
-        "resolve_domain_id": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "code_quality_check": "allow",
-        "safe_diff": "allow",
-        "safe_edit": {
-          "contract.yaml": "allow",
-          ".opencode/state/machine.json": "allow",
-          ".opencode/context/**": "allow",
-          ".task_temp/**": "allow",
-          "docs/**": "allow",
-          "opencode.json": "deny",
-          ".opencode/state/**": "deny",
-          ".opencode/project.config.json": "deny",
-          "PROJECT_REFERENCE.md": "deny",
-          ".opencode/rules/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/subagent-preamble.md": "deny",
-          ".opencode/scripts/**": "deny",
-          ".opencode/plugins/**": "deny",
-          ".opencode/**": "deny",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "booking_system_refactor/booking-backend/test/**": "deny"
-        },
-        "safe_shell": {
-          "node .opencode/scripts/mcp-tools/keystone-validate.js --hash contract.yaml": "allow",
-          "cat *": "allow",
-          "echo *": "allow",
-          "head *": "allow",
-          "tail *": "allow",
-          "wc *": "allow",
-          "find *": "allow",
-          "ls *": "allow",
-          "grep *": "allow",
-          "which *": "allow",
-          "cd *": "allow",
-          "diff *": "allow",
-          "sha256sum *": "allow",
-          "cp *": "deny",
-          "mv *": "deny",
-          "rm *": "deny",
-          "mkdir *": "deny",
-          "rmdir *": "deny",
-          "sed -i '' *": "deny",
-          "node *": "deny",
-          "bun *": "deny",
-          "npx *": "deny",
-          "npm *": "deny",
-          "python3 *": "deny"
-        },
-        "safe_delete": {
-          "contract.yaml": "allow",
-          ".opencode/state/machine.json": "allow",
-          ".opencode/context/**": "allow",
-          ".task_temp/**": "allow",
-          "docs/**": "allow",
-          "opencode.json": "deny",
-          ".opencode/state/**": "deny",
-          ".opencode/project.config.json": "deny",
-          "PROJECT_REFERENCE.md": "deny",
-          ".opencode/rules/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/subagent-preamble.md": "deny",
-          ".opencode/scripts/**": "deny",
-          ".opencode/plugins/**": "deny",
-          ".opencode/**": "deny",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "booking_system_refactor/booking-backend/test/**": "deny"
-        },
-        "safe_mkdir": {
-          ".opencode/context/**": "allow",
-          ".task_temp/**": "allow",
-          "docs/**": "allow",
-          "contract.yaml": "deny",
-          ".opencode/state/machine.json": "deny",
-          "opencode.json": "deny",
-          ".opencode/state/**": "deny",
-          ".opencode/project.config.json": "deny",
-          "PROJECT_REFERENCE.md": "deny",
-          ".opencode/rules/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/subagent-preamble.md": "deny",
-          ".opencode/scripts/**": "deny",
-          ".opencode/plugins/**": "deny",
-          ".opencode/**": "deny",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "booking_system_refactor/booking-backend/test/**": "deny"
-        }
-      }
-    },
-    "Coder-BE": {
-      "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
-      "prompt": ".opencode/agents/Coder-BE.md",
-      "hidden": true,
-      "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
-        },
-        "read": "allow",
-        "question": "deny",
-        "edit": "deny",
-        "glob": "allow",
-        "grep": "allow",
-        "bash": "deny",
-        "context7": "deny",
-        "dispatch_subagent": "allow",
-        "skill": "allow",
-        "resolve_domain_id": "allow",
-        "safe_edit": {
-          "booking_system_refactor/booking-backend/src/**": "allow",
-          "booking_system_refactor/booking-backend/test/**": "allow",
-          "booking_system_refactor/booking-backend/prisma/**": "allow",
-          "booking_system_refactor/booking-backend/*.json": "allow",
-          "booking_system_refactor/booking-backend/*.js": "allow",
-          "booking_system_refactor/booking-backend/*.ts": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-frontend/**": "deny",
-          "contract.yaml": "deny",
-          "opencode.json": "deny",
-          ".opencode/**": "deny"
-        },
-        "safe_shell": {
-          "which *": "allow",
-          "npx tsc *": "allow",
-          "tsc *": "allow",
-          "echo *": "allow",
-          "node *": "allow",
-          "bun *": "allow",
-          "npx *": "allow",
-          "npm *": "allow",
-          "grep *": "allow",
-          "cat *": "allow",
-          "wc *": "allow",
-          "ls *": "allow",
-          "find *": "allow",
-          "cd *": "allow",
-          "mkdir *": "allow",
-          "sha256sum *": "allow",
-          "rm -rf *": "ask"
-        },
-        "safe_test": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "docker": "allow",
-        "postgre_sql": "allow",
-        "eslint_audit": "allow",
-        "code_quality_check": "allow",
-        "safe_diff": "allow",
-        "safe_delete": {
-          "booking_system_refactor/booking-backend/src/**": "allow",
-          "booking_system_refactor/booking-backend/test/**": "allow",
-          "booking_system_refactor/booking-backend/prisma/**": "allow",
-          "booking_system_refactor/booking-backend/*.json": "allow",
-          "booking_system_refactor/booking-backend/*.js": "allow",
-          "booking_system_refactor/booking-backend/*.ts": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-frontend/**": "deny",
-          "contract.yaml": "deny",
-          "opencode.json": "deny",
-          ".opencode/**": "deny"
-        },
-        "safe_mkdir": {
-          "booking_system_refactor/booking-backend/src/**": "allow",
-          "booking_system_refactor/booking-backend/test/**": "allow",
-          "booking_system_refactor/booking-backend/prisma/**": "allow",
-          "booking_system_refactor/booking-backend/*.json": "allow",
-          "booking_system_refactor/booking-backend/*.js": "allow",
-          "booking_system_refactor/booking-backend/*.ts": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-frontend/**": "deny",
-          "contract.yaml": "deny",
-          "opencode.json": "deny",
-          ".opencode/**": "deny"
-        }
-      }
-    },
-    "Coder-FE": {
-      "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
-      "prompt": ".opencode/agents/Coder-FE.md",
-      "hidden": true,
-      "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
-        },
-        "read": "allow",
-        "question": "deny",
-        "edit": "deny",
-        "glob": "allow",
-        "grep": "allow",
-        "bash": "deny",
-        "context7": "deny",
-        "dispatch_subagent": "allow",
-        "skill": "allow",
-        "resolve_domain_id": "allow",
-        "safe_edit": {
-          "booking_system_refactor/booking-frontend/**": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/**": "deny",
-          "contract.yaml": "deny",
-          "opencode.json": "deny",
-          ".opencode/**": "deny"
-        },
-        "safe_shell": {
-          "which *": "allow",
-          "npx tsc *": "allow",
-          "tsc *": "allow",
-          "echo *": "allow",
-          "node *": "allow",
-          "bun *": "allow",
-          "npx *": "allow",
-          "npm *": "allow",
-          "grep *": "allow",
-          "cat *": "allow",
-          "wc *": "allow",
-          "ls *": "allow",
-          "find *": "allow",
-          "cd *": "allow",
-          "mkdir *": "allow",
-          "sha256sum *": "allow",
-          "rm -rf *": "ask"
-        },
-        "safe_test": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "playwright": "allow",
-        "eslint_audit": "allow",
-        "code_quality_check": "allow",
-        "safe_diff": "allow",
-        "safe_delete": {
-          "booking_system_refactor/booking-frontend/**": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/**": "deny",
-          "contract.yaml": "deny",
-          "opencode.json": "deny",
-          ".opencode/**": "deny"
-        },
-        "safe_mkdir": {
-          "booking_system_refactor/booking-frontend/**": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/**": "deny",
-          "contract.yaml": "deny",
-          "opencode.json": "deny",
-          ".opencode/**": "deny"
-        }
-      }
-    },
-    "Guardian": {
-      "mode": "subagent",
-      "model": "deepseek/deepseek-v4-pro",
-      "prompt": ".opencode/agents/Guardian.md",
-      "hidden": true,
-      "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
-        },
-        "read": "allow",
-        "question": "deny",
-        "glob": "allow",
-        "grep": "allow",
-        "bash": "deny",
-        "edit": "deny",
-        "webfetch": "deny",
-        "context7": "deny",
-        "dispatch_subagent": "allow",
-        "skill": "allow",
-        "resolve_domain_id": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "eslint_audit": "allow",
-        "code_quality_check": "allow",
-        "safe_diff": "allow",
-        "safe_test": "allow",
-        "safe_edit": {
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "contract.yaml": "deny",
-          ".opencode/state/machine.json": "allow",
-          ".opencode/state/gate-state.json": "allow",
-          ".opencode/state/gate-state.index.json": "allow",
-          ".opencode/**": "deny",
-          "AGENTS.md": "deny",
-          "PROJECT_REFERENCE.md": "deny"
-        },
-        "safe_shell": {
-          "grep *": "allow",
-          "git log*": "allow",
-          "find *": "allow",
-          "ls *": "allow",
-          "sha256sum *": "allow"
-        },
-        "safe_delete": {
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "contract.yaml": "deny",
-          ".opencode/state/machine.json": "allow",
-          ".opencode/state/gate-state.json": "allow",
-          ".opencode/state/gate-state.index.json": "allow",
-          ".opencode/**": "deny",
-          "AGENTS.md": "deny",
-          "PROJECT_REFERENCE.md": "deny"
-        },
-        "safe_mkdir": {
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "contract.yaml": "deny",
-          ".opencode/state/machine.json": "allow",
-          ".opencode/state/gate-state.json": "allow",
-          ".opencode/state/gate-state.index.json": "allow",
-          ".opencode/**": "deny",
-          "AGENTS.md": "deny",
-          "PROJECT_REFERENCE.md": "deny"
-        }
-      }
-    },
-    "Arbiter": {
-      "mode": "subagent",
-      "model": "deepseek/deepseek-v4-flash",
-      "prompt": ".opencode/agents/Arbiter.md",
-      "hidden": true,
-      "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
-        },
-        "read": "allow",
-        "question": "deny",
-        "glob": "allow",
-        "grep": "allow",
-        "edit": "deny",
-        "bash": "deny",
-        "webfetch": "deny",
-        "safe_test": "deny",
-        "context7": "deny",
-        "dispatch_subagent": "allow",
-        "skill": "allow",
-        "resolve_domain_id": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "safe_diff": "allow",
-        "safe_edit": {
-          ".task_temp/**": "allow",
-          "WAIVE.md": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "contract.yaml": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/scripts/**": "deny"
-        },
-        "safe_shell": {
-          "cat *": "allow",
-          "echo *": "allow",
-          "head *": "allow",
-          "tail *": "allow",
-          "wc *": "allow",
-          "find *": "allow",
-          "ls *": "allow",
-          "sha256sum *": "allow"
-        },
-        "safe_delete": {
-          ".task_temp/**": "allow",
-          "WAIVE.md": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "contract.yaml": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/scripts/**": "deny"
-        },
-        "safe_mkdir": {
-          ".task_temp/**": "allow",
-          "WAIVE.md": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          "contract.yaml": "deny",
-          ".opencode/tools/**": "deny",
-          ".opencode/scripts/**": "deny"
-        }
-      }
-    },
-    "CI-CD-Agent": {
-      "mode": "subagent",
-      "model": "deepseek/deepseek-v4-flash",
-      "prompt": ".opencode/agents/CI-CD-Agent.md",
-      "hidden": true,
-      "permission": {
-        "task": {
-          "*": "deny",
-          "Knowledge-Curator": "allow"
-        },
-        "read": "allow",
-        "question": "deny",
-        "glob": "allow",
-        "grep": "allow",
-        "edit": "deny",
-        "bash": "deny",
-        "safe_shell": {
-          "*": "allow",
-          "sha256sum *": "allow",
-          "gh *": "allow"
-        },
-        "safe_test": "deny",
-        "webfetch": "deny",
-        "websearch": "deny",
-        "context7": "deny",
-        "dispatch_subagent": "allow",
-        "skill": "allow",
-        "resolve_domain_id": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "docker": "allow",
-        "github": "allow",
-        "safe_diff": "allow",
-        "safe_edit": {
-          "docker-compose*.yml": "allow",
-          ".github/workflows/**": "allow",
-          "Dockerfile*": "allow",
-          ".env.*": "allow",
-          "booking_system_refactor/booking-backend/prisma/**": "allow",
-          ".task_temp/**": "allow",
-          ".opencode/state/gate-state.history/**": "allow",
-          ".opencode/state/gate-state.index.json": "allow",
-          ".opencode/state/gate-state.archive.json": "allow",
-          ".opencode/logs/archive/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/rules/**": "deny"
-        },
-        "safe_delete": {
-          "docker-compose*.yml": "allow",
-          ".github/workflows/**": "allow",
-          "Dockerfile*": "allow",
-          ".env.*": "allow",
-          "booking_system_refactor/booking-backend/prisma/**": "allow",
-          ".task_temp/**": "allow",
-          ".opencode/state/gate-state.history/**": "allow",
-          ".opencode/state/gate-state.index.json": "allow",
-          ".opencode/state/gate-state.archive.json": "allow",
-          ".opencode/logs/archive/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/rules/**": "deny"
-        },
-        "safe_mkdir": {
-          "docker-compose*.yml": "allow",
-          ".github/workflows/**": "allow",
-          "Dockerfile*": "allow",
-          ".env.*": "allow",
-          "booking_system_refactor/booking-backend/prisma/**": "allow",
-          ".task_temp/**": "allow",
-          ".opencode/state/gate-state.history/**": "allow",
-          ".opencode/state/gate-state.index.json": "allow",
-          ".opencode/state/gate-state.archive.json": "allow",
-          ".opencode/logs/archive/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny",
-          ".opencode/agents/**": "deny",
-          ".opencode/rules/**": "deny"
-        }
-      }
-    },
-    "Super-Admin": {
-      "mode": "all",
-      "model": "deepseek/deepseek-v4-pro",
-      "prompt": ".opencode/agents/Super-Admin.md",
-      "permission": {
-        "task": "allow",
-        "read": "allow",
-        "question": "allow",
-        "glob": "allow",
-        "github": "allow",
-        "grep": "allow",
-        "edit": "deny",
-        "bash": "deny",
-        "webfetch": "deny",
-        "websearch": "deny",
-        "safe_test": "deny",
-        "context7": "deny",
-        "skill": "allow",
-        "pandoc": "allow",
-        "todowrite": "allow",
-        "resolve_domain_id": "allow",
-        "compliance_gate_check": "allow",
-        "compliance_gate_confirm": "allow",
-        "compliance_gate_complete": "allow",
-        "code_quality_check": "allow",
-        "safe_diff": "allow",
         "safe_restore": {
-          ".opencode/**": "allow",
-          "opencode.json": "allow",
-          "AGENTS.md": "allow",
-          "PROJECT_REFERENCE.md": "allow",
-          "contract.yaml": "allow",
-          "Task.DAG.json": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "WAIVE.md": "allow",
           ".task_temp/**": "allow",
-          "docs/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny"
+          "docs/review/**": "allow",
+          "Task.DAG.json": "deny",
+          ".opencode/**": "deny",
+          "*": "deny"
         },
-        "safe_edit": {
-          ".opencode/**": "allow",
-          "opencode.json": "allow",
-          "AGENTS.md": "allow",
-          "PROJECT_REFERENCE.md": "allow",
-          "contract.yaml": "allow",
-          "Task.DAG.json": "allow",
-          "TECH_DEBT_REGISTRY.md": "allow",
-          "WAIVE.md": "allow",
-          ".task_temp/**": "allow",
-          "docs/**": "allow",
-          ".github/workflows/**": "allow",
-          "gh-workflow/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny"
-        },
-        "safe_shell": {
-          "*": "allow",
-          "cat *": "allow",
-          "echo *": "allow",
-          "head *": "allow",
-          "tail *": "allow",
-          "wc *": "allow",
-          "find *": "allow",
-          "ls *": "allow",
-          "cp *": "allow",
-          "mv *": "allow",
-          "rm *": "allow",
-          "mkdir *": "allow",
-          "rmdir *": "allow",
-          "sed -i *": "allow",
-          "node *": "allow",
-          "bun *": "allow",
-          "node .opencode/scripts/*": "allow",
-          "bun .opencode/scripts/*": "allow",
-          "npx *": "allow",
-          "npm *": "allow",
-          "grep *": "allow",
-          "which *": "allow",
-          "cd *": "allow",
-          "diff *": "allow",
-          "python3 *": "allow",
-          "git *": "allow",
-          "sha256sum *": "allow"
-        },
-        "safe_delete": {
-          ".opencode/**": "allow",
-          "opencode.json": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny"
-        },
-        "safe_mkdir": {
-          ".opencode/**": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/booking-backend/src/**": "deny",
-          "booking_system_refactor/booking-frontend/src/**": "deny"
-        },
-        "dispatch_subagent": "allow"
+        "acp_notify": "allow",
+        "config_read_attest": "allow",
+        "skill_read_attest": "allow",
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow"
       }
     },
-    "Knowledge-Curator": {
+    "build": {
+      "native": true,
       "mode": "subagent",
-      "hidden": true,
       "model": "deepseek/deepseek-v4-flash",
-      "prompt": ".opencode/agents/Knowledge-Curator.md",
+      "variant": "max",
       "permission": {
-        "task": "deny",
-        "read": "allow",
-        "question": "deny",
-        "glob": "allow",
-        "grep": "allow",
         "edit": "deny",
         "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "skill": "allow",
+        "todowrite": "allow",
+        "task": "deny",
+        "webfetch": "deny",
+        "websearch": "deny",
+        "safe_edit": {
+          "src/**": "allow",
+          "tests/**": "allow",
+          "lib/**": "allow",
+          ".task_temp/**": "allow",
+          ".opencode/**": "deny",
+          "opencode.json": "deny",
+          "package.json": "deny",
+          "tsconfig.json": "deny"
+        },
+        "safe_shell": {
+          "npm run *": "allow",
+          "npx jest *": "allow",
+          "npx tsc *": "allow",
+          "npx eslint *": "allow",
+          "bun *": "allow",
+          "node *": "allow",
+          "git status*": "allow",
+          "git log*": "allow",
+          "git diff*": "allow",
+          "git show*": "allow",
+          "git branch*": "allow",
+          "cat *": "allow",
+          "ls *": "allow",
+          "grep *": "allow",
+          "find *": "allow",
+          "echo *": "allow",
+          "wc *": "allow",
+          "head *": "allow",
+          "tail *": "allow",
+          "mkdir -p *": "allow"
+        },
+        "safe_test": "allow",
+        "safe_framework_edit": "allow",
+        "framework_maintenance_plan": "allow",
+        "framework_maintenance_complete": "allow",
+        "safe_diff": "allow",
+        "safe_hash": "allow",
+        "safe_delete": {
+          ".task_temp/**": "allow"
+        },
+        "safe_mkdir": {
+          "src/**": "allow",
+          "tests/**": "allow",
+          "lib/**": "allow",
+          ".task_temp/**": "allow"
+        },
+        "safe_restore": {
+          ".task_temp/**": "allow"
+        },
+        "codegraph_query": "allow",
+        "codegraph_explore": "allow",
+        "codegraph_callers": "allow",
+        "codegraph_callees": "allow",
+        "codegraph_node": "allow",
+        "codegraph_files": "allow",
+        "codegraph_status": "allow",
+        "question": "allow",
+        "acp_notify": "allow",
+        "config_read_attest": "allow",
+        "skill_read_attest": "allow",
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow",
+        "safe_repo_stage": "allow",
+        "safe_repo_unstage": "allow",
+        "safe_repo_commit": "allow",
+        "safe_repo_push": "allow",
+        "safe_gh_pr_create": "allow",
+        "safe_gh_pr_comment": "allow",
+        "safe_gh_issue_comment": "allow"
+      }
+    },
+    "general": {
+      "native": true,
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-flash",
+      "variant": "max",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "skill": "allow",
+        "todowrite": "allow",
+        "task": "deny",
+        "webfetch": "deny",
+        "websearch": "deny",
+        "safe_edit": {
+          "src/**": "allow",
+          "tests/**": "allow",
+          "lib/**": "allow",
+          "docs/**": "allow",
+          ".task_temp/**": "allow",
+          ".opencode/**": "deny",
+          "opencode.json": "deny",
+          "package.json": "deny",
+          "tsconfig.json": "deny"
+        },
+        "safe_shell": {
+          "npm run *": "allow",
+          "npx jest *": "allow",
+          "npx tsc *": "allow",
+          "npx eslint *": "allow",
+          "bun *": "allow",
+          "node *": "allow",
+          "git status*": "allow",
+          "git log*": "allow",
+          "git diff*": "allow",
+          "git show*": "allow",
+          "git branch*": "allow",
+          "cat *": "allow",
+          "ls *": "allow",
+          "grep *": "allow",
+          "find *": "allow",
+          "echo *": "allow",
+          "wc *": "allow",
+          "head *": "allow",
+          "tail *": "allow",
+          "mkdir -p *": "allow"
+        },
+        "safe_test": "deny",
+        "safe_diff": "allow",
+        "safe_hash": "allow",
+        "safe_delete": {
+          ".task_temp/**": "allow"
+        },
+        "safe_mkdir": {
+          "src/**": "allow",
+          "tests/**": "allow",
+          "lib/**": "allow",
+          "docs/**": "allow",
+          ".task_temp/**": "allow"
+        },
+        "safe_restore": {
+          ".task_temp/**": "allow"
+        },
+        "codegraph_query": "allow",
+        "codegraph_explore": "allow",
+        "codegraph_callers": "allow",
+        "codegraph_callees": "allow",
+        "codegraph_node": "allow",
+        "codegraph_files": "allow",
+        "codegraph_status": "allow",
+        "context7": "allow",
+        "question": "allow",
+        "acp_notify": "allow",
+        "config_read_attest": "allow",
+        "skill_read_attest": "allow",
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow"
+      }
+    },
+    "plan": {
+      "native": true,
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-flash",
+      "variant": "max",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "skill": "allow",
+        "todowrite": "allow",
+        "task": "deny",
+        "webfetch": "deny",
+        "websearch": "deny",
+        "safe_shell": "deny",
+        "safe_test": "deny",
+        "safe_diff": "allow",
+        "safe_hash": "allow",
+        "safe_edit": "deny",
+        "safe_delete": "deny",
+        "safe_mkdir": "deny",
+        "safe_restore": "deny",
+        "codegraph_query": "allow",
+        "codegraph_explore": "allow",
+        "codegraph_callers": "allow",
+        "codegraph_callees": "allow",
+        "codegraph_node": "allow",
+        "codegraph_files": "allow",
+        "codegraph_status": "allow",
+        "question": "allow",
+        "acp_notify": "allow",
+        "config_read_attest": "allow",
+        "skill_read_attest": "allow",
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow"
+      }
+    },
+    "explore": {
+      "native": true,
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-pro",
+      "variant": "max",
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "skill": "allow",
+        "todowrite": "deny",
+        "task": "deny",
         "webfetch": "allow",
         "websearch": "allow",
         "context7": "allow",
-        "skill": "allow",
-        "todowrite": "allow",
-        "resolve_domain_id": "allow",
-        "safe_edit": {
-          "docs/official_docs/**": "allow",
-          "docs/official_docs/.metadata/**": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/**": "deny",
-          ".opencode/**": "deny"
-        },
-        "safe_shell": {
-          "mkdir *docs/official_docs*": "allow",
-          "node .opencode/scripts/knowledge/*": "allow",
-          "bun .opencode/scripts/knowledge/*": "allow",
-          "npm run *": "allow",
-          "sha256sum *": "allow",
-          "cp *": "allow",
-          "mv *": "allow",
-          "echo *": "allow",
-          "which *": "allow",
-          "ls *": "allow",
-          "cat *": "allow",
-          "find *": "allow",
-          "grep *": "allow",
-          "wc *": "allow",
-          "head *": "allow",
-          "tail *": "allow",
-          "cd *": "allow"
-        },
-        "safe_mkdir": {
-          "docs/official_docs/**": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/**": "deny",
-          ".opencode/**": "deny"
-        },
-        "safe_delete": {
-          "docs/official_docs/**": "allow",
-          "docs/official_docs/.metadata/**": "allow",
-          ".task_temp/**": "allow",
-          "booking_system_refactor/**": "deny",
-          ".opencode/**": "deny"
-        },
-        "safe_diff": {
-          "docs/official_docs/**": "allow"
-        }
+        "safe_shell": "allow",
+        "safe_test": "deny",
+        "safe_diff": "allow",
+        "safe_hash": "allow",
+        "safe_edit": "deny",
+        "safe_delete": "deny",
+        "safe_mkdir": "deny",
+        "safe_restore": "deny",
+        "codegraph_query": "allow",
+        "codegraph_explore": "allow",
+        "codegraph_callers": "allow",
+        "codegraph_callees": "allow",
+        "codegraph_node": "allow",
+        "codegraph_files": "allow",
+        "codegraph_status": "allow",
+        "question": "allow",
+        "acp_notify": "allow",
+        "config_read_attest": "allow",
+        "skill_read_attest": "allow",
+        "rule_read_attest": "allow",
+        "safe_repo_status": "allow",
+        "safe_repo_diff": "allow",
+        "safe_repo_log": "allow",
+        "safe_repo_show": "allow",
+        "safe_repo_branch": "allow"
       }
     }
   },
@@ -855,36 +398,47 @@
     ]
   },
   "plugin": [
-    "./.opencode/plugins/read-track-after.ts",
-    "./.opencode/plugins/scope-before.ts",
-    "./.opencode/plugins/question-policy-before.ts",
-    "./.opencode/plugins/format-after.ts"
+    "./.opencode/plugins/before-dispatcher.ts",
+    "./.opencode/plugins/after-dispatcher.ts",
+    "./.opencode/plugins/system-dispatcher.ts",
+    "./.opencode/plugins/session.ts",
+    "./.opencode/plugins/tool-def-trimmer.ts"
   ],
   "mcp": {
     "compliance-gate": {
       "type": "local",
-      "command": ["bun", "./.opencode/scripts/mcp-tools/compliance-gate.ts"],
-      "environment": {
-        "ENFORCEMENT_MODE": "strict"
-      },
+      "command": [
+        "/home/zhaoge/.bun/bin/bun",
+        "./.opencode/scripts/mcp-tools/compliance-gate.ts"
+      ],
       "timeout": 60000,
       "enabled": true
     },
     "eslint-audit": {
       "type": "local",
-      "command": ["bun", "./.opencode/scripts/mcp-tools/eslint-audit.ts"],
+      "command": [
+        "/home/zhaoge/.bun/bin/bun",
+        "./.opencode/scripts/mcp-tools/eslint-audit.ts"
+      ],
       "timeout": 60000,
       "enabled": true
     },
     "code-quality-check": {
       "type": "local",
-      "command": ["bun", "./.opencode/scripts/mcp-tools/code-quality-check.ts"],
+      "command": [
+        "/home/zhaoge/.bun/bin/bun",
+        "./.opencode/scripts/mcp-tools/code-quality-check.ts"
+      ],
       "timeout": 60000,
       "enabled": true
     },
     "context7": {
       "type": "local",
-      "command": ["npx", "-y", "@upstash/context7-mcp@latest"],
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
       "enabled": true,
       "environment": {
         "DEFAULT_MINIMUM_TOKENS": "10000"
@@ -892,13 +446,20 @@
     },
     "playwright": {
       "type": "local",
-      "command": ["npx", "@playwright/mcp@latest"],
+      "command": [
+        "npx",
+        "@playwright/mcp@latest"
+      ],
       "enabled": true
     },
     "github": {
       "type": "local",
       "enabled": true,
-      "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
       "environment": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
@@ -916,20 +477,51 @@
     "docker": {
       "type": "local",
       "enabled": true,
-      "command": ["uvx", "mcp-server-docker"]
+      "command": [
+        "uvx",
+        "mcp-server-docker"
+      ]
     },
     "pandoc": {
       "type": "local",
       "enabled": true,
-      "command": ["uvx", "mcp-pandoc"]
+      "command": [
+        "uvx",
+        "mcp-pandoc"
+      ]
     },
     "excel": {
       "type": "local",
       "enabled": true,
-      "command": ["npx", "--yes", "@negokaz/excel-mcp-server"],
+      "command": [
+        "npx",
+        "--yes",
+        "@negokaz/excel-mcp-server"
+      ],
       "environment": {
         "EXCEL_MCP_PAGING_CELLS_LIMIT": "1000000"
       }
+    },
+    "codegraph": {
+      "type": "local",
+      "command": [
+        "/home/zhaoge/.local/bin/codegraph",
+        "serve",
+        "--mcp",
+        "--path",
+        "."
+      ],
+      "timeout": 30000,
+      "enabled": true
+    },
+    "notify-server": {
+      "type": "local",
+      "command": [
+        "/home/zhaoge/.bun/bin/bun",
+        "./.opencode/scripts/mcp-tools/notify-server.ts"
+      ],
+      "timeout": 30000,
+      "enabled": true
     }
   }
 }

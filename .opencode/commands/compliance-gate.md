@@ -1,12 +1,12 @@
 ---
-description: Arm the compliance gate before starting any task. REQUIRED before any code/analysis/design work.
+description: Manually arm the compliance gate for high-risk or audit-governed tasks before execution.
 agent: Orchestrator
 subtask: false
 ---
 
-## COMPLIANCE GATE — MANDATORY ENFORCEMENT
+## COMPLIANCE GATE — GOVERNED TASK ENTRY
 
-You MUST execute the following sequence IMMEDIATELY. Do NOT perform any analysis, design, or code work until step 4 completes.
+Use this command when the task requires formal gate governance, such as high-risk changes, formal deliverables, cross-Agent handoff, or explicit auditability. Ordinary low-risk work should stay on the `preflight-lite` path instead of invoking this command mechanically.
 
 ### Step 1: Get task description
 Parse the task from $ARGUMENTS. If $ARGUMENTS is empty or unclear, ask the user "What task do you want to work on?"

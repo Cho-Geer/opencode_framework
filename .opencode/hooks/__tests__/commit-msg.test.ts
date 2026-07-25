@@ -12,6 +12,12 @@ function createTestRepo(): string {
   execSync('git config user.name Test', { cwd: tmpDir, stdio: 'pipe' });
   fs.writeFileSync(path.join(tmpDir, 'README.md'), '# Test');
   execSync('git add . && git commit -m "Initial commit"', { cwd: tmpDir, stdio: 'pipe' });
+
+  // Link the real .opencode directory into the temp repo so the hook can
+  // resolve its TypeScript entry point and library dependencies.
+  const realOpenCode = path.resolve(__dirname, '..', '..');
+  fs.symlinkSync(realOpenCode, path.join(tmpDir, '.opencode'));
+
   return tmpDir;
 }
 
@@ -37,15 +43,27 @@ function runHook(
     stdio: ['pipe', 'pipe', 'pipe'],
   };
 
+  let exitCode = 0;
+  let procOutput = '';
   try {
     const stdout = execSync(`bash "${HOOK_PATH}" "${msgFile}"`, opts);
-    return { exitCode: 0, output: stdout.toString() };
+    procOutput = stdout.toString();
   } catch (error: any) {
-    return {
-      exitCode: error.status ?? 1,
-      output: (error.stdout?.toString() ?? '') + (error.stderr?.toString() ?? ''),
-    };
+    exitCode = error.status ?? 1;
+    procOutput = (error.stdout?.toString() ?? '') + (error.stderr?.toString() ?? '');
   }
+
+  // The hook redirects its console output to a log file; include it so tests
+  // can assert on warning/error content.
+  const logFile = path.join(tmpDir, '.task_temp', '_logs', 'hook-commit-msg.log');
+  let logOutput = '';
+  try {
+    logOutput = fs.readFileSync(logFile, 'utf-8');
+  } catch {
+    logOutput = '';
+  }
+
+  return { exitCode, output: procOutput + logOutput };
 }
 
 function createPriorCommit(tmpDir: string, msg: string): void {
@@ -85,12 +103,13 @@ describe('commit-msg hook — TDD marker enforcement', () => {
     expect(result.exitCode).toBe(0);
   });
 
-  // ── Test 3: Commit missing TDD tag fails in strict mode ──
-  it('should fail for commit without any TDD tag in strict mode', () => {
+  // ── Test 3: Commit missing TDD tag is flagged (P1: global strict mode
+  // deprecated; TDD marker checks are advisory-only warnings) ──
+  it('should flag commit without any TDD tag in strict mode', () => {
     const result = runHook(tmpDir, 'feat(scope): implement a feature without TDD marker', {
       ENFORCEMENT_MODE: 'strict',
     });
-    expect(result.exitCode).not.toBe(0);
+    expect(result.exitCode).toBe(0);
     expect(result.output.toLowerCase()).toContain('tdd');
   });
 
@@ -102,7 +121,10 @@ describe('commit-msg hook — TDD marker enforcement', () => {
     expect(result.exitCode).toBe(0);
   });
 
-  // ── Test 5: Advisory mode warns but does not block ──
+  // ── Test 5: Advisory mode warns but does not block (deprecated after P1) ──
+  // P1 NOTE: Global ENFORCEMENT_MODE is deprecated. Per-rule disposition
+  // (getRuleDisposition) replaces mode-based logic. This test verifies the
+  // shell hook's backward-compat behavior for the advisory env var.
   it('should warn but not block in advisory mode when TDD tag is missing', () => {
     const result = runHook(tmpDir, 'feat(scope): normal commit in advisory mode', {
       ENFORCEMENT_MODE: 'advisory',

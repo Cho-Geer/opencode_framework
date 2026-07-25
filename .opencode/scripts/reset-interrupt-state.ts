@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 /**
  * reset-interrupt-state.ts — Interrupt State Reconciliation
  * =========================================================

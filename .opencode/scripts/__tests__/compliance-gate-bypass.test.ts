@@ -19,7 +19,7 @@
  * and the condition matrix below. The actual gate behavior depends on:
  *   - resolveLatestDispatchAgent(taskId) returning the correct agent
  *   - bypassNorm checking "super-admin" || "orchestrator"
- *   - enforcementMode !== "locked"
+ *   - !shouldBlock(ruleId) for the relevant rule (P1 migration)
  *
  * @task   SA-IMPLEMENT-BYPASS-TESTS
  * @author @Super-Admin
@@ -30,6 +30,7 @@
 import { resolveLatestDispatchAgent } from "../../lib/agent-resolver";
 import { dbWriteSessionMap } from "../../lib/db-state-manager";
 import { getDb } from "../../lib/db-manager";
+import { shouldBlock, getRuleDisposition } from "../../service/enforcement/rule-disposition";
 
 const TEST_PREFIX = "test-cgbypass-" + Date.now() + "-";
 
@@ -190,12 +191,13 @@ describe("compliance_gate_check — critical file bypass (integration)", () => {
       bypassNorm === "super-admin" || bypassNorm === "orchestrator";
     expect(isSAOrOrch).toBe(true);
 
-    // In strict mode: should bypass
-    const strictBypass = isSAOrOrch && "strict" !== "locked";
-    expect(strictBypass).toBe(true);
+    // P1: Use shouldBlock() instead of mode comparison.
+    // "write-scope-violation" is hard_block → shouldBlock returns true → bypass NOT applied
+    const hardRuleBlocks = shouldBlock("write-scope-violation");
+    expect(hardRuleBlocks).toBe(true);
 
-    // In locked mode: should NOT bypass
-    const lockedBypass = isSAOrOrch && "locked" !== "locked";
-    expect(lockedBypass).toBe(false);
+    // "route-mismatch" is audit_only → shouldBlock returns false → bypass CAN apply
+    const auditRuleAllows = !shouldBlock("route-mismatch");
+    expect(auditRuleAllows).toBe(true);
   });
 });

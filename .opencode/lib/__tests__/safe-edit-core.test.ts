@@ -13,7 +13,6 @@ const {
   acquireLock,
   captureStat,
   statsEqual,
-  backupPath,
   clearRegistry,
   restore,
 } = require('../safe-edit-core');
@@ -69,12 +68,26 @@ describe('safe-edit-core', () => {
     });
   });
 
-  describe('backupPath', () => {
-    it('should generate a backup path with metadata', () => {
-      const bp = backupPath('/tmp/test.ts', '@Coder-BE', 'T-001');
-      expect(bp).toContain('@Coder-BE');
-      expect(bp).toContain('T-001');
-      expect(bp).toContain('.safe_backup');
+  describe('writeSafe backup', () => {
+    const backupRoot = path.join(os.tmpdir(), 'safe-edit-backup-test-' + Date.now());
+
+    beforeAll(() => {
+      process.env.OPENCODE_ROOT = backupRoot;
+      fs.mkdirSync(backupRoot, { recursive: true });
+    });
+
+    afterAll(() => {
+      try { fs.rmSync(backupRoot, { recursive: true, force: true }); } catch {}
+    });
+
+    it('should return a git-based backup path on success', () => {
+      const tmpFile = path.join(os.tmpdir(), 'backup-test-' + Date.now() + '.ts');
+      fs.writeFileSync(tmpFile, 'original');
+      clearRegistry();
+      const result = writeSafe(tmpFile, 'updated');
+      expect(result.success).toBe(true);
+      expect(result.backupPath).toBeTruthy();
+      try { fs.rmSync(tmpFile); } catch {}
     });
   });
 
@@ -96,13 +109,13 @@ describe('safe-edit-core', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should report TOCTOU on first call (registry baseline)', () => {
+    it('should populate baseline and succeed on first call (no TOCTOU false positive)', () => {
       clearRegistry();
       const tmpFile = path.join(os.tmpdir(), 'toctou-test-' + Date.now() + '.ts');
       fs.writeFileSync(tmpFile, 'original');
+      // New writeSafe populates the baseline on first call and proceeds.
       const result = writeSafe(tmpFile, 'updated', { createBackup: false });
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('TOCTOU');
+      expect(result.success).toBe(true);
       fs.rmSync(tmpFile);
     });
   });

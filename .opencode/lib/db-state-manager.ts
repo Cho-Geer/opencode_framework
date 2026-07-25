@@ -72,16 +72,46 @@ export function dbReadSubState<K extends SubStateKey>(
  *
  * @returns true on success, false on failure.
  */
+/**
+ * Write a sub-state value to the substate_kv table.
+ *
+ * G3 FIX (2026-06-23, @Super-Admin): Added optimistic concurrency control.
+ * When expectedUpdatedAt is provided, the write uses UPDATE ... WHERE
+ * updated_at = expectedUpdatedAt. If the WHERE clause matches 0 rows
+ * (concurrent write happened), returns false. Callers can retry.
+ *
+ * When expectedUpdatedAt is omitted, uses INSERT OR REPLACE (backward
+ * compatible — caller accepts last-write-wins semantics).
+ *
+ * @returns true on success, false on concurrent write conflict
+ */
 export function dbWriteSubState<K extends SubStateKey>(
   key: K,
   value: SubStateMap[K],
+  expectedUpdatedAt?: number,
 ): boolean {
   try {
     const db = getDb();
     const json = JSON.stringify(value);
     const now = Date.now();
 
-    // Use INSERT OR REPLACE for atomic upsert
+    if (expectedUpdatedAt !== undefined) {
+      // G3: Optimistic concurrency — UPDATE only if no concurrent write
+      const result = db.run(
+        "UPDATE substate_kv SET json = ?, updated_at = ? WHERE key = ? AND updated_at = ?",
+        [json, now, key as string, expectedUpdatedAt],
+      );
+      if (result.changes === 0) {
+        writeLog(SRC, "WARN", {
+          event: "DB-SUBSTATE-CONCURRENT-WRITE-CONFLICT",
+          detail: `key=${key} expectedUpdatedAt=${expectedUpdatedAt} — concurrent write detected`,
+        });
+        return false;
+      }
+      return true;
+    }
+
+    // Legacy path: INSERT OR REPLACE (atomic at SQL level, but no RMW guard)
     const writeSubState = db.transaction((k: string, j: string, t: number) => {
       db.run(
         "INSERT OR REPLACE INTO substate_kv (key, json, updated_at) VALUES (?, ?, ?)",
@@ -385,11 +415,9 @@ export function dbLoadGateStore(): any {
       sessions[row.session_id] = reconstructGateSession(row);
     }
 
-    // Read audit_history
-    const auditRows = db
-      .query("SELECT * FROM gate_audit_history ORDER BY id ASC")
-      .all() as any[];
-    const audit_history = auditRows.map(reconstructAuditEntry);
+    // audit_history 不再全量加载。GateStore 中返回空数组。
+    // 审计数据通过 dbQueryAuditHistory() 按需查询（见 4.4）。
+    const audit_history: any[] = [];
 
     return {
       formatVersion: meta.formatVersion || "2.0",
@@ -435,26 +463,63 @@ export function dbSaveGateStore(store: any): boolean {
         );
       }
 
-      // Replace all sessions
-      db.run("DELETE FROM gate_sessions");
+      // ── F1: UPSERT sessions (no more DELETE+INSERT) ──
+      // Per-session INSERT...ON CONFLICT DO UPDATE to eliminate dual-writer races.
       const sessions = s.sessions || {};
-      const insertSession = db.prepare(`
+      const upsertSession = db.prepare(`
         INSERT INTO gate_sessions (
           session_id, task_desc, status, agent, task_id, plan_summary,
           execution_summary, mode, checked_at, armed_at, completed_at, drained_at,
           created_at, consumed_at, expires_at, enforcement_mode, last_check_passed,
           failed_items, missing_artifacts, fail_reason, worktree, audit, updated_at,
           declared_deliverables, submitted_deliverables, deliverables_approved_by,
-          deliverables_approved_at, deliverables_approval_note, approval_required
+          deliverables_approved_at, deliverables_approval_note, approval_required,
+          opencode_session_id, parent_opencode_session_id, child_opencode_session_id,
+          last_submit_session_id, last_approve_session_id, interrupted_at, interruption_source
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?
         )
+        ON CONFLICT(session_id) DO UPDATE SET
+          task_desc              = excluded.task_desc,
+          status                 = excluded.status,
+          agent                  = excluded.agent,
+          task_id                = excluded.task_id,
+          plan_summary           = excluded.plan_summary,
+          execution_summary      = excluded.execution_summary,
+          mode                   = excluded.mode,
+          checked_at             = excluded.checked_at,
+          armed_at               = excluded.armed_at,
+          completed_at           = excluded.completed_at,
+          consumed_at            = excluded.consumed_at,
+          expires_at             = excluded.expires_at,
+          enforcement_mode       = excluded.enforcement_mode,
+          last_check_passed      = excluded.last_check_passed,
+          failed_items           = excluded.failed_items,
+          missing_artifacts      = excluded.missing_artifacts,
+          fail_reason            = excluded.fail_reason,
+          worktree               = excluded.worktree,
+          audit                  = excluded.audit,
+          updated_at             = excluded.updated_at,
+          declared_deliverables  = excluded.declared_deliverables,
+          submitted_deliverables = excluded.submitted_deliverables,
+          deliverables_approved_by  = excluded.deliverables_approved_by,
+          deliverables_approved_at  = excluded.deliverables_approved_at,
+          deliverables_approval_note = excluded.deliverables_approval_note,
+          approval_required      = excluded.approval_required,
+          opencode_session_id    = COALESCE(excluded.opencode_session_id, gate_sessions.opencode_session_id),
+          parent_opencode_session_id = COALESCE(excluded.parent_opencode_session_id, gate_sessions.parent_opencode_session_id),
+          child_opencode_session_id  = COALESCE(excluded.child_opencode_session_id, gate_sessions.child_opencode_session_id),
+          last_submit_session_id = COALESCE(excluded.last_submit_session_id, gate_sessions.last_submit_session_id),
+          last_approve_session_id = COALESCE(excluded.last_approve_session_id, gate_sessions.last_approve_session_id),
+          interrupted_at         = COALESCE(excluded.interrupted_at, gate_sessions.interrupted_at),
+          interruption_source    = COALESCE(excluded.interruption_source, gate_sessions.interruption_source)
       `);
       for (const [sid, ses] of Object.entries(sessions) as Array<
         [string, any]
       >) {
-        insertSession.run(
+        upsertSession.run(
           sid,
           ses.task_description || "",
           ses.gate_status || "checked",
@@ -478,7 +543,6 @@ export function dbSaveGateStore(store: any): boolean {
           ses.worktree || null,
           JSON.stringify(ses.audit || null),
           now,
-          // v5: deliverables fields
           ses.declared_deliverables
             ? JSON.stringify(ses.declared_deliverables)
             : null,
@@ -489,41 +553,70 @@ export function dbSaveGateStore(store: any): boolean {
           parseTs(ses.deliverables_approved_at),
           ses.deliverables_approval_note || null,
           ses.approval_required ? 1 : 0,
+          ses.opencode_session_id || null,
+          ses.parent_opencode_session_id || null,
+          ses.child_opencode_session_id || null,
+          ses.last_submit_session_id || null,
+          ses.last_approve_session_id || null,
+          ses.interrupted_at ? parseTs(ses.interrupted_at) : null,
+          ses.interruption_source || null,
         );
       }
 
-      // Update session index
-      db.run("DELETE FROM gate_session_index");
-      const insertIdx = db.prepare(
-        "INSERT INTO gate_session_index (session_id, status, last_updated) VALUES (?, ?, ?)",
+      // Detect sessions removed from memory but still in DB → archive
+      const memIds = new Set(Object.keys(sessions));
+      const dbRows = db
+        .query(`SELECT session_id FROM gate_sessions`)
+        .all() as Array<{ session_id: string }>;
+      for (const { session_id } of dbRows) {
+        if (!memIds.has(session_id)) {
+          db.run(
+            `UPDATE gate_sessions SET status = 'drained', updated_at = ? WHERE session_id = ?`,
+            [now, session_id],
+          );
+        }
+      }
+
+      // UPSERT session index (no more DELETE+INSERT)
+      const upsertIdx = db.prepare(
+        `INSERT INTO gate_session_index (session_id, status, last_updated) VALUES (?, ?, ?) ON CONFLICT(session_id) DO UPDATE SET status = excluded.status, last_updated = excluded.last_updated`,
       );
       for (const [sid, ses] of Object.entries(sessions) as Array<
         [string, any]
       >) {
-        insertIdx.run(sid, ses.gate_status || "checked", now);
+        upsertIdx.run(sid, ses.gate_status || "checked", now);
       }
 
-      // Replace audit_history (append-only — but GateStore always provides full array)
-      db.run("DELETE FROM gate_audit_history");
-      const insertAudit = db.prepare(`
-        INSERT INTO gate_audit_history (
-          session_id, task_description, plan_summary, agent, task_id,
-          confirmed_at, consumed_at, execution_summary, gate_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      const history = s.audit_history || [];
+      // Append new audit_history entries (no more delete+reinsert)
+      let insertedCount = 0;
+      let history = s.audit_history || [];
+      // DB-HEALTH-GUARD: defensive truncation — prevent O(n²) write amplification
+      if (history.length > 100) {
+        writeLog(SRC, "WARN", {
+          event: "DB-SAVE-AUDIT-TRUNCATE",
+          detail: `audit_history has ${history.length} entries, truncating to last 100`,
+        });
+        history = history.slice(history.length - 100);
+      }
       for (const entry of history) {
-        insertAudit.run(
-          entry.session_id,
-          entry.task_description || null,
-          entry.plan_summary || null,
-          entry.agent || null,
-          entry.task_id || null,
-          parseTs(entry.confirmed_at),
-          parseTs(entry.consumed_at),
-          entry.execution_summary || null,
-          entry.gate_status || null,
+        db.run(
+          `INSERT INTO gate_audit_history (
+            session_id, task_description, plan_summary, agent, task_id,
+            confirmed_at, consumed_at, execution_summary, gate_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            entry.session_id,
+            entry.task_description || null,
+            entry.plan_summary || null,
+            entry.agent || null,
+            entry.task_id || null,
+            parseTs(entry.confirmed_at),
+            parseTs(entry.consumed_at),
+            entry.execution_summary || null,
+            entry.gate_status || null,
+          ],
         );
+        insertedCount++;
       }
     });
 
@@ -547,6 +640,73 @@ function parseTs(v: unknown): number | null {
     return isNaN(t) ? null : t;
   }
   return null;
+}
+
+// ── F2: Optimistic lock update for single gate session ──
+const SRC_ATOMIC = "db-state-manager";
+/**
+ * Atomically update a single gate session with optimistic lock retry.
+ * Uses `version` column to detect concurrent modifications.
+ * @param sessionId - Gate session ID to update
+ * @param modifier - Function that receives current row and returns updated fields
+ * @returns { ok, newVersion, staleRetries }
+ */
+export function dbAtomicUpdateGateSession(
+  sessionId: string,
+  modifier: (row: any) => any,
+): { ok: boolean; newVersion: number; staleRetries: number } {
+  const db = getDb();
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const txn = db.transaction(() => {
+        const row = db
+          .query(`SELECT *, version FROM gate_sessions WHERE session_id = ?`)
+          .get(sessionId) as any;
+        if (!row) return { ok: false, reason: "NOT_FOUND" };
+
+        const currentVersion = row.version;
+        const updated = modifier({ ...row });
+
+        const result = db.run(
+          `UPDATE gate_sessions
+           SET status = ?, consumed_at = ?, completed_at = ?, updated_at = ?,
+               audit = ?, version = version + 1
+           WHERE session_id = ? AND version = ?`,
+          [
+            updated.status || row.status,
+            updated.consumed_at ?? row.consumed_at,
+            updated.completed_at ?? row.completed_at,
+            Date.now(),
+            JSON.stringify(updated.audit || row.audit || null),
+            sessionId,
+            currentVersion,
+          ],
+        );
+        if (result.changes === 0) {
+          throw new Error("OPTIMISTIC_LOCK_CONFLICT");
+        }
+        return { ok: true, newVersion: currentVersion + 1 };
+      });
+
+      const r = txn();
+      if (r.ok)
+        return { ok: true, newVersion: r.newVersion, staleRetries: attempt };
+    } catch (e: any) {
+      if (e.message !== "OPTIMISTIC_LOCK_CONFLICT") throw e;
+      writeLog(SRC_ATOMIC, "WARN", {
+        event: "GATE-SESSION-OPTIMISTIC-RETRY",
+        detail: `session=${sessionId} attempt=${attempt + 1}`,
+      });
+    }
+  }
+
+  writeLog(SRC_ATOMIC, "ERROR", {
+    event: "GATE-SESSION-OPTIMISTIC-EXHAUSTED",
+    detail: `session=${sessionId} retries=${MAX_RETRIES}`,
+  });
+  return { ok: false, newVersion: 0, staleRetries: MAX_RETRIES };
 }
 
 /** Reconstruct GateSession from a DB row. */
@@ -899,14 +1059,10 @@ export function dbReadCompactorHot(): any {
 
     // Recent: completed within 7 days
     const recentRows = db
-      .query(
-        `
-      SELECT * FROM gate_sessions
-      WHERE status = 'completed' AND (consumed_at >= ? OR updated_at >= ?)
-    `,
-        [sevenDaysAgo, sevenDaysAgo],
+      .prepare(
+        `SELECT * FROM gate_sessions WHERE status = 'completed' AND (consumed_at >= ? OR updated_at >= ?)`,
       )
-      .all() as any[];
+      .all(sevenDaysAgo, sevenDaysAgo) as any[];
     const recent_sessions: Record<string, any> = {};
     for (const row of recentRows) {
       recent_sessions[row.session_id] = reconstructGateSession(row);
@@ -939,6 +1095,63 @@ export function dbReadCompactorHot(): any {
         last_compacted: new Date().toISOString(),
       },
     };
+  }
+}
+
+/**
+ * DB-HEALTH: On-demand audit history query (replaces full-table load).
+ * Supports filtering by session_id, time window, and status.
+ * Returns at most `limit` rows, newest first.
+ */
+export function dbQueryAuditHistory(opts: {
+  session_id?: string;
+  since?: number;       // timestamp ms
+  status?: string;
+  limit?: number;
+}): any[] {
+  try {
+    const db = getDb();
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (opts.session_id) {
+      conditions.push("session_id = ?");
+      params.push(opts.session_id);
+    }
+    if (opts.since) {
+      conditions.push("confirmed_at >= ?");
+      params.push(opts.since);
+    }
+    if (opts.status) {
+      conditions.push("gate_status = ?");
+      params.push(opts.status);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const limit = opts.limit || 100;
+
+    return db.query(
+      `SELECT * FROM gate_audit_history ${where} ORDER BY id DESC LIMIT ?`,
+    ).all(...params, limit) as any[];
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-QUERY-AUDIT-HISTORY-FAILED",
+      detail: e.message,
+    });
+    return [];
+  }
+}
+
+/**
+ * DB-HEALTH: Get gate_audit_history row count (lightweight health check).
+ */
+export function dbAuditHistoryRowCount(): number {
+  try {
+    const db = getDb();
+    const row = db.query("SELECT COUNT(*) as c FROM gate_audit_history").get() as { c: number };
+    return row.c;
+  } catch {
+    return -1;
   }
 }
 
@@ -1108,14 +1321,10 @@ export function dbReadCompactorHotFull(): any {
 
     // Recent: completed within 7 days
     const recentRows = db
-      .query(
-        `
-      SELECT * FROM gate_sessions
-      WHERE status = 'completed' AND (consumed_at >= ? OR updated_at >= ?)
-    `,
-        [sevenDaysAgo, sevenDaysAgo],
+      .prepare(
+        `SELECT * FROM gate_sessions WHERE status = 'completed' AND (consumed_at >= ? OR updated_at >= ?)`,
       )
-      .all() as any[];
+      .all(sevenDaysAgo, sevenDaysAgo) as any[];
     const recent_sessions: Record<string, any> = {};
     for (const row of recentRows) {
       recent_sessions[row.session_id] = reconstructGateSession(row);
@@ -1214,6 +1423,7 @@ export function dbRegenerateGateFiles(root?: string): {
         SELECT * FROM gate_audit_history
         WHERE compactor_event IN ('warm', 'hot', 'cold', 'export')
         ORDER BY consumed_at ASC
+        LIMIT 10000
       `,
         )
         .all() as any[];
@@ -1532,6 +1742,7 @@ export function dbWriteSessionMap(
   agent: string,
   dagTaskId?: string,
   domainId?: string,
+  parentId?: string,
 ): boolean {
   try {
     const db = getDb();
@@ -1540,52 +1751,136 @@ export function dbWriteSessionMap(
     if (dagTaskId !== undefined && domainId !== undefined) {
       // Path 1: Both provided — explicit write
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, ?, ?, COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, dagTaskId, domainId, sessionId, now, now],
+        [sessionId, agent, dagTaskId, domainId, sessionId, parentId ?? null, sessionId, now, now],
       );
     } else if (dagTaskId !== undefined) {
-      // Path 2: Only dagTaskId — COALESCE preserve domainId
+      // Path 2: Only dagTaskId — COALESCE preserve domainId + parentId
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, ?, COALESCE(
            (SELECT domain_id FROM session_map WHERE session_id = ?), NULL
          ), COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, dagTaskId, sessionId, sessionId, now, now],
+        [sessionId, agent, dagTaskId, sessionId, sessionId, parentId ?? null, sessionId, now, now],
       );
     } else if (domainId !== undefined) {
-      // Path 3: Only domainId — COALESCE preserve dagTaskId
+      // Path 3: Only domainId — COALESCE preserve dagTaskId + parentId
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, COALESCE(
            (SELECT dag_task_id FROM session_map WHERE session_id = ?), NULL
          ), ?, COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, sessionId, domainId, sessionId, now, now],
+        [sessionId, agent, sessionId, domainId, sessionId, parentId ?? null, sessionId, now, now],
       );
     } else {
-      // Path 4: Neither — COALESCE preserve both
+      // Path 4: Neither — COALESCE preserve all
       db.run(
-        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, created_at, updated_at)
+        `INSERT OR REPLACE INTO session_map (session_id, agent, dag_task_id, domain_id, parent_id, created_at, updated_at)
          VALUES (?, ?, COALESCE(
            (SELECT dag_task_id FROM session_map WHERE session_id = ?), NULL
          ), COALESCE(
            (SELECT domain_id FROM session_map WHERE session_id = ?), NULL
          ), COALESCE(
+           (SELECT parent_id FROM session_map WHERE session_id = ?), ?
+         ), COALESCE(
            (SELECT created_at FROM session_map WHERE session_id = ?), ?
          ), ?)`,
-        [sessionId, agent, sessionId, sessionId, sessionId, now, now],
+        [sessionId, agent, sessionId, sessionId, sessionId, parentId ?? null, sessionId, now, now],
       );
     }
     return true;
   } catch (e: any) {
     writeLog(SRC, "ERROR", {
       event: "DB-SESSION-MAP-WRITE-FAILED",
+      detail: e.message,
+    });
+    return false;
+  }
+}
+
+/**
+ * FW-SESSION-MODEL-IDENTITY (2026-06-24): Update model_id in session_map.
+ * Writes the LLM model identifier for the current session. Called by
+ * session.ts chatMessageHook at every chat.message event.
+ *
+ * Unlike dbWriteSessionMap, this is a simple UPDATE — model_id does not
+ * need COALESCE preservation because it changes every round and is NOT
+ * set during session creation (session.create). It is only meaningful
+ * after the first chat.message event.
+ *
+ * Design note: model_id is intentionally NOT added to dbWriteSessionMap's
+ * 4-path upsert to avoid 8-path combinatorial explosion. Instead, it's
+ * updated separately AFTER the initial upsert.
+ *
+ * @param sessionId  Session ID to update
+ * @param model      Model identifier (e.g. "deepseek/deepseek-v4-pro")
+ * @returns true on success, false on error
+ */
+export function dbUpdateSessionModel(
+  sessionId: string,
+  model: string,
+): boolean {
+  try {
+    const db = getDb();
+    const now = Date.now();
+    db.run(
+      `UPDATE session_map SET model_id = ?, updated_at = ? WHERE session_id = ?`,
+      [model, now, sessionId],
+    );
+    return true;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-SESSION-MODEL-UPDATE-FAILED",
+      agent: "db-state-manager",
+      detail: e.message,
+    });
+    return false;
+  }
+}
+
+/**
+ * FW-FIX-H2 (P0-5, 2026-06-22): TOCTOU-safe conditional session_map update.
+ * Only writes dag_task_id and domain_id; never touches agent field.
+ * Uses WHERE agent IS NOT NULL to atomically skip rows without agent identity.
+ * Eliminates the read-then-write race in dispatch_subagent.ts:735-739.
+ */
+export function dbUpdateSessionTaskFields(
+  sessionId: string,
+  dagTaskId?: string,
+  domainId?: string,
+): boolean {
+  try {
+    const db = getDb();
+    if (dagTaskId && domainId !== undefined) {
+      db.run(
+        `UPDATE session_map SET dag_task_id = ?, domain_id = ?, updated_at = ?
+         WHERE session_id = ? AND agent IS NOT NULL`,
+        [dagTaskId, domainId || null, Date.now(), sessionId],
+      );
+    } else if (dagTaskId) {
+      db.run(
+        `UPDATE session_map SET dag_task_id = ?, updated_at = ?
+         WHERE session_id = ? AND agent IS NOT NULL`,
+        [dagTaskId, Date.now(), sessionId],
+      );
+    }
+    return true;
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-SESSION-TASK-UPDATE-FAILED",
       detail: e.message,
     });
     return false;

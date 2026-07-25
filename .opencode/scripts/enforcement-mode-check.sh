@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# enforcement-mode-check.sh — Read and validate enforcement mode
+# enforcement-mode-check.sh — Legacy compatibility mode helper
 # ==============================================================================
-# Purpose: Resolves the current enforcement mode from (in priority order):
-#   1. ENFORCEMENT_MODE environment variable (with locked-mode safety guards)
-#   2. project.config.json → template_resolution.runtime_enforcement_mode (dual-key per FW-REPAIR-12)
-#   3. Default: "advisory"
-#
-# Also validates mode transitions (no downgrade from locked without unlock token).
+# Purpose: Keeps legacy scripts working while runtime enforcement has moved to
+# per-rule disposition. This helper no longer honors ENFORCEMENT_MODE env
+# overrides and resolves a compatibility mode only.
+#   1. If project.config.json declares enforcement_policy, return "strict"
+#   2. Else fall back to historical runtime/develop_enforcement_mode keys
+#   3. Default: "strict"
 #
 # Usage:
 #   enforcement-mode-check.sh                    → outputs mode name to stdout
-#   enforcement-mode-check.sh --json             → outputs JSON with full mode config
+#   enforcement-mode-check.sh --json             → outputs JSON with compat mode info
 #   enforcement-mode-check.sh --block <check_key> → exits 0 if check is blocking, 1 otherwise
 #   enforcement-mode-check.sh --validate         → validates mode consistency
 # ==============================================================================
@@ -23,16 +23,20 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CONFIG_FILE="${PROJECT_ROOT}/.opencode/project.config.json"
 MACHINE_FILE="${PROJECT_ROOT}/.opencode/state/machine.json"
-DEFAULT_MODE="advisory"
+DEFAULT_MODE="strict"
 VALID_MODES=("advisory" "strict" "locked")
 
-# ── Helper: read mode from project.config.json ─────────────────────────
+# ── Helper: read compatibility mode from project.config.json ───────────
 read_config_mode() {
   if [ -f "$CONFIG_FILE" ]; then
     if command -v bun &>/dev/null; then
       bun -e "
         try {
           const cfg = require('$CONFIG_FILE');
+          if (cfg.enforcement_policy) {
+            console.log('strict');
+            process.exit(0);
+          }
           // FW-REPAIR-12: Dual-key resolution per enforcement-modes-standard.md §4.1
           const mode = cfg.template_resolution?.runtime_enforcement_mode
                     || cfg.template_resolution?.develop_enforcement_mode;
@@ -51,6 +55,9 @@ import json, sys
 try:
     with open('$CONFIG_FILE') as f:
         cfg = json.load(f)
+    if cfg.get('enforcement_policy'):
+        print('strict')
+        raise SystemExit(0)
     # FW-REPAIR-12: Dual-key resolution
     tr = cfg.get('template_resolution', {})
     mode = tr.get('runtime_enforcement_mode') or tr.get('develop_enforcement_mode') or '$DEFAULT_MODE'
@@ -69,13 +76,20 @@ except:
   fi
 }
 
-# ── Helper: read full enforcement_config from project.config.json ──────
+# ── Helper: read compatibility metadata from project.config.json ───────
 read_full_config() {
   if [ -f "$CONFIG_FILE" ]; then
     if command -v bun &>/dev/null; then
       bun -e "
         try {
           const cfg = require('$CONFIG_FILE');
+          if (cfg.enforcement_policy) {
+            console.log(JSON.stringify({
+              mode: 'strict',
+              config: { legacy_compat: true, rule_source: cfg.enforcement_policy.rule_source || null }
+            }, null, 2));
+            process.exit(0);
+          }
           const ec = cfg.template_resolution?.enforcement_config || {};
           // FW-REPAIR-12: Dual-key resolution
           const mode = cfg.template_resolution?.runtime_enforcement_mode
@@ -101,15 +115,11 @@ is_blocking() {
 
   mode=$(resolve_mode)
 
-  if [ "$mode" = "advisory" ]; then
-    return 1  # advisory: nothing blocks
+  if [ "$mode" = "locked" ] || [ "$mode" = "strict" ]; then
+    return 0  # single-policy compat: blocking
   fi
 
-  if [ "$mode" = "locked" ]; then
-    return 0  # locked: everything blocks
-  fi
-
-  # strict mode: check against block_on list
+  # Historical advisory fallback
   if [ -f "$CONFIG_FILE" ] && command -v bun &>/dev/null; then
     local blocks
     blocks=$(bun -e "
@@ -137,35 +147,6 @@ is_blocking() {
 resolve_mode() {
   local config_mode
   config_mode=$(read_config_mode)
-
-  # ENFORCEMENT_MODE env var overrides (with safety guards)
-  if [ -n "${ENFORCEMENT_MODE:-}" ]; then
-    local env_mode="${ENFORCEMENT_MODE}"
-
-    # Validate env_mode is a valid mode
-    local valid=0
-    for m in "${VALID_MODES[@]}"; do
-      if [ "$m" = "$env_mode" ]; then
-        valid=1
-        break
-      fi
-    done
-    if [ "$valid" -eq 0 ]; then
-      echo "⚠️  [enforcement-mode-check] Invalid ENFORCEMENT_MODE='$env_mode'. Falling back to config mode '$config_mode'." >&2
-      echo "$config_mode"
-      return
-    fi
-
-    # Safety: cannot override locked mode with env var
-    if [ "$config_mode" = "locked" ]; then
-      echo "🔒 [enforcement-mode-check] Config mode is 'locked'. ENFORCEMENT_MODE override ignored." >&2
-      echo "locked"
-      return
-    fi
-
-    echo "$env_mode"
-    return
-  fi
 
   echo "$config_mode"
 }
@@ -195,7 +176,7 @@ case "${1:-}" in
   --validate)
     current_mode
     current_mode=$(resolve_mode)
-    echo "ENFORCEMENT_MODE=$current_mode"
+    echo "COMPAT_ENFORCEMENT_MODE=$current_mode"
     echo "Config file: $CONFIG_FILE"
     if [ -f "$MACHINE_FILE" ] && command -v bun &>/dev/null; then
       bun -e "
@@ -222,8 +203,8 @@ case "${1:-}" in
     echo "Usage: enforcement-mode-check.sh [--json | --block <check_key> | --validate | --help]"
     echo ""
     echo "Options:"
-    echo "  (none)        Print current enforcement mode to stdout"
-    echo "  --json        Print full mode config as JSON"
+    echo "  (none)        Print current compatibility mode to stdout"
+    echo "  --json        Print compatibility metadata as JSON"
     echo "  --block KEY   Exit 0 if KEY is blocking in current mode, exit 1 otherwise"
     echo "  --validate    Print validation summary"
     echo "  --help        Show this help message"
