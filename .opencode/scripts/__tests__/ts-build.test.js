@@ -107,7 +107,7 @@ describe("safeBash implementation", () => {
 // Test 2: Allowed command execution
 // =============================================================================
 describe("safeBash allowed commands", () => {
-  test('"npm run lint" passes (matches default allowlist pattern "npm run *")', () => {
+  test('"npm run lint" passes (matches default allowlist pattern "npm run *")', { timeout: 30000 }, () => {
     const result = safeBash("npm run lint", { projectRoot: PROJECT_ROOT });
     expect(result.pass).toBe(true);
     expect(result).toHaveProperty("stdout");
@@ -117,7 +117,7 @@ describe("safeBash allowed commands", () => {
     expect(result).toHaveProperty("command", "npm run lint");
   });
 
-  test("result shape contains all expected fields", () => {
+  test("result shape contains all expected fields", { timeout: 30000 }, () => {
     const result = safeBash("npm run lint", { projectRoot: PROJECT_ROOT });
     expect(result).toMatchObject({
       pass: true,

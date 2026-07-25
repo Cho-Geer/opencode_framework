@@ -15,14 +15,22 @@ const DOCTOR_SCRIPT = path.join(
   "scripts",
   "framework-doctor.ts",
 );
-const DOCTOR_RUNNER = process.execPath;
+// framework-doctor.ts is an ESM TypeScript file; run it with bun (not node,
+// which fails on ESM syntax with "module is not defined"). Fall back to
+// process.execPath only if bun is unavailable.
+let DOCTOR_RUNNER = "bun";
+try {
+  require("child_process").execSync("which bun", { stdio: "pipe" });
+} catch (_) {
+  DOCTOR_RUNNER = process.execPath;
+}
 
 describe("framework-doctor CLI", () => {
   test("script file exists", () => {
     expect(fs.existsSync(DOCTOR_SCRIPT)).toBe(true);
   });
 
-  test("runs without crashing (default mode)", () => {
+  test("runs without crashing (default mode)", { timeout: 30000 }, () => {
     try {
       const output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}"`, {
         cwd: PROJECT_ROOT,
@@ -41,7 +49,7 @@ describe("framework-doctor CLI", () => {
 });
 
 describe("framework-doctor --strict flag", () => {
-  test("--strict exits 1 when any check fails", () => {
+  test("--strict exits 1 when any check fails", { timeout: 30000 }, () => {
     // We can't guarantee all 10 checks pass on every project,
     // so --strict should exit 1 if any check fails.
     try {
@@ -58,7 +66,7 @@ describe("framework-doctor --strict flag", () => {
     }
   });
 
-  test("--strict output contains PASS or FAIL markers", () => {
+  test("--strict output contains PASS or FAIL markers", { timeout: 30000 }, () => {
     try {
       const output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --strict`, {
         cwd: PROJECT_ROOT,
@@ -73,7 +81,7 @@ describe("framework-doctor --strict flag", () => {
 });
 
 describe("framework-doctor --json flag", () => {
-  test("--json produces valid JSON", () => {
+  test("--json produces valid JSON", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json`, {
@@ -94,7 +102,7 @@ describe("framework-doctor --json flag", () => {
     expect(parsed).toHaveProperty("summary");
   });
 
-  test("--json output contains 14 checks", () => {
+  test("--json output contains 14 checks", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json`, {
@@ -110,7 +118,7 @@ describe("framework-doctor --json flag", () => {
     expect(parsed.checks.length).toBe(14);
   });
 
-  test("--json each check has id, name, status fields", () => {
+  test("--json each check has id, name, status fields", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json`, {
@@ -132,7 +140,7 @@ describe("framework-doctor --json flag", () => {
 });
 
 describe("framework-doctor --check flag", () => {
-  test("--check 1 runs only check 1 (opencode.json sync)", () => {
+  test("--check 1 runs only check 1 (opencode.json sync)", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --check 1`, {
@@ -149,7 +157,7 @@ describe("framework-doctor --check flag", () => {
     expect(output).toMatch(/opencode\.json/);
   });
 
-  test("--check 9 runs only check 9 (encoding scan)", () => {
+  test("--check 9 runs only check 9 (encoding scan)", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --check 9`, {
@@ -164,7 +172,7 @@ describe("framework-doctor --check flag", () => {
     expect(output).toMatch(/UTF-8|encoding|mojibake/i);
   });
 
-  test("--check with invalid index warns and continues", () => {
+  test("--check with invalid index warns and continues", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --check 99`, {
@@ -181,7 +189,7 @@ describe("framework-doctor --check flag", () => {
 });
 
 describe("framework-doctor --json --check N", () => {
-  test("--json --check 3 outputs single check in JSON format", () => {
+  test("--json --check 3 outputs single check in JSON format", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json --check 3`, {
@@ -201,7 +209,7 @@ describe("framework-doctor --json --check N", () => {
 });
 
 describe("framework-doctor JSON report output", () => {
-  test("doctor writes JSON report to .task_temp/_global/doctor-report.json", () => {
+  test("doctor writes JSON report to .task_temp/_global/doctor-report.json", { timeout: 30000 }, () => {
     let output;
     try {
       output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}"`, {

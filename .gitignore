@@ -160,4 +160,6 @@ opencode.json.bak-pre-*
 # CodeGraph index database
 .codegraph/
 
+.worktrees/
+
 logs/

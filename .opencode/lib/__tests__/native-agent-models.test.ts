@@ -21,7 +21,7 @@ describe("native agent model config", () => {
     const config = readConfig();
     const exploreModel = config.agent?.explore?.model;
 
-    expect(exploreModel).toBe("opencode-go/deepseek-v4-pro");
-    expect(exploreModel).not.toBe("opencode-go/glm-5.2");
+    expect(exploreModel).toBe("deepseek/deepseek-v4-pro");
+    expect(exploreModel).not.toContain("glm");
   });
 });
