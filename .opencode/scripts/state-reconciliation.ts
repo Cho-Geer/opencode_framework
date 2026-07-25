@@ -1818,7 +1818,7 @@ function checkSessionAccessIntegrity(projectRoot) {
   }
 }
 
-module.exports = {
+export {
   reconcile,
   validateWriteAuditIntegrity,
   checkHierarchicalStateIntegrity,

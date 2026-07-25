@@ -15,7 +15,15 @@ const DOCTOR_SCRIPT = path.join(
   "scripts",
   "framework-doctor.ts",
 );
-const DOCTOR_RUNNER = process.execPath;
+// framework-doctor.ts is an ESM TypeScript file; run it with bun (not node,
+// which fails on ESM syntax with "module is not defined"). Fall back to
+// process.execPath only if bun is unavailable.
+let DOCTOR_RUNNER = "bun";
+try {
+  require("child_process").execSync("which bun", { stdio: "pipe" });
+} catch (_) {
+  DOCTOR_RUNNER = process.execPath;
+}
 
 describe("framework-doctor CLI", () => {
   test("script file exists", () => {
