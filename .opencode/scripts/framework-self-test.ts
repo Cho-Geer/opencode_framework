@@ -251,7 +251,6 @@ function checkStateDir() {
   const stateDir = path.join(OPENCODE_ROOT, ".opencode", "state");
   const files = [
     "machine.json",
-    "gate-state.json",
     "project.config.schema.json",
   ];
   const missing = files.filter((f) => !fileExists(path.join(stateDir, f)));
@@ -259,7 +258,7 @@ function checkStateDir() {
   return check(
     2,
     ok,
-    ok ? "All 3 files present" : `Missing: ${missing.join(", ")}`,
+    ok ? "All state files present" : `Missing: ${missing.join(", ")}`,
   );
 }
 
@@ -537,23 +536,8 @@ function checkAgentSkillsClean() {
 
 // ═══════════════════════════════════════════════════════════════
 function checkArchitectCQG() {
-  const archPath = path.join(
-    OPENCODE_ROOT,
-    ".opencode",
-    "agents",
-    "Architect.md",
-  );
-  const content = readFile(archPath);
-  if (!content) return check(9, false, "architect.md not found");
-
-  const hasCQC = content.includes("code-quality-check");
-  return check(
-    9,
-    hasCQC,
-    hasCQC
-      ? "code-quality-check found in architect.md mcp_tools"
-      : "MISSING! code-quality-check not in architect.md",
-  );
+  // RETIRED: Architect agent removed (blueprint architecture → 5-agent runtime).
+  return check(9, true, "RETIRED — Architect agent no longer exists (5-agent runtime)");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -561,37 +545,8 @@ function checkArchitectCQG() {
 
 // ═══════════════════════════════════════════════════════════════
 function checkCICAgentDockerTools() {
-  const cicdPath = path.join(
-    OPENCODE_ROOT,
-    ".opencode",
-    "agents",
-    "CI-CD-Agent.md",
-  );
-  const content = readFile(cicdPath);
-  if (!content) return check(10, false, "ci-cd-agent.md not found");
-
-  // Must have specific docker tool names (not just "Docker")
-  const dockerToolNames = [
-    "docker_list_containers",
-    "docker_run_container",
-    "docker_build_image",
-    "docker_create_network",
-    "docker_create_volume",
-    "docker_fetch_container_logs",
-    "docker_remove_container",
-    "docker_remove_image",
-    "docker_recreate_container",
-    "docker_start_container",
-    "docker_stop_container",
-  ];
-
-  const found = dockerToolNames.filter((t) => content.includes(t));
-  // At least the core tools should be present
-  const ok = found.length >= 3; // At least 3 specific docker tools
-  const detail = ok
-    ? `${found.length}/${dockerToolNames.length} docker tools found (${found.join(", ")})`
-    : `Only ${found.length} docker tools found, expected specific tool names, not generic "Docker"`;
-  return check(10, ok, detail);
+  // RETIRED: CI-CD-Agent removed (blueprint architecture → 5-agent runtime).
+  return check(10, true, "RETIRED — CI-CD-Agent no longer exists (5-agent runtime)");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -733,8 +688,6 @@ function checkCQGBootstrap() {
 function checkReferencedFiles() {
   const referencedFiles = [
     ".opencode/rules/common/common-project.md",
-    ".opencode/rules/mcp-compliance-guide.md",
-    ".opencode/rules/skill-compliance-guide.md",
     ".opencode/context/requirements/系统架构设计文档（SAD）.md",
     ".opencode/context/requirements/接口设计规范文档.md",
     ".opencode/context/requirements/数据架构设计文档.md",
@@ -1072,34 +1025,9 @@ function checkReconciliationInfra() {
     );
   }
 
-  // 20c: pre-execution-hook.sh references state-reconciliation.ts or reconciliation-check.sh
-  const preExecPath = path.join(
-    OPENCODE_ROOT,
-    ".opencode",
-    "scripts",
-    "pre-execution-hook.sh",
-  );
-  const preExecContent = readFile(preExecPath);
-  if (!preExecContent) {
-    return check(
-      20,
-      false,
-      "pre-execution-hook.sh not found (cannot verify integration)",
-    );
-  }
-
-  const preExecHasReconcile =
-    preExecContent.includes("state-reconciliation.ts") ||
-    preExecContent.includes("reconciliation-check.sh") ||
-    preExecContent.includes("Stage 2.5: State Reconciliation") ||
-    preExecContent.includes("Stage 2: State Reconciliation");
-  if (!preExecHasReconcile) {
-    return check(
-      20,
-      false,
-      "pre-execution-hook.sh does not invoke state-reconciliation.ts or reconciliation-check.sh",
-    );
-  }
+  // 20c: RETIRED — pre-execution-hook.sh no longer exists.
+  // Reconciliation scripts are validated by their own content checks above.
+  const preExecHasReconcile = true;
 
   // 20d: For reconciliation-check.sh also verify bash syntax and executable
   if (hasShellScript) {
@@ -1714,122 +1642,8 @@ function checkOpenCodeJsonAdapter() {
 
 // ═══════════════════════════════════════════════════════════════
 function checkPreExecGate() {
-  const gatePath = path.join(
-    OPENCODE_ROOT,
-    ".opencode",
-    "scripts",
-    "pre-execution-gate.ts",
-  );
-
-  // 23a: File exists
-  if (!fileExists(gatePath)) {
-    return check(23, false, "pre-execution-gate.ts not found");
-  }
-
-  // 23b: Is valid TypeScript/JavaScript (syntax check via bun build)
-  // FW-REPAIR-SA-20260611: node -c cannot validate .ts files; bun -c executes
-  // the script (not syntax-check). Use bun build --outfile=/dev/null instead.
-  try {
-    const { execSync } = require("node:child_process");
-    execSync(`bun build "${gatePath}" --target=bun --outfile=/dev/null`, {
-      stdio: "pipe",
-      timeout: 10000,
-    });
-  } catch (e) {
-    return check(
-      23,
-      false,
-      `pre-execution-gate.ts has TypeScript/JavaScript syntax errors: ${(e.stderr || e.message).toString().substring(0, 200)}`,
-    );
-  }
-
-  // 23c: Is executable
-  try {
-    fs.accessSync(gatePath, fs.constants.X_OK);
-  } catch {
-    return check(
-      23,
-      false,
-      "pre-execution-gate.ts is not executable (chmod +x)",
-    );
-  }
-
-  // 23d: Wired into pre-execution-hook.sh
-  const preExecHookPath = path.join(
-    OPENCODE_ROOT,
-    ".opencode",
-    "scripts",
-    "pre-execution-hook.sh",
-  );
-  const hookContent = readFile(preExecHookPath);
-  if (!hookContent) {
-    return check(
-      23,
-      false,
-      "pre-execution-hook.sh not found (cannot verify wiring)",
-    );
-  }
-
-  const wiredIntoHook =
-    hookContent.includes("pre-execution-gate.ts") &&
-    hookContent.includes("Stage 1");
-  if (!wiredIntoHook) {
-    return check(
-      23,
-      false,
-      "pre-execution-gate.ts not wired into pre-execution-hook.sh (missing Stage 1 reference)",
-    );
-  }
-
-  // 23e: Key functions exist in script (structural validation)
-  const gateContent = readFile(gatePath);
-  if (!gateContent) {
-    return check(23, false, "pre-execution-gate.ts cannot be read");
-  }
-
-  const requiredFunctions = [
-    "checkDagCoverage",
-    "checkGateLifecycle",
-    "checkRoleViolations",
-    "checkRuleRegistry",
-    "checkConfigValidity",
-    "checkKnowledgeGate",
-    "getEnforcementMode",
-  ];
-  const missingFuncs = requiredFunctions.filter(
-    (f) => !gateContent.includes(`function ${f}`),
-  );
-  if (missingFuncs.length > 0) {
-    return check(
-      23,
-      false,
-      `pre-execution-gate.ts missing required functions: ${missingFuncs.join(", ")}`,
-    );
-  }
-
-  // 23f: Required patch markers present (F2: prevents git checkout reversion)
-  // These markers correspond to patches applied by SA sessions that must not
-  // be lost. If a marker is missing, the file was likely reverted to a pre-fix
-  // version by `git checkout` or similar operation.
-  const REQUIRED_PATCH_MARKERS = [
-    "SA-ENFORCE-FIX-20250612", // KC bypass + dispatch session + KC fast-path
-  ];
-  const missingMarkers = REQUIRED_PATCH_MARKERS.filter(
-    (m) => !gateContent.includes(m),
-  );
-  if (missingMarkers.length > 0) {
-    return check(
-      23,
-      false,
-      `pre-execution-gate.ts missing required patch markers: ${missingMarkers.join(", ")}. File may have been reverted — restore from backup.`,
-    );
-  }
-
-  return check(
-    23,
-    true,
-    "pre-execution-gate.ts exists, valid JS, executable, wired into pre-execution-hook.sh Stage 1, 6 checks implemented (incl. Knowledge Pipeline Gate) + required patches verified",
-  );
+  // RETIRED: pre-execution-gate.ts removed (DAG gate retired per deprecation audit).
+  return check(23, true, "RETIRED — pre-execution-gate.ts removed (DAG gate retired)");
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2689,12 +2503,7 @@ function checkAgentAttestToolRegistered() {
     return check(45, false, "role profile files not found");
   }
   const WRITABLE_AGENTS = new Set([
-    "Super-Admin.md",
-    "Architect.md",
-    "Coder-BE.md",
-    "Coder-FE.md",
-    "CI-CD-Agent.md",
-    "Meta-Planner.md",
+    "Orchestrator.md",
   ]);
   const REQ = "knowledge_cache_attest";
   let violations = [];
@@ -3177,16 +2986,11 @@ function checkOpencodeJsonQuestionDeny(): void {
   }
 
   const AGENTS_MUST_ALLOW_QUESTION = [
-    "Meta-Planner",
-    "Architect",
-    "Coder-BE",
-    "Coder-FE",
-    "Guardian",
-    "Arbiter",
-    "CI-CD-Agent",
-    "Knowledge-Curator",
     "Orchestrator",
-    "Super-Admin",
+    "build",
+    "general",
+    "plan",
+    "explore",
   ];
 
   const violations: string[] = [];
@@ -3227,16 +3031,7 @@ function checkSubagentFrontmatterQuestionAbsence(): void {
   }
 
   const AGENTS_MUST_HAVE_QUESTION = new Set([
-    "Meta-Planner.md",
-    "Architect.md",
-    "Coder-BE.md",
-    "Coder-FE.md",
-    "Guardian.md",
-    "Arbiter.md",
-    "CI-CD-Agent.md",
-    "Knowledge-Curator.md",
     "Orchestrator.md",
-    "Super-Admin.md",
   ]);
 
   const violations: string[] = [];
@@ -3855,23 +3650,7 @@ function checkChecklistE2E(): void {
     issues.push(`domain-first search error: ${e.message}`);
   }
 
-  // 66b: UC7-003 VERIFIED event maps to knowledge_post_write_verified
-  try {
-    const uaPath = ".opencode/plugins/uc7ks-after.ts";
-    if (!fs.existsSync(path.join(OPENCODE_ROOT, uaPath))) {
-      issues.push("uc7ks-after.ts not found");
-    } else {
-      const content = fs.readFileSync(path.join(OPENCODE_ROOT, uaPath), "utf8");
-      if (!content.includes("knowledge_post_write_verified"))
-        issues.push(
-          "uc7ks-after.ts missing knowledge_post_write_verified wiring",
-        );
-      if (!content.includes("UC7-003-VERIFIED"))
-        issues.push("uc7ks-after.ts missing UC7-003-VERIFIED event");
-    }
-  } catch (e: any) {
-    issues.push(`UC7-003 mapping check error: ${e.message}`);
-  }
+  // 66b: RETIRED — uc7ks-after.ts plugin removed (UC7KS pipeline restructured).
 
   // 66c: compliance gate reads HANDOVER from declared_deliverables artifact_path
   try {

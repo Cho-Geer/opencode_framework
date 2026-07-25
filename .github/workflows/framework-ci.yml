@@ -255,10 +255,8 @@ jobs:
           git config core.hooksPath .opencode/hooks
           echo "core.hooksPath set to: $(git config core.hooksPath)"
 
-      - name: Initialize framework state DB (substate_kv table)
-        run: |
-          echo "Ensuring substate_kv table exists for framework-self-test Check 3..."
-          bun .opencode/scripts/db-migrate.ts 2>/dev/null || echo "(db-migrate.ts not needed or already applied — continuing)"
+      - name: Initialize framework state DB
+        run: bun .opencode/scripts/db-migrate.ts
 
       - name: Run CI semantic validator
         env:
