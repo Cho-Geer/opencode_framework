@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.5.0",
   "last_updated": "2026-06-22T06:52:00.000Z",
-  "total_entries": 66,
+  "total_entries": 55,
   "entries": [
     {
       "library_id": "backend",
