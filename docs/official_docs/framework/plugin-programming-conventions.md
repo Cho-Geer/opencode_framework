@@ -125,6 +125,31 @@ import { helperFunction } from "../lib/my-utils";
 | `export default` 函数体 | OpenCode 调用插件入口时 | 返回 hooks 对象 |
 | hook 函数体 | 事件触发时 | 业务逻辑 |
 
+### 3.6 output.parts 禁止修改（FW-PLUGIN-PARTS-GUARD）
+
+**所有插件禁止修改 `output.parts`。** 此数组由 OpenCode 运行时管理，承载用户消息和 LLM 交互内容。任何插件修改此数组都会破坏消息完整性。
+
+| 禁止操作 | 示例 |
+|---------|------|
+| `output.parts.unshift(...)` | 在消息开头注入内容 |
+| `output.parts.push(...)` | 在消息末尾追加内容 |
+| `output.parts.splice(...)` | 插入/删除消息部分 |
+| `output.parts.pop()` | 移除最后一个部分 |
+| `output.parts.shift()` | 移除第一个部分 |
+| `output.parts = [...]` | 整体替换 |
+| `output.parts += ...` | 拼接修改 |
+
+**检测方法**：
+- `hook-config-guard.ts` 在插件加载时扫描所有插件源文件（`validatePluginFiles()`）
+- `framework-self-test.ts` Check 69 在自测时扫描验证
+
+**合法替代方案**：
+- `output.context.push(text)` 仅在 `experimental.session.compacting` hook 中允许（用于压缩时注入提醒）
+- `writeLog()` 用于记录审计日志
+- `client.app.log()` 用于结构化日志
+
+**历史背景**：`p0-evidence-injector.ts` 曾通过 `chat.message` hook 的 `output.parts.unshift()` 注入 P0 凭据提醒，但因违反此规范已于 2026-06-24 移除。
+
 ---
 
 ## 4. Hook 分派机制

@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 // state-integrity-scan.ts — P4-002
 // Scans gate-state.json, machine.json, project.config.json, rule_registry.json,
 // and Task.DAG.json for JSON validity, required fields, and orphaned references.
@@ -28,14 +29,22 @@ function main() {
     "machine.json": paths.machine,
     "project.config.json": paths.projectConfig,
     "rule_registry.json": paths.ruleRegistry,
-    "Task.DAG.json": paths.dag,
+    "Task.DAG.json": (paths as any).dag,
   };
+
+  // Optional files are not required on a new project and should only emit INFO
+  // when missing. Required files still emit HIGH.
+  const optionalFiles = new Set([
+    "gate-state.json",
+    "rule_registry.json",
+    "Task.DAG.json",
+  ]);
 
   // ── JSON validity check ──
   for (const [name, filepath] of Object.entries(files)) {
     if (!fileExists(filepath)) {
       inconsistencies.push({
-        severity: "HIGH",
+        severity: optionalFiles.has(name) ? "INFO" : "HIGH",
         file: name,
         issue: "file_missing",
         detail: "File not found",
@@ -96,7 +105,7 @@ function main() {
         if (typeof session !== "object" || session === null) {
           continue;
         }
-        if (!session.session_id) {
+        if (!(session as any).session_id) {
           inconsistencies.push({
             severity: "WARNING",
             file: "gate-state.json",
@@ -104,7 +113,7 @@ function main() {
             detail: `Session key '${sid}' missing session_id field`,
           });
         }
-        if (!session.created_at) {
+        if (!(session as any).created_at) {
           inconsistencies.push({
             severity: "WARNING",
             file: "gate-state.json",
@@ -112,7 +121,7 @@ function main() {
             detail: `Session '${sid}' missing created_at`,
           });
         }
-        if (!session.gate_status) {
+        if (!(session as any).gate_status) {
           inconsistencies.push({
             severity: "WARNING",
             file: "gate-state.json",
@@ -127,11 +136,20 @@ function main() {
   // machine.json required sub-state fields check (P1-B: split architecture)
   // Sub-states now live in dedicated files; readSubState() returns {} for
   // missing/unreadable files, which we flag as structural problems.
+  // Fallback: read sub-states directly from machine.json when the DB split
+  // sub-states are not yet populated (e.g. new project or legacy JSON-only
+  // state). This keeps DB as the primary source while avoiding false HIGH
+  // violations on existing machine.json content.
+  let machineJsonFallback: any = null;
+  if (fileExists(files["machine.json"])) {
+    machineJsonFallback = readJsonFile(files["machine.json"]);
+  }
+
   if (fileExists(files["machine.json"])) {
     const machineMeta = readMachineMeta();
     const requiredSubStates = [
       "eslint_state",
-      "type_check_state",
+      "diagnostic_state", // replaces type_check_state (2026-06-26)
       "dependency_state",
       "format_state",
       "write_audit_state",
@@ -141,7 +159,10 @@ function main() {
     ];
     for (const key of requiredSubStates) {
       const subState = readSubState(key);
-      if (!subState || Object.keys(subState).length === 0) {
+      const hasDbSubState = subState && Object.keys(subState).length > 0;
+      const hasJsonSubState =
+        machineJsonFallback && Object.prototype.hasOwnProperty.call(machineJsonFallback, key);
+      if (!hasDbSubState && !hasJsonSubState) {
         inconsistencies.push({
           severity: "HIGH",
           file: "machine.json",
@@ -150,8 +171,18 @@ function main() {
         });
       }
     }
-    // meta and contracts reside in machine.json itself (not split files)
-    if (!machineMeta.meta || Object.keys(machineMeta.meta).length === 0) {
+    // meta and contracts reside in machine.json itself (not split files).
+    // Use machine.json as fallback when the DB meta table is not yet populated.
+    const effectiveMeta =
+      machineMeta.meta && Object.keys(machineMeta.meta).length > 0
+        ? machineMeta.meta
+        : machineJsonFallback && machineJsonFallback.meta;
+    const effectiveContracts =
+      machineMeta.contracts && machineMeta.contracts.length > 0
+        ? machineMeta.contracts
+        : machineJsonFallback && machineJsonFallback.contracts;
+
+    if (!effectiveMeta || Object.keys(effectiveMeta).length === 0) {
       inconsistencies.push({
         severity: "HIGH",
         file: "machine.json",
@@ -159,7 +190,7 @@ function main() {
         detail: `Required sub-state 'meta' missing or empty`,
       });
     }
-    if (!machineMeta.contracts) {
+    if (!effectiveContracts) {
       inconsistencies.push({
         severity: "HIGH",
         file: "machine.json",
@@ -167,7 +198,7 @@ function main() {
         detail: `Required sub-state 'contracts' missing`,
       });
     }
-    if (!machineMeta.meta || !machineMeta.meta.revision) {
+    if (!effectiveMeta || effectiveMeta.revision === undefined || effectiveMeta.revision === null) {
       inconsistencies.push({
         severity: "WARNING",
         file: "machine.json",
@@ -239,7 +270,9 @@ function main() {
             if (typeof id === "string") taskIds.add(id);
           }
         } else if (group && typeof group === "object") {
-          for (const subgroup of Object.values(group as Record<string, unknown>)) {
+          for (const subgroup of Object.values(
+            group as Record<string, unknown>,
+          )) {
             if (Array.isArray(subgroup)) {
               for (const id of subgroup) {
                 if (typeof id === "string") taskIds.add(id);
@@ -251,12 +284,12 @@ function main() {
     }
     for (const [sid, session] of Object.entries(gateState.sessions)) {
       if (typeof session !== "object" || session === null) continue;
-      if (session.task_id && !taskIds.has(session.task_id)) {
+      if ((session as any).task_id && !taskIds.has((session as any).task_id)) {
         inconsistencies.push({
           severity: "WARNING",
           file: "gate-state.json",
           issue: "orphaned_task_ref",
-          detail: `Session '${sid}' references non-existent task '${session.task_id}'`,
+          detail: `Session '${sid}' references non-existent task '${(session as any).task_id}'`,
         });
         autoFixPossible = true;
         if (shouldFix && !dryRun) {
@@ -285,7 +318,6 @@ function main() {
     }
   }
 
-
   // ── FW-PLAN-FIRST (2026-06-14): auto_plan_history cross-check ──
   // Every successful auto-plan attempt must have a matching DAG entry.
   // A "success" record whose dag_task_id is no longer in the DAG indicates
@@ -303,13 +335,19 @@ function main() {
           for (const id of group) if (typeof id === "string") taskIds.add(id);
         } else if (group && typeof group === "object") {
           for (const sg of Object.values(group)) {
-            if (Array.isArray(sg)) for (const id of sg) if (typeof id === "string") taskIds.add(id);
+            if (Array.isArray(sg))
+              for (const id of sg) if (typeof id === "string") taskIds.add(id);
           }
         }
       }
     }
     for (const rec of transactionState.auto_plan_history) {
-      if (rec && rec.status === "success" && rec.dag_task_id && !taskIds.has(rec.dag_task_id)) {
+      if (
+        rec &&
+        (rec as any).status === "success" &&
+        rec.dag_task_id &&
+        !taskIds.has(rec.dag_task_id)
+      ) {
         inconsistencies.push({
           severity: "WARNING",
           file: "machine.json",
@@ -354,3 +392,4 @@ if (require.main === module) {
 }
 
 module.exports = { main };
+

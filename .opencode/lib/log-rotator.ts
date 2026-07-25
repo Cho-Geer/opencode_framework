@@ -39,16 +39,16 @@ import {
   unlinkSync,
   writeFileSync,
   mkdirSync,
-} from 'node:fs';
-import { join, basename, dirname } from 'node:path';
-import { createGzip } from 'node:zlib';
-import { pipeline } from 'node:stream/promises';
+} from "node:fs";
+import { join, basename, dirname } from "node:path";
+import { createGzip } from "node:zlib";
+import { pipeline } from "node:stream/promises";
 /**
  * FW-LOG-UNIFY-P1-D2 (2026-06-12, @Super-Admin): Added writeLog import
  * for centralized log persistence. log-rotator → state-manager → gate-core
  * import chain is safe (no circular dependency with log-manager).
  */
-import { getFileSize, formatFileSize } from './state-manager';
+import { getFileSize, formatFileSize } from "./state-manager";
 import { writeLog } from "./log-manager";
 
 // ============================================================================
@@ -117,7 +117,7 @@ export interface LogStatus {
  * const rotator = new LogRotator();
  *
  * // After each log write:
- * const result = await rotator.rotateIfNeeded('.opencode/logs/safe-bash.log');
+ * const result = await rotator.rotateIfNeeded('.task_temp/_logs/plugin-safe-bash-runtime.log');
  *
  * // Nightly cron:
  * await rotator.dailyRotation();
@@ -131,9 +131,12 @@ export class LogRotator {
 
   constructor(config?: Partial<typeof ROTATION_CONFIG>) {
     this.maxSize = config?.MAX_SIZE ?? ROTATION_CONFIG.MAX_SIZE;
-    this.maxRotatedFiles = config?.MAX_ROTATED_FILES ?? ROTATION_CONFIG.MAX_ROTATED_FILES;
-    this.compressAfterDays = config?.COMPRESS_AFTER_DAYS ?? ROTATION_CONFIG.COMPRESS_AFTER_DAYS;
-    this.archiveAfterDays = config?.ARCHIVE_AFTER_DAYS ?? ROTATION_CONFIG.ARCHIVE_AFTER_DAYS;
+    this.maxRotatedFiles =
+      config?.MAX_ROTATED_FILES ?? ROTATION_CONFIG.MAX_ROTATED_FILES;
+    this.compressAfterDays =
+      config?.COMPRESS_AFTER_DAYS ?? ROTATION_CONFIG.COMPRESS_AFTER_DAYS;
+    this.archiveAfterDays =
+      config?.ARCHIVE_AFTER_DAYS ?? ROTATION_CONFIG.ARCHIVE_AFTER_DAYS;
   }
 
   // ==========================================================================
@@ -156,7 +159,7 @@ export class LogRotator {
       rotatedCount: 0,
       compressedCount: 0,
       archivedCount: 0,
-      summary: 'No rotation needed',
+      summary: "No rotation needed",
     };
 
     // Check if log exists and exceeds max size
@@ -176,7 +179,7 @@ export class LogRotator {
     const lockPath = `${logPath}.lock`;
     if (this.isLocked(lockPath)) {
       // In plugin context: await client.app.log({ body: { service: 'log-rotator', level: 'warn', message: 'Rotation skipped — lock held by another process' } });
-      result.summary = 'Rotation skipped — lock held by another process';
+      result.summary = "Rotation skipped — lock held by another process";
       return result;
     }
 
@@ -215,7 +218,7 @@ export class LogRotator {
       rotatedCount: 0,
       compressedCount: 0,
       archivedCount: 0,
-      summary: '',
+      summary: "",
     };
 
     const summaries: string[] = [];
@@ -229,7 +232,7 @@ export class LogRotator {
       summaries.push(result.summary);
     }
 
-    combined.summary = summaries.join('; ');
+    combined.summary = summaries.join("; ");
     return combined;
   }
 
@@ -272,7 +275,7 @@ export class LogRotator {
     // Create a new empty log file
     // In production, this should be handled by the logging system itself
     // We create an empty placeholder to indicate rotation happened
-    writeFileSync(logPath, '');
+    writeFileSync(logPath, "");
   }
 
   /**
@@ -287,7 +290,7 @@ export class LogRotator {
       const filePath = `${baseLogPath}.${i}`;
 
       if (!existsSync(filePath)) continue;
-      if (filePath.endsWith('.gz')) continue;
+      if (filePath.endsWith(".gz")) continue;
 
       // Check if file is old enough to compress
       try {
@@ -298,7 +301,11 @@ export class LogRotator {
         if (ageDays >= this.compressAfterDays) {
           const gzipPath = `${filePath}.gz`;
 
-          await pipeline(createReadStream(filePath), createGzip(), createWriteStream(gzipPath));
+          await pipeline(
+            createReadStream(filePath),
+            createGzip(),
+            createWriteStream(gzipPath),
+          );
 
           // Delete original after successful compression
           unlinkSync(filePath);
@@ -310,7 +317,10 @@ export class LogRotator {
          * FW-LOG-UNIFY-P1-D2 (2026-06-12, @Super-Admin): Migrated from
          * console.error to writeLog for centralized log persistence.
          */
-        writeLog("lib-log-rotator", "ERROR", { event: "compress_failed", detail: `${filePath}: ${message}` });
+        writeLog("lib-log-rotator", "ERROR", {
+          event: "compress_failed",
+          detail: `${filePath}: ${message}`,
+        });
         // Continue with next file
         continue;
       }
@@ -367,14 +377,8 @@ export class LogRotator {
 // Convenience Functions
 // ============================================================================
 
-/**
- * Quick rotation check for the safe-bash log.
- * Intended to be called after each safe_bash command execution.
- */
-export async function rotateSafeBashLogIfNeeded(): Promise<RotationResult> {
-  const rotator = new LogRotator();
-  return rotator.rotateIfNeeded('.opencode/logs/safe-bash.log');
-}
+// rotateSafeBashLogIfNeeded removed — logs unified to .task_temp/_logs/
+// See: docs/review/framework-refactor/opencode-logs-deprecation-plan.md
 
 // ============================================================================
 // Module Exports

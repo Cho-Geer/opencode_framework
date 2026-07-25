@@ -1,0 +1,133 @@
+# ═══════════════════════════════════════════════════════════════
+# Lint & Test CI — OpenCode Project
+# ═══════════════════════════════════════════════════════════════
+# Purpose: Run TypeScript type-checking (lint) and Bun tests on
+# every push and PR to main/develop branches. The ci-status-summary
+# job acts as an aggregate gate — if lint or test fails or is
+# cancelled, the workflow fails.
+#
+# TOOLCHAIN JUSTIFICATION:
+# - GitHub Actions: Primary CI orchestrator (native to GitHub,
+#   single-tool CI/CD with branch protection integration).
+#   No additional orchestration tools required for this scope.
+#
+# PRE-COMMIT VALIDATION CHECKLIST:
+# [x] Rule 1: CI-only workflow, no CD/deploy steps
+# [x] Rule 2: 2 quality gates + 1 aggregate, zero continue-on-error
+# [x] Rule 3: Single-tool (GitHub Actions), justification above
+# [x] Rule 4: N/A (no deployment — IaC not applicable)
+# [x] Rule 5: No hardcoded secrets
+# [x] Rule 6: Structured output on every job
+# [x] Rule 7: timeout-minutes ≤ 10 per job, ≤ 15 total
+# ═══════════════════════════════════════════════════════════════
+
+name: Lint & Test CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: lint-test-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+env:
+  CI: true
+
+jobs:
+  # ────────────────────────────────────────────────────────────
+  # JOB 1: lint
+  # Runs TypeScript type-checking via bun x tsc --noEmit.
+  # ────────────────────────────────────────────────────────────
+  lint:
+    name: Lint (TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run lint
+        run: bun run lint
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"lint\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/lint-result.json
+          cat /tmp/lint-result.json
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 2: test
+  # Runs tests via `bun test` (Bun's native test runner).
+  # The project's tests transitively depend on `bun:sqlite` (via
+  # db-manager), which Jest/Node cannot resolve. Bun test handles
+  # both .ts sources and bun:sqlite natively.
+  # ────────────────────────────────────────────────────────────
+  test:
+    name: Test (Bun)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"test\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/test-result.json
+          cat /tmp/test-result.json
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 3: ci-status-summary
+  # Aggregate gate — fails if lint or test failed or was cancelled.
+  # ────────────────────────────────────────────────────────────
+  ci-status-summary:
+    name: Lint & Test Summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: [lint, test]
+    if: always()
+    steps:
+      - name: Check aggregate result
+        run: |
+          echo "lint status: ${{ needs.lint.result }}"
+          echo "test status: ${{ needs.test.result }}"
+
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "::error::lint job failed or was cancelled"
+            exit 1
+          fi
+
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "::error::test job failed or was cancelled"
+            exit 1
+          fi
+
+          echo "::notice::All CI checks passed"
+
+      - name: Export check result
+        if: always()
+        run: |
+          echo "{\"check\":\"ci-status-summary\",\"status\":\"${{ job.status }}\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > /tmp/ci-status-summary-result.json
+          cat /tmp/ci-status-summary-result.json

@@ -1,0 +1,82 @@
+// service/dispatch/index.ts — Unified entry point for DispatchService
+// Re-exports all public API from the dispatch service modules.
+
+// ── DAG Policy ──
+export {
+  DAG_EXEMPT_AGENTS,
+  isDagExempt,
+  DEFAULT_DISPATCH_POLICY,
+  readDispatchPolicy,
+  resetDispatchPolicyCache,
+  countAutoPlanAttempts,
+  synthesizePlanningPrompt,
+  autoPlan,
+  type DispatchPolicy,
+  type AutoPlanRecord,
+  type AutoPlanOptions,
+} from "./dag-policy";
+
+// ── Queue Operations ──
+export {
+  dbEnqueueDispatch,
+  dbDequeueWithLease,
+  dbConsumeDispatch,
+  dbFailDispatch,
+  dbCleanStaleLeases,
+  dbFindPendingDispatch,
+  dbFindPendingDispatchByHash,
+  dbDequeueWithHash,
+  dbCheckDuplicateDispatch,
+  type DispatchQueueEntry,
+  type DispatchPromptRef,
+} from "./queue";
+
+// ── Session Log & Diagnostics ──
+export {
+  dbInsertDispatchAttempt,
+  dbGetDispatchQueue,
+  dbGetPendingCount,
+  type DispatchContextEntry,
+  type DispatchAttemptEntry,
+} from "./session-log";
+
+// ── Route Validation ──
+// Phase 2: dispatch router (replaces validateDispatchRoute)
+export { dispatch } from "./router";
+export type { DispatchInput, DispatchResult } from "./router";
+
+// ── Phase 3: Dispatch Cleanup (from dispatch-after hook) ──
+export { cleanupDispatch } from "./cleanup";
+
+// ── Phase 3: Auto-Dispatch Cleanup (from dispatch-auto hook) ──
+export { reclaimAutoDispatch } from "./auto-cleanup";
+
+// ── Phase 3: Dispatch Marker Consumption (from task-before hook) ──
+export { consumeDispatchMarker } from "./marker-consume";
+export type { MarkerConsumeResult } from "./marker-consume";
+
+// ── Phase 3E-4: Dispatch Before-Hook Validation (from dispatch-before plugin) ──
+// LEGACY: validateDispatchBefore is the deprecated PLAN-FIRST L0-L4 dispatch validator.
+// Only reachable via the unwired before/dispatch handler. Kept as re-export for that
+// handler's delegate import; not part of the active dispatch path.
+export { validateDispatchBefore } from "./dispatch-validate";
+
+// ── Phase 4B: Prompt Builder (extracted from dispatch-subagent.ts) ──
+export {
+  buildDispatchPrompt,
+  type PromptBuildInput,
+  type PromptBuildResult,
+} from "./prompt-builder";
+
+export {
+  findRelevantStacks,
+  isFrameworkTask,
+  buildContext7Section,
+  buildProjectContextSection,
+  buildScopeLine,
+  buildKCGateFlowSection,
+  buildTemplateResolutionMap,
+  resolveTemplateVariables,
+  type TechStackEntry,
+  type ProjectConfig,
+} from "./prompt-sections";

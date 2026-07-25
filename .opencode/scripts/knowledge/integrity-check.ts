@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * integrity-check.ts — Reverse Orphan Detection & Manifest Integrity v1.1.0
@@ -21,15 +23,15 @@
  *                 adds entries via knowledge-store.ts. Operator-assisted.
  */
 
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const crypto = require("node:crypto");
 const { createRequire } = require("node:module");
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..", "..");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs", "official_docs");
 const INDEX_PATH = path.join(DOCS_DIR, "index.json");
 const KNOWN_NON_DOC_FILES = new Set([".gitkeep", "index.schema.json"]);
-const IGNORE_PREFIXES = [".metadata", "scout-extracts", ".opencode_backups"];
+const IGNORE_PREFIXES = [".metadata", ".opencode_backups"];
 
 /**
  * KC-15: Lazy-load knowledge-store (ESM) via createRequire for CJS interop.
@@ -113,7 +115,6 @@ function checkForOrphans(docsRoot) {
   const orphanedFiles = [];
   const diskFiles = walkDir(docsDir, docsDir, [
     ".metadata",
-    "scout-extracts",
     ".opencode_backups",
   ]);
 
@@ -180,7 +181,6 @@ function generateIntegrityReport(docsRoot) {
   const diskPaths = new Set(
     walkDir(docsDir, docsDir, [
       ".metadata",
-      "scout-extracts",
       ".opencode_backups",
     ]).filter(
       (p) => p !== "index.json" && !KNOWN_NON_DOC_FILES.has(path.basename(p)),
@@ -379,7 +379,7 @@ function autoIndexOrphans(docsRoot) {
     try {
       // Read file and compute metadata
       const content = fs.readFileSync(absPath, "utf-8");
-      const hash = crypto.createHash("sha256").update(content).digest("hex");
+      const hash = require("node:crypto").createHash("sha256").update(content).digest("hex");
       const sha256 = `sha256:${hash}`;
       const size_bytes = Buffer.byteLength(content, "utf-8");
 

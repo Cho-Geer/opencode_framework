@@ -22,6 +22,13 @@ const originalLog = console.log;
 const originalExit = process.exit;
 const originalCwd = process.cwd;
 
+// bun test does not provide jest.resetModules, so we clear require.cache manually.
+function resetModules() {
+  Object.keys(require.cache).forEach((key) => {
+    delete require.cache[key];
+  });
+}
+
 beforeAll(() => {
   // Create minimal required files (simulating a new project)
   fs.mkdirSync(path.join(TMPDIR, ".opencode", "state"), { recursive: true });
@@ -31,13 +38,40 @@ beforeAll(() => {
     path.join(TMPDIR, ".opencode", "state", "machine.json"),
     JSON.stringify({
       meta: { version: "1.0.0", project: "test", revision: 0 },
-      eslint_state: { last_full_scan: null, modules: {}, aggregate: { total_violations: 0, dirty_modules: [], waived_modules: [] } },
-      type_check_state: { status: "clean", dirty_files: [], incremental_errors: 0, full_errors: 0, last_incremental_check: null, last_full_check: null },
-      dependency_state: { status: "clean", violations: [], last_check: null, forbidden_rules_applied: 0 },
-      format_state: { status: "clean", unformatted_files: [], last_run: "", auto_fix_count: 0 },
+      eslint_state: {
+        last_full_scan: null,
+        modules: {},
+        aggregate: {
+          total_violations: 0,
+          dirty_modules: [],
+          waived_modules: [],
+        },
+      },
+      diagnostic_state: { files: {}, last_updated: "" }, // replaces type_check_state (2026-06-26)
+      dependency_state: {
+        status: "clean",
+        violations: [],
+        last_check: null,
+        forbidden_rules_applied: 0,
+      },
+      format_state: {
+        status: "clean",
+        unformatted_files: [],
+        last_run: "",
+        auto_fix_count: 0,
+      },
       write_audit_state: { enabled: true, current_session: null, history: [] },
-      compliance_records: { role_violations: [], gate_violations: [], tdd_violations: [] },
-      tdd_enforcement_state: { enabled: true, violations: [], current_session: null, history: [] },
+      compliance_records: {
+        role_violations: [],
+        gate_violations: [],
+        tdd_violations: [],
+      },
+      tdd_enforcement_state: {
+        enabled: true,
+        violations: [],
+        current_session: null,
+        history: [],
+      },
       contracts: ["contract.yaml"],
       keystone_hashes: {},
     }),
@@ -46,7 +80,11 @@ beforeAll(() => {
   // project.config.json — required, exists
   fs.writeFileSync(
     path.join(TMPDIR, ".opencode", "project.config.json"),
-    JSON.stringify({ project: { name: "test", version: "1.0.0" }, paths: {}, tech_stack: {} }),
+    JSON.stringify({
+      project: { name: "test", version: "1.0.0" },
+      paths: {},
+      tech_stack: {},
+    }),
   );
 
   // Optional files intentionally NOT created:
@@ -62,20 +100,20 @@ afterAll(() => {
 beforeEach(() => {
   capturedLogs = [];
   // Mock process.exit to prevent test runner from crashing
-  process.exit = jest.fn();
+  process.exit = () => {};
   // Mock process.cwd to return temp dir
-  process.cwd = jest.fn(() => TMPDIR);
+  process.cwd = () => TMPDIR;
   // Mock console.log to capture output
-  console.log = jest.fn((...args) => {
+  console.log = (...args) => {
     capturedLogs.push(args.join(" "));
-  });
+  };
 });
 
 afterEach(() => {
   process.exit = originalExit;
   process.cwd = originalCwd;
   console.log = originalLog;
-  jest.resetModules();
+  resetModules();
 });
 
 describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () => {
@@ -91,9 +129,10 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
     }
 
     // Parse the last captured log as JSON (main() outputs JSON via console.log)
-    const jsonOutput = capturedLogs.length > 0
-      ? JSON.parse(capturedLogs[capturedLogs.length - 1])
-      : null;
+    const jsonOutput =
+      capturedLogs.length > 0
+        ? JSON.parse(capturedLogs[capturedLogs.length - 1])
+        : null;
 
     // RED ASSERTION: This will FAIL on current code because:
     // state-integrity-scan.js line 31 emits HIGH for ALL missing files.
@@ -101,7 +140,7 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
     expect(jsonOutput).not.toBeNull();
     if (jsonOutput && jsonOutput.inconsistencies) {
       const ruleRegistryIssue = jsonOutput.inconsistencies.find(
-        i => i.file === "rule_registry.json" && i.issue === "file_missing"
+        (i) => i.file === "rule_registry.json" && i.issue === "file_missing",
       );
       // RED: currently severity is "HIGH" — this assertion expects "INFO"
       // which will FAIL, proving the test is valid.
@@ -116,23 +155,24 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
     let result;
     try {
       // Reset modules to clear any cached require
-      jest.resetModules();
+      resetModules();
       const sis = require("../../state-integrity-scan");
       sis.main();
     } catch (e) {
       // Expected to possibly throw during RED phase
     }
 
-    const jsonOutput = capturedLogs.length > 0
-      ? JSON.parse(capturedLogs[capturedLogs.length - 1])
-      : null;
+    const jsonOutput =
+      capturedLogs.length > 0
+        ? JSON.parse(capturedLogs[capturedLogs.length - 1])
+        : null;
 
     // RED: asserts INFO severity for missing Task.DAG.json
     // Currently FAILS because code emits HIGH
     expect(jsonOutput).not.toBeNull();
     if (jsonOutput && jsonOutput.inconsistencies) {
       const dagIssue = jsonOutput.inconsistencies.find(
-        i => i.file === "Task.DAG.json" && i.issue === "file_missing"
+        (i) => i.file === "Task.DAG.json" && i.issue === "file_missing",
       );
       expect(dagIssue).toBeDefined();
       if (dagIssue) {
@@ -148,21 +188,22 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
     // are present and no HIGH is emitted for them.
     let result;
     try {
-      jest.resetModules();
+      resetModules();
       const sis = require("../../state-integrity-scan");
       sis.main();
     } catch (e) {
       // Expected to possibly throw during RED phase
     }
 
-    const jsonOutput = capturedLogs.length > 0
-      ? JSON.parse(capturedLogs[capturedLogs.length - 1])
-      : null;
+    const jsonOutput =
+      capturedLogs.length > 0
+        ? JSON.parse(capturedLogs[capturedLogs.length - 1])
+        : null;
 
     expect(jsonOutput).not.toBeNull();
     if (jsonOutput && jsonOutput.inconsistencies) {
       const machineIssue = jsonOutput.inconsistencies.find(
-        i => i.file === "machine.json"
+        (i) => i.file === "machine.json",
       );
       // machine.json exists in test setup, so no missing issue expected
       expect(machineIssue).toBeUndefined();
@@ -172,21 +213,22 @@ describe("FX-DIAG-ROBUST-4: Missing optional files produce INFO not HIGH", () =>
   test("gate-state.json missing on new project should produce INFO (optional file) (RED: currently HIGH)", () => {
     let result;
     try {
-      jest.resetModules();
+      resetModules();
       const sis = require("../../state-integrity-scan");
       sis.main();
     } catch (e) {
       // Expected to possibly throw during RED phase
     }
 
-    const jsonOutput = capturedLogs.length > 0
-      ? JSON.parse(capturedLogs[capturedLogs.length - 1])
-      : null;
+    const jsonOutput =
+      capturedLogs.length > 0
+        ? JSON.parse(capturedLogs[capturedLogs.length - 1])
+        : null;
 
     expect(jsonOutput).not.toBeNull();
     if (jsonOutput && jsonOutput.inconsistencies) {
       const gateStateIssue = jsonOutput.inconsistencies.find(
-        i => i.file === "gate-state.json" && i.issue === "file_missing"
+        (i) => i.file === "gate-state.json" && i.issue === "file_missing",
       );
       expect(gateStateIssue).toBeDefined();
       if (gateStateIssue) {

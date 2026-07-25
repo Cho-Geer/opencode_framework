@@ -1,0 +1,546 @@
+/**
+ * critical-files.ts — Critical infrastructure file detection (git diff + domain-aware auto-generation)
+ * ================================================================================================
+ *
+ * Replaces the old SHA-256 digest system (rule_registry.json + rule-registry-verify.ts)
+ * with git-diff-based change detection. Two functions cover the two trigger points:
+ *
+ *   getStagedCriticalFiles()  → commit-time  (git diff --cached)
+ *   getModifiedCriticalFiles() → dispatch-time (git diff HEAD)
+ *
+ * M10 (2026-06-19): Added domain-aware auto-generation via knowledge_semantic_map:
+ *   getCriticalFilesForDomain(domain_id) → auto-generates critical file list from
+ *     knowledge_semantic_map.save_path + docs/official_docs/index.json
+ *   getCriticalFileSummary() → coverage comparison for quality reference
+ *
+ * @author @Super-Admin
+ * @since 2026-06-15
+ * @updated 2026-06-19 — M10: domain-aware auto-generation
+ */
+
+import { execSync } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+
+// ── Path resolution ──────────────────────────────────────────
+// OPENCODE_ROOT is resolved in priority order:
+//   1. OPENCODE_ROOT env var (set by dispatch_subagent.ts shell invocation)
+//   2. Walk up from this file's directory until we find project.config.json
+//      (handles both CJS __dirname and ESM import.meta.url)
+
+function resolveOpenCodeRoot(): string {
+  // Priority 1: Explicit env var
+  if (process.env.OPENCODE_ROOT) return resolve(process.env.OPENCODE_ROOT);
+
+  // Priority 2: Walk up from module directory
+  const modDir =
+    typeof __dirname !== "undefined"
+      ? resolve(__dirname)
+      : resolve(dirname(new URL(import.meta.url).pathname));
+
+  let current = modDir;
+  for (let i = 0; i < 6; i++) {
+    if (existsSync(resolve(current, ".opencode", "project.config.json"))) {
+      return current;
+    }
+    const parent = resolve(current, "..");
+    if (parent === current) break; // Reached filesystem root
+    current = parent;
+  }
+
+  // Priority 3: Fallback to cwd
+  let cwd = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    if (existsSync(resolve(cwd, ".opencode", "project.config.json"))) {
+      return cwd;
+    }
+    const parent = resolve(cwd, "..");
+    if (parent === cwd) break;
+    cwd = parent;
+  }
+
+  // Last resort: 3 levels up from modDir
+  return resolve(modDir, "..", "..", "..");
+}
+
+const OPENCODE_ROOT = resolveOpenCodeRoot();
+
+const PROJECT_CONFIG_PATH = resolve(
+  OPENCODE_ROOT,
+  ".opencode",
+  "project.config.json",
+);
+const INDEX_JSON_PATH = resolve(
+  OPENCODE_ROOT,
+  "docs",
+  "official_docs",
+  "index.json",
+);
+
+// ── Type definitions ─────────────────────────────────────────
+interface KnowledgeDomain {
+  domain_id: string;
+  save_path: string;
+  keywords: string[];
+  context7_libraries: string[];
+  fallback_pattern: string;
+  ttl_days: number;
+}
+
+interface IndexEntry {
+  library_id: string;
+  query_topic: string;
+  domain: string;
+  tags: string[];
+  files: Array<{
+    path: string;
+    source: string;
+    sha256?: string;
+    [key: string]: unknown;
+  }>;
+}
+
+interface CriticalFileSummary {
+  domain_id: string;
+  save_path: string;
+  total_critical: number;
+  critical_files: string[];
+  files_read: string[];
+  matched: string[];
+  missing: string[];
+  coverage_pct: number;
+}
+
+/** Files whose modification should trigger the [INFRA] commit marker.
+ *
+ * FIX-006 (2026-06-21 @Super-Admin): Expanded from 22 to 30 entries.
+ * Added hook implementation files, critical-files.ts self-protection,
+ * framework scripts, and governance CI workflow.
+ * These were previously blind spots — modifications to hook-layers.ts
+ * or framework-self-test.ts could bypass critical-file detection.
+ */
+export const CRITICAL_FILES = [
+  ".opencode/rules/common/common-project.md",
+  ".opencode/rules/mcp-compliance-guide.md",
+  ".opencode/rules/skill-compliance-guide.md",
+  ".opencode/agents/Orchestrator.md",
+  ".opencode/legacy/agent-profiles/Meta-Planner.md",
+  ".opencode/legacy/agent-profiles/Coder-BE.md",
+  ".opencode/legacy/agent-profiles/Coder-FE.md",
+  ".opencode/legacy/agent-profiles/Guardian.md",
+  ".opencode/legacy/agent-profiles/Arbiter.md",
+  ".opencode/legacy/agent-profiles/CI-CD-Agent.md",
+  ".opencode/legacy/agent-profiles/Super-Admin.md",
+  ".opencode/legacy/agent-profiles/Knowledge-Curator.md",
+  ".opencode/legacy/agent-profiles/Architect.md",
+  ".opencode/project.config.json",
+  // ── FIX-006: Hook implementation files ──
+  ".opencode/hooks/lib/hook-layers.ts",
+  ".opencode/hooks/lib/hook-commit-msg.ts",
+  ".opencode/hooks/lib/hook-critical-files.ts",
+  ".opencode/lib/critical-files.ts",
+  ".opencode/lib/gate-core.ts",
+  ".opencode/lib/dag-policy.ts",
+  ".opencode/tools/dispatch_subagent.ts",
+  ".opencode/hooks/pre-commit",
+  ".opencode/hooks/commit-msg",
+  // ── FIX-006: Framework scripts ──
+  ".opencode/scripts/install-hooks.ts",
+  ".opencode/scripts/framework-self-test.ts",
+  ".opencode/scripts/framework-doctor.ts",
+  // ── FIX-006: Governance CI workflow ──
+  ".github/workflows/framework-ci.yml",
+  "opencode.json",
+  "AGENTS.md",
+];
+
+/**
+ * Return critical files that are staged for commit.
+ * Uses `git diff --cached --name-only` (commit-time check).
+ */
+export function getStagedCriticalFiles(): string[] {
+  const staged = execSync("git diff --cached --name-only", { encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  return staged.filter((f) => CRITICAL_FILES.includes(f));
+}
+
+/**
+ * Return critical files that have been modified since HEAD.
+ * Uses `git diff HEAD --name-only` (dispatch-time check).
+ * Catches uncommitted changes including multi-day accumulation.
+ */
+export function getModifiedCriticalFiles(): string[] {
+  try {
+    /**
+     * FW-FIX-CI-CHECK06 (2026-06-22): Added --diff-filter=ACM to exclude
+     * mode-only changes (chmod +x, symlinks) from critical file detection.
+     * CI workflows that run chmod +x on scripts would trigger false-positive
+     * critical file alerts via getModifiedCriticalFiles().
+     */
+    const modified = execSync("git diff HEAD --name-only --diff-filter=ACM", {
+      encoding: "utf8",
+    })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    return modified.filter((f) => CRITICAL_FILES.includes(f));
+  } catch {
+    return [];
+  }
+}
+
+// ── M10: Domain-Aware Critical File Auto-Generation ──────────
+
+/**
+ * Lazy-load the knowledge_semantic_map from project.config.json.
+ * Cached in module scope after first read.
+ */
+let _cachedDomains: KnowledgeDomain[] | null = null;
+let _cachedEntries: IndexEntry[] | null = null;
+
+function getDomains(): KnowledgeDomain[] {
+  if (_cachedDomains) return _cachedDomains;
+  try {
+    const raw = readFileSync(PROJECT_CONFIG_PATH, "utf-8");
+    const config = JSON.parse(raw);
+    _cachedDomains = config.knowledge_semantic_map?.domains ?? [];
+  } catch {
+    _cachedDomains = [];
+  }
+  return _cachedDomains;
+}
+
+function getIndexEntries(): IndexEntry[] {
+  if (_cachedEntries) return _cachedEntries;
+  try {
+    if (!existsSync(INDEX_JSON_PATH)) return [];
+    const raw = readFileSync(INDEX_JSON_PATH, "utf-8");
+    const index = JSON.parse(raw);
+    _cachedEntries = index.entries ?? [];
+  } catch {
+    _cachedEntries = [];
+  }
+  return _cachedEntries;
+}
+
+/**
+ * Auto-generate the critical file list for a given knowledge domain.
+ *
+ * Algorithm:
+ *   1. Look up domain_id in knowledge_semantic_map.domains[] → get save_path
+ *   2. Scan docs/official_docs/index.json entries
+ *   3. Filter entries whose files[].path starts with save_path
+ *   4. Return unique file paths relative to docs/official_docs/
+ *
+ * @param domain_id — Knowledge domain identifier (e.g., 'opencode_framework', 'backend_api')
+ * @returns Array of cache file paths (relative to docs/official_docs/)
+ *
+ * @since 2026-06-19 — M10
+ */
+export function getCriticalFilesForDomain(domain_id: string): string[] {
+  const domains = getDomains();
+  const domain = domains.find((d) => d.domain_id === domain_id);
+  if (!domain) return [];
+
+  const savePath = domain.save_path;
+  const entries = getIndexEntries();
+
+  const matchedPaths = new Set<string>();
+  for (const entry of entries) {
+    for (const file of entry.files) {
+      if (file.path.startsWith(savePath)) {
+        matchedPaths.add(file.path);
+      }
+    }
+  }
+
+  return Array.from(matchedPaths).sort();
+}
+
+/**
+ * Generate a coverage summary comparing files_read against critical files for a domain.
+ *
+ * Use case: When an agent attests cache_sufficient=true, this function can be called
+ * to check whether the agent actually read all domain-relevant cached files.
+ * The result is a quality reference (non-blocking).
+ *
+ * @param domain_id — Knowledge domain identifier
+ * @param files_read — Array of cache file paths the agent declared as read
+ * @returns CriticalFileSummary with coverage analysis
+ *
+ * @since 2026-06-19 — M10
+ */
+export function getCriticalFileSummary(
+  domain_id: string,
+  files_read: string[] = [],
+): CriticalFileSummary {
+  const criticalFiles = getCriticalFilesForDomain(domain_id);
+
+  // Normalize paths: strip leading docs/official_docs/ prefix if present
+  const normalizedRead = files_read.map((f) =>
+    f.startsWith("docs/official_docs/")
+      ? f.slice("docs/official_docs/".length)
+      : f,
+  );
+
+  const matched = criticalFiles.filter((cf) => normalizedRead.includes(cf));
+  const missing = criticalFiles.filter((cf) => !normalizedRead.includes(cf));
+
+  const domains = getDomains();
+  const domain = domains.find((d) => d.domain_id === domain_id);
+
+  return {
+    domain_id,
+    save_path: domain?.save_path ?? "",
+    total_critical: criticalFiles.length,
+    critical_files: criticalFiles,
+    files_read: files_read,
+    matched,
+    missing,
+    coverage_pct:
+      criticalFiles.length > 0
+        ? Math.round((matched.length / criticalFiles.length) * 100)
+        : 100,
+  };
+}
+
+/**
+ * Invalidate the module-level caches.
+ * Call after project.config.json or index.json is updated.
+ *
+ * @since 2026-06-19 — M10
+ */
+export function invalidateCriticalFilesCache(): void {
+  _cachedDomains = null;
+  _cachedEntries = null;
+}
+
+// ── INFRA-POLICY-WIDER-SCOPE: Business code vs Infrastructure ──
+// Added 2026-06-22 by @Super-Admin (INFRA-POLICY-WIDER-SCOPE).
+// Previously, [INFRA] was required only when specific files in the
+// CRITICAL_FILES array were touched. This created blind spots —
+// modifications to files like package.json, tsconfig.json, or
+// .github/workflows/* that weren't in CRITICAL_FILES could bypass
+// the [INFRA] commit-marker requirement.
+//
+// The new policy: ANY file NOT under booking_system_refactor/ is
+// infrastructure and requires [INFRA]. Business code (under
+// booking_system_refactor/) is exempt.
+
+/**
+ * BUSINESS_CODE_PREFIX — Files under this directory are business code
+ * and do NOT require the [INFRA] marker in commit messages.
+ * Everything else is infrastructure and requires [INFRA].
+ *
+ * Business code directories:
+ *   - {business_code_root}/booking-backend/src/**
+ *   - {business_code_root}/booking-frontend/**
+ *
+ * Dynamically read from project.config.json paths.business_code_root.
+ * Falls back to computing the common parent directory of backend_src
+ * and frontend_src if business_code_root is not explicitly set.
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ * @updated 2026-06-22 — INFRA-READ-FROM-CONFIG: dynamic config read
+ */
+let _cachedBusinessCodePrefix: string | null = null;
+
+/**
+ * Read the business code root path from project.config.json.
+ * Uses lazy singleton pattern: read config once, cache the result.
+ *
+ * Priority:
+ *   1. paths.business_code_root in project.config.json (explicit config)
+ *   2. Common parent directory of paths.backend_src and paths.frontend_src (computed)
+ *   3. Fallback: "booking_system_refactor/" (legacy default for backward compat)
+ *
+ * @returns The business code root directory path (with trailing slash)
+ *
+ * @since 2026-06-22 — INFRA-READ-FROM-CONFIG
+ */
+export function readBusinessCodeRoot(): string {
+  if (_cachedBusinessCodePrefix !== null) return _cachedBusinessCodePrefix;
+  try {
+    const raw = readFileSync(PROJECT_CONFIG_PATH, "utf-8");
+    const config = JSON.parse(raw);
+    // Priority 1: Explicit business_code_root in project.config.json paths
+    if (
+      config.paths?.business_code_root &&
+      typeof config.paths.business_code_root === "string"
+    ) {
+      const root = config.paths.business_code_root;
+      _cachedBusinessCodePrefix = root.endsWith("/") ? root : root + "/";
+      return _cachedBusinessCodePrefix;
+    }
+    // Priority 2: Compute common parent of backend_src and frontend_src
+    const be = String(config.paths?.backend_src ?? "");
+    const fe = String(config.paths?.frontend_src ?? "");
+    if (be && fe) {
+      let i = 0;
+      while (i < be.length && i < fe.length && be[i] === fe[i]) i++;
+      while (i > 0 && be[i - 1] !== "/") i--;
+      _cachedBusinessCodePrefix = be.substring(0, i);
+      return _cachedBusinessCodePrefix;
+    }
+  } catch {
+    // JSON parse error — fall through to legacy default
+  }
+  // Priority 3: Legacy fallback
+  _cachedBusinessCodePrefix = "booking_system_refactor/";
+  return _cachedBusinessCodePrefix;
+}
+
+export const BUSINESS_CODE_PREFIX = readBusinessCodeRoot();
+
+/**
+ * Check if a file path is an infrastructure file (not business code).
+ * Infrastructure files require [INFRA] marker in commit messages.
+ *
+ * @param filePath — Git-tracked file path relative to repo root
+ * @returns true if the file is NOT under booking_system_refactor/
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ */
+export function isInfrastructureFile(filePath: string): boolean {
+  return !filePath.startsWith(BUSINESS_CODE_PREFIX);
+}
+
+/**
+ * Return infrastructure files that are staged for commit.
+ * Infrastructure = files NOT under booking_system_refactor/.
+ *
+ * Uses `git diff --cached --name-only` (commit-time check).
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ */
+export function getStagedInfraFiles(): string[] {
+  const staged = execSync("git diff --cached --name-only", { encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+  return staged.filter(isInfrastructureFile);
+}
+
+/**
+ * Return infrastructure files modified since HEAD.
+ * Infrastructure = files NOT under booking_system_refactor/.
+ *
+ * Uses `git diff HEAD --name-only` (dispatch-time check).
+ *
+ * @since 2026-06-22 — INFRA-POLICY-WIDER-SCOPE
+ */
+export function getModifiedInfraFiles(): string[] {
+  try {
+    const modified = execSync("git diff HEAD --name-only", { encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    return modified.filter(isInfrastructureFile);
+  } catch {
+    return [];
+  }
+}
+
+// ── INFRA-NO-MIXED-COMMITS: Mixed Business + Infra Commit Detection ──
+// Added 2026-06-22 by @Super-Admin (INFRA-NO-MIXED-COMMITS).
+// Prevents commits that contain BOTH business code files
+// (under booking_system_refactor/) AND infrastructure files
+// (everything else). They must be committed separately to maintain
+// clean audit trails and prevent accidental business-code changes
+// from sneaking into infrastructure commits.
+
+/**
+ * INFRA_REQUIRED_PREFIXES — Directory prefixes that are explicitly
+ * infrastructure (non-business-code). When using the "everything not
+ * business code is infrastructure" model, this is empty because all
+ * non-business-code files are infra by definition.
+ *
+ * BUSINESS_CODE_PREFIX is the primary discriminator; INFRA_REQUIRED_PREFIXES
+ * is provided for symmetry and future use cases where specific infra
+ * directories need to be enumerated.
+ *
+ * @since 2026-06-22 — INFRA-NO-MIXED-COMMITS
+ */
+export const INFRA_REQUIRED_PREFIXES: string[] = [];
+
+/**
+ * INFRA-ONLY-TDD-SKIP (2026-06-22): Check if a commit is entirely
+ * infrastructure files (NO business code files).
+ *
+ * When ALL staged files are infrastructure (outside BUSINESS_CODE_PREFIX),
+ * TDD markers ([Red]/[Green]/[Refactor]) are NOT required. Only the [INFRA]
+ * marker is enforced. This allows framework maintenance commits to bypass
+ * TDD phase ordering without weakening enforcement for business code commits.
+ *
+ * @param changedFiles — Array of file paths relative to repo root
+ * @returns true if ALL files are infrastructure (none are business code)
+ *
+ * @since 2026-06-22 — INFRA-ONLY-TDD-SKIP
+ */
+export function isInfraOnlyCommit(changedFiles: string[]): boolean {
+  if (changedFiles.length === 0) return false;
+  return changedFiles.every((f) => isInfrastructureFile(f));
+}
+
+/**
+ * Check if a set of changed files contains both business code files
+ * (under BUSINESS_CODE_PREFIX, i.e., booking_system_refactor/) AND
+ * infrastructure files (everything else).
+ *
+ * Mixed commits are blocked because:
+ *  - Business code commits require TDD markers ([Red]/[Green]/[Refactor])
+ *  - Infrastructure commits require [INFRA] marker
+ *  - These two commit-message conventions are mutually exclusive in practice
+ *  - Mixed commits make audit trails ambiguous and hide business code changes
+ *    inside infrastructure-looking commits
+ *
+ * @param changedFiles — Array of file paths relative to repo root
+ * @returns true if the commit contains BOTH business code AND infrastructure files
+ *
+ * @since 2026-06-22 — INFRA-NO-MIXED-COMMITS
+ */
+export function hasMixedBusinessAndInfra(changedFiles: string[]): boolean {
+  if (changedFiles.length === 0) return false;
+
+  let hasBusiness = false;
+  let hasInfra = false;
+
+  for (const file of changedFiles) {
+    if (file.startsWith(BUSINESS_CODE_PREFIX)) {
+      hasBusiness = true;
+    } else {
+      hasInfra = true;
+    }
+
+    // Early exit: both found
+    if (hasBusiness && hasInfra) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Return ALL files staged for commit (business + infrastructure).
+ * Uses `git diff --cached --name-only` (commit-time check).
+ *
+ * This is the unfiltered version of getStagedInfraFiles() — returns
+ * every staged file regardless of business/infra classification.
+ * Needed by hasMixedBusinessAndInfra() checks in commit hooks.
+ *
+ * @since 2026-06-22 — INFRA-NO-MIXED-COMMITS
+ */
+export function getStagedChangedFiles(): string[] {
+  try {
+    const staged = execSync("git diff --cached --name-only", {
+      encoding: "utf8",
+    })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    return staged;
+  } catch {
+    return [];
+  }
+}

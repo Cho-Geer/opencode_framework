@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * indexer.ts — UC7KS Knowledge Indexer v3.0.0 (Phase 2 CLI Ops)
@@ -20,7 +22,7 @@
  */
 
 const { createRequire } = require("node:module");
-const path = require("path");
+const path = require("node:path");
 
 /**
  * KC-11: Load knowledge-store (ESM) via createRequire for CJS interop.
@@ -255,3 +257,4 @@ module.exports = {
     knowledgeStore.getPendingMaterializationJobs(),
   retryFailedJobs: () => knowledgeStore.retryFailedJobs(),
 };
+

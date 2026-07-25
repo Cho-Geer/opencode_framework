@@ -1,10 +1,12 @@
 {
-  "generated_at": "2026-06-20T17:10:24.255Z",
-  "total_size_bytes": 514559,
+  "generated_at": "2026-06-22T23:51:48.779Z",
+  "total_size_bytes": 521266,
   "total_size_mb": "0.5",
   "max_total_mb": 50,
-  "total_files": 62,
-  "total_entries": 62,
+  "entries": 49,
+  "manifest_version": "1.5.0",
+  "total_entries": 63,
+  "total_files": 63,
   "per_domain": {
     "opencode": {
       "size_bytes": 246796,
@@ -23,8 +25,8 @@
       "file_count": 3
     },
     "devops_ci": {
-      "size_bytes": 145885,
-      "file_count": 11
+      "size_bytes": 152592,
+      "file_count": 12
     },
     "infrastructure": {
       "size_bytes": 15135,
@@ -38,10 +40,5 @@
       "size_bytes": 3366,
       "file_count": 1
     }
-  },
-  "thresholds": {
-    "max_file_bytes": 524288,
-    "max_total_bytes": 52428800,
-    "compression_kb": 200
   }
 }

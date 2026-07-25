@@ -51,7 +51,7 @@ jobs:
             }
 
       - name: Query and close sub-issues
-        if: steps.extract.outputs.result != "" && fromJSON(steps.extract.outputs.result).count > 0
+        if: steps.extract.outputs.result != '' && fromJSON(steps.extract.outputs.result).count > 0
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

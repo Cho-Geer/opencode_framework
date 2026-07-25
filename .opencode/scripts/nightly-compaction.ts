@@ -139,26 +139,25 @@ async function archiveOldDAGTasks() {
 }
 
 // SA-IMPL-BACKUP-LIFECYCLE: Nightly backup cleanup step.
-// Uses cleanupStaleBackups() from safe-edit-core.ts to remove backups older than
-// TTL (default 7 days) and enforce per-directory count caps (default 20).
+// Uses backup-manager.ts to remove backups older than TTL (default 7 days).
+// No count cap — TTL-only cleanup.
 async function cleanupStaleBackupsStep() {
   const stepName = "backup-cleanup";
   try {
-    const { cleanupStaleBackups } = await import("../lib/safe-edit-core.ts");
+    const { cleanupStaleBackups } = await import("../lib/backup-manager");
     const ttlDays = 7;
-    const maxPerDir = 20;
     const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
 
     if (DRY_RUN) {
       log(
-        `[${stepName}] Would scan all .opencode_backups/ [TTL=${ttlDays}d, cap=${maxPerDir}] — DRY-RUN`,
+        `[${stepName}] Would scan backup_log table [TTL=${ttlDays}d] — DRY-RUN`,
       );
       return;
     }
 
-    const result = cleanupStaleBackups(PROJECT_ROOT, ttlMs, maxPerDir, true);
+    const result = cleanupStaleBackups(ttlMs);
     log(
-      `[${stepName}] Scanned ${result.dirs} dirs, ${result.scanned} files, deleted ${result.deleted}`,
+      `[${stepName}] Scanned ${result.scanned} records, deleted ${result.deleted}`,
     );
   } catch (err) {
     log(
@@ -194,10 +193,10 @@ async function cleanupStaleSessionAccessStep() {
     }
 
     let invalidRemoved = 0;
-    let pruneResult = {
-      removedTaskEntries: 0,
-      removedDomainEntries: 0,
-      removedStaleAgents: 0,
+    let pruneResult: any = {
+      pruned_tasks: 0,
+      pruned_domains: 0,
+      pruned_agents: 0,
     };
 
     const ok = atomicWriteSubState("knowledge_cache_state", (kcs) => {
@@ -224,44 +223,25 @@ async function cleanupStaleSessionAccessStep() {
       }
 
       const pruneOpts: PruneOptions = {
-        session_access_ttl_days:
-          config?.template_resolution?.["knowledge.session_access_ttl_days"] ||
-          30,
-        session_access_max_tasks_per_agent:
-          config?.template_resolution?.[
-            "knowledge.session_access_max_tasks_per_agent"
-          ] || 50,
-        session_access_max_domains_per_task:
-          config?.template_resolution?.[
-            "knowledge.session_access_max_domains_per_task"
-          ] || 8,
-        session_access_preserve_attested_days:
-          config?.template_resolution?.[
-            "knowledge.session_access_preserve_attested_days"
-          ] || 90,
-        // KC-14: Archive pruned DB rows before deletion
-        archive_enabled:
-          config?.template_resolution?.[
-            "knowledge.session_access_archive_enabled"
-          ] !== false,
+        cutoff_ms: Date.now() - ((config?.template_resolution?.["knowledge.session_access_ttl_days"] || 30) * 24 * 60 * 60 * 1000),
       };
 
       // Step 3: KC-03 — Nested pruning via shared helper (in-memory SessionAccess)
-      pruneResult = pruneSessionAccess(sa, pruneOpts);
+      pruneResult = pruneSessionAccess(sa as any, pruneOpts);
 
       // Step 3b: KC-14 — DB-level pruning with optional archiving
       try {
         const dbPruneResult = pruneSessionAccessFromDB(pruneOpts);
-        if (dbPruneResult.archivedRows && dbPruneResult.archivedRows > 0) {
+        if ((dbPruneResult as any).archivedRows && (dbPruneResult as any).archivedRows > 0) {
           writeLog(NC_SRC, "INFO", {
             event: "KC-SESSION-ACCESS-ARCHIVED-NIGHTLY",
-            detail: `rows=${dbPruneResult.archivedRows} archived to knowledge_session_access_archive`,
+            detail: `rows=${(dbPruneResult as any).archivedRows} archived to knowledge_session_access_archive`,
           });
         }
-        if (dbPruneResult.removedTaskEntries > 0) {
+        if (dbPruneResult.pruned_tasks > 0) {
           writeLog(NC_SRC, "INFO", {
             event: "KC-SESSION-ACCESS-DB-PRUNED-NIGHTLY",
-            detail: `rows=${dbPruneResult.removedTaskEntries} pruned from knowledge_session_access`,
+            detail: `rows=${dbPruneResult.pruned_tasks} pruned from knowledge_session_access`,
           });
         }
       } catch (dbPruneErr) {
@@ -278,16 +258,16 @@ async function cleanupStaleSessionAccessStep() {
       );
     }
     const totalPruned =
-      pruneResult.removedTaskEntries +
-      pruneResult.removedDomainEntries +
-      pruneResult.removedStaleAgents;
+      pruneResult.pruned_tasks +
+      pruneResult.pruned_domains +
+      pruneResult.pruned_agents;
     if (totalPruned > 0 && ok) {
       log(
-        `[${stepName}] KC-03 pruneSessionAccess: tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
+        `[${stepName}] KC-03 pruneSessionAccess: tasks=${pruneResult.pruned_tasks} domains=${pruneResult.pruned_domains} agents=${pruneResult.pruned_agents}`,
       );
       writeLog(NC_SRC, "INFO", {
         event: "KC-SESSION-ACCESS-PRUNED-NIGHTLY",
-        detail: `tasks=${pruneResult.removedTaskEntries} domains=${pruneResult.removedDomainEntries} agents=${pruneResult.removedStaleAgents}`,
+        detail: `tasks=${pruneResult.pruned_tasks} domains=${pruneResult.pruned_domains} agents=${pruneResult.pruned_agents}`,
         source: "nightly-compaction",
       });
     } else if (ok) {
@@ -352,6 +332,116 @@ async function dbMaintenanceStep() {
   }
 }
 
+/**
+ * OPT-10 (2026-06-23): Nightly log archiving.
+ * Archives log files older than 7 days or larger than 10MB
+ * to .task_temp/_logs/archive/{YYYY-MM-DD}/.
+ */
+async function logArchiveStep(): Promise<void> {
+  const stepName = "Log Archive";
+  const LOG_DIR = join(process.env.OPENCODE_ROOT || ".", ".opencode", "logs");
+  const TEMP_LOG_DIR = join(
+    process.env.OPENCODE_ROOT || ".",
+    ".task_temp",
+    "_logs",
+  );
+  const ARCHIVE_ROOT = join(
+    process.env.OPENCODE_ROOT || ".",
+    ".task_temp",
+    "_logs",
+    "archive",
+  );
+  const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+  const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+  const now = Date.now();
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const archiveDir = join(ARCHIVE_ROOT, today);
+    let archivedCount = 0;
+
+    for (const logDir of [LOG_DIR, TEMP_LOG_DIR]) {
+      if (!existsSync(logDir)) continue;
+      try {
+        for (const entry of readdirSync(logDir)) {
+          if (!entry.endsWith(".log")) continue;
+          const fullPath = join(logDir, entry);
+          try {
+            const st = statSync(fullPath);
+            const age = now - st.mtimeMs;
+            if (age > MAX_AGE_MS || st.size > MAX_SIZE_BYTES) {
+              if (!existsSync(archiveDir))
+                mkdirSync(archiveDir, { recursive: true });
+              const archivePath = join(archiveDir, entry);
+              renameSync(fullPath, archivePath);
+              archivedCount++;
+              writeLog(NC_SRC, "INFO", {
+                event: "LOG-ARCHIVED",
+                detail: `${entry} → archive/${today}/${entry} (age=${Math.round(age / 86400000)}d, size=${Math.round(st.size / 1024)}KB)`,
+              });
+            }
+          } catch {
+            /* skip unreadable files */
+          }
+        }
+      } catch {
+        /* skip unreadable dirs */
+      }
+    }
+    log(`[${stepName}] ${archivedCount} log files archived to ${today}/`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`[${stepName}] ERROR: ${msg}`);
+    writeLog(NC_SRC, "ERROR", { event: "LOG-ARCHIVE-FAILED", detail: msg });
+  }
+}
+
+/**
+ * OPT-P1 (2026-06-24): Cleanup stale ctx/ files from .task_temp/_dispatch/ctx/.
+ * Removes per-dispatch context files older than 24 hours that were left behind
+ * by task-after.ts when sub-agents failed or checklist blocked cleanup.
+ */
+async function cleanupStaleCtxFiles(): Promise<void> {
+  const stepName = "Ctx Cleanup";
+  const CTX_DIR = join(
+    process.env.OPENCODE_ROOT || ".",
+    ".task_temp",
+    "_dispatch",
+    "ctx",
+  );
+  const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  let removedCount = 0;
+
+  try {
+    if (!existsSync(CTX_DIR)) return;
+    for (const entry of readdirSync(CTX_DIR)) {
+      if (!entry.endsWith(".json")) continue;
+      const fullPath = join(CTX_DIR, entry);
+      try {
+        const st = statSync(fullPath);
+        if (now - st.mtimeMs > MAX_AGE_MS) {
+          rmSync(fullPath);
+          removedCount++;
+          writeLog(NC_SRC, "INFO", {
+            event: "CTX-CLEANUP",
+            detail: `${entry} removed (age=${Math.round((now - st.mtimeMs) / 3600000)}h)`,
+          });
+        }
+      } catch {
+        /* skip */
+      }
+    }
+    log(`[${stepName}] ${removedCount} stale ctx/ files removed`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`[${stepName}] ERROR: ${msg}`);
+    writeLog(NC_SRC, "ERROR", { event: "CTX-CLEANUP-FAILED", detail: msg });
+  }
+}
+
+const hotFile = join(STATE_DIR, "gate-state.hot.json");
+
 async function main() {
   log(`Nightly Compaction — ${TODAY} ${DRY_RUN ? "(DRY-RUN)" : ""}`);
   log("");
@@ -376,9 +466,15 @@ async function main() {
   await dbMaintenanceStep();
   log("");
 
+  // OPT-10 (2026-06-23): Nightly log archiving — auto-archive logs >7 days or >10MB.
+  await logArchiveStep();
+  log("");
+
+  // OPT-P1 (2026-06-24): Cleanup stale per-dispatch ctx/ files (>24h)
+  await cleanupStaleCtxFiles();
+  log("");
+
   log("Nightly compaction complete.");
-  // Output metrics
-  const hotFile = join(STATE_DIR, "gate-state.json");
   if (existsSync(hotFile)) {
     const hot = JSON.parse(readFileSync(hotFile, "utf8"));
     log(

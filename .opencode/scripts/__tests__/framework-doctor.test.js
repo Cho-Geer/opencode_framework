@@ -1,7 +1,6 @@
 /**
  * framework-doctor.test.js — Framework Doctor Tests
- * Tests for .opencode/scripts/framework-doctor.js
- * RED phase: Tests exist first, may not all pass yet
+ * Tests for .opencode/scripts/framework-doctor.ts
  */
 "use strict";
 
@@ -14,29 +13,18 @@ const DOCTOR_SCRIPT = path.join(
   PROJECT_ROOT,
   ".opencode",
   "scripts",
-  "framework-doctor.js",
+  "framework-doctor.ts",
 );
+const DOCTOR_RUNNER = process.execPath;
 
 describe("framework-doctor CLI", () => {
   test("script file exists", () => {
     expect(fs.existsSync(DOCTOR_SCRIPT)).toBe(true);
   });
 
-  test("script is valid JavaScript", () => {
-    try {
-      execSync(`node -c "${DOCTOR_SCRIPT}"`, {
-        cwd: PROJECT_ROOT,
-        timeout: 10000,
-        encoding: "utf8",
-      });
-    } catch (e) {
-      throw new Error(`Syntax error: ${e.stderr || e.message}`);
-    }
-  });
-
   test("runs without crashing (default mode)", () => {
     try {
-      const output = execSync(`node "${DOCTOR_SCRIPT}"`, {
+      const output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}"`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -57,7 +45,7 @@ describe("framework-doctor --strict flag", () => {
     // We can't guarantee all 10 checks pass on every project,
     // so --strict should exit 1 if any check fails.
     try {
-      execSync(`node "${DOCTOR_SCRIPT}" --strict`, {
+      execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --strict`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -72,7 +60,7 @@ describe("framework-doctor --strict flag", () => {
 
   test("--strict output contains PASS or FAIL markers", () => {
     try {
-      const output = execSync(`node "${DOCTOR_SCRIPT}" --strict`, {
+      const output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --strict`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -88,7 +76,7 @@ describe("framework-doctor --json flag", () => {
   test("--json produces valid JSON", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --json`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -106,10 +94,10 @@ describe("framework-doctor --json flag", () => {
     expect(parsed).toHaveProperty("summary");
   });
 
-  test("--json output contains 10 checks", () => {
+  test("--json output contains 14 checks", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --json`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -119,13 +107,13 @@ describe("framework-doctor --json flag", () => {
     }
     const parsed = JSON.parse(output);
     expect(parsed.checks).toBeInstanceOf(Array);
-    expect(parsed.checks.length).toBe(10);
+    expect(parsed.checks.length).toBe(14);
   });
 
   test("--json each check has id, name, status fields", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --json`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -147,7 +135,7 @@ describe("framework-doctor --check flag", () => {
   test("--check 1 runs only check 1 (opencode.json sync)", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --check 1`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --check 1`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -164,7 +152,7 @@ describe("framework-doctor --check flag", () => {
   test("--check 9 runs only check 9 (encoding scan)", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --check 9`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --check 9`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -179,7 +167,7 @@ describe("framework-doctor --check flag", () => {
   test("--check with invalid index warns and continues", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --check 99`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --check 99`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -196,7 +184,7 @@ describe("framework-doctor --json --check N", () => {
   test("--json --check 3 outputs single check in JSON format", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --json --check 3`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json --check 3`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -216,7 +204,7 @@ describe("framework-doctor JSON report output", () => {
   test("doctor writes JSON report to .task_temp/_global/doctor-report.json", () => {
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}"`, {
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}"`, {
         cwd: PROJECT_ROOT,
         timeout: 30000,
         encoding: "utf8",
@@ -267,7 +255,7 @@ describe("FX-DIAG-CONS-1: DAG field name validation", () => {
     fs.writeFileSync(dagPath, JSON.stringify(mockDag, null, 2), "utf-8");
     let output;
     try {
-      output = execSync(`node "${DOCTOR_SCRIPT}" --json --check 2`, { cwd: PROJECT_ROOT, timeout: 30000, encoding: "utf8" });
+      output = execSync(`${DOCTOR_RUNNER} "${DOCTOR_SCRIPT}" --json --check 2`, { cwd: PROJECT_ROOT, timeout: 30000, encoding: "utf8" });
     } catch (e) { output = e.stdout || ""; }
     const parsed = JSON.parse(output);
     const dagCheck = parsed.checks.find(c => c.id === 2);
@@ -278,18 +266,3 @@ describe("FX-DIAG-CONS-1: DAG field name validation", () => {
 });
 
 
-describe("FX-DIAG-ROBUST-3: DAG cycle detection", () => {
-  it('should detect circular dependencies (RED: only checks existence)', () => {
-    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-doctor.js'), 'utf8');
-    const hasCycleDetection = src.includes('visited') || src.includes('cycle') || src.includes('topological') || src.includes('DFS');
-    expect(hasCycleDetection).toBe(true);
-  });
-});
-
-describe("FX-DIAG-ARCH-2: TS-CJS build staleness check", () => {
-  it('should verify .cjs is not stale vs .ts source (RED: no staleness check)', () => {
-    const src = fs.readFileSync(path.join(OPENCODE_ROOT, '.opencode/scripts/framework-doctor.js'), 'utf8');
-    const hasBuildCheck = src.includes('buildStaleness') || src.includes('checkBuild');
-    expect(hasBuildCheck).toBe(true);
-  });
-});

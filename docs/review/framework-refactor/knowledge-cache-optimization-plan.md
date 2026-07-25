@@ -118,7 +118,7 @@ Minor code-convention cleanup noted during audit:
 
 | Entity                                | Current fact  |
 | ------------------------------------- | ------------- |
-| DB schema                             | v10           |
+| DB schema                             | v32（Phase 0 基线修正）|
 | `substate_kv` keys                    | 13            |
 | `knowledge_cache_state`               | 907,067 bytes |
 | `knowledge_audit_state`               | 552 bytes     |

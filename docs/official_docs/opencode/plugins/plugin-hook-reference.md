@@ -31,12 +31,12 @@ OpenCode plugins extend the framework by hooking into various lifecycle events. 
 
 ### Plugin Discovery Paths
 
-| Type | Discovery | Location |
-|------|-----------|----------|
-| **Local (auto-discovered)** | Scans `.opencode/plugins/*.ts, *.js` | `.opencode/plugins/` (project-level) |
-| **Local (auto-discovered)** | Scans `~/.config/opencode/plugins/*.ts, *.js` | `~/.config/opencode/plugins/` (global) |
-| **npm packages** | Explicit via `opencode.json` → `"plugin": [...]` | npm registry |
-| **Custom path** | Explicit via `opencode.json` | Arbitrary file path |
+| Type                        | Discovery                                        | Location                               |
+| --------------------------- | ------------------------------------------------ | -------------------------------------- |
+| **Local (auto-discovered)** | Scans `.opencode/plugins/*.ts, *.js`             | `.opencode/plugins/` (project-level)   |
+| **Local (auto-discovered)** | Scans `~/.config/opencode/plugins/*.ts, *.js`    | `~/.config/opencode/plugins/` (global) |
+| **npm packages**            | Explicit via `opencode.json` → `"plugin": [...]` | npm registry                           |
+| **Custom path**             | Explicit via `opencode.json`                     | Arbitrary file path                    |
 
 ### Load Order
 
@@ -88,21 +88,21 @@ Both regular and scoped npm packages are supported.
 ```json
 {
   "plugin": [
-    "npm-package-name",           // npm registry
-    "npm-package@1.2.3",          // npm with version pin
-    "./local-plugin.ts",          // relative file path
+    "npm-package-name", // npm registry
+    "npm-package@1.2.3", // npm with version pin
+    "./local-plugin.ts", // relative file path
     "file:///abs/path/plugin.js", // absolute file path
-    [ "pkg", { "key": "val" } ]  // package with options
+    ["pkg", { "key": "val" }] // package with options
   ]
 }
 ```
 
 ### How Plugins Are Installed
 
-| Type | Installation |
-|------|-------------|
-| **npm plugins** | Installed automatically using Bun at startup. Packages cached in `~/.cache/opencode/node_modules/` |
-| **Local plugins** | Loaded directly from plugin directory. Use `package.json` for external dependencies |
+| Type              | Installation                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| **npm plugins**   | Installed automatically using Bun at startup. Packages cached in `~/.cache/opencode/node_modules/` |
+| **Local plugins** | Loaded directly from plugin directory. Use `package.json` for external dependencies                |
 
 For local plugins needing external npm packages, add a `package.json` to your config directory:
 
@@ -120,6 +120,7 @@ OpenCode runs `bun install` at startup.
 ### Current Project's Plugin Config
 
 From `opencode.json`:
+
 ```json
 {
   "plugin": [
@@ -141,15 +142,15 @@ The framework only recognizes **`export default`** returning hooks. Using `expor
 // ✅ WORKS — export default
 export default async ({ project, client, $, directory, worktree }) => {
   return {
-    "tool.execute.before": async (input, output) => { },
-    "tool.execute.after": async (input, output) => { },
+    "tool.execute.before": async (input, output) => {},
+    "tool.execute.after": async (input, output) => {},
   };
 };
 
 // ❌ SILENTLY FAILS — export const
 export const MyPlugin = async (ctx) => {
   return {
-    "tool.execute.before": async (input, output) => { },
+    "tool.execute.before": async (input, output) => {},
   };
 };
 ```
@@ -157,12 +158,18 @@ export const MyPlugin = async (ctx) => {
 ### TypeScript Version (with type safety)
 
 ```typescript
-import type { Plugin } from "@opencode-ai/plugin"
+import type { Plugin } from "@opencode-ai/plugin";
 
-export const MyPlugin: Plugin = async ({ project, client, $, directory, worktree }) => {
+export const MyPlugin: Plugin = async ({
+  project,
+  client,
+  $,
+  directory,
+  worktree,
+}) => {
   return {
-    "tool.execute.before": async (input, output) => { },
-    "tool.execute.after": async (input, output) => { },
+    "tool.execute.before": async (input, output) => {},
+    "tool.execute.after": async (input, output) => {},
   };
 };
 ```
@@ -175,13 +182,13 @@ Wait — this shows `export const`. The official docs show this pattern FOR Type
 
 ### Plugin Context (Initialization Parameters)
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `project` | `Project` | Current project information |
-| `directory` | `string` | Current working directory |
-| `worktree` | `string` | Git worktree path |
-| `client` | `OpenCodeClient` | SDK client for interacting with the AI (e.g., `client.app.log()`) |
-| `$` | `BunShell` | Bun's shell API (`Bun.$`) for executing commands |
+| Parameter   | Type             | Description                                                       |
+| ----------- | ---------------- | ----------------------------------------------------------------- |
+| `project`   | `Project`        | Current project information                                       |
+| `directory` | `string`         | Current working directory                                         |
+| `worktree`  | `string`         | Git worktree path                                                 |
+| `client`    | `OpenCodeClient` | SDK client for interacting with the AI (e.g., `client.app.log()`) |
+| `$`         | `BunShell`       | Bun's shell API (`Bun.$`) for executing commands                  |
 
 ---
 
@@ -189,22 +196,24 @@ Wait — this shows `export const`. The official docs show this pattern FOR Type
 
 ### Complete Event Catalog
 
-| Category | Events |
-|----------|--------|
-| **Tool** | `tool.execute.before`, `tool.execute.after` |
-| **Chat** | `chat.message` (has agent field) |
-| **Session** | `session.created`, `session.compacted`, `session.deleted`, `session.diff`, `session.error`, `session.idle`, `session.status`, `session.updated` |
-| **Message** | `message.part.removed`, `message.part.updated`, `message.removed`, `message.updated` |
-| **File** | `file.edited`, `file.watcher.updated` |
-| **Shell** | `shell.env` |
-| **Permission** | `permission.asked`, `permission.replied` |
-| **TUI** | `tui.prompt.append`, `tui.command.execute`, `tui.toast.show` |
-| **Command** | `command.executed` |
-| **Todo** | `todo.updated` |
-| **LSP** | `lsp.client.diagnostics`, `lsp.updated` |
-| **Installation** | `installation.updated` |
-| **Server** | `server.connected` |
-| **Compaction** | `experimental.session.compacting` |
+| Category         | Events                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tool**         | `tool.execute.before`, `tool.execute.after`                                                                                                     |
+| **Chat**         | `chat.message` (has agent field)                                                                                                                |
+| **Session**      | `session.created`, `session.compacted`, `session.deleted`, `session.diff`, `session.error`, `session.idle`, `session.status`, `session.updated` |
+| **Message**      | `message.part.removed`, `message.part.updated`, `message.removed`, `message.updated`                                                            |
+| **File**         | `file.edited`, `file.watcher.updated`                                                                                                           |
+| **Shell**        | `shell.env`                                                                                                                                     |
+| **Permission**   | `permission.asked`, `permission.replied`                                                                                                        |
+| **TUI**          | `tui.prompt.append`, `tui.command.execute`, `tui.toast.show`                                                                                    |
+| **Command**      | `command.executed`                                                                                                                              |
+| **Todo**         | `todo.updated`                                                                                                                                  |
+| **LSP**          | `lsp.client.diagnostics` ⚠️, `lsp.updated`                                                                                                      |
+| **Installation** | `installation.updated`                                                                                                                          |
+| **Server**       | `server.connected`                                                                                                                              |
+| **Compaction**   | `experimental.session.compacting`                                                                                                               |
+
+> ⚠️ **`lsp.client.diagnostics`**: SDK 事件类型（`EventLspClientDiagnostics`），**非** `@opencode-ai/plugin` `Hooks` 接口直接成员。仅能通过泛型 `event` hook 间接收。Payload 仅 `{serverID, path}`，不含诊断数据。`Lsp` client 类仅有 `status()` 方法，无诊断 API。详见 `lsp-hook-integration-analysis.md`。_(2026-06-26)_
 
 ---
 
@@ -216,11 +225,12 @@ From `packages/opencode/src/session/tools.ts` (source code analysis):
 
 ```typescript
 // AFTER hook trigger
-yield* plugin.trigger(
-  "tool.execute.after",
-  { tool, sessionID, callID, args },  // ← args in INPUT
-  output                               // ← { title, output, metadata }
-)
+yield *
+  plugin.trigger(
+    "tool.execute.after",
+    { tool, sessionID, callID, args }, // ← args in INPUT
+    output, // ← { title, output, metadata }
+  );
 ```
 
 ### Hook Function Type Signature
@@ -243,13 +253,13 @@ yield* plugin.trigger(
 
 ### ⚠️ Critical: before vs after Hook Parameter Differences
 
-| Aspect | `tool.execute.before` | `tool.execute.after` |
-|--------|----------------------|---------------------|
-| **Args location** | `output.args` | `input.args` |
-| **Purpose** | Modify/intercept before execution | Read results after execution |
-| **Throwing** | BLOCKS tool execution | Cannot block (already executed) |
-| **Output shape** | `output.args` contains mutable tool args | `output` contains result (title/output/metadata) |
-| **Can modify** | Yes — can change args, throw to block | Limited — can modify output metadata |
+| Aspect            | `tool.execute.before`                    | `tool.execute.after`                             |
+| ----------------- | ---------------------------------------- | ------------------------------------------------ |
+| **Args location** | `output.args`                            | `input.args`                                     |
+| **Purpose**       | Modify/intercept before execution        | Read results after execution                     |
+| **Throwing**      | BLOCKS tool execution                    | Cannot block (already executed)                  |
+| **Output shape**  | `output.args` contains mutable tool args | `output` contains result (title/output/metadata) |
+| **Can modify**    | Yes — can change args, throw to block    | Limited — can modify output metadata             |
 
 ### After-Hook Use Cases
 
@@ -344,11 +354,12 @@ From source code analysis:
 
 ```typescript
 // BEFORE hook trigger
-yield* plugin.trigger(
-  "tool.execute.before",
-  { tool, sessionID, callID },  // ← args NOT in input
-  { args }                       // ← args in OUTPUT
-)
+yield *
+  plugin.trigger(
+    "tool.execute.before",
+    { tool, sessionID, callID }, // ← args NOT in input
+    { args }, // ← args in OUTPUT
+  );
 ```
 
 ### Hook Function Type Signature
@@ -369,11 +380,11 @@ yield* plugin.trigger(
 
 ### Key Behaviors
 
-| Behavior | Code |
-|----------|------|
+| Behavior                | Code                              |
+| ----------------------- | --------------------------------- |
 | **Throw to BLOCK tool** | `throw new Error("Block reason")` |
-| **Modify tool args** | `output.args.filePath = newPath` |
-| **Read tool info** | `input.tool`, `input.sessionID` |
+| **Modify tool args**    | `output.args.filePath = newPath`  |
+| **Read tool info**      | `input.tool`, `input.sessionID`   |
 
 ### Scope Enforcement Pipeline (scope-before.ts)
 
@@ -403,18 +414,18 @@ The scope-before plugin executes **5 sequential checks** for each target path in
 
 MCP tools follow the convention: **`<server-name>_<tool-name>`**
 
-| MCP Server Name | Tool Name | Full Tool Name |
-|----------------|-----------|---------------|
-| `context7` | `resolve-library-id` | `context7_resolve-library-id` |
-| `context7` | `query-docs` | `context7_query-docs` |
-| `github` | `search_repositories` | `github_search_repositories` |
-| `github` | `get_file_contents` | `github_get_file_contents` |
+| MCP Server Name   | Tool Name               | Full Tool Name                          |
+| ----------------- | ----------------------- | --------------------------------------- |
+| `context7`        | `resolve-library-id`    | `context7_resolve-library-id`           |
+| `context7`        | `query-docs`            | `context7_query-docs`                   |
+| `github`          | `search_repositories`   | `github_search_repositories`            |
+| `github`          | `get_file_contents`     | `github_get_file_contents`              |
 | `compliance-gate` | `compliance_gate_check` | `compliance-gate_compliance_gate_check` |
-| `docker` | `list_containers` | `docker_list_containers` |
-| `playwright` | `browser_navigate` | `playwright_browser_navigate` |
-| `postgre_sql` | `query` | `postgre_sql_query` |
-| `excel` | `read_sheet` | `excel_excel_read_sheet` |
-| `pandoc` | `convert-contents` | `pandoc_convert-contents` |
+| `docker`          | `list_containers`       | `docker_list_containers`                |
+| `playwright`      | `browser_navigate`      | `playwright_browser_navigate`           |
+| `postgre_sql`     | `query`                 | `postgre_sql_query`                     |
+| `excel`           | `read_sheet`            | `excel_excel_read_sheet`                |
+| `pandoc`          | `convert-contents`      | `pandoc_convert-contents`               |
 
 ### Configuring MCP Servers in opencode.json
 
@@ -427,42 +438,42 @@ MCP tools follow the convention: **`<server-name>_<tool-name>`**
       "command": ["npx", "-y", "my-mcp-command"],
       "enabled": true,
       "environment": {
-        "MY_ENV_VAR": "my_env_var_value"
-      }
+        "MY_ENV_VAR": "my_env_var_value",
+      },
     },
     "my-remote-mcp": {
       "type": "remote",
       "url": "https://my-mcp-server.com",
       "enabled": true,
       "headers": {
-        "Authorization": "Bearer MY_API_KEY"
-      }
-    }
-  }
+        "Authorization": "Bearer MY_API_KEY",
+      },
+    },
+  },
 }
 ```
 
 ### Local MCP Server Options
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `type` | String | Y | Must be `"local"` |
-| `command` | Array | Y | Command and args to start server |
-| `cwd` | String | | Working directory (relative paths from workspace) |
-| `environment` | Object | | Environment variables |
-| `enabled` | Boolean | | Enable/disable on startup |
-| `timeout` | Number | | Tool fetch timeout in ms (default 5000) |
+| Option        | Type    | Required | Description                                       |
+| ------------- | ------- | -------- | ------------------------------------------------- |
+| `type`        | String  | Y        | Must be `"local"`                                 |
+| `command`     | Array   | Y        | Command and args to start server                  |
+| `cwd`         | String  |          | Working directory (relative paths from workspace) |
+| `environment` | Object  |          | Environment variables                             |
+| `enabled`     | Boolean |          | Enable/disable on startup                         |
+| `timeout`     | Number  |          | Tool fetch timeout in ms (default 5000)           |
 
 ### Remote MCP Server Options
 
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `type` | String | Y | Must be `"remote"` |
-| `url` | String | Y | URL of the remote MCP server |
-| `enabled` | Boolean | | Enable/disable on startup |
-| `headers` | Object | | Headers to send with the request |
-| `oauth` | Object | | OAuth authentication config |
-| `timeout` | Number | | Tool fetch timeout in ms (default 5000) |
+| Option    | Type    | Required | Description                             |
+| --------- | ------- | -------- | --------------------------------------- |
+| `type`    | String  | Y        | Must be `"remote"`                      |
+| `url`     | String  | Y        | URL of the remote MCP server            |
+| `enabled` | Boolean |          | Enable/disable on startup               |
+| `headers` | Object  |          | Headers to send with the request        |
+| `oauth`   | Object  |          | OAuth authentication config             |
+| `timeout` | Number  |          | Tool fetch timeout in ms (default 5000) |
 
 ### Tool Management via Glob Patterns
 
@@ -491,6 +502,7 @@ MCP tools follow the convention: **`<server-name>_<tool-name>`**
 ### Custom Tool Discovery
 
 Custom tools are placed in:
+
 - `.opencode/tools/` (project-level)
 - `~/.config/opencode/tools/` (global)
 
@@ -515,10 +527,14 @@ export default tool({
 ### Multiple Tools Per File
 
 ```typescript
-import { tool } from "@opencode-ai/plugin"
+import { tool } from "@opencode-ai/plugin";
 
-export const add = tool({ /* ... */ })
-export const multiply = tool({ /* ... */ })
+export const add = tool({
+  /* ... */
+});
+export const multiply = tool({
+  /* ... */
+});
 ```
 
 **❗ Creates tools: `<filename>_<exportname>`** — For `math.ts` → `math_add` and `math_multiply`.
@@ -532,8 +548,10 @@ Custom tools take precedence over built-in tools with the same name.
 export default tool({
   description: "Restricted bash wrapper",
   args: { command: tool.schema.string() },
-  async execute(args) { return `blocked: ${args.command}` },
-})
+  async execute(args) {
+    return `blocked: ${args.command}`;
+  },
+});
 ```
 
 ---
@@ -543,7 +561,7 @@ export default tool({
 Plugins can also define custom tools via the `tool:` key in the hooks object:
 
 ```typescript
-import { type Plugin, tool } from "@opencode-ai/plugin"
+import { type Plugin, tool } from "@opencode-ai/plugin";
 
 export const CustomToolsPlugin: Plugin = async (ctx) => {
   return {
@@ -552,24 +570,24 @@ export const CustomToolsPlugin: Plugin = async (ctx) => {
         description: "This is a custom tool",
         args: { foo: tool.schema.string() },
         async execute(args, context) {
-          const { directory, worktree } = context
-          return `Hello ${args.foo} from ${directory} (worktree: ${worktree})`
+          const { directory, worktree } = context;
+          return `Hello ${args.foo} from ${directory} (worktree: ${worktree})`;
         },
       }),
     },
-  }
-}
+  };
+};
 ```
 
 **❗ If a plugin tool uses the same name as a built-in tool, the plugin tool takes precedence.**
 
 ### Comparison: Tool Registration Methods
 
-| Method | Location | Naming | Auto-Discovery? |
-|--------|----------|--------|-----------------|
-| **Custom tool file** | `.opencode/tools/*.ts` | Filename → tool name | ✅ Yes |
-| **Plugin tool key** | `.opencode/plugins/*.ts` | Key name in `tool: {}` object | ✅ Via plugin load |
-| **MCP server** | `opencode.json` → `mcp: {}` | `<server>_<tool>` | ✅ Via MCP protocol |
+| Method               | Location                    | Naming                        | Auto-Discovery?     |
+| -------------------- | --------------------------- | ----------------------------- | ------------------- |
+| **Custom tool file** | `.opencode/tools/*.ts`      | Filename → tool name          | ✅ Yes              |
+| **Plugin tool key**  | `.opencode/plugins/*.ts`    | Key name in `tool: {}` object | ✅ Via plugin load  |
+| **MCP server**       | `opencode.json` → `mcp: {}` | `<server>_<tool>`             | ✅ Via MCP protocol |
 
 ---
 
@@ -591,26 +609,26 @@ for (const item of hooks) {
 
 ### ID-Based Deduplication
 
-| Scenario | Behavior |
-|----------|----------|
-| Same ID re-registered | Replaces old entry (last-writer-wins) |
-| Different IDs, same hook | **BOTH fire** (chaining) |
-| One plugin fails | Rolled back, others continue |
+| Scenario                 | Behavior                              |
+| ------------------------ | ------------------------------------- |
+| Same ID re-registered    | Replaces old entry (last-writer-wins) |
+| Different IDs, same hook | **BOTH fire** (chaining)              |
+| One plugin fails         | Rolled back, others continue          |
 
 ### Recommended: Merge into Single Plugin
 
 ```typescript
 // .opencode/plugins/framework-enforcer/index.ts
-import { uc7ksHooks } from './enforcers/uc7ks-enforcer';
-import { frameworkHooks } from './enforcers/framework-enforcer';
+import { uc7ksHooks } from "./enforcers/uc7ks-enforcer";
+import { frameworkHooks } from "./enforcers/framework-enforcer";
 
 export default async (ctx) => {
   return {
-    'tool.execute.before': async (input, output) => {
-      await uc7ksHooks.before(input, output);      // UC7KS first
-      await frameworkHooks.before(input, output);   // Framework second
+    "tool.execute.before": async (input, output) => {
+      await uc7ksHooks.before(input, output); // UC7KS first
+      await frameworkHooks.before(input, output); // Framework second
     },
-    'tool.execute.after': async (input, output) => {
+    "tool.execute.after": async (input, output) => {
       await uc7ksHooks.after(input, output);
       await frameworkHooks.after(input, output);
     },
@@ -642,11 +660,11 @@ The `scope-before.ts` plugin executes in `tool.execute.before` and implements 5 
 
 ### Enforcement Modes
 
-| Mode | scope-before behavior |
-|------|----------------------|
-| **Advisory** | WARN on violation, never throw |
-| **Strict** | Throw Error on violation |
-| **Locked** | Throw Error on ALL violations, no waivers |
+| Mode         | scope-before behavior                     |
+| ------------ | ----------------------------------------- |
+| **Advisory** | WARN on violation, never throw            |
+| **Strict**   | Throw Error on violation                  |
+| **Locked**   | Throw Error on ALL violations, no waivers |
 
 ---
 
@@ -654,15 +672,15 @@ The `scope-before.ts` plugin executes in `tool.execute.before` and implements 5 
 
 ### Plugin Development Constraints
 
-| Constraint | Description |
-|------------|-------------|
-| **Use `export default`** (or `export const` with `: Plugin` type) | `export const` without typing → silent failure |
-| **Hooks in same file** | Hook functions must be defined in the same file as the export default |
-| **INDEX_FILES only** | Dir-based plugin entry MUST be `index.ts`/`.js`/`.tsx`/`.mjs`/`.cjs` |
-| **No deep nested dirs** | Bun relative path resolution fails across subdirectory imports |
-| **Flat structure preferred** | All plugin files at same level to avoid import issues |
-| **Single plugin recommended** | Multiple plugins cause double hook triggering |
-| **Bun cache is unreliable** | Changes may not trigger recompilation → rename file or clear `~/.cache/bun` |
+| Constraint                                                        | Description                                                                 |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Use `export default`** (or `export const` with `: Plugin` type) | `export const` without typing → silent failure                              |
+| **Hooks in same file**                                            | Hook functions must be defined in the same file as the export default       |
+| **INDEX_FILES only**                                              | Dir-based plugin entry MUST be `index.ts`/`.js`/`.tsx`/`.mjs`/`.cjs`        |
+| **No deep nested dirs**                                           | Bun relative path resolution fails across subdirectory imports              |
+| **Flat structure preferred**                                      | All plugin files at same level to avoid import issues                       |
+| **Single plugin recommended**                                     | Multiple plugins cause double hook triggering                               |
+| **Bun cache is unreliable**                                       | Changes may not trigger recompilation → rename file or clear `~/.cache/bun` |
 
 ### Before vs After Hook Cheat Sheet
 
@@ -726,11 +744,11 @@ Use `client.app.log()` instead of `console.log` for structured logging:
 await client.app.log({
   body: {
     service: "my-plugin",
-    level: "info",     // debug | info | warn | error
+    level: "info", // debug | info | warn | error
     message: "Plugin initialized",
     extra: { foo: "bar" },
   },
-})
+});
 ```
 
 ---

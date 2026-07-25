@@ -10,7 +10,6 @@
  *   - safe-edit-core: validateEdit, generateDiff, writeSafe
  *   - safe-bash-core: ALLOWED_COMMANDS, isAllowed, isDangerous, getAllowlist
  *   - safe-test-core: validateTestReport, SafeTestResult, SafeTestPhase
- *   - permission-isolation-core: PermissionIsolation, PermissionResult, ScopeResult
  *
  * @author @Architect
  * @version 1.0.0
@@ -19,8 +18,20 @@
 export * from "./safe-edit-core";
 export * from "./safe-bash-core";
 export * from "./safe-test-core";
-export * from "./permission-isolation-core";
 export * from "./critical-files";
+export {
+  createBackup,
+  restoreBackup,
+  cleanupStaleBackups,
+  getBackup,
+  findLatestBackup,
+  getBackupsByFile,
+  getBackupsByAgent,
+  getBackupsBySession,
+  getBackupsByDagTask,
+  type BackupCreateInput,
+  type BackupRecord,
+} from "./backup-manager";
 
 // gate-core is exported separately since it has dependencies
 // on the compliance gate MCP tool infrastructure
@@ -44,6 +55,19 @@ export type { InterruptTrapPayload } from "./interrupt-guard";
 
 export * from "./hook-lifecycle";
 
+// Agent identity normalization (canonical single source of truth)
+export {
+  AGENTS,
+  DAG_EXEMPT_AGENTS,
+  normalize,
+  toDisplayName,
+  isPrivileged,
+  isDagExempt,
+  isSuperAdmin,
+  isKnowledgeCurator,
+} from "./agent-identity";
+export type { AgentId } from "./agent-identity";
+
 // Agent resolution utilities (re-export)
 export {
   resolveAgent,
@@ -51,7 +75,5 @@ export {
   resolveTaskId,
   resolveDomainId,
   resolveLatestDispatchAgent,
-  writeDispatchCtx,
-  getSessionMapPath,
   sessionLastDispatched,
 } from "./agent-resolver";

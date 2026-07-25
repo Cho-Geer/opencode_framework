@@ -2,7 +2,7 @@
 
 **生成日期**: 2026-06-19  
 **复核快照**: 2026-06-19 03:46 Asia/Tokyo，本地工作区当前状态  
-**DB Schema**: v10，16 张 user tables + 1 张 SQLite 内部表 `sqlite_sequence`  
+**DB Schema**: v32，42 tables（Phase 0 基线实测）  
 **DB 文件**: `.opencode/state/framework-state.db` 约 2.7 MB，WAL 约 4.8 MB，SHM 32 KB
 
 ---
@@ -197,8 +197,8 @@
 
 | 指标 | 当前值 |
 |------|--------|
-| DB 表数量 | 16 user tables + `sqlite_sequence` 内部表 |
-| DB schema version | v10 |
+| DB 表数量 | 42 tables（Phase 0 基线实测）|
+| DB schema version | v32（Phase 0 基线修正）|
 | DB 主文件 | ~2.7 MB |
 | DB WAL | ~4.8 MB |
 | `read_audit` DB 行数 | 525 unique rows |

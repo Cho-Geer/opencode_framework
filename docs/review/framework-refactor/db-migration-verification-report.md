@@ -28,7 +28,7 @@
 | machine.json 内容 | meta+contracts only | 14 行，revision 1548 | ✅ |
 | DB 文件存在 | — | `framework-state.db` 1.1MB + WAL/SHM | ✅ |
 | WAL 模式 | 方案 §四 Step 0 | `PRAGMA journal_mode = wal` | ✅ |
-| DB 表数量 | 方案声称 "12+" | **25 张表** (含 4 张计划外表) | ⚠️ |
+| DB 表数量 | **42 张**（Phase 0 基线实测，schema v32） | ⚠️ |
 | db-manager.ts | Step 0 | 存在，23139 bytes | ✅ |
 | db-state-manager.ts | Step 1 | 存在，20319 bytes | ✅ |
 | 双写过渡层 | Step 2 | substate-manager.ts 已导入 db-state-manager | ✅ |

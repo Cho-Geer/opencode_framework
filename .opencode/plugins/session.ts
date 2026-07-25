@@ -1,228 +1,509 @@
-// session.ts — Plugin: session management + chat.message hook
+// plugins/session.ts — Session lifecycle management (consolidated)
+
 // ═══════════════════════════════════════════════════════════════
-// Logs session lifecycle and manages session-agent mapping.
-// Part of framework log system v2.0.
-//
-// Hook events:
-//   - chat.message:     Track session → agent mapping
-//   - session.error:    Detect cooperative interrupts; write sentinel
-//   - session.compacted: Reset in-memory session map after compaction
-//   - session.idle:     Clear interrupt sentinel when session idles
-//
-// @author @Super-Admin
-// @version 2.2.0
-// @since 2026-06-10
-// @since 2026-06-14  FW-INTERRUPT-GUARD — added session.error / compacted / idle
-// @since 2026-06-21  FW-SESSION-HOOK-WRITE-CONSTRAINT — check resolved_from before writing dagTaskId/domainId
+// Consolidates:
+//   1. Original session.ts (chat.message + session lifecycle)
+//   2. db-health.ts session hooks (created/idle/compacted)
+//   3. task-after.ts experimental.session.compacting hook
 // ═══════════════════════════════════════════════════════════════
 
 import { writeLog } from "../lib/log-manager";
 import { withPluginLifecycle } from "../lib/hook-lifecycle";
-import { isInterruptError } from "../lib/interrupt-guard";
-import { atomicWriteJson } from "../lib/state-utils";
-import { dbWriteSessionMap } from "../lib/db-state-manager";
 import {
-  resolveTaskIdWithSource,
-  resolveDomainIdWithSource,
-} from "../lib/agent-resolver";
-import * as path from "node:path";
+  runStartupCleanup,
+  resetConfigReadPerRound,
+  writeSessionMapWithConstraint,
+  runPreflightAutoMark,
+  handleSessionError,
+  handleSessionCompacted,
+  handleSessionIdle,
+  updateMemorySessionMap,
+  getMemorySessionMapSize,
+  runComplianceAudit,
+} from "../service/session";
+import { upsertSessionMap } from "../service/session/session-map";
+
+// ── db-health imports (session lifecycle portion) ──
+import { getDb } from "../lib/db-manager";
+import {
+  safeCheckpoint,
+  integrityCheck,
+  runAuditCleanup,
+  runDbVacuum,
+} from "../lib/db-maintenance";
+import { dbAuditHistoryRowCount } from "../lib/db-state-manager";
 import * as fs from "node:fs";
+import * as path from "node:path";
 
+// ── gate reminder import (from task-after compaction hook) ──
+import { getGateReminderText } from "../service/gate";
+
+// ── skill-summary user-message bridge (v2.2 P0 bug fix) ──
+// chat.message is the only hook that carries the raw user message; system.transform
+// only receives `{ sessionID?, model }`. Capture here so keyword matching works.
+import { captureUserMessage } from "../plugin-handlers/system/skill-summary";
+
+// ═══════════════════════════════════════════════════════════════
+// db-health config + state
+// ═══════════════════════════════════════════════════════════════
+
+const DB_CONFIG = {
+  MAX_AUDIT_ROWS: 10_000,
+  RETENTION_DAYS: 7,
+  MAX_DB_SIZE_MB: 100,
+  VACUUM_EVERY_IDLE: 5,
+  TABLE_SIZE_WARN_MB: 50,
+};
+
+let _idleCount = 0;
+let _lastHealthReport = 0;
+const HEALTH_REPORT_INTERVAL = 5 * 60 * 1000;
 const PROJECT_ROOT = process.env.OPENCODE_ROOT || process.cwd();
-const INTERRUPT_SENTINEL_PATH = path.join(
-  PROJECT_ROOT,
-  ".opencode",
-  "state",
-  ".last-interrupt.json",
-);
+const DB_PATH = path.join(PROJECT_ROOT, ".opencode/state/framework-state.db");
 
-// In-memory session map — reset on session.compacted to avoid stale scope.
-let _sessionMap: Record<string, { agent: string; ts: string }> = {};
+// ═══════════════════════════════════════════════════════════════
+// Plugin export — all session lifecycle hooks
+// ═══════════════════════════════════════════════════════════════
 
 export default withPluginLifecycle("session", {
   "chat.message": chatMessageHook,
-  "session.error": sessionErrorHook,
-  "session.compacted": sessionCompactedHook,
-  "session.idle": sessionIdleHook,
+  "session.created": onSessionCreated,
+  "session.error": handleSessionError,
+  "session.compacted": onSessionCompacted,
+  "session.idle": onSessionIdle,
+  "experimental.session.compacting": onCompacting,
 });
 
 // ═══════════════════════════════════════════════════════════════
-// [RUNTIME] Inside hook function body — triggered on event
+// Child dispatch-key resolver (fail-closed on ambiguity)
 // ═══════════════════════════════════════════════════════════════
+
+function resolveChildDispatchKey(
+  parentId: string,
+  sid: string,
+  agent: string
+): string | undefined {
+  try {
+    const db = getDb();
+    const rows = db
+      .query(
+        `SELECT dispatch_key FROM dispatch_queue
+         WHERE parent_session_id = ? AND dispatch_key IS NOT NULL AND status IN ('pending', 'running')
+         ORDER BY created_at DESC`
+      )
+      .all(parentId) as { dispatch_key: string }[];
+
+    if (rows.length === 0) {
+      writeLog("session", "INFO", {
+        sessionID: sid, agent,
+        event: "GRANT-BIND-QUEUE-MISS",
+        parentId,
+        detail: "No pending dispatch_queue entry for parent session",
+      });
+      return undefined;
+    }
+
+    if (rows.length > 1) {
+      const keys = rows.map((r) => r.dispatch_key).join(", ");
+      writeLog("session", "WARN", {
+        sessionID: sid, agent,
+        event: "GRANT-BIND-AMBIGUOUS",
+        parentId,
+        dispatchKeys: keys,
+        detail: `Multiple pending/running dispatch_queue entries for parent session; fail-closed, no grant bound`,
+      });
+      return undefined;
+    }
+
+    writeLog("session", "INFO", {
+      sessionID: sid, agent,
+      event: "GRANT-BIND-QUEUE-HIT",
+      dispatchKey: rows[0].dispatch_key,
+      parentId,
+      detail: "Found single pending queue entry, attempting bindGrant",
+    });
+    return rows[0].dispatch_key;
+  } catch (e: any) {
+    writeLog("session", "WARN", {
+      sessionID: sid, agent,
+      event: "GRANT-BIND-RESOLVE-FAILED",
+      parentId,
+      detail: `Non-blocking: ${e.message}`,
+    });
+    return undefined;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// session.created — session_map write + db health startup check
+// ═══════════════════════════════════════════════════════════════
+
+function onSessionCreated(input: any): void {
+  const sid = input?.sessionID || input?.session?.id || "";
+  const agent = input?.agent || "";
+    if (!sid) return;
+
+
+
+  // ── Original: session_map early write ──
+  try {
+    let parentId: string | undefined;
+    try {
+      const { Database } = require("bun:sqlite");
+      const sdkDbPath = process.env.OPENCODE_DB || `${process.env.HOME}/.local/share/opencode/opencode.db`;
+      const sdkDb = new Database(sdkDbPath, { readonly: true });
+      const row = sdkDb.query("SELECT parent_id FROM session WHERE id = ?").get(sid) as any;
+      parentId = row?.parent_id || undefined;
+      sdkDb.close();
+    } catch { /* SDK DB may not be available */ }
+
+    upsertSessionMap(sid, agent, undefined, undefined, parentId);
+    writeLog("session", "INFO", {
+      sessionID: sid, agent,
+      event: "SESSION-CREATED-MAP-WRITE",
+      detail: `session_map written on session.created (parent=${parentId || "root"})`,
+    });
+
+    // ── Grant binding for child sessions ──
+    if (parentId) {
+      const dispatchKey = resolveChildDispatchKey(parentId, sid, agent);
+      if (dispatchKey) {
+        try {
+          const { bindGrant } = require("../service/dispatch/privilege");
+          const bound = bindGrant(dispatchKey, sid);
+          if (bound) {
+            writeLog("session", "INFO", {
+              sessionID: sid, agent,
+              event: "GRANT-BOUND-ON-SESSION-CREATED",
+              grantId: bound.id,
+              dispatchKey,
+              parentSession: parentId,
+            });
+          } else {
+            writeLog("session", "WARN", {
+              sessionID: sid, agent,
+              event: "GRANT-BIND-NO-MATCH",
+              dispatchKey,
+              parentId,
+              detail: `bindGrant returned null — no pending grant found for dispatch_key`,
+            });
+          }
+
+          // Repo grant binding (parallel to framework grant)
+          try {
+            const { bindRepoGrant } = require("../service/repo/grants");
+            const repoBound = bindRepoGrant(dispatchKey, sid);
+            if (repoBound) {
+              writeLog("session", "INFO", {
+                sessionID: sid, agent,
+                event: "REPO-GRANT-BOUND-ON-SESSION-CREATED",
+                grantId: repoBound.id,
+                dispatchKey,
+                privilege: repoBound.privilege,
+              });
+            }
+          } catch { /* non-blocking: repo grant binding is best-effort */ }
+        } catch (e: any) {
+          writeLog("session", "WARN", {
+            sessionID: sid, agent,
+            event: "GRANT-BIND-ON-CREATE-FAILED",
+            detail: `Non-blocking: ${e.message}`,
+          });
+        }
+      }
+    }
+  } catch (e: any) {
+    writeLog("session", "WARN", {
+      sessionID: sid, agent,
+      event: "SESSION-CREATED-MAP-WRITE-FAILED",
+      detail: e.message,
+    });
+  }
+
+  // ── db-health: startup health check ──
+  try {
+    writeLog("plugin-db-health", "INFO", {
+      event: "DB-HEALTH-STARTUP-CHECK",
+      detail: "Session started — running startup health check",
+    });
+
+    const integrity = integrityCheck();
+    if (!integrity.ok) {
+      writeLog("plugin-db-health", "ERROR", {
+        event: "DB-HEALTH-INTEGRITY-FAILED",
+        detail: `Integrity check failed: ${JSON.stringify(integrity.details)}`,
+      });
+      return;
+    }
+
+    const tableSizes = getTableSizes();
+    const dbSizeMB = getDbSizeMB();
+    const warnings: string[] = [];
+
+    if (dbSizeMB > DB_CONFIG.MAX_DB_SIZE_MB) {
+      warnings.push(`DB size ${dbSizeMB.toFixed(1)}MB exceeds limit ${DB_CONFIG.MAX_DB_SIZE_MB}MB`);
+    }
+    for (const [table, sizeMB] of Object.entries(tableSizes)) {
+      if (sizeMB > DB_CONFIG.TABLE_SIZE_WARN_MB) {
+        warnings.push(`Table ${table}: ${sizeMB.toFixed(1)}MB exceeds ${DB_CONFIG.TABLE_SIZE_WARN_MB}MB`);
+      }
+    }
+
+    if (warnings.length > 0) {
+      writeLog("plugin-db-health", "WARN", {
+        event: "DB-HEALTH-STARTUP-WARNING",
+        detail: warnings.join("; "),
+      });
+      const deleted = runAuditCleanup(DB_CONFIG.RETENTION_DAYS, DB_CONFIG.MAX_AUDIT_ROWS);
+      if (deleted > 0) {
+        writeLog("plugin-db-health", "INFO", {
+          event: "DB-HEALTH-STARTUP-CLEANUP",
+          detail: `startup cleanup deleted=${deleted}`,
+        });
+      }
+    } else {
+      writeLog("plugin-db-health", "INFO", {
+        event: "DB-HEALTH-STARTUP-OK",
+        detail: `db=${dbSizeMB.toFixed(1)}MB tables=${Object.keys(tableSizes).length} integrity=ok`,
+      });
+    }
+  } catch (e: any) {
+    writeLog("plugin-db-health", "ERROR", {
+      event: "DB-HEALTH-STARTUP-FAILED", detail: e.message,
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// chat.message — orchestration only, all logic in Service
+// ═══════════════════════════════════════════════════════════════
+
 async function chatMessageHook(input: any, _output: any) {
   const agent = input.agent || "";
   const sid = input.sessionID || "";
 
   writeLog("session", "runtime", {
-    sessionID: sid,
-    agent,
-    agentType: agent,
-    event: "CHAT-HOOK",
-    detail: "enter",
+    sessionID: sid, agent, event: "CHAT-HOOK", detail: "enter",
   });
+
+  // ── skill-summary user-message bridge ──
+  // Capture user text even when SDK has not populated input.agent yet. Keep the
+  // rest of chat.message work behind the sid+agent guard below.
+  if (sid) {
+    try {
+      const parts = Array.isArray(_output?.parts) ? _output.parts : [];
+      const text = parts
+        .filter((p: any) => p && (p.type === "text" || typeof p.text === "string"))
+        .map((p: any) => typeof p.text === "string" ? p.text : "")
+        .filter(Boolean)
+        .join("\n")
+        .slice(0, 4000);
+      if (text) captureUserMessage(sid, text);
+    } catch { /* bridge is best-effort */ }
+  }
 
   if (!sid || !agent) {
     writeLog("session", "runtime", {
-      sessionID: sid,
-      agent,
-      agentType: agent,
-      event: "CHAT-HOOK",
-      detail: "exit (no sid/agent)",
+      sessionID: sid, agent, event: "CHAT-HOOK", detail: "exit (no sid/agent)",
     });
     return;
   }
 
+  writeLog("session", "INFO", {
+    sessionID: sid, agent, event: "ROUND-START",
+    detail: "new conversation round detected",
+  });
+
+  try { runStartupCleanup(sid, agent); } catch { /* never block */ }
+  try { resetConfigReadPerRound(sid, agent); } catch { /* never block */ }
+  try { runComplianceAudit(sid, agent); } catch { /* never block */ }
+
+  // ── Grant binding for child sessions (via chat.message, since session.created hook may not fire) ──
   try {
-    // S25-v4: Write session → agent mapping to DB (replaces .session_map.json)
-    // dbWriteSessionMap handles upsert (INSERT OR REPLACE) and preserves created_at.
-    //
-    // FW-SESSION-HOOK-WRITE-CONSTRAINT (2026-06-21, @Super-Admin):
-    //   dagTaskId and domainId are supplementary metadata that MUST come from
-    //   the session_map DB itself (exact per-session match). We must NOT write
-    //   dagTaskId/domainId resolved from ambiguous sources (ctx_newest, dispatch_ctx,
-    //   dispatch_target) because these could belong to a concurrent dispatch
-    //   and would pollute the per-session mapping. Only 'session_map' source
-    //   guarantees the data belongs to THIS specific session.
-    //
-    //   The agent mapping (sid → agent) is always written because it comes from
-    //   the hook input directly — no resolution ambiguity.
-    const taskIdResult = resolveTaskIdWithSource(sid);
-    const domainResult = resolveDomainIdWithSource(sid);
+    const { Database } = require("bun:sqlite");
+    const sdkDbPath = process.env.OPENCODE_DB || `${process.env.HOME}/.local/share/opencode/opencode.db`;
+    const sdkDb = new Database(sdkDbPath, { readonly: true });
+    const sessionRow = sdkDb.query("SELECT parent_id FROM session WHERE id = ?").get(sid) as any;
+    const parentId = sessionRow?.parent_id || undefined;
+    sdkDb.close();
 
-    const dagTaskId =
-      taskIdResult.resolved_from === "session_map"
-        ? taskIdResult.value || undefined
-        : undefined;
-    const domainId =
-      domainResult.resolved_from === "session_map"
-        ? domainResult.value || undefined
-        : undefined;
+    if (parentId) {
+      const dispatchKey = resolveChildDispatchKey(parentId, sid, agent);
+      if (dispatchKey) {
+        const { bindGrant } = require("../service/dispatch/privilege");
+        const bound = bindGrant(dispatchKey, sid);
+        if (bound) {
+          writeLog("session", "INFO", {
+            sessionID: sid, agent,
+            event: "GRANT-BOUND-ON-CHAT-MESSAGE",
+            grantId: bound.id,
+            dispatchKey,
+            parentSession: parentId,
+          });
+        }
 
-    if (taskIdResult.resolved_from !== "session_map" && taskIdResult.value) {
-      writeLog("session", "runtime", {
-        sessionID: sid,
-        agent,
-        agentType: agent,
-        level: "WARN",
-        event: "CHAT-HOOK",
-        detail: `dagTaskId skipped: resolved_from=${taskIdResult.resolved_from} (value=${taskIdResult.value}) — only session_map source accepted`,
-      });
+        // Repo grant binding on chat.message
+        try {
+          const { bindRepoGrant } = require("../service/repo/grants");
+          const repoBound = bindRepoGrant(dispatchKey, sid);
+          if (repoBound) {
+            writeLog("session", "INFO", {
+              sessionID: sid, agent,
+              event: "REPO-GRANT-BOUND-ON-CHAT-MESSAGE",
+              grantId: repoBound.id,
+              dispatchKey,
+              privilege: repoBound.privilege,
+            });
+          }
+        } catch { /* non-blocking: repo grant binding is best-effort */ }
+      }
     }
-    if (domainResult.resolved_from !== "session_map" && domainResult.value) {
-      writeLog("session", "runtime", {
-        sessionID: sid,
-        agent,
-        agentType: agent,
-        level: "WARN",
-        event: "CHAT-HOOK",
-        detail: `domainId skipped: resolved_from=${domainResult.resolved_from} (value=${domainResult.value}) — only session_map source accepted`,
-      });
-    }
+  } catch { /* non-blocking: grant binding is best-effort */ }
 
-    dbWriteSessionMap(sid, agent, dagTaskId, domainId);
-
-    // Keep in-memory map for session.compacted reset
-    _sessionMap[sid] = { agent, ts: new Date().toISOString() };
+  try {
+    writeSessionMapWithConstraint(sid, agent);
+    runPreflightAutoMark(sid, agent);
+    updateMemorySessionMap(sid, agent);
 
     writeLog("session", "runtime", {
-      sessionID: sid,
-      agent,
-      agentType: agent,
-      event: "CHAT-HOOK",
-      detail: `exit (ok) map size=${Object.keys(_sessionMap).length}`,
+      sessionID: sid, agent, event: "CHAT-HOOK",
+      detail: `exit (ok) map size=${getMemorySessionMapSize()}`,
     });
   } catch (err: any) {
     writeLog("session", "runtime", {
-      sessionID: sid,
-      agent,
-      agentType: agent,
-      level: "ERROR",
-      event: "CHAT-HOOK",
+      sessionID: sid, agent, level: "ERROR", event: "CHAT-HOOK",
       detail: `exit (error) ${err.message}`,
     });
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// [FW-INTERRUPT-GUARD 2026-06-14] session.error / compacted / idle
+// session.idle — periodic DB maintenance (from db-health)
 // ═══════════════════════════════════════════════════════════════
 
-async function sessionErrorHook(input: any, _output: any) {
-  const sid = input?.sessionID || input?.session?.id || "";
-  const error = input?.error ?? input?.message ?? "";
-  const errorStr =
-    typeof error === "string"
-      ? error
-      : error instanceof Error
-        ? `${error.name}: ${error.message}`
-        : JSON.stringify(error);
+async function onSessionIdle(input: any, output: any) {
+  // ── Original session idle handler ──
+  await handleSessionIdle(input);
 
-  const detection = isInterruptError(error);
+  // ── db-health: periodic maintenance ──
+  _idleCount++;
+  try {
+    const auditRowCount = dbAuditHistoryRowCount();
+    if (auditRowCount > DB_CONFIG.MAX_AUDIT_ROWS) {
+      writeLog("plugin-db-health", "WARN", {
+        event: "DB-HEALTH-AUDIT-ROW-LIMIT",
+        detail: `gate_audit_history has ${auditRowCount} rows (limit: ${DB_CONFIG.MAX_AUDIT_ROWS})`,
+      });
+      runAuditCleanup(DB_CONFIG.RETENTION_DAYS, DB_CONFIG.MAX_AUDIT_ROWS);
+    }
 
-  writeLog("session", "runtime", {
-    sessionID: sid,
-    event: "SESSION-ERROR",
-    kind: detection.matched ? "interrupt" : "error",
-    detail: errorStr.slice(0, 500),
-  });
+    if (_idleCount % DB_CONFIG.VACUUM_EVERY_IDLE === 0) {
+      writeLog("plugin-db-health", "INFO", {
+        event: "DB-HEALTH-PERIODIC-MAINTENANCE",
+        detail: `idle_count=${_idleCount} — running periodic maintenance`,
+      });
+      runAuditCleanup(DB_CONFIG.RETENTION_DAYS, DB_CONFIG.MAX_AUDIT_ROWS);
 
-  if (detection.matched) {
-    writeInterruptSentinel({
-      sessionID: sid,
-      reason: detection.reason,
-      kind: detection.kind,
-      raw: errorStr.slice(0, 500),
+      try {
+        const cp = safeCheckpoint();
+        writeLog("plugin-db-health", "INFO", {
+          event: "DB-HEALTH-CHECKPOINT",
+          detail: `busy=${cp.busy} log=${cp.log} checkpointed=${cp.checkpointed}`,
+        });
+      } catch (e: any) {
+        writeLog("plugin-db-health", "WARN", {
+          event: "DB-HEALTH-CHECKPOINT-FAILED", detail: e.message,
+        });
+      }
+
+      const reclaimed = runDbVacuum();
+      if (reclaimed > 0) {
+        writeLog("plugin-db-health", "INFO", {
+          event: "DB-HEALTH-VACUUM",
+          detail: `freelist_pages=${reclaimed} reclaimed`,
+        });
+      }
+      reportHealthStats();
+    }
+  } catch (e: any) {
+    writeLog("plugin-db-health", "ERROR", {
+      event: "DB-HEALTH-IDLE-MAINTENANCE-FAILED", detail: e.message,
     });
   }
 }
 
-async function sessionCompactedHook(input: any, _output: any) {
-  const sid = input?.sessionID || input?.session?.id || "";
-  _sessionMap = {};
-  writeLog("session", "runtime", {
-    sessionID: sid,
-    event: "SESSION-COMPACTED",
-    detail: "in-memory session map reset",
+// ═══════════════════════════════════════════════════════════════
+// session.compacted — reset counters (from db-health + original)
+// ═══════════════════════════════════════════════════════════════
+
+async function onSessionCompacted(input: any, output: any) {
+  // ── Original compacted handler ──
+  await handleSessionCompacted(input);
+
+  // ── db-health: reset counters ──
+  writeLog("plugin-db-health", "INFO", {
+    event: "DB-HEALTH-SESSION-COMPACTED",
+    detail: "Session compacted — resetting in-memory health counters",
   });
+  _idleCount = 0;
 }
 
-async function sessionIdleHook(input: any, _output: any) {
-  const sid = input?.sessionID || input?.session?.id || "";
-  clearInterruptSentinel();
-  writeLog("session", "runtime", {
-    sessionID: sid,
-    event: "SESSION-IDLE",
-    detail: "interrupt sentinel cleared",
-  });
-}
+// ═══════════════════════════════════════════════════════════════
+// experimental.session.compacting — gate reminder (from task-after)
+// ═══════════════════════════════════════════════════════════════
 
-function writeInterruptSentinel(info: {
-  sessionID: string;
-  reason: string;
-  kind: string;
-  raw: string;
-}): void {
+async function onCompacting(input: any, output: any): Promise<void> {
   try {
-    const payload = {
-      interrupted: true,
-      sessionID: info.sessionID,
-      reason: info.reason,
-      kind: info.kind,
-      raw_message: info.raw,
-      timestamp: new Date().toISOString(),
-    };
-    atomicWriteJson(INTERRUPT_SENTINEL_PATH, payload);
+    const text = getGateReminderText();
+    if (!text) return;
+    if (!output || typeof output.context?.push !== "function") return;
+    output.context.push(text);
   } catch {
-    /* sentinel write must never break the hook */
+    // Best-effort
   }
 }
 
-function clearInterruptSentinel(): void {
+// ═══════════════════════════════════════════════════════════════
+// db-health helpers (read-only)
+// ═══════════════════════════════════════════════════════════════
+
+function getTableSizes(): Record<string, number> {
+  const result: Record<string, number> = {};
   try {
-    if (fs.existsSync(INTERRUPT_SENTINEL_PATH)) {
-      fs.unlinkSync(INTERRUPT_SENTINEL_PATH);
+    const db = getDb();
+    const tables = db.query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[];
+    for (const t of tables) {
+      try {
+        const cols = db.query(`PRAGMA table_info("${t.name}")`).all() as { name: string }[];
+        const lenExprs = cols.map((c) => `COALESCE(LENGTH(CAST("${c.name}" AS TEXT)), 0)`).join(" + ");
+        const size = db.query(`SELECT SUM(${lenExprs}) as total_bytes FROM "${t.name}"`).get() as { total_bytes: number | null };
+        result[t.name] = (size.total_bytes || 0) / 1024 / 1024;
+      } catch { result[t.name] = 0; }
     }
-  } catch {
-    /* ignore */
-  }
+  } catch { /* skip */ }
+  return result;
+}
+
+function getDbSizeMB(): number {
+  try {
+    if (fs.existsSync(DB_PATH)) return fs.statSync(DB_PATH).size / 1024 / 1024;
+  } catch { /* skip */ }
+  return 0;
+}
+
+function reportHealthStats() {
+  const now = Date.now();
+  if (now - _lastHealthReport < HEALTH_REPORT_INTERVAL) return;
+  _lastHealthReport = now;
+  try {
+    const tableSizes = getTableSizes();
+    const dbSizeMB = getDbSizeMB();
+    const topTables = Object.entries(tableSizes)
+      .sort((a, b) => b[1] - a[1]).slice(0, 5)
+      .map(([name, mb]) => `${name}=${mb.toFixed(2)}MB`).join(", ");
+    writeLog("plugin-db-health", "INFO", {
+      event: "DB-HEALTH-REPORT",
+      detail: `db=${dbSizeMB.toFixed(1)}MB top=[${topTables}] idle_cycles=${_idleCount}`,
+    });
+  } catch { /* non-critical */ }
 }

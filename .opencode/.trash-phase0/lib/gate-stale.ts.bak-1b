@@ -1,0 +1,56 @@
+// gate-stale.ts — 统一读取 gate_stale_thresholds
+// F6 (2026-06-27, @Super-Admin): Extracted from dispatch-before.ts and session.ts
+// to eliminate threshold reading drift between components.
+// ===================================================================
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+export interface GateStaleThresholds {
+  delivered_hours: number;
+  approved_hours: number;
+  armed_hours: number;
+  startup_cleanup_armed_hours: number;
+  checked_hours: number;
+}
+
+const DEFAULTS: GateStaleThresholds = {
+  delivered_hours: 4,
+  approved_hours: 4,
+  armed_hours: 24,
+  startup_cleanup_armed_hours: 1,
+  checked_hours: 48,
+};
+
+/**
+ * Read gate stale thresholds from project.config.json.
+ * Falls back to DEFAULTS if config is missing or malformed.
+ * Used by dispatch-before.ts (GATE-APPROVAL-LOCK), session.ts (startup drain),
+ * and gate-core.ts (drain stale).
+ */
+export function readGateStaleThresholds(): GateStaleThresholds {
+  try {
+    const root = process.env.OPENCODE_ROOT || process.cwd();
+    const cfgPath = path.join(root, ".opencode", "project.config.json");
+    if (!fs.existsSync(cfgPath)) return { ...DEFAULTS };
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
+    const t = cfg?.template_resolution?.gate_stale_thresholds || {};
+    return {
+      delivered_hours: t.delivered_hours ?? DEFAULTS.delivered_hours,
+      approved_hours: t.approved_hours ?? DEFAULTS.approved_hours,
+      armed_hours: t.armed_hours ?? DEFAULTS.armed_hours,
+      startup_cleanup_armed_hours:
+        t.startup_cleanup_armed_hours ?? DEFAULTS.startup_cleanup_armed_hours,
+      checked_hours: t.checked_hours ?? DEFAULTS.checked_hours,
+    };
+  } catch {
+    return { ...DEFAULTS };
+  }
+}
+
+/**
+ * Read a single key from gate_stale_thresholds.
+ * Convenience wrapper for callers that only need one value.
+ */
+export function readGateStaleThreshold(key: keyof GateStaleThresholds): number {
+  return readGateStaleThresholds()[key];
+}

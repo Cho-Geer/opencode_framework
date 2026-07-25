@@ -12,12 +12,12 @@ OpenCode plugins allow extending the framework by hooking into various events. P
 
 ### Plugin Types
 
-| Type | Discovery | Location |
-|------|-----------|----------|
-| **Local (auto-discovered)** | Scans `.opencode/plugins/*.ts, *.js` | `.opencode/plugins/` (project) |
-| **Local (auto-discovered)** | Scans `~/.config/opencode/plugins/*.ts, *.js` | `~/.config/opencode/plugins/` (global) |
-| **npm packages** | Explicit via `opencode.json` → `"plugin": [...]` | npm registry |
-| **Custom path** | Explicit via `opencode.json` | File path |
+| Type                        | Discovery                                        | Location                               |
+| --------------------------- | ------------------------------------------------ | -------------------------------------- |
+| **Local (auto-discovered)** | Scans `.opencode/plugins/*.ts, *.js`             | `.opencode/plugins/` (project)         |
+| **Local (auto-discovered)** | Scans `~/.config/opencode/plugins/*.ts, *.js`    | `~/.config/opencode/plugins/` (global) |
+| **npm packages**            | Explicit via `opencode.json` → `"plugin": [...]` | npm registry                           |
+| **Custom path**             | Explicit via `opencode.json`                     | File path                              |
 
 ### Load Order
 
@@ -68,7 +68,7 @@ Subdirectory files ARE loaded ONLY if imported by the `index.ts` entry point.
     "npm-package@1.2.3",
     "./local-plugin.ts",
     "file:///abs/path/plugin.js",
-    [ "pkg", { "key": "val" } ]
+    ["pkg", { "key": "val" }]
   ]
 }
 ```
@@ -81,12 +81,12 @@ Subdirectory files ARE loaded ONLY if imported by the `index.ts` entry point.
 
 ```typescript
 // ✅ WORKS
-export default (async ({ project, client, $, directory, worktree }) => {
+export default async ({ project, client, $, directory, worktree }) => {
   return {
-    "tool.execute.before": async (input, output) => { },
-    "tool.execute.after": async (input, output) => { },
+    "tool.execute.before": async (input, output) => {},
+    "tool.execute.after": async (input, output) => {},
   };
-});
+};
 ```
 
 ### ❌ Wrong: `export const` returning hooks
@@ -95,20 +95,20 @@ export default (async ({ project, client, $, directory, worktree }) => {
 // ❌ SILENTLY FAILS
 export const MyPlugin = async (ctx) => {
   return {
-    "tool.execute.before": async (input, output) => { },
+    "tool.execute.before": async (input, output) => {},
   };
 };
 ```
 
 ### Plugin Initialization Context
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `project` | `Project` | Current project information |
-| `directory` | `string` | Current working directory |
-| `worktree` | `string` | Git worktree path |
-| `client` | `OpenCodeClient` | SDK client for interacting with the AI |
-| `$` | `BunShell` | Bun's shell API for executing commands |
+| Parameter   | Type             | Description                            |
+| ----------- | ---------------- | -------------------------------------- |
+| `project`   | `Project`        | Current project information            |
+| `directory` | `string`         | Current working directory              |
+| `worktree`  | `string`         | Git worktree path                      |
+| `client`    | `OpenCodeClient` | SDK client for interacting with the AI |
+| `$`         | `BunShell`       | Bun's shell API for executing commands |
 
 ---
 
@@ -116,22 +116,24 @@ export const MyPlugin = async (ctx) => {
 
 ### Available Hooks (Complete List)
 
-| Category | Events |
-|----------|--------|
-| **Tool** | `tool.execute.before`, `tool.execute.after` |
-| **Chat** | `chat.message` (has agent field) |
-| **Session** | `session.created`, `session.compacted`, `session.deleted`, `session.diff`, `session.error`, `session.idle`, `session.status`, `session.updated` |
-| **Message** | `message.part.removed`, `message.part.updated`, `message.removed`, `message.updated` |
-| **File** | `file.edited`, `file.watcher.updated` |
-| **Shell** | `shell.env` |
-| **Permission** | `permission.asked`, `permission.replied` |
-| **TUI** | `tui.prompt.append`, `tui.command.execute`, `tui.toast.show` |
-| **Command** | `command.executed` |
-| **Todo** | `todo.updated` |
-| **LSP** | `lsp.client.diagnostics`, `lsp.updated` |
-| **Installation** | `installation.updated` |
-| **Server** | `server.connected` |
-| **Compaction** | `experimental.session.compacting` |
+| Category         | Events                                                                                                                                          |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tool**         | `tool.execute.before`, `tool.execute.after`                                                                                                     |
+| **Chat**         | `chat.message` (has agent field)                                                                                                                |
+| **Session**      | `session.created`, `session.compacted`, `session.deleted`, `session.diff`, `session.error`, `session.idle`, `session.status`, `session.updated` |
+| **Message**      | `message.part.removed`, `message.part.updated`, `message.removed`, `message.updated`                                                            |
+| **File**         | `file.edited`, `file.watcher.updated`                                                                                                           |
+| **Shell**        | `shell.env`                                                                                                                                     |
+| **Permission**   | `permission.asked`, `permission.replied`                                                                                                        |
+| **TUI**          | `tui.prompt.append`, `tui.command.execute`, `tui.toast.show`                                                                                    |
+| **Command**      | `command.executed`                                                                                                                              |
+| **Todo**         | `todo.updated`                                                                                                                                  |
+| **LSP**          | `lsp.client.diagnostics` ⚠️, `lsp.updated`                                                                                                      |
+| **Installation** | `installation.updated`                                                                                                                          |
+| **Server**       | `server.connected`                                                                                                                              |
+| **Compaction**   | `experimental.session.compacting`                                                                                                               |
+
+> ⚠️ **`lsp.client.diagnostics`**: 此事件是 SDK 事件类型（`EventLspClientDiagnostics`），**不是** `@opencode-ai/plugin` `Hooks` 接口的直接成员。仅能通过泛型 `event` hook 间接接收。且 payload 仅含 `{serverID, path}`，**不含诊断数据**。详见 `lsp-hook-integration-analysis.md`。_(2026-06-26 修正)_
 
 ### Hook Function Signatures
 
@@ -157,17 +159,24 @@ export const MyPlugin = async (ctx) => {
 
 ### Critical: before vs after Hook Parameters
 
-| Hook | Args Location | Example |
-|------|--------------|---------|
+| Hook                  | Args Location          | Example                |
+| --------------------- | ---------------------- | ---------------------- |
 | `tool.execute.before` | `output.args.filePath` | `output.args.filePath` |
-| `tool.execute.after` | `input.args.filePath` | `input.args.filePath` |
+| `tool.execute.after`  | `input.args.filePath`  | `input.args.filePath`  |
 
 **Source**: `packages/opencode/src/session/tools.ts`
+
 ```typescript
 // before
-yield* plugin.trigger("tool.execute.before", { tool, sessionID, callID }, { args })
+yield *
+  plugin.trigger("tool.execute.before", { tool, sessionID, callID }, { args });
 // after
-yield* plugin.trigger("tool.execute.after", { tool, sessionID, callID, args }, output)
+yield *
+  plugin.trigger(
+    "tool.execute.after",
+    { tool, sessionID, callID, args },
+    output,
+  );
 ```
 
 ---
@@ -190,31 +199,31 @@ for (const item of hooks) {              // ← Iterates ALL registered plugins
 
 ### ID-Based Behavior
 
-| Scenario | Behavior |
-|----------|----------|
-| Same ID re-registered | Replaces old entry (last-writer-wins) |
-| Different IDs, same hook | **BOTH fire** (chaining) |
-| One plugin fails | Rolled back, others continue |
+| Scenario                 | Behavior                              |
+| ------------------------ | ------------------------------------- |
+| Same ID re-registered    | Replaces old entry (last-writer-wins) |
+| Different IDs, same hook | **BOTH fire** (chaining)              |
+| One plugin fails         | Rolled back, others continue          |
 
 ### Recommendation: Merge into Single Plugin
 
 ```typescript
 // .opencode/plugins/framework-enforcer/index.ts
-import { uc7ksHooks } from './enforcers/uc7ks-enforcer';
-import { frameworkHooks } from './enforcers/framework-enforcer';
+import { uc7ksHooks } from "./enforcers/uc7ks-enforcer";
+import { frameworkHooks } from "./enforcers/framework-enforcer";
 
-export default (async (ctx) => {
+export default async (ctx) => {
   return {
-    'tool.execute.before': async (input, output) => {
-      await uc7ksHooks.before(input, output);      // UC7KS first
-      await frameworkHooks.before(input, output);   // Framework second
+    "tool.execute.before": async (input, output) => {
+      await uc7ksHooks.before(input, output); // UC7KS first
+      await frameworkHooks.before(input, output); // Framework second
     },
-    'tool.execute.after': async (input, output) => {
+    "tool.execute.after": async (input, output) => {
       await uc7ksHooks.after(input, output);
       await frameworkHooks.after(input, output);
     },
   };
-});
+};
 ```
 
 ---
@@ -223,22 +232,22 @@ export default (async (ctx) => {
 
 ### Cache Strategy
 
-| Stage | Behavior |
-|-------|----------|
-| First load | Bun compiles `.ts` → bytecode, cached by (file path, content hash) |
-| Reload | Checks bytecode hash vs source file hash |
-| Hash match | Uses cached bytecode (skips compilation) |
-| Hash mismatch | SHOULD recompile, but NOT always reliable |
+| Stage         | Behavior                                                           |
+| ------------- | ------------------------------------------------------------------ |
+| First load    | Bun compiles `.ts` → bytecode, cached by (file path, content hash) |
+| Reload        | Checks bytecode hash vs source file hash                           |
+| Hash match    | Uses cached bytecode (skips compilation)                           |
+| Hash mismatch | SHOULD recompile, but NOT always reliable                          |
 
 ### Cache Invalidation Reliability
 
-| Action | Triggers Recompile? |
-|--------|-------------------|
-| Small changes (comments, variable names) | ❌ Often does NOT trigger |
-| Large changes (new functions, major edits) | ✅ Usually triggers |
-| Modify `// BUN-CACHE-VERSION` comment | ❌ Not reliable |
-| **Rename file** | ✅ **100% triggers** (new cache key) |
-| `rm -rf ~/.cache/bun` | ✅ **100% triggers** |
+| Action                                     | Triggers Recompile?                  |
+| ------------------------------------------ | ------------------------------------ |
+| Small changes (comments, variable names)   | ❌ Often does NOT trigger            |
+| Large changes (new functions, major edits) | ✅ Usually triggers                  |
+| Modify `// BUN-CACHE-VERSION` comment      | ❌ Not reliable                      |
+| **Rename file**                            | ✅ **100% triggers** (new cache key) |
+| `rm -rf ~/.cache/bun`                      | ✅ **100% triggers**                 |
 
 ### 100% Reliable Cache Refresh Methods
 
@@ -254,15 +263,15 @@ mv framework-enforcer.ts framework-enforcer-v2.ts
 
 ## 7. Key Constraints (Verified in Production)
 
-| Constraint | Description |
-|------------|-------------|
-| **Use `export default`** | `export const` + returning hooks → silent failure |
-| **Hooks in same module** | Hook functions must be defined in the same file as the export default |
-| **INDEX_FILES only** | Plugin entry MUST be `index.ts`/`.js`/`.tsx`/`.mjs`/`.cjs` |
-| **No deep nested dirs** | Bun relative path resolution fails across subdirectory imports |
-| **Flat structure preferred** | All plugin files at same level to avoid import issues |
-| **Single plugin recommended** | Multiple plugins cause double hook triggering |
-| **Bun cache is unreliable** | Changes may not trigger recompilation — rename file or clear cache |
+| Constraint                    | Description                                                           |
+| ----------------------------- | --------------------------------------------------------------------- |
+| **Use `export default`**      | `export const` + returning hooks → silent failure                     |
+| **Hooks in same module**      | Hook functions must be defined in the same file as the export default |
+| **INDEX_FILES only**          | Plugin entry MUST be `index.ts`/`.js`/`.tsx`/`.mjs`/`.cjs`            |
+| **No deep nested dirs**       | Bun relative path resolution fails across subdirectory imports        |
+| **Flat structure preferred**  | All plugin files at same level to avoid import issues                 |
+| **Single plugin recommended** | Multiple plugins cause double hook triggering                         |
+| **Bun cache is unreliable**   | Changes may not trigger recompilation — rename file or clear cache    |
 
 ---
 
@@ -282,6 +291,7 @@ mv framework-enforcer.ts framework-enforcer-v2.ts
 ```
 
 **Key Principles**:
+
 - `plugins/` dir: only plugin entry files + subdirectories with supporting modules
 - `lib/` dir: shared code NOT in plugin scan path
 - Startup: always clear Bun cache or use `.bashrc` auto-cleanup

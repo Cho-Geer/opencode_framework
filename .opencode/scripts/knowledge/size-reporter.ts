@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * size-reporter.ts — UC7KS Knowledge Size Reporter v2.0.0 (KC-11 DB-canonical)
@@ -12,9 +14,9 @@
  * Usage: bun .opencode/scripts/knowledge/size-reporter.ts
  */
 
-const path = require("path");
+const path = require("node:path");
 const { createRequire } = require("node:module");
-const fs = require("fs");
+const fs = require("node:fs");
 
 /**
  * KC-11: Load knowledge-store (ESM) via createRequire for CJS interop.
@@ -79,3 +81,4 @@ if (require.main === module) {
 }
 
 module.exports = { generate };
+

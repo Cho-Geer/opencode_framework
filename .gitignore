@@ -120,6 +120,8 @@ docs/handover/
 .opencode/state/framework-state.db
 .opencode/state/framework-state.db-wal
 .opencode/state/framework-state.db-shm
+.opencode/state.db
+.opencode/_test_framework/
 
 # Plugin refactor backups (stale backup directory from 2026-06-10)
 .opencode/_plugins_backups/
@@ -135,3 +137,27 @@ docs/handover/
 
 # Backup artifacts (stray .bak files from framework edits)
 *.bak
+
+# Trash and backup directories (cleanup artifacts)
+.opencode/.trash-*/
+.opencode/legacy/
+
+# Pre-smoke / pre-phase backup files
+*.bak-pre-*
+*.bak-phase*
+
+# Nested state files
+.opencode/scripts/command-tools/.opencode/
+.opencode/.opencode/state/gate-state.*
+.opencode/.opencode/state/framework-state.db*
+.opencode/state/gate-state.json
+.opencode/state/gate-state.history/
+
+# Runtime state
+Task.DAG.json
+opencode.json.bak-pre-*
+
+# CodeGraph index database
+.codegraph/
+
+logs/

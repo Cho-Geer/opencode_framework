@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 /**
  * capture-config-snapshot.ts — A9 Config Indexing Snapshot Script
  * ════════════════════════════════════════════════════════════════════════

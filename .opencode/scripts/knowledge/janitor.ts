@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+export {};
 // safe_bash: allow-write
 /**
  * janitor.ts — UC7KS Knowledge Janitor v2.0.0 (KC-11 DB-canonical)
@@ -26,8 +28,8 @@
  * Usage: bun .opencode/scripts/knowledge/janitor.ts [--dry-run] [--force]
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const { createRequire } = require("node:module");
 const {
   atomicWriteSubState,
@@ -643,9 +645,8 @@ function run() {
 
       if (age > ttl * 2) {
         // Double TTL: permanent deletion
-        const isScout = file.source === "scout";
         console.log(
-          `[Janitor] PURGE${isScout ? " [Scout]" : ""}: ${file.path} (age: ${age.toFixed(0)}d, TTL: ${ttl}d, double-TTL: ${ttl * 2}d${isScout ? ", source: scout" : ""})`,
+          `[Janitor] PURGE: ${file.path} (age: ${age.toFixed(0)}d, TTL: ${ttl}d, double-TTL: ${ttl * 2}d)`,
         );
         srcLog("INFO", "file_purged", {
           path: file.path,

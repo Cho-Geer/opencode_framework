@@ -1,199 +1,26 @@
-// .opencode/tools/dispatch_subagent.ts
+// tools/dispatch_subagent.ts — Thin Controller
+// Phase 2: Delegates to DispatchService.dispatch()
 import { tool } from "@opencode-ai/plugin";
-import { readFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import * as path from "node:path";
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { withInterruptGuard } from "../lib";
-import { atomicWriteSubState, atomicWriteJson } from "../lib/state-utils";
-import { writeAuditLogEntry } from "../lib/audit-log";
-import { writeLog } from "../lib/log-manager";
+import { resolveCallerIdentity } from "../service/session";
+import {
+  dispatch,
+  loadUC7KSDispatchPatterns,
+  loadSARepairPatterns,
+  logOrchestratorSADispatch,
+  logSuperAdminDispatchBypass,
+  inferDomainId,
+} from "../service/dispatch/router";
 import { isDagExempt, readDispatchPolicy, autoPlan } from "../lib/dag-policy";
 import { findTaskInDag } from "../lib/gate-checks";
-import {
-  dbWriteSessionMap,
-  dbReadSessionMap,
-  dbQuerySessionByDagTaskId,
-} from "../lib/db-state-manager";
-
-// ── UC7KS Dispatch Bypass Helpers (FW-DISPATCH-BYPASS) ──
-
-/**
- * Load UC7KS dispatch pattern list from project.config.json.
- * Returns built-in defaults if config is unreadable.
- * Patterns are case-insensitive matched against task_description.
- */
-function loadUC7KSDispatchPatterns(worktree: string): string[] {
-  const DEFAULTS = [
-    "knowledge",
-    "cache",
-    "docs",
-    "official",
-    "context7",
-    "uc7ks",
-    "fetch",
-    "curator",
-    "index",
-    "explore",
-    "source code",
-    "repository",
-    "github",
-    "documentation",
-    "library",
-    "api reference",
-  ];
-  try {
-    const configPath = path.join(worktree, ".opencode", "project.config.json");
-    if (!existsSync(configPath)) return DEFAULTS;
-    const config = JSON.parse(readFileSync(configPath, "utf8"));
-    const patterns =
-      config?.template_resolution?.super_admin_uc7ks_dispatch_patterns;
-    return Array.isArray(patterns) && patterns.length > 0 ? patterns : DEFAULTS;
-  } catch {
-    return DEFAULTS;
-  }
-}
-
-/**
- * Load Super-Admin repair pattern list from project.config.json.
- * Returns built-in defaults if config is unreadable.
- */
-function loadSARepairPatterns(worktree: string): string[] {
-  const DEFAULTS = [
-    "repair",
-    "fix",
-    "restore",
-    "corrupt",
-    "broken",
-    "emergency",
-    "reset",
-    "drain",
-    "purge",
-    "reconcile",
-    "inconsistency",
-    "state",
-    "hook",
-    "plugin",
-    "integrity",
-    "machine.json",
-    "gate-state",
-    "compliance",
-  ];
-  try {
-    const configPath = path.join(worktree, ".opencode", "project.config.json");
-    if (!existsSync(configPath)) return DEFAULTS;
-    const config = JSON.parse(readFileSync(configPath, "utf8"));
-    const patterns = config?.template_resolution?.super_admin_repair_patterns;
-    return Array.isArray(patterns) && patterns.length > 0 ? patterns : DEFAULTS;
-  } catch {
-    return DEFAULTS;
-  }
-}
-
-/**
- * Log an Orchestrator → Super-Admin dispatch to the audit trail.
- */
-function logOrchestratorSADispatch(opts: {
-  caller: string;
-  target: string;
-  task_description: string;
-  dag_task_id: string;
-  patterns_matched: string[];
-  mode: string;
-}): void {
-  try {
-    writeAuditLogEntry({
-      timestamp: new Date().toISOString(),
-      event: "orchestrator_sa_dispatch",
-      caller: opts.caller,
-      target: opts.target,
-      task_description_hash: opts.task_description.slice(0, 80),
-      dag_task_id: opts.dag_task_id,
-      patterns_matched: opts.patterns_matched,
-      mode: opts.mode,
-    });
-
-    const machinePath = path.join(
-      process.env.OPENCODE_ROOT || process.cwd(),
-      ".opencode",
-      "state",
-      "machine.json",
-    );
-    if (existsSync(machinePath)) {
-      atomicWriteSubState("compliance_records", (cr) => {
-        cr.orchestrator_sa_dispatches = cr.orchestrator_sa_dispatches || [];
-        cr.orchestrator_sa_dispatches.push({
-          timestamp: new Date().toISOString(),
-          caller: opts.caller,
-          target: opts.target,
-          dag_task_id: opts.dag_task_id,
-          patterns_matched: opts.patterns_matched,
-          mode: opts.mode,
-        });
-        if (cr.orchestrator_sa_dispatches.length > 100) {
-          cr.orchestrator_sa_dispatches =
-            cr.orchestrator_sa_dispatches.slice(-100);
-        }
-      });
-    }
-  } catch {
-    /* best-effort */
-  }
-}
-
-/**
- * Log a Super-Admin → Knowledge-Curator dispatch bypass to the audit trail.
- */
-function logSuperAdminDispatchBypass(opts: {
-  caller: string;
-  target: string;
-  task_description: string;
-  dag_task_id: string;
-  patterns_matched: string[];
-}): void {
-  try {
-    writeAuditLogEntry({
-      timestamp: new Date().toISOString(),
-      event: "super_admin_kc_dispatch_bypass",
-      caller: opts.caller,
-      target: opts.target,
-      task_description_hash: opts.task_description.slice(0, 80),
-      dag_task_id: opts.dag_task_id,
-      patterns_matched: opts.patterns_matched,
-    });
-  } catch {
-    /* best-effort */
-  }
-}
-
-/**
- * FW-UC7KS-DOMAIN-001: Infer primary domain_id from agent type.
- * Reads `agent_domain_map` from project.config.json. Returns null if
- * no mapping exists (e.g., cross-domain or non-writing roles like
- * Orchestrator, Knowledge-Curator).
- */
-function inferDomainId(agentType: string): string | null {
-  try {
-    const root = process.env.OPENCODE_ROOT || process.cwd();
-    const configPath = path.join(root, ".opencode", "project.config.json");
-    if (existsSync(configPath)) {
-      const cfg = JSON.parse(readFileSync(configPath, "utf8"));
-      const map = cfg.agent_domain_map;
-      if (map && typeof map === "object") {
-        const normalized = agentType.replace(/^@/, "");
-        // Case-insensitive lookup
-        for (const [key, val] of Object.entries(map)) {
-          if (key.toLowerCase() === normalized.toLowerCase()) {
-            return typeof val === "string" && val ? val : null;
-          }
-        }
-      }
-    }
-  } catch {
-    /* best-effort */
-  }
-  return null;
-}
+import { atomicWriteJson } from "../lib/state-utils";
+import { writeLog } from "../lib/log-manager";
+import { dbReadSessionMap, dbWriteSessionMap } from "../lib/db-state-manager";
+import type { FrameworkToolContext } from "./tool-context";
 
 export default tool({
   description:
@@ -203,51 +30,51 @@ export default tool({
     "exclusively via HANDOVER.md files. Usable by @Orchestrator (all agents) and " +
     "@Super-Admin (@Knowledge-Curator only, UC7KS knowledge tasks).",
   args: {
-    agent_type: tool.schema
-      .string()
-      .describe(
-        "Target agent type (e.g., 'Architect', 'Coder-BE', 'Meta-Planner'). " +
-          "@Super-Admin may only target 'Knowledge-Curator' or '@Knowledge-Curator'.",
-      ),
-    task_description: tool.schema
-      .string()
-      .describe("Task description to wrap with P0 protocol and DISPATCH_TOKEN"),
-    dag_task_id: tool.schema
-      .string()
-      .optional()
-      .describe(
-        "Dispatch session identifier with DUAL semantics — read carefully before use.\n" +
-          "(a) Output/audit: used for .task_temp/{dag_task_id}/ path namespacing. The pre-execution gate (pre-execution-gate.ts) skips DAG coverage when --dispatch-session is set.\n" +
-          "(b) DAG audit: the gate-before plugin (P2-1 DAG Task Existence Audit) treats the task ID as a DAG task ID and REQUIRES this ID to exist in Task.DAG.json — either in the top-level tasks[] array or inside an execution_order group. If it does not exist, modify tools (safe_shell/safe_edit/safe_mkdir/safe_delete) are blocked with [FW-ENFORCE][DAG] 'Task \"…\" not found in Task.DAG.json (checked both dag.tasks[] and dag.execution_order)'.\n" +
-          "Callers MUST ensure ONE of: (1) the ID already exists in Task.DAG.json; (2) dispatch @Meta-Planner first to add it (Meta-Planner/Orchestrator/Super-Admin/Knowledge-Curator are DAG-exempt); (3) the subagent itself is DAG-exempt. See docs/review/cicd-dag-block/plan-first-redesign.md for the PLAN-FIRST design.",
-      ),
-    auto_plan: tool.schema
-      .boolean()
-      .optional()
-      .describe(
-        "PLAN-FIRST self-healing (opt-in, default false). " +
-          "When true and dispatch_policy.auto_plan_enabled is true in project.config.json, " +
-          "and the target agent is NOT DAG-exempt, and dag_task_id is not yet in Task.DAG.json, " +
-          "the framework auto-dispatches @Meta-Planner to plan the task, polls Task.DAG.json " +
-          "until the entry appears (bounded by dispatch_policy.auto_plan_timeout_ms), and " +
-          "then proceeds with the original dispatch. Rate-limited to " +
-          "dispatch_policy.auto_plan_max_per_session attempts per caller session. " +
-          "Forced to false in locked enforcement mode (human-in-the-loop). " +
-          "Every invocation is recorded in machine.json.auto_plan_history.",
-      ),
-    resume_session_id: tool.schema
-      .string()
-      .optional()
-      .describe(
-        "Session ID of a previously dispatched sub-agent to resume. " +
-          "When provided, the output header will include task_id in the Task() invocation, " +
-          "enabling session resumption via upstream OpenCode's task_id parameter. " +
-          "Only set if you mean to resume a previous task. The session must have been " +
-          "recorded in the session_log DB table (queryable by dag_task_id). When absent, every dispatch " +
-          "creates a NEW session (default behavior).",
-      ),
+    agent_type: tool.schema.string().describe(
+      "Target agent type (e.g., 'Architect', 'Coder-BE', 'plan'). " +
+      "@Super-Admin may only target 'Knowledge-Curator' or '@Knowledge-Curator'."),
+    task_description: tool.schema.string().describe("Task description to wrap with P0 protocol and DISPATCH_TOKEN"),
+    dag_task_id: tool.schema.string().optional().describe(
+      "DAG Task ID — must exist in Task.DAG.json for non-DAG-exempt agents."),
+    session_namespace: tool.schema.string().describe(
+      "Output path namespace — used for .task_temp/{session_namespace}/ directory."),
+    auto_plan: tool.schema.boolean().optional().describe(
+      "PLAN-FIRST self-healing (opt-in). Auto-dispatches @plan if task not in DAG."),
+    resume_session_id: tool.schema.string().optional().describe(
+      "Session ID of a previously dispatched sub-agent to resume."),
+    dispatch_privilege: tool.schema.string().optional().describe(
+      "Privilege type to grant the child (e.g., 'framework_maintenance'). " +
+      "Orchestrator-only — router rejects non-Orchestrator callers. " +
+      "Creates a task-level dispatch_privilege_grant bound to the child session. " +
+      "For framework_maintenance, the child must first run CodeGraph, then call " +
+      "framework_maintenance_plan to declare planned paths, then use safe_framework_edit."),
+    allowed_paths: tool.schema.array(tool.schema.string()).optional().describe(
+      "Optional glob patterns that further narrow the privilege grant (e.g., ['.opencode/**']). " +
+      "If omitted, framework_maintenance uses the default policy. Relative to worktree."),
+    allowed_remotes: tool.schema.array(tool.schema.string()).optional().describe(
+      "Optional remote names allowed for repo remote-write grants (e.g., ['origin'])."),
+    privilege_reason: tool.schema.string().optional().describe(
+      "Human-readable reason for the privilege grant (audit log)."),
+    _frameworkMaintenance: tool.schema.boolean().optional().describe(
+      "Internal compatibility flag for legacy framework-maintenance callers."),
   },
-  async execute(args, context) {
+  async execute(args, context: FrameworkToolContext) {
+    // Phase 2: ordinary path retirement - only explicit privilege dispatch remains on the wrapper
+    const requestedPrivilege = (args.dispatch_privilege || process.env.DISPATCH_PRIVILEGE || "").trim();
+    const isFrameworkMaintenance = requestedPrivilege === "framework_maintenance"
+      || process.env.DISPATCH_PRIVILEGE_REASON?.includes("framework_maintenance")
+      || args._frameworkMaintenance === true;
+    const isRepoPrivilege = requestedPrivilege === "repo_maintenance"
+      || requestedPrivilege === "remote_repo_write"
+      || requestedPrivilege === "repo_destructive_emergency";
+    if (!isFrameworkMaintenance && !isRepoPrivilege) {
+      return JSON.stringify({
+        output: "dispatch_subagent is retired for ordinary paths. Use native Task tool instead. "
+          + "Privilege-bearing child work (framework_maintenance / repo_maintenance / "
+          + "remote_repo_write / repo_destructive_emergency) may still use this wrapper.",
+        metadata: { retired: true, alternative: "Task", requiresPrivilege: true },
+      });
+    }
     return withInterruptGuard("dispatch_subagent", async () => {
       // ── P0-1: Agent identity propagated via _dispatch_target.json (v4.0.0: FRAMEWORK_AGENT deprecated) ──
       // ── FW-CLEANUP-FRAMEWORK-TASK-ID (2026-06-18): FRAMEWORK_TASK_ID env var removed from parent process.
@@ -477,7 +304,7 @@ export default tool({
             task_description: args.task_description,
             dag_task_id: args.dag_task_id || "",
             patterns_matched: matched,
-            mode,
+            policy: mode,
           });
         }
 
@@ -666,8 +493,8 @@ export default tool({
         // FW-UC7KS-DOMAIN-001: domainId included for uc7ks-after.ts fallback.
         const inferredDomainId = inferDomainId(args.agent_type);
         if (dagTaskId) {
+          const root = process.env.OPENCODE_ROOT || process.cwd();
           try {
-            const root = process.env.OPENCODE_ROOT || process.cwd();
             const dispatchCtxDir = path.join(root, ".task_temp", "_dispatch");
             const dispatchCtxPath = path.join(dispatchCtxDir, ".dispatch_ctx");
             if (!existsSync(dispatchCtxDir)) {

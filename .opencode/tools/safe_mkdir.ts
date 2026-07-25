@@ -1,6 +1,7 @@
 import { tool } from "@opencode-ai/plugin"
 import * as path from "node:path"
-import { safeMkdir, withInterruptGuard } from "../lib"
+import { safeMkdir } from "../service/file-guard"
+import { withInterruptGuard } from "../lib"
 
 export default tool({
   description:

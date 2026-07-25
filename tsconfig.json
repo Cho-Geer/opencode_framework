@@ -9,19 +9,28 @@
     "strict": false,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "types": ["node", "bun-types", "jest"]
+    "types": [
+      "node",
+      "bun-types",
+      "jest"
+    ]
   },
   "include": [
     ".opencode/lib/**/*.ts",
     ".opencode/tools/**/*.ts",
     ".opencode/plugins/**/*.ts",
-    ".opencode/scripts/**/*.ts"
+    ".opencode/scripts/**/*.ts",
+    ".opencode/service/**/*.ts",
+    ".opencode/plugin-handlers/**/*.ts",
+    ".opencode/hooks/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     ".opencode/lib/.opencode_backups",
     ".opencode/lib/**/.opencode_backups",
-    ".opencode/_plugins_backups"
+    ".opencode/_plugins_backups",
+    ".opencode/scripts/command-tools",
+    ".opencode/scripts/__tests__"
   ]
 }

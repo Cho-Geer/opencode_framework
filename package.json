@@ -1,7 +1,16 @@
 {
+  "scripts": {
+    "db:query": "bun scripts/db-query.ts",
+    "db:schema": "bun scripts/db-schema.ts",
+    "lint": "bun x tsc --noEmit",
+    "typecheck": "bun x tsc --noEmit",
+    "test": "BUN_TEST_SUITE=1 bun test ./.opencode",
+    "test:jest": "bun x jest --passWithNoTests"
+  },
   "devDependencies": {
     "@opencode-ai/plugin": "*",
     "@types/jest": "^30.0.0",
+    "bun-types": "^1.3.14",
     "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"
   },

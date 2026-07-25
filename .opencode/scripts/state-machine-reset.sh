@@ -78,11 +78,10 @@ if [ ! -f "$MACHINE_FILE" ]; then
         waived_modules: []
       }
     },
-    type_check_state: {
-      status: "clean",
-      dirty_files: [],
-      incremental_errors: 0,
-      last_incremental_check: null
+    # diagnostic_state (replaces type_check_state, 2026-06-26)
+    diagnostic_state: {
+      files: {},
+      last_updated: ""
     },
     dependency_state: {
       last_check: null,
@@ -145,7 +144,7 @@ echo "[state-machine-reset] === BEFORE STATE ===" >&2
 echo "$CURRENT_STATE" | jq '{
   meta,
   eslint_state: { modules: (.eslint_state.modules | keys | length), aggregate: .eslint_state.aggregate },
-  type_check_state: { status, dirty_files_count: (.type_check_state.dirty_files | length) },
+  diagnostic_state: { files_count: (.diagnostic_state.files | keys | length), last_updated },
   dependency_state: { status, violations_count: (.dependency_state.violations | length) },
   format_state: { status, unformatted_count: (.format_state.unformatted_files | length) },
   write_audit_state: { current_session: (if .write_audit_state.current_session then "active" else "none" end), history_count: (.write_audit_state.history | length) },
@@ -176,11 +175,10 @@ CLEAN_STATE=$(jq -n \
           waived_modules: []
         }
       },
-      type_check_state: {
-        status: "clean",
-        dirty_files: [],
-        incremental_errors: 0,
-        last_incremental_check: null
+      # diagnostic_state (replaces type_check_state, 2026-06-26)
+      diagnostic_state: {
+        files: {},
+        last_updated: ""
       },
       dependency_state: {
         last_check: null,
@@ -223,7 +221,7 @@ echo "[state-machine-reset] === AFTER STATE (projected) ===" >&2
 echo "$CLEAN_STATE" | jq '{
   meta,
   eslint_state: { modules: { count: (.eslint_state.modules | length) }, aggregate: .eslint_state.aggregate },
-  type_check_state: { status, dirty_files_count: (.type_check_state.dirty_files | length) },
+  diagnostic_state: { files_count: (.diagnostic_state.files | keys | length), last_updated },
   dependency_state: { status, violations_count: (.dependency_state.violations | length) },
   format_state: { status, unformatted_count: (.format_state.unformatted_files | length) },
   write_audit_state: { current_session: (if .write_audit_state.current_session then "active" else "none" end), history_count: (.write_audit_state.history | length) },

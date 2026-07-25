@@ -4,7 +4,7 @@
 **Last Updated**: 2026-05-22  
 **Author**: @Architect (FW-REPAIR-11)  
 **Supersedes**: `template-variable-standard.md` v1.0.0  
-**Applies To**: Agent configs (`.opencode/agents/*.md`), rule files (`.opencode/rules/**/*.md`), skill files (`.opencode/skills/**/SKILL.md`), preamble (`.opencode/subagent-preamble.md`), and any document injected into agent prompts by the dispatch system.
+**Applies To**: Agent configs (`.opencode/agents/*.md`), rule files (`.opencode/rules/**/*.md`), skill files (`.opencode/skills/**/SKILL.md`), preamble (`.opencode/legacy/subagent-preamble.md (deprecated → Skills)`), and any document injected into agent prompts by the dispatch system.
 
 ---
 
@@ -134,7 +134,7 @@ Resolved from `project.config.json.template_resolution` using keys with `knowled
 | 33  | `{knowledge.default_ttl}`           | Default doc TTL (days)             | `template_resolution.knowledge.default_ttl`    | `30` |
 | 34  | `{knowledge.fallback_ttl}`          | Web fallback TTL (days)            | `template_resolution.knowledge.fallback_ttl`   | `14` |
 | 35  | `{knowledge.opencode_ttl}`          | OpenCode docs TTL (days)           | `template_resolution.knowledge.opencode_ttl`   | `7` |
-| 36  | `{knowledge.scout_ttl}`             | Scout findings TTL (days)          | `template_resolution.knowledge.scout_ttl`      | `14` |
+| 36  | `{knowledge.source_analysis_ttl}`   | Source analysis TTL (days)         | `template_resolution.knowledge.source_analysis_ttl` | `14` |
 | 37  | `{knowledge.janitor_interval_hours}` | Janitor run interval (hours)      | `template_resolution.knowledge.janitor_interval_hours` | `24` |
 | 38  | `{knowledge.compression_threshold_kb}` | Compression threshold (KB)      | `template_resolution.knowledge.compression_threshold_kb` | `200` |
 
@@ -296,7 +296,7 @@ Template resolution is performed by `.opencode/scripts/command-tools/dispatch-su
 │    d. Replace resolved placeholders              │
 │    e. Log warnings for unresolvable              │
 ├─────────────────────────────────────────────────┤
-│ 4. Read subagent-preamble.md (also resolved)     │
+│ 4. Read legacy/subagent-preamble.md (deprecated → Skills) (also resolved)     │
 ├─────────────────────────────────────────────────┤
 │ 5. Assemble final wrapped prompt                 │
 └─────────────────────────────────────────────────┘
@@ -350,7 +350,7 @@ When a `{template_key}` cannot be resolved:
 | **Agent Configs** | `.opencode/agents/Architect.md`, `Coder-BE.md`, `Coder-FE.md`               | At dispatch, before prompt assembly                                                                                                |
 | **Rule Files**    | `.opencode/rules/backend-coding-standard.md`, `frontend-coding-standard.md` | These are injected into prompts; extended placeholders remain as `UNRESOLVED{...}` and are interpreted via internal mapping tables |
 | **Skill Files**   | `.opencode/skills/*/SKILL.md`                                               | At dispatch, when skill content is injected                                                                                        |
-| **Preamble**      | `.opencode/subagent-preamble.md`                                            | At dispatch, line 299-304 of `dispatch-subagent.ts` resolves preamble placeholders                                                 |
+| **Preamble**      | `.opencode/legacy/subagent-preamble.md (deprecated → Skills)`                                            | At dispatch, line 299-304 of `dispatch-subagent.ts` resolves preamble placeholders                                                 |
 
 ### §5.2 Explicitly Prohibited Locations
 
@@ -368,7 +368,7 @@ The following files are scanned for `{template_key}` patterns during dispatch:
 
 ```
 .opencode/agents/<agent_type>.md         ← Primary target
-.opencode/subagent-preamble.md           ← Resolved before injection
+.opencode/legacy/subagent-preamble.md (deprecated → Skills)           ← Resolved before injection
 .opencode/rules/backend-coding-standard.md ← Injected as-is (extended placeholders)
 .opencode/rules/frontend-coding-standard.md
 ```
@@ -646,7 +646,7 @@ grep -r '\{[a-z_]*\.[a-z_.]*\}' .opencode/ --include="*.md" | grep -v 'UNRESOLVE
 | `.opencode/project.config.json`                        | **Source of truth** for all placeholder values (`template_resolution` + `tech_stack` sections)                  |
 | `.opencode/scripts/command-tools/dispatch-subagent.ts` | Resolver implementation (`buildTemplateResolutionMap` + `resolveTemplateVariables`)                             |
 | `.opencode/scripts/framework-self-test.ts`             | Check 17 verifies no orphaned `UNRESOLVED{...}` strings; Check 18 verifies `template_resolution` section exists |
-| `.opencode/subagent-preamble.md`                       | Consumer of template variables; all `{template_key}` references resolved before prompt injection                |
+| `.opencode/legacy/subagent-preamble.md (deprecated → Skills)`                       | Consumer of template variables; all `{template_key}` references resolved before prompt injection                |
 | `.opencode/rules/backend-coding-standard.md`           | Consumer of 7 extended `{backend.*}` placeholders (§3.2); contains internal resolution table                    |
 | `.opencode/rules/frontend-coding-standard.md`          | Consumer of 5 extended `{frontend.*}` placeholders (§3.3); contains internal resolution table                   |
 | `.opencode/agents/Architect.md`                        | Consumer of `{project.contract_hash_command}`                                                                   |

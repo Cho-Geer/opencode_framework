@@ -1,7 +1,10 @@
 import { tool } from "@opencode-ai/plugin";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { safeEdit, writeSafeFull, withInterruptGuard } from "../lib";
+import { safeEdit, writeSafeFull } from "../service/file-guard";
+import { withInterruptGuard } from "../lib";
+import { writeLog } from "../lib/log-manager";
+import { writeJsonl } from "../lib/jsonl-writer";
 
 export default tool({
   description:
@@ -32,12 +35,32 @@ export default tool({
       .boolean()
       .optional()
       .describe("Validate without executing"),
+    breakGlass: tool.schema
+      .boolean()
+      .optional()
+      .describe("Emergency override: skip path restrictions, log audit trail. Use only when authorized."),
   },
   async execute(args, context) {
     return withInterruptGuard("safe_edit", async () => {
       const absPath = path.resolve(args.filePath);
       const mode = args.mode ?? "patch";
       const agent = context.agent ?? "unknown";
+
+      // breakGlass audit logging (actual bypass is handled by behavioral-path-guard plugin)
+      if (args.breakGlass) {
+        writeLog("safe-edit", "WARN", {
+          event: "BREAK-GLASS-SAFE-EDIT",
+          path: absPath,
+          mode,
+          agent,
+          sessionID: context.sessionID || "unknown",
+        });
+        writeJsonl("break-glass", {
+          event: "safe_edit_break_glass",
+          path: absPath,
+          mode,
+        }, { sessionID: context.sessionID || "unknown", tool: "safe_edit" });
+      }
 
       // ── overwrite mode ──
       if (mode === "overwrite") {

@@ -197,6 +197,7 @@ export function initializeSchema(db: Database): void {
   // These tables were never populated and had zero SQL readers.
 
   // ── gate_sessions (gate-state.json replacement — solves G1) ──
+  // F2 (2026-06-27): Added version column for optimistic lock.
   db.run(`
     CREATE TABLE IF NOT EXISTS gate_sessions (
       session_id        TEXT PRIMARY KEY,
@@ -221,10 +222,13 @@ export function initializeSchema(db: Database): void {
       fail_reason       TEXT,
       worktree          TEXT,
       audit             TEXT,
-      updated_at        INTEGER NOT NULL
+      updated_at        INTEGER NOT NULL,
+      version           INTEGER NOT NULL DEFAULT 1
     )
   `);
   db.run(`CREATE INDEX IF NOT EXISTS idx_gate_status ON gate_sessions(status)`);
+  // F2 migration: add version column to existing tables
+  try { db.run(`ALTER TABLE gate_sessions ADD COLUMN version INTEGER NOT NULL DEFAULT 1`); } catch {}
 
   // ── gate_drained_sessions (archived drained sessions) ─────
   db.run(`
@@ -555,7 +559,8 @@ export function initializeSchema(db: Database): void {
       "transaction_state",
       "knowledge_state",
       "knowledge_audit_state",
-      "type_check_state",
+      "type_check_state", // deprecated — but still may exist from pre-2026-06-26 runs
+      "diagnostic_state", // replaces type_check_state (2026-06-26)
       "format_state",
       "dependency_state",
     ];
@@ -1143,16 +1148,19 @@ export function initializeSchema(db: Database): void {
     // ── dispatch_queue: FIFO dispatch entry queue ──────────────
     db.run(`
       CREATE TABLE IF NOT EXISTS dispatch_queue (
-        id            INTEGER PRIMARY KEY AUTOINCREMENT,
-        status        TEXT NOT NULL DEFAULT 'pending',
-        agent_type    TEXT NOT NULL,
-        dag_task_id   TEXT NOT NULL,
-        session_id    TEXT,
-        prompt_ref_id INTEGER REFERENCES dispatch_prompt_refs(id),
-        lease_owner   TEXT,
-        lease_expiry  INTEGER,
-        created_at    INTEGER NOT NULL,
-        updated_at    INTEGER NOT NULL
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        status            TEXT NOT NULL DEFAULT 'pending',
+        agent_type        TEXT NOT NULL,
+        dag_task_id       TEXT NOT NULL,
+        session_id        TEXT,
+        prompt_ref_id     INTEGER REFERENCES dispatch_prompt_refs(id),
+        lease_owner       TEXT,
+        lease_expiry      INTEGER,
+        dispatch_key      TEXT,
+        parent_session_id TEXT,
+        call_id           TEXT,
+        created_at        INTEGER NOT NULL,
+        updated_at        INTEGER NOT NULL
       )
     `);
     db.run(`CREATE INDEX IF NOT EXISTS idx_dq_status_agent_created
@@ -1163,6 +1171,39 @@ export function initializeSchema(db: Database): void {
       ON dispatch_queue(lease_expiry)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_dq_dag_task
       ON dispatch_queue(dag_task_id)`);
+    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_dq_dispatch_key
+      ON dispatch_queue(dispatch_key) WHERE dispatch_key IS NOT NULL`);
+
+    // P0-B migration: add dispatch_key, parent_session_id, call_id to existing tables
+    for (const col of ["dispatch_key TEXT", "parent_session_id TEXT", "call_id TEXT"]) {
+      try { db.run(`ALTER TABLE dispatch_queue ADD COLUMN ${col}`); } catch {}
+    }
+
+    // ── P1: dispatch_privilege_grants ──────────────────────────
+    db.run(`
+      CREATE TABLE IF NOT EXISTS dispatch_privilege_grants (
+        id                 TEXT PRIMARY KEY,
+        dispatch_key       TEXT NOT NULL,
+        parent_session_id  TEXT NOT NULL,
+        child_session_id   TEXT,
+        dag_task_id        TEXT,
+        agent_type         TEXT NOT NULL,
+        privilege          TEXT NOT NULL,
+        allowed_tools      TEXT NOT NULL,
+        allowed_paths      TEXT NOT NULL,
+        reason             TEXT NOT NULL,
+        status             TEXT NOT NULL DEFAULT 'pending',
+        expires_at         INTEGER NOT NULL,
+        created_at         INTEGER NOT NULL,
+        bound_at           INTEGER,
+        consumed_at        INTEGER,
+        revoked_at         INTEGER
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dispatch_privilege_child
+      ON dispatch_privilege_grants(child_session_id, privilege, status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dispatch_privilege_dispatch
+      ON dispatch_privilege_grants(dispatch_key, status)`);
 
     // ── dispatch_context: per-dispatch session context ─────────
     // Replaces per-dispatch ctx/{dagTaskId}.json files.
@@ -1392,6 +1433,956 @@ export function initializeSchema(db: Database): void {
       detail: `v17: ${e.message}`,
     });
   }
+
+  // ════════════════════════════════════════════════════════════
+  // v18 — P0-CHECKLIST: Add DB-canonical execution checklist
+  //   and dispatch payload integrity tables.
+  //
+  //   Tables:
+  //   1. execution_checklist_runs — tracks checklist execution
+  //      sessions per opencode session
+  //   2. execution_checklist_items — individual checklist items
+  //      within a run, with status and verification tracking
+  //   3. execution_checklist_events — event log for checklist
+  //      state transitions (audit trail)
+  //   4. dispatch_payload_integrity — normalized dispatch
+  //      payloads with SHA-256 integrity and completeness
+  //      verification
+  //
+  //   Writers:
+  //     - gate-before.ts (checklist enforcement)
+  //     - dispatch-subagent.ts (payload integrity)
+  //   Readers:
+  //     - gate-before.ts (checklist status queries)
+  //     - framework-enforcer.ts (dispatch audit)
+  //     - framework-self-test.ts (compliance verification)
+  //
+  //   @see docs/review/cicd-dag-block/p0-checklist-optimization-plan.md
+  // ════════════════════════════════════════════════════════════
+  try {
+    // 1. execution_checklist_runs
+    db.run(`
+      CREATE TABLE IF NOT EXISTS execution_checklist_runs (
+        run_id              TEXT PRIMARY KEY,
+        opencode_session_id TEXT NOT NULL,
+        parent_session_id   TEXT,
+        task_id             TEXT,
+        agent               TEXT NOT NULL,
+        domain_id           TEXT,
+        worktree            TEXT,
+        phase               TEXT NOT NULL,
+        status              TEXT NOT NULL,
+        task_payload_hash   TEXT,
+        payload_ref         TEXT,
+        created_at          INTEGER NOT NULL,
+        updated_at          INTEGER NOT NULL,
+        completed_at        INTEGER
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ecr_session
+      ON execution_checklist_runs(opencode_session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ecr_task
+      ON execution_checklist_runs(task_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ecr_agent_status
+      ON execution_checklist_runs(agent, status)`);
+
+    // 2. execution_checklist_items
+    db.run(`
+      CREATE TABLE IF NOT EXISTS execution_checklist_items (
+        item_id       TEXT PRIMARY KEY,
+        run_id        TEXT NOT NULL REFERENCES execution_checklist_runs(run_id),
+        item_key      TEXT NOT NULL,
+        phase         TEXT NOT NULL,
+        required_when TEXT NOT NULL,
+        status        TEXT NOT NULL,
+        blocking      INTEGER NOT NULL DEFAULT 1,
+        verifier      TEXT NOT NULL,
+        evidence_ref  TEXT,
+        fail_reason   TEXT,
+        remediation   TEXT,
+        created_at    INTEGER NOT NULL,
+        updated_at    INTEGER NOT NULL,
+        UNIQUE(run_id, item_key)
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_eci_run_status
+      ON execution_checklist_items(run_id, status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_eci_item
+      ON execution_checklist_items(item_key)`);
+
+    // 3. execution_checklist_events
+    db.run(`
+      CREATE TABLE IF NOT EXISTS execution_checklist_events (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        run_id       TEXT NOT NULL,
+        item_id      TEXT,
+        event_type   TEXT NOT NULL,
+        actor        TEXT,
+        tool_name    TEXT,
+        old_status   TEXT,
+        new_status   TEXT,
+        evidence_ref TEXT,
+        message      TEXT,
+        created_at   INTEGER NOT NULL
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_ece_run_created
+      ON execution_checklist_events(run_id, created_at)`);
+
+    // 4. dispatch_payload_integrity
+    db.run(`
+      CREATE TABLE IF NOT EXISTS dispatch_payload_integrity (
+        payload_id          TEXT PRIMARY KEY,
+        dispatch_ref_id     TEXT,
+        parent_session_id   TEXT,
+        agent_type          TEXT NOT NULL,
+        dag_task_id         TEXT,
+        task_description    TEXT NOT NULL,
+        normalized_payload  TEXT NOT NULL,
+        sha256              TEXT NOT NULL,
+        completeness_status TEXT NOT NULL,
+        completeness_error  TEXT,
+        prompt_path         TEXT,
+        created_at          INTEGER NOT NULL
+      )
+    `);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dpi_session
+      ON dispatch_payload_integrity(parent_session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dpi_task
+      ON dispatch_payload_integrity(dag_task_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_dpi_status
+      ON dispatch_payload_integrity(completeness_status)`);
+
+    // Schema version record
+    db.run(
+      `
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (18, ?, 'P0-CHECKLIST: add DB-canonical execution checklist and dispatch payload integrity tables')
+    `,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v18: execution_checklist_runs/items/events + dispatch_payload_integrity tables + indexes created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v18: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v19 — UC7KS Pipeline DB-Canonical
+  //   Replaces substate_kv JSON blob + knowledge_discovery +
+  //   knowledge_attestation row tables with a single unified table.
+  //
+  //   Table: uc7ks_pipeline_state
+  //   Unique key: (pipeline_id, agent, domain_id)
+  //   Concurrency: SQLite UNIQUE + UPSERT (row-level lock)
+  //
+  //   Writers:
+  //     - knowledge_cache_search.ts (discovery phase)
+  //     - knowledge_cache_attest.ts (attestation phase)
+  //   Readers:
+  //     - knowledge_cache_attest.ts (read discovery for verification)
+  //     - uc7ks-utils.ts checkUC7KSWrite (write gate)
+  //     - framework-self-test.ts (compliance verification)
+  //
+  //   @see docs/review/framework-refactor/uc7ks-pipeline-db-canonical-design.md
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS uc7ks_pipeline_state (
+        id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        -- ── 复合唯一键（并发隔离边界）──
+        pipeline_id             TEXT NOT NULL,
+        agent                   TEXT NOT NULL,
+        domain_id               TEXT NOT NULL,
+
+        -- ── 会话关联 ──
+        session_id              TEXT,
+        dag_task_id             TEXT,
+
+        -- ── 发现阶段（knowledge_cache_search 写入）──
+        discovery_status        TEXT DEFAULT 'undeclared',
+        discovered_files        TEXT DEFAULT '[]',
+        discovered_count        INTEGER DEFAULT 0,
+        missing_topics          TEXT DEFAULT '[]',
+        discovered_at           INTEGER,
+
+        -- ── 验证阶段（knowledge_cache_attest 写入）──
+        attestation_status      TEXT DEFAULT 'unattested',
+        cache_sufficient        INTEGER DEFAULT 0,
+        files_read              TEXT DEFAULT '[]',
+        evidence_file_count     INTEGER DEFAULT 0,
+        content_summary         TEXT DEFAULT '',
+        attested_at             INTEGER,
+
+        -- ── 元数据 ──
+        created_at              INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+        updated_at              INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+
+        UNIQUE(pipeline_id, agent, domain_id)
+      )
+    `);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_agent
+      ON uc7ks_pipeline_state(agent)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_session
+      ON uc7ks_pipeline_state(session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_domain
+      ON uc7ks_pipeline_state(domain_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_uc7ks_pipeline_attestation
+      ON uc7ks_pipeline_state(attestation_status, domain_id)
+      WHERE attestation_status != 'unattested'`);
+
+    db.run(
+      `
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (19, ?, 'UC7KS Pipeline DB-Canonical: uc7ks_pipeline_state table (replaces JSON blob + knowledge_discovery + knowledge_attestation)')
+    `,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v19: uc7ks_pipeline_state table + indexes created (DB-canonical UC7KS pipeline)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v19: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v20 — Phase 3 Cleanup: Drop legacy knowledge tables.
+  //   Replaced by uc7ks_pipeline_state (v19).
+  //   Tables dropped:
+  //     - knowledge_session_access (v11)
+  //     - knowledge_discovery (v11)
+  //     - knowledge_attestation (v11)
+  //   (knowledge_session_access_archive and knowledge_entries remain)
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`DROP TABLE IF EXISTS knowledge_session_access`);
+    db.run(`DROP TABLE IF EXISTS knowledge_discovery`);
+    db.run(`DROP TABLE IF EXISTS knowledge_attestation`);
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (20, ?, 'Phase 3 Cleanup: drop knowledge_session_access/knowledge_discovery/knowledge_attestation — replaced by uc7ks_pipeline_state (v19)')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v20: dropped legacy knowledge tables (replaced by uc7ks_pipeline_state)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v20: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v21: V7.2-FIX — Add opencode_session_id to gate_sessions.
+  //      Fixes bug where compliance-gate calls checklistWirePassed()
+  //      with gateSessionId (cg_ses_*) instead of OpenCode session ID
+  //      (ses_*), causing gate facts to be written to the wrong
+  //      checklist run — the run keyed by cg_ses_* is never read
+  //      by any agent.
+  //
+  //      Design: Column is nullable TEXT — backward compatible.
+  //      When NULL, checklistWirePassed falls back to gateSessionId
+  //      with a WARNING log.
+  // ════════════════════════════════════════════════════════════
+  try {
+    const gateCols = db
+      .query("PRAGMA table_info(gate_sessions)")
+      .all() as Array<{ name: string }>;
+    const gateColNames = new Set(gateCols.map((c) => c.name));
+
+    if (!gateColNames.has("opencode_session_id")) {
+      db.run(
+        "ALTER TABLE gate_sessions ADD COLUMN opencode_session_id TEXT DEFAULT NULL",
+      );
+    }
+
+    db.run(
+      `
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+        VALUES (21, ?, 'V7.2-FIX: add opencode_session_id to gate_sessions for correct checklist run wiring')
+    `,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v21: opencode_session_id column added to gate_sessions",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v21: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v22 — OPT-09 (2026-06-23): UC7KS pipeline index optimization.
+  //   Adds covering indexes for high-frequency query patterns:
+  //   1. idx_uc7ks_agent_domain: (agent, domain_id) — used by
+  //      uc7ks-utils.ts to check attestation status by agent+domain.
+  //   2. idx_uc7ks_dag_task: (dag_task_id) WHERE NOT NULL —
+  //      used by resolvePipelineId to find pipeline rows by dagTaskId.
+  //   Existing UNIQUE(pipeline_id, agent, domain_id) remains as PK.
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_uc7ks_agent_domain ON uc7ks_pipeline_state(agent, domain_id)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_uc7ks_dag_task ON uc7ks_pipeline_state(dag_task_id) WHERE dag_task_id IS NOT NULL`,
+    );
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (22, ?, 'OPT-09: UC7KS pipeline index optimization — idx_uc7ks_agent_domain + idx_uc7ks_dag_task (partial)')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v22: UC7KS pipeline covering indexes added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v22: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v23 — OPT-06 (2026-06-24): DROP dispatch_context table.
+  //   dispatch_context was a write-only table (dbInsertDispatchContext
+  //   inserted rows but no code ever SELECTed from it). session_map DB
+  //   is the canonical source for dispatch context. The call to
+  //   dbInsertDispatchContext was removed from task-after.ts.
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`DROP TABLE IF EXISTS dispatch_context`);
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (23, ?, 'OPT-06: DROP dispatch_context table — write-only dead table, session_map is canonical')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v23: dispatch_context table dropped (OPT-06)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v23: ${e.message}`,
+    });
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // v24 — FW-SESSION-MODEL-IDENTITY (2026-06-24): Add model_id to session_map.
+  //   Stores the LLM model identifier (e.g. "deepseek/deepseek-v4-pro")
+  //   alongside the session agent mapping. Enables round-start agent/model
+  //   identification logging and audit trail of which model served each
+  //   conversation round.
+  //
+  //   Populated by session.ts chatMessageHook at every chat.message event.
+  //   Model resolved from opencode.json agent configuration.
+  //
+  //   Subsystems: Log Central Management, DB-canonical, Central State Mgmt,
+  //               Multi-Agent, Framework Harness
+  // ════════════════════════════════════════════════════════════
+  try {
+    db.run(`ALTER TABLE session_map ADD COLUMN model_id TEXT DEFAULT NULL`);
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (24, ?, 'FW-SESSION-MODEL-IDENTITY: add model_id to session_map')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v24: model_id column added to session_map",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v24: ${e.message}`,
+    });
+  }
+
+  // ============================================================
+  // v25 - BACKUP-MANAGER (2026-06-24): backup_log table.
+  // FIX: Use db.run() per statement (not db.exec with multi-statement).
+  // bun:sqlite db.exec() silently fails on multi-statement CREATE.
+  // Each statement must be executed individually via db.run().
+  // ============================================================
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS backup_log (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid            TEXT NOT NULL UNIQUE,
+        timestamp       TEXT NOT NULL,
+        event           TEXT NOT NULL,
+        agent           TEXT DEFAULT 'unknown',
+        session_id      TEXT,
+        dag_task_id     TEXT,
+        dag_session_id  TEXT,
+        task_id         TEXT,
+        reason          TEXT NOT NULL,
+        original_file_path TEXT NOT NULL,
+        backup_file_path   TEXT NOT NULL,
+        git_commit      TEXT,
+        file_size       INTEGER DEFAULT 0,
+        file_hash       TEXT,
+        cleanup_time    TEXT,
+        cleanup_reason  TEXT,
+        status          TEXT DEFAULT 'active'
+      )
+    `);
+    db.run("CREATE INDEX IF NOT EXISTS idx_backup_uuid ON backup_log(uuid)");
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_file ON backup_log(original_file_path)",
+    );
+    db.run("CREATE INDEX IF NOT EXISTS idx_backup_agent ON backup_log(agent)");
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_session ON backup_log(session_id)",
+    );
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_dag ON backup_log(dag_task_id)",
+    );
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_status ON backup_log(status)",
+    );
+    db.run(
+      "CREATE INDEX IF NOT EXISTS idx_backup_time ON backup_log(timestamp)",
+    );
+    db.run("CREATE INDEX IF NOT EXISTS idx_backup_event ON backup_log(event)");
+    db.run(
+      "INSERT OR IGNORE INTO schema_version (version, applied_at, comment) VALUES (25, ?, 'BACKUP-MANAGER: backup_log table (db.run fix)')",
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail:
+        "v25: backup_log table + indexes created (db.run per-statement fix)",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "ERROR", {
+      event: "DB-SCHEMA-MIGRATION-FAILED",
+      detail: `v25 backup_log creation failed: ${e.message}`,
+    });
+  }
+
+  // v26: TSC Diagnostic Gate v2 — tsc_gate_locks + tsc_gate_events tables
+  // tsc_gate_locks: file-level write locks + tsc run mutex
+  // tsc_gate_events: structured audit events from tsc-diag-track.ts
+  try {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS tsc_gate_locks (
+        file_path  TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        locked_at  INTEGER NOT NULL,
+        lock_type  TEXT NOT NULL DEFAULT 'file_write',
+        PRIMARY KEY (file_path)
+      )
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS tsc_gate_events (
+        event_id    TEXT PRIMARY KEY,
+        session_id  TEXT,
+        file_path   TEXT NOT NULL,
+        event_type  TEXT NOT NULL,
+        error_count INTEGER DEFAULT 0,
+        elapsed_ms  INTEGER,
+        detail      TEXT,
+        created_at  INTEGER NOT NULL
+      )
+    `);
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_session ON tsc_gate_events(session_id)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_file ON tsc_gate_events(file_path)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_type ON tsc_gate_events(event_type)`,
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tge_created ON tsc_gate_events(created_at)`,
+    );
+    db.run(
+      `INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+       VALUES (26, ?, 'v26: tsc_gate_locks + tsc_gate_events tables — TSC Diagnostic Gate v2')`,
+      [Date.now()],
+    );
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v26: tsc_gate_locks + tsc_gate_events tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v26: ${e.message}`,
+    });
+  }
+
+  // ── v27: session_map parent_id ──
+  try {
+    db.run(`ALTER TABLE session_map ADD COLUMN parent_id TEXT DEFAULT ''`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (27, ?, 'v27: parent_id column added to session_map — FW-SESSION-PARENT-ID')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v27: session_map parent_id added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v27: ${e.message}`,
+    });
+  }
+
+  // ── v28: notifications + notification_readers ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS notifications (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      agent TEXT NOT NULL DEFAULT '',
+      dag_task_id TEXT DEFAULT '',
+      event_type TEXT NOT NULL,
+      data TEXT DEFAULT '{}',
+      created_at INTEGER NOT NULL
+    )`);
+    db.run(`CREATE TABLE IF NOT EXISTS notification_readers (
+      reader_id TEXT NOT NULL,
+      last_seq INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (reader_id)
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_notif_session ON notifications(session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_notif_created ON notifications(created_at)`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (28, ?, 'v28: notifications + notification_readers tables')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v28: notifications + notification_readers tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v28: ${e.message}`,
+    });
+  }
+
+  // ── v29: tool_enforcement table — anti-bypass v2 ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS tool_enforcement (
+      session_id TEXT PRIMARY KEY,
+      agent TEXT NOT NULL DEFAULT '',
+      consecutive_failures INTEGER NOT NULL DEFAULT 0,
+      total_failures INTEGER NOT NULL DEFAULT 0,
+      last_failure_tool TEXT DEFAULT '',
+      last_failure_type TEXT DEFAULT '',
+      last_failure_error TEXT DEFAULT '',
+      last_failure_at INTEGER NOT NULL DEFAULT 0,
+      last_before_at INTEGER NOT NULL DEFAULT 0,
+      last_after_at INTEGER NOT NULL DEFAULT 0,
+      stop_injected INTEGER NOT NULL DEFAULT 0,
+      total_blocks INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_te_agent ON tool_enforcement(agent)`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (29, ?, 'v29: tool_enforcement table — anti-bypass v2 全工具覆盖')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v29: tool_enforcement table created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v29: ${e.message}`,
+    });
+  }
+
+  // ── v30: compliance tracking — orphan before-hook detection ──
+  try {
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN compliance_blocks INTEGER NOT NULL DEFAULT 0`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN last_before_at INTEGER NOT NULL DEFAULT 0`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN last_after_at INTEGER NOT NULL DEFAULT 0`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (30, ?, 'v30: compliance tracking — orphan before-hook detection')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v30: compliance_blocks + last_before_at + last_after_at added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v30: ${e.message}`,
+    });
+  }
+
+  // ── v31: two-phase guidance gate ──
+  try {
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN awaiting_guidance INTEGER NOT NULL DEFAULT 0`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN guidance_token TEXT DEFAULT ''`);
+    db.run(`ALTER TABLE tool_enforcement ADD COLUMN guidance_requested_at INTEGER NOT NULL DEFAULT 0`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (31, ?, 'v31: two-phase guidance gate (awaiting_guidance + token + requested_at)')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v31: awaiting_guidance + guidance_token + guidance_requested_at added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v31: ${e.message}`,
+    });
+  }
+
+  // ── v32: soft_rejections table — per-tool rejection tracking ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS soft_rejections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      tool_name TEXT NOT NULL,
+      rejection_count INTEGER NOT NULL DEFAULT 1,
+      first_rejection_at INTEGER NOT NULL,
+      last_rejection_at INTEGER NOT NULL,
+      last_error TEXT DEFAULT '',
+      created_at INTEGER NOT NULL,
+      UNIQUE(session_id, tool_name)
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sr_session ON soft_rejections(session_id)`);
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (32, ?, 'v32: soft_rejections table for tool rejection tracking')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v32: soft_rejections table added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v32: ${e.message}`,
+    });
+  }
+
+  // ── v33: Phase 4 Minimal State — session_registry + session_events + tool_guidance_state ──
+  try {
+    // session_registry: merges session_map state + parent session tracking + Phase 5 alias metadata
+    db.run(`CREATE TABLE IF NOT EXISTS session_registry (
+      session_id        TEXT PRIMARY KEY,
+      parent_session_id TEXT DEFAULT NULL,
+      agent             TEXT NOT NULL DEFAULT 'pending',
+      agent_alias       TEXT DEFAULT NULL,
+      native_executor   TEXT DEFAULT NULL,
+      dag_task_id       TEXT DEFAULT NULL,
+      domain_id         TEXT DEFAULT NULL,
+      model_id          TEXT DEFAULT NULL,
+      status            TEXT DEFAULT 'active',
+      created_at        INTEGER NOT NULL,
+      updated_at        INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sreg_agent ON session_registry(agent)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sreg_parent ON session_registry(parent_session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sreg_status ON session_registry(status)`);
+
+    // session_events: append-only event log (merges session_log + dispatch trace)
+    db.run(`CREATE TABLE IF NOT EXISTS session_events (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id        TEXT NOT NULL,
+      parent_session_id TEXT DEFAULT NULL,
+      event_type        TEXT NOT NULL,
+      dag_task_id       TEXT DEFAULT NULL,
+      agent_type        TEXT NOT NULL DEFAULT '',
+      agent_alias       TEXT DEFAULT NULL,
+      native_executor   TEXT DEFAULT NULL,
+      loaded_skills     TEXT DEFAULT NULL,
+      run_id            TEXT DEFAULT NULL,
+      payload           TEXT DEFAULT NULL,
+      created_at        INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sevt_session ON session_events(session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sevt_dag ON session_events(dag_task_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_sevt_type ON session_events(event_type)`);
+
+    // tool_guidance_state: merges tool_enforcement runtime fields + soft_rejections
+    // (Phase 3 added failure_count/guidance_required/tool_rejections columns to tool_enforcement;
+    //  this table provides a clean consolidated schema for future use)
+    db.run(`CREATE TABLE IF NOT EXISTS tool_guidance_state (
+      session_id            TEXT PRIMARY KEY,
+      agent                 TEXT NOT NULL DEFAULT '',
+      failure_count         INTEGER NOT NULL DEFAULT 0,
+      last_failure          TEXT DEFAULT '',
+      guidance_required     INTEGER NOT NULL DEFAULT 0,
+      tool_rejections       TEXT DEFAULT '',
+      last_failure_at       INTEGER NOT NULL DEFAULT 0,
+      stop_injected         INTEGER NOT NULL DEFAULT 0,
+      awaiting_guidance     INTEGER NOT NULL DEFAULT 0,
+      guidance_token        TEXT DEFAULT '',
+      guidance_text         TEXT DEFAULT '',
+      guidance_requested_at INTEGER NOT NULL DEFAULT 0,
+      created_at            INTEGER NOT NULL,
+      updated_at            INTEGER NOT NULL
+    )`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_tgs_agent ON tool_guidance_state(agent)`);
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (33, ?, 'v33: Phase 4 Minimal State — session_registry + session_events + tool_guidance_state')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v33: session_registry + session_events + tool_guidance_state tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v33: ${e.message}`,
+    });
+  }
+
+  // ── v34: notifications schema drift fix — add parent_id + resolved columns ──
+  try {
+    const notifCols = new Set(
+      (db.query("PRAGMA table_info(notifications)").all() as { name: string }[])
+        .map((c) => c.name),
+    );
+    if (!notifCols.has("parent_id")) {
+      db.run(`ALTER TABLE notifications ADD COLUMN parent_id TEXT DEFAULT ''`);
+    }
+    if (!notifCols.has("resolved")) {
+      db.run(`ALTER TABLE notifications ADD COLUMN resolved INTEGER DEFAULT 0`);
+    }
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (34, ?, 'v34: notifications schema drift fix — add parent_id + resolved columns for mcp-notify compatibility')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v34: notifications table extended with parent_id + resolved columns",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v34: ${e.message}`,
+    });
+  }
+
+  // ── v35: repo_operation_grants + repo_operation_events tables ──
+  try {
+    db.run(`CREATE TABLE IF NOT EXISTS repo_operation_grants (
+      id TEXT PRIMARY KEY,
+      dispatch_key TEXT NOT NULL,
+      parent_session_id TEXT NOT NULL,
+      child_session_id TEXT,
+      dag_task_id TEXT,
+      agent_type TEXT NOT NULL,
+      privilege TEXT NOT NULL,
+      allowed_tools TEXT NOT NULL,
+      allowed_paths TEXT NOT NULL,
+      allowed_remotes TEXT NOT NULL DEFAULT '[]',
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL,
+      requires_human_confirmation INTEGER NOT NULL DEFAULT 0,
+      human_confirmed_at INTEGER,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      bound_at INTEGER,
+      consumed_at INTEGER,
+      revoked_at INTEGER
+    )`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_repo_grants_dispatch_key
+      ON repo_operation_grants(dispatch_key, status)`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_repo_grants_child
+      ON repo_operation_grants(child_session_id, privilege, status, expires_at)`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS repo_operation_events (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      agent TEXT NOT NULL,
+      tool TEXT NOT NULL,
+      operation_kind TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      command_summary TEXT NOT NULL,
+      paths TEXT NOT NULL,
+      grant_id TEXT,
+      result TEXT NOT NULL,
+      commit_sha TEXT,
+      error TEXT,
+      created_at INTEGER NOT NULL
+    )`);
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (35, ?, 'v35: repo_operation_grants + repo_operation_events for git write grant system')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v35: repo_operation_grants + repo_operation_events tables created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v35: ${e.message}`,
+    });
+  }
+
+  // ── v36: framework maintenance multi-write grants + plans ──
+  try {
+    const grantCols = new Set(
+      (db.query("PRAGMA table_info(dispatch_privilege_grants)").all() as { name: string }[])
+        .map((c) => c.name),
+    );
+
+    if (!grantCols.has("max_writes")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN max_writes INTEGER DEFAULT 1`);
+    }
+    if (!grantCols.has("writes_used")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN writes_used INTEGER DEFAULT 0`);
+    }
+    if (!grantCols.has("policy_version")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN policy_version TEXT DEFAULT 'framework-maintenance-v1'`);
+    }
+    if (!grantCols.has("completed_at")) {
+      db.run(`ALTER TABLE dispatch_privilege_grants ADD COLUMN completed_at INTEGER`);
+    }
+
+    db.run(`CREATE TABLE IF NOT EXISTS framework_maintenance_plans (
+      id TEXT PRIMARY KEY,
+      grant_id TEXT NOT NULL,
+      child_session_id TEXT NOT NULL,
+      dag_task_id TEXT,
+      planned_paths TEXT NOT NULL,
+      codegraph_targets TEXT NOT NULL,
+      rationale TEXT NOT NULL,
+      risk_level TEXT NOT NULL DEFAULT 'medium',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      FOREIGN KEY(grant_id) REFERENCES dispatch_privilege_grants(id)
+    )`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_framework_plans_grant_status
+      ON framework_maintenance_plans(grant_id, status)`);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_framework_plans_session_status
+      ON framework_maintenance_plans(child_session_id, status)`);
+
+    db.run(`INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (36, ?, 'v36: framework maintenance multi-write grants + plans')`,
+      [Date.now()]);
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v36: dispatch_privilege_grants extended + framework_maintenance_plans created",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v36: ${e.message}`,
+    });
+  }
+
+  // ── v37: MCP session propagation — gate_call_context + gate_sessions session binding ──
+  // Blueprint: plans/mcp-session-propagation/blueprint-mcp-session-propagation.md
+  // Purpose: Replace process.env.OPENCODE_SESSION_ID with DB-backed context bridge
+  try {
+    // 1. Create gate_call_context table for universal MCP gate call tracking
+    db.run(`
+      CREATE TABLE IF NOT EXISTS gate_call_context (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tool_name TEXT NOT NULL,
+        gate_session_id TEXT,
+        opencode_session_id TEXT NOT NULL,
+        parent_session_id TEXT,
+        call_id TEXT,
+        agent TEXT,
+        args_hash TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        interrupted_at INTEGER,
+        consumed_at INTEGER
+      )
+    `);
+
+    // Indexes for gate_call_context
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_call_context_lookup
+      ON gate_call_context(tool_name, gate_session_id, args_hash, status, consumed_at, created_at DESC)
+    `);
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_call_context_callid
+      ON gate_call_context(call_id)
+    `);
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_call_context_session
+      ON gate_call_context(opencode_session_id, created_at DESC)
+    `);
+
+    // 2. Add 6 session binding columns to gate_sessions
+    const gateSessionCols = new Set(
+      (db.query("PRAGMA table_info(gate_sessions)").all() as { name: string }[])
+        .map((c) => c.name),
+    );
+
+    const newGateSessionCols: Array<[string, string]> = [
+      ["parent_opencode_session_id", "TEXT DEFAULT NULL"],
+      ["child_opencode_session_id", "TEXT DEFAULT NULL"],
+      ["last_submit_session_id", "TEXT DEFAULT NULL"],
+      ["last_approve_session_id", "TEXT DEFAULT NULL"],
+      ["interrupted_at", "INTEGER DEFAULT NULL"],
+      ["interruption_source", "TEXT DEFAULT NULL"],
+    ];
+
+    for (const [col, type] of newGateSessionCols) {
+      if (!gateSessionCols.has(col)) {
+        db.run(`ALTER TABLE gate_sessions ADD COLUMN ${col} ${type}`);
+      }
+    }
+
+    // Indexes for new gate_sessions columns
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_sessions_parent_session
+      ON gate_sessions(parent_opencode_session_id)
+    `);
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_gate_sessions_child_session
+      ON gate_sessions(child_opencode_session_id)
+    `);
+
+    db.run(`
+      INSERT OR IGNORE INTO schema_version (version, applied_at, comment)
+      VALUES (37, ?, 'v37: MCP session propagation — gate_call_context + gate_sessions session binding')
+    `, [Date.now()]);
+
+    writeLog(SRC, "INFO", {
+      event: "DB-SCHEMA-MIGRATION",
+      detail: "v37: gate_call_context table created + gate_sessions session binding columns added",
+    });
+  } catch (e: any) {
+    writeLog(SRC, "WARN", {
+      event: "DB-SCHEMA-MIGRATION-SKIPPED",
+      detail: `v37: ${e.message}`,
+    });
+  }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1404,12 +2395,7 @@ export function initializeSchema(db: Database): void {
 //   call multiple times.
 // ════════════════════════════════════════════════════════════
 
-/**
- * Backfill typed knowledge tables from index.json manifest.
- * Idempotent — safe to call multiple times (INSERT OR IGNORE).
- *
- * @returns Summary of inserted rows: { entriesInserted, filesInserted, tagsInserted }
- */
+// (F2: duplicate removed)
 export function backfillKnowledgeFromManifest(root?: string): {
   entriesInserted: number;
   filesInserted: number;
@@ -1574,153 +2560,153 @@ export function backfillKnowledgeFromManifest(root?: string): {
  *
  * @returns Summary of inserted rows: { entriesInserted, filesInserted, tagsInserted }
  */
-export function backfillKnowledgeFromManifest(root?: string): {
-  entriesInserted: number;
-  filesInserted: number;
-  tagsInserted: number;
-} {
-  // Initialize schema first (includes v11 tables), then backfill
-  const db = getDb({ root });
-  const entriesInserted = { count: 0 };
-  const filesInserted = { count: 0 };
-  const tagsInserted = { count: 0 };
-
-  // Read index.json manifest
-  const indexPath = path.join(
-    root || process.env.OPENCODE_ROOT || process.cwd(),
-    "docs",
-    "official_docs",
-    "index.json",
-  );
-
-  if (!fs.existsSync(indexPath)) {
-    writeLog(SRC, "WARN", {
-      event: "KC-BACKFILL-NO-MANIFEST",
-      detail: `Manifest not found at ${indexPath}`,
-    });
-    return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
-  }
-
-  let manifest: any;
-  try {
-    manifest = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-  } catch (e: any) {
-    writeLog(SRC, "ERROR", {
-      event: "KC-BACKFILL-PARSE-FAILED",
-      detail: `Manifest parse error: ${e.message}`,
-    });
-    return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
-  }
-
-  const entries = manifest.entries || [];
-  const now = Date.now();
-
-  const insertEntry = db.prepare(`
-    INSERT OR IGNORE INTO knowledge_entries
-      (library_id, query_topic, domain, tags, source, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertFile = db.prepare(`
-    INSERT OR IGNORE INTO knowledge_files
-      (entry_id, file_path, sha256, size_bytes, source, ttl_days, status,
-       access_count, last_accessed, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertTag = db.prepare(`
-    INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)
-  `);
-
-  const insertRoute = db.transaction((manifestEntries: any[]) => {
-    for (const entry of manifestEntries) {
-      const tags = entry.tags || [];
-      const entryFiles = entry.files || [];
-      const source =
-        entryFiles.length > 0 ? entryFiles[0].source : entry.source || null;
-      const createdMs = entry.last_updated
-        ? new Date(entry.last_updated).getTime()
-        : entryFiles.length > 0 && entryFiles[0].created_at
-          ? new Date(entryFiles[0].created_at).getTime()
-          : now;
-
-      const result = insertEntry.run(
-        entry.library_id || "unknown",
-        entry.query_topic || "untitled",
-        entry.domain || "fallback",
-        JSON.stringify(tags),
-        source || null,
-        entry.status || "active",
-        createdMs,
-        now,
-      );
-
-      if (result.changes > 0) {
-        entriesInserted.count++;
-      }
-
-      // Get entry_id (newly inserted or existing)
-      const entryRow = db
-        .query(
-          "SELECT id FROM knowledge_entries WHERE library_id = ? AND query_topic = ?",
-        )
-        .get(entry.library_id, entry.query_topic) as { id: number } | null;
-
-      if (!entryRow) continue;
-      const entryId = entryRow.id;
-
-      // Insert files
-      for (const file of entryFiles) {
-        const fileCreated = file.created_at
-          ? new Date(file.created_at).getTime()
-          : now;
-        const fileResult = insertFile.run(
-          entryId,
-          file.path || "",
-          file.sha256 || null,
-          file.size_bytes || 0,
-          file.source || null,
-          file.ttl_days ?? 30,
-          file.status || "active",
-          file.access_count || 0,
-          file.last_accessed ? new Date(file.last_accessed).getTime() : null,
-          fileCreated,
-          now,
-        );
-        if (fileResult.changes > 0) {
-          filesInserted.count++;
-        }
-      }
-
-      // Insert tags
-      for (const tag of tags) {
-        const tagResult = insertTag.run(entryId, tag);
-        if (tagResult.changes > 0) {
-          tagsInserted.count++;
-        }
-      }
-    }
-  });
-
-  try {
-    insertRoute(entries);
-    writeLog(SRC, "INFO", {
-      event: "KC-BACKFILL-COMPLETE",
-      detail: `entries=${entriesInserted.count} files=${filesInserted.count} tags=${tagsInserted.count}`,
-    });
-  } catch (e: any) {
-    writeLog(SRC, "ERROR", {
-      event: "KC-BACKFILL-FAILED",
-      detail: e.message,
-    });
-  }
-
-  return {
-    entriesInserted: entriesInserted.count,
-    filesInserted: filesInserted.count,
-    tagsInserted: tagsInserted.count,
-  };
-}
+// export function backfillKnowledgeFromManifest(root?: string): {
+//   entriesInserted: number;
+//   filesInserted: number;
+//   tagsInserted: number;
+// } {
+//   // Initialize schema first (includes v11 tables), then backfill
+//   const db = getDb({ root });
+//   const entriesInserted = { count: 0 };
+//   const filesInserted = { count: 0 };
+//   const tagsInserted = { count: 0 };
+// 
+//   // Read index.json manifest
+//   const indexPath = path.join(
+//     root || process.env.OPENCODE_ROOT || process.cwd(),
+//     "docs",
+//     "official_docs",
+//     "index.json",
+//   );
+// 
+//   if (!fs.existsSync(indexPath)) {
+//     writeLog(SRC, "WARN", {
+//       event: "KC-BACKFILL-NO-MANIFEST",
+//       detail: `Manifest not found at ${indexPath}`,
+//     });
+//     return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
+//   }
+// 
+//   let manifest: any;
+//   try {
+//     manifest = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+//   } catch (e: any) {
+//     writeLog(SRC, "ERROR", {
+//       event: "KC-BACKFILL-PARSE-FAILED",
+//       detail: `Manifest parse error: ${e.message}`,
+//     });
+//     return { entriesInserted: 0, filesInserted: 0, tagsInserted: 0 };
+//   }
+// 
+//   const entries = manifest.entries || [];
+//   const now = Date.now();
+// 
+//   const insertEntry = db.prepare(`
+//     INSERT OR IGNORE INTO knowledge_entries
+//       (library_id, query_topic, domain, tags, source, status, created_at, updated_at)
+//     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+//   `);
+// 
+//   const insertFile = db.prepare(`
+//     INSERT OR IGNORE INTO knowledge_files
+//       (entry_id, file_path, sha256, size_bytes, source, ttl_days, status,
+//        access_count, last_accessed, created_at, updated_at)
+//     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//   `);
+// 
+//   const insertTag = db.prepare(`
+//     INSERT OR IGNORE INTO knowledge_entry_tags (entry_id, tag) VALUES (?, ?)
+//   `);
+// 
+//   const insertRoute = db.transaction((manifestEntries: any[]) => {
+//     for (const entry of manifestEntries) {
+//       const tags = entry.tags || [];
+//       const entryFiles = entry.files || [];
+//       const source =
+//         entryFiles.length > 0 ? entryFiles[0].source : entry.source || null;
+//       const createdMs = entry.last_updated
+//         ? new Date(entry.last_updated).getTime()
+//         : entryFiles.length > 0 && entryFiles[0].created_at
+//           ? new Date(entryFiles[0].created_at).getTime()
+//           : now;
+// 
+//       const result = insertEntry.run(
+//         entry.library_id || "unknown",
+//         entry.query_topic || "untitled",
+//         entry.domain || "fallback",
+//         JSON.stringify(tags),
+//         source || null,
+//         entry.status || "active",
+//         createdMs,
+//         now,
+//       );
+// 
+//       if (result.changes > 0) {
+//         entriesInserted.count++;
+//       }
+// 
+//       // Get entry_id (newly inserted or existing)
+//       const entryRow = db
+//         .query(
+//           "SELECT id FROM knowledge_entries WHERE library_id = ? AND query_topic = ?",
+//         )
+//         .get(entry.library_id, entry.query_topic) as { id: number } | null;
+// 
+//       if (!entryRow) continue;
+//       const entryId = entryRow.id;
+// 
+//       // Insert files
+//       for (const file of entryFiles) {
+//         const fileCreated = file.created_at
+//           ? new Date(file.created_at).getTime()
+//           : now;
+//         const fileResult = insertFile.run(
+//           entryId,
+//           file.path || "",
+//           file.sha256 || null,
+//           file.size_bytes || 0,
+//           file.source || null,
+//           file.ttl_days ?? 30,
+//           file.status || "active",
+//           file.access_count || 0,
+//           file.last_accessed ? new Date(file.last_accessed).getTime() : null,
+//           fileCreated,
+//           now,
+//         );
+//         if (fileResult.changes > 0) {
+//           filesInserted.count++;
+//         }
+//       }
+// 
+//       // Insert tags
+//       for (const tag of tags) {
+//         const tagResult = insertTag.run(entryId, tag);
+//         if (tagResult.changes > 0) {
+//           tagsInserted.count++;
+//         }
+//       }
+//     }
+//   });
+// 
+//   try {
+//     insertRoute(entries);
+//     writeLog(SRC, "INFO", {
+//       event: "KC-BACKFILL-COMPLETE",
+//       detail: `entries=${entriesInserted.count} files=${filesInserted.count} tags=${tagsInserted.count}`,
+//     });
+//   } catch (e: any) {
+//     writeLog(SRC, "ERROR", {
+//       event: "KC-BACKFILL-FAILED",
+//       detail: e.message,
+//     });
+//   }
+// 
+//   return {
+//     entriesInserted: entriesInserted.count,
+//     filesInserted: filesInserted.count,
+//     tagsInserted: tagsInserted.count,
+//   };
+// }
 
 // ════════════════════════════════════════════════════════════
 // HEALTH / MAINTENANCE
@@ -1813,7 +2799,7 @@ export function dbVacuum(root?: string): boolean {
   try {
     const db = getDb({ root });
     db.run("VACUUM");
-    writeLog(SRC, "INFO", { event: "DB-VACUUM-COMPLETE" });
+    writeLog(SRC, "INFO", { event: "DB-VACUUM-COMPLETE", detail: "vacuum completed" });
     return true;
   } catch (e: any) {
     writeLog(SRC, "ERROR", { event: "DB-VACUUM-FAILED", detail: e.message });
@@ -1833,21 +2819,22 @@ export function dbCleanStaleEntries(
   try {
     const db = getDb({ root });
     let total = 0;
-    for (const table of [
-      "audit_log",
-      "write_audit_state",
-      "eslint_state",
-      "gate_audit_history",
-    ]) {
+    // 1. 统一循环只处理有 timestamp 列的表
+    for (const table of ["audit_log", "write_audit_state", "eslint_state"]) {
       try {
-        const res = db.run(`DELETE FROM ${table} WHERE timestamp < ?`, [
-          cutoff,
-        ]);
+        const res = db.run(`DELETE FROM ${table} WHERE timestamp < ?`, [cutoff]);
         total += res.changes;
-      } catch {
-        // Some tables have different timestamp columns; skip silently
-      }
+      } catch { /* skip */ }
     }
+
+    // 2. gate_audit_history 单独处理，使用正确的列名
+    try {
+      const res = db.run(
+        "DELETE FROM gate_audit_history WHERE confirmed_at < ?",
+        [cutoff],
+      );
+      total += res.changes;
+    } catch { /* skip */ }
 
     // v6 tables: session_log uses created_at, dispatch_failed_log uses failed_at
     try {

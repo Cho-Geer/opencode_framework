@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+export {};
 // install-hooks.ts — P6-002
 // Ensures git config core.hooksPath = .opencode/hooks.
 // Validates hook scripts exist and are executable.
@@ -46,6 +47,19 @@ function runGit(args) {
   }
 }
 
+function checkJq() {
+  try {
+    const result = spawnSync('which', ['jq'], {
+      cwd: PROJECT_ROOT,
+      encoding: 'utf8',
+      timeout: 10000
+    });
+    return { available: result.status === 0, path: result.stdout?.trim() || '' };
+  } catch (e) {
+    return { available: false, path: '' };
+  }
+}
+
 function isExecutable(filepath) {
   try {
     if (isWindows()) {
@@ -78,6 +92,15 @@ function main() {
 
   const results = [];
   let needsRepair = false;
+
+  // ── Step 0: Verify jq is available ──
+  // state-machine-reset.sh depends on jq; warn if it is not on PATH.
+  const jqCheck = checkJq();
+  if (!jqCheck.available) {
+    results.push({ check: 'jq_available', status: 'warn', detail: `jq is required by state-machine-reset.sh but was not found on PATH` });
+  } else {
+    results.push({ check: 'jq_available', status: 'pass', detail: `jq available at ${jqCheck.path}` });
+  }
 
   // ── Step 1: Set hooksPath ──
   const currentPath = runGit(['config', '--local', 'core.hooksPath']);
@@ -202,3 +225,4 @@ function output(results, needsRepair) {
 }
 
 main();
+

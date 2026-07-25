@@ -25,6 +25,32 @@ let whichJqResult = null; // null = not configured, { status, stdout, stderr }
 let capturedLogs = [];
 const originalLog = console.log;
 const originalExit = process.exit;
+const originalCwd = process.cwd;
+
+// bun test does not provide jest.resetModules / jest.isolateModules / jest.unmock,
+// and jest.mock is not hoisted. These helpers provide equivalent behaviour.
+function resetModules() {
+  Object.keys(require.cache).forEach((key) => {
+    delete require.cache[key];
+  });
+}
+
+function mockModule(name, factory) {
+  const resolved = require.resolve(name);
+  const original = require.cache[resolved];
+  require.cache[resolved] = {
+    id: resolved,
+    filename: resolved,
+    loaded: true,
+    exports: factory(),
+    children: [],
+    paths: original ? original.paths : [],
+  };
+  return function restore() {
+    delete require.cache[resolved];
+    if (original) require.cache[resolved] = original;
+  };
+}
 
 beforeAll(() => {
   // Create hooks directory with required hooks
@@ -45,33 +71,31 @@ beforeEach(() => {
   whichJqResult = null;
 
   // Mock process.exit to prevent test runner from crashing
-  process.exit = jest.fn();
+  process.exit = () => {};
 
   // Mock console.log to capture output
-  console.log = jest.fn((...args) => {
+  console.log = (...args) => {
     capturedLogs.push(args.join(" "));
-  });
+  };
 
   // Mock process.cwd to point to TMPDIR
-  const originalCwd = process.cwd;
-  process.cwd = jest.fn(() => TMPDIR);
+  process.cwd = () => TMPDIR;
 });
 
 afterEach(() => {
   process.exit = originalExit;
   console.log = originalLog;
-  jest.resetModules();
-  // Restore any mocked modules
-  jest.unmock("child_process");
-  jest.unmock("fs");
+  process.cwd = originalCwd;
+  resetModules();
 });
 
 describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
   test("install-hooks should call 'which jq' to verify jq availability (RED: no jq check exists)", () => {
     // Mock child_process.spawnSync to handle git commands normally
     // but record if 'which jq' is ever called
-    jest.mock("child_process", () => ({
-      spawnSync: jest.fn((cmd, args) => {
+    resetModules();
+    const restoreChildProcess = mockModule("child_process", () => ({
+      spawnSync: (cmd, args) => {
         // Check if this is a 'which jq' call
         if (cmd === "which" && args && args[0] === "jq") {
           whichJqCalled = true;
@@ -87,25 +111,17 @@ describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
         }
         // Default: command not found
         return { status: 1, stdout: "", stderr: "command not found", pid: 0, output: [] };
-      }),
+      },
     }));
 
-    // Need to re-require after mocking — but jest.mock is hoisted,
-    // so the mock applies when require is called in the test.
-    // We use jest.isolateModules or dynamic require after the mock is set up.
+    // Re-require the module with the mock in place.
     let capturedOutput = null;
     try {
-      // Use jest.isolateModules to get a fresh require with mock applied
-      jest.isolateModules(() => {
-        try {
-          require("../../install-hooks");
-        } catch (e) {
-          // Module may throw in RED phase
-        }
-      });
+      require("../../install-hooks");
     } catch (e) {
-      // Expected during RED phase
+      // Module may throw in RED phase
     }
+    restoreChildProcess();
 
     // RED: 'which jq' should have been called — currently NOT called
     // by install-hooks.js, so this assertion FAILS.
@@ -113,8 +129,9 @@ describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
   });
 
   test("install-hooks should emit warning when jq is not found on PATH (RED: no jq check exists)", () => {
-    jest.mock("child_process", () => ({
-      spawnSync: jest.fn((cmd, args) => {
+    resetModules();
+    const restoreChildProcess = mockModule("child_process", () => ({
+      spawnSync: (cmd, args) => {
         // Record 'which jq' call
         if (cmd === "which" && args && args[0] === "jq") {
           whichJqCalled = true;
@@ -126,20 +143,15 @@ describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
           return { status: 0, stdout: ".opencode/hooks\n", stderr: "", pid: 0, output: [] };
         }
         return { status: 1, stdout: "", stderr: "not found", pid: 0, output: [] };
-      }),
+      },
     }));
 
     try {
-      jest.isolateModules(() => {
-        try {
-          require("../../install-hooks");
-        } catch (e) {
-          // Expected during RED phase
-        }
-      });
+      require("../../install-hooks");
     } catch (e) {
       // Expected during RED phase
     }
+    restoreChildProcess();
 
     // Parsing captured output to find jq-related message
     const outputText = capturedLogs.join(" ");
@@ -149,8 +161,9 @@ describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
   });
 
   test("install-hooks should pass when jq is available on PATH (future GREEN: happy path)", () => {
-    jest.mock("child_process", () => ({
-      spawnSync: jest.fn((cmd, args) => {
+    resetModules();
+    const restoreChildProcess = mockModule("child_process", () => ({
+      spawnSync: (cmd, args) => {
         // jq found successfully
         if (cmd === "which" && args && args[0] === "jq") {
           whichJqCalled = true;
@@ -161,20 +174,15 @@ describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
           return { status: 0, stdout: ".opencode/hooks\n", stderr: "", pid: 0, output: [] };
         }
         return { status: 1, stdout: "", stderr: "not found", pid: 0, output: [] };
-      }),
+      },
     }));
 
     try {
-      jest.isolateModules(() => {
-        try {
-          require("../../install-hooks");
-        } catch (e) {
-          // Expected during RED phase
-        }
-      });
+      require("../../install-hooks");
     } catch (e) {
       // Expected during RED phase
     }
+    restoreChildProcess();
 
     // RED: asserts jq was checked — currently NOT checked,
     // so this assertion FAILS.
@@ -189,8 +197,9 @@ describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
   });
 
   test("install-hooks should document jq dependency in install summary (RED: jq not mentioned)", () => {
-    jest.mock("child_process", () => ({
-      spawnSync: jest.fn((cmd, args) => {
+    resetModules();
+    const restoreChildProcess = mockModule("child_process", () => ({
+      spawnSync: (cmd, args) => {
         if (cmd === "which" && args && args[0] === "jq") {
           whichJqCalled = true;
           return { status: 1, stdout: "", stderr: "not found", pid: 0, output: [] };
@@ -199,20 +208,15 @@ describe("FX-DIAG-ROBUST-5: jq dependency check in install-hooks", () => {
           return { status: 0, stdout: ".opencode/hooks\n", stderr: "", pid: 0, output: [] };
         }
         return { status: 1, stdout: "", stderr: "not found", pid: 0, output: [] };
-      }),
+      },
     }));
 
     try {
-      jest.isolateModules(() => {
-        try {
-          require("../../install-hooks");
-        } catch (e) {
-          // Expected during RED phase
-        }
-      });
+      require("../../install-hooks");
     } catch (e) {
       // Expected during RED phase
     }
+    restoreChildProcess();
 
     // RED: The install-hooks output should contain a summary or note
     // about jq being required by state-machine-reset.sh.

@@ -1,49 +1,36 @@
 /**
- * safe_restore.ts — Backup Restore Tool
- * ======================================
+ * safe_restore.ts — Backup Restore Tool (UUID-based)
+ * ====================================================
  *
- * Exposes the `restore()` function from safe-edit-core.ts as a callable
- * OpenCode custom tool. When `writeSafe` (safe_edit / safe_delete) creates
- * a backup before modifying a file, this tool enables LLM-initiated rollback
- * to the pre-modification state.
- *
- * Design Rationale (@Super-Admin FW-ENHANCE-A1, 2026-06-03):
- *   - restore() has existed in safe-edit-core.ts since v1.0 (L472, @public)
- *   - It has been tested but never exposed as a standalone tool
- *   - The analysis doc §7.1 flagged it as "🟡 中等" value — unused but valuable
- *   - This completes the TOCTOU safety suite: writeSafe → safeDelete → safe_restore
- *
- * Pattern: Follows safe_delete.ts (29 lines) — minimal wrapper over lib function.
- * Conforms to OpenCode official custom tool spec (@opencode-ai/plugin tool() helper).
+ * Restores a file from a backup identified by UUID.
+ * Backups are created by safe_edit and safe_delete via backup-manager.ts.
+ * Uses atomic restore (tmp -> rename) for crash safety.
  *
  * @author @Super-Admin
- * @since 2026-06-03
+ * @since 2026-06-24 — v2.0: UUID-based restore
  */
 
 import { tool } from "@opencode-ai/plugin";
-import * as path from "node:path";
-import { restore, withInterruptGuard } from "../lib";
+import {
+  restoreBackup,
+  getBackup,
+  type BackupRecord,
+} from "../service/file-guard";
+import { withInterruptGuard } from "../lib";
 
 export default tool({
   description:
     "Restore a file from a backup created by safe_edit or safe_delete. " +
-    "Uses atomic restore (copy to temp → rename) for crash safety. " +
+    "Uses atomic restore (copy to temp -> rename) for crash safety. " +
     "Call this when you need to rollback a file modification.",
   args: {
-    backupPath: tool.schema
-      .string()
-      .describe("Absolute path to the backup file to restore from"),
-    targetPath: tool.schema
-      .string()
-      .describe("Absolute path of the target file to restore to"),
+    uuid: tool.schema.string().describe("UUID of the backup to restore from"),
   },
   async execute(args, context) {
     return withInterruptGuard("safe_restore", async () => {
-      const absBackup = path.resolve(args.backupPath);
-      const absTarget = path.resolve(args.targetPath);
       const agent = context.agent ?? "unknown";
 
-      const result = restore(absBackup, absTarget);
+      const result = restoreBackup(args.uuid);
 
       if (!result.success) {
         throw new Error(
@@ -51,7 +38,10 @@ export default tool({
         );
       }
 
-      return `Restored ${absTarget} from backup ${absBackup} (agent: ${agent})`;
+      const record = getBackup(args.uuid);
+      const fileName =
+        record?.original_file_path?.split("/").pop() || "unknown";
+      return `Restored ${fileName} from backup ${args.uuid} (agent: ${agent})`;
     });
   },
 });
