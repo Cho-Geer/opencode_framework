@@ -65,7 +65,7 @@ jobs:
 
       - name: Pre-flight setup
         run: |
-          chmod +x .opencode/scripts/reconciliation-check.sh .opencode/scripts/pre-execution-gate.ts
+          chmod +x .opencode/scripts/reconciliation-check.sh
           git config core.hooksPath .opencode/hooks
           mkdir -p .opencode/state
           bun -e "
