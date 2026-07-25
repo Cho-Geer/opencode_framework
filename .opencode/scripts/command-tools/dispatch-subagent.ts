@@ -1,11 +1,15 @@
 #!/usr/bin/env bun
 "use strict";
 
-// dispatch-subagent.ts — CLI thin shell for dispatch prompt generation
-// ═══════════════════════════════════════════════════════════════
-// Phase 4B: Business logic extracted to service/dispatch/prompt-builder.ts
-// This file handles CLI arg parsing, output file writing, and queue management.
-// ═══════════════════════════════════════════════════════════════
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const {
+  deliverablesTemplateMarkdown,
+  isExemptAgent,
+} = require("../../lib/deliverables-templates");
+const { dbQuerySessionByDagTaskId, dbQueryLatestSessionByDagTaskId } = require("../../lib/db-state-manager");
+const { writeLog } = require("../../lib/log-manager");
 
 import * as fs from "node:fs";
 import * as path from "node:path";

@@ -1,9 +1,13 @@
 ---
 name: Orchestrator
-description: Project coordination alias → Plan native executor. Task scheduling, dispatch, result merging.
-alias_of: Plan
-default_skills:
-  - preflight-lite
+description: Project Manager – task scheduling, status control, result merging, and full‑process coordination. Does not write business code.
+model: deepseek/deepseek-v4-pro
+temperature: 0.2
+top_p: 0.4
+reasoning_effort: max
+color: "#6366F1"
+skills:
+  - execution-preflight-check
   - context7-first
   - codegraph-first
   - opencode-mcp-integration

@@ -16,7 +16,7 @@
   "agent": {
     "Orchestrator": {
       "mode": "primary",
-      "model": "deepseek/deepseek-v4-flash",
+      "model": "deepseek/deepseek-v4-pro",
       "prompt": ".opencode/agents/Orchestrator.md",
       "variant": "max",
       "permission": {
